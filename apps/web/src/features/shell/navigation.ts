@@ -7,7 +7,7 @@ import {
   type Role,
 } from "@clockwork/contracts";
 
-import type { MessageId } from "@/src/i18n/en";
+import type { MessageId } from "@/src/i18n";
 
 export type ExperienceAudience = "customer" | "partner" | "internal";
 
@@ -35,6 +35,7 @@ export const navigation: Readonly<
     {
       href: "/buy/payg",
       label: "nav.payg",
+      // i18n-exempt: search aliases matched in addition to the translated label; never displayed
       keywords: ["trial", "pay as you go", "usage"],
       allowedRoles: ["owner", "admin"],
     },
@@ -65,6 +66,7 @@ export const navigation: Readonly<
     {
       href: "/pocs",
       label: "nav.pocs",
+      // i18n-exempt: search alias matched in addition to the translated label; never displayed
       keywords: ["proof of concept"],
       requiredPermission: "poc:manage",
     },
@@ -77,6 +79,7 @@ export const navigation: Readonly<
     {
       href: "/amendments",
       label: "nav.amendments",
+      // i18n-exempt: search alias matched in addition to the translated label; never displayed
       keywords: ["change order"],
       requiredPermission: "order:write",
     },

@@ -1,4 +1,5 @@
 import { getTranslations } from "@/src/i18n/server";
+import type { Metadata } from "next";
 import { use } from "react";
 import { notFound } from "next/navigation";
 
@@ -8,6 +9,8 @@ import { BrandLogo } from "@clockwork/ui";
 import {
   demoPersonaAccountName,
   demoPersonaCatalog,
+  demoPersonaIntent,
+  demoPersonaJobTitle,
   demoPersonaSurfacesEnabled,
 } from "@/src/auth/demo-persona";
 import { brandAsset } from "@/src/features/shell/brand-assets";
@@ -15,7 +18,10 @@ import { brandAsset } from "@/src/features/shell/brand-assets";
 import { DemoLanguageSelector } from "./demo-language-selector";
 import styles from "./demo-landing.module.css";
 
-export const metadata = { title: "Guided demo" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("demo.landing.eyebrow") };
+}
 // The demo flag is read per request, so the page must never be prerendered
 // against the environment a build happened to run in.
 export const dynamic = "force-dynamic";
@@ -38,10 +44,12 @@ function PersonaRow({ persona }: { persona: DemoPersona }) {
       </span>
       <span className={styles.identity}>
         <span className={styles.name}>{persona.displayName}</span>
-        <span className={styles.role}>{persona.jobTitle}</span>
+        <span className={styles.role}>
+          {demoPersonaJobTitle(persona.key, t)}
+        </span>
       </span>
       <span className={styles.account}>{demoPersonaAccountName(persona)}</span>
-      <p className={styles.intent}>{persona.journeyIntent}</p>
+      <p className={styles.intent}>{demoPersonaIntent(persona.key, t)}</p>
       <a className={styles.start} href={`/demo/persona?persona=${persona.key}`}>
         {t("demo.landing.start", { name: persona.displayName })}
       </a>

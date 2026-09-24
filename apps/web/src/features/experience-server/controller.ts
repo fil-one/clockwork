@@ -1,3 +1,4 @@
+// i18n-exempt-file: HTTP API problem+json titles are the integrator contract (stable English, logged); an interface shows the reader a sentence chosen from `code`/`status` (problem-text.ts), never this title. The route table is an API description.
 import { timingSafeEqual } from "node:crypto";
 
 import { uuidV7 } from "@clockwork/contracts";
@@ -9,6 +10,7 @@ import {
 } from "@clockwork/documents";
 
 import { WorkosNextSessionResolver } from "@/src/auth/session";
+import { localeCookie, resolveLocale, type Locale } from "@/src/i18n";
 import { canReadPartnerChannel } from "@/src/features/customer-partner/partner/partner-access";
 import type { SessionResolver } from "@clockwork/api";
 
@@ -45,6 +47,16 @@ import {
 import { createOpaqueEsignState, publicRenderRequest } from "./repository";
 import type { ExperienceRepository } from "./repository-port";
 import { requireProjectionActionAuthority } from "./projection-authorization";
+
+/** The reader's interface language, from the same cookie the pages read. */
+function requestLocale(request: Request): Locale {
+  const prefix = `${localeCookie}=`;
+  const value = (request.headers.get("cookie") ?? "")
+    .split(/;\s*/u)
+    .find((part) => part.startsWith(prefix))
+    ?.slice(prefix.length);
+  return resolveLocale(value);
+}
 
 interface ControllerDependencies {
   repository?: ExperienceRepository;
@@ -429,6 +441,7 @@ export async function handleExperienceRequest(
         ...(cursor ? { cursor } : {}),
         limit: Math.min(100, requestedLimit),
         now,
+        locale: requestLocale(request),
       });
       const source = dependencies.projections ?? configuredProjectionSource();
       if (segments.length === 3 && request.method === "GET")
@@ -449,6 +462,7 @@ export async function handleExperienceRequest(
             accountId: input.accountId,
             recordKey,
             now,
+            ...(input.locale ? { locale: input.locale } : {}),
           }),
         );
       if (

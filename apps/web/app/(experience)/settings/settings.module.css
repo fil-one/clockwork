@@ -1,46 +1,58 @@
+/* Start-aligned like every other workspace page, not centred. */
 .main {
-  margin: 0 auto;
+  margin: 0;
   max-width: 60rem;
-  padding: clamp(1rem, 4vw, 3rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
 }
 .main h1 {
-  font-size: 2rem;
-  font-weight: 650;
+  font-size: var(--cw-text-display);
+  font-weight: 600;
+  line-height: var(--cw-leading-tight);
 }
 .main p {
-  margin: 0.75rem 0;
-  line-height: 1.6;
+  margin: 0.25rem 0 0.75rem;
+  color: var(--cw-muted);
+  line-height: var(--cw-leading-body);
 }
 .panel {
-  margin-top: 2rem;
-  border: 1px solid var(--color-border, #cbd5e1);
-  border-radius: 1rem;
-  padding: clamp(1rem, 3vw, 2rem);
+  margin-top: 1.5rem;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-surface);
+  box-shadow: var(--cw-shadow-xs);
+  padding: clamp(1rem, 3vw, 1.5rem);
 }
 .panel h2 {
-  font-size: 1.3rem;
+  font-size: var(--cw-text-lg);
   font-weight: 600;
 }
 .panel form {
   display: grid;
   gap: 0.75rem;
   max-width: 26rem;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
 }
 .panel label {
-  font-weight: 600;
+  font-size: var(--cw-text-md);
+  font-weight: 500;
+}
+.panel form > button {
+  justify-self: start;
 }
 .panel select {
   width: 100%;
-  min-height: 2.75rem;
-  padding: 0.6rem 0.8rem;
-  border: 1px solid #64748b;
-  border-radius: 0.5rem;
-  background: white;
-  color: #0f172a;
+  min-height: var(--cw-control-height);
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--cw-border-strong);
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-surface);
+  box-shadow: var(--cw-shadow-xs);
+  color: var(--cw-ink);
   font: inherit;
+  font-size: var(--cw-text-md);
 }
 .panel select:focus-visible {
-  outline: 3px solid #0090ff;
-  outline-offset: 3px;
+  border-color: var(--cw-action);
+  outline: 2px solid color-mix(in srgb, var(--cw-action) 35%, transparent);
+  outline-offset: 0;
 }

@@ -1,96 +1,109 @@
-import type { CorrectionKind, CorrectionRefusal } from "./model";
+import type { MessageId } from "@/src/i18n";
 
+import type {
+  CorrectionKind,
+  CorrectionRefusal,
+  ProviderReason,
+} from "./model";
+
+/**
+ * Message IDs for the money-correction dialogs. The wording lives in
+ * `src/i18n/messages/operations-finance.ts` in every interface language; this
+ * map only says which message each part of the form shows.
+ */
 export const correctionCopy = {
-  heading: "Corrections",
+  heading: "operations.finance.corrections.heading",
   kinds: {
     credit_note: {
-      trigger: "Issue credit note",
-      confirm: "Issue this credit note",
-      effect:
-        "A credit note is approved against this invoice and a Stripe credit-note operation is created for it. The invoice amount is reduced by the credit the provider confirms; nothing is refunded to a card.",
-      reversible:
-        "Only by voiding the credit note through the provider. This surface cannot void one.",
+      trigger: "operations.finance.corrections.creditNote.trigger",
+      confirm: "operations.finance.corrections.creditNote.confirm",
+      effect: "operations.finance.corrections.creditNote.effect",
+      reversible: "operations.finance.corrections.creditNote.reversible",
     },
     refund: {
-      trigger: "Submit refund",
-      confirm: "Submit this refund",
-      effect:
-        "A refund is approved against a settled payment and a Stripe refund operation is created for it. Money leaves the account when the provider executes it.",
-      reversible: "No. A refund the provider has executed cannot be recalled.",
+      trigger: "operations.finance.corrections.refund.trigger",
+      confirm: "operations.finance.corrections.refund.confirm",
+      effect: "operations.finance.corrections.refund.effect",
+      reversible: "operations.finance.corrections.refund.reversible",
     },
     dispute: {
-      trigger: "Record dispute",
-      confirm: "Record this dispute",
-      effect:
-        "A dispute Stripe already opened is recorded against a settled payment, with the evidence deadline it carries. Recording it does not answer it.",
-      reversible:
-        "The record stays. The dispute's outcome arrives from the provider.",
+      trigger: "operations.finance.corrections.dispute.trigger",
+      confirm: "operations.finance.corrections.dispute.confirm",
+      effect: "operations.finance.corrections.dispute.effect",
+      reversible: "operations.finance.corrections.dispute.reversible",
     },
-  } as Readonly<
+  } as const satisfies Readonly<
     Record<
       CorrectionKind,
       {
-        trigger: string;
-        confirm: string;
-        effect: string;
-        reversible: string;
+        trigger: MessageId;
+        confirm: MessageId;
+        effect: MessageId;
+        reversible: MessageId;
       }
     >
   >,
   fields: {
-    amount: "Amount in minor units",
-    amountHelp: (currency: string | null, invoice: string | null) =>
-      invoice
-        ? `Whole minor units of ${currency ?? "the invoice currency"}. The invoice total is ${invoice}.`
-        : `Whole minor units of ${currency ?? "the invoice currency"}.`,
-    providerReason: "Provider reason",
-    providerReasonHelp:
-      "Sent to Stripe. Each resource accepts its own list; this one is the resource's.",
-    internalReason: "Internal reason code",
-    internalReasonHelp:
-      "3 to 120 characters. Kept with your name on the audit row.",
-    payment: "Payment identifier",
-    paymentHelp:
-      "No read surface resolves a payment, so this is the one value on this form that is not taken from the record you opened. Take it from the settled payment; the server refuses one that does not belong to this account.",
-    disputeReference: "Stripe dispute identifier",
-    disputeReferenceHelp: "The dp_… identifier from the Stripe dispute.",
-    evidenceDue: "Evidence due",
-    evidenceDueHelp: "The deadline Stripe set for evidence on this dispute.",
+    amount: "operations.finance.corrections.amount",
+    amountHelp: "operations.finance.corrections.amount.help",
+    amountHelpWithTotal: "operations.finance.corrections.amount.helpWithTotal",
+    amountHelpNoCurrency:
+      "operations.finance.corrections.amount.helpNoCurrency",
+    providerReason: "operations.finance.corrections.providerReason",
+    providerReasonHelp: "operations.finance.corrections.providerReason.help",
+    internalReason: "operations.finance.corrections.internalReason",
+    internalReasonHelp: "operations.finance.corrections.internalReason.help",
+    payment: "operations.finance.corrections.payment",
+    paymentHelp: "operations.finance.corrections.payment.help",
+    disputeReference: "operations.finance.corrections.disputeReference",
+    disputeReferenceHelp:
+      "operations.finance.corrections.disputeReference.help",
+    evidenceDue: "operations.finance.corrections.evidenceDue",
+    evidenceDueHelp: "operations.finance.corrections.evidenceDue.help",
   },
-  subject: "Invoice",
-  effectTerm: "Effect",
-  reversibleTerm: "Reversible",
-  authority:
-    "Finance approval authority is required. The server re-checks your role against freshly read authorization, requires a recent sign-in for this command, and writes the audit row in the same transaction as the correction.",
-  refusalsSummary: "Everything this form refuses before sending",
-  submitting: "Sending",
-  recorded: (reference: string) => `Recorded. Reference ${reference}.`,
+  /** Stripe's own reason codes, labelled as Stripe's dashboard labels them. */
+  providerReasons: {
+    duplicate: "operations.finance.corrections.reason.duplicate",
+    fraudulent: "operations.finance.corrections.reason.fraudulent",
+    order_change: "operations.finance.corrections.reason.orderChange",
+    product_unsatisfactory:
+      "operations.finance.corrections.reason.productUnsatisfactory",
+    requested_by_customer:
+      "operations.finance.corrections.reason.requestedByCustomer",
+  } as const satisfies Readonly<Record<ProviderReason, MessageId>>,
+  subject: "recordKind.invoice",
+  effectTerm: "operations.finance.corrections.effect",
+  reversibleTerm: "operations.finance.corrections.reversible",
+  authority: "operations.finance.corrections.authority",
+  refusalsSummary: "operations.finance.corrections.refusalsSummary",
+  submitting: "operations.finance.corrections.submitting",
+  recorded: "operations.finance.corrections.recorded",
+  serverCode: "operations.finance.corrections.serverCode",
   refusals: {
-    ACCOUNT_UNRESOLVED:
-      "This invoice is not linked to an account available in your current workspace. Open its order or switch accounts before recording a correction.",
-    AMOUNT_INVALID:
-      "Enter the amount as a positive whole number of minor units.",
+    ACCOUNT_UNRESOLVED: "operations.finance.corrections.refusal.account",
+    AMOUNT_INVALID: "operations.finance.corrections.refusal.amount",
     AMOUNT_EXCEEDS_INVOICE:
-      "The credit is larger than the invoice total. The server allows less than this: it credits only what is still owed, minus any credit note already raised.",
-    CURRENCY_UNRESOLVED:
-      "This invoice records no currency, so no amount can be built for it.",
-    PROVIDER_REASON_INVALID: "Choose a provider reason this resource accepts.",
+      "operations.finance.corrections.refusal.amountExceedsInvoice",
+    CURRENCY_UNRESOLVED: "operations.finance.corrections.refusal.currency",
+    PROVIDER_REASON_INVALID:
+      "operations.finance.corrections.refusal.providerReason",
     INTERNAL_REASON_REQUIRED:
-      "Give an internal reason code of 3 to 120 characters.",
-    PAYMENT_REQUIRED: "Enter the identifier of the settled payment.",
+      "operations.finance.corrections.refusal.internalReason",
+    PAYMENT_REQUIRED: "operations.finance.corrections.refusal.payment",
     DISPUTE_REFERENCE_INVALID:
-      "Enter the Stripe dispute identifier, which begins dp_.",
-    EVIDENCE_DUE_INVALID: "Enter the evidence deadline as a date and time.",
-  } as Readonly<Record<CorrectionRefusal, string>>,
+      "operations.finance.corrections.refusal.disputeReference",
+    EVIDENCE_DUE_INVALID: "operations.finance.corrections.refusal.evidenceDue",
+  } as const satisfies Readonly<Record<CorrectionRefusal, MessageId>>,
   failures: {
-    forbidden:
-      "Your role or current session cannot raise this correction. A recent sign-in is required for money commands.",
-    conflict:
-      "This record changed while you were working, or the same correction was already recorded. Reload before repeating it.",
-    validation:
-      "The server refused the correction. Nothing was written; the detail below is its answer.",
-    unavailable: "The commerce service is unavailable. Nothing was written.",
-    unknown: "The correction could not be sent. Nothing was written.",
+    forbidden: "operations.finance.corrections.failure.forbidden",
+    conflict: "operations.finance.corrections.failure.conflict",
+    validation: "operations.finance.corrections.failure.validation",
+    unavailable: "operations.finance.corrections.failure.unavailable",
+    unknown: "operations.finance.corrections.failure.unknown",
   },
-  unavailableTitle: "Corrections are unavailable on this row.",
-} as const;
+} as const satisfies {
+  heading: MessageId;
+  subject: MessageId;
+  fields: Readonly<Record<string, MessageId>>;
+  failures: Readonly<Record<string, MessageId>>;
+} & Readonly<Record<string, unknown>>;

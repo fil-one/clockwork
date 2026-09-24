@@ -1,4 +1,5 @@
 import "server-only";
+// i18n-exempt-file: demo quote API: problem+json titles are the API contract (the interface maps `code`); line details and payment terms are the quote PDF's document wording (rule 5).
 
 import { createHash } from "node:crypto";
 

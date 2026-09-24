@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { loadQuoteRevisionSource } from "@/src/features/experience-server/quote-revision-source";
 import {
   OrderAcceptance,
@@ -15,8 +17,14 @@ import {
 } from "@/src/features/experience-server/portal-view-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 
 import { selectAcceptanceQuote, toAcceptableQuote } from "./select-quote";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("customer.commercial.accept.title") };
+}
 
 type Data = Readonly<Record<string, unknown>>;
 
@@ -101,10 +109,12 @@ async function OrderAcceptanceWorkspace({
   params: RawSearchParams;
 }) {
   const requested = firstSearchParam(params, "quote");
-  const [identity, quotes, agreements] = await Promise.all([
+  const [identity, quotes, agreements, t, locale] = await Promise.all([
     getRouteIdentity("customer"),
     loadPortalRecords("customer", "quotes"),
     loadGoverningAgreement(),
+    getTranslations(),
+    getFormattingLocale(),
   ]);
   // An explicit quote key is a binding, not a hint. Falling back to the first
   // acceptable quote when that key has not projected yet can make a reader
@@ -112,7 +122,7 @@ async function OrderAcceptanceWorkspace({
   // issued. With no explicit key the existing newest-acceptable behavior
   // remains available for ordinary entry from the navigation.
   const selected = selectAcceptanceQuote(quotes.records, requested);
-  const quote = selected ? toAcceptableQuote(selected) : null;
+  const quote = selected ? toAcceptableQuote(selected, t, locale) : null;
   if (quote && selected) {
     const source = await loadQuoteRevisionSource(selected.recordKey);
     if (source) quote.lineCount = source.lines.length;

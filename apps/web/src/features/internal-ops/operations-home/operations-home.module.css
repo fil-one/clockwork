@@ -2,9 +2,9 @@
   display: grid;
   width: min(100%, 1440px);
   min-width: 0;
-  gap: 1.75rem;
+  gap: 1.5rem;
   margin: 0 auto;
-  padding: clamp(1rem, 3vw, 2.25rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
   color: var(--cw-ink);
 }
 
@@ -25,18 +25,15 @@
   gap: 1.5rem;
 }
 
-.taskHeader {
-  padding-block-end: 1.1rem;
-  border-bottom: 2px solid var(--cw-ink);
-}
-
+/* The page title is a heading, not a value, so it is set in the product
+   face like every other title. It used to take the monospace stack, which
+   reaches the generic monospace (Courier) on a Mac without SF Mono exposed. */
 .taskHeader h1 {
   margin: 0;
-  font-family: var(--cw-font-mono);
-  font-size: clamp(1.55rem, 2.5vw, 2.2rem);
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
+  font-family: var(--cw-font-display);
+  font-size: var(--cw-text-display);
+  font-weight: 600;
+  line-height: var(--cw-leading-tight);
 }
 
 .taskHeader > div > p,
@@ -47,25 +44,26 @@
 
 .taskHeader > div > p {
   max-width: 72ch;
-  margin: 0.5rem 0 0;
+  margin: 0.25rem 0 0;
   font-size: var(--cw-text-md);
 }
 
 .freshness {
   flex: 0 0 auto;
   margin: 0;
-  font-family: var(--cw-font-mono);
+  color: var(--cw-muted);
   font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
 }
 
 .sectionHeading {
-  margin-bottom: 0.7rem;
+  margin-bottom: 0.75rem;
 }
 
 .sectionHeading h2 {
   margin: 0;
-  font-size: var(--cw-text-xl);
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 
 .sectionHeading p {
@@ -78,21 +76,45 @@
 .recommendations a,
 .signalTable a {
   display: inline-flex;
-  min-height: 2.75rem;
+  min-height: var(--cw-control-height);
   align-items: center;
-  color: var(--cw-brand-strong);
+  color: var(--cw-action);
   font-size: var(--cw-text-sm);
-  font-weight: 700;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.recommendations a:hover,
+.signalTable a:hover {
+  color: var(--cw-action-strong);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .primaryLink {
   flex: 0 0 auto;
   justify-content: center;
-  padding-inline: 0.9rem;
-  border-radius: var(--cw-radius-xs);
-  background: var(--cw-brand-strong);
+  padding-inline: 0.875rem;
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-action);
+  box-shadow: var(--cw-shadow-xs);
   color: white;
+  font-size: var(--cw-text-md);
   text-decoration: none;
+}
+
+.primaryLink:hover {
+  background: var(--cw-action-strong);
+}
+
+/* The trailing arrow points along the reading direction. */
+.signalTable a > span[aria-hidden="true"] {
+  display: inline-block;
+  margin-inline-start: 0.25rem;
+}
+
+:global(html[dir="rtl"]) .signalTable a > span[aria-hidden="true"] {
+  transform: scaleX(-1);
 }
 
 .recommendations {
@@ -127,22 +149,25 @@
 
 .rank {
   align-self: start;
-  color: var(--cw-brand-ink);
-  font-family: var(--cw-font-mono);
+  color: var(--cw-action);
   font-size: var(--cw-text-lg);
-  font-weight: 800;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
+/* The signal table is a console card: hairline, 0.5rem corners, compact rows. */
 .tableRegion {
   max-width: 100%;
   overflow-x: auto;
-  border-block: 1px solid var(--cw-border-strong);
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-surface);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .tableRegion:focus-visible {
-  outline: 3px solid var(--cw-focus);
-  outline-offset: 3px;
+  outline: 2px solid var(--cw-focus);
+  outline-offset: 2px;
 }
 
 .signalTable {
@@ -150,38 +175,59 @@
   min-width: 68rem;
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
-  text-align: left;
+  text-align: start;
 }
 
 .signalTable th,
 .signalTable td {
-  padding: 0.75rem 0.65rem;
+  padding: 0.625rem 1rem;
   border-bottom: 1px solid var(--cw-border);
-  font-size: var(--cw-text-xs);
+  font-size: var(--cw-text-sm);
+  text-align: start;
   vertical-align: top;
 }
 
+.signalTable tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
 .signalTable thead th {
+  padding-block: 0.5rem;
+  background: var(--cw-canvas);
   color: var(--cw-muted);
   font-size: var(--cw-text-xs);
-  letter-spacing: 0.03em;
+  font-weight: 500;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
-.signalTable tbody tr {
-  border-left: 4px solid var(--cw-border-strong);
+.signalTable td {
+  color: var(--cw-ink-soft);
 }
 
-.signalTable tbody tr[data-tone="critical"] {
-  border-left-color: var(--cw-danger);
+/* Tone is a small dot before the signal name, not a heavy row stripe. */
+.signalLabel::before {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-inline-end: 0.45rem;
+  border-radius: 50%;
+  background: var(--cw-border-strong);
+  vertical-align: 0.08em;
+  content: "";
 }
-.signalTable tbody tr[data-tone="warning"] {
-  border-left-color: var(--cw-warning);
+
+.signalTable tbody tr[data-tone="critical"] .signalLabel::before {
+  background: var(--cw-danger);
 }
-.signalTable tbody tr[data-tone="stable"] {
-  border-left-color: var(--cw-success);
+.signalTable tbody tr[data-tone="warning"] .signalLabel::before {
+  background: var(--cw-warning-mark);
 }
-.signalTable tbody tr[data-tone="info"] {
-  border-left-color: var(--cw-info);
+.signalTable tbody tr[data-tone="stable"] .signalLabel::before {
+  background: var(--cw-success);
+}
+.signalTable tbody tr[data-tone="info"] .signalLabel::before {
+  background: var(--cw-action);
 }
 
 .signalLabel,
@@ -190,10 +236,17 @@
   white-space: nowrap;
 }
 
+.signalLabel {
+  color: var(--cw-ink);
+  font-weight: 500;
+}
+
 .signalValue {
-  margin-top: 0.25rem;
-  font-family: var(--cw-font-mono);
-  font-size: var(--cw-text-md);
+  margin-top: 0.125rem;
+  margin-inline-start: 0.9rem;
+  color: var(--cw-ink);
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 
 .signalTable a {

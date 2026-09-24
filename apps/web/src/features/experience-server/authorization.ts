@@ -1,3 +1,4 @@
+// i18n-exempt-file: HTTP API problem+json titles are the integrator contract (stable English, logged); an interface shows the reader a sentence chosen from `code`/`status` (problem-text.ts), never this title.
 import type { SessionClaims } from "@clockwork/api";
 import { uuidV7 } from "@clockwork/contracts";
 

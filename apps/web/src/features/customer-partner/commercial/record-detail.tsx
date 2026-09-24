@@ -1,5 +1,5 @@
-import { localizeCopy } from "@/src/i18n/copy";
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
+import type { MessageId, Translator } from "@/src/i18n";
 import { use } from "react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -12,66 +12,82 @@ import {
   buttonClassName,
 } from "@clockwork/ui";
 
-import { customerPartnerCopy } from "../copy";
+import { formatDate } from "@/src/features/shared/format";
+
 import styles from "./commercial.module.css";
-import type { CommercialRecord } from "./model";
+import {
+  collectionDefinitions,
+  type CollectionKind,
+  type CommercialRecord,
+} from "./model";
 import { orderTimeline } from "./order-timeline";
 import { PaymentHandoff } from "./payment-handoff";
+import {
+  commercialDisplay,
+  type CommercialDisplay,
+} from "./record-presentation";
 import { validQuoteActions, type QuoteStatus } from "./workflow-model";
 import { ArtifactDeliveryList } from "@/src/features/experience-server/artifact-delivery-list";
 import { loadRecordArtifacts } from "@/src/features/experience-server/delivery";
 import { EvidenceUploadControl } from "@/src/features/experience-server/evidence-upload-control";
+import { breadcrumbsLabel } from "@/src/features/shared/ui-kit-labels";
 
-function detailLabel(record: CommercialRecord) {
-  if (record.kind === "agreements") return "Agreement detail";
-  if (record.kind === "quotes") return "Quote detail";
-  if (record.kind === "orders") return "Order detail";
-  if (record.kind === "pocs") return "Proof-of-concept detail";
-  if (record.kind === "billing") return "Invoice detail";
-  return "Service detail";
+/** The detail page's purpose line, per collection. */
+export const detailLabels = {
+  agreements: "customer.commercial.detail.eyebrow.agreements",
+  quotes: "customer.commercial.detail.eyebrow.quotes",
+  orders: "customer.commercial.detail.eyebrow.orders",
+  pocs: "customer.commercial.detail.eyebrow.pocs",
+  billing: "customer.commercial.detail.eyebrow.billing",
+  services: "customer.commercial.detail.eyebrow.services",
+} as const satisfies Record<CollectionKind, MessageId>;
+
+function versionLabel(record: CommercialRecord): MessageId {
+  return record.kind === "agreements"
+    ? "customer.commercial.detail.agreementVersion"
+    : record.kind === "quotes"
+      ? "customer.commercial.detail.quoteRevision"
+      : "customer.commercial.detail.version";
 }
 
-function commercialSummary(record: CommercialRecord) {
+function commercialSummary(
+  record: CommercialRecord,
+  display: CommercialDisplay,
+  t: Translator,
+) {
   const summary = [
-    { label: "Record", value: record.title },
-    { label: "Authoritative status", value: record.statusLabel },
-    { label: record.valueLabel, value: record.value },
-    { label: "Owner", value: record.owner },
-    { label: "Term / timing", value: record.term },
+    { label: t("customer.commercial.column.record"), value: record.title },
+    {
+      label: t("customer.commercial.detail.status"),
+      value: display.statusLabel,
+    },
+    { label: display.valueLabel, value: display.value },
+    { label: t("common.owner"), value: record.owner },
+    { label: t("customer.commercial.detail.timing"), value: display.term },
   ];
   if (!record.version) return summary;
   return [
     ...summary,
-    {
-      label:
-        record.kind === "agreements"
-          ? "Agreement version"
-          : record.kind === "quotes"
-            ? "Quote revision"
-            : "Version",
-      value: record.version,
-    },
+    { label: t(versionLabel(record)), value: record.version },
   ];
 }
 
-function artifactChain(record: CommercialRecord, recordKey: string) {
+function artifactChain(
+  record: CommercialRecord,
+  display: CommercialDisplay,
+  recordKey: string,
+  t: Translator,
+) {
   const chain = [
-    ["Customer reference", record.reference ?? recordKey],
-    ["Source update", record.dateLabel],
-    ["Next valid task", record.nextAction],
+    [
+      t("customer.commercial.detail.customerReference"),
+      record.reference ?? recordKey,
+    ],
+    [t("customer.commercial.detail.sourceUpdate"), display.timing],
+    [t("customer.commercial.detail.nextTask"), display.nextAction],
   ];
   return record.version
-    ? [
-        [
-          record.kind === "agreements"
-            ? "Agreement version"
-            : record.kind === "quotes"
-              ? "Quote revision"
-              : "Version",
-          record.version,
-        ],
-        ...chain,
-      ]
+    ? [[t(versionLabel(record)), record.version], ...chain]
     : chain;
 }
 
@@ -105,43 +121,43 @@ function artifactChain(record: CommercialRecord, recordKey: string) {
 function nextStep(
   record: CommercialRecord,
   recordKey: string,
-): { href: Route; label: string } | null {
+): { href: Route; label: MessageId } | null {
   const reference = encodeURIComponent(recordKey);
   if (record.kind === "quotes") {
     const actions = validQuoteActions(record.status as QuoteStatus);
     if (actions.includes("accept"))
       return {
         href: `/orders/accept?quote=${reference}`,
-        label: "Review and accept order",
+        label: "customer.commercial.detail.step.acceptOrder",
       };
     if (actions.includes("edit"))
       return {
         href: "/quotes/new",
-        label: "Create a new quote",
+        label: "customer.commercial.detail.step.newQuote",
       };
     return null;
   }
   if (record.kind === "pocs")
     return {
       href: `/quotes/new?poc=${reference}`,
-      label: "Convert to a quote",
+      label: "customer.commercial.detail.step.convertPoc",
     };
   if (record.kind === "orders")
     return {
       href: "/amendments",
-      label: "Request an amendment",
+      label: "customer.commercial.detail.step.requestAmendment",
     };
   if (record.kind === "agreements")
     return record.allowedActions?.includes("execute_agreement")
       ? {
           href: `/agreements/execute?agreement=${reference}`,
-          label: "Execute a new agreement",
+          label: "customer.commercial.detail.step.executeAgreement",
         }
       : null;
   if (record.kind === "services")
     return {
       href: `/account/offboarding?service=${reference}`,
-      label: "Request offboarding",
+      label: "customer.commercial.detail.step.requestOffboarding",
     };
   return null;
 }
@@ -155,6 +171,7 @@ function DetailActions({
   recordKey: string;
   canMutate: boolean;
 }) {
+  const t = use(getTranslations());
   const step = nextStep(record, recordKey);
   if (record.kind === "orders" && record.orderLifecycleStatus === "accepted")
     return null;
@@ -162,20 +179,20 @@ function DetailActions({
   if (!canMutate)
     return (
       <span className={styles.muted}>
-        An owner or administrator can take the next action.
+        {t("customer.commercial.detail.restricted")}
       </span>
     );
   return (
     <>
       <Link className={styles.primary} href={step.href}>
-        {step.label}
+        {t(step.label)}
       </Link>
       {record.kind === "quotes" && record.status === "open" ? (
         <Link
           className={styles.secondary}
           href={`/quotes/new?revises=${encodeURIComponent(recordKey)}`}
         >
-          Create revised draft
+          {t("customer.commercial.detail.step.revisedDraft")}
         </Link>
       ) : null}
     </>
@@ -234,37 +251,44 @@ function UnreadableRecord() {
  */
 function payableInvoice(
   record: CommercialRecord,
+  display: CommercialDisplay,
   recordKey: string,
   accountId: string | undefined,
   canMutate: boolean,
   guidedDemo: boolean,
+  t: Translator,
+  locale: string,
 ): ReactNode {
   if (record.kind !== "billing" || record.status !== "open") return null;
   if (!canMutate)
     return (
       <section className={`${styles.panel} ${styles.section}`}>
-        <h2>Payment access</h2>
+        <h2>{t("customer.commercial.detail.paymentAccessTitle")}</h2>
         <p className={styles.description}>
-          An account owner or billing role can prepare the secure payment
-          handoff.
+          {t("customer.commercial.detail.paymentAccessBody")}
         </p>
       </section>
     );
   if (!accountId || !record.aggregateId)
     return (
       <section className={`${styles.panel} ${styles.section}`} role="alert">
-        <h2>Payment unavailable</h2>
+        <h2>{t("customer.commercial.detail.paymentUnavailableTitle")}</h2>
         <p className={styles.description}>
-          This invoice cannot be paid from here until its persisted identity and
-          your acting account both resolve. Nothing was charged.
+          {t("customer.commercial.detail.paymentUnavailableBody")}
         </p>
       </section>
     );
+  // The due row is labelled "Payment due", so it takes the bare date when the
+  // record says when payment is due, rather than repeating "Due" in front of it.
+  const due =
+    record.facts?.timing.kind === "due" && record.facts.status === record.status
+      ? formatDate(record.facts.timing.on, locale)
+      : display.timing;
   return (
     <PaymentHandoff
       accountId={accountId}
-      amountLabel={record.value}
-      dueLabel={record.dateLabel}
+      amountLabel={display.value}
+      dueLabel={due}
       guidedDemo={guidedDemo}
       invoiceId={record.aggregateId}
       recordKey={recordKey}
@@ -322,24 +346,23 @@ export async function CommercialRecordDetail({
   actions?: ReactNode;
 }) {
   const t = await getTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
+  const locale = await getFormattingLocale();
   if (!record) return <UnreadableRecord />;
+  const display = commercialDisplay(record, t, locale);
   // Every `CollectionKind` is also the collection's own path segment, so this
   // is checked rather than asserted. The `services` special case this replaces
   // produced the identical string and only read as though something differed.
   const backHref: Route = `/${record.kind}`;
-  const summary = commercialSummary(record);
-  const chain = artifactChain(record, id);
+  const summary = commercialSummary(record, display, t);
+  const chain = artifactChain(record, display, id, t);
   const artifacts = await loadRecordArtifacts("customer", record.kind, id);
   return (
     <main className={styles.main} id="main-content">
       <Breadcrumbs
+        label={breadcrumbsLabel(t)}
         items={[
           {
-            label:
-              record.kind === "pocs"
-                ? "POCs"
-                : record.kind[0]?.toUpperCase() + record.kind.slice(1),
+            label: t(collectionDefinitions[record.kind].title),
             href: backHref,
           },
           { label: record.title },
@@ -349,16 +372,20 @@ export async function CommercialRecordDetail({
 
       <header className={styles.detailHeader}>
         <div>
-          <p className={styles.eyebrow}>{detailLabel(record)}</p>
+          <p className={styles.eyebrow}>{t(detailLabels[record.kind])}</p>
           <h1>
-            {record.title}
-            {record.version ? ` · version ${record.version}` : ""}
+            {record.version
+              ? t("customer.commercial.detail.titleWithVersion", {
+                  title: record.title,
+                  version: record.version,
+                })
+              : record.title}
           </h1>
-          <p className={styles.description}>{record.description}</p>
+          <p className={styles.description}>{display.description}</p>
         </div>
         <div className={styles.actionGroup}>
           <span className={`${styles.badge} ${styles[record.tone]}`}>
-            {record.statusLabel}
+            {display.statusLabel}
           </span>
           <DetailActions canMutate={canMutate} record={record} recordKey={id} />
           {record.kind === "agreements" &&
@@ -369,7 +396,7 @@ export async function CommercialRecordDetail({
               className={styles.primary}
               href={`/signing/redirect?agreementId=${encodeURIComponent(record.aggregateId)}`}
             >
-              Sign this agreement
+              {t("customer.commercial.detail.step.sign")}
             </Link>
           ) : null}
         </div>
@@ -379,13 +406,13 @@ export async function CommercialRecordDetail({
         className={styles.nextAction}
         aria-labelledby="next-action-title"
       >
-        <p id="next-action-title">
-          {localizedcustomerPartnerCopy.common.nextAction}
-        </p>
+        <p id="next-action-title">{t("common.nextAction")}</p>
         {record.nextActionHref ? (
-          <Link href={record.nextActionHref as Route}>{record.nextAction}</Link>
+          <Link href={record.nextActionHref as Route}>
+            {display.nextAction}
+          </Link>
         ) : (
-          <strong>{record.nextAction}</strong>
+          <strong>{display.nextAction}</strong>
         )}
       </section>
 
@@ -396,7 +423,7 @@ export async function CommercialRecordDetail({
             aria-labelledby="commercial-summary-title"
           >
             <h2 id="commercial-summary-title">
-              {localizedcustomerPartnerCopy.common.commercialSummary}
+              {t("common.commercialSummary")}
             </h2>
             <dl className={styles.definitionGrid}>
               {summary.map((item) => (
@@ -411,21 +438,25 @@ export async function CommercialRecordDetail({
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="term-title"
           >
-            <h2 id="term-title">
-              {localizedcustomerPartnerCopy.common.termState}
-            </h2>
-            <p className={styles.description}>{record.term}</p>
+            <h2 id="term-title">{t("common.termState")}</h2>
+            <p className={styles.description}>{display.term}</p>
           </section>
           {record.kind === "orders" ? (
             <section
               className={`${styles.panel} ${styles.section}`}
               aria-labelledby="order-progress-title"
             >
-              <h2 id="order-progress-title">Order progress</h2>
+              <h2 id="order-progress-title">
+                {t("customer.commercial.detail.orderProgress")}
+              </h2>
               <Timeline
                 className={styles.orderTimeline ?? ""}
-                items={orderTimeline(record, artifacts)}
-                label="Order lifecycle"
+                items={orderTimeline(
+                  { ...record, term: display.term },
+                  artifacts,
+                  t,
+                )}
+                label={t("customer.commercial.detail.orderLifecycle")}
               />
             </section>
           ) : null}
@@ -433,9 +464,7 @@ export async function CommercialRecordDetail({
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="artifact-title"
           >
-            <h2 id="artifact-title">
-              {localizedcustomerPartnerCopy.common.artifactChain}
-            </h2>
+            <h2 id="artifact-title">{t("common.artifactChain")}</h2>
             <ol className={styles.chain}>
               {chain.map(([label, value]) => (
                 <li key={label}>
@@ -449,9 +478,7 @@ export async function CommercialRecordDetail({
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="documents-title"
           >
-            <h2 id="documents-title">
-              {localizedcustomerPartnerCopy.common.documents}
-            </h2>
+            <h2 id="documents-title">{t("common.documents")}</h2>
             {/*
              * The list is the whole statement, and it is the same list every
              * other surface that shows generated paper renders. When documents
@@ -474,45 +501,56 @@ export async function CommercialRecordDetail({
 
         <div className={styles.stack}>
           {actions}
-          {payableInvoice(record, id, accountId, canMutate, guidedDemo)}
+          {payableInvoice(
+            record,
+            display,
+            id,
+            accountId,
+            canMutate,
+            guidedDemo,
+            t,
+            locale,
+          )}
           <section
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="audit-title"
           >
-            <h2 id="audit-title">
-              {localizedcustomerPartnerCopy.common.auditEvidence}
-            </h2>
+            <h2 id="audit-title">{t("common.auditEvidence")}</h2>
             <ol className={styles.audit}>
               <li>
-                <span>{record.dateLabel}</span>
-                <strong>Record state synchronized</strong>
+                <span>{display.timing}</span>
+                <strong>{t("customer.commercial.detail.synchronized")}</strong>
               </li>
               <li>
-                <span>Actor</span>
+                <span>{t("customer.commercial.detail.actor")}</span>
                 <strong>{record.owner}</strong>
               </li>
             </ol>
             <details className={styles.technical}>
-              <summary>
-                {localizedcustomerPartnerCopy.common.technicalDetails}
-              </summary>
+              <summary>{t("common.technicalDetails")}</summary>
               <dl className={styles.definitionGrid}>
                 <div>
-                  <dt>Record identifier</dt>
+                  <dt>{t("customer.commercial.detail.recordId")}</dt>
                   <dd>
                     <code>{record.id}</code>
                   </dd>
                 </div>
                 <div>
-                  <dt>Projection identifier</dt>
+                  <dt>{t("customer.commercial.detail.projectionId")}</dt>
                   <dd>
-                    <code>{record.projectionId ?? "Unavailable"}</code>
+                    <code>
+                      {record.projectionId ??
+                        t("customer.commercial.detail.unavailable")}
+                    </code>
                   </dd>
                 </div>
                 <div>
-                  <dt>Projection row version</dt>
+                  <dt>{t("customer.commercial.detail.projectionVersion")}</dt>
                   <dd>
-                    <code>{record.projectionVersion ?? "Unavailable"}</code>
+                    <code>
+                      {record.projectionVersion ??
+                        t("customer.commercial.detail.unavailable")}
+                    </code>
                   </dd>
                 </div>
               </dl>
@@ -523,7 +561,7 @@ export async function CommercialRecordDetail({
               journey="customer_paper"
               targetId={record.aggregateId}
               kind="agreement"
-              label="Attach customer agreement paper"
+              label={t("customer.commercial.detail.attachAgreementPaper")}
             />
           ) : null}
           {record.aggregateId && record.kind === "pocs" ? (
@@ -531,7 +569,7 @@ export async function CommercialRecordDetail({
               journey="poc"
               targetId={record.aggregateId}
               kind="acceptance"
-              label="Attach POC acceptance or result evidence"
+              label={t("customer.commercial.detail.attachPocEvidence")}
             />
           ) : null}
         </div>

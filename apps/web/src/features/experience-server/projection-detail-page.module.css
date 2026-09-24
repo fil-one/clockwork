@@ -9,15 +9,13 @@
   display: grid;
   gap: 1.5rem;
   min-width: 0;
-  padding: clamp(1.25rem, 4vw, 3.25rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
   width: 100%;
 }
 
 .pageHeader {
-  border-bottom: 2px solid var(--detail-ink);
   display: grid;
-  gap: 0.45rem;
-  padding-bottom: 1.1rem;
+  gap: 0.25rem;
 }
 
 .pageHeader h1,
@@ -30,8 +28,8 @@
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
+  line-height: var(--cw-leading-tight);
+  text-wrap: balance;
 }
 
 .context,
@@ -49,55 +47,75 @@
 .context {
   color: var(--detail-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .description {
   color: var(--detail-muted);
-  font-size: clamp(var(--cw-text-lg), 1.4vw, var(--cw-text-xl));
-  line-height: 1.55;
+  font-size: var(--cw-text-md);
+  line-height: var(--cw-leading-body);
   max-width: 62ch;
 }
 
+/* Freshness is a small status line with a dot, as in the console. */
 .freshness {
-  border-left: 3px solid var(--detail-action);
+  align-items: center;
   color: var(--detail-muted);
-  font-size: var(--cw-text-sm);
-  font-weight: 700;
-  margin-top: 0.5rem;
-  padding: 0.3rem 0.65rem;
+  display: inline-flex;
+  font-size: var(--cw-text-xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
   width: fit-content;
 }
 
+.freshness::before {
+  background: var(--cw-success);
+  border-radius: 50%;
+  content: "";
+  flex: 0 0 auto;
+  height: 0.4rem;
+  width: 0.4rem;
+}
+
 .freshness.stale {
-  border-left-color: var(--web-warm);
-  color: var(--cw-warning);
+  color: var(--cw-warning-ink);
+}
+
+.freshness.stale::before {
+  background: var(--cw-warning-mark);
 }
 
 .promiseChain {
   background: var(--detail-paper);
-  border-block: 1px solid var(--detail-border);
+  border: 1px solid var(--detail-border);
+  border-radius: var(--cw-radius-lg);
+  box-shadow: var(--cw-shadow-xs);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   list-style: none;
   margin: 0;
+  overflow: hidden;
   padding: 0;
 }
 
 .promiseChain li {
   display: grid;
-  gap: 0.3rem;
+  gap: 0.25rem;
   min-width: 0;
-  padding: 1rem 1.1rem;
+  padding: 0.75rem 1rem;
 }
 
 .promiseChain li + li {
-  border-left: 1px solid var(--detail-border);
+  border-inline-start: 1px solid var(--detail-border);
 }
 
 .promiseChain li[aria-current="step"] {
-  border-top: 4px solid var(--detail-action);
-  padding-top: calc(1rem - 3px);
+  background: var(--cw-action-soft);
+  box-shadow: 0 -2px 0 var(--detail-action) inset;
 }
 
 .promiseChain span {
@@ -106,14 +124,18 @@
 }
 
 .promiseChain strong {
-  font-size: var(--cw-text-lg);
+  font-size: var(--cw-text-md);
+  font-weight: 600;
   line-height: 1.35;
 }
 
 .recordLedger {
   background: var(--detail-paper);
   border: 1px solid var(--detail-border);
+  border-radius: var(--cw-radius-lg);
+  box-shadow: var(--cw-shadow-xs);
   min-width: 0;
+  overflow: hidden;
 }
 
 .ledgerHeader {
@@ -122,12 +144,12 @@
   display: flex;
   gap: 1rem 2rem;
   justify-content: space-between;
-  padding: 1.15rem 1.25rem;
+  padding: 1rem 1.25rem;
 }
 
 .ledgerHeader h2 {
   font-family: var(--cw-font-display);
-  font-size: clamp(var(--cw-text-2xl), 2vw, var(--cw-text-3xl));
+  font-size: var(--cw-text-lg);
   font-weight: 600;
 }
 
@@ -138,9 +160,9 @@
 }
 
 .ledgerBoundary {
-  border-left: 3px solid var(--detail-action);
+  border-inline-start: 1px solid var(--detail-border);
   max-width: 26rem;
-  padding-left: 0.7rem;
+  padding-inline-start: 0.75rem;
 }
 
 .recordList {
@@ -149,13 +171,13 @@
 
 .record {
   display: grid;
-  gap: 1.15rem;
+  gap: 1rem;
   min-width: 0;
-  padding: clamp(1.1rem, 2.5vw, 1.6rem);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
 }
 
 .record + .record {
-  border-top: 2px solid var(--detail-ink);
+  border-top: 1px solid var(--detail-border);
 }
 
 .recordHeader {
@@ -167,7 +189,6 @@
 
 .recordReference {
   color: var(--detail-muted);
-  font-family: var(--cw-font-mono);
   font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
@@ -175,64 +196,72 @@
 
 .recordHeader h3 {
   font-family: var(--cw-font-display);
-  font-size: clamp(var(--cw-text-xl), 2vw, var(--cw-text-3xl));
+  font-size: var(--cw-text-lg);
   font-weight: 600;
-  line-height: 1.2;
-  margin-top: 0.35rem;
+  line-height: var(--cw-leading-snug);
+  margin-top: 0.25rem;
 }
 
 .recordDescription {
   color: var(--detail-muted);
+  font-size: var(--cw-text-md);
   line-height: 1.5;
-  margin-top: 0.4rem;
+  margin-top: 0.25rem;
   max-width: 62ch;
 }
 
+/* Status is the design-system pill: 12px medium, tinted wash, hairline. */
 .recordStatus {
+  align-self: start;
   border: 1px solid var(--detail-border);
-  flex: 0 0 auto;
+  border-radius: 999px;
+  flex: 0 1 auto;
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  padding: 0.45rem 0.6rem;
+  font-weight: 500;
+  line-height: 1.25;
+  max-width: 100%;
+  padding: 0.125rem 0.5rem;
 }
 
 .recordStatus.success {
-  background: var(--web-soft);
-  border-color: var(--detail-action);
-  color: var(--detail-action);
+  background: var(--cw-success-soft);
+  border-color: var(--cw-success-border);
+  color: var(--cw-success);
 }
 
 .recordStatus.warning {
-  background: color-mix(in srgb, var(--web-warm) 12%, white);
-  border-color: var(--web-warm);
-  color: var(--cw-warning);
+  background: var(--cw-warning-soft);
+  border-color: var(--cw-warning-border);
+  color: var(--cw-warning-ink);
 }
 
 .recordStatus.danger {
-  background: color-mix(in srgb, var(--web-danger) 10%, white);
-  border-color: var(--web-danger);
-  color: var(--web-danger);
+  background: var(--cw-danger-soft);
+  border-color: var(--cw-danger-border);
+  color: var(--cw-danger-strong);
 }
 
 .recordStatus.neutral {
-  background: var(--detail-canvas);
-  color: var(--detail-muted);
+  background: var(--cw-canvas-deep);
+  color: var(--cw-ink-soft);
 }
 
 .factLedger {
-  border-block: 1px solid var(--detail-border);
+  border: 1px solid var(--detail-border);
+  border-radius: var(--cw-radius-lg);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0;
+  overflow: hidden;
 }
 
 .factLedger div {
   min-width: 0;
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 1rem;
 }
 
 .factLedger div + div {
-  border-left: 1px solid var(--detail-border);
+  border-inline-start: 1px solid var(--detail-border);
 }
 
 .factLedger dt {
@@ -242,21 +271,23 @@
 
 /* Values line up column to column, so the digits hold one width. */
 .factLedger dd {
+  font-size: var(--cw-text-md);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.4;
-  margin: 0.3rem 0 0;
+  margin: 0.25rem 0 0;
   overflow-wrap: anywhere;
 }
 
 .recordDecision {
   align-items: center;
-  background: var(--web-soft);
-  border-left: 4px solid var(--detail-action);
+  background: var(--cw-action-soft);
+  border: 1px solid var(--cw-action-border);
+  border-radius: var(--cw-radius-lg);
   display: flex;
   gap: 1rem 2rem;
   justify-content: space-between;
-  padding: 0.9rem 1rem;
+  padding: 0.75rem 1rem;
 }
 
 .recordDecision p {
@@ -279,7 +310,7 @@
 }
 
 .recordActions button {
-  min-height: 2.75rem;
+  min-height: var(--cw-control-height);
 }
 
 .recordActions p {
@@ -302,6 +333,8 @@
 
 .recordEvidence h3 {
   color: var(--detail-ink);
+  font-size: var(--cw-text-md);
+  font-weight: 600;
   margin: 0;
 }
 
@@ -309,7 +342,7 @@
   display: grid;
   gap: 0.65rem;
   margin: 0.5rem 0 0;
-  padding-left: 1.2rem;
+  padding-inline-start: 1.2rem;
 }
 
 .technical {
@@ -320,9 +353,10 @@
 }
 
 .technical summary {
-  color: var(--detail-ink);
+  color: var(--detail-action);
   cursor: pointer;
-  font-weight: 700;
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
   transition:
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
     border-color var(--cw-motion-fast) var(--cw-motion-ease),
@@ -349,7 +383,7 @@
   }
 
   .factLedger div:nth-child(odd) {
-    border-left: 0;
+    border-inline-start: 0;
   }
 
   .factLedger div:nth-child(n + 3) {
@@ -374,15 +408,12 @@
 
   .promiseChain li + li,
   .factLedger div + div {
-    border-left: 0;
+    border-inline-start: 0;
     border-top: 1px solid var(--detail-border);
   }
 
   .promiseChain li[aria-current="step"] {
-    border-left: 4px solid var(--detail-action);
     border-top: 1px solid var(--detail-border);
-    padding-left: calc(1.1rem - 3px);
-    padding-top: 1rem;
   }
 
   .factLedger div:nth-child(n + 2) {

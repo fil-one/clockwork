@@ -1,6 +1,6 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import type { MessageId, Translator } from "@/src/i18n";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,21 +23,38 @@ import {
   CommerceApiError,
   sendCoreCommand,
 } from "@/src/features/contracts/commerce-client";
+import { formatDate } from "@/src/features/shared/format";
 import type {
   PriceBookAvailability,
   PriceBookSource,
 } from "@/src/features/internal-ops/price-books/server-price-book-loader";
 
-import { adminSafetyCopy } from "./copy";
+import {
+  PriceBookStatusPill,
+  PricingPill,
+  bookMoney,
+  commerceErrorText,
+  commitTypeLabel,
+  egressTreatmentLabel,
+  formatQuantity,
+  priceBookStatusLabels,
+  rateQuantityText,
+  type PriceBookStatus,
+} from "./price-book-presentation";
 import { buildReviewSummary, canDecide, type ReviewSummary } from "./policy";
 import {
   AdministrationPage,
   HumanSelector,
   ReviewSummaryCard,
-  StatusPill,
   TechnicalEvidence,
   styles,
 } from "./ui";
+
+/*
+ * Every word on this page is a message ID. Book names, e-mail addresses, SKU
+ * and region codes are record facts and are placed into messages as values;
+ * amounts and dates are formatted for the reader first.
+ */
 
 type Decision =
   | "request_activation"
@@ -47,26 +64,79 @@ type Decision =
   | "schedule_activation"
   | "cancel_schedule";
 
-const activationCopy = adminSafetyCopy.priceBookActivation;
+type StateFilter = "all" | PriceBookStatus;
 
-const stateLabel = {
-  draft: "Draft",
-  active: "Active",
-  retired: "Retired",
-} as const;
+const sourceLabels: Readonly<Record<PriceBookSource, MessageId>> = {
+  service: "adminPricing.priceBooks.source.service",
+  demo: "adminPricing.priceBooks.source.demo",
+  unavailable: "adminPricing.priceBooks.source.unavailable",
+};
+
+const scheduleStatusLabels: Readonly<
+  Record<
+    NonNullable<PriceBookAdministrationRecord["activationSchedule"]>["status"],
+    MessageId
+  >
+> = {
+  approved: "adminPricing.priceBooks.schedule.status.approved",
+  executed: "adminPricing.priceBooks.schedule.status.executed",
+  cancelled: "adminPricing.priceBooks.schedule.status.cancelled",
+  expired: "adminPricing.priceBooks.schedule.status.expired",
+};
+
+const decisionCopy: Readonly<
+  Record<Decision, { label: MessageId; hint: MessageId; outcome: MessageId }>
+> = {
+  cancel_schedule: {
+    label: "adminPricing.priceBooks.decision.cancelSchedule",
+    hint: "adminPricing.priceBooks.decision.cancelScheduleHint",
+    outcome: "adminPricing.priceBooks.outcome.cancelled",
+  },
+  retire: {
+    label: "adminPricing.priceBooks.activation.retireLabel",
+    hint: "adminPricing.priceBooks.activation.retireHint",
+    outcome: "adminPricing.priceBooks.activation.retired",
+  },
+  request_activation: {
+    label: "adminPricing.priceBooks.activation.proposeLabel",
+    hint: "adminPricing.priceBooks.activation.proposeHint",
+    outcome: "adminPricing.priceBooks.activation.proposed",
+  },
+  schedule_activation: {
+    label: "adminPricing.priceBooks.decision.schedule",
+    hint: "adminPricing.priceBooks.decision.scheduleHint",
+    outcome: "adminPricing.priceBooks.outcome.scheduled",
+  },
+  activate: {
+    label: "adminPricing.priceBooks.activation.approveLabel",
+    hint: "adminPricing.priceBooks.activation.approveHint",
+    outcome: "adminPricing.priceBooks.activation.activated",
+  },
+  reject_activation: {
+    label: "adminPricing.priceBooks.decision.reject",
+    hint: "adminPricing.priceBooks.decision.rejectHint",
+    outcome: "adminPricing.priceBooks.outcome.rejected",
+  },
+};
 
 function formString(values: FormData, name: string): string {
   const value = values.get(name);
   return typeof value === "string" ? value : "";
 }
 
+/** Minor units as the plain decimal an input edits ("150.00"). */
 function minorDecimal(value: string): string {
   const minor = BigInt(value);
   return `${minor / 100n}.${(minor % 100n).toString().padStart(2, "0")}`;
 }
 
+/**
+ * A typed price in minor units. Either decimal separator is accepted, so a
+ * reader who writes "150,00" is not refused; at most two decimals, never a
+ * grouping separator, so "1.500" cannot be read as fifteen hundred.
+ */
 function currencyMinor(value: string): string | undefined {
-  const match = /^(\d+)(?:\.(\d{1,2}))?$/u.exec(value.trim());
+  const match = /^(\d+)(?:[.,](\d{1,2}))?$/u.exec(value.trim());
   if (!match?.[1]) return undefined;
   return (
     BigInt(match[1]) * 100n +
@@ -74,63 +144,76 @@ function currencyMinor(value: string): string | undefined {
   ).toString();
 }
 
+const decimalPattern = "[0-9]+(?:[.,][0-9]{1,2})?";
+
 function decisionsFor(
   book: PriceBookAdministrationRecord,
   userId: string,
   today: string,
-): readonly { action: Decision; label: string; hint: string }[] {
+): readonly Decision[] {
   if (book.activationSchedule?.status === "approved")
-    return [
-      {
-        action: "cancel_schedule",
-        label: "Cancel approved schedule",
-        hint: "Retains the decision history and current active pricing. The draft becomes editable and needs a new proposal and approval.",
-      },
-    ];
-  if (book.status === "active")
-    return [
-      {
-        action: "retire",
-        label: activationCopy.retireLabel,
-        hint: activationCopy.retireHint,
-      },
-    ];
+    return ["cancel_schedule"];
+  if (book.status === "active") return ["retire"];
   if (book.status !== "draft") return [];
-  if (!book.activationRequestedBy)
-    return [
-      {
-        action: "request_activation",
-        label: activationCopy.proposeLabel,
-        hint: activationCopy.proposeHint,
-      },
-    ];
+  if (!book.activationRequestedBy) return ["request_activation"];
   if (book.activationRequestedBy === userId) return [];
   return [
-    ...(book.effectiveFrom > today
-      ? [
-          {
-            action: "schedule_activation" as const,
-            label: "Approve scheduled activation",
-            hint: "Locks this exact version for execution from its effective date. Current pricing remains active until execution. Only one approved schedule per currency is allowed.",
-          },
-        ]
-      : []),
+    ...(book.effectiveFrom > today ? (["schedule_activation"] as const) : []),
     ...(book.effectiveFrom <= today &&
     (!book.effectiveTo || book.effectiveTo >= today)
-      ? [
-          {
-            action: "activate" as const,
-            label: activationCopy.approveLabel,
-            hint: activationCopy.approveHint,
-          },
-        ]
+      ? (["activate"] as const)
       : []),
-    {
-      action: "reject_activation",
-      label: "Return draft for changes",
-      hint: "Records your reason and reopens the draft for editing. A new proposal is required before activation.",
-    },
+    "reject_activation",
   ];
+}
+
+function bookTitle(
+  book: Pick<PriceBookAdministrationRecord, "name" | "version">,
+  t: Translator,
+): string {
+  return t("adminPricing.bookName", {
+    name: book.name,
+    version: String(book.version),
+  });
+}
+
+/**
+ * Region codes joined the reader's way ("us-east-2 and us-west-2",
+ * "us-east-2、us-west-2"). Each code is wrapped in a directional isolate:
+ * Arabic joins the last item with a prefixed "و", and without the isolate the
+ * bidi algorithm pulls the trailing digit of one Latin code across the next.
+ */
+function regionList(regions: readonly string[], locale: string): string {
+  return new Intl.ListFormat(locale, { style: "long", type: "conjunction" })
+    .formatToParts(regions)
+    .map((part) =>
+      part.type === "element" ? `\u2068${part.value}\u2069` : part.value,
+    )
+    .join("");
+}
+
+/**
+ * The same list as elements for a table cell: each code is isolated and kept
+ * on one line, so a narrow column wraps between codes, never inside one.
+ */
+function RegionList({
+  regions,
+  locale,
+}: {
+  regions: readonly string[];
+  locale: string;
+}) {
+  return new Intl.ListFormat(locale, { style: "long", type: "conjunction" })
+    .formatToParts(regions)
+    .map((part, index) =>
+      part.type === "element" ? (
+        <bdi key={index} style={{ whiteSpace: "nowrap" }}>
+          {part.value}
+        </bdi>
+      ) : (
+        part.value
+      ),
+    );
 }
 
 export function PriceBookAdministration({
@@ -151,12 +234,11 @@ export function PriceBookAdministration({
   impact?: PriceBookImpactResult;
 }) {
   const t = useTranslations();
-  const localizedactivationCopy = localizeCopy(activationCopy, t);
-  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
+  const formattingLocale = useFormattingLocale();
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [currency, setCurrency] = useState("All");
-  const [state, setState] = useState("All");
+  const [currency, setCurrency] = useState("all");
+  const [state, setState] = useState<StateFilter>("all");
   const [selectedId, setSelectedId] = useState(
     books.find(
       (book) =>
@@ -221,32 +303,40 @@ export function PriceBookAdministration({
   const permitted = canDecide(roles, "finance");
   const authoringAvailable =
     permitted && availability !== "unavailable" && !refreshPending && !pending;
-  const sourceLabel =
-    source === "Deterministic demo fixture" ? "Guided demo data" : source;
-  const updatedLabel = new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
+  const today = readAt.slice(0, 10);
+  const updatedLabel = new Intl.DateTimeFormat(formattingLocale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
     timeZone: "UTC",
+    timeZoneName: "short",
   }).format(new Date(readAt));
+  const date = (value: string) => formatDate(value, formattingLocale);
+  const count = (value: number) =>
+    new Intl.NumberFormat(formattingLocale).format(value);
 
   const currencies = useMemo(
     () => [...new Set(books.map((book) => book.currency))].sort(),
     [books],
   );
   const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = query.trim().toLocaleLowerCase(formattingLocale);
     return books
       .filter(
         (book) =>
-          (currency === "All" || book.currency === currency) &&
-          (state === "All" || stateLabel[book.status] === state) &&
+          (currency === "all" || book.currency === currency) &&
+          (state === "all" || book.status === state) &&
           (!needle ||
             [
               book.name,
               String(book.version),
               book.currency,
               ...book.regions,
-            ].some((value) => value.toLowerCase().includes(needle))),
+            ].some((value) =>
+              value.toLocaleLowerCase(formattingLocale).includes(needle),
+            )),
       )
       .sort(
         (a, b) =>
@@ -254,7 +344,7 @@ export function PriceBookAdministration({
           b.version - a.version ||
           a.id.localeCompare(b.id),
       );
-  }, [books, currency, query, state]);
+  }, [books, currency, formattingLocale, query, state]);
   const selected = books.find((book) => book.id === selectedId) ?? books[0];
   const reviewCurrent = Boolean(
     summary &&
@@ -271,10 +361,10 @@ export function PriceBookAdministration({
       )
     : undefined;
   const decisions = selected
-    ? decisionsFor(selected, userId, readAt.slice(0, 10)).filter(
+    ? decisionsFor(selected, userId, today).filter(
         (decision) =>
           !otherSchedule ||
-          !["activate", "schedule_activation"].includes(decision.action),
+          !["activate", "schedule_activation"].includes(decision),
       )
     : [];
   const incumbent = selected
@@ -286,7 +376,10 @@ export function PriceBookAdministration({
       )
     : undefined;
   const economicDiff =
-    selected && incumbent ? priceBookEconomicDiff(selected, incumbent) : [];
+    selected && incumbent
+      ? priceBookEconomicDiff(selected, incumbent, t, formattingLocale)
+      : [];
+  const cancelling = selected?.activationSchedule?.status === "approved";
 
   async function submit(action: Decision) {
     if (
@@ -308,21 +401,7 @@ export function PriceBookAdministration({
         expectedVersion: summary.rowVersion,
         payload: { reason: summary.value.reason },
       });
-      setOutcome({
-        tone: "done",
-        message:
-          action === "schedule_activation"
-            ? "Scheduled activation approved. The exact reviewed version is locked until execution or cancellation."
-            : action === "cancel_schedule"
-              ? "Schedule cancelled. Current pricing is unchanged; the draft needs a new approval."
-              : action === "reject_activation"
-                ? "Activation rejected. The draft can be edited and proposed again."
-                : action === "request_activation"
-                  ? localizedactivationCopy.proposed
-                  : action === "activate"
-                    ? localizedactivationCopy.activated
-                    : localizedactivationCopy.retired,
-      });
+      setOutcome({ tone: "done", message: t(decisionCopy[action].outcome) });
       setReason("");
       refreshAfterMutation(
         selected.id,
@@ -333,28 +412,55 @@ export function PriceBookAdministration({
         tone: "problem",
         message:
           error instanceof CommerceApiError && error.code === "conflict"
-            ? localizedactivationCopy.stale
-            : error instanceof CommerceApiError
-              ? error.message
-              : localizedactivationCopy.failed,
+            ? t("adminPricing.priceBooks.activation.stale")
+            : commerceErrorText(
+                error,
+                t,
+                "adminPricing.priceBooks.activation.failed",
+              ),
       });
     } finally {
       setPending(false);
     }
   }
 
+  // These pills keep the neutral tone they had when their tone was guessed
+  // from English words; only the price-book states carry a colour.
+  const availabilityPill = (
+    <PricingPill
+      label={t(
+        availability === "unavailable"
+          ? "adminPricing.pill.unavailable"
+          : availability === "empty"
+            ? "adminPricing.pill.noVersions"
+            : "adminPricing.pill.upToDate",
+      )}
+      tone="warning"
+    />
+  );
+  const authorityPill = (available: boolean, unavailable: MessageId) => (
+    <PricingPill
+      label={t(available ? "adminPricing.pill.financeAuthority" : unavailable)}
+      tone="warning"
+    />
+  );
+
   return (
-    <AdministrationPage {...localizedadminSafetyCopy.priceBooks}>
+    <AdministrationPage
+      eyebrow={t("adminPricing.priceBooks.eyebrow")}
+      title={t("adminPricing.priceBooks.title")}
+      description={t("adminPricing.priceBooks.description")}
+    >
       <section className={styles.notice} role="note">
-        <strong>Only activated versions set price.</strong>
-        {localizedactivationCopy.authorities}
+        <strong>{t("adminPricing.priceBooks.notice.title")}</strong>
+        {t("adminPricing.priceBooks.activation.authorities")}
         <p>
           <Link href="/internal/payg-offers">
-            Configure PAYG billing and trial offer policies
+            {t("adminPricing.priceBooks.link.payg")}
           </Link>
           {" · "}
           <Link href="/internal/channel-policy">
-            Configure channel and acquisition controls
+            {t("adminPricing.priceBooks.link.channel")}
           </Link>
         </p>
       </section>
@@ -365,15 +471,12 @@ export function PriceBookAdministration({
       >
         <div className={styles.panelHeading}>
           <div>
-            <h2 id="price-book-author-title">Author a priced draft</h2>
-            <p>
-              Create the version metadata, then add its first validated rate
-              card. An empty draft can never be proposed for activation.
-            </p>
+            <h2 id="price-book-author-title">
+              {t("adminPricing.priceBooks.author.title")}
+            </h2>
+            <p>{t("adminPricing.priceBooks.author.description")}</p>
           </div>
-          <StatusPill
-            state={authoringAvailable ? "Finance authority" : "Unavailable"}
-          />
+          {authorityPill(authoringAvailable, "adminPricing.pill.unavailable")}
         </div>
         {!draft ? (
           <form
@@ -402,15 +505,17 @@ export function PriceBookAdministration({
                   setDraft({ id, rowVersion: 1, currency });
                   setTransferRows([]);
                   setAuthoringMessage(
-                    "Draft metadata recorded. Add its first rate card next.",
+                    t("adminPricing.priceBooks.author.created"),
                   );
                   router.refresh();
                 })
                 .catch((error: unknown) => {
                   setAuthoringMessage(
-                    error instanceof CommerceApiError
-                      ? error.message
-                      : "The draft was not created. Nothing changed.",
+                    commerceErrorText(
+                      error,
+                      t,
+                      "adminPricing.priceBooks.author.createFailed",
+                    ),
                   );
                 })
                 .finally(() => setAuthoringPending(false));
@@ -418,11 +523,11 @@ export function PriceBookAdministration({
           >
             <div className={styles.metaGrid}>
               <label className={styles.field}>
-                Price-book name
+                {t("adminPricing.priceBooks.author.name")}
                 <input name="name" required minLength={3} maxLength={120} />
               </label>
               <label className={styles.field}>
-                {t("ui.120")}
+                {t("common.currency")}
                 <select name="currency" defaultValue="USD">
                   <option>USD</option>
                   <option>EUR</option>
@@ -430,18 +535,16 @@ export function PriceBookAdministration({
                 </select>
               </label>
               <label className={styles.field}>
-                {t("ui.122")}
+                {t("adminPricing.version")}
                 <input name="version" type="number" min={1} step={1} required />
               </label>
               <label className={styles.field}>
-                Effective from
+                {t("adminPricing.priceBooks.author.effectiveFrom")}
                 <input name="effectiveFrom" type="date" required />
               </label>
             </div>
             <p className={styles.resultMeta}>
-              This first step creates a draft only. It cannot price a quote
-              until the next step adds a complete rate card and finance later
-              completes the two-authority activation.
+              {t("adminPricing.priceBooks.author.firstStep")}
             </p>
             <div className={styles.actions}>
               <button
@@ -450,8 +553,8 @@ export function PriceBookAdministration({
                 disabled={!authoringAvailable || authoringPending}
               >
                 {authoringPending
-                  ? "Creating draft…"
-                  : "Create draft and continue"}
+                  ? t("adminPricing.priceBooks.author.creating")
+                  : t("adminPricing.priceBooks.author.create")}
               </button>
             </div>
           </form>
@@ -468,7 +571,9 @@ export function PriceBookAdministration({
               const overageRateMinor = currencyMinor(minor("overageRate"));
               if (!unitPriceMinor || !floorPriceMinor || !overageRateMinor) {
                 setAuthoringMessage(
-                  `Enter each ${draft.currency} price with no more than two decimal places.`,
+                  t("adminPricing.priceBooks.rateForm.decimalError", {
+                    currency: draft.currency,
+                  }),
                 );
                 return;
               }
@@ -485,7 +590,7 @@ export function PriceBookAdministration({
                   Object.hasOwn(partnerTransferPrices, tier)
                 ) {
                   setAuthoringMessage(
-                    "Each transfer tier needs a unique name and a valid price with at most two decimal places.",
+                    t("adminPricing.priceBooks.rateForm.tierError"),
                   );
                   return;
                 }
@@ -532,26 +637,34 @@ export function PriceBookAdministration({
                   setDraft(null);
                   setEditingRate(null);
                   setAuthoringMessage(
-                    "Rate card saved. Reopen this draft to add or edit more rates, then review before proposing activation.",
+                    t("adminPricing.priceBooks.rateForm.saved"),
                   );
                   refreshAfterMutation(draft.id, draft.rowVersion + 1);
                 })
                 .catch((error: unknown) => {
                   setAuthoringMessage(
-                    error instanceof CommerceApiError
-                      ? error.message
-                      : "The rate card was not added. The draft remains unchanged.",
+                    commerceErrorText(
+                      error,
+                      t,
+                      "adminPricing.priceBooks.rateForm.saveFailed",
+                    ),
                   );
                 })
                 .finally(() => setAuthoringPending(false));
             }}
           >
             <TechnicalEvidence
-              identifiers={[{ label: "Draft ID", value: draft.id }]}
+              label={t("common.technicalDetails")}
+              identifiers={[
+                {
+                  label: t("adminPricing.priceBooks.draftId"),
+                  value: draft.id,
+                },
+              ]}
             />
             <div className={styles.metaGrid}>
               <label className={styles.field}>
-                SKU
+                {t("adminPricing.rate.sku")}
                 <input
                   name="sku"
                   defaultValue={editingRate?.sku}
@@ -560,7 +673,7 @@ export function PriceBookAdministration({
                 />
               </label>
               <label className={styles.field}>
-                Region
+                {t("common.region")}
                 <input
                   name="region"
                   defaultValue={editingRate?.region}
@@ -569,7 +682,7 @@ export function PriceBookAdministration({
                 />
               </label>
               <label className={styles.field}>
-                Unit
+                {t("adminPricing.rate.unit")}
                 <input
                   name="unit"
                   defaultValue={editingRate?.unit ?? "TB-month"}
@@ -578,7 +691,7 @@ export function PriceBookAdministration({
                 />
               </label>
               <label className={styles.field}>
-                Minimum quantity
+                {t("adminPricing.rate.minimumQuantity")}
                 <input
                   name="minimumQuantity"
                   defaultValue={editingRate?.minimumQuantity ?? "1"}
@@ -586,7 +699,9 @@ export function PriceBookAdministration({
                 />
               </label>
               <label className={styles.field}>
-                Unit price · {draft.currency}
+                {t("adminPricing.priceBooks.rateForm.unitPrice", {
+                  currency: draft.currency,
+                })}
                 <input
                   name="unitPrice"
                   defaultValue={
@@ -596,12 +711,14 @@ export function PriceBookAdministration({
                   }
                   inputMode="decimal"
                   required
-                  pattern="[0-9]+(?:\.[0-9]{1,2})?"
+                  pattern={decimalPattern}
                   placeholder="150.00"
                 />
               </label>
               <label className={styles.field}>
-                Floor price · {draft.currency}
+                {t("adminPricing.priceBooks.rateForm.floorPrice", {
+                  currency: draft.currency,
+                })}
                 <input
                   name="floorPrice"
                   defaultValue={
@@ -611,12 +728,14 @@ export function PriceBookAdministration({
                   }
                   inputMode="decimal"
                   required
-                  pattern="[0-9]+(?:\.[0-9]{1,2})?"
+                  pattern={decimalPattern}
                   placeholder="100.00"
                 />
               </label>
               <label className={styles.field}>
-                Overage rate · {draft.currency}
+                {t("adminPricing.priceBooks.rateForm.overageRate", {
+                  currency: draft.currency,
+                })}
                 <input
                   name="overageRate"
                   defaultValue={
@@ -626,22 +745,26 @@ export function PriceBookAdministration({
                   }
                   inputMode="decimal"
                   required
-                  pattern="[0-9]+(?:\.[0-9]{1,2})?"
+                  pattern={decimalPattern}
                   placeholder="180.00"
                 />
               </label>
               <label className={styles.field}>
-                Commitment model
+                {t("adminPricing.rate.commitType")}
                 <select
                   name="commitType"
                   defaultValue={editingRate?.commitType ?? "term_drawdown"}
                 >
-                  <option value="term_drawdown">Term drawdown</option>
-                  <option value="period_allowance">Period allowance</option>
+                  <option value="term_drawdown">
+                    {t("adminPricing.commitType.termDrawdown")}
+                  </option>
+                  <option value="period_allowance">
+                    {t("adminPricing.commitType.periodAllowance")}
+                  </option>
                 </select>
               </label>
               <label className={styles.field}>
-                Egress treatment
+                {t("adminPricing.rate.egressTreatment")}
                 <input
                   name="egressTreatment"
                   defaultValue={editingRate?.egressTreatment ?? "metered"}
@@ -649,16 +772,19 @@ export function PriceBookAdministration({
                 />
               </label>
               <label className={styles.field}>
-                Stripe tax code
+                {t("adminPricing.rate.stripeTaxCode")}
                 <input
                   name="stripeTaxCode"
                   defaultValue={editingRate?.stripeTaxCode ?? ""}
-                  placeholder="e.g. txcd_10103000"
+                  placeholder={t(
+                    "adminPricing.priceBooks.rateForm.taxCodeExample",
+                    { code: "txcd_10103000" },
+                  )}
                   required
                 />
               </label>
               <label className={styles.field}>
-                QBO income account
+                {t("adminPricing.rate.qboIncomeAccount")}
                 <input
                   name="qboIncomeAccount"
                   defaultValue={editingRate?.qboIncomeAccount ?? "4000-Storage"}
@@ -667,16 +793,18 @@ export function PriceBookAdministration({
               </label>
             </div>
             <fieldset disabled={authoringPending || refreshPending || pending}>
-              <legend>Partner transfer prices</legend>
+              <legend>{t("adminPricing.priceBooks.transfer.legend")}</legend>
               <p className={styles.resultMeta}>
-                Wholesale prices by tier, in {draft.currency}. These apply only
-                to resale and distributor routes and remain subject to the
-                floor. Leave empty for a direct-only rate.
+                {t("adminPricing.priceBooks.transfer.help", {
+                  currency: draft.currency,
+                })}
               </p>
               {transferRows.map((entry, index) => (
                 <div className={styles.metaGrid} key={index}>
                   <label className={styles.field}>
-                    Transfer tier {index + 1}
+                    {t("adminPricing.priceBooks.transfer.tier", {
+                      number: index + 1,
+                    })}
                     <input
                       required
                       maxLength={80}
@@ -692,11 +820,14 @@ export function PriceBookAdministration({
                     />
                   </label>
                   <label className={styles.field}>
-                    Transfer price {index + 1} · {draft.currency}
+                    {t("adminPricing.priceBooks.transfer.price", {
+                      number: index + 1,
+                      currency: draft.currency,
+                    })}
                     <input
                       required
                       inputMode="decimal"
-                      pattern="[0-9]+(?:\.[0-9]{1,2})?"
+                      pattern={decimalPattern}
                       value={entry.amount}
                       onChange={(event) => {
                         const value = event.currentTarget.value;
@@ -719,7 +850,9 @@ export function PriceBookAdministration({
                       )
                     }
                   >
-                    Remove transfer tier {index + 1}
+                    {t("adminPricing.priceBooks.transfer.remove", {
+                      number: index + 1,
+                    })}
                   </button>
                 </div>
               ))}
@@ -730,11 +863,11 @@ export function PriceBookAdministration({
                   setTransferRows((rows) => [...rows, { tier: "", amount: "" }])
                 }
               >
-                Add transfer tier
+                {t("adminPricing.priceBooks.transfer.add")}
               </button>
             </fieldset>
             <label className={styles.field}>
-              Approved commercial claim
+              {t("adminPricing.rate.approvedClaim")}
               <textarea
                 name="approvedClaim"
                 defaultValue={editingRate?.approvedClaim ?? ""}
@@ -749,10 +882,10 @@ export function PriceBookAdministration({
                 disabled={authoringPending || refreshPending || pending}
               >
                 {authoringPending
-                  ? "Validating rate…"
+                  ? t("adminPricing.priceBooks.rateForm.validating")
                   : editingRate
-                    ? "Save rate card"
-                    : "Add rate card"}
+                    ? t("adminPricing.priceBooks.rateForm.save")
+                    : t("adminPricing.priceBooks.rateForm.add")}
               </button>
               <button
                 className={styles.button}
@@ -763,7 +896,7 @@ export function PriceBookAdministration({
                   setEditingRate(null);
                 }}
               >
-                Close draft editor
+                {t("adminPricing.priceBooks.rateForm.close")}
               </button>
             </div>
           </form>
@@ -781,78 +914,86 @@ export function PriceBookAdministration({
       >
         <div className={styles.panelHeading}>
           <div>
-            <h2 id="price-book-versions-title">Price book versions</h2>
+            <h2 id="price-book-versions-title">
+              {t("adminPricing.priceBooks.versions.title")}
+            </h2>
             <p>
-              {sourceLabel} · Updated {updatedLabel} UTC
+              {t("common.join.labels", {
+                first: t(sourceLabels[source]),
+                second: t("common.updatedAt", { time: updatedLabel }),
+              })}
             </p>
           </div>
-          <StatusPill
-            state={
-              availability === "unavailable"
-                ? "Unavailable"
-                : availability === "empty"
-                  ? "Empty"
-                  : "Fresh"
-            }
-          />
+          {availabilityPill}
         </div>
         <div
           className={styles.toolbar}
           role="search"
-          aria-label="Price book filters"
+          aria-label={t("adminPricing.priceBooks.filters.label")}
         >
           <label className={styles.field}>
-            Search price books
+            {t("adminPricing.priceBooks.filters.search")}
             <input
               type="search"
               value={query}
-              placeholder="Name, version, currency, or region"
+              placeholder={t("adminPricing.priceBooks.filters.placeholder")}
               onChange={(event) => setQuery(event.currentTarget.value)}
             />
           </label>
           <label className={styles.field}>
-            {t("ui.120")}
+            {t("common.currency")}
             <select
               value={currency}
               onChange={(event) => setCurrency(event.currentTarget.value)}
             >
-              <option>{t("ui.113")}</option>
+              <option value="all">{t("common.all")}</option>
               {currencies.map((code) => (
-                <option key={code}>{code}</option>
+                <option key={code} value={code}>
+                  {code}
+                </option>
               ))}
             </select>
           </label>
           <label className={styles.field}>
-            State
+            {t("common.status")}
             <select
               value={state}
-              onChange={(event) => setState(event.currentTarget.value)}
+              onChange={(event) =>
+                setState(event.currentTarget.value as StateFilter)
+              }
             >
-              <option>{t("ui.113")}</option>
-              <option>{t("status.draft")}</option>
-              <option>{t("status.active")}</option>
-              <option>Retired</option>
+              <option value="all">{t("common.all")}</option>
+              {(["draft", "active", "retired"] as const).map((status) => (
+                <option key={status} value={status}>
+                  {t(priceBookStatusLabels[status])}
+                </option>
+              ))}
             </select>
           </label>
         </div>
         <p className={styles.resultMeta} aria-live="polite">
-          {filtered.length} of {books.length} versions · Currency, then newest
-          version
+          {t("common.join.labels", {
+            first: t("adminPricing.priceBooks.versions.count", {
+              shown: count(filtered.length),
+              count: books.length,
+            }),
+            second: t("adminPricing.priceBooks.versions.sortNote"),
+          })}
         </p>
         <Table
           className={styles.scanTable ?? ""}
-          caption="Price book versions and activation readiness"
+          caption={t("adminPricing.priceBooks.versions.caption")}
           captionHidden
           density="compact"
           headers={[
-            "Price book",
-            "Version",
-            "Currency",
-            "Regions",
-            "Effective",
-            "Rate cards",
-            "State",
-            "Activation",
+            t("recordKind.priceBook"),
+            t("adminPricing.version"),
+            t("common.currency"),
+            t("adminPricing.priceBooks.col.regions"),
+            t("adminPricing.priceBooks.col.effective"),
+            t("adminPricing.priceBooks.col.rateCards"),
+            t("common.status"),
+            t("adminPricing.priceBooks.col.activation"),
           ]}
           numericColumns={[5]}
           rowKeys={filtered.map((book) => book.id)}
@@ -862,24 +1003,39 @@ export function PriceBookAdministration({
             </span>,
             book.version,
             book.currency,
-            book.regions.join(", ") || "None",
-            `${book.effectiveFrom}${book.effectiveTo ? ` to ${book.effectiveTo}` : ""}`,
-            book.rateCardCount,
-            <StatusPill state={stateLabel[book.status]} />,
+            book.regions.length ? (
+              <RegionList regions={book.regions} locale={formattingLocale} />
+            ) : (
+              t("common.none")
+            ),
+            book.effectiveTo
+              ? t("adminPricing.priceBooks.effectiveRange", {
+                  from: date(book.effectiveFrom),
+                  to: date(book.effectiveTo),
+                })
+              : t("adminPricing.priceBooks.effectiveFrom", {
+                  from: date(book.effectiveFrom),
+                }),
+            count(book.rateCardCount),
+            <PriceBookStatusPill status={book.status} t={t} />,
             book.activationSchedule?.status === "approved"
-              ? `Scheduled · ${book.activationSchedule.effectiveFrom}`
+              ? t("adminPricing.priceBooks.activation.scheduled", {
+                  date: date(book.activationSchedule.effectiveFrom),
+                })
               : book.activationRequestedByEmail
-                ? `Proposed by ${book.activationRequestedByEmail}`
+                ? t("adminPricing.priceBooks.activation.proposedBy", {
+                    email: book.activationRequestedByEmail,
+                  })
                 : book.status === "draft"
-                  ? "Not proposed"
-                  : "Decided",
+                  ? t("adminPricing.priceBooks.activation.notProposed")
+                  : t("adminPricing.priceBooks.activation.decided"),
           ])}
           emptyState={
             books.length
-              ? localizedactivationCopy.noMatches
+              ? t("adminPricing.priceBooks.activation.noMatches")
               : availability === "empty"
-                ? localizedactivationCopy.empty
-                : localizedactivationCopy.unreadable
+                ? t("adminPricing.priceBooks.activation.empty")
+                : t("adminPricing.priceBooks.activation.unreadable")
           }
         />
       </section>
@@ -907,16 +1063,13 @@ export function PriceBookAdministration({
           <div className={styles.panelHeading}>
             <div>
               <h2 id="price-book-review-title">
-                {selected.activationSchedule?.status === "approved"
-                  ? "Schedule cancellation review"
-                  : "Finance activation review"}
+                {cancelling
+                  ? t("adminPricing.priceBooks.review.cancelTitle")
+                  : t("adminPricing.priceBooks.review.activationTitle")}
               </h2>
-              <p>
-                Review creates no quote, order, invoice, or collected-value
-                assertion.
-              </p>
+              <p>{t("adminPricing.priceBooks.review.scope")}</p>
             </div>
-            <StatusPill state={permitted ? "Finance authority" : "Read only"} />
+            {authorityPill(permitted, "adminPricing.pill.readOnly")}
           </div>
           <form
             className={styles.panelBody}
@@ -925,42 +1078,81 @@ export function PriceBookAdministration({
               if (refreshPending || authoringPending || pending || !permitted)
                 return;
               setOutcome(null);
-              const cancelling =
-                selected.activationSchedule?.status === "approved";
               setSummary({
                 bookId: selected.id,
                 rowVersion: selected.rowVersion,
                 value: buildReviewSummary({
-                  entity: `${selected.name} v${selected.version} · ${selected.currency}`,
+                  entity: t("common.join.labels", {
+                    first: bookTitle(selected, t),
+                    second: selected.currency,
+                  }),
                   impact: cancelling
-                    ? "Cancels the approved schedule and unlocks this draft for editing. Current active pricing stays in place."
-                    : `Approves ${selected.rateCardCount} rate cards across ${selected.regions.join(", ") || "no region"} from ${selected.effectiveFrom}.`,
+                    ? t("adminPricing.priceBooks.review.impact.cancel")
+                    : selected.regions.length
+                      ? t("adminPricing.priceBooks.review.impact.approve", {
+                          count: selected.rateCardCount,
+                          regions: regionList(
+                            selected.regions,
+                            formattingLocale,
+                          ),
+                          date: date(selected.effectiveFrom),
+                        })
+                      : t(
+                          "adminPricing.priceBooks.review.impact.approveEmpty",
+                          {
+                            date: date(selected.effectiveFrom),
+                          },
+                        ),
                   evidence: [
-                    `${selected.rateCardCount} rate cards persisted`,
-                    cancelling
-                      ? `Approved schedule effective ${selected.activationSchedule?.effectiveFrom}`
+                    t("adminPricing.priceBooks.review.evidence.saved", {
+                      count: selected.rateCardCount,
+                    }),
+                    cancelling && selected.activationSchedule
+                      ? t(
+                          "adminPricing.priceBooks.review.evidence.scheduleEffective",
+                          {
+                            date: date(
+                              selected.activationSchedule.effectiveFrom,
+                            ),
+                          },
+                        )
                       : selected.activationRequestedByEmail
-                        ? `Proposed by ${selected.activationRequestedByEmail}`
-                        : "Not yet proposed",
-                    selected.lastDecisionReason ?? "No prior decision recorded",
+                        ? t("adminPricing.priceBooks.activation.proposedBy", {
+                            email: selected.activationRequestedByEmail,
+                          })
+                        : t(
+                            "adminPricing.priceBooks.review.evidence.notProposed",
+                          ),
+                    selected.lastDecisionReason ??
+                      t(
+                        "adminPricing.priceBooks.review.evidence.noPriorDecision",
+                      ),
                   ],
-                  policyBasis:
-                    "Commercial policy CP-2 requires versioned rate cards, explicit routes, regional floors, and two finance authorities.",
+                  policyBasis: t("adminPricing.priceBooks.review.policyBasis"),
                   downstreamEffect: cancelling
-                    ? "No price book is activated or retired. The cancellation and prior approval remain in history; this draft requires a new proposal and distinct finance approval before any later activation."
-                    : "Activation makes the version eligible for new pricing resolutions. Retained quote, order, invoice, and collection economics stay unchanged; retiring the current book stops its draft issuance and revisions.",
+                    ? t("adminPricing.priceBooks.review.downstream.cancel")
+                    : t("adminPricing.priceBooks.review.downstream.approve"),
                   reason,
                 }),
               });
             }}
           >
             <HumanSelector
-              label="Price book version"
+              label={t("adminPricing.priceBooks.review.selector")}
+              hint={t("adminPricing.priceBooks.review.selectorHint")}
               name="priceBookId"
               options={books.map((book) => ({
                 ...book,
-                label: `${book.name} v${book.version}`,
-                description: `${book.currency} · ${stateLabel[book.status]} · ${book.rateCardCount} rate cards`,
+                label: bookTitle(book, t),
+                description: [
+                  book.currency,
+                  t(priceBookStatusLabels[book.status]),
+                  t("adminPricing.priceBooks.rateCardCount", {
+                    count: book.rateCardCount,
+                  }),
+                ].reduce((first, second) =>
+                  t("common.join.labels", { first, second }),
+                ),
               }))}
               value={selectedId}
               onChange={(id) => {
@@ -972,20 +1164,32 @@ export function PriceBookAdministration({
             />
             <dl className={styles.metaGrid}>
               <div>
-                <dt>Regions</dt>
-                <dd>{selected.regions.join(", ") || "None"}</dd>
+                <dt>{t("adminPricing.priceBooks.col.regions")}</dt>
+                <dd>
+                  {selected.regions.length ? (
+                    <RegionList
+                      regions={selected.regions}
+                      locale={formattingLocale}
+                    />
+                  ) : (
+                    t("common.none")
+                  )}
+                </dd>
               </div>
               <div>
-                <dt>Effective</dt>
-                <dd>{selected.effectiveFrom}</dd>
+                <dt>{t("adminPricing.priceBooks.col.effective")}</dt>
+                <dd>{date(selected.effectiveFrom)}</dd>
               </div>
               <div>
-                <dt>Rate cards</dt>
-                <dd>{selected.rateCardCount}</dd>
+                <dt>{t("adminPricing.priceBooks.col.rateCards")}</dt>
+                <dd>{count(selected.rateCardCount)}</dd>
               </div>
               <div>
-                <dt>Proposed by</dt>
-                <dd>{selected.activationRequestedByEmail ?? "Not proposed"}</dd>
+                <dt>{t("adminPricing.priceBooks.review.proposedBy")}</dt>
+                <dd>
+                  {selected.activationRequestedByEmail ??
+                    t("adminPricing.priceBooks.activation.notProposed")}
+                </dd>
               </div>
             </dl>
             <div className={styles.actions}>
@@ -999,7 +1203,7 @@ export function PriceBookAdministration({
                     exported = exportPriceBookExchange(selected, readAt);
                   } catch {
                     setAuthoringMessage(
-                      "This price book cannot use the strict v2 exchange format. Check that all rates are complete and supported before exporting.",
+                      t("adminPricing.priceBooks.export.unsupported"),
                     );
                     return;
                   }
@@ -1015,7 +1219,7 @@ export function PriceBookAdministration({
                   setTimeout(() => URL.revokeObjectURL(url), 1000);
                 }}
               >
-                Download price book
+                {t("adminPricing.priceBooks.export.download")}
               </button>
               {selected.status === "draft" &&
               !selected.activationRequestedBy &&
@@ -1033,64 +1237,82 @@ export function PriceBookAdministration({
                       currency: selected.currency as "USD" | "EUR" | "GBP",
                     });
                     setAuthoringMessage(
-                      "Draft reopened. Add another SKU or region, or edit a rate below.",
+                      t("adminPricing.priceBooks.review.reopened"),
                     );
                     document
                       .getElementById("price-book-author-title")
                       ?.scrollIntoView({ behavior: "smooth" });
                   }}
                 >
-                  Add a rate to this draft
+                  {t("adminPricing.priceBooks.review.addRate")}
                 </button>
               ) : null}
             </div>
             <Table
-              caption="Rate card economics"
+              caption={t("adminPricing.priceBooks.rates.caption")}
               density="compact"
               headers={[
-                "SKU / region",
-                "List",
-                "Floor",
-                "Overage",
-                "Minimum",
-                "Commercial terms",
-                "Actions",
+                t("adminPricing.priceBooks.rates.skuRegion"),
+                t("adminPricing.rate.listPrice"),
+                t("adminPricing.rate.floorPrice"),
+                t("adminPricing.rate.overageRate"),
+                t("adminPricing.rate.minimumQuantity"),
+                t("adminPricing.priceBooks.rates.terms"),
+                t("common.actions"),
               ]}
               rowKeys={(selected.rateCards ?? []).map((rate) => rate.id)}
               rows={(selected.rateCards ?? []).map((rate) => [
-                `${rate.sku} / ${rate.region}`,
-                `${selected.currency} ${minorDecimal(rate.unitPrice.minor)}`,
+                <span className={styles.stackCell}>
+                  <strong>{rate.sku}</strong>
+                  <small>{rate.region}</small>
+                </span>,
+                bookMoney(rate.unitPrice, formattingLocale),
                 rate.floorPrice
-                  ? `${selected.currency} ${minorDecimal(rate.floorPrice.minor)}`
-                  : "Not configured",
-                `${selected.currency} ${minorDecimal(rate.overageRate.minor)}`,
-                `${rate.minimumQuantity} ${rate.unit}`,
+                  ? bookMoney(rate.floorPrice, formattingLocale)
+                  : t("adminPricing.rate.notConfigured"),
+                bookMoney(rate.overageRate, formattingLocale),
+                rateQuantityText(
+                  rate.minimumQuantity,
+                  rate.unit,
+                  t,
+                  formattingLocale,
+                ),
                 <details>
-                  <summary>Claims, mappings and transfer prices</summary>
+                  <summary>
+                    {t("adminPricing.priceBooks.rates.details")}
+                  </summary>
                   <dl>
-                    <dt>Approved claim</dt>
+                    <dt>{t("adminPricing.rate.approvedClaim")}</dt>
                     <dd>{rate.approvedClaim}</dd>
-                    <dt>Commitment / egress</dt>
+                    <dt>{t("adminPricing.rate.commitType")}</dt>
+                    <dd>{commitTypeLabel(rate.commitType, t)}</dd>
+                    <dt>{t("adminPricing.rate.egressTreatment")}</dt>
+                    <dd>{egressTreatmentLabel(rate.egressTreatment, t)}</dd>
+                    <dt>{t("adminPricing.rate.taxCode")}</dt>
+                    <dd>{rate.stripeTaxCode}</dd>
+                    <dt>{t("adminPricing.rate.incomeAccount")}</dt>
+                    <dd>{rate.qboIncomeAccount}</dd>
+                    <dt>{t("adminPricing.rate.transferPrices")}</dt>
                     <dd>
-                      {rate.commitType} / {rate.egressTreatment}
-                    </dd>
-                    <dt>Tax code / income account</dt>
-                    <dd>
-                      {rate.stripeTaxCode} / {rate.qboIncomeAccount}
-                    </dd>
-                    <dt>Transfer prices</dt>
-                    <dd>
-                      {Object.entries(rate.partnerTransferPrices)
-                        .map(
-                          ([tier, value]) =>
-                            `${tier}: ${value.currency} ${minorDecimal(value.minor)}`,
-                        )
-                        .join("; ") || "None"}
+                      {Object.keys(rate.partnerTransferPrices).length
+                        ? Object.entries(rate.partnerTransferPrices).map(
+                            ([tier, value]) => (
+                              <div key={tier}>
+                                {t("adminPricing.rate.transferPrice", {
+                                  tier,
+                                  amount: bookMoney(value, formattingLocale),
+                                })}
+                              </div>
+                            ),
+                          )
+                        : t("common.none")}
                     </dd>
                     {rate.trialLimit ? (
                       <>
-                        <dt>Legacy trial quantity</dt>
-                        <dd>{rate.trialLimit}</dd>
+                        <dt>{t("adminPricing.rate.legacyTrialQuantity")}</dt>
+                        <dd>
+                          {formatQuantity(rate.trialLimit, formattingLocale)}
+                        </dd>
                       </>
                     ) : null}
                   </dl>
@@ -1103,7 +1325,10 @@ export function PriceBookAdministration({
                       type="button"
                       className={styles.button}
                       disabled={authoringPending || refreshPending || pending}
-                      aria-label={`Edit ${rate.sku} ${rate.region}`}
+                      aria-label={t("adminPricing.priceBooks.rates.editLabel", {
+                        sku: rate.sku,
+                        region: rate.region,
+                      })}
                       onClick={() => {
                         setEditingRate(rate);
                         setTransferRows(
@@ -1124,13 +1349,16 @@ export function PriceBookAdministration({
                           ?.scrollIntoView({ behavior: "smooth" });
                       }}
                     >
-                      Edit
+                      {t("common.edit")}
                     </button>
                     <button
                       type="button"
                       className={styles.button}
                       disabled={authoringPending || refreshPending || pending}
-                      aria-label={`Remove ${rate.sku} ${rate.region}`}
+                      aria-label={t(
+                        "adminPricing.priceBooks.rates.removeLabel",
+                        { sku: rate.sku, region: rate.region },
+                      )}
                       onClick={() => {
                         setAuthoringPending(true);
                         setSummary(null);
@@ -1145,7 +1373,7 @@ export function PriceBookAdministration({
                             setDraft(null);
                             setEditingRate(null);
                             setAuthoringMessage(
-                              "Rate removed from the draft. Review the remaining rates before proposing activation.",
+                              t("adminPricing.priceBooks.rates.removed"),
                             );
                             refreshAfterMutation(
                               selected.id,
@@ -1154,52 +1382,55 @@ export function PriceBookAdministration({
                           })
                           .catch((error: unknown) =>
                             setAuthoringMessage(
-                              error instanceof Error
-                                ? error.message
-                                : "The rate was not removed.",
+                              commerceErrorText(
+                                error,
+                                t,
+                                "adminPricing.priceBooks.rates.removeFailed",
+                              ),
                             ),
                           )
                           .finally(() => setAuthoringPending(false));
                       }}
                     >
-                      Remove
+                      {t("common.remove")}
                     </button>
                   </div>
                 ) : (
-                  "Read only"
+                  t("adminPricing.pill.readOnly")
                 ),
               ])}
-              emptyState="No rate cards available. Add a rate before proposing activation."
+              emptyState={t("adminPricing.priceBooks.rates.empty")}
             />
             {incumbent ? (
               <p className={styles.notice}>
-                Activation replaces {incumbent.name} v{incumbent.version} for{" "}
-                {selected.currency}. Only one price book can be active per
-                currency, even when the new version has a different name. Review
-                removed rates before approval.
+                {t("adminPricing.priceBooks.review.replaces", {
+                  book: bookTitle(incumbent, t),
+                  currency: selected.currency,
+                })}
               </p>
             ) : null}
             {incumbent && selected.rateCards && incumbent.rateCards ? (
               <Table
-                caption={`Economic changes from ${incumbent.name} v${incumbent.version}`}
+                caption={t("adminPricing.priceBooks.diff.caption", {
+                  book: bookTitle(incumbent, t),
+                })}
                 density="compact"
                 headers={[
-                  "Changed field",
-                  "Current active value",
-                  "Candidate value",
+                  t("adminPricing.priceBooks.diff.field"),
+                  t("adminPricing.priceBooks.diff.current"),
+                  t("adminPricing.priceBooks.diff.candidate"),
                 ]}
-                rowKeys={economicDiff.map((change) => change.field)}
+                rowKeys={economicDiff.map((change) => change.key)}
                 rows={economicDiff.map((change) => [
                   change.field,
                   change.before,
                   change.after,
                 ])}
-                emptyState="No rate or discount authority changes from the active version."
+                emptyState={t("adminPricing.priceBooks.diff.empty")}
               />
             ) : selected.status === "draft" ? (
               <p className={styles.muted}>
-                No active price book exists for this currency. Review the
-                complete rate table above.
+                {t("adminPricing.priceBooks.review.noActive")}
               </p>
             ) : null}
             <PriceBookImpactPanel
@@ -1208,12 +1439,14 @@ export function PriceBookAdministration({
               impact={impact}
             />
             <label className={styles.field}>
-              Finance decision reason
+              {t("adminPricing.priceBooks.review.reason")}
               <textarea
                 value={reason}
                 required
                 minLength={8}
-                placeholder="Explain the commercial evidence and activation rationale."
+                placeholder={t(
+                  "adminPricing.priceBooks.review.reasonPlaceholder",
+                )}
                 onChange={(event) => {
                   setReason(event.currentTarget.value);
                   setSummary(null);
@@ -1221,12 +1454,17 @@ export function PriceBookAdministration({
               />
             </label>
             <TechnicalEvidence
-              identifiers={[{ label: "Price book ID", value: selected.id }]}
+              label={t("common.technicalDetails")}
+              identifiers={[
+                { label: t("adminPricing.priceBookId"), value: selected.id },
+              ]}
             />
             {!permitted ? (
               <div className={styles.roleNotice} role="note">
-                <strong>{localizedactivationCopy.financeOnlyTitle}</strong>
-                {localizedactivationCopy.financeOnlyBody}
+                <strong>
+                  {t("adminPricing.priceBooks.activation.financeOnlyTitle")}
+                </strong>
+                {t("adminPricing.priceBooks.activation.financeOnlyBody")}
               </div>
             ) : null}
             {permitted &&
@@ -1234,37 +1472,51 @@ export function PriceBookAdministration({
             selected.activationRequestedBy === userId &&
             selected.activationSchedule?.status !== "approved" ? (
               <div className={styles.roleNotice} role="note">
-                <strong>{localizedactivationCopy.awaitingSecondTitle}</strong>
-                {localizedactivationCopy.awaitingSecondBody}
+                <strong>
+                  {t("adminPricing.priceBooks.activation.awaitingSecondTitle")}
+                </strong>
+                {t("adminPricing.priceBooks.activation.awaitingSecondBody")}
               </div>
             ) : null}
             {otherSchedule ? (
               <p role="note">
-                {otherSchedule.name} v{otherSchedule.version} has an approved
-                schedule for {selected.currency}. Cancel that schedule before
-                approving another scheduled or immediate activation.
+                {t("adminPricing.priceBooks.review.otherSchedule", {
+                  book: bookTitle(otherSchedule, t),
+                  currency: selected.currency,
+                })}
               </p>
             ) : null}
             {selected.activationSchedule ? (
               <div role="status" className={styles.roleNotice}>
                 <strong>
-                  Activation schedule · {selected.activationSchedule.status}
+                  {t("common.join.labels", {
+                    first: t("adminPricing.priceBooks.schedule.heading"),
+                    second: t(
+                      scheduleStatusLabels[selected.activationSchedule.status],
+                    ),
+                  })}
                 </strong>
                 <p>
-                  Effective from {selected.activationSchedule.effectiveFrom}{" "}
-                  (UTC)
                   {selected.activationSchedule.effectiveTo
-                    ? ` through ${selected.activationSchedule.effectiveTo}`
-                    : ""}
-                  .
+                    ? t("adminPricing.priceBooks.schedule.window", {
+                        from: date(selected.activationSchedule.effectiveFrom),
+                        to: date(selected.activationSchedule.effectiveTo),
+                      })
+                    : t("adminPricing.priceBooks.schedule.windowOpen", {
+                        from: date(selected.activationSchedule.effectiveFrom),
+                      })}
                 </p>
                 {selected.activationSchedule.status === "approved" ? (
                   <p>
-                    This reviewed version is locked.{" "}
-                    {source === "Deterministic demo fixture"
-                      ? "This fictional schedule demonstrates advance approval and cancellation; it does not run the production worker."
-                      : "The worker checks each minute from the effective date, and rechecks finance authority and the new-business control before changing current pricing."}{" "}
-                    Cancel this schedule to reopen the draft.
+                    {[
+                      t("adminPricing.priceBooks.schedule.locked"),
+                      source === "demo"
+                        ? t("adminPricing.priceBooks.schedule.demoNote")
+                        : t("adminPricing.priceBooks.schedule.workerNote"),
+                      t("adminPricing.priceBooks.schedule.cancelToReopen"),
+                    ].reduce((first, second) =>
+                      t("common.join.sentences", { first, second }),
+                    )}
                   </p>
                 ) : (
                   <p>{selected.activationSchedule.completionReason}</p>
@@ -1273,39 +1525,32 @@ export function PriceBookAdministration({
             ) : null}
             {selected.activationSchedule?.status !== "approved" &&
             selected.status === "draft" &&
-            selected.effectiveFrom > readAt.slice(0, 10) ? (
+            selected.effectiveFrom > today ? (
               <p role="note">
-                Activation is available on or after {selected.effectiveFrom}{" "}
-                (UTC). A different finance approver can approve its schedule
-                now, or return then for immediate activation. Current active
-                pricing stays in place until execution.
+                {t("adminPricing.priceBooks.review.futureEffective", {
+                  date: date(selected.effectiveFrom),
+                })}
               </p>
             ) : selected.status === "draft" &&
               selected.effectiveTo &&
-              selected.effectiveTo < readAt.slice(0, 10) ? (
-              <p role="note">
-                This draft’s effective period has expired. Return it for changes
-                or create a new draft with current dates before approval.
-              </p>
+              selected.effectiveTo < today ? (
+              <p role="note">{t("adminPricing.priceBooks.review.expired")}</p>
             ) : null}
             {refreshPending ? (
               <div className={styles.actions}>
                 <p role="status">
-                  Loading saved price-book changes before review…
+                  {t("adminPricing.priceBooks.review.loadingSaved")}
                 </p>
                 <button
                   type="button"
                   className={styles.buttonSecondary}
                   onClick={() => router.refresh()}
                 >
-                  Refresh saved changes
+                  {t("adminPricing.priceBooks.review.refreshSaved")}
                 </button>
               </div>
             ) : summary && !reviewCurrent ? (
-              <p role="status">
-                The price book changed after your review. Review the current
-                version before recording a decision.
-              </p>
+              <p role="status">{t("adminPricing.priceBooks.review.changed")}</p>
             ) : null}
             <div className={styles.actions}>
               <button
@@ -1315,7 +1560,7 @@ export function PriceBookAdministration({
                   !permitted || refreshPending || authoringPending || pending
                 }
               >
-                Review price-book approval
+                {t("adminPricing.priceBooks.review.submit")}
               </button>
             </div>
           </form>
@@ -1323,16 +1568,18 @@ export function PriceBookAdministration({
             className={styles.panelBody}
             key={`clone:${selected.id}:${selected.rowVersion}`}
           >
-            <summary>Clone this version into a draft</summary>
+            <summary>{t("adminPricing.priceBooks.clone.summary")}</summary>
             <p>
-              Copy {selected.rateCardCount} saved rates, floors, transfer
-              prices, tax/accounting codes and discount rules into a new{" "}
-              {selected.currency} draft. The source stays unchanged. Approval
-              history and provider resource bindings are not copied; review
-              catalog mappings before proposing the new version.
+              {t("common.join.sentences", {
+                first: t("adminPricing.priceBooks.clone.copies", {
+                  count: selected.rateCardCount,
+                  currency: selected.currency,
+                }),
+                second: t("adminPricing.priceBooks.clone.notes"),
+              })}
             </p>
             <form
-              aria-label="Clone price book"
+              aria-label={t("adminPricing.priceBooks.clone.formLabel")}
               onSubmit={(event) => {
                 event.preventDefault();
                 if (!authoringAvailable || authoringPending || pending) return;
@@ -1347,7 +1594,7 @@ export function PriceBookAdministration({
                 });
                 if (!parsed.success) {
                   setAuthoringMessage(
-                    "Check the clone name, new version, effective date and reason.",
+                    t("adminPricing.priceBooks.clone.invalid"),
                   );
                   return;
                 }
@@ -1359,7 +1606,10 @@ export function PriceBookAdministration({
                   )
                 ) {
                   setAuthoringMessage(
-                    `${selected.currency} version ${parsed.data.version} already exists. Choose a new version.`,
+                    t("adminPricing.priceBooks.versionExists", {
+                      currency: selected.currency,
+                      version: String(parsed.data.version),
+                    }),
                   );
                   return;
                 }
@@ -1380,17 +1630,23 @@ export function PriceBookAdministration({
                     setReason("");
                     setOutcome(null);
                     setAuthoringMessage(
-                      "Draft cloned. Review its copied economics and configure catalog mappings before requesting fresh approval.",
+                      t("adminPricing.priceBooks.clone.done"),
                     );
                     refreshAfterMutation(id, 1);
                   })
                   .catch((error: unknown) =>
                     setAuthoringMessage(
-                      error instanceof CommerceApiError
-                        ? error.problemCode === "DUPLICATE"
-                          ? "The destination identity or currency/version already exists. Choose a new version."
-                          : error.message
-                        : "The draft was not cloned. Refresh the source and check that the new currency/version is unused.",
+                      error instanceof CommerceApiError &&
+                        error.problemCode === "DUPLICATE"
+                        ? t("adminPricing.priceBooks.clone.duplicate")
+                        : error instanceof CommerceApiError &&
+                            error.code === "conflict"
+                          ? t("adminPricing.priceBooks.clone.conflict")
+                          : commerceErrorText(
+                              error,
+                              t,
+                              "adminPricing.priceBooks.clone.failed",
+                            ),
                     ),
                   )
                   .finally(() => setAuthoringPending(false));
@@ -1404,9 +1660,13 @@ export function PriceBookAdministration({
                   selected.rateCardCount === 0
                 }
               >
-                <legend>New draft · {selected.currency}</legend>
+                <legend>
+                  {t("adminPricing.priceBooks.clone.legend", {
+                    currency: selected.currency,
+                  })}
+                </legend>
                 <label className={styles.field}>
-                  Cloned price-book name
+                  {t("adminPricing.priceBooks.clone.name")}
                   <input
                     name="cloneName"
                     minLength={3}
@@ -1416,7 +1676,7 @@ export function PriceBookAdministration({
                   />
                 </label>
                 <label className={styles.field}>
-                  Cloned price-book version
+                  {t("adminPricing.priceBooks.clone.version")}
                   <input
                     name="cloneVersion"
                     type="number"
@@ -1434,16 +1694,16 @@ export function PriceBookAdministration({
                   />
                 </label>
                 <label className={styles.field}>
-                  Cloned effective date
+                  {t("adminPricing.priceBooks.clone.effective")}
                   <input
                     name="cloneEffectiveFrom"
                     type="date"
-                    defaultValue={readAt.slice(0, 10)}
+                    defaultValue={today}
                     required
                   />
                 </label>
                 <label className={styles.field}>
-                  Clone reason
+                  {t("adminPricing.priceBooks.clone.reason")}
                   <textarea
                     name="cloneReason"
                     minLength={8}
@@ -1460,11 +1720,13 @@ export function PriceBookAdministration({
                     selected.rateCardCount === 0
                   }
                 >
-                  {authoringPending ? "Cloning…" : "Create cloned draft"}
+                  {authoringPending
+                    ? t("adminPricing.priceBooks.clone.busy")
+                    : t("adminPricing.priceBooks.clone.submit")}
                 </button>
               </fieldset>
               {selected.rateCardCount === 0 ? (
-                <p>Add at least one rate before cloning this price book.</p>
+                <p>{t("adminPricing.priceBooks.clone.needsRate")}</p>
               ) : null}
             </form>
           </details>
@@ -1484,17 +1746,22 @@ export function PriceBookAdministration({
           <ReviewSummaryCard
             summary={summary.value}
             title={
-              selected.activationSchedule?.status === "approved"
-                ? "Schedule cancellation review"
-                : "Price-book activation review"
+              cancelling
+                ? t("adminPricing.priceBooks.review.cancelTitle")
+                : t("adminPricing.priceBooks.review.summaryTitle")
             }
-            identifiers={[{ label: "Price book ID", value: selected.id }]}
+            identifiers={[
+              { label: t("adminPricing.priceBookId"), value: selected.id },
+            ]}
           />
-          <section className={styles.panel} aria-label="Record the decision">
+          <section
+            className={styles.panel}
+            aria-label={t("adminPricing.priceBooks.decision.label")}
+          >
             <div className={styles.panelBody}>
               {decisions.length ? (
                 decisions.map((decision) => (
-                  <div key={decision.action} className={styles.actions}>
+                  <div key={decision} className={styles.actions}>
                     <button
                       className={styles.button}
                       type="button"
@@ -1504,16 +1771,20 @@ export function PriceBookAdministration({
                         authoringPending ||
                         reason.length < 8
                       }
-                      onClick={() => void submit(decision.action)}
+                      onClick={() => void submit(decision)}
                     >
-                      {pending ? "Recording…" : decision.label}
+                      {pending
+                        ? t("adminPricing.priceBooks.decision.recording")
+                        : t(decisionCopy[decision].label)}
                     </button>
-                    <p className={styles.resultMeta}>{decision.hint}</p>
+                    <p className={styles.resultMeta}>
+                      {t(decisionCopy[decision].hint)}
+                    </p>
                   </div>
                 ))
               ) : (
                 <p className={styles.resultMeta}>
-                  {localizedactivationCopy.noDecision}
+                  {t("adminPricing.priceBooks.activation.noDecision")}
                 </p>
               )}
               {outcome ? (

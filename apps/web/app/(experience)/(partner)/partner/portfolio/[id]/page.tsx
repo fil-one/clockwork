@@ -4,6 +4,10 @@ import { demoPartnerPortfolioRenewalContext } from "@/src/features/customer-part
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
+import { partnerPageMetadata } from "@/src/features/customer-partner/partner/partner-route";
+
+export const generateMetadata = () =>
+  partnerPageMetadata("partner.detail.portfolio.eyebrow");
 
 export default async function Page({
   params,

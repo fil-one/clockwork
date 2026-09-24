@@ -1,15 +1,19 @@
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use } from "react";
-import { localizeCopy } from "@/src/i18n/copy";
 import { Table } from "@clockwork/ui";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { FinancePageFrame } from "../finance-lifecycle/page-frame";
+import {
+  formatCount,
+  formatMinorAmount,
+  routeText,
+} from "../finance-lifecycle/projection-fields";
 import { revenueCopy } from "./copy";
 import {
   basisLabel,
-  businessLabel,
-  formatMinor,
+  merchantLabel,
+  methodologyLabel,
   monthLabel,
   stageLabel,
   type RevenueWorkspace,
@@ -23,11 +27,15 @@ export function RevenueView({
   now?: Date;
 }) {
   const t = use(getTranslations());
-  const localizedrevenueCopy = localizeCopy(revenueCopy, t);
+  const locale = use(getFormattingLocale());
+  const copy = revenueCopy;
+  const money = (minor: string, currency: string) =>
+    formatMinorAmount(minor, currency, locale);
+  const count = (value: number) => formatCount(value, locale);
   return (
     <FinancePageFrame
-      title={localizedrevenueCopy.page.title}
-      description={localizedrevenueCopy.page.description}
+      title={t(copy.page.title)}
+      description={t(copy.page.description)}
       provenance={
         workspace.readable
           ? {
@@ -40,62 +48,62 @@ export function RevenueView({
     >
       <section
         className={styles.summaryGrid}
-        aria-label={localizedrevenueCopy.summary.label}
+        aria-label={t(copy.summary.label)}
       >
         <article className={styles.summaryCard}>
-          <p>{localizedrevenueCopy.summary.forecast.title}</p>
-          <strong>{workspace.forecastRowCount}</strong>
-          <span>{localizedrevenueCopy.summary.forecast.detail}</span>
+          <p>{t(copy.summary.forecast.title)}</p>
+          <strong>{count(workspace.forecastRowCount)}</strong>
+          <span>{t(copy.summary.forecast.detail)}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{localizedrevenueCopy.summary.remaining.title}</p>
-          <strong>{workspace.remainingBacklogRowCount}</strong>
-          <span>{localizedrevenueCopy.summary.remaining.detail}</span>
+          <p>{t(copy.summary.remaining.title)}</p>
+          <strong>{count(workspace.remainingBacklogRowCount)}</strong>
+          <span>{t(copy.summary.remaining.detail)}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{localizedrevenueCopy.summary.recurring.title}</p>
-          <strong>{workspace.recurringContractCount}</strong>
-          <span>{localizedrevenueCopy.summary.recurring.detail}</span>
+          <p>{t(copy.summary.recurring.title)}</p>
+          <strong>{count(workspace.recurringContractCount)}</strong>
+          <span>{t(copy.summary.recurring.detail)}</span>
         </article>
       </section>
 
       {workspace.readable ? null : (
         <div className={styles.warningNotice} role="alert">
-          <strong>{localizedrevenueCopy.unreadable.title}</strong>
-          <span>{localizedrevenueCopy.unreadable.detail}</span>
+          <strong>{t(copy.unreadable.title)}</strong>
+          <span>{t(copy.unreadable.detail)}</span>
         </div>
       )}
 
       <section className={styles.section} aria-labelledby="revenue-stage">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="revenue-stage">{localizedrevenueCopy.stage.heading}</h2>
-            <p>{localizedrevenueCopy.stage.subheading}</p>
+            <h2 id="revenue-stage">{t(copy.stage.heading)}</h2>
+            <p>{t(copy.stage.subheading)}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {workspace.stages.length} groups
+            {t(copy.groups, { count: workspace.stages.length })}
           </span>
         </header>
         {workspace.stages.length === 0 && workspace.readable ? (
-          <p className={styles.empty}>{localizedrevenueCopy.stage.empty}</p>
+          <p className={styles.empty}>{t(copy.stage.empty)}</p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={localizedrevenueCopy.stage.caption}
+            caption={t(copy.stage.caption)}
             captionHidden
             density="compact"
-            headers={[...localizedrevenueCopy.stage.columns]}
+            headers={copy.stage.columns.map((column) => t(column))}
             numericColumns={[3, 4, 5]}
             rowKeys={workspace.stages.map(
               (row) => `${row.stage}-${row.currency}-${row.revenueBasis}`,
             )}
             rows={workspace.stages.map((row) => [
-              stageLabel(row.stage),
+              stageLabel(row.stage, t),
               row.currency,
-              basisLabel(row.revenueBasis),
-              formatMinor(row.revenueMinor, row.currency),
-              row.quoteCount,
-              row.orderCount,
+              basisLabel(row.revenueBasis, t),
+              money(row.revenueMinor, row.currency),
+              count(row.quoteCount),
+              count(row.orderCount),
             ])}
           />
         )}
@@ -104,34 +112,34 @@ export function RevenueView({
       <section className={styles.section} aria-labelledby="revenue-channel">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="revenue-channel">{localizedrevenueCopy.channel.heading}</h2>
-            <p>{localizedrevenueCopy.channel.subheading}</p>
+            <h2 id="revenue-channel">{t(copy.channel.heading)}</h2>
+            <p>{t(copy.channel.subheading)}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {workspace.channels.length} groups
+            {t(copy.groups, { count: workspace.channels.length })}
           </span>
         </header>
         {workspace.channels.length === 0 && workspace.readable ? (
-          <p className={styles.empty}>{localizedrevenueCopy.channel.empty}</p>
+          <p className={styles.empty}>{t(copy.channel.empty)}</p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={localizedrevenueCopy.channel.caption}
+            caption={t(copy.channel.caption)}
             captionHidden
             density="compact"
-            headers={[...localizedrevenueCopy.channel.columns]}
+            headers={copy.channel.columns.map((column) => t(column))}
             numericColumns={[4, 5]}
             rowKeys={workspace.channels.map(
               (row) =>
                 `${row.channel}-${row.merchantOfRecord}-${row.currency}-${row.revenueBasis}`,
             )}
             rows={workspace.channels.map((row) => [
-              businessLabel(row.channel),
-              businessLabel(row.merchantOfRecord),
+              routeText(t, row.channel),
+              merchantLabel(row.merchantOfRecord, t),
               row.currency,
-              basisLabel(row.revenueBasis),
-              formatMinor(row.revenueMinor, row.currency),
-              row.orderCount,
+              basisLabel(row.revenueBasis, t),
+              money(row.revenueMinor, row.currency),
+              count(row.orderCount),
             ])}
           />
         )}
@@ -140,32 +148,32 @@ export function RevenueView({
       <section className={styles.section} aria-labelledby="revenue-monthly">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="revenue-monthly">{localizedrevenueCopy.monthly.heading}</h2>
-            <p>{localizedrevenueCopy.monthly.subheading}</p>
+            <h2 id="revenue-monthly">{t(copy.monthly.heading)}</h2>
+            <p>{t(copy.monthly.subheading)}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {workspace.months.length} groups
+            {t(copy.groups, { count: workspace.months.length })}
           </span>
         </header>
         {workspace.months.length === 0 && workspace.readable ? (
-          <p className={styles.empty}>{localizedrevenueCopy.monthly.empty}</p>
+          <p className={styles.empty}>{t(copy.monthly.empty)}</p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={localizedrevenueCopy.monthly.caption}
+            caption={t(copy.monthly.caption)}
             captionHidden
             density="compact"
-            headers={[...localizedrevenueCopy.monthly.columns]}
+            headers={copy.monthly.columns.map((column) => t(column))}
             numericColumns={[3, 4]}
             rowKeys={workspace.months.map(
               (row) => `${row.month}-${row.currency}-${row.revenueBasis}`,
             )}
             rows={workspace.months.map((row) => [
-              monthLabel(row.month),
+              monthLabel(row.month, locale),
               row.currency,
-              basisLabel(row.revenueBasis),
-              formatMinor(row.revenueMinor, row.currency),
-              row.orderCount,
+              basisLabel(row.revenueBasis, t),
+              money(row.revenueMinor, row.currency),
+              count(row.orderCount),
             ])}
           />
         )}
@@ -174,24 +182,22 @@ export function RevenueView({
       <section className={styles.section} aria-labelledby="revenue-recurring">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="revenue-recurring">
-              {localizedrevenueCopy.recurring.heading}
-            </h2>
-            <p>{localizedrevenueCopy.recurring.subheading}</p>
+            <h2 id="revenue-recurring">{t(copy.recurring.heading)}</h2>
+            <p>{t(copy.recurring.subheading)}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {workspace.recurring.length} groups
+            {t(copy.groups, { count: workspace.recurring.length })}
           </span>
         </header>
         {workspace.recurring.length === 0 && workspace.readable ? (
-          <p className={styles.empty}>{localizedrevenueCopy.recurring.empty}</p>
+          <p className={styles.empty}>{t(copy.recurring.empty)}</p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={localizedrevenueCopy.recurring.caption}
+            caption={t(copy.recurring.caption)}
             captionHidden
             density="compact"
-            headers={[...localizedrevenueCopy.recurring.columns]}
+            headers={copy.recurring.columns.map((column) => t(column))}
             numericColumns={[2, 3, 4]}
             rowKeys={workspace.recurring.map(
               (row) =>
@@ -199,11 +205,11 @@ export function RevenueView({
             )}
             rows={workspace.recurring.map((row) => [
               row.currency,
-              basisLabel(row.revenueBasis),
-              formatMinor(row.mrrMinor, row.currency),
-              formatMinor(row.arrMinor, row.currency),
-              row.contractCount,
-              businessLabel(row.methodologyVersion),
+              basisLabel(row.revenueBasis, t),
+              money(row.mrrMinor, row.currency),
+              money(row.arrMinor, row.currency),
+              count(row.contractCount),
+              methodologyLabel(row.methodologyVersion, t),
             ])}
           />
         )}

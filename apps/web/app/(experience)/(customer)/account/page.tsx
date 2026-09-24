@@ -1,13 +1,19 @@
-import { getTranslations } from "@/src/i18n/server";
+import type { Role } from "@clockwork/contracts";
+
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import {
   AccountOverview,
   type AccountOverviewProjection,
 } from "@/src/features/customer-partner/customer/account-overview";
 import { loadAccountOverviewAccount } from "@/src/features/customer-partner/customer/account-overview-loader";
+import {
+  collectionMemberCounts,
+  collectionMemberRole,
+} from "@/src/features/customer-partner/customer/collection-record";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
-import { plural, t as englishTranslator } from "@/src/i18n/en";
+import type { MessageId, Translator } from "@/src/i18n";
 import {
   SurfaceActionGate,
   SurfacePermissionGate,
@@ -28,36 +34,46 @@ function text(
 
 function personNamed(
   records: readonly ProjectionRecord[],
-  pattern: RegExp,
-  t = englishTranslator,
+  role: "owner" | "billing",
+  t: Translator,
 ): string {
-  const match = records.find((record) =>
-    pattern.test(text(record.data, "value") ?? ""),
+  const match = records.find(
+    (record) => collectionMemberRole(record.data) === role,
   );
   return match
-    ? (text(match.data, "title") ?? t("account.unassigned"))
-    : t("account.unassigned");
+    ? (text(match.data, "title") ?? t("common.notRecorded"))
+    : t("common.notRecorded");
 }
 
-function titleCase(value: string): string {
-  return value
-    .split(/[_\s-]+/u)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+const roleLabels: Readonly<Record<Role, MessageId>> = {
+  owner: "role.owner",
+  admin: "role.admin",
+  billing: "role.billing",
+  member: "role.member",
+  partner_admin: "role.partnerAdmin",
+  partner_seller: "role.partnerSeller",
+  internal_operator: "role.internalOperator",
+  finance_approver: "role.financeApprover",
+  legal_approver: "role.legalApprover",
+  destructive_action_approver: "role.destructiveActionApprover",
+};
+
+/** The acting role as a label; an unknown role is shown as its code. */
+function roleLabel(role: string, t: Translator): string {
+  const id = (roleLabels as Readonly<Record<string, MessageId>>)[role];
+  return id ? t(id) : role;
 }
 
 async function AccountWorkspace() {
   const t = await getTranslations();
+  const count = new Intl.NumberFormat(await getFormattingLocale());
   const [identity, roles, users, procurement] = await Promise.all([
     getRouteIdentity("customer"),
     getRouteRoles("customer"),
     loadPortalRecords("customer", "users"),
     loadPortalRecords("customer", "procurement"),
   ]);
-  const invitations = users.records.filter(
-    (record) => text(record.data, "status") === "pending",
-  ).length;
+  const { withAccess, invitations } = collectionMemberCounts(users.records);
   const account = await loadAccountOverviewAccount({
     accountId: identity.accountId,
     identityAccountName: identity.accountName,
@@ -66,42 +82,41 @@ async function AccountWorkspace() {
   const projection: AccountOverviewProjection = {
     accountName: account.accountName,
     organizationName: identity.organizationName,
-    roleLabel: titleCase(identity.role),
+    roleLabel: roleLabel(identity.role, t),
     facts: [
       {
-        label: t("account.owner"),
-        value: personNamed(users.records, /owner/iu, t),
+        label: t("role.owner"),
+        value: personNamed(users.records, "owner", t),
       },
       {
-        label: t("account.billingContact"),
+        label: t("customer.account.fact.billingContact"),
         value:
-          account.billingContact ?? personNamed(users.records, /billing/iu, t),
+          account.billingContact ?? personNamed(users.records, "billing", t),
       },
       ...(account.invoiceDeliveryEmail
         ? [
             {
-              label: "Invoice delivery",
+              label: t("customer.collection.field.invoiceDelivery"),
               value: account.invoiceDeliveryEmail,
             },
           ]
         : []),
       {
-        label: t("account.people"),
-        value: String(users.records.length),
+        label: t("customer.account.fact.people"),
+        value: count.format(withAccess),
       },
-      { label: t("account.invitations"), value: String(invitations) },
+      {
+        label: t("customer.account.fact.invitations"),
+        value: count.format(invitations),
+      },
     ],
     areaMeta: {
-      users: plural(
-        users.records.length,
-        t("account.areas.users.meta.one"),
-        t("account.areas.users.meta.other"),
-      ),
-      procurement: plural(
-        procurement.records.length,
-        t("account.areas.procurement.meta.one"),
-        t("account.areas.procurement.meta.other"),
-      ),
+      users: t("customer.account.areas.users.meta", {
+        count: withAccess,
+      }),
+      procurement: t("customer.account.areas.procurement.meta", {
+        count: procurement.records.length,
+      }),
     },
   };
   return (

@@ -10,6 +10,7 @@ export function SearchableSelector({
   options,
   error,
   help,
+  placeholder,
   onChange,
 }: {
   id: string;
@@ -18,6 +19,8 @@ export function SearchableSelector({
   options: readonly SelectorOption[];
   error?: string | undefined;
   help?: string | undefined;
+  /** The whole prompt, in the reader's language ("Search offer"). */
+  placeholder: string;
   onChange: (value: string) => void;
 }) {
   const listId = `${id}-options`;
@@ -33,7 +36,7 @@ export function SearchableSelector({
         id={id}
         list={listId}
         onChange={(event) => onChange(event.target.value)}
-        placeholder={`Search ${label.toLocaleLowerCase()}`}
+        placeholder={placeholder}
         type="search"
         value={value}
       />

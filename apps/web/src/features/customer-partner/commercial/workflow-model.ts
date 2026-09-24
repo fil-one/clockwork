@@ -1,8 +1,13 @@
 import { uuidV7 } from "@clockwork/contracts";
 
-import { customerPartnerCopy } from "../copy";
+import type { MessageId, Translator } from "@/src/i18n";
 
-export const quoteStageLabels = customerPartnerCopy.commercial.quoteStages;
+/** The three quote-creation stages, in order, as message IDs. */
+export const quoteStageLabels = [
+  "customer.commercial.builder.stage.offer",
+  "customer.commercial.builder.stage.terms",
+  "customer.commercial.builder.stage.review",
+] as const satisfies readonly MessageId[];
 
 export type QuoteStage = 1 | 2 | 3;
 export type QuoteStatus = "draft" | "open" | "accepted" | "canceled";
@@ -30,7 +35,8 @@ export interface QuoteDraft {
 }
 
 export type QuoteField = keyof QuoteDraft;
-export type QuoteErrors = Partial<Record<QuoteField, string>>;
+/** Each invalid field and the message that says why, as a message ID. */
+export type QuoteErrors = Partial<Record<QuoteField, MessageId>>;
 
 /**
  * This intentionally supersedes the proposed five-route customer control. The
@@ -86,22 +92,22 @@ export function validateQuoteStage(
   const errors: QuoteErrors = {};
   if (stage === 1) {
     if (!resolveSelectorId(draft.account, accounts))
-      errors.account = "Choose a customer from the available accounts.";
+      errors.account = "customer.commercial.quoteError.account";
     if (!resolveSelectorId(draft.offer, offers))
-      errors.offer = "Choose an offer from the current price book.";
+      errors.offer = "customer.commercial.quoteError.offer";
   }
   if (stage === 2) {
     const capacity = Number(draft.capacity);
     if (!Number.isFinite(capacity) || capacity < 10)
-      errors.capacity = "Enter a committed capacity of at least 10 TB.";
+      errors.capacity = "customer.commercial.quoteError.capacity";
     const term = Number(draft.termMonths);
     if (!Number.isInteger(term) || term < 1 || term > 60)
-      errors.termMonths = "Enter a term between 1 and 60 months.";
+      errors.termMonths = "customer.commercial.quoteError.term";
     const expiry = new Date(draft.expiresAt);
     if (!draft.expiresAt || Number.isNaN(expiry.valueOf()))
-      errors.expiresAt = "Enter the date and time when this quote expires.";
+      errors.expiresAt = "customer.commercial.quoteError.expiry";
     else if (expiry.getTime() <= now.getTime())
-      errors.expiresAt = "Choose an expiry after the current time.";
+      errors.expiresAt = "customer.commercial.quoteError.expiryFuture";
   }
   return errors;
 }
@@ -161,21 +167,43 @@ export interface OrderReviewSummary {
   commitment: string;
 }
 
-export function orderReviewSummary(input: {
-  quoteTitle: string;
-  quoteVersion: string;
-  agreementTitle: string;
-  agreementVersion: string;
-  poNumber?: string;
-  serviceStart: string;
-  scope: string;
-  spend: string;
-}): OrderReviewSummary {
+/**
+ * What the acceptance panel shows the signer, one row per bound input.
+ *
+ * `agreement` is null when the account has no governing agreement on record;
+ * the row then says exactly that rather than composing a title, version and
+ * "active" around a sentence.
+ */
+export function orderReviewSummary(
+  input: {
+    quoteTitle: string;
+    quoteVersion: string;
+    agreement: { title: string; version: string } | null;
+    poNumber?: string;
+    serviceStart: string;
+    scope: string;
+    spend: string;
+  },
+  t: Translator,
+): OrderReviewSummary {
   return {
-    quote: `${input.quoteTitle} · version ${input.quoteVersion} · issued; awaiting acceptance`,
-    agreement: `${input.agreementTitle} · version ${input.agreementVersion} · active`,
-    purchaseOrder: input.poNumber || "No purchase order supplied",
-    serviceStart: input.serviceStart || "Not selected",
-    commitment: `${input.scope} · ${input.spend} quoted commitment`,
+    quote: t("customer.commercial.review.quote", {
+      title: input.quoteTitle,
+      version: input.quoteVersion,
+    }),
+    agreement: input.agreement
+      ? t("customer.commercial.review.agreement", {
+          title: input.agreement.title,
+          version: input.agreement.version,
+        })
+      : t("customer.commercial.review.noAgreement"),
+    purchaseOrder:
+      input.poNumber || t("customer.commercial.review.noPurchaseOrder"),
+    serviceStart:
+      input.serviceStart || t("customer.commercial.accept.notSelected"),
+    commitment: t("customer.commercial.review.commitment", {
+      scope: input.scope,
+      spend: input.spend,
+    }),
   };
 }

@@ -6,7 +6,7 @@ vi.mock("@/src/features/experience-server/internal-projection-page", () => ({
   ),
 }));
 import Page from "./page";
-it("always reads the canonical approval projection channel", () => {
-  render(<Page />);
+it("always reads the canonical approval projection channel", async () => {
+  render(await Page());
   expect(screen.getByText("Canonical channel: approvals")).toBeInTheDocument();
 });

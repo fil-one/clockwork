@@ -2,7 +2,8 @@ import type { Route } from "next";
 
 import type { CoreCommandInput } from "@/src/features/contracts/commerce-client";
 
-import { formatMoney, type SupportedCurrency } from "../../shared/format";
+import type { SupportedCurrency } from "../../shared/format";
+import { CommercialStop } from "./failure-message";
 import {
   quotePayload,
   type QuoteOfferOption,
@@ -59,9 +60,10 @@ export function buildBuyQuoteCommand(input: {
   thresholdTb?: number;
 }): CoreCommandInput {
   const capacity = buyCapacity(input.draft);
-  if (capacity === null) throw new Error("Enter at least 10 TB to continue.");
+  if (capacity === null)
+    throw new CommercialStop("customer.commercial.buy.error.capacityMinimum");
   if (needsFullQuote(input.draft, input.thresholdTb))
-    throw new Error("This capacity continues in the full quote workspace.");
+    throw new CommercialStop("customer.commercial.buy.error.fullQuote");
   const quoted = quotePayload(
     {
       account: input.account.label,
@@ -75,7 +77,7 @@ export function buildBuyQuoteCommand(input: {
     input.offers,
   );
   if (!quoted.accountId || !quoted.payload.priceBookId)
-    throw new Error("The selected offer is unavailable.");
+    throw new CommercialStop("customer.commercial.buy.error.offerUnavailable");
   return {
     resource: "quotes",
     id: input.quoteId,
@@ -85,10 +87,10 @@ export function buildBuyQuoteCommand(input: {
   };
 }
 
+/** The server's total for the draft, as facts; the page formats it. */
 export interface ServerPrice {
   totalMinor: string;
   currency: SupportedCurrency;
-  display: string;
 }
 
 function recordData(value: unknown): Readonly<Record<string, unknown>> | null {
@@ -112,22 +114,20 @@ export function serverPrice(value: unknown): ServerPrice | null {
     (currency !== "USD" && currency !== "EUR" && currency !== "GBP")
   )
     return null;
-  return {
-    totalMinor,
-    currency,
-    display: `${formatMoney(totalMinor, currency)} total / ${SELF_SERVE_TERM_MONTHS} months`,
-  };
+  return { totalMinor, currency };
 }
 
 export function createdRowVersion(value: unknown): number {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error("The priced draft response omitted its version.");
-  const record = (value as { record?: unknown }).record;
-  if (!record || typeof record !== "object" || Array.isArray(record))
-    throw new Error("The priced draft response omitted its record.");
-  const rowVersion = (record as { rowVersion?: unknown }).rowVersion;
+  const record =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as { record?: unknown }).record
+      : undefined;
+  const rowVersion =
+    record && typeof record === "object" && !Array.isArray(record)
+      ? (record as { rowVersion?: unknown }).rowVersion
+      : undefined;
   if (!Number.isInteger(rowVersion) || Number(rowVersion) < 1)
-    throw new Error("The priced draft response omitted its version.");
+    throw new CommercialStop("customer.commercial.buy.error.responseInvalid");
   return Number(rowVersion);
 }
 

@@ -16,7 +16,15 @@ vi.mock("@clockwork/db", async (original) => ({
     save = mocks.save;
   },
 }));
-import { saveProviderReference } from "./actions";
+import { translatorFor } from "@/src/i18n/catalogs";
+import { saveProviderReference, type ProviderReferenceResult } from "./actions";
+
+/** The action returns a message ID; read it the way an English reader sees it. */
+const english = translatorFor("en");
+async function said(result: Promise<ProviderReferenceResult>) {
+  const id = await result;
+  return id ? english(id) : "";
+}
 const staff = {
   userId: "20000000-0000-4000-8000-000000000001",
   providerBacked: true,
@@ -55,7 +63,7 @@ describe("provider reference administration", () => {
     const data = form();
     data.set("$ACTION_ID_fixture", "framework metadata");
     data.set("actor", "forged actor");
-    expect(await saveProviderReference("", data)).toContain(
+    expect(await said(saveProviderReference("", data))).toContain(
       "directly authenticated",
     );
     expect(mocks.save).not.toHaveBeenCalled();
@@ -64,7 +72,9 @@ describe("provider reference administration", () => {
     const data = form();
     data.set("$ACTION_ID_fixture", "framework metadata");
     data.set("actor", "forged actor");
-    expect(await saveProviderReference("", data)).toContain("Reference saved");
+    expect(await said(saveProviderReference("", data))).toContain(
+      "Reference saved",
+    );
     expect(mocks.save.mock.calls[0]?.[0]).toMatchObject({
       actor: { kind: "user", id: staff.userId },
       command: { expectedRowVersion: 2 },
@@ -74,14 +84,16 @@ describe("provider reference administration", () => {
   it("rejects unsafe evidence without a mutation", async () => {
     const data = form();
     data.set("sourceEvidence", "not-a-reference");
-    expect(await saveProviderReference("", data)).toContain("Check");
+    expect(await said(saveProviderReference("", data))).toContain("Check");
     expect(mocks.save).not.toHaveBeenCalled();
   });
   it("reports a concurrent edit without claiming success", async () => {
     mocks.save.mockRejectedValueOnce(
       new Error("PROVIDER_REFERENCE_VERSION_CONFLICT"),
     );
-    expect(await saveProviderReference("", form())).toContain("changed while");
+    expect(await said(saveProviderReference("", form()))).toContain(
+      "changed while",
+    );
     expect(mocks.revalidate).not.toHaveBeenCalled();
   });
 });

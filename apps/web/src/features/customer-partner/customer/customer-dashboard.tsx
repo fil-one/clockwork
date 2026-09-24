@@ -1,4 +1,3 @@
-import { localizeCopy } from "@/src/i18n/copy";
 import { getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import Link from "next/link";
@@ -6,13 +5,11 @@ import type { Route } from "next";
 
 import { ApplicationStatePanel, StatusBadge } from "@clockwork/ui";
 
-import { plural } from "@/src/i18n/en";
+import type { Translator } from "@/src/i18n";
+import { richText } from "@/src/i18n/rich";
 
-import { customerPartnerCopy } from "../copy";
 import { formatSurfaceTimestamp, type SurfaceFormatting } from "../formatting";
 import styles from "./customer-pages.module.css";
-
-const copy = customerPartnerCopy.customer;
 
 /**
  * Counted from the list it introduces.
@@ -21,27 +18,24 @@ const copy = customerPartnerCopy.customer;
  * a decision or follow-up." A reader with two obligations was told there were
  * four, and had nowhere to look for the missing two.
  */
-function attentionDescription(
-  count: number,
-  locale: string,
-  localized: typeof copy,
-): string {
-  if (count === 0) return localized.attentionDescriptionNone;
-  return plural(
-    count,
-    localized.attentionDescriptionOne,
-    localized.attentionDescriptionOther,
-    locale,
-  );
+function attentionDescription(count: number, t: Translator): string {
+  if (count === 0) return t("customer.dashboard.attentionNone");
+  return t("customer.dashboard.attentionCount", { count });
 }
 
 /**
  * The badge reports the term's own renewal position. An open notice window is
  * the decision that matters, so it outranks the renewal type.
+ *
+ * `renewalTone` is the loader's statement of that position. The text fallback
+ * below reads English words, so it only holds while the loader writes English
+ * labels; a loader that localizes the labels must set `renewalTone`.
  */
 function renewalTone(
   term: CustomerDashboardProjection["term"],
 ): "neutral" | "success" | "warning" {
+  // The loader decides the tone from facts; the labels below are translated.
+  if (term.renewalTone) return term.renewalTone;
   if (/^opened\b/iu.test(term.noticeLabel)) return "warning";
   const state = term.renewalState.toLocaleLowerCase();
   if (state.includes("auto")) return "success";
@@ -73,6 +67,8 @@ export interface CustomerDashboardProjection {
     noticeLabel: string;
     renewalLabel: string;
     agreementLabel: string;
+    /** The renewal badge's tone, from the notice date and renewal type. */
+    renewalTone?: "neutral" | "success" | "warning";
   };
   services: readonly { id: string; name: string; detail: string }[];
   /** Null while the account has no metered usage to report. */
@@ -110,23 +106,20 @@ export function CustomerDashboard({
   canCreateQuote?: boolean;
 }) {
   const t = use(getTranslations());
-  const localizedcopy = localizeCopy(copy, t);
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.taskHeader}>
         <div>
-          <h1>
-            {localizedcopy.dashboardGreeting}, {greetingName}
-          </h1>
-          <p>{localizedcopy.dashboardDescription}</p>
+          <h1>{t("customer.dashboard.greeting", { name: greetingName })}</h1>
+          <p>{t("customer.dashboard.description")}</p>
         </div>
         {canCreateQuote ? (
           <Link className={styles.primaryLink} href="/quotes/new">
-            Create quote
+            {t("customer.dashboard.createQuote")}
           </Link>
         ) : (
           <p className={styles.permissionNote}>
-            {localizedcopy.quotePermissionNote}
+            {t("customer.dashboard.quotePermissionNote")}
           </p>
         )}
       </header>
@@ -134,30 +127,33 @@ export function CustomerDashboard({
       <section className={styles.obligations} aria-labelledby="attention-title">
         <div className={styles.obligationHeading}>
           <div>
-            <h2 id="attention-title">{localizedcopy.attentionTitle}</h2>
-            <p>
-              {attentionDescription(
-                projection.obligations.length,
-                formatting.locale,
-                localizedcopy,
-              )}
-            </p>
+            <h2 id="attention-title">
+              {t("customer.dashboard.attentionTitle")}
+            </h2>
+            <p>{attentionDescription(projection.obligations.length, t)}</p>
           </div>
           <p className={styles.asOf}>
-            {projection.stale
-              ? "Stale account facts from "
-              : "Account facts as of "}
-            <time dateTime={projection.generatedAt}>
-              {formatSurfaceTimestamp(projection.generatedAt, formatting)}
-            </time>
+            {richText(
+              t,
+              projection.stale
+                ? "customer.dashboard.staleAsOf"
+                : "customer.dashboard.asOf",
+              {
+                time: (
+                  <time dateTime={projection.generatedAt}>
+                    {formatSurfaceTimestamp(projection.generatedAt, formatting)}
+                  </time>
+                ),
+              },
+            )}
           </p>
         </div>
         {projection.obligations.length === 0 ? (
           <ApplicationStatePanel
             state="empty"
             compact
-            title="No open obligations"
-            description={t("dashboard.empty.obligations")}
+            title={t("customer.dashboard.noObligations")}
+            description={t("customer.dashboard.noObligationsBody")}
           />
         ) : null}
         <ol className={styles.obligationList}>
@@ -180,7 +176,7 @@ export function CustomerDashboard({
                 data-record-version={item.recordVersion}
               >
                 {item.actionLabel}
-                <span aria-hidden="true"> →</span>
+                <span aria-hidden="true"> {t("customer.link.arrow")}</span>
               </Link>
             </li>
           ))}
@@ -191,7 +187,9 @@ export function CustomerDashboard({
         <section className={styles.termCard} aria-labelledby="term-title">
           <div className={styles.termTop}>
             <div>
-              <p className={styles.eyebrow}>Account agreement</p>
+              <p className={styles.eyebrow}>
+                {t("customer.dashboard.agreementEyebrow")}
+              </p>
               <h2 id="term-title">{projection.term.title}</h2>
               <p className={styles.termRange}>{projection.term.rangeLabel}</p>
             </div>
@@ -211,15 +209,15 @@ export function CustomerDashboard({
           </div>
           <dl className={styles.termMilestones}>
             <div>
-              <dt>Notice window</dt>
+              <dt>{t("customer.dashboard.noticeWindow")}</dt>
               <dd>{projection.term.noticeLabel}</dd>
             </div>
             <div>
-              <dt>Renewal</dt>
+              <dt>{t("customer.dashboard.renewal")}</dt>
               <dd>{projection.term.renewalLabel}</dd>
             </div>
             <div>
-              <dt>Governing agreement</dt>
+              <dt>{t("customer.dashboard.governingAgreement")}</dt>
               <dd>{projection.term.agreementLabel}</dd>
             </div>
           </dl>
@@ -227,21 +225,19 @@ export function CustomerDashboard({
 
         <details className={styles.rollup}>
           <summary>
-            <span>{localizedcopy.serviceRollup}</span>
+            <span>{t("customer.dashboard.serviceRollup")}</span>
             <span className={styles.rollupCount}>
-              {plural(
-                projection.services.length,
-                "{count} service",
-                "{count} services",
-              )}
+              {t("customer.dashboard.serviceCount", {
+                count: projection.services.length,
+              })}
             </span>
           </summary>
           {projection.services.length === 0 ? (
             <ApplicationStatePanel
               state="empty"
               compact
-              title="No active service"
-              description={t("dashboard.empty.services")}
+              title={t("customer.dashboard.noService")}
+              description={t("customer.dashboard.noServiceBody")}
             />
           ) : (
             <ul className={styles.serviceList}>
@@ -257,30 +253,32 @@ export function CustomerDashboard({
       </div>
 
       <details className={styles.supportingContext}>
-        <summary>Usage and recent account activity</summary>
+        <summary>{t("customer.dashboard.usageAndActivity")}</summary>
         <div className={styles.contextColumns}>
           <section aria-labelledby="capacity-facts-title">
-            <h2 id="capacity-facts-title">Capacity facts</h2>
+            <h2 id="capacity-facts-title">
+              {t("customer.dashboard.capacityTitle")}
+            </h2>
             {projection.capacity === null ? (
               <ApplicationStatePanel
                 state="empty"
                 compact
-                title="Usage reporting is not connected yet"
-                description={t("dashboard.empty.capacity")}
+                title={t("customer.dashboard.usageNotConnected")}
+                description={t("customer.dashboard.usageNotConnectedBody")}
               />
             ) : (
               <>
                 <dl className={styles.capacityFacts}>
                   <div>
-                    <dt>Committed</dt>
+                    <dt>{t("customer.dashboard.capacityCommitted")}</dt>
                     <dd>{projection.capacity.committed}</dd>
                   </div>
                   <div>
-                    <dt>Current use</dt>
+                    <dt>{t("customer.dashboard.capacityCurrent")}</dt>
                     <dd>{projection.capacity.current}</dd>
                   </div>
                   <div>
-                    <dt>Prior 30 days</dt>
+                    <dt>{t("customer.dashboard.capacityPrior")}</dt>
                     <dd>{projection.capacity.prior}</dd>
                   </div>
                 </dl>
@@ -291,13 +289,13 @@ export function CustomerDashboard({
             )}
           </section>
           <section aria-labelledby="activity-title">
-            <h2 id="activity-title">{localizedcopy.activityTitle}</h2>
+            <h2 id="activity-title">{t("customer.dashboard.activityTitle")}</h2>
             {projection.activity.length === 0 ? (
               <ApplicationStatePanel
                 state="empty"
                 compact
-                title="No recorded activity"
-                description={t("dashboard.empty.activity")}
+                title={t("customer.dashboard.noActivity")}
+                description={t("customer.dashboard.noActivityBody")}
               />
             ) : (
               <ol className={styles.activityList}>

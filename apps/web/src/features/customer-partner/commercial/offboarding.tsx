@@ -1,7 +1,7 @@
 "use client";
-import { localizeCopy } from "@/src/i18n/copy";
 
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import type { MessageId } from "@/src/i18n";
 
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -9,13 +9,35 @@ import { useRef, useState } from "react";
 import { requestOffboarding } from "@/src/features/contracts/commerce-client";
 import { sendProjectionAction } from "@/src/features/contracts/experience-client";
 
-import { customerPartnerCopy } from "../copy";
 import { draftIsDirty } from "../draft-state";
 import {
   LeaveDraftControl,
   useUnsavedChangesWarning,
 } from "../unsaved-changes";
 import styles from "./commercial.module.css";
+import { commercialFailureText } from "./failure-message";
+
+const reasons = [
+  ["non_renewal", "customer.commercial.offboarding.reason.nonRenewal"],
+  [
+    "customer_request",
+    "customer.commercial.offboarding.reason.customerRequest",
+  ],
+  ["material_breach", "customer.commercial.offboarding.reason.materialBreach"],
+] as const satisfies readonly (readonly [string, MessageId])[];
+
+const retrievalWindows = [30, 60, 90] as const;
+
+/** The requested effective time as the reader typed it, in their locale. */
+function effectiveTimeLabel(value: string, locale: string): string {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.valueOf())
+    ? value
+    : new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(parsed);
+}
 
 export interface OffboardableService {
   id: string;
@@ -40,7 +62,7 @@ export function OffboardingWorkflow({
   };
 }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
+  const locale = useFormattingLocale();
   const [reviewing, setReviewing] = useState(false);
   const [orderId, setOrderId] = useState(
     selectedServiceId ?? services[0]?.id ?? "",
@@ -55,7 +77,7 @@ export function OffboardingWorkflow({
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState<{
     id: string;
-    message: string;
+    message: MessageId;
   } | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const selectedService = services.find((service) => service.id === orderId);
@@ -84,15 +106,15 @@ export function OffboardingWorkflow({
 
   const submit = async () => {
     if (!selectedService) return;
-    const invalid = !effectiveAt
+    const invalid: { id: string; message: MessageId } | undefined = !effectiveAt
       ? {
           id: "effective-at",
-          message: t("account.offboarding.validation.effectiveAt"),
+          message: "customer.commercial.offboarding.validation.effectiveAt",
         }
       : !confirmed
         ? {
             id: "offboarding-confirmation",
-            message: t("account.offboarding.validation.confirmation"),
+            message: "customer.commercial.offboarding.validation.confirmation",
           }
         : undefined;
     if (invalid) {
@@ -137,12 +159,14 @@ export function OffboardingWorkflow({
           idempotencyKey: idempotencyKeyRef.current,
         });
       setRequested(true);
-      setMessage(t("account.offboarding.requested"));
+      setMessage(t("customer.commercial.offboarding.requested"));
     } catch (caught) {
       setError(
-        caught instanceof Error
-          ? caught.message
-          : t("account.offboarding.failed"),
+        commercialFailureText(
+          caught,
+          t,
+          "customer.commercial.offboarding.failed",
+        ),
       );
     } finally {
       setPending(false);
@@ -153,12 +177,12 @@ export function OffboardingWorkflow({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Controlled offboarding</p>
-          <h1>Review service offboarding</h1>
+          <p className={styles.eyebrow}>
+            {t("customer.commercial.offboarding.eyebrow")}
+          </p>
+          <h1>{t("customer.commercial.offboarding.title")}</h1>
           <p className={styles.description}>
-            Offboarding is a controlled request with retention, retrieval, and
-            two-person approval safeguards. It never tears down service
-            immediately.
+            {t("customer.commercial.offboarding.description")}
           </p>
         </div>
         <LeaveDraftControl
@@ -166,16 +190,16 @@ export function OffboardingWorkflow({
           className={styles.secondary ?? ""}
           discardClassName={styles.secondary ?? ""}
           href="/account"
-          label="Return to account"
+          label={t("customer.commercial.offboarding.return")}
         />
       </header>
 
       {services.length === 0 ? (
         <section className={styles.state} role="status">
-          <h2>{t("account.offboarding.empty.title")}</h2>
-          <p>{t("account.offboarding.empty.description")}</p>
+          <h2>{t("customer.commercial.offboarding.empty.title")}</h2>
+          <p>{t("customer.commercial.offboarding.empty.description")}</p>
           <Link className={styles.secondary} href="/orders">
-            {t("account.offboarding.empty.action")}
+            {t("customer.commercial.offboarding.empty.action")}
           </Link>
         </section>
       ) : (
@@ -184,7 +208,7 @@ export function OffboardingWorkflow({
             <div className={styles.formGrid}>
               <div className={`${styles.field} ${styles.spanTwo}`}>
                 <label htmlFor="offboarding-service">
-                  {t("account.offboarding.service")}
+                  {t("customer.commercial.offboarding.service")}
                 </label>
                 <select
                   id="offboarding-service"
@@ -203,31 +227,41 @@ export function OffboardingWorkflow({
                 </select>
               </div>
               <div className={styles.field}>
-                <label htmlFor="offboarding-reason">{t("ui.115")}</label>
+                <label htmlFor="offboarding-reason">
+                  {t("customer.commercial.offboarding.reason")}
+                </label>
                 <select
                   id="offboarding-reason"
                   onChange={(event) => setReason(event.target.value)}
                   value={reason}
                 >
-                  <option value="non_renewal">Non-renewal</option>
-                  <option value="customer_request">Customer request</option>
-                  <option value="material_breach">Material breach</option>
+                  {reasons.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {t(label)}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className={styles.field}>
-                <label htmlFor="retrieval-days">Retrieval window</label>
+                <label htmlFor="retrieval-days">
+                  {t("customer.commercial.offboarding.retrievalWindow")}
+                </label>
                 <select
                   id="retrieval-days"
                   onChange={(event) => setRetrievalDays(event.target.value)}
                   value={retrievalDays}
                 >
-                  <option value="30">30 days</option>
-                  <option value="60">60 days</option>
-                  <option value="90">90 days</option>
+                  {retrievalWindows.map((days) => (
+                    <option key={days} value={String(days)}>
+                      {t("customer.commercial.days", { count: days })}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className={`${styles.field} ${styles.spanTwo}`}>
-                <label htmlFor="effective-at">Requested effective time</label>
+                <label htmlFor="effective-at">
+                  {t("customer.commercial.offboarding.effectiveAt")}
+                </label>
                 <input
                   aria-describedby={
                     validationError?.id === "effective-at"
@@ -254,7 +288,7 @@ export function OffboardingWorkflow({
               onClick={() => setReviewing(true)}
               type="button"
             >
-              {localizedcustomerPartnerCopy.commercial.confirmMutation}
+              {t("customer.commercial.offboarding.reviewAndConfirm")}
             </button>
           </section>
 
@@ -263,27 +297,48 @@ export function OffboardingWorkflow({
             aria-labelledby="offboarding-review-title"
           >
             <div>
-              <p className={styles.eyebrow}>Safeguarded request</p>
-              <h2 id="offboarding-review-title">Review impact</h2>
+              <p className={styles.eyebrow}>
+                {t("customer.commercial.offboarding.summaryEyebrow")}
+              </p>
+              <h2 id="offboarding-review-title">
+                {t("customer.commercial.offboarding.reviewImpact")}
+              </h2>
             </div>
             {reviewing ? (
               <>
                 <ul className={styles.reviewList}>
                   <li>
-                    <span>{t("account.offboarding.service")}</span>
-                    <strong>{selectedService?.name ?? "Not selected"}</strong>
+                    <span>{t("customer.commercial.offboarding.service")}</span>
+                    <strong>
+                      {selectedService?.name ??
+                        t("customer.commercial.accept.notSelected")}
+                    </strong>
                   </li>
                   <li>
-                    <span>Requested effective time</span>
-                    <strong>{effectiveAt || "Not selected"}</strong>
+                    <span>
+                      {t("customer.commercial.offboarding.effectiveAt")}
+                    </span>
+                    <strong>
+                      {effectiveAt
+                        ? effectiveTimeLabel(effectiveAt, locale)
+                        : t("customer.commercial.accept.notSelected")}
+                    </strong>
                   </li>
                   <li>
-                    <span>Retrieval window</span>
-                    <strong>{retrievalDays} days</strong>
+                    <span>
+                      {t("customer.commercial.offboarding.retrievalWindow")}
+                    </span>
+                    <strong>
+                      {t("customer.commercial.days", {
+                        count: Number(retrievalDays),
+                      })}
+                    </strong>
                   </li>
                   <li>
-                    <span>Approval</span>
-                    <strong>Two distinct approvers required</strong>
+                    <span>{t("customer.commercial.offboarding.approval")}</span>
+                    <strong>
+                      {t("customer.commercial.offboarding.approvalValue")}
+                    </strong>
                   </li>
                 </ul>
                 <label
@@ -309,8 +364,7 @@ export function OffboardingWorkflow({
                     type="checkbox"
                   />
                   <span>
-                    I reviewed the term, retrieval window, retention safeguards,
-                    and approval requirement.
+                    {t("customer.commercial.offboarding.confirmation")}
                   </span>
                 </label>
                 {validationError ? (
@@ -319,7 +373,7 @@ export function OffboardingWorkflow({
                     id="offboarding-validation"
                     role="alert"
                   >
-                    {validationError.message}
+                    {t(validationError.message)}
                   </p>
                 ) : null}
                 {message ? (
@@ -327,7 +381,7 @@ export function OffboardingWorkflow({
                     {message}{" "}
                     {requested && selectedService ? (
                       <Link href={`/orders/${selectedService.reference}`}>
-                        {t("account.offboarding.requestedLink")}
+                        {t("customer.commercial.offboarding.requestedLink")}
                       </Link>
                     ) : null}
                   </p>
@@ -345,15 +399,16 @@ export function OffboardingWorkflow({
                   }}
                   type="button"
                 >
-                  {pending
-                    ? "Submitting…"
-                    : "Submit controlled offboarding request"}
+                  {t(
+                    pending
+                      ? "customer.commercial.offboarding.submitting"
+                      : "customer.commercial.offboarding.submit",
+                  )}
                 </button>
               </>
             ) : (
               <p className={styles.notice}>
-                Select the service, reason, effective time, and retrieval
-                window, then open the final confirmation.
+                {t("customer.commercial.offboarding.prompt")}
               </p>
             )}
           </aside>

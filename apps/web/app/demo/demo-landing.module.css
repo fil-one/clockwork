@@ -1,12 +1,14 @@
 /*
- * The demo front door is a roster, not a card grid: hairline rules separate the
- * two audiences and every persona reads across one set of column edges.
+ * The demo front door is a roster, not a card grid: each audience is one white
+ * console card, and every persona row reads across one set of column edges.
  */
 .main {
   display: grid;
-  gap: var(--cw-space-4);
+  width: min(100%, 80rem);
+  gap: var(--cw-space-6);
   align-content: start;
   min-height: 100vh;
+  margin-inline: auto;
   padding: clamp(var(--cw-space-4), 4vw, var(--cw-space-10));
   background: var(--web-canvas);
   color: var(--web-ink);
@@ -14,15 +16,14 @@
 
 .header {
   display: grid;
-  gap: var(--cw-space-2);
+  gap: var(--cw-space-1);
   max-width: 62ch;
 }
 
 .wordmark {
-  margin-bottom: var(--cw-space-3);
+  margin-bottom: var(--cw-space-2);
   font-size: var(--cw-text-xs);
-  font-weight: 800;
-  letter-spacing: 0.16em;
+  font-weight: 600;
 }
 
 .eyebrow {
@@ -30,8 +31,9 @@
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .title {
@@ -39,7 +41,6 @@
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.035em;
   line-height: var(--cw-leading-tight);
 }
 
@@ -54,31 +55,42 @@
 .group {
   display: grid;
   align-content: start;
+  gap: var(--cw-space-2);
 }
 
+/* The console's section label: small, muted, uppercase where the script has
+   case. */
 .groupHeading {
-  margin: 0 0 var(--cw-space-1);
-  padding-bottom: var(--cw-space-2);
-  border-bottom: 2px solid var(--web-ink);
-  font-family: var(--cw-font-display);
-  font-size: var(--cw-text-xl);
+  margin: 0;
+  color: var(--web-muted);
+  font-family: var(--cw-font-accent);
+  font-size: var(--cw-text-xs);
   font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: var(--cw-leading-snug);
+  letter-spacing: var(--cw-label-tracking);
+  line-height: var(--cw-leading-aux);
+  text-transform: var(--cw-label-transform);
 }
 
 /*
  * One grid for the whole roster, so every row lands on the same column edges
- * instead of each row sizing its own tracks to its own name length.
+ * instead of each row sizing its own tracks to its own name length. The action
+ * column sizes to its longest label, so a longer translation widens the column
+ * rather than overflowing the button. The two edge tracks are intrinsic so
+ * the rows' inline padding widens them instead of eating into the mark.
  */
 .roster {
   display: grid;
   grid-template-columns:
-    2.25rem minmax(9rem, 0.9fr) minmax(8rem, 0.8fr)
-    minmax(13rem, 1.5fr) 11.5rem;
+    auto minmax(9rem, 0.9fr) minmax(8rem, 0.8fr)
+    minmax(13rem, 1.5fr) auto;
   column-gap: var(--cw-space-4);
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
   list-style: none;
 }
 
@@ -87,22 +99,24 @@
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
   align-items: center;
-  border-bottom: 1px solid var(--web-line);
-  padding-block: var(--cw-space-2);
+  padding: var(--cw-space-3) var(--cw-space-4);
+}
+
+.row + .row {
+  border-top: 1px solid var(--web-line);
 }
 
 .mark {
   display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2rem;
+  height: 2rem;
   place-items: center;
   border-radius: 50%;
-  background: var(--cw-brand-soft);
-  color: var(--cw-brand-ink);
+  background: var(--cw-canvas-deep);
+  color: var(--cw-ink-soft);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-weight: 600;
 }
 
 .identity {
@@ -112,15 +126,14 @@
 
 .name {
   font-family: var(--cw-font-display);
-  font-size: var(--cw-text-lg);
+  font-size: var(--cw-text-md);
   font-weight: 600;
-  letter-spacing: -0.01em;
   line-height: var(--cw-leading-snug);
 }
 
 .role {
   color: var(--web-muted);
-  font-size: var(--cw-text-sm);
+  font-size: var(--cw-text-xs);
   line-height: var(--cw-leading-aux);
 }
 
@@ -138,21 +151,26 @@
   line-height: var(--cw-leading-aux);
 }
 
+/* The console's outline button. It wraps rather than clipping a long
+   translation. */
 .start {
   display: inline-flex;
   min-height: var(--cw-control-height);
   align-items: center;
   justify-content: center;
   gap: var(--cw-space-2);
-  border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-xs);
-  padding-inline: var(--cw-space-4);
-  color: var(--web-accent);
+  border: 1px solid rgb(9 9 11 / 0.15);
+  border-radius: var(--cw-radius-sm);
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
+  padding: 0.375rem var(--cw-space-3);
+  color: var(--web-ink);
   font-family: var(--cw-font-accent);
-  font-size: var(--cw-text-sm);
-  font-weight: 700;
+  font-size: var(--cw-text-md);
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
   text-decoration: none;
-  white-space: nowrap;
   transition:
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
     border-color var(--cw-motion-fast) var(--cw-motion-ease),
@@ -160,14 +178,16 @@
 }
 
 .start:hover {
-  border-color: var(--cw-brand-strong);
-  background: var(--cw-brand-soft);
-  color: var(--cw-brand-ink);
+  border-color: rgb(9 9 11 / 0.2);
+  background: var(--cw-canvas-deep);
+}
+
+.start:focus-visible {
+  outline: 2px solid var(--cw-focus);
+  outline-offset: 2px;
 }
 
 .footer {
-  border-top: 1px solid var(--web-line);
-  padding-top: var(--cw-space-3);
   color: var(--web-muted);
   font-size: var(--cw-text-sm);
 }
@@ -186,10 +206,9 @@
   }
 
   .row {
-    grid-template-columns: 2.25rem minmax(0, 1fr) 11.5rem;
+    grid-template-columns: 2rem minmax(0, 1fr) minmax(9rem, max-content);
     align-items: start;
     gap: var(--cw-space-1) var(--cw-space-3);
-    padding-block: var(--cw-space-3);
   }
 
   .identity {
@@ -212,7 +231,7 @@
 
 @media (max-width: 34rem) {
   .row {
-    grid-template-columns: 2.25rem minmax(0, 1fr);
+    grid-template-columns: 2rem minmax(0, 1fr);
   }
 
   .start {

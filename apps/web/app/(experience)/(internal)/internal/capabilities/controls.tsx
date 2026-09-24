@@ -2,8 +2,10 @@
 
 import { useActionState } from "react";
 import type { DatabaseSystemCapabilityAdmin } from "@clockwork/db";
-import { changeCapability } from "./actions";
+import { changeCapability, type CapabilityActionResult } from "./actions";
+import { formatSurfaceTimestamp } from "@/src/features/customer-partner/formatting";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 type Capability = Awaited<
   ReturnType<DatabaseSystemCapabilityAdmin["list"]>
@@ -18,7 +20,12 @@ export function CapabilityControls({
   canOperate: boolean;
   canApprove: boolean;
 }) {
-  const [message, action, pending] = useActionState(changeCapability, "");
+  const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
+  const [message, action, pending] = useActionState<
+    CapabilityActionResult,
+    FormData
+  >(changeCapability, "");
   return (
     <form action={action} className={styles.panelBody}>
       <input
@@ -40,43 +47,60 @@ export function CapabilityControls({
           />
           <p>
             <strong>
-              Pending{" "}
-              {capability.pending.enableRecovery ? "recovery" : "new work"}{" "}
-              activation
+              {t(
+                capability.pending.enableRecovery
+                  ? "adminGovernance.capabilities.pendingRecovery"
+                  : "adminGovernance.capabilities.pendingNewWork",
+              )}
             </strong>
           </p>
           <p>
-            Requested by {capability.pending.requestedBy} ·{" "}
-            {capability.pending.requestedAt.toISOString()}
+            {t("adminGovernance.capabilities.requestedBy", {
+              actor: capability.pending.requestedBy,
+              time: formatSurfaceTimestamp(
+                capability.pending.requestedAt.toISOString(),
+                { locale: formattingLocale, timeZone: "UTC" },
+              ),
+            })}
           </p>
           <p>{capability.pending.reason}</p>
-          <p>Evidence: {capability.pending.evidenceReference}</p>
+          <p>
+            {t("adminGovernance.capabilities.evidence", {
+              reference: capability.pending.evidenceReference,
+            })}
+          </p>
         </>
       ) : null}
       <label className={styles.field}>
-        Control scope
+        {t("adminGovernance.capabilities.controlScope")}
         <select name="recovery" defaultValue="false">
-          <option value="false">New work</option>
-          <option value="true">Recovery work</option>
+          <option value="false">
+            {t("adminGovernance.capabilities.scope.newWork")}
+          </option>
+          <option value="true">
+            {t("adminGovernance.capabilities.scope.recoveryWork")}
+          </option>
         </select>
       </label>
       <label className={styles.field}>
-        Decision reason
+        {t("adminGovernance.decisionReason")}
         <textarea
           name="reason"
           required
           minLength={8}
           maxLength={2000}
-          placeholder="Explain the operational reason and evidence for this change."
+          placeholder={t("adminGovernance.capabilities.reasonPlaceholder")}
         />
       </label>
       {canOperate && !capability.pending ? (
         <label className={styles.field}>
-          Activation evidence reference
+          {t("adminGovernance.capabilities.evidenceReference")}
           <input
             name="evidenceReference"
             maxLength={2000}
-            placeholder="Approved launch or recovery evidence reference"
+            placeholder={t(
+              "adminGovernance.capabilities.evidenceReferencePlaceholder",
+            )}
           />
         </label>
       ) : null}
@@ -88,7 +112,7 @@ export function CapabilityControls({
             value="propose"
             disabled={pending}
           >
-            Request activation
+            {t("adminGovernance.capabilities.requestActivation")}
           </button>
         ) : null}
         {canApprove && capability.pending ? (
@@ -99,7 +123,7 @@ export function CapabilityControls({
               value="approve"
               disabled={pending}
             >
-              Approve activation
+              {t("adminGovernance.capabilities.approveActivation")}
             </button>
             <button
               className={styles.button}
@@ -107,7 +131,7 @@ export function CapabilityControls({
               value="reject"
               disabled={pending}
             >
-              Reject request
+              {t("adminGovernance.capabilities.rejectRequest")}
             </button>
           </>
         ) : null}
@@ -118,11 +142,11 @@ export function CapabilityControls({
             value="disable"
             disabled={pending}
           >
-            Disable immediately
+            {t("adminGovernance.capabilities.disableNow")}
           </button>
         ) : null}
       </div>
-      {message ? <p role="status">{message}</p> : null}
+      {message ? <p role="status">{t(message)}</p> : null}
     </form>
   );
 }

@@ -53,16 +53,14 @@ describe("catalog mapping administration", () => {
     const data = form();
     data.set("$ACTION_ID_fixture", "framework metadata");
     data.set("actor", "forged actor");
-    expect(await saveCatalogMapping("", data)).toContain(
-      "directly authenticated",
-    );
+    expect(await saveCatalogMapping("", data)).toBe("forbidden");
     expect(mocks.save).not.toHaveBeenCalled();
   });
   it("binds the real actor, preserves reviewed version, and refreshes both surfaces", async () => {
     const data = form();
     data.set("$ACTION_ID_fixture", "framework metadata");
     data.set("actor", "forged actor");
-    expect(await saveCatalogMapping("", data)).toContain("Draft mapping saved");
+    expect(await saveCatalogMapping("", data)).toBe("saved");
     expect(mocks.save.mock.calls[0]?.[0]).toMatchObject({
       actor: { kind: "user", id: staff.userId },
       command: { expectedRowVersion: 2 },
@@ -73,12 +71,19 @@ describe("catalog mapping administration", () => {
   it("rejects unsafe evidence without a mutation", async () => {
     const data = form();
     data.set("sourceEvidence", "not-a-reference");
-    expect(await saveCatalogMapping("", data)).toContain("Check");
+    expect(await saveCatalogMapping("", data)).toBe("invalid");
     expect(mocks.save).not.toHaveBeenCalled();
   });
   it("reports a concurrent proposal without claiming success", async () => {
     mocks.save.mockRejectedValueOnce(new Error("CATALOG_DRAFT_FROZEN"));
-    expect(await saveCatalogMapping("", form())).toContain("frozen");
+    expect(await saveCatalogMapping("", form())).toBe("frozen");
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+  });
+  it("tells a stale edit apart from a failure, and claims neither as saved", async () => {
+    mocks.save.mockRejectedValueOnce(new Error("CATALOG_VERSION_CONFLICT"));
+    expect(await saveCatalogMapping("", form())).toBe("conflict");
+    mocks.save.mockRejectedValueOnce(new Error("connection reset"));
+    expect(await saveCatalogMapping("", form())).toBe("failed");
     expect(mocks.revalidate).not.toHaveBeenCalled();
   });
 });

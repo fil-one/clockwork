@@ -12,6 +12,9 @@ vi.mock("next/navigation", () => ({
 import { PartnerCollection } from "./partner-collection";
 import type { PartnerRecord } from "./partner-data";
 import { partnerSurfaces } from "./partner-data";
+import { translatorFor } from "@/src/i18n/catalogs";
+
+const t = translatorFor("en");
 
 let search = "";
 
@@ -74,14 +77,14 @@ describe("partner ledger sortable columns", () => {
   it("announces the ordering on the column it applies to", () => {
     renderLedger("sort=name-desc");
 
-    expect(headerCell(config.columns[0])).toHaveAttribute(
+    expect(headerCell(t(config.columns[0]))).toHaveAttribute(
       "aria-sort",
       "descending",
     );
     expect(headerCell("Status")).toHaveAttribute("aria-sort", "none");
     // The trailing columns are per-surface free text with no ordering behind
     // them, so they claim nothing.
-    expect(headerCell(config.columns[2])).not.toHaveAttribute("aria-sort");
+    expect(headerCell(t(config.columns[2]))).not.toHaveAttribute("aria-sort");
   });
 
   it("puts the reader's ordering in the URL rather than in component state", () => {
@@ -89,7 +92,7 @@ describe("partner ledger sortable columns", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: `${config.columns[0]}, sorted ascending. Sort descending`,
+        name: `${t(config.columns[0])}, sorted ascending. Sort descending`,
       }),
     );
 

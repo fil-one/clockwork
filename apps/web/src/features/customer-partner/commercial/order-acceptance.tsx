@@ -1,7 +1,7 @@
 "use client";
-import { localizeCopy } from "@/src/i18n/copy";
 
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import type { MessageId } from "@/src/i18n";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,8 +10,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { uuidV7 } from "@clockwork/contracts";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
+import { formatDate } from "@/src/features/shared/format";
 
-import { customerPartnerCopy } from "../copy";
 import { anyEntered } from "../draft-state";
 import {
   LeaveDraftControl,
@@ -22,16 +22,17 @@ import {
   ARTIFACT_RETENTION_YEARS,
   commercialArtifactRetainUntil,
 } from "./artifact-retention";
+import { commercialFailureText } from "./failure-message";
 import type { PreparedOrderFormLookup } from "./prepared-order-form";
 import { orderReviewSummary } from "./workflow-model";
 
 const reviewLabels = {
-  quote: "Issued quote",
-  agreement: "Governing agreement",
-  purchaseOrder: "Purchase order",
-  serviceStart: "Service start",
-  commitment: "Resulting commitment",
-} as const;
+  quote: "customer.commercial.accept.label.quote",
+  agreement: "customer.commercial.accept.label.agreement",
+  purchaseOrder: "customer.commercial.accept.label.purchaseOrder",
+  serviceStart: "customer.commercial.accept.label.serviceStart",
+  commitment: "customer.commercial.accept.label.commitment",
+} as const satisfies Record<string, MessageId>;
 
 /**
  * Acceptance is two server commands, and the second one's only precondition --
@@ -196,7 +197,7 @@ async function readPreparedOrderForm(
   if (response.status === 401 || response.status === 403)
     return { status: "forbidden" };
   if (response.status === 503) return { status: "unavailable" };
-  if (!response.ok) throw new Error("The order form lookup failed");
+  if (!response.ok) throw new Error("The order form lookup failed"); // i18n-exempt: internal diagnostic; the poll counts a thrown lookup as a spent attempt and never renders it
   const representation = record(await response.json().catch(() => null));
   if (
     representation?.kind !== "order_form" ||
@@ -256,7 +257,7 @@ export function OrderAcceptance({
   audience?: "customer" | "partner";
 }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
+  const locale = useFormattingLocale();
   const [poNumber, setPoNumber] = useState("");
   const [serviceStart, setServiceStart] = useState("");
   /**
@@ -279,7 +280,7 @@ export function OrderAcceptance({
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState<{
     id: string;
-    message: string;
+    message: MessageId;
   } | null>(null);
   const router = useRouter();
   /**
@@ -369,19 +370,22 @@ export function OrderAcceptance({
   const summary = useMemo(
     () =>
       quote
-        ? orderReviewSummary({
-            agreementTitle:
-              agreement?.title ?? t("orders.accept.agreement.unknown"),
-            agreementVersion: agreement?.version ?? "Not recorded",
-            scope: quote.scope,
-            poNumber,
-            quoteTitle: quote.title,
-            quoteVersion: quote.version,
-            serviceStart,
-            spend: quote.spend,
-          })
+        ? orderReviewSummary(
+            {
+              agreement,
+              scope: quote.scope,
+              poNumber,
+              quoteTitle: quote.title,
+              quoteVersion: quote.version,
+              serviceStart: serviceStart
+                ? formatDate(serviceStart, locale)
+                : "",
+              spend: quote.spend,
+            },
+            t,
+          )
         : null,
-    [agreement, poNumber, quote, serviceStart],
+    [agreement, locale, poNumber, quote, serviceStart, t],
   );
 
   /**
@@ -471,38 +475,43 @@ export function OrderAcceptance({
 
   const accept = async () => {
     if (!quote) return;
-    const invalid = !poNumber.trim()
-      ? { id: "po-number", message: t("orders.accept.validation.po") }
-      : !serviceStart
+    const invalid: { id: string; message: MessageId } | undefined =
+      !poNumber.trim()
         ? {
-            id: "service-start",
-            message: t("orders.accept.validation.serviceStart"),
+            id: "po-number",
+            message: "customer.commercial.accept.validation.purchaseOrder",
           }
-        : !serviceEnd
+        : !serviceStart
           ? {
-              id: "service-end",
-              message: "Choose the service end date.",
+              id: "service-start",
+              message: "customer.commercial.accept.validation.serviceStart",
             }
-          : // `acceptOrder` refuses `end < serviceStartsOn` outright. Saying so
-            // here costs one comparison and saves a round trip that comes back
-            // as a raw server refusal.
-            serviceEnd < serviceStart
+          : !serviceEnd
             ? {
                 id: "service-end",
-                message:
-                  "Choose a service end on or after the service start date.",
+                message: "customer.commercial.accept.validation.serviceEnd",
               }
-            : !authorityTitle.trim()
+            : // `acceptOrder` refuses `end < serviceStartsOn` outright. Saying
+              // so here costs one comparison and saves a round trip that
+              // comes back as a raw server refusal.
+              serviceEnd < serviceStart
               ? {
-                  id: "order-authority-title",
-                  message: t("orders.accept.validation.authority"),
+                  id: "service-end",
+                  message:
+                    "customer.commercial.accept.validation.serviceEndOrder",
                 }
-              : !confirmed
+              : !authorityTitle.trim()
                 ? {
-                    id: "order-confirmation",
-                    message: t("orders.accept.validation.confirmation"),
+                    id: "order-authority-title",
+                    message: "customer.commercial.accept.validation.authority",
                   }
-                : undefined;
+                : !confirmed
+                  ? {
+                      id: "order-confirmation",
+                      message:
+                        "customer.commercial.accept.validation.confirmation",
+                    }
+                  : undefined;
     if (invalid) {
       setValidationError(invalid);
       document.getElementById(invalid.id)?.focus();
@@ -606,7 +615,7 @@ export function OrderAcceptance({
       await awaitOrderForm(orderId, preparedRef.current.artifactRequestId);
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : t("orders.accept.failed"),
+        commercialFailureText(caught, t, "customer.commercial.accept.failed"),
       );
       // A refused command leaves the same pass available. Locking the control
       // after a failure would be a control blocking legitimate work.
@@ -620,9 +629,9 @@ export function OrderAcceptance({
    */
   const statusMessage =
     phase === "created"
-      ? t("orders.accept.created")
+      ? t("customer.commercial.accept.created")
       : phase === "awaiting_form"
-        ? t("orders.accept.prepared")
+        ? t("customer.commercial.accept.prepared")
         : // Both waiting messages say only what this run verified: no order row
           // is written until the create pass, the entries are component state,
           // and the order form is hashed over the acceptance instant this
@@ -630,9 +639,9 @@ export function OrderAcceptance({
           // can only start another one. The copy this replaced told the reader
           // to "come back to this page later to finish", which was never true.
           phase === "form_stalled"
-          ? "The order form has not been rendered yet. Nothing has been created and your entries are held on this page — check again. Leaving this page ends this attempt: no order exists until it is completed here, and a later visit starts a new one."
+          ? t("customer.commercial.accept.stalled")
           : phase === "form_unavailable"
-            ? "This workspace cannot confirm whether the order form was rendered. Nothing has been created and your entries are held on this page — check again. Leaving this page ends this attempt: no order exists until it is completed here, and a later visit starts a new one."
+            ? t("customer.commercial.accept.unconfirmed")
             : "";
   /**
    * Both waiting states offer the recheck, and neither is a failure of the
@@ -660,11 +669,19 @@ export function OrderAcceptance({
   const reviewRows: readonly (readonly [string, string])[] = summary
     ? Object.entries(summary).flatMap(([key, value]) => {
         const row = [
-          reviewLabels[key as keyof typeof reviewLabels],
+          t(reviewLabels[key as keyof typeof reviewLabels]),
           value,
         ] as const;
         return key === "serviceStart"
-          ? [row, ["Service end", serviceEnd || "Not selected"] as const]
+          ? [
+              row,
+              [
+                t("customer.commercial.accept.label.serviceEnd"),
+                serviceEnd
+                  ? formatDate(serviceEnd, locale)
+                  : t("customer.commercial.accept.notSelected"),
+              ] as const,
+            ]
           : [row];
       })
     : [];
@@ -677,12 +694,11 @@ export function OrderAcceptance({
       <header className={styles.header}>
         <div>
           <p className={styles.taskContext}>
-            Binding acceptance · creates a commitment
+            {t("customer.commercial.accept.taskContext")}
           </p>
-          <h1>{localizedcustomerPartnerCopy.commercial.orderReview}</h1>
+          <h1>{t("customer.commercial.accept.title")}</h1>
           <p className={styles.description}>
-            This legal and financial confirmation creates the resulting service
-            commitment from an issued quote.
+            {t("customer.commercial.accept.description")}
           </p>
         </div>
         <LeaveDraftControl
@@ -690,24 +706,21 @@ export function OrderAcceptance({
           className={styles.secondary ?? ""}
           discardClassName={styles.secondary ?? ""}
           href={audience === "partner" ? "/partner/orders" : "/orders"}
-          label="Return to orders"
+          label={t("customer.commercial.accept.returnToOrders")}
         />
       </header>
 
       {partialRead ? (
         <p className={styles.errorMessage} role="alert">
-          This account holds more commercial records than one page of this
-          workspace can read, so the quote and governing agreement shown here
-          were chosen from the most recently updated records only. Check them
-          against the quote and agreement ledgers before accepting.
+          {t("customer.commercial.accept.partialRead")}
         </p>
       ) : null}
 
       {createdOrderId ? (
         <section className={styles.state}>
-          <h2>Order created</h2>
+          <h2>{t("customer.commercial.accept.createdTitle")}</h2>
           <p className={styles.successMessage} role="status">
-            {t("orders.accept.created")}
+            {t("customer.commercial.accept.created")}
           </p>
           <Link
             className={styles.primary}
@@ -717,31 +730,35 @@ export function OrderAcceptance({
                 : `/orders/order-${createdOrderId}`
             }
           >
-            {t("orders.accept.createdLink")}
+            {t("customer.commercial.accept.createdLink")}
           </Link>
         </section>
       ) : quote ? (
         <>
           <ol
-            aria-label="Commercial promise chain"
+            aria-label={t("customer.commercial.accept.chainLabel")}
             className={styles.promiseChain}
           >
             <li>
-              <span>Authoritative input</span>
+              <span>{t("customer.commercial.accept.chain.input")}</span>
               <strong>
-                {t("orders.accept.source", {
+                {t("customer.commercial.accept.chain.source", {
                   reference: quote.reference,
                   version: quote.version,
                 })}
               </strong>
             </li>
             <li aria-current="step">
-              <span>Current decision</span>
-              <strong>Order authority and service start</strong>
+              <span>{t("customer.commercial.accept.chain.decision")}</span>
+              <strong>
+                {t("customer.commercial.accept.chain.decisionValue")}
+              </strong>
             </li>
             <li>
-              <span>Created on acceptance</span>
-              <strong>Service commitment and provisioning state</strong>
+              <span>{t("customer.commercial.accept.chain.created")}</span>
+              <strong>
+                {t("customer.commercial.accept.chain.createdValue")}
+              </strong>
             </li>
           </ol>
 
@@ -757,19 +774,29 @@ export function OrderAcceptance({
               className={`${styles.panel} ${styles.workflow} ${styles.taskPanel}`}
             >
               <div>
-                <p className={styles.taskContext}>Issued commercial source</p>
+                <p className={styles.taskContext}>
+                  {t("customer.commercial.accept.sourceContext")}
+                </p>
                 <h2>
-                  {quote.title} · version {quote.version}
+                  {t("customer.commercial.detail.titleWithVersion", {
+                    title: quote.title,
+                    version: quote.version,
+                  })}
                 </h2>
                 <p className={styles.description}>
-                  {quote.acceptedLabel} · {quote.scope}
+                  {t("common.join.labels", {
+                    first: quote.acceptedLabel,
+                    second: quote.scope,
+                  })}
                 </p>
               </div>
               <fieldset className={styles.stageFields}>
-                <legend>Acceptance inputs</legend>
+                <legend>{t("customer.commercial.accept.inputs")}</legend>
                 <div className={styles.formGrid}>
                   <div className={styles.field}>
-                    <label htmlFor="po-number">Purchase order</label>
+                    <label htmlFor="po-number">
+                      {t("customer.commercial.accept.label.purchaseOrder")}
+                    </label>
                     <input
                       aria-describedby={
                         validationError?.id === "po-number"
@@ -788,21 +815,23 @@ export function OrderAcceptance({
                       value={poNumber}
                     />
                     <p className={styles.description} id="po-terms-note">
-                      {localizedcustomerPartnerCopy.commercial.orderTermsHelp
-                        .replace("{quoteReference}", quote.reference)
-                        .replace("{quoteVersion}", quote.version)
-                        .replace(
-                          "{agreementTitle}",
-                          agreement?.title ?? "unrecorded governing agreement",
-                        )
-                        .replace(
-                          "{agreementVersion}",
-                          agreement?.version ?? "not recorded",
-                        )}
+                      {agreement
+                        ? t("customer.commercial.accept.termsHelp", {
+                            quoteReference: quote.reference,
+                            quoteVersion: quote.version,
+                            agreementTitle: agreement.title,
+                            agreementVersion: agreement.version,
+                          })
+                        : t("customer.commercial.accept.termsHelpNoAgreement", {
+                            quoteReference: quote.reference,
+                            quoteVersion: quote.version,
+                          })}
                     </p>
                   </div>
                   <div className={styles.field}>
-                    <label htmlFor="service-start">Service start</label>
+                    <label htmlFor="service-start">
+                      {t("customer.commercial.accept.label.serviceStart")}
+                    </label>
                     <input
                       aria-describedby={
                         validationError?.id === "service-start"
@@ -823,7 +852,9 @@ export function OrderAcceptance({
                     />
                   </div>
                   <div className={styles.field}>
-                    <label htmlFor="service-end">Service end</label>
+                    <label htmlFor="service-end">
+                      {t("customer.commercial.accept.label.serviceEnd")}
+                    </label>
                     <input
                       aria-describedby={
                         validationError?.id === "service-end"
@@ -851,14 +882,12 @@ export function OrderAcceptance({
                       re-derives that hash and refuses a mismatch.
                     */}
                     <p className={styles.description} id="service-end-note">
-                      The committed term this order runs to. It is rendered onto
-                      the order form and covered by the evidence hash that binds
-                      the form to this acceptance.
+                      {t("customer.commercial.accept.serviceEndNote")}
                     </p>
                   </div>
                   <div className={`${styles.field} ${styles.spanTwo}`}>
                     <label htmlFor="order-authority-title">
-                      Authority title
+                      {t("customer.commercial.accept.label.authorityTitle")}
                     </label>
                     <input
                       aria-describedby={
@@ -887,12 +916,11 @@ export function OrderAcceptance({
                   id="order-validation"
                   role="alert"
                 >
-                  {validationError.message}
+                  {t(validationError.message)}
                 </p>
               ) : null}
               <p className={styles.notice}>
-                Estimated spend is a quote calculation. Invoices and payments
-                remain separate server records after this order is created.
+                {t("customer.commercial.accept.estimateNotice")}
               </p>
             </section>
 
@@ -901,8 +929,12 @@ export function OrderAcceptance({
               aria-labelledby="order-summary-title"
             >
               <div>
-                <p className={styles.taskContext}>Resulting commitment</p>
-                <h2 id="order-summary-title">Review before accepting</h2>
+                <p className={styles.taskContext}>
+                  {t("customer.commercial.accept.label.commitment")}
+                </p>
+                <h2 id="order-summary-title">
+                  {t("customer.commercial.accept.reviewTitle")}
+                </h2>
               </div>
               <ul className={styles.reviewList}>
                 {reviewRows.map(([label, value]) => (
@@ -913,10 +945,9 @@ export function OrderAcceptance({
                 ))}
               </ul>
               <p className={styles.description}>
-                {localizedcustomerPartnerCopy.commercial.orderArtifactRetention.replace(
-                  "{years}",
-                  String(ARTIFACT_RETENTION_YEARS),
-                )}
+                {t("customer.commercial.accept.retention", {
+                  count: ARTIFACT_RETENTION_YEARS,
+                })}
               </p>
               <label className={styles.check} htmlFor="order-confirmation">
                 <input
@@ -937,9 +968,7 @@ export function OrderAcceptance({
                   required
                   type="checkbox"
                 />
-                <span>
-                  {localizedcustomerPartnerCopy.commercial.orderConfirmation}
-                </span>
+                <span>{t("customer.commercial.accept.confirmation")}</span>
               </label>
               {statusMessage ? (
                 <p className={styles.successMessage} role="status">
@@ -965,7 +994,7 @@ export function OrderAcceptance({
                             : `/orders/order-${createdOrderId}`
                         }
                       >
-                        {t("orders.accept.createdLink")}
+                        {t("customer.commercial.accept.createdLink")}
                       </Link>
                     </>
                   ) : null}
@@ -987,16 +1016,14 @@ export function OrderAcceptance({
               */}
               {preparedFor ? (
                 <p className={styles.notice}>
-                  The order form has been rendered for these entries.{" "}
+                  {t("customer.commercial.accept.formReady")}{" "}
                   <a
                     href={`/api/experience/artifacts/order_form/${encodeURIComponent(preparedFor.artifactId)}`}
                     rel="noreferrer"
                     target="_blank"
                   >
-                    Open the order form
-                  </a>{" "}
-                  before you accept. Changing any entry above discards it and
-                  prepares a new one.
+                    {t("customer.commercial.accept.openForm")}
+                  </a>
                 </p>
               ) : null}
               {rechecking && awaitingOrderId ? (
@@ -1010,7 +1037,7 @@ export function OrderAcceptance({
                   }
                   type="button"
                 >
-                  Check for the order form again
+                  {t("customer.commercial.accept.recheck")}
                 </button>
               ) : null}
               <button
@@ -1028,24 +1055,26 @@ export function OrderAcceptance({
                   happens to hold is not a create pass, and saying it is would
                   promise a command the server refuses.
                 */}
-                {phase === "submitting"
-                  ? "Accepting…"
-                  : preparedFor
-                    ? "Create the order and commitment"
-                    : "Accept order and create commitment"}
+                {t(
+                  phase === "submitting"
+                    ? "customer.commercial.accept.accepting"
+                    : preparedFor
+                      ? "customer.commercial.accept.createOrder"
+                      : "customer.commercial.accept.submit",
+                )}
               </button>
             </aside>
           </form>
         </>
       ) : (
         <section className={styles.state} role="alert">
-          <h2>{t("orders.accept.unavailable.title")}</h2>
-          <p>{t("orders.accept.unavailable.description")}</p>
+          <h2>{t("customer.commercial.accept.unavailableTitle")}</h2>
+          <p>{t("customer.commercial.accept.unavailableDescription")}</p>
           <Link
             className={styles.secondary}
             href={audience === "partner" ? "/partner/quotes" : "/quotes"}
           >
-            {t("orders.accept.unavailable.action")}
+            {t("customer.commercial.accept.unavailableAction")}
           </Link>
         </section>
       )}

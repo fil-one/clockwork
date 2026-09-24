@@ -1,4 +1,5 @@
 import "server-only";
+// i18n-exempt-file: demo state storage errors reach the server log only; never rendered.
 
 import { createMemoryDemoStore } from "@clockwork/testing/demo-reset";
 import {

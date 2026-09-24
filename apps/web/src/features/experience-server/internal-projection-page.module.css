@@ -2,15 +2,13 @@
   display: grid;
   min-width: 0;
   gap: 1.5rem;
-  padding: clamp(1.25rem, 4vw, 3.25rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
   color: var(--web-ink);
 }
 
 .header {
   display: grid;
-  gap: 0.45rem;
-  padding-bottom: 1.15rem;
-  border-bottom: 2px solid var(--web-ink);
+  gap: 0.25rem;
 }
 
 .header h1 {
@@ -18,8 +16,8 @@
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
+  line-height: var(--cw-leading-tight);
+  text-wrap: balance;
 }
 
 .eyebrow,
@@ -32,23 +30,26 @@
 .eyebrow {
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .description {
   max-width: 62ch;
   color: var(--web-muted);
+  font-size: var(--cw-text-md);
 }
 
 .freshness,
 .stale {
-  font-family: var(--cw-font-mono);
+  color: var(--web-muted);
   font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
 }
 
 .stale {
-  color: var(--web-danger);
+  color: var(--cw-danger-strong);
 }
 
 /*
@@ -71,7 +72,7 @@
   font-family: var(--cw-font-mono);
   font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 @media (max-width: 40rem) {

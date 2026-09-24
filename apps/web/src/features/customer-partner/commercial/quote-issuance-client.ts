@@ -41,7 +41,7 @@ export async function readPreparedQuoteArtifact(input: {
   if (response.status === 401 || response.status === 403)
     return { status: "forbidden" };
   if (response.status === 503) return { status: "unavailable" };
-  if (!response.ok) throw new Error("The quote document lookup failed");
+  if (!response.ok) throw new Error("The quote document lookup failed"); // i18n-exempt: internal diagnostic; callers render commercialFailureText, never this message
   const artifact = record(await response.json().catch(() => null));
   if (
     artifact?.kind !== "direct_quote" ||
@@ -78,7 +78,7 @@ export async function readBuyQuoteProjection(input: {
   if (response.status === 401 || response.status === 403)
     return { status: "forbidden" };
   if (response.status === 503) return { status: "unavailable" };
-  if (!response.ok) throw new Error("The quote projection lookup failed");
+  if (!response.ok) throw new Error("The quote projection lookup failed"); // i18n-exempt: internal diagnostic; callers render commercialFailureText, never this message
   const projection = record(await response.json().catch(() => null));
   const authoritative = record(record(projection?.data)?.authoritative);
   if (

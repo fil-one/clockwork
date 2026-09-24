@@ -23,7 +23,8 @@ export interface ReportExportRecord {
   report: string | null;
   title: string;
   status: string | null;
-  statusLabel: string;
+  /** The read boundary's label, used only when no status code is known. */
+  statusLabel: string | null;
   /** Present once the export has produced a stored document. */
   documentId: string | null;
   evidence: readonly EvidenceEntry[];
@@ -42,7 +43,7 @@ export function reportExportFromProjection(
     report: text(state, "report"),
     title: text(data, "title") ?? record.recordKey,
     status: text(data, "status"),
-    statusLabel: text(data, "statusLabel") ?? "Not recorded",
+    statusLabel: text(data, "statusLabel"),
     documentId: text(state, "documentId"),
     evidence: recordEvidence(record),
     version: record.version,
@@ -51,13 +52,15 @@ export function reportExportFromProjection(
 }
 
 /**
- * An account an export may be scoped to. The label is the projection's own
- * reference and relationship description: the account payload excludes names,
- * so there is no legal name to show and none is invented.
+ * An account an export may be scoped to: the projection's own reference and
+ * relationship description, which the surface joins for the reader. The
+ * account payload excludes names, so there is no legal name to show and none
+ * is invented.
  */
 export interface ReportAccountOption {
   id: string;
-  label: string;
+  reference: string;
+  description: string | null;
 }
 
 /** Newest first, then by reference so equal timestamps still order stably. */

@@ -88,6 +88,7 @@ function storedRecord(
   const data = state.projectionOverrides[`${prefix}${seed.gateKey}`]?.data;
   if (data?.kind !== "external_gate" || !data.record) return seed;
   if (typeof data.record !== "object" || Array.isArray(data.record))
+    // i18n-exempt: an invariant on stored demo state; the loader catches it and fails closed
     throw new Error("Demo external-gate state is invalid");
   return data.record as unknown as ExternalGateRecord;
 }

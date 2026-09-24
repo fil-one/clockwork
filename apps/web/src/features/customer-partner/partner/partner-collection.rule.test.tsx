@@ -7,10 +7,12 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-import { t } from "@/src/i18n/en";
+import { translatorFor } from "@/src/i18n/catalogs";
 
 import { PartnerCollection } from "./partner-collection";
-import { partnerSurfaces } from "./partner-data";
+import { presentedPartnerSurface } from "./partner-surface.test-fixture";
+
+const t = translatorFor("en");
 
 const formatting = { locale: "en-US", timeZone: "America/New_York" };
 const fresh = {
@@ -23,7 +25,7 @@ describe("partner collection truth copy", () => {
   it("renders the commission purpose, truthful columns, shared rule, and numeric amount", () => {
     render(
       <PartnerCollection
-        config={partnerSurfaces.commissions}
+        config={presentedPartnerSurface("commissions", t, "en")}
         formatting={formatting}
         freshness={fresh}
         partnerName="Aurora Systems"
@@ -36,21 +38,21 @@ describe("partner collection truth copy", () => {
       screen.getByText("Partner desk · Collected-revenue earnings"),
     ).toBeVisible();
     expect(
-      screen.getByText(t("partner.commissions.description")),
+      screen.getByText(t("partner.surface.commissions.rule")),
     ).toBeVisible();
     const table = screen.getByRole("table");
     expect(
       within(table).getByRole("columnheader", { name: "Amount accrued" }),
     ).toHaveClass("cw-table__numeric");
     expect(
-      within(table).getByText("$18,420 accrued").closest("td"),
+      within(table).getByText("$18,420.00 accrued").closest("td"),
     ).toHaveClass("cw-table__numeric");
   });
 
   it("annotates registration credit from status and names the unavailable write boundary", () => {
     render(
       <PartnerCollection
-        config={partnerSurfaces.registrations}
+        config={presentedPartnerSurface("registrations", t, "en")}
         formatting={formatting}
         freshness={fresh}
         partnerName="Aurora Systems"

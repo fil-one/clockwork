@@ -14,6 +14,11 @@ import {
   type PaygOfferCommand,
   type PaygOfferRecord,
 } from "@clockwork/domain/core";
+import {
+  demoText,
+  demoTextIn,
+  type DemoLocalizedText,
+} from "@clockwork/testing/demo-localized-text";
 import type {
   DemoAdapterState,
   DemoAdapterStateStore,
@@ -22,6 +27,185 @@ import { configuredDemoStateStore } from "@/src/features/experience-server/demo-
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 
 const author = "21000000-0000-4000-8000-000000000010";
+
+/*
+ * Demo-authored text (translation policy rule 4). A finance user would type
+ * these in production; in the demo they stand in for that, so a reader of the
+ * Portuguese demo sees them in Portuguese. The stored and returned records
+ * keep the English value (the domain schemas and other lanes' readers expect
+ * plain strings); `localizeDemoPaygPolicy` and `localizeDemoChannelPolicy`
+ * swap in the reader's language at the read boundary, and only while a field
+ * still holds the fixture's English text, so a user's own edit is never
+ * rewritten.
+ */
+const fixtureText = {
+  reviewScenarioName: demoText({
+    en: "Fictional PAYG review scenario",
+    es: "Escenario ficticio de revisión de pago por uso",
+    fr: "Scénario fictif de revue du paiement à l’usage",
+    de: "Fiktives Prüfszenario für nutzungsbasierte Abrechnung",
+    ja: "従量課金レビュー用の架空シナリオ",
+    pt: "Cenário fictício de revisão de pagamento conforme o uso",
+    zh: "虚构的按量付费审核场景",
+    ar: "سيناريو افتراضي لمراجعة الدفع حسب الاستخدام",
+  }),
+  noTermStorageName: demoText({
+    en: "Fictional no-term storage",
+    es: "Almacenamiento ficticio sin permanencia",
+    fr: "Stockage fictif sans engagement de durée",
+    de: "Fiktiver Speicher ohne Mindestlaufzeit",
+    ja: "期間の縛りのない架空のストレージ",
+    pt: "Armazenamento fictício sem fidelidade",
+    zh: "虚构的无合约期存储",
+    ar: "تخزين افتراضي بدون مدة التزام",
+  }),
+  owner: demoText({
+    en: "Demo commercial team",
+    es: "Equipo comercial de la demostración",
+    fr: "Équipe commerciale de démonstration",
+    de: "Demo-Vertriebsteam",
+    ja: "デモ営業チーム",
+    pt: "Equipe comercial da demonstração",
+    zh: "演示商务团队",
+    ar: "الفريق التجاري للعرض التوضيحي",
+  }),
+  decisionReason: demoText({
+    en: "Fictional proposal prepared by a different demo finance author.",
+    es: "Propuesta ficticia preparada por otro autor de finanzas de la demostración.",
+    fr: "Proposition fictive préparée par un autre auteur finance de la démo.",
+    de: "Fiktiver Vorschlag, erstellt von einem anderen Demo-Autor aus dem Finanzbereich.",
+    ja: "別のデモ用財務担当者が作成した架空の提案です。",
+    pt: "Proposta fictícia preparada por outro autor financeiro da demonstração.",
+    zh: "由另一位演示财务作者准备的虚构提案。",
+    ar: "مقترح افتراضي أعدّه مؤلف مالي آخر في العرض التوضيحي.",
+  }),
+  serviceNotice: demoText({
+    en: "Fictional demo only. Your request does not activate a provider tenant or start billing. A verified handoff is required before service begins.",
+    es: "Solo es una demostración ficticia. Su solicitud no activa ningún inquilino del proveedor ni inicia la facturación. Antes de que empiece el servicio es necesario un traspaso verificado.",
+    fr: "Démonstration fictive uniquement. Votre demande n’active aucun locataire chez le prestataire et ne déclenche pas la facturation. Un transfert vérifié est requis avant le début du service.",
+    de: "Nur fiktive Demo. Ihre Anfrage aktiviert keinen Mandanten beim Anbieter und startet keine Abrechnung. Vor Leistungsbeginn ist eine verifizierte Übergabe erforderlich.",
+    ja: "架空のデモ専用です。この申請によってプロバイダーのテナントが有効化されたり、請求が開始されたりすることはありません。サービス開始前に、検証済みの引き継ぎが必要です。",
+    pt: "Apenas demonstração fictícia. Sua solicitação não ativa um locatário do provedor nem inicia o faturamento. É necessária uma transferência verificada antes do início do serviço.",
+    zh: "仅为虚构演示。您的申请不会激活服务商租户，也不会开始计费。服务开始前需要经过验证的交接。",
+    ar: "عرض توضيحي افتراضي فقط. لا يؤدي طلبك إلى تفعيل مستأجر لدى المزوّد أو بدء الفوترة. يلزم تسليم موثّق قبل بدء الخدمة.",
+  }),
+  cancellationNotice: demoText({
+    en: "Fictional demo only. Cancellation is a request until the provider confirms the service end. The retained offer controls any final billing minimum.",
+    es: "Solo es una demostración ficticia. La cancelación es una solicitud hasta que el proveedor confirme el fin del servicio. La oferta registrada determina cualquier mínimo de facturación final.",
+    fr: "Démonstration fictive uniquement. La résiliation reste une demande tant que le prestataire n’a pas confirmé la fin du service. L’offre conservée détermine l’éventuel minimum de facturation final.",
+    de: "Nur fiktive Demo. Die Kündigung bleibt eine Anfrage, bis der Anbieter das Leistungsende bestätigt. Ein etwaiges abschließendes Abrechnungsminimum richtet sich nach dem gespeicherten Tarif.",
+    ja: "架空のデモ専用です。プロバイダーがサービス終了を確認するまで、解約は申請の扱いです。最終請求の最低料金は、保存されているオファーに従います。",
+    pt: "Apenas demonstração fictícia. O cancelamento é uma solicitação até que o provedor confirme o fim do serviço. A oferta registrada define qualquer mínimo de faturamento final.",
+    zh: "仅为虚构演示。在服务商确认服务终止之前，取消仅为申请。任何最终计费最低消费以已保留的方案为准。",
+    ar: "عرض توضيحي افتراضي فقط. يظل الإلغاء طلبًا إلى أن يؤكد المزوّد انتهاء الخدمة. تحدد الباقة المحفوظة أي حد أدنى للفوترة النهائية.",
+  }),
+  trialNotice: demoText({
+    en: "Fictional demo only. Trial eligibility is verified once for the organization and domain. No paid conversion occurs without your separate request.",
+    es: "Solo es una demostración ficticia. El derecho al periodo de prueba se verifica una sola vez por organización y dominio. No se produce ninguna conversión a pago sin una solicitud aparte por su parte.",
+    fr: "Démonstration fictive uniquement. L’éligibilité à l’essai est vérifiée une seule fois pour l’organisation et le domaine. Aucune conversion payante n’a lieu sans une demande distincte de votre part.",
+    de: "Nur fiktive Demo. Die Berechtigung für die Testphase wird einmal für Organisation und Domain geprüft. Ohne Ihre gesonderte Anfrage erfolgt keine kostenpflichtige Umwandlung.",
+    ja: "架空のデモ専用です。トライアルの利用資格は、組織とドメインについて1回だけ確認されます。別途お申し込みがない限り、有料プランへの移行は行われません。",
+    pt: "Apenas demonstração fictícia. A elegibilidade ao período de teste é verificada uma única vez para a organização e o domínio. Nenhuma conversão paga ocorre sem uma solicitação separada sua.",
+    zh: "仅为虚构演示。试用资格按组织和域名仅验证一次。未经您另行申请，不会转为付费。",
+    ar: "عرض توضيحي افتراضي فقط. يُتحقق من أهلية الفترة التجريبية مرة واحدة للمؤسسة والنطاق. لا يحدث أي تحويل إلى الاشتراك المدفوع دون طلب منفصل منك.",
+  }),
+  channelEvidence: demoText({
+    en: "Fictional demo channel program; not an approved live commercial policy.",
+    es: "Programa de canal ficticio de la demostración; no es una política comercial real aprobada.",
+    fr: "Programme de canal fictif de la démo\u202f; il ne s’agit pas d’une politique commerciale réelle approuvée.",
+    de: "Fiktives Kanalprogramm der Demo; keine genehmigte, gültige Geschäftsrichtlinie.",
+    ja: "デモ用の架空のチャネルプログラムです。承認済みの実際の商用ポリシーではありません。",
+    pt: "Programa de canal fictício da demonstração; não é uma política comercial real aprovada.",
+    zh: "虚构的演示渠道计划；并非已批准的真实商务策略。",
+    ar: "برنامج قناة افتراضي للعرض التوضيحي، وليس سياسة تجارية فعلية معتمدة.",
+  }),
+} as const satisfies Record<string, DemoLocalizedText>;
+
+/** The fixture's source text, which is what the demo stores. */
+const english = (text: DemoLocalizedText) => demoTextIn(text, "en");
+
+/**
+ * The reader's version of a demo-authored field: the first candidate whose
+ * English equals the stored value, otherwise the stored value unchanged.
+ */
+function localizedField(
+  value: string,
+  candidates: readonly DemoLocalizedText[],
+  locale: string,
+): string {
+  const fixture = candidates.find((candidate) => english(candidate) === value);
+  return fixture ? demoTextIn(fixture, locale) : value;
+}
+
+/** A demo PAYG policy with its demo-authored text in the reader's language. */
+export function localizeDemoPaygPolicy(
+  record: PaygOfferRecord,
+  locale: string,
+): PaygOfferRecord {
+  const acquisition = record.terms.customerAcquisition;
+  return {
+    ...record,
+    decisionReason: localizedField(
+      record.decisionReason,
+      [fixtureText.decisionReason],
+      locale,
+    ),
+    terms: {
+      ...record.terms,
+      name: localizedField(
+        record.terms.name,
+        [fixtureText.reviewScenarioName, fixtureText.noTermStorageName],
+        locale,
+      ),
+      owner: localizedField(record.terms.owner, [fixtureText.owner], locale),
+      ...(acquisition
+        ? {
+            customerAcquisition: {
+              ...acquisition,
+              serviceNotice: localizedField(
+                acquisition.serviceNotice,
+                [fixtureText.serviceNotice],
+                locale,
+              ),
+              cancellationNotice: localizedField(
+                acquisition.cancellationNotice,
+                [fixtureText.cancellationNotice],
+                locale,
+              ),
+              trialNotice: localizedField(
+                acquisition.trialNotice,
+                [fixtureText.trialNotice],
+                locale,
+              ),
+            },
+          }
+        : {}),
+    },
+  };
+}
+
+/** A demo channel policy with its demo-authored text in the reader's language. */
+export function localizeDemoChannelPolicy(
+  record: ChannelPolicyRecord,
+  locale: string,
+): ChannelPolicyRecord {
+  return {
+    ...record,
+    decisionReason: localizedField(
+      record.decisionReason,
+      [fixtureText.decisionReason],
+      locale,
+    ),
+    terms: {
+      ...record.terms,
+      sourceEvidence: localizedField(
+        record.terms.sourceEvidence,
+        [fixtureText.channelEvidence],
+        locale,
+      ),
+    },
+  };
+}
 const prefix = "commercial-policy-demo:";
 function assertDemo() {
   if (!demoDeployIdentityEnabled(process.env))
@@ -35,8 +219,7 @@ function seeds(now: string) {
     lastEditedBy: author,
     proposedBy: author,
     approvedBy: null,
-    decisionReason:
-      "Fictional proposal prepared by a different demo finance author.",
+    decisionReason: english(fixtureText.decisionReason),
     createdAt: now,
     updatedAt: now,
   };
@@ -46,7 +229,7 @@ function seeds(now: string) {
       id: "61000000-0000-4000-8000-000000000001",
       approvalEvidenceId: null,
       terms: {
-        name: "Fictional PAYG review scenario",
+        name: english(fixtureText.reviewScenarioName),
         sku: "storage-standard",
         region: "us-east-1",
         version: 1,
@@ -54,7 +237,7 @@ function seeds(now: string) {
         sourceUri: "https://example.test/fictional-policy",
         sourceCheckedAt: now,
         sourceDocumentId: "fictional-demo-source",
-        owner: "Demo commercial team",
+        owner: english(fixtureText.owner),
         payg: {
           currency: "USD",
           storageTbMonthMinor: "499",
@@ -89,8 +272,7 @@ function seeds(now: string) {
         maximumProtectionDays: 90,
         extensionDays: 30,
         maximumExtensions: 2,
-        sourceEvidence:
-          "Fictional demo channel program; not an approved live commercial policy.",
+        sourceEvidence: english(fixtureText.channelEvidence),
       },
     }),
   };
@@ -111,19 +293,16 @@ export function currentDemoPaygPolicies(
     updatedAt: "2026-07-01T00:00:00.000Z",
     terms: {
       ...proposal.terms,
-      name: "Fictional no-term storage",
+      name: english(fixtureText.noTermStorageName),
       effectiveFrom: "2026-07-01",
       sourceCheckedAt: "2026-07-01T00:00:00.000Z",
       region: "us-west-2",
       customerAcquisition: {
         paygRequestsEnabled: true,
         trialRequestsEnabled: true,
-        serviceNotice:
-          "Fictional demo only. Your request does not activate a provider tenant or start billing. A verified handoff is required before service begins.",
-        cancellationNotice:
-          "Fictional demo only. Cancellation is a request until the provider confirms the service end. The retained offer controls any final billing minimum.",
-        trialNotice:
-          "Fictional demo only. Trial eligibility is verified once for the organization and domain. No paid conversion occurs without your separate request.",
+        serviceNotice: english(fixtureText.serviceNotice),
+        cancellationNotice: english(fixtureText.cancellationNotice),
+        trialNotice: english(fixtureText.trialNotice),
         terms: {
           documentId: "fictional-demo-terms",
           version: "1",

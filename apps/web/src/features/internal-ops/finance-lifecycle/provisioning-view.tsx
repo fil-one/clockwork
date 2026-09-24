@@ -1,23 +1,31 @@
 import type { ReactNode } from "react";
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use } from "react";
-import { localizeCopy } from "@/src/i18n/copy";
 import Link from "next/link";
 
 import { StatusBadge, Table } from "@clockwork/ui";
 
-import { plural } from "@/src/i18n/en";
-
 import { lifecycleCopy } from "./copy";
 import {
   summarizeProvisioningWork,
+  type ProvisioningKind,
   type ProvisioningWork,
 } from "./provisioning-projection";
-import { FinancePageFrame } from "./page-frame";
+import { FinancePageFrame, IdentifierLine, RecordEvidence } from "./page-frame";
+import {
+  formatCalendarDay,
+  formatCount,
+  statusText,
+} from "./projection-fields";
 import type { SurfaceProvenance } from "./provenance";
 import styles from "./finance-lifecycle.module.css";
 
 const copy = lifecycleCopy.provisioning;
+
+const kindLabels = {
+  provider_operation: copy.kinds.providerOperation,
+  termination: copy.kinds.termination,
+} as const satisfies Readonly<Record<ProvisioningKind, string>>;
 
 function riskTone(
   work: ProvisioningWork,
@@ -38,74 +46,86 @@ export function ProvisioningView({
   provenance: SurfaceProvenance;
 }) {
   const t = use(getTranslations());
-  const localizedcopy = localizeCopy(copy, t);
+  const locale = use(getFormattingLocale());
   const summary = summarizeProvisioningWork(work);
+
+  /** The timing that matters for this kind of work, from its own dates. */
+  function timing(item: ProvisioningWork): string {
+    if (item.kind === "provider_operation") {
+      const next = formatCalendarDay(item.nextAttemptAt, locale);
+      return next ? t(copy.nextAttempt, { date: next }) : t(copy.noRetry);
+    }
+    if (item.kind === "termination") {
+      const ends = formatCalendarDay(item.effectiveAt, locale);
+      return ends ? t(copy.endsOn, { date: ends }) : "";
+    }
+    return item.description ?? "";
+  }
 
   return (
     <FinancePageFrame
-      title={localizedcopy.title}
-      description={localizedcopy.description}
+      title={t(copy.title)}
+      description={t(copy.description)}
       provenance={provenance}
     >
       {children}
-      <section
-        className={styles.summaryGrid}
-        aria-label="Provisioning work by kind"
-      >
+      <section className={styles.summaryGrid} aria-label={t(copy.summaryLabel)}>
         <article className={styles.summaryCard}>
-          <p>{localizedcopy.providerOperations}</p>
-          <strong>{summary.providerOperations}</strong>
-          <span>Provider calls the platform is driving to completion</span>
+          <p>{t(copy.providerOperations)}</p>
+          <strong>{formatCount(summary.providerOperations, locale)}</strong>
+          <span>{t(copy.providerOperationsDetail)}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{localizedcopy.terminations}</p>
-          <strong>{summary.terminations}</strong>
-          <span>Services ending, with their teardown and final billing</span>
+          <p>{t(copy.terminations)}</p>
+          <strong>{formatCount(summary.terminations, locale)}</strong>
+          <span>{t(copy.terminationsDetail)}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{localizedcopy.highRisk}</p>
-          <strong>{summary.highRisk}</strong>
-          <span>Items that need immediate operator attention</span>
+          <p>{t("risk.chip.high")}</p>
+          <strong>{formatCount(summary.highRisk, locale)}</strong>
+          <span>{t(copy.highRiskDetail)}</span>
         </article>
       </section>
 
       <div className={styles.warningNotice} role="note">
-        <strong>{localizedcopy.retryTitle}</strong>
-        <span>{localizedcopy.retryBody}</span>
-        <Link href="/internal/recovery">{localizedcopy.recoveryLink}</Link>
+        <strong>{t(copy.retryTitle)}</strong>
+        <span>{t(copy.retryBody)}</span>
+        <Link href="/internal/recovery">{t(copy.recoveryLink)}</Link>
       </div>
 
       {summary.unclassified > 0 ? (
         <div className={styles.notice} role="note">
-          <strong>{localizedcopy.unclassified(summary.unclassified)}</strong>
+          <strong>
+            {t(copy.unclassified, { count: summary.unclassified })}
+          </strong>
         </div>
       ) : null}
 
       <section className={styles.section} aria-labelledby="recovery-table">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="recovery-table">{localizedcopy.tableHeading}</h2>
-            <p>{localizedcopy.description}</p>
+            <h2 id="recovery-table">{t(copy.tableHeading)}</h2>
+            <p>{t(copy.description)}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {plural(work.length, "{count} record", "{count} records")}
+            {t(copy.recordCount, { count: work.length })}
           </span>
         </header>
         {work.length === 0 ? (
-          <p className={styles.empty}>{localizedcopy.empty}</p>
+          <p className={styles.empty}>{t(copy.empty)}</p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={localizedcopy.caption}
+            caption={t(copy.caption)}
             captionHidden
             density="compact"
             headers={[
-              "Record",
-              "Kind",
-              "Provider",
-              localizedcopy.attemptsLabel,
-              "Status",
-              "Next action",
+              t(copy.columns.record),
+              t(copy.columns.kind),
+              t(copy.columns.provider),
+              t(copy.columns.attempts),
+              t("common.status"),
+              t("common.nextAction"),
             ]}
             numericColumns={[3]}
             rowKeys={work.map((item) => item.id)}
@@ -114,31 +134,32 @@ export function ProvisioningView({
                 <strong>{item.title}</strong>
                 <span className={styles.secondary}>{item.reference}</span>
                 <details className={styles.disclosure}>
-                  <summary>Technical evidence</summary>
-                  <p className={styles.id}>{item.aggregateId}</p>
-                  {item.evidence.map((entry) => (
-                    <p key={`${entry.label}-${entry.value}`}>
-                      {entry.label}: {entry.value}
-                    </p>
-                  ))}
+                  <summary>{t(lifecycleCopy.evidence.technical)}</summary>
+                  <IdentifierLine
+                    label={lifecycleCopy.evidence.recordId}
+                    value={item.aggregateId}
+                  />
+                  <RecordEvidence
+                    entries={item.evidence}
+                    version={item.version}
+                    updatedAt={item.updatedAt}
+                  />
                 </details>
               </div>,
-              item.kindLabel,
-              item.provider ?? "Not recorded",
+              t(item.kind ? kindLabels[item.kind] : copy.kinds.unclassified),
+              item.provider ?? t("common.notRecorded"),
               item.attemptCount === null ? (
-                localizedcopy.noAttempts
+                t(copy.noAttempts)
               ) : (
-                <strong>{item.attemptCount}</strong>
+                <strong>{formatCount(item.attemptCount, locale)}</strong>
               ),
               <>
                 <StatusBadge tone={riskTone(item)}>
-                  {item.statusLabel}
+                  {statusText(t, [item.status], item.statusLabel)}
                 </StatusBadge>
-                <div className={styles.secondary}>
-                  {item.nextAttemptLabel ?? item.description ?? ""}
-                </div>
+                <div className={styles.secondary}>{timing(item)}</div>
               </>,
-              item.nextAction ?? "Not recorded",
+              item.nextAction ?? t("common.notRecorded"),
             ])}
           />
         )}

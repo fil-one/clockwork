@@ -87,6 +87,7 @@ function assertAuthenticationConfiguration() {
     process.env.NODE_ENV === "production" &&
     !explicitDemoIdentityEnabled()
   )
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("WorkOS credentials are required in production");
 }
 
@@ -107,6 +108,7 @@ function assertStaffBoundary(
     (isInternalStaff && !staffDomains.includes(emailDomain))
   )
     throw new Error(
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       "Commerce role violates the internal-staff identity boundary",
     );
 }
@@ -122,6 +124,7 @@ function assertPrivilegedMfa(
     !mfaVerified
   )
     throw new Error(
+      // i18n-exempt: control signal matched verbatim by route-session.ts to redirect to /access/mfa; never rendered
       "Privileged commerce roles require an MFA-policy-enforced session",
     );
 }
@@ -234,6 +237,7 @@ function getSealedSessionClient(): WorkOS {
   const apiKey = process.env.WORKOS_API_KEY;
   const clientId = process.env.WORKOS_CLIENT_ID;
   if (!apiKey || !clientId)
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("WorkOS authentication is required");
   // AuthKit constructs its own client without an explicit clientId. Its token
   // refresh calls pass that ID per request, but the read-only cookie verifier
@@ -256,6 +260,7 @@ export async function getVerifiedWorkosSession(): Promise<UserInfo> {
     )?.value;
     const cookiePassword = process.env.WORKOS_COOKIE_PASSWORD;
     if (!sessionData || !cookiePassword)
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       throw new Error("WorkOS authentication is required");
     const resolved = await getSealedSessionClient()
       .userManagement.loadSealedSession({
@@ -264,13 +269,16 @@ export async function getVerifiedWorkosSession(): Promise<UserInfo> {
       })
       .authenticate();
     if (!resolved.authenticated || !resolved.user)
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       throw new Error("WorkOS authentication is required");
     const claims = await getTokenClaims(resolved.accessToken);
     if (claims.sub !== resolved.user.id)
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       throw new Error("WorkOS authentication is required");
     return resolved;
   }
   const resolved = await withAuth();
+  // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
   if (!resolved.user) throw new Error("WorkOS authentication is required");
   return resolved;
 }
@@ -286,6 +294,7 @@ async function getReleaseProofCommerceSession(input: {
     input.requestOrigin !== configuration.origin ||
     !input.proofCookie
   )
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Release-proof authentication is unavailable");
   const payload = verifyReleaseProofCookieValue(
     input.proofCookie,
@@ -380,6 +389,7 @@ function demoPersonaSession(persona: DemoPersona): CommerceSession {
 export async function requireRecentAuthentication(): Promise<CommerceSession> {
   const session = await getCommerceSession();
   if (!session.recentAuthenticationVerified)
+    // i18n-exempt: thrown to server actions, which catch it into their own copy or let Next redact it to a digest; never rendered
     throw new Error("Sensitive action requires recent authentication");
   return session;
 }
@@ -403,12 +413,14 @@ export async function getCommerceSession(): Promise<CommerceSession> {
   if (!workosAuthenticationConfigured()) {
     if (!explicitDemoIdentityEnabled())
       throw new Error(
+        // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
         "Authentication is unavailable without an explicit non-production demo adapter",
       );
     const cookieStore = await cookies();
     if (
       !(await demoAccessGranted(cookieStore.get(demoAccessCookieName)?.value))
     )
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       throw new Error("A valid demo access grant is required");
     const requestHeaders = await headers();
     // A demo deploy signs in as a catalog persona. The header still decides
@@ -461,8 +473,8 @@ export async function getCommerceSession(): Promise<CommerceSession> {
       mfaVerified: true,
       recentAuthenticationVerified: true,
       profile: isInternalStaff
-        ? { name: "Local operator", email: "operator@filone.test" }
-        : { name: "Local portal user", email: "portal-user@demo.test" },
+        ? { name: "Local operator", email: "operator@filone.test" } // i18n-exempt: local placeholder identity; no surface renders this profile (route-session builds the shell profile from its own demo memberships)
+        : { name: "Local portal user", email: "portal-user@demo.test" }, // i18n-exempt: local placeholder identity; no surface renders this profile (route-session builds the shell profile from its own demo memberships)
       memberships: [],
       selectedAccountId,
       effectiveAccountId: selectedAccountId,
@@ -483,6 +495,7 @@ async function workosCommerceSession(
   assistedCookie: string | undefined,
 ): Promise<CommerceSession> {
   if (!session.organizationId)
+    // i18n-exempt: control signal matched verbatim by route-session.ts to redirect to /choose-organization; never rendered
     throw new Error("Organization selection is required");
   const database = getServiceDatabase();
   const [identity, memberships] = await Promise.all([
@@ -503,6 +516,7 @@ async function workosCommerceSession(
     selected.accountId !== identity.accountId ||
     selected.role !== identity.role
   )
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Selected WorkOS membership does not match commerce scope");
 
   let assistedSession: AssistedSessionView | undefined;
@@ -529,6 +543,7 @@ async function workosCommerceSession(
       })
     : undefined;
   if (providerAssistedSession && identity.isInternalStaff)
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Provider assisted access requires a tenant target");
   const actorMemberships = providerAssistedSession
     ? await listAuthorizedMembershipsForUser(database, {
@@ -544,12 +559,14 @@ async function workosCommerceSession(
     : [];
   if (providerAssistedSession && internalActorMemberships.length !== 1)
     throw new Error(
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       "Provider assisted actor is not linked to exactly one staff organization",
     );
   const actorSelected = providerAssistedSession
     ? internalActorMemberships[0]
     : selected;
   if (!actorSelected)
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Provider assisted actor membership is unavailable");
   const activeAssistedSession = assistedSession ?? providerAssistedSession;
   const normalizedRoles = activeAssistedSession?.actualRoles ?? [identity.role];
@@ -689,6 +706,7 @@ export class WorkosNextSessionResolver implements SessionResolver {
     if (!workosAuthenticationConfigured()) {
       if (!explicitDemoIdentityEnabled())
         throw new Error(
+          // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
           "Authentication is unavailable without an explicit non-production demo adapter",
         );
       if (

@@ -2,6 +2,7 @@ import "server-only";
 
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
+import { getLocale } from "@/src/i18n/server";
 
 import { readDemoRuntimeFailureIncidents } from "../demo-operator-state";
 
@@ -32,6 +33,7 @@ export async function loadRuntimeFailureIncidents(input: {
   if (!database && demoDeployIdentityEnabled(process.env))
     try {
       return await readDemoRuntimeFailureIncidents({
+        locale: await getLocale(),
         ...(input.limit === undefined ? {} : { limit: input.limit }),
       });
     } catch {

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { getTranslations } from "@/src/i18n/server";
 import {
   AgreementAcceptance,
   type ExecutableAgreement,
@@ -9,6 +11,11 @@ import {
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("customer.commercial.agreement.title") };
+}
 
 type Data = Readonly<Record<string, unknown>>;
 
@@ -56,7 +63,14 @@ async function resolveAgreement(
   };
 }
 
+/**
+ * The demo's stand-in for the approved template text. It is the legal
+ * instrument itself, hashed and accepted as written, so it is in the
+ * agreement's own language and never follows the reader's (translation
+ * policy rule 5).
+ */
 function demoTemplate(agreement: ExecutableAgreement): ActiveAgreementTemplate {
+  // i18n-exempt: exact legal text of the demo agreement template; the agreement's language belongs to the account (policy rule 5)
   const exactText = `${agreement.title}. The customer accepts the approved Fil One service terms, incorporated policies, order-specific commitments, and documented renewal and offboarding controls.`;
   return {
     id: "71000000-0000-4000-8000-000000000001",

@@ -128,9 +128,11 @@ function unavailableDemoWebhook(request: Request): Response {
   return Response.json(
     {
       type: "https://clockwork.test/problems/demo-webhook-unavailable",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       title: "Provider webhooks are unavailable in the demo",
       status: 503,
       detail:
+        // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
         "The demo has no provider signing secret and cannot verify this callback.",
       code: "DEMO_WEBHOOK_UNAVAILABLE",
       requestId: request.headers.get("x-request-id") ?? "demo",
@@ -161,8 +163,10 @@ function demoAccessProblem(request: Request): Response {
   return Response.json(
     {
       type: "https://clockwork.test/problems/demo-access-required",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       title: "Demo access is required",
       status: 403,
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       detail: "A valid demo access grant is required.",
       code: "DEMO_ACCESS_REQUIRED",
       requestId: request.headers.get("x-request-id") ?? "demo",
@@ -185,12 +189,12 @@ function demoIdentityProblem(request: Request, unavailable: boolean): Response {
     {
       type: `https://clockwork.test/problems/demo-identity-${unavailable ? "unavailable" : "required"}`,
       title: unavailable
-        ? "Demo identity is temporarily unavailable"
-        : "Demo identity is required",
+        ? "Demo identity is temporarily unavailable" // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
+        : "Demo identity is required", // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       status,
       detail: unavailable
-        ? "The demo could not establish an identity for this request."
-        : "A valid demo identity is required for this operation.",
+        ? "The demo could not establish an identity for this request." // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
+        : "A valid demo identity is required for this operation.", // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       code: unavailable
         ? "DEMO_IDENTITY_UNAVAILABLE"
         : "DEMO_IDENTITY_REQUIRED",
@@ -245,11 +249,12 @@ function securityProblem(
   return Response.json(
     {
       type: `https://clockwork.test/problems/${origin ? "origin" : "csrf"}`,
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       title: origin ? "Origin rejected" : "CSRF validation failed",
       status: 403,
       detail: origin
-        ? "The request origin is not allowed."
-        : "Provide the double-submit CSRF token.",
+        ? "The request origin is not allowed." // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
+        : "Provide the double-submit CSRF token.", // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       code,
       requestId: request.headers.get("x-request-id") ?? "demo",
       retryable: false,
@@ -365,8 +370,10 @@ function validateOrderIdempotency(request: Request): Response | undefined {
     return Response.json(
       {
         type: "https://clockwork.test/problems/idempotency",
+        // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
         title: "Idempotency key required",
         status: 422,
+        // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
         detail: "A valid idempotency-key header is required",
         code: "IDEMPOTENCY_KEY_REQUIRED",
         requestId: request.headers.get("x-request-id") ?? "demo",
@@ -393,6 +400,7 @@ function queueRefreshProblem(
   return Response.json(
     {
       type: `https://clockwork.test/problems/${code.toLowerCase().replaceAll("_", "-")}`,
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       title: "Queue refresh refused",
       status,
       detail,
@@ -431,6 +439,7 @@ function quoteRoutingProblem(
   return Response.json(
     {
       type: `https://clockwork.test/problems/${code.toLowerCase().replaceAll("_", "-")}`,
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       title: "Quote command refused",
       status: 403,
       detail,
@@ -458,6 +467,7 @@ export async function handleDemoQueueProjectionRefresh(
       request,
       404,
       "DEMO_QUEUE_REFRESH_NOT_FOUND",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       "This demo operation is not available at the requested path.",
     );
   const demoAccessSecret = demoAccessConfiguration(process.env);
@@ -474,6 +484,7 @@ export async function handleDemoQueueProjectionRefresh(
       request,
       405,
       "METHOD_NOT_ALLOWED",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       "Queue refresh requires POST.",
     );
   const proofFailure = validateMutationProof(request);
@@ -485,6 +496,7 @@ export async function handleDemoQueueProjectionRefresh(
       request,
       422,
       "INVALID_DEMO_QUEUE_REFRESH",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       "Queue refresh does not accept a request body.",
     );
   const identity = await demoCoreSession(request);
@@ -499,6 +511,7 @@ export async function handleDemoQueueProjectionRefresh(
       request,
       403,
       "QUEUE_REFRESH_FORBIDDEN",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       "Internal system-operation authority is required.",
     );
   const requestDigest = createHash("sha256")
@@ -529,6 +542,7 @@ export async function handleDemoQueueProjectionRefresh(
           request,
           500,
           "DEMO_QUEUE_REFRESH_FAILED",
+          // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
           "The demo queue refresh could not be recorded.",
         );
   }
@@ -611,6 +625,7 @@ export async function handle(request: Request): Promise<Response> {
       const lane =
         await import("@/src/features/customer-partner/partner/demo-partner-renewal");
       const target = lane.demoPartnerRenewalOrderId(url.pathname);
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       if (!target) throw new Error("Demo renewal route drifted after matching");
       return lane.handleDemoPartnerRenewal(request, identity.session, target);
     }
@@ -636,6 +651,7 @@ export async function handle(request: Request): Promise<Response> {
           return quoteRoutingProblem(
             request,
             "AMBIGUOUS_QUOTE_AUTHORITY",
+            // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
             "A mixed or internal session cannot enter the partner quote lane.",
           );
         const lane =
@@ -646,6 +662,7 @@ export async function handle(request: Request): Promise<Response> {
         return quoteRoutingProblem(
           request,
           "QUOTE_AUTHORITY_FORBIDDEN",
+          // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
           "Internal sessions cannot create customer demo quotes.",
         );
       const lane =
@@ -686,8 +703,10 @@ export async function handle(request: Request): Promise<Response> {
   return Response.json(
     {
       type: "https://clockwork.test/problems/demo-operation-unavailable",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       title: "The demo does not simulate this operation",
       status: 404,
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       detail: `${request.method} ${url.pathname} has no demo simulator.`,
       code: "DEMO_OPERATION_UNAVAILABLE",
       requestId: request.headers.get("x-request-id") ?? "demo",
@@ -712,6 +731,7 @@ export async function handleDemoProvisionOrder(
       request,
       404,
       "DEMO_QUEUE_REFRESH_NOT_FOUND",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       "This demo operation is not available at the requested path.",
     );
   const demoAccessSecret = demoAccessConfiguration(process.env);
@@ -728,6 +748,7 @@ export async function handleDemoProvisionOrder(
       request,
       405,
       "METHOD_NOT_ALLOWED",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       "Queue refresh requires POST.",
     );
   const proofFailure = validateMutationProof(request);
@@ -746,6 +767,7 @@ export async function handleDemoProvisionOrder(
       request,
       403,
       "PROVISIONING_FORBIDDEN",
+      // i18n-exempt: API problem text for API callers; the UI words failures from status and code (contracts/error-text.ts)
       "Internal operations authority is required.",
     );
   try {
@@ -760,10 +782,13 @@ export async function handleDemoProvisionOrder(
   } catch (error) {
     return Response.json(
       {
+        // A stable code the handoff can word in the reader's language; the
+        // detail stays English for logs and API callers.
+        code: "DEMO_PROVISIONING_REFUSED",
         detail:
           error instanceof Error
             ? error.message
-            : "Unable to submit provisioning.",
+            : "Unable to submit provisioning.", // i18n-exempt: API problem detail; demo-order-handoff (operations lane) still renders it and should word `code` instead (platform lane report)
       },
       { status: 422 },
     );

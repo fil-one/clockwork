@@ -1,123 +1,142 @@
+import type { MessageId } from "@/src/i18n";
+
+import type { VarianceClassification } from "./model";
+
+/**
+ * Message IDs for the billing reconciliation surface. The wording lives in
+ * `src/i18n/messages/operations-finance.ts` in every interface language; this
+ * map only says which message each part of the page shows.
+ */
 export const reconciliationCopy = {
   page: {
-    title: "Billing reconciliation",
-    description:
-      "Review monthly close readiness, compare billing and ledger totals, and classify the variances that need follow-up.",
+    title: "operations.finance.reconciliation.title",
+    description: "operations.finance.reconciliation.description",
   },
   summary: {
-    label: "Close readiness",
+    label: "operations.finance.reconciliation.summaryLabel",
     periods: {
-      title: "Tie-out periods",
-      detail: "Monthly periods available for review",
+      title: "operations.finance.reconciliation.periods.heading",
+      detail: "operations.finance.reconciliation.summary.periods.detail",
     },
     untied: {
-      title: "Not tied",
-      detail: "Periods where platform, billing, and ledger totals differ",
+      title: "operations.finance.reconciliation.untied",
+      detail: "operations.finance.reconciliation.summary.untied.detail",
     },
     blocking: {
-      title: "Blocking variances",
-      detail: "Cases that still prevent the period from closing",
+      title: "operations.finance.reconciliation.summary.blocking",
+      detail: "operations.finance.reconciliation.summary.blocking.detail",
     },
-  },
-  provenance: {
-    heading: "Where these two tables come from",
-    tieOut:
-      "The tie-out table is a real relation that no application path writes. core.reconciliation.three-way.v1 computes its variances in memory, opens an exception case and records the run; it inserts no tie-out row. Rows below were therefore loaded by a fixture or by hand, and are shown as stored values rather than as the output of a close.",
-    variances:
-      "The variance list is produced: both reconciliation tasks route to the reconciliation exception queue, which is the record the platform creates, owns and tracks against a response target.",
-    closing:
-      "Closing a case is a signed decision with an immutable evidence document and stays on the lifecycle command path. Classifying a variance here records the disposition the runbook asks for and leaves the case open.",
   },
   unreadable: {
-    title: "Reconciliation is temporarily unavailable.",
-    detail:
-      "Refresh the page or try again shortly. No close decision was made.",
+    title: "operations.finance.reconciliation.unreadable",
+    detail: "operations.finance.reconciliation.unreadable.detail",
   },
   periods: {
-    heading: "Tie-out periods",
-    subheading: "Platform against billing provider against general ledger.",
-    caption: "Stored three-way tie-out periods and their variances",
-    empty: "No tie-out periods are ready for review.",
-    count: (count: number) => `${count} ${count === 1 ? "period" : "periods"}`,
+    heading: "operations.finance.reconciliation.periods.heading",
+    subheading: "operations.finance.reconciliation.periods.subheading",
+    caption: "operations.finance.reconciliation.periods.caption",
+    empty: "operations.finance.reconciliation.periods.empty",
+    count: "operations.finance.reconciliation.periods.count",
     columns: {
-      period: "Period",
-      currency: "Currency",
-      platform: "Platform",
-      billing: "Billing provider",
-      accounting: "General ledger",
-      variance: "Variance",
-      state: "State",
+      period: "operations.finance.reconciliation.column.period",
+      currency: "common.currency",
+      platform: "operations.finance.reconciliation.column.platform",
+      billing: "operations.finance.reconciliation.column.billing",
+      accounting: "operations.finance.reconciliation.column.ledger",
+      variance: "operations.finance.reconciliation.column.variance",
+      state: "operations.finance.reconciliation.column.state",
     },
-    tied: "Tied",
-    untied: "Not tied",
+    ledgerVariance: "operations.finance.reconciliation.ledgerVariance",
+    tied: "operations.finance.reconciliation.tied",
+    untied: "operations.finance.reconciliation.untied",
   },
   variances: {
-    heading: "Reconciliation variances",
-    subheading:
-      "Exception cases raised by the usage and three-way reconciliation tasks.",
-    caption: "Open reconciliation exception cases and their dispositions",
-    empty:
-      "No reconciliation exception is open. Neither reconciliation task has raised a variance that is still unresolved.",
-    count: (count: number) => `${count} ${count === 1 ? "case" : "cases"}`,
+    heading: "operations.finance.reconciliation.variances.heading",
+    subheading: "operations.finance.reconciliation.variances.subheading",
+    caption: "operations.finance.reconciliation.variances.caption",
+    empty: "operations.finance.reconciliation.variances.empty",
+    count: "operations.finance.reconciliation.variances.count",
     columns: {
-      subject: "Subject",
-      owner: "Owner",
-      opened: "Opened",
-      target: "Response target",
-      classification: "Classification",
-      action: "Disposition",
+      subject: "operations.finance.reconciliation.column.subject",
+      owner: "common.owner",
+      opened: "operations.finance.reconciliation.column.opened",
+      target: "operations.finance.reconciliation.column.target",
+      classification: "operations.finance.reconciliation.classification",
+      action: "operations.finance.reconciliation.column.disposition",
     },
-    unclassified: "Not yet classified",
-    blocking: "Blocks the close",
-    clearing: (period: string) => `Clears ${period}`,
+    subject: "operations.finance.reconciliation.subject",
+    caseId: "operations.finance.reconciliation.caseId",
+    unclassified: "operations.finance.reconciliation.unclassified",
+    clearing: "operations.finance.reconciliation.clearing",
   },
   decision: {
-    trigger: "Classify",
-    confirm: "Record this classification",
-    title: "Classify variance",
-    description:
-      "Records the classification, the expected clearing period and the evidence against this case. The case stays open.",
-    caseTerm: "Case",
-    effectTerm: "Effect",
-    effectDetail:
-      "The disposition is written to the case and to its audit trail. No amount is moved, no status is closed, and no accounting entry is created.",
-    classificationLabel: "Classification",
-    clearingLabel: "Expected clearing period",
-    clearingHelp:
-      "Optional. YYYY-MM, the period this variance should clear in.",
-    evidenceLabel: "Evidence reference",
-    evidenceHelp:
-      "Optional. Document, export hash or ticket that carries the evidence. Letters, digits, dot, dash, underscore, slash and colon, up to 120 characters.",
-    reasonLabel: "Correction mechanism and reason",
-    reasonHelp:
-      "At least 8 characters. Kept with your name on the audit record.",
-    submitting: "Recording",
-    recorded: "Recorded.",
+    trigger: "operations.finance.reconciliation.decision.trigger",
+    confirm: "operations.finance.reconciliation.decision.confirm",
+    title: "operations.finance.reconciliation.decision.title",
+    description: "operations.finance.reconciliation.decision.description",
+    caseTerm: "operations.finance.reconciliation.decision.case",
+    effectTerm: "operations.finance.corrections.effect",
+    effectDetail: "operations.finance.reconciliation.decision.effect",
+    classificationLabel: "operations.finance.reconciliation.classification",
+    clearingLabel: "operations.finance.reconciliation.decision.clearing",
+    clearingHelp: "operations.finance.reconciliation.decision.clearing.help",
+    evidenceLabel: "operations.finance.reconciliation.decision.evidence",
+    evidenceHelp: "operations.finance.reconciliation.decision.evidence.help",
+    reasonLabel: "operations.finance.reconciliation.decision.reason",
+    reasonHelp: "operations.finance.reconciliation.decision.reason.help",
+    submitting: "operations.finance.review.recording",
+    recorded: "operations.finance.reconciliation.decision.recorded",
   },
+  /** Every refusal code `classifyReconciliationVariance` returns, worded. */
   failures: {
-    RECONCILIATION_REASON_REQUIRED: "Give a reason of at least 8 characters.",
-    RECONCILIATION_INVALID:
-      "The disposition could not be read. Reload the page.",
+    RECONCILIATION_REASON_REQUIRED:
+      "operations.finance.reconciliation.failure.reasonRequired",
+    RECONCILIATION_INVALID: "operations.finance.reconciliation.failure.invalid",
     RECONCILIATION_CLASSIFICATION_INVALID:
-      "Choose one of the classifications the runbook enumerates.",
+      "operations.finance.reconciliation.failure.classification",
     RECONCILIATION_CLEARING_PERIOD_INVALID:
-      "Give the expected clearing period as YYYY-MM, or leave it empty.",
+      "operations.finance.reconciliation.failure.clearingPeriod",
     RECONCILIATION_EVIDENCE_INVALID:
-      "The evidence reference contains characters that are not allowed.",
+      "operations.finance.reconciliation.failure.evidence",
     RECONCILIATION_RECENT_AUTH_REQUIRED:
-      "Sign in again to confirm it is you, then repeat the disposition.",
+      "operations.finance.reconciliation.failure.recentAuth",
     RECONCILIATION_FORBIDDEN:
-      "Your permission to operate billing reconciliation has changed.",
-    RECONCILIATION_UNAVAILABLE: "The reconciliation records cannot be reached.",
+      "operations.finance.reconciliation.failure.forbidden",
+    RECONCILIATION_UNAVAILABLE:
+      "operations.finance.reconciliation.failure.unavailable",
     RECONCILIATION_CASE_NOT_FOUND:
-      "That case is no longer an open reconciliation variance. Reload the page.",
+      "operations.finance.reconciliation.failure.notFound",
     RECONCILIATION_VERSION_CONFLICT:
-      "The case changed while this page was open. Reload and repeat the disposition.",
-    RECONCILIATION_FAILED: "The disposition could not be recorded.",
-  } as Readonly<Record<string, string>>,
-  fallbackFailure: "The disposition could not be recorded.",
-  sourceLabel: {
-    live: "Tie-out relation and the reconciliation exception queue",
-    unavailable: "No reconciliation read is available",
-  },
+      "operations.finance.reconciliation.failure.conflict",
+    RECONCILIATION_FAILED: "operations.finance.reconciliation.failure.failed",
+  } as Readonly<Record<string, MessageId>>,
+  fallbackFailure: "operations.finance.reconciliation.failure.failed",
+  classifications: {
+    delivery_timing:
+      "operations.finance.reconciliation.classification.deliveryTiming",
+    period_cut_off:
+      "operations.finance.reconciliation.classification.periodCutOff",
+    currency: "operations.finance.reconciliation.classification.currency",
+    tax: "operations.finance.reconciliation.classification.tax",
+    account_mapping:
+      "operations.finance.reconciliation.classification.accountMapping",
+    missing_or_duplicate_event:
+      "operations.finance.reconciliation.classification.missingOrDuplicateEvent",
+    usage_correction:
+      "operations.finance.reconciliation.classification.usageCorrection",
+    amendment_or_proration:
+      "operations.finance.reconciliation.classification.amendmentOrProration",
+    provider_fee:
+      "operations.finance.reconciliation.classification.providerFee",
+    unexplained: "operations.finance.reconciliation.classification.unexplained",
+  } as const satisfies Readonly<Record<VarianceClassification, MessageId>>,
+  /** Object types a reconciliation case is raised against, where one is known. */
+  objectTypes: {
+    invoice: "recordKind.invoice",
+    order: "recordKind.order",
+    payment: "recordKind.payment",
+    credit_note: "recordKind.creditNote",
+    dispute: "recordKind.dispute",
+    account: "recordKind.account",
+  } as Readonly<Record<string, MessageId>>,
 } as const;

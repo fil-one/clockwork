@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { getTranslations } from "@/src/i18n/server";
 import { loadQuoteRevisionSource } from "@/src/features/experience-server/quote-revision-source";
 import {
   QuoteBuilder,
@@ -14,6 +16,11 @@ import {
 } from "@/src/features/experience-server/portal-view-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("customer.commercial.builder.title.create") };
+}
 
 async function resolveOrigin(
   revises: string | undefined,
@@ -92,6 +99,7 @@ async function QuoteWorkspace({ params }: { params: RawSearchParams }) {
         (candidate) => candidate.priceBookId === source.priceBookId,
       );
       initialLines = matchedLines.slice(1).map(({ line, offer }) => {
+        // i18n-exempt: unreachable invariant (every line's offer was matched above); the error boundary renders its own copy
         if (!offer) throw new Error("The original offer is unavailable.");
         return {
           offerId: offer.id,

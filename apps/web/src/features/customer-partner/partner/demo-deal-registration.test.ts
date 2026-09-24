@@ -8,10 +8,23 @@ import { demoAccountIds } from "@clockwork/testing/personas";
 
 vi.mock("server-only", () => ({}));
 
+import { formattingLocales, type Locale } from "@/src/i18n";
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   demoCreatedRegistrations,
   handleDemoDealRegistrationCommand,
 } from "./demo-deal-registration";
+import type { PartnerReader } from "./partner-presentation";
+
+function reader(locale: Locale): PartnerReader {
+  return {
+    t: translatorFor(locale),
+    locale,
+    formatting: formattingLocales[locale],
+  };
+}
+const en = reader("en");
 
 const partner: SessionClaims = {
   userId: "21000000-0000-4000-8000-000000000003",
@@ -74,7 +87,7 @@ describe("durable demo deal registration", () => {
       },
     });
     expect(
-      demoCreatedRegistrations(await store.read(), demoAccountIds.reseller),
+      demoCreatedRegistrations(await store.read(), demoAccountIds.reseller, en),
     ).toEqual([
       expect.objectContaining({
         name: "Aster House Media · Regulated archive expansion",
@@ -108,7 +121,7 @@ describe("durable demo deal registration", () => {
     );
     expect(conflict.status).toBe(409);
     expect(
-      demoCreatedRegistrations(await store.read(), demoAccountIds.reseller),
+      demoCreatedRegistrations(await store.read(), demoAccountIds.reseller, en),
     ).toHaveLength(1);
   });
 
@@ -137,7 +150,7 @@ describe("durable demo deal registration", () => {
       expect(response.status).toBe(403);
     }
     expect(
-      demoCreatedRegistrations(await store.read(), demoAccountIds.reseller),
+      demoCreatedRegistrations(await store.read(), demoAccountIds.reseller, en),
     ).toHaveLength(0);
   });
 
@@ -148,11 +161,11 @@ describe("durable demo deal registration", () => {
       { store },
     );
     expect(
-      demoCreatedRegistrations(await store.read(), demoAccountIds.reseller),
+      demoCreatedRegistrations(await store.read(), demoAccountIds.reseller, en),
     ).toHaveLength(1);
     await store.replace(createPristineDemoAdapterState());
     expect(
-      demoCreatedRegistrations(await store.read(), demoAccountIds.reseller),
+      demoCreatedRegistrations(await store.read(), demoAccountIds.reseller, en),
     ).toHaveLength(0);
   });
 });
@@ -230,10 +243,29 @@ it("does not describe a referral registration as a resale", async () => {
     { store, now: "2026-08-18T12:00:00.000Z" },
   );
   expect(response.status).toBe(200);
-  const records = demoCreatedRegistrations(
-    await store.read(),
-    demoAccountIds.referral,
-  );
+  const state = await store.read();
+  const records = demoCreatedRegistrations(state, demoAccountIds.referral, en);
   expect(records[0]?.context).toBe("240 TB · 90-day protection requested");
   expect(records[0]?.id).toContain(body.id.toUpperCase());
+  // The stored registration is facts; each reader gets their own wording.
+  const [french] = demoCreatedRegistrations(
+    state,
+    demoAccountIds.referral,
+    reader("fr"),
+  );
+  expect(french?.context).toBe(
+    reader("fr").t("partner.registration.created.context", {
+      volume: new Intl.NumberFormat("fr-FR", {
+        style: "unit",
+        unit: "terabyte",
+      }).format(240),
+      count: 90,
+    }),
+  );
+  expect(french?.value).not.toMatch(/potential workload/u);
+  const stored = Object.values(state.projectionOverrides).find(
+    (entry) => entry.data.kind === "demo_partner_registration",
+  )?.data as { record: Record<string, unknown> } | undefined;
+  for (const key of ["context", "owner", "value", "secondary"])
+    expect(stored?.record, key).not.toHaveProperty(key);
 });

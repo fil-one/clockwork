@@ -89,6 +89,7 @@ const STATIC_ROUTE_SEGMENTS = new Set([
 const SAFE_ERROR_TYPES = new Set([
   "AbortError",
   "AggregateError",
+  // i18n-exempt: JavaScript error constructor name used as an allow-list key
   "Error",
   "ErrorEvent",
   "EvalError",

@@ -1,4 +1,9 @@
-import { PartnerCollectionRoute } from "@/src/features/customer-partner/partner/partner-route";
+import {
+  PartnerCollectionRoute,
+  partnerSurfaceMetadata,
+} from "@/src/features/customer-partner/partner/partner-route";
+
+export const generateMetadata = () => partnerSurfaceMetadata("portfolio");
 export default function Page() {
   return <PartnerCollectionRoute surface="portfolio" />;
 }

@@ -11,6 +11,7 @@ import {
   text,
   totalInDominantCurrency,
   type EvidenceEntry,
+  type MinorAmount,
   type ProjectionRisk,
 } from "./projection-fields";
 
@@ -24,6 +25,10 @@ import {
  * that payload and are therefore absent rather than guessed: the dispute state,
  * the collections owner, and the last customer contact. Dispute holds are
  * enforced by the server on the command, not by this presentation.
+ *
+ * Money, dates and status are carried as facts (minor units and currency, ISO
+ * instants, the invoice's status code); the surface formats and words them in
+ * the reader's language.
  */
 export interface CollectionCase {
   /** Projection record key: `invoice-<aggregateId>`. */
@@ -47,16 +52,19 @@ export interface CollectionCase {
    */
   billingAccountId: string | null;
   reference: string;
-  amount: string | null;
   amountMinor: bigint | null;
   currency: string | null;
+  /** The public status the projection states. */
   status: string | null;
-  statusLabel: string;
+  /** The invoice's own status, which the invoice status set words. */
+  invoiceStatus: string | null;
+  /** The read boundary's label, used only when no status code is known. */
+  statusLabel: string | null;
   risk: ProjectionRisk | null;
   overdue: boolean;
   /** Whole days past the due date; `null` when no due date is recorded. */
   overdueDays: number | null;
-  dueLabel: string | null;
+  dueAt: string | null;
   paidAt: string | null;
   /** Only present when the payload names someone other than the record itself. */
   owner: string | null;
@@ -111,15 +119,15 @@ export function collectionCaseFromProjection(
     billingAccountId:
       (orderId ? billingAccounts.get(orderId) : undefined) ?? null,
     reference,
-    amount: text(data, "value"),
     amountMinor: minorUnits(text(invoice, "amountMinor")),
     currency: text(invoice, "currency"),
     status: text(data, "status"),
-    statusLabel: text(data, "statusLabel") ?? "Not recorded",
+    invoiceStatus: text(invoice, "status"),
+    statusLabel: text(data, "statusLabel"),
     risk: risk(data),
     overdue: !paidAt && dueDays !== null && dueDays > 0,
     overdueDays: !paidAt && dueDays !== null && dueDays > 0 ? dueDays : null,
-    dueLabel: text(data, "term") ?? text(data, "dateLabel"),
+    dueAt,
     paidAt,
     owner: owner && owner !== reference ? owner : null,
     nextAction: text(data, "nextAction"),
@@ -155,10 +163,19 @@ export function prioritizeCollectionCases(
 
 export interface CollectionsSummary {
   /** Total of every open invoice in the dominant currency. */
-  openTotal: string | null;
+  openAmount: MinorAmount | null;
   openCount: number;
-  overdueTotal: string | null;
+  overdueAmount: MinorAmount | null;
   overdueCount: number;
+  /**
+   * `openAmount` pre-formatted in English.
+   *
+   * @deprecated The operations home still reads these two strings; format the
+   * `MinorAmount` fields with the reader's locale instead.
+   */
+  openTotal: string | null;
+  /** @deprecated See `openTotal`. */
+  overdueTotal: string | null;
   /** Invoices held in a currency the totals above could not include. */
   excludedByCurrency: number;
   oldestOverdueDays: number | null;
@@ -185,16 +202,24 @@ export function summarizeCollectionCases(
     .map((entry) => entry.overdueDays)
     .filter((days): days is number => days !== null);
   return {
+    openAmount:
+      openTotal.counted > 0
+        ? { minor: openTotal.total, currency: openTotal.currency }
+        : null,
+    openCount: open.length,
+    overdueAmount:
+      overdueTotal.counted > 0
+        ? { minor: overdueTotal.total, currency: overdueTotal.currency }
+        : null,
+    overdueCount: overdue.length,
     openTotal:
       openTotal.counted > 0
         ? formatMinorUnits(openTotal.total, openTotal.currency)
         : null,
-    openCount: open.length,
     overdueTotal:
       overdueTotal.counted > 0
         ? formatMinorUnits(overdueTotal.total, overdueTotal.currency)
         : null,
-    overdueCount: overdue.length,
     excludedByCurrency: openTotal.excluded,
     oldestOverdueDays: ages.length > 0 ? Math.max(...ages) : null,
   };

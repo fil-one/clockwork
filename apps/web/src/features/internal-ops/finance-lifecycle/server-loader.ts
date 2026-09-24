@@ -120,18 +120,22 @@ export async function loadReportsWorkspace(): Promise<ReportsWorkspace> {
     loadPortalRecords("internal", "dashboard"),
   ]);
   const accounts = accountPage.records
-    .map((record) => {
-      const reference =
+    .map((record) => ({
+      id: record.aggregateId,
+      reference:
         typeof record.data.reference === "string"
           ? record.data.reference
-          : record.recordKey;
-      const description =
+          : record.recordKey,
+      description:
         typeof record.data.description === "string"
-          ? ` · ${record.data.description}`
-          : "";
-      return { id: record.aggregateId, label: `${reference}${description}` };
-    })
-    .sort((left, right) => left.label.localeCompare(right.label));
+          ? record.data.description
+          : null,
+    }))
+    .sort(
+      (left, right) =>
+        left.reference.localeCompare(right.reference) ||
+        (left.description ?? "").localeCompare(right.description ?? ""),
+    );
   return {
     items: orderReportExports(
       reportPage.records.map(reportExportFromProjection),

@@ -1,10 +1,12 @@
-import type { RevenueWorkspace } from "./model";
+import { revenueSources, type RevenueWorkspace } from "./model";
 
 /**
  * The internal reporting view shown by an explicit demonstration deployment.
  *
- * These rows use the same grouped result shape as `core_revenue_forecast` and
- * `core_arr_mrr`, but remain a deterministic demonstration ledger: no missing
+ * These rows use the same grouped result shape and the same stored codes as
+ * `core_revenue_forecast` and `core_arr_mrr` (`fil_one`, `merchant_of_record.v1`),
+ * so the surface words them exactly as it words a production read. They
+ * remain a deterministic demonstration ledger: no missing
  * service database is presented as a successful production read. The values
  * reconcile to the Meridian annual commitment used throughout the demo.
  */
@@ -30,7 +32,7 @@ export const demoRevenueWorkspace: RevenueWorkspace = {
   channels: [
     {
       channel: "direct",
-      merchantOfRecord: "Fil One",
+      merchantOfRecord: "fil_one",
       currency: "USD",
       revenueBasis: "gross",
       revenueMinor: "7700000",
@@ -78,7 +80,7 @@ export const demoRevenueWorkspace: RevenueWorkspace = {
     {
       currency: "USD",
       revenueBasis: "gross",
-      methodologyVersion: "contracted-v1",
+      methodologyVersion: "merchant_of_record.v1",
       mrrMinor: "1540000",
       arrMinor: "18480000",
       contractCount: 1,
@@ -87,6 +89,6 @@ export const demoRevenueWorkspace: RevenueWorkspace = {
   forecastRowCount: 13,
   remainingBacklogRowCount: 5,
   recurringContractCount: 1,
-  source: "Demonstration commerce reporting ledger",
+  source: revenueSources.demo,
   readable: true,
 };

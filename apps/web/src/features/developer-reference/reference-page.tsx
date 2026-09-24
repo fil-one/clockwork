@@ -1,3 +1,5 @@
+import { use, type ReactNode } from "react";
+
 import {
   InlineNotice,
   PageHeader,
@@ -6,11 +8,17 @@ import {
   Table,
 } from "@clockwork/ui";
 
+import type { Translator } from "@/src/i18n";
+import { richText } from "@/src/i18n/rich";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
+
 import styles from "./reference-page.module.css";
 import {
   apiReferenceGroups,
   credentialReadiness,
+  untaggedGroup,
   type ReferenceOperation,
+  type ReferenceSecurityScheme,
 } from "./api-reference";
 import {
   authenticationClasses,
@@ -24,19 +32,42 @@ function slug(tag: string): string {
     .replace(/^-|-$/g, "")}`;
 }
 
-function requiredParameters(operation: ReferenceOperation): string {
+function requiredParameters(
+  operation: ReferenceOperation,
+  t: Translator,
+): string {
   const required = operation.parameters.filter(
     (parameter) => parameter.required,
   );
-  if (required.length === 0) return "None";
+  if (required.length === 0) return t("platform.developers.parameters.none");
+  // Parameter names and their `in` locations are the contract's identifiers.
   return required
     .map((parameter) => `${parameter.name} (${parameter.location})`)
     .join(", ");
 }
 
-function requestSummary(operation: ReferenceOperation): string {
-  if (operation.requestContentTypes.length === 0) return "No body";
-  return `${operation.requestBodyRequired ? "Required" : "Optional"}: ${operation.requestContentTypes.join(", ")}`;
+function requestSummary(operation: ReferenceOperation, t: Translator): string {
+  if (operation.requestContentTypes.length === 0)
+    return t("platform.developers.body.none");
+  // Media types are identifiers, listed as the contract lists them.
+  const types = operation.requestContentTypes.join(", ");
+  return t(
+    operation.requestBodyRequired
+      ? "platform.developers.body.required"
+      : "platform.developers.body.optional",
+    { types },
+  );
+}
+
+function schemeLabel(scheme: ReferenceSecurityScheme, t: Translator): string {
+  // Scheme names, types and locations are the contract's own identifiers.
+  return scheme.location
+    ? t("platform.developers.scheme.located", {
+        name: scheme.name,
+        type: scheme.type,
+        location: scheme.location,
+      })
+    : `${scheme.name} (${scheme.type})`;
 }
 
 /**
@@ -71,70 +102,113 @@ function requestSummary(operation: ReferenceOperation): string {
  * the contract or checked against the handlers by
  * `route-authentication.test.ts`. A reassurance an integrator cannot check is
  * the exact defect this section exists to have fixed.
+ *
+ * LANGUAGE. The page's own words are messages (`platform-developers.ts`) in
+ * the reader's interface language, read from the language cookie; counts and
+ * lists are formatted with that language's locale. What the contract itself
+ * says -- tags, paths, methods, parameter names and locations, media types,
+ * status codes, scheme names -- is shown exactly as the contract writes it,
+ * and the lede says so.
  */
 export function ApiReferencePage({ specHref }: { specHref: string }) {
+  const t = use(getTranslations());
+  const locale = use(getFormattingLocale());
+  const numbers = new Intl.NumberFormat(locale);
+  const list = new Intl.ListFormat(locale, { type: "conjunction" });
   const groups = apiReferenceGroups();
   const readiness = credentialReadiness();
   const authenticationTable = authenticationClasses();
   const namedExceptions = enumerableAuthenticationClasses();
+  const total = numbers.format(readiness.operationCount);
   // "42 by browser session, 6 by provider signature, ..." -- counted rather
   // than written, so a route moving between classes moves this sentence.
-  const undeclaredClassSummary = authenticationTable
-    .filter((entry) => entry.mechanism !== "declared-scheme")
-    .map((entry) => `${entry.operations.length} by ${entry.shortLabel}`)
-    .join(", ");
+  const undeclaredClassSummary = list.format(
+    authenticationTable
+      .filter((entry) => entry.mechanism !== "declared-scheme")
+      .map((entry) =>
+        t(entry.summary, {
+          count: numbers.format(entry.operations.length),
+        }),
+      ),
+  );
   const declaredSchemes =
     readiness.schemes.length === 0
-      ? "none"
-      : readiness.schemes
-          .map(
-            (scheme) =>
-              `${scheme.name} (${scheme.type}${scheme.location ? ` in ${scheme.location}` : ""})`,
-          )
-          .join(", ");
+      ? t("platform.developers.credential.declaredNone")
+      : t("platform.developers.credential.declared", {
+          schemes: list.format(
+            readiness.schemes.map((scheme) => schemeLabel(scheme, t)),
+          ),
+        });
+  const sentences = (first: ReactNode, second: ReactNode): ReactNode =>
+    richText(t, "common.join.sentences", { first, second });
+  const groupLabel = (tag: string) =>
+    tag === untaggedGroup ? t("platform.developers.group.untagged") : tag;
   return (
     <main id="main-content" className={styles.main}>
       <div className={styles.column}>
         <div className={styles.intro}>
           <PageHeader
-            eyebrow="Developers"
-            title="API reference"
-            description="Generated from the contract this application serves, not written alongside it."
+            eyebrow={t("platform.developers.eyebrow")}
+            title={t("platform.developers.title")}
+            description={t("platform.developers.description")}
           />
           <p className={styles.lede}>
-            {readiness.operationCount} operations across {groups.length} groups.
-            The machine-readable contract is at{" "}
-            <a className={styles.mono} href={specHref}>
-              {specHref}
-            </a>
-            , and it is the same document a typed client is generated from.
-            Nothing on this page is maintained by hand, so it cannot fall behind
-            the API.
+            {sentences(
+              t("platform.developers.lede.operations", {
+                count: readiness.operationCount,
+              }),
+              sentences(
+                t("platform.developers.lede.groups", { count: groups.length }),
+                richText(t, "platform.developers.lede.spec", {
+                  link: (
+                    <a className={styles.mono} href={specHref} dir="ltr">
+                      {specHref}
+                    </a>
+                  ),
+                }),
+              ),
+            )}
           </p>
           {readiness.machineUsableSchemes.length === 0 ? (
             <InlineNotice
               tone="warning"
-              title="There is no API credential you can hold yet."
-              description={`The contract declares ${declaredSchemes}. A cookie is issued by an interactive sign-in and belongs to a browser, so there is no credential you could hold and present. Issuing, listing and revoking a machine credential is not built. The operations that do not need a session are not a way in either: they take a signature or a token this deployment issues, and they are named below. Read this reference as the shape of the API, not as an invitation to integrate against it today.`}
+              title={t("platform.developers.credential.missing.title")}
+              description={sentences(
+                declaredSchemes,
+                t("platform.developers.credential.missing.body"),
+              )}
             />
           ) : (
             <InlineNotice
               tone="info"
-              title="Machine credentials"
-              description={`The contract declares ${readiness.machineUsableSchemes.map((scheme) => scheme.name).join(", ")} for callers that are not a browser.`}
+              title={t("platform.developers.credential.machine.title")}
+              description={t("platform.developers.credential.machine.body", {
+                schemes: list.format(
+                  readiness.machineUsableSchemes.map((scheme) => scheme.name),
+                ),
+              })}
             />
           )}
           <InlineNotice
             tone="info"
-            title="Authorization is not visible in this contract."
-            description={`${readiness.operationsWithNoDeclaredSecurity} of ${readiness.operationCount} operations attach no security requirement in the document at all. That is a gap in the published contract rather than a statement about the handlers -- but it is not one gap with one answer behind it. What each of those operations actually requires is set out below, class by class, and the classes are not interchangeable: ${undeclaredClassSummary}. Check the class before you decide what an operation needs.`}
+            title={t("platform.developers.authorization.title")}
+            description={sentences(
+              t("platform.developers.authorization.count", {
+                count: readiness.operationsWithNoDeclaredSecurity,
+                total,
+              }),
+              t("platform.developers.authorization.body", {
+                classes: undeclaredClassSummary,
+              }),
+            )}
           />
-          <nav aria-label="Operation groups">
+          <nav aria-label={t("platform.developers.groups.label")}>
             <ul className={styles.contents}>
               {groups.map((group) => (
                 <li key={group.tag}>
                   <a href={`#${slug(group.tag)}`}>
-                    {group.tag} ({group.operations.length})
+                    {groupLabel(group.tag)} (
+                    {numbers.format(group.operations.length)})
                   </a>
                 </li>
               ))}
@@ -143,35 +217,32 @@ export function ApiReferencePage({ specHref }: { specHref: string }) {
         </div>
 
         <Section
-          title="How each operation is authenticated"
-          description="Derived from the contract and checked against the handlers. What stood here before was one hand-written sentence, and it was false for ten of these operations."
+          title={t("platform.developers.authentication.title")}
+          description={t("platform.developers.authentication.description")}
         >
           <Table
-            caption="Authentication mechanism by route class"
+            caption={t("platform.developers.authentication.caption")}
             captionHidden
             headers={[
-              "What the caller presents",
-              "Operations",
-              "What the handler does with it",
+              t("platform.developers.authentication.header.presents"),
+              t("platform.developers.authentication.header.operations"),
+              t("platform.developers.authentication.header.handler"),
             ]}
             rowKeys={authenticationTable.map((entry) => entry.mechanism)}
             rows={authenticationTable.map((entry) => [
               <span key="t" className={styles.detail}>
-                {entry.title}
+                {t(entry.title)}
               </span>,
               <span key="c" className={styles.detail}>
-                {entry.operations.length}
+                {numbers.format(entry.operations.length)}
               </span>,
               <span key="d" className={styles.detail}>
-                {entry.detail}
+                {t(entry.detail)}
               </span>,
             ])}
           />
           <p className={styles.note}>
-            The classes below are small enough to name in full, so read them as
-            the exceptions rather than as examples. An operation that is not in
-            one of these lists and does not declare a scheme in the contract is
-            in the browser-session row above.
+            {t("platform.developers.authentication.note")}
           </p>
           <ul className={styles.exceptionList}>
             {namedExceptions.map((entry) => (
@@ -179,12 +250,12 @@ export function ApiReferencePage({ specHref }: { specHref: string }) {
                 <StatusBadge
                   tone={entry.mechanism === "none" ? "warning" : "neutral"}
                 >
-                  {entry.title}
+                  {t(entry.title)}
                 </StatusBadge>
                 <ul className={styles.exceptionOperations}>
                   {entry.operations.map((operation) => (
                     <li key={`${operation.method} ${operation.path}`}>
-                      <span className={styles.endpoint}>
+                      <span className={styles.endpoint} dir="ltr">
                         <span className={styles.method}>
                           {operation.method}
                         </span>
@@ -201,40 +272,45 @@ export function ApiReferencePage({ specHref }: { specHref: string }) {
         {groups.map((group) => (
           <div key={group.tag} id={slug(group.tag)}>
             <Section
-              title={group.tag}
-              description={`${group.operations.length} operations`}
+              title={groupLabel(group.tag)}
+              description={t("platform.developers.group.count", {
+                count: group.operations.length,
+              })}
             >
               <Table
-                caption={`${group.tag} operations`}
+                caption={t("platform.developers.group.caption", {
+                  tag: groupLabel(group.tag),
+                })}
                 captionHidden
                 headers={[
-                  "Operation",
-                  "Tags",
-                  "Required parameters",
-                  "Request body",
-                  "Responses",
+                  t("platform.developers.header.operation"),
+                  t("platform.developers.header.tags"),
+                  t("platform.developers.header.parameters"),
+                  t("platform.developers.header.body"),
+                  t("platform.developers.header.responses"),
                 ]}
                 rowKeys={group.operations.map(
                   (operation) => `${operation.method} ${operation.path}`,
                 )}
                 rows={group.operations.map((operation) => [
-                  <span key="o" className={styles.endpoint}>
+                  <span key="o" className={styles.endpoint} dir="ltr">
                     <span className={styles.method}>{operation.method}</span>
                     <span>{operation.path}</span>
                   </span>,
                   <span key="t" className={styles.detail}>
-                    {operation.tags.join(", ") || "None"}
+                    {operation.tags.join(", ") ||
+                      t("platform.developers.tags.none")}
                   </span>,
                   <span key="p" className={styles.detail}>
-                    {requiredParameters(operation)}
+                    {requiredParameters(operation, t)}
                   </span>,
                   <span key="b" className={styles.detail}>
-                    {requestSummary(operation)}
+                    {requestSummary(operation, t)}
                   </span>,
                   <span key="r" className={styles.detail}>
                     {operation.responses
                       .map((response) => response.status)
-                      .join(", ") || "Not declared"}
+                      .join(", ") || t("platform.developers.responses.none")}
                   </span>,
                 ])}
               />
@@ -243,38 +319,41 @@ export function ApiReferencePage({ specHref }: { specHref: string }) {
         ))}
 
         <Section
-          title="What is missing before you can integrate"
-          description="Stated here rather than discovered after a contract is signed."
+          title={t("platform.developers.missing.title")}
+          description={t("platform.developers.missing.description")}
         >
           <ul>
             <li>
-              <StatusBadge tone="warning">Not built</StatusBadge> Credential
-              management. There is no way to issue, list or revoke a key scoped
-              to an account, and no audit trail for one, because there is no
-              store to hold a key hash in.
+              <StatusBadge tone="warning">
+                {t("platform.developers.missing.status.notBuilt")}
+              </StatusBadge>{" "}
+              {t("platform.developers.missing.credentials")}
             </li>
             <li>
-              <StatusBadge tone="warning">Not built</StatusBadge> A sandbox. No
-              environment exists that a caller can exercise these operations
-              against without touching real commercial records.
+              <StatusBadge tone="warning">
+                {t("platform.developers.missing.status.notBuilt")}
+              </StatusBadge>{" "}
+              {t("platform.developers.missing.sandbox")}
             </li>
             <li>
-              <StatusBadge tone="neutral">Partial</StatusBadge> Security in the
-              contract. {readiness.operationsWithDeclaredSecurity} of{" "}
-              {readiness.operationCount} operations declare a scheme; the rest
-              declare none, and what they require has to be read out of the
-              table above rather than out of the document. Until the contract
-              carries it, a generated client cannot present a credential
-              automatically and cannot tell those classes apart.
+              <StatusBadge tone="neutral">
+                {t("platform.developers.missing.status.partial")}
+              </StatusBadge>{" "}
+              {sentences(
+                t("platform.developers.missing.security.lead"),
+                sentences(
+                  t("platform.developers.missing.security.count", {
+                    count: readiness.operationsWithDeclaredSecurity,
+                    total,
+                  }),
+                  t("platform.developers.missing.security.body"),
+                ),
+              )}
             </li>
           </ul>
         </Section>
 
-        <p className={styles.footnote}>
-          Rendered from the contract at build time. If an operation is listed
-          here, the application serves it; if the application stops serving it,
-          this page loses it on the next build.
-        </p>
+        <p className={styles.footnote}>{t("platform.developers.footnote")}</p>
       </div>
     </main>
   );

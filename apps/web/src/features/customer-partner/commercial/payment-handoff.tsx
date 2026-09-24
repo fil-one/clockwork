@@ -1,6 +1,5 @@
 "use client";
 import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
 
 import { useRef, useState } from "react";
 
@@ -10,8 +9,8 @@ import {
 } from "@/src/features/contracts/commerce-client";
 import { trustedStripePaymentUrl } from "@/src/features/contracts/provider-navigation";
 
-import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
+import { CommercialStop, commercialFailureText } from "./failure-message";
 
 /**
  * The invoice this handoff is for. Every value comes from the record the route
@@ -52,9 +51,7 @@ async function demoPaymentMutation(
 ): Promise<DemoPaymentSession> {
   const csrf = cookieValue("clockwork-csrf");
   if (!csrf || csrf.length < 32)
-    throw new Error(
-      "The secure form token is unavailable. Refresh the page and try again.",
-    );
+    throw new CommercialStop("customer.commercial.payment.error.csrf");
   const response = await fetch(path, {
     method: "POST",
     credentials: "same-origin",
@@ -76,11 +73,11 @@ async function demoPaymentMutation(
     receiptId?: unknown;
     completedAt?: unknown;
   };
+  // The sandbox's own problem detail is English written for integrators; the
+  // reader is told what did not happen.
   if (!response.ok)
-    throw new Error(
-      typeof payload.detail === "string"
-        ? payload.detail
-        : "The demo sandbox payment could not be recorded.",
+    throw new CommercialStop(
+      "customer.commercial.payment.error.demoNotRecorded",
     );
   if (
     payload.provider !== "demo_sandbox" ||
@@ -92,7 +89,7 @@ async function demoPaymentMutation(
     (payload.receiptId !== null && typeof payload.receiptId !== "string") ||
     (payload.completedAt !== null && typeof payload.completedAt !== "string")
   )
-    throw new Error("The demo sandbox returned an invalid payment record.");
+    throw new CommercialStop("customer.commercial.payment.error.demoInvalid");
   return payload as DemoPaymentSession;
 }
 
@@ -105,7 +102,6 @@ export function PaymentHandoff({
   guidedDemo = false,
 }: PayableInvoice) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [providerUrl, setProviderUrl] = useState("");
@@ -120,8 +116,9 @@ export function PaymentHandoff({
    * deliberately honest read as the product being broken. A scripted boundary
    * is not an error: it keeps the reader's own copy, drops the alert role, and
    * withdraws the retry, because pressing the button again cannot change it.
+   * The boundary is a fact; the page says it in the reader's language.
    */
-  const [boundary, setBoundary] = useState("");
+  const [boundary, setBoundary] = useState(false);
   const [demoSession, setDemoSession] = useState<DemoPaymentSession | null>(
     null,
   );
@@ -135,7 +132,7 @@ export function PaymentHandoff({
     }
     setPending(true);
     setError("");
-    setBoundary("");
+    setBoundary(false);
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
       if (guidedDemo) {
@@ -145,7 +142,9 @@ export function PaymentHandoff({
           { accountId, invoiceId },
         );
         if (session.invoiceId !== invoiceId)
-          throw new Error("The demo sandbox returned a different invoice.");
+          throw new CommercialStop(
+            "customer.commercial.payment.error.demoWrongInvoice",
+          );
         setDemoSession(session);
         return;
       }
@@ -159,13 +158,15 @@ export function PaymentHandoff({
         caught instanceof CommerceApiError &&
         caught.problemCode === "DEMO_PAYMENT_UNAVAILABLE"
       ) {
-        setBoundary(caught.message);
+        setBoundary(true);
         return;
       }
       setError(
-        caught instanceof Error
-          ? caught.message
-          : "A secure payment session could not be created.",
+        commercialFailureText(
+          caught,
+          t,
+          "customer.commercial.payment.error.sessionFailed",
+        ),
       );
     } finally {
       setPending(false);
@@ -189,13 +190,17 @@ export function PaymentHandoff({
         completed.status !== "paid" ||
         !completed.receiptId
       )
-        throw new Error("The demo sandbox returned an invalid paid record.");
+        throw new CommercialStop(
+          "customer.commercial.payment.error.demoInvalidPaid",
+        );
       setDemoSession(completed);
     } catch (caught) {
       setError(
-        caught instanceof Error
-          ? caught.message
-          : "The demo sandbox payment could not be completed.",
+        commercialFailureText(
+          caught,
+          t,
+          "customer.commercial.payment.error.demoNotCompleted",
+        ),
       );
     } finally {
       setPending(false);
@@ -206,36 +211,48 @@ export function PaymentHandoff({
     <section className={styles.summary} aria-labelledby="payment-title">
       <div>
         <p className={styles.eyebrow}>
-          {guidedDemo ? "Guided demo · payment sandbox" : "Provider handoff"}
+          {t(
+            guidedDemo
+              ? "customer.commercial.payment.eyebrow.demo"
+              : "customer.commercial.payment.eyebrow.live",
+          )}
         </p>
         <h2 id="payment-title">
-          {guidedDemo ? "Try the payment flow" : "Review payment"}
+          {t(
+            guidedDemo
+              ? "customer.commercial.payment.title.demo"
+              : "customer.commercial.payment.title.live",
+          )}
         </h2>
       </div>
       <dl>
         <div>
-          <dt>{localizedcustomerPartnerCopy.commercial.invoiceTruth}</dt>
+          <dt>{t("customer.commercial.valueLabel.invoicedAmount")}</dt>
           <dd>{amountLabel}</dd>
         </div>
         <div>
-          <dt>{localizedcustomerPartnerCopy.commercial.paymentTruth}</dt>
+          <dt>{t("customer.commercial.payment.status")}</dt>
           <dd>
-            {guidedDemo
-              ? demoSession?.status === "paid"
-                ? "Paid in demo sandbox"
-                : "No real payment attempted"
-              : "Awaiting provider confirmation"}
+            {t(
+              guidedDemo
+                ? demoSession?.status === "paid"
+                  ? "customer.commercial.payment.status.demoPaid"
+                  : "customer.commercial.payment.status.demoNone"
+                : "customer.commercial.payment.status.awaitingProvider",
+            )}
           </dd>
         </div>
         <div>
-          <dt>Payment due</dt>
+          <dt>{t("customer.commercial.payment.due")}</dt>
           <dd>{dueLabel}</dd>
         </div>
       </dl>
       <p className={styles.notice}>
-        {guidedDemo
-          ? "This guided sandbox never contacts Stripe, a bank, or a card network. Completing it changes only resettable demo records; no money moves."
-          : localizedcustomerPartnerCopy.commercial.externalPayment}
+        {t(
+          guidedDemo
+            ? "customer.commercial.payment.notice.demo"
+            : "customer.commercial.payment.notice.live",
+        )}
       </p>
       <label className={styles.check} htmlFor="payment-confirmation">
         <input
@@ -245,9 +262,11 @@ export function PaymentHandoff({
           type="checkbox"
         />
         <span>
-          {guidedDemo
-            ? "I reviewed the invoice amount and understand this is a demo-only payment simulation."
-            : "I reviewed the invoice amount and understand payment continues with the provider."}
+          {t(
+            guidedDemo
+              ? "customer.commercial.payment.confirm.demo"
+              : "customer.commercial.payment.confirm.live",
+          )}
         </span>
       </label>
       {error ? (
@@ -257,16 +276,16 @@ export function PaymentHandoff({
       ) : null}
       {boundary ? (
         <p className={styles.notice} role="status">
-          Payment is where this workspace stops. {boundary} On the live platform
-          this control opens a Stripe checkout session, and the invoice is
-          marked paid only by the provider webhook that follows.
+          {t("customer.commercial.payment.boundary")}
         </p>
       ) : null}
       {guidedDemo && demoSession?.status === "requires_customer_action" ? (
-        <div className={styles.stack} aria-label="Demo payment sandbox">
+        <div
+          className={styles.stack}
+          aria-label={t("customer.commercial.payment.sandboxLabel")}
+        >
           <p className={styles.notice} role="status">
-            Sandbox checkout is ready. Complete it to create one resettable
-            payment attempt and receipt. No external provider is involved.
+            {t("customer.commercial.payment.sandboxReady")}
           </p>
           <button
             className={styles.primary}
@@ -274,22 +293,27 @@ export function PaymentHandoff({
             onClick={() => void completeDemoPayment()}
             type="button"
           >
-            {pending ? "Completing…" : "Complete demo payment"}
+            {t(
+              pending
+                ? "customer.commercial.payment.completing"
+                : "customer.commercial.payment.complete",
+            )}
           </button>
         </div>
       ) : guidedDemo && demoSession?.status === "paid" ? (
         <div className={styles.stack}>
           <p className={styles.successMessage} role="status">
-            Demo payment complete. Receipt {demoSession.receiptId} is stored in
-            resettable demo state. No money moved.
+            {t("customer.commercial.payment.completed", {
+              receipt: demoSession.receiptId ?? "",
+            })}
           </p>
           <a className={styles.primary} href={`/billing/${recordKey}`}>
-            Return to paid invoice
+            {t("customer.commercial.payment.returnPaid")}
           </a>
         </div>
       ) : providerUrl ? (
         <a className={styles.primary} href={providerUrl} rel="noreferrer">
-          Continue to secure Stripe payment
+          {t("customer.commercial.payment.continueStripe")}
         </a>
       ) : boundary ? null : (
         <button
@@ -300,17 +324,21 @@ export function PaymentHandoff({
           }}
           type="button"
         >
-          {pending
-            ? "Preparing…"
-            : guidedDemo
-              ? "Start demo sandbox checkout"
-              : "Prepare secure payment"}
+          {t(
+            pending
+              ? "customer.commercial.payment.preparing"
+              : guidedDemo
+                ? "customer.commercial.payment.startDemo"
+                : "customer.commercial.payment.prepare",
+          )}
         </button>
       )}
       <p className={styles.muted}>
-        {guidedDemo
-          ? "Reset demo data to remove the sandbox payment, receipt, and paid invoice state."
-          : `${localizedcustomerPartnerCopy.commercial.paymentWebhook}. Returning from the provider does not mark the invoice paid.`}
+        {t(
+          guidedDemo
+            ? "customer.commercial.payment.footer.demo"
+            : "customer.commercial.payment.footer.live",
+        )}
       </p>
     </section>
   );

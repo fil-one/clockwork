@@ -9,6 +9,9 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { catalogs } from "@/src/i18n/catalogs";
+import { LanguageProvider } from "@/src/i18n/client";
+
 import type { ProjectionActionReceipt } from "./model";
 
 const mocks = vi.hoisted(() => ({
@@ -74,6 +77,31 @@ function renderButtons(
       roles={roles}
     />,
   );
+}
+
+function renderPortugueseButtons(actions: readonly string[]) {
+  return render(
+    <LanguageProvider locale="pt" catalog={catalogs.pt}>
+      <ProjectionActionButtons
+        audience="customer"
+        channel="billing"
+        recordKey="INV-2026-0781"
+        projectionId="projection-1"
+        version={3}
+        actions={actions}
+        roles={["owner"]}
+      />
+    </LanguageProvider>,
+  );
+}
+
+/** What `experience-client` throws for a problem+json response. */
+function problem(status: number, code: string, title: string) {
+  return Object.assign(new Error(title), {
+    name: "ExperienceClientError",
+    status,
+    code,
+  });
 }
 
 beforeEach(() => {
@@ -147,7 +175,7 @@ describe("projection action buttons", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Void invoice is queued. Waiting for the authoritative result.",
+      "“Void invoice” is queued. Waiting for the authoritative result.",
     );
   });
 
@@ -197,7 +225,7 @@ describe("projection action buttons", () => {
     await elapse(15_000);
 
     const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("Issue is still running");
+    expect(status).toHaveTextContent("“Issue” is still running");
     expect(status).toHaveTextContent("the record may still change");
     expect(mocks.refresh).not.toHaveBeenCalled();
 
@@ -210,7 +238,7 @@ describe("projection action buttons", () => {
     await elapse(1_000);
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Issue applied at authoritative version 4.",
+      "“Issue” was applied at authoritative version 4.",
     );
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
     expect(
@@ -230,7 +258,7 @@ describe("projection action buttons", () => {
 
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent(
-      "Issue was not applied. The commerce API returned rejected: INVOICE_ALREADY_PAID.",
+      "“Issue” was not applied. The commerce API rejected it with code INVOICE_ALREADY_PAID.",
     );
     expect(alert).toHaveClass("form-message--error");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
@@ -239,7 +267,7 @@ describe("projection action buttons", () => {
   it("announces a version conflict as an error and describes the control", async () => {
     const user = userEvent.setup();
     mocks.sendProjectionAction.mockRejectedValue(
-      new Error("The record changed. Refresh before retrying."),
+      problem(409, "VERSION_CONFLICT", "Projection record changed"),
     );
     renderButtons(["issue"]);
 
@@ -247,8 +275,10 @@ describe("projection action buttons", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(
-      "The record changed. Refresh before retrying.",
+      "“Issue” was not applied. The record changed. Refresh before retrying.",
     );
+    // The API's English problem title is for integrators, not the reader.
+    expect(alert).not.toHaveTextContent("Projection record changed");
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Issue" })).toHaveAttribute(
         "aria-describedby",
@@ -280,5 +310,40 @@ describe("projection action buttons", () => {
         "Read only. An account owner or the assigned approver can act on this record.",
       ),
     ).toBeVisible();
+  });
+
+  it("speaks the reader's language for labels, progress and API refusals", async () => {
+    const user = userEvent.setup();
+    mocks.sendProjectionAction.mockRejectedValue(
+      problem(403, "ACTION_FORBIDDEN", "Action is not allowed for this record"),
+    );
+    renderPortugueseButtons(["evaluate_dunning"]);
+
+    await user.click(
+      screen.getByRole("button", { name: "Avaliar régua de cobrança" }),
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "“Avaliar régua de cobrança” não foi aplicado. Sua função não permite realizar esta ação neste registro.",
+    );
+    expect(alert).not.toHaveTextContent("Action is not allowed");
+  });
+
+  it("names each receipt status in its own sentence rather than inserting the status word", async () => {
+    vi.useFakeTimers();
+    mocks.readProjectionAction.mockResolvedValue(
+      receipt("failed", { resultCode: "PROVIDER_TIMEOUT" }),
+    );
+    renderPortugueseButtons(["issue"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Emitir" }));
+    await elapse(1_000);
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(
+      "“Emitir” não foi aplicado. A API comercial informou uma falha com o código PROVIDER_TIMEOUT.",
+    );
+    expect(alert).not.toHaveTextContent("failed");
   });
 });

@@ -13,6 +13,8 @@ vi.mock("@/src/auth/demo-deploy", () => ({
 vi.mock("@/src/features/shell/route-session", () => ({
   getRouteIdentity: vi.fn(),
   getRouteRoles: mocks.getRouteRoles,
+  getRouteSession: () =>
+    Promise.resolve({ locale: "en-US", timeZone: "Europe/London" }),
 }));
 vi.mock("@/src/features/experience-server/portal-view-loader", () => ({
   loadPartnerRecords: mocks.loadPartnerRecords,

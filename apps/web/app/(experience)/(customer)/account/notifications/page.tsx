@@ -37,6 +37,7 @@ function authorizationSecret(): string {
   const secret = process.env.AUTHORIZATION_CONTEXT_SECRET?.trim();
   if (!secret || secret.length < 32)
     throw new Error(
+      // i18n-exempt: deployment configuration error for operators; the route's error boundary shows the reader its own translated message
       "AUTHORIZATION_CONTEXT_SECRET is required to read notification preferences",
     );
   return secret;

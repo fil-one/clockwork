@@ -1,10 +1,9 @@
 import type { TimelineItem } from "@clockwork/ui";
 
 import type { ProjectedArtifact } from "@/src/features/experience-server/artifact-delivery-list";
+import type { Translator } from "@/src/i18n";
 
 import type { CommercialRecord, OrderLifecycleStatus } from "./model";
-
-const NOT_YET_RECORDED = "Not yet recorded.";
 
 const orderProgress = {
   submitted: 0,
@@ -32,9 +31,14 @@ function stageStatus(
   return "current";
 }
 
+/**
+ * The term the record carries, or none. "Not recorded" is the placeholder the
+ * production projection writes where an order has no term yet
+ * (`NOT_RECORDED` in projection-presentation.ts); it is not a term.
+ */
 function recordedTerm(record: CommercialRecord): string | null {
   const term = record.term.trim();
-  return term && term.toLowerCase() !== "not recorded" ? term : null;
+  return term && term !== "Not recorded" ? term : null; // i18n-exempt: compares against the production projection's placeholder token, never rendered
 }
 
 /**
@@ -48,7 +52,9 @@ function recordedTerm(record: CommercialRecord): string | null {
 export function orderTimeline(
   record: CommercialRecord,
   artifacts: readonly ProjectedArtifact[],
+  t: Translator,
 ): readonly TimelineItem[] {
+  const notYetRecorded = t("customer.commercial.timeline.notYetRecorded");
   const lifecycleStatus = record.orderLifecycleStatus ?? null;
   const progress = progressFor(lifecycleStatus);
   const closed =
@@ -68,45 +74,52 @@ export function orderTimeline(
   return [
     {
       id: "submitted",
-      title: "Submitted",
+      title: t("status.order.submitted"),
       description:
         progress !== null
-          ? "Order submission is recorded in the current projection."
-          : NOT_YET_RECORDED,
+          ? t("customer.commercial.timeline.submitted")
+          : notYetRecorded,
       status: stageStatus(0, progress, closed),
     },
     {
       id: "accepted",
-      title: "Accepted",
+      title: t("status.order.accepted"),
       description: acceptedRecorded
         ? orderForm
-          ? `Acceptance is recorded. Pinned order form: ${orderForm.label}.`
-          : `Acceptance is recorded. Stored order form: ${NOT_YET_RECORDED}`
-        : NOT_YET_RECORDED,
+          ? t("customer.commercial.timeline.acceptedWithForm", {
+              form: orderForm.label,
+            })
+          : t("customer.commercial.timeline.acceptedNoForm")
+        : notYetRecorded,
       status: stageStatus(1, progress, closed),
     },
     {
       id: "provisioning",
-      title: "Provisioning",
+      title: t("status.order.provisioning"),
       description: provisioningRecorded
-        ? "Provisioning state is recorded in the current projection."
-        : NOT_YET_RECORDED,
+        ? t("customer.commercial.timeline.provisioning")
+        : notYetRecorded,
       status: stageStatus(2, progress, closed),
     },
     {
       id: "active",
-      title: "Active",
+      title: t("status.order.active"),
       description: activeRecorded
-        ? "Active service state is recorded in the current projection."
-        : NOT_YET_RECORDED,
+        ? t("customer.commercial.timeline.active")
+        : notYetRecorded,
       status: stageStatus(3, progress, closed),
     },
     {
       id: "term-end",
-      title: "Term end",
+      title: t("customer.commercial.valueLabel.termEnd"),
       description: term
-        ? `${termEnded ? "Order end is recorded. " : ""}Recorded term: ${term}.`
-        : NOT_YET_RECORDED,
+        ? t(
+            termEnded
+              ? "customer.commercial.timeline.termEnded"
+              : "customer.commercial.timeline.term",
+            { term },
+          )
+        : notYetRecorded,
       status: stageStatus(4, progress, closed),
     },
   ];

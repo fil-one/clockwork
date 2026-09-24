@@ -10,6 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { coreReportNames } from "@clockwork/contracts";
 
+import { catalogs } from "@/src/i18n/catalogs";
+import { LanguageProvider } from "@/src/i18n/client";
+
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
@@ -185,7 +188,7 @@ describe("generated-client commerce workflows", () => {
     );
 
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("changed while you were working");
     await waitFor(() => expect(alert).toHaveFocus());
@@ -207,7 +210,7 @@ describe("generated-client commerce workflows", () => {
     );
 
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(
       await screen.findByText(/server record is now the source of truth/i),
@@ -221,7 +224,7 @@ describe("generated-client commerce workflows", () => {
       screen.getByLabelText("Renewal action"),
       "decline",
     );
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
     expect(fetchMock).toHaveBeenCalledOnce();
 
     const dialog = await screen.findByRole("dialog");
@@ -234,7 +237,7 @@ describe("generated-client commerce workflows", () => {
     );
     expect(fetchMock).toHaveBeenCalledOnce();
 
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
     await user.click(
       within(await screen.findByRole("dialog")).getByRole("button", {
         name: "Confirm and submit",
@@ -244,9 +247,7 @@ describe("generated-client commerce workflows", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
-    expect(
-      screen.getByRole("button", { name: "Submit securely" }),
-    ).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Submit" })).toHaveFocus();
     expect(refresh).toHaveBeenCalledTimes(2);
     expect((fetchMock.mock.calls[1]?.[0] as Request).url).toContain(
       "/declines",
@@ -294,7 +295,7 @@ describe("generated-client commerce workflows", () => {
 
     await user.click(screen.getByRole("button", { name: "Download CSV" }));
     expect(
-      await screen.findByText("CSV export downloaded from source records."),
+      await screen.findByText("CSV downloaded from source records."),
     ).toBeVisible();
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const secondCall = fetchMock.mock.calls.at(1);
@@ -335,7 +336,7 @@ describe("route-resolved record identifiers", () => {
     expect(order).toHaveAttribute("readonly");
 
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
     expect(
       await screen.findByText(/server record is now the source of truth/i),
     ).toBeVisible();
@@ -380,10 +381,10 @@ describe("route-resolved record identifiers", () => {
       "new@northstar.test",
     );
     await user.type(
-      screen.getByLabelText("Invite expires at"),
+      screen.getByLabelText("Invitation expires"),
       "2026-09-30T17:00",
     );
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
     expect(
       await screen.findByText(/server record is now the source of truth/i),
     ).toBeVisible();
@@ -418,8 +419,8 @@ describe("route-resolved record identifiers", () => {
 
     expect(screen.queryByLabelText("Current row version")).toBeNull();
     await fillAccountUpdate(user);
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
-    expect(await screen.findByText("Account settings saved.")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    expect(await screen.findByText("Account details saved.")).toBeVisible();
     expect(screen.queryByText(routeContext.accountId)).toBeNull();
     expect(screen.queryByText(/row version/iu)).toBeNull();
     expect(refresh).toHaveBeenCalledOnce();
@@ -453,10 +454,10 @@ describe("route-resolved record identifiers", () => {
     );
 
     await fillAccountUpdate(user);
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
     expect(await screen.findByRole("alert")).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
-    expect(await screen.findByText("Account settings saved.")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    expect(await screen.findByText("Account details saved.")).toBeVisible();
 
     expect(fetchMock).toHaveBeenCalledTimes(4);
     const first = fetchMock.mock.calls[1]?.[0] as Request;
@@ -486,9 +487,9 @@ describe("route-resolved record identifiers", () => {
     );
 
     await fillAccountUpdate(user);
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
-    await screen.findByText("Account settings saved.");
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    await screen.findByText("Account details saved.");
+    await user.click(screen.getByRole("button", { name: "Submit" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
 
     const first = fetchMock.mock.calls[1]?.[0] as Request;
@@ -521,14 +522,14 @@ describe("route-resolved record identifiers", () => {
 
     await user.selectOptions(screen.getByLabelText("Decision"), "rejected");
     await user.type(
-      screen.getByLabelText("Decision reason"),
+      screen.getByLabelText("Reason for the decision"),
       "Policy evidence conflicts with the request.",
     );
     await user.type(
       screen.getByLabelText("Evidence document ID"),
       "90000000-0000-4000-8000-000000000001",
     );
-    const submit = screen.getByRole("button", { name: "Submit securely" });
+    const submit = screen.getByRole("button", { name: "Submit" });
     await user.click(submit);
     const dialog = await screen.findByRole("dialog");
     const confirm = within(dialog).getByRole("button", {
@@ -548,9 +549,7 @@ describe("route-resolved record identifiers", () => {
         status: "rejected",
       }),
     );
-    await waitFor(() =>
-      expect(screen.queryByText("Submitting securely…")).toBeNull(),
-    );
+    await waitFor(() => expect(screen.queryByText("Submitting…")).toBeNull());
   });
 
   /**
@@ -576,9 +575,13 @@ describe("route-resolved record identifiers", () => {
     const order = screen.getByLabelText("Order ID");
     expect(order).toHaveValue("");
     expect(order).toBeDisabled();
-    expect(screen.getByText(/binds to the order id/i)).toBeVisible();
+    expect(
+      screen.getByText(
+        /binds to identifiers this page does not carry: Order ID\./,
+      ),
+    ).toBeVisible();
 
-    const submit = screen.getByRole("button", { name: "Submit securely" });
+    const submit = screen.getByRole("button", { name: "Submit" });
     expect(submit).toBeDisabled();
     await user.click(submit);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -607,9 +610,7 @@ describe("route-resolved record identifiers", () => {
       expect(field).toHaveValue("");
       expect(field).toBeEnabled();
     }
-    expect(
-      screen.getByRole("button", { name: "Submit securely" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Submit" })).toBeEnabled();
   });
 
   /**
@@ -681,11 +682,62 @@ describe("route-resolved record identifiers", () => {
     );
 
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Submit securely" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
     expect(await screen.findByRole("alert")).toBeVisible();
     expect(screen.queryByText(/Development simulation accepted/i)).toBeNull();
     expect(
       screen.queryByText(/server record is now the source of truth/i),
     ).toBeNull();
+  });
+});
+
+/**
+ * The panel used to be English in every language: its titles, labels, options
+ * and outcomes were literals, and the unbindable-action sentence lowercased the
+ * field labels and joined them with an English "and" -- "binds to the account
+ * id and order id" in the middle of a German page. The reader's language now
+ * governs all of it, including how the missing identifiers are listed.
+ */
+describe("the reader's language", () => {
+  it("renders a renewal a surface cannot bind entirely in German", () => {
+    render(
+      <LanguageProvider locale="de" catalog={catalogs.de}>
+        <WorkflowPanel context={{}} workflow="renewal" surface="services" />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
+      "Verlängerungsentscheidung",
+    );
+    expect(screen.getByLabelText("Aktion zur Verlängerung")).toBeVisible();
+    expect(screen.getByLabelText("Auftrags-ID")).toBeDisabled();
+    // Labels keep German noun capitalization and are joined by German's own
+    // list format, not by a lowercased English "and".
+    expect(
+      screen.getByText(
+        "Diese Aktion ist an Kennungen gebunden, die diese Seite nicht enthält: Konto-ID und Auftrags-ID. Von hier aus kann nichts übermittelt werden, und es wurde nichts gesendet.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Absenden" })).toBeDisabled();
+    expect(document.body.textContent).not.toMatch(
+      /Server-backed action|Renewal action|Submit|binds to|Decline renewal|Chief Operating/u,
+    );
+  });
+
+  it("names every report in Arabic instead of printing its contract key", () => {
+    render(
+      <LanguageProvider locale="ar" catalog={catalogs.ar}>
+        <WorkflowPanel context={{}} workflow="reports" surface="reports" />
+      </LanguageProvider>,
+    );
+
+    const options = [
+      ...screen.getByLabelText("التقرير").querySelectorAll("option"),
+    ].map((option) => option.textContent ?? "");
+    expect(options).toHaveLength(coreReportNames.length);
+    expect(options).toContain("بطاقة الأداء الأسبوعية");
+    for (const label of options) expect(label).not.toMatch(/[A-Za-z_]{4,}/u);
+    expect(screen.getByRole("button", { name: "عرض التقرير" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "تنزيل CSV" })).toBeEnabled();
   });
 });

@@ -381,7 +381,8 @@ describe("explicit demo projection durable reset", () => {
       (record) =>
         record.recordKey === "invite-72000000-0000-4000-8000-000000000001",
     );
-    expect(invite?.data).toMatchObject({ status: "pending", value: "member" });
+    // The role is shown by its label in the reader's language, not its key.
+    expect(invite?.data).toMatchObject({ status: "pending", value: "Member" });
     const profiles = procurement.items.filter(
       (record) => record.recordKey === "PROC-AP",
     );
@@ -457,7 +458,7 @@ describe("explicit demo projection durable reset", () => {
         value: "$17,132.50",
         description: `Demo receipt ${receiptId} · sandbox only · no money moved`,
         title: "Committed capacity · paid",
-        dateLabel: "Demo payment confirmed 2026-08-18 UTC",
+        dateLabel: "Demo payment confirmed Aug 18, 2026 (UTC)",
         nextAction: "Payment complete · no further payment is due",
         allowedActions: [],
         authoritative: {

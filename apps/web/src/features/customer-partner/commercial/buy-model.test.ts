@@ -81,7 +81,7 @@ describe("self-serve buy model", () => {
       serverPrice({
         record: { data: { totalMinor: "120000", currency: "USD" } },
       }),
-    ).toMatchObject({ display: "$1,200.00 total / 12 months" });
+    ).toEqual({ totalMinor: "120000", currency: "USD" });
     expect(serverPrice({ record: { data: { currency: "USD" } } })).toBeNull();
     expect(
       serverPrice({

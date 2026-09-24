@@ -1,12 +1,22 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
-import { localizeCopy } from "@/src/i18n/copy";
 import type { Route } from "next";
 import Link from "next/link";
 
+import type { MessageId } from "@/src/i18n";
+
+import { formatOperationalTimestamp } from "../presentation";
 import styles from "./queue-search.module.css";
-import { QUEUE_COPY } from "./copy";
+import {
+  actionLabels,
+  codeLabel,
+  queueLabels,
+  riskLabels,
+  slaChipLabels,
+  statusLabels,
+  subjectLabels,
+} from "./copy";
 import {
   permittedActions,
   slaFor,
@@ -14,21 +24,24 @@ import {
   type QueueItem,
 } from "./model";
 
-const DATE_TIME = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "UTC",
-  timeZoneName: "short",
-});
-
-const NOT_RECORDED = "Not recorded";
+/** The role a restricted action needs, as the role list names it. */
+const requiredRoleLabels: Readonly<
+  Record<NonNullable<QueueItem["requiredRole"]>, MessageId>
+> = {
+  legal_approver: "role.legalApprover",
+  finance_approver: "role.financeApprover",
+  destructive_action_approver: "role.destructiveActionApprover",
+};
 
 function Moment({ value }: { value: string | null }) {
-  if (!value) return <>{NOT_RECORDED}</>;
-  return <time dateTime={value}>{DATE_TIME.format(new Date(value))}</time>;
+  const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
+  if (!value) return <>{t("common.notRecorded")}</>;
+  return (
+    <time dateTime={value}>
+      {formatOperationalTimestamp(value, formattingLocale)}
+    </time>
+  );
 }
 
 export function QueueDetail({
@@ -43,7 +56,7 @@ export function QueueDetail({
   now?: Date;
 }) {
   const t = useTranslations();
-  const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
+  const formattingLocale = useFormattingLocale();
   const actions = permittedActions(item, roles);
   const restricted = actions.length !== item.permittedActions.length;
   const sla = slaFor(item, now);
@@ -55,19 +68,25 @@ export function QueueDetail({
       <header className={styles.detailHeader}>
         <div>
           <p className={styles.eyebrow}>
-            {item.type ? `${item.type} queue · ` : ""}
-            {item.id}
+            {item.type
+              ? t("common.join.labels", {
+                  first: t("operations.queue.detail.queue", {
+                    queue: codeLabel(queueLabels, item.type, t),
+                  }),
+                  second: item.id,
+                })
+              : item.id}
           </p>
           <h2 id={`detail-title-${item.id}`}>{item.title}</h2>
-          {item.entity ? <p className={styles.entity}>{item.entity}</p> : null}
+          {item.entity ? (
+            <p className={styles.entity}>
+              {codeLabel(subjectLabels, item.entity, t)}
+            </p>
+          ) : null}
         </div>
         {sla ? (
           <span className={`${styles.sla} ${styles[`sla_${sla}`]}`}>
-            {sla === "breached"
-              ? "SLA breached"
-              : sla === "due-soon"
-                ? "Due soon"
-                : "SLA healthy"}
+            {t(slaChipLabels[sla])}
           </span>
         ) : null}
       </header>
@@ -84,46 +103,51 @@ export function QueueDetail({
       */}
       <dl className={styles.detailFacts}>
         <div>
-          <dt>{localizedQUEUE_COPY.details.owner}</dt>
-          <dd>{item.owner ?? NOT_RECORDED}</dd>
+          <dt>{t("common.owner")}</dt>
+          <dd>{item.owner ?? t("common.notRecorded")}</dd>
         </div>
         {item.backup ? (
           <div>
-            <dt>{localizedQUEUE_COPY.details.backup}</dt>
+            <dt>{t("operations.queue.filter.backup")}</dt>
             <dd>{item.backup}</dd>
           </div>
         ) : null}
         {item.risk ? (
           <div>
-            <dt>{localizedQUEUE_COPY.details.risk}</dt>
+            <dt>{t("common.risk")}</dt>
             <dd>
               <span className={`${styles.risk} ${styles[`risk_${item.risk}`]}`}>
-                {item.risk}
+                {t(riskLabels[item.risk])}
               </span>
             </dd>
           </div>
         ) : null}
         <div>
-          <dt>{localizedQUEUE_COPY.details.status}</dt>
-          <dd>{item.statusLabel ?? item.status ?? NOT_RECORDED}</dd>
+          <dt>{t("common.status")}</dt>
+          <dd>
+            {item.statusLabel ??
+              (item.status
+                ? t(statusLabels[item.status])
+                : t("common.notRecorded"))}
+          </dd>
         </div>
         {item.createdAt ? (
           <div>
-            <dt>{localizedQUEUE_COPY.details.created}</dt>
+            <dt>{t("operations.queue.detail.created")}</dt>
             <dd>
               <Moment value={item.createdAt} />
             </dd>
           </div>
         ) : null}
         <div>
-          <dt>{localizedQUEUE_COPY.details.updated}</dt>
+          <dt>{t("operations.queue.detail.updated")}</dt>
           <dd>
             <Moment value={item.updatedAt} />
           </dd>
         </div>
         {item.dueAt ? (
           <div>
-            <dt>{localizedQUEUE_COPY.details.deadline}</dt>
+            <dt>{t("operations.queue.detail.deadline")}</dt>
             <dd>
               <Moment value={item.dueAt} />
             </dd>
@@ -136,11 +160,13 @@ export function QueueDetail({
           className={styles.detailSection}
           aria-labelledby={`policy-${item.id}`}
         >
-          <h3 id={`policy-${item.id}`}>{localizedQUEUE_COPY.details.reason}</h3>
+          <h3 id={`policy-${item.id}`}>
+            {t("operations.queue.detail.reason")}
+          </h3>
           {item.policyReason ? <p>{item.policyReason}</p> : null}
           {item.policyBasis ? (
             <p className={styles.policyBasis}>
-              <strong>{localizedQUEUE_COPY.details.policy}</strong>{" "}
+              <strong>{t("operations.queue.detail.policyBasis")}</strong>{" "}
               {item.policyBasis}
             </p>
           ) : null}
@@ -152,7 +178,7 @@ export function QueueDetail({
         aria-labelledby={`evidence-${item.id}`}
       >
         <h3 id={`evidence-${item.id}`}>
-          {localizedQUEUE_COPY.details.evidence}
+          {t("operations.queue.detail.evidence")}
         </h3>
         <dl className={styles.evidenceList}>
           {item.evidence.map((entry) => (
@@ -162,13 +188,33 @@ export function QueueDetail({
                 {entry.value}
                 {entry.technicalId ? (
                   <details className={styles.technicalDisclosure}>
-                    <summary>{localizedQUEUE_COPY.details.technicalId}</summary>
+                    <summary>
+                      {t("operations.queue.detail.technicalId")}
+                    </summary>
                     <code>{entry.technicalId}</code>
                   </details>
                 ) : null}
               </dd>
             </div>
           ))}
+          {item.sourceRecord ? (
+            <div>
+              <dt>{t("operations.queue.detail.sourceRecord")}</dt>
+              <dd>
+                {t("operations.queue.detail.sourceVersion", {
+                  version: item.sourceRecord.version,
+                  time: formatOperationalTimestamp(
+                    item.sourceRecord.updatedAt,
+                    formattingLocale,
+                  ),
+                })}
+                <details className={styles.technicalDisclosure}>
+                  <summary>{t("operations.queue.detail.technicalId")}</summary>
+                  <code>{item.sourceRecord.technicalId}</code>
+                </details>
+              </dd>
+            </div>
+          ) : null}
         </dl>
       </section>
 
@@ -178,7 +224,7 @@ export function QueueDetail({
           aria-labelledby={`related-${item.id}`}
         >
           <h3 id={`related-${item.id}`}>
-            {localizedQUEUE_COPY.details.related}
+            {t("operations.queue.detail.related")}
           </h3>
           <ul className={styles.linkList}>
             {item.related.map((record) => (
@@ -194,52 +240,30 @@ export function QueueDetail({
         className={styles.detailSection}
         aria-labelledby={`actions-${item.id}`}
       >
-        <h3 id={`actions-${item.id}`}>{localizedQUEUE_COPY.details.actions}</h3>
-        {restricted ? (
+        <h3 id={`actions-${item.id}`}>
+          {t("operations.queue.detail.actions")}
+        </h3>
+        {restricted && item.requiredRole ? (
           <p className={styles.permissionNote} role="note">
-            Some decision actions are hidden because this session does not have
-            the required {item.requiredRole?.replaceAll("_", " ")} role.
+            {t("operations.queue.detail.restricted", {
+              role: t(requiredRoleLabels[item.requiredRole]),
+            })}
           </p>
         ) : null}
         <div className={styles.actionHandoff} role="note">
-          <strong>Review only</strong>
-          <p>
-            Nothing is submitted here. Continue through the authorized workflow,
-            where role, actor, policy, and provider gates are revalidated.
-          </p>
+          <strong>{t("operations.queue.detail.reviewOnly")}</strong>
+          <p>{t("operations.queue.detail.reviewOnly.body")}</p>
           {actions.length ? (
             <ul>
               {actions.map((action) => (
-                <li key={action}>{action}</li>
+                <li key={action}>{codeLabel(actionLabels, action, t)}</li>
               ))}
             </ul>
           ) : (
-            <p>No actions are available for this role and record state.</p>
+            <p>{t("operations.queue.detail.noActions")}</p>
           )}
         </div>
       </section>
     </article>
-  );
-}
-
-export function QueueDetailNotFound({ id }: { id: string }) {
-  const t = useTranslations();
-  const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
-  return (
-    <main className={styles.page} id="main-content">
-      <section className={styles.stateCard} role="status">
-        <p className={styles.eyebrow}>
-          {localizedQUEUE_COPY.details.unavailable}
-        </p>
-        <h1>We couldn’t find “{id}”</h1>
-        <p>
-          It may have been resolved, moved, or removed from your permission
-          scope.
-        </p>
-        <Link className={styles.secondaryButton} href="/internal/queues">
-          {localizedQUEUE_COPY.details.back}
-        </Link>
-      </section>
-    </main>
   );
 }

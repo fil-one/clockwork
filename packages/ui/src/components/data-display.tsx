@@ -163,6 +163,12 @@ export interface DocumentCardProps {
   preview?: ReactNode;
   actions?: ReactNode;
   href?: string;
+  /** Screen-reader names of the metadata terms, in the reader's language. */
+  metaLabels: Readonly<{
+    documentId: string;
+    version: string;
+    updated: string;
+  }>;
   className?: string;
 }
 
@@ -177,6 +183,7 @@ export function DocumentCard({
   preview,
   actions,
   href,
+  metaLabels,
   className = "",
 }: DocumentCardProps) {
   const titleContent = href ? <a href={href}>{title}</a> : title;
@@ -198,19 +205,19 @@ export function DocumentCard({
           <dl className="cw-document-card__meta">
             {documentId ? (
               <div>
-                <dt className="cw-sr-only">Document ID</dt>
+                <dt className="cw-sr-only">{metaLabels.documentId}</dt>
                 <dd>{documentId}</dd>
               </div>
             ) : null}
             {version ? (
               <div>
-                <dt className="cw-sr-only">Version</dt>
+                <dt className="cw-sr-only">{metaLabels.version}</dt>
                 <dd>{version}</dd>
               </div>
             ) : null}
             {updated ? (
               <div>
-                <dt className="cw-sr-only">Updated</dt>
+                <dt className="cw-sr-only">{metaLabels.updated}</dt>
                 <dd>{updated}</dd>
               </div>
             ) : null}
@@ -345,7 +352,7 @@ export function CapacityMeter({
         {thresholdPercentage === undefined ? null : (
           <span
             className="cw-capacity__threshold"
-            style={{ left: `${thresholdPercentage}%` }}
+            style={{ insetInlineStart: `${thresholdPercentage}%` }}
             aria-hidden="true"
           />
         )}

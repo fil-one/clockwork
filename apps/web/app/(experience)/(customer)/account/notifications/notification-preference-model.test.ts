@@ -3,6 +3,9 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { locales } from "@/src/i18n/locales";
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   alertPreferenceRows,
   manageableAlerts,
@@ -56,10 +59,14 @@ describe("the vocabulary this surface offers is the one the database enforces", 
     ).toEqual([notificationChannel]);
   });
 
-  it("states a reason for every alert it refuses to switch off", () => {
-    for (const alert of refusedAlerts) {
-      expect(alert.reason.length).toBeGreaterThan(20);
-      expect(alert.label).not.toBe(alert.kind);
+  it("states a reason for every alert it refuses to switch off, in every language", () => {
+    for (const locale of locales) {
+      const t = translatorFor(locale);
+      for (const alert of refusedAlerts) {
+        expect(t(alert.reason).length, locale).toBeGreaterThan(10);
+        expect(t(alert.reason), locale).not.toBe(alert.reason);
+        expect(t(alert.label), locale).not.toBe(alert.kind);
+      }
     }
   });
 });

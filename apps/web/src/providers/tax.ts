@@ -44,6 +44,7 @@ const UNCONFIGURED: {
   kind: "permanent",
   code: "TAX_PROVIDER_NOT_CONFIGURED",
   message:
+    // i18n-exempt: operator diagnostic carried in the tax refusal's problem detail, not interface copy; surfaces must use commerceErrorText
     "EXT-TAX-01 is not wired: set TAX_PROVIDER_BASE_URL and TAX_PROVIDER_TOKEN.",
 };
 

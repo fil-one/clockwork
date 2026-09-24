@@ -16,7 +16,9 @@ import {
   demoPartnerRenewalOrderId,
   handleDemoPartnerRenewal,
 } from "./demo-partner-renewal";
-import { partnerSurfaces } from "./partner-data";
+import { translatorFor } from "@/src/i18n/catalogs";
+
+import { presentedPartnerSurface } from "./partner-surface.test-fixture";
 
 const store = createMemoryDemoStore();
 const session: SessionClaims = {
@@ -109,14 +111,15 @@ describe("durable partner portfolio renewal", () => {
       version: 2,
       data: {
         status: "pending",
-        secondary: "Renewal request submitted · awaiting Fil One confirmation",
+        milestone: { kind: "renewalRequested" },
       },
     });
     expect(
       demoPartnerRenewalRecords(
         await store.read(),
         demoAccountIds.reseller,
-        partnerSurfaces.renewals.records,
+        presentedPartnerSurface("renewals", translatorFor("en"), "en").records,
+        { t: translatorFor("en"), formatting: "en-US" },
       ).find((record) => record.id === "REN-EC-0038"),
     ).toMatchObject({
       status: "pending",

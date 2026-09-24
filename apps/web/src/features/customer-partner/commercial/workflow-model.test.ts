@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   emptyQuoteDraft,
   firstQuoteError,
@@ -38,10 +40,11 @@ const validDraft: QuoteDraft = {
 
 describe("quote workflow model", () => {
   it("exposes exactly three ordered creation stages", () => {
-    expect(quoteStageLabels).toEqual([
+    const t = translatorFor("en");
+    expect(quoteStageLabels.map((id) => t(id))).toEqual([
       "Offer and region",
-      "Capacity, term, direct route, and expiry",
-      "Review and issue",
+      "Capacity, term, and expiry",
+      "Review draft",
     ]);
   });
 
@@ -92,9 +95,12 @@ describe("quote workflow model", () => {
       accounts,
       authoritativeQuoteOffers,
     );
-    expect(errors.capacity).toContain("at least 10 TB");
-    expect(errors.termMonths).toContain("between 1 and 60");
-    expect(errors.expiresAt).toContain("date and time");
+    const t = translatorFor("en");
+    expect(errors.capacity && t(errors.capacity)).toContain("at least 10 TB");
+    expect(errors.termMonths && t(errors.termMonths)).toContain(
+      "between 1 and 60",
+    );
+    expect(errors.expiresAt && t(errors.expiresAt)).toContain("date and time");
     expect(firstQuoteError(errors)).toBe("capacity");
   });
 
@@ -150,16 +156,18 @@ describe("quote workflow model", () => {
 
   it("builds the complete order acceptance review summary", () => {
     expect(
-      orderReviewSummary({
-        agreementTitle: "Cloud Service Agreement",
-        agreementVersion: "3.2",
-        scope: "120 TB",
-        poNumber: "PO-NA-1092",
-        quoteTitle: "Compliance replica renewal",
-        quoteVersion: "2",
-        serviceStart: "Aug 15, 2026",
-        spend: "$55,440.00",
-      }),
+      orderReviewSummary(
+        {
+          agreement: { title: "Cloud Service Agreement", version: "3.2" },
+          scope: "120 TB",
+          poNumber: "PO-NA-1092",
+          quoteTitle: "Compliance replica renewal",
+          quoteVersion: "2",
+          serviceStart: "Aug 15, 2026",
+          spend: "$55,440.00",
+        },
+        translatorFor("en"),
+      ),
     ).toEqual({
       quote:
         "Compliance replica renewal · version 2 · issued; awaiting acceptance",
@@ -182,7 +190,7 @@ it("rejects expiry at or before submission time, including a draft left open", (
         authoritativeQuoteOffers,
         new Date(expiry.getTime() + delta),
       ).expiresAt,
-    ).toBe("Choose an expiry after the current time.");
+    ).toBe("customer.commercial.quoteError.expiryFuture");
   }
   expect(
     validateQuoteStage(

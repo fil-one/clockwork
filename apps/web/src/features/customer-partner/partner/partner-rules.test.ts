@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import { merchantOfRecord } from "@clockwork/domain/core";
 
 import {
@@ -29,9 +31,13 @@ describe("structural partner attribution", () => {
   it.each(attributionCases)(
     "derives the %s statement and merchant from enforced route truth",
     (route, credit, merchantName) => {
-      const statement = attributionStatement(route, "Aurora Systems");
+      const statement = attributionStatement(
+        route,
+        "Aurora Systems",
+        translatorFor("en"),
+      );
       expect(statement).toContain(credit);
-      expect(statement).toContain(`Merchant of record: ${merchantName}`);
+      expect(statement).toContain(`${merchantName} is the merchant of record.`);
       expect(merchantOfRecord(route)).toBe(
         merchantName === "Fil One"
           ? "fil_one"
@@ -43,8 +49,9 @@ describe("structural partner attribution", () => {
   );
 
   it("claims sourced credit only for the accepted projection of an approved registration", () => {
-    expect(registrationCreditLabel("accepted")).toBe("Attribution: sourced");
-    expect(registrationCreditLabel("pending")).toBe(
+    const t = translatorFor("en");
+    expect(t(registrationCreditLabel("accepted"))).toBe("Attribution: sourced");
+    expect(t(registrationCreditLabel("pending"))).toBe(
       "Attribution: decision pending",
     );
     for (const status of [
@@ -57,7 +64,7 @@ describe("structural partner attribution", () => {
       "blocked",
       "complete",
     ] as const) {
-      expect(registrationCreditLabel(status)).toBe(
+      expect(t(registrationCreditLabel(status))).toBe(
         "Attribution: no sourced credit recorded",
       );
     }
@@ -81,9 +88,13 @@ describe("partner role behavior", () => {
         ["partner_admin", "partner_seller"],
       ),
     ).toBe(true);
-    expect(partnerRoleSummary("partner_seller").join(" ")).toContain(
-      "Cannot view partner billing",
-    );
+    expect(
+      partnerRoleSummary("partner_seller", translatorFor("en")).join(" "),
+    ).toContain("Cannot view partner billing");
+    // The same rule, stated in the reader's language rather than English.
+    expect(
+      partnerRoleSummary("partner_seller", translatorFor("de")).join(" "),
+    ).toContain("Provisionen");
   });
 });
 
@@ -111,15 +122,18 @@ describe("valid partner quote actions", () => {
 
 describe("renewal review summary", () => {
   it("puts end client, price boundaries, term, and merchant of record in review", () => {
-    const summary = renewalReviewSummary({
-      client: "Halcyon Research Cooperative",
-      action: "renew",
-      currentEnd: "December 31, 2026",
-      requestedMonths: 12,
-      transferPrice: "$91,200 annually",
-      resalePrice: "$112,000 annually",
-      merchantOfRecord: "Meridian Channel Group",
-    }).join(" ");
+    const summary = renewalReviewSummary(
+      {
+        client: "Halcyon Research Cooperative",
+        action: "renew",
+        currentEnd: "December 31, 2026",
+        requestedMonths: 12,
+        transferPrice: "$91,200 annually",
+        resalePrice: "$112,000 annually",
+        merchantOfRecord: "Meridian Channel Group",
+      },
+      translatorFor("en"),
+    ).join(" ");
     expect(summary).toContain("Halcyon Research Cooperative");
     expect(summary).toContain("Fil One transfer price");
     expect(summary).toContain("Partner resale price");

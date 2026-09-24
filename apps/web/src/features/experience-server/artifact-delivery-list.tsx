@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { artifactRepresentation } from "@/src/features/contracts/experience-client";
 
 import type { ArtifactKind, ArtifactRepresentation } from "./model";
+import { problemText } from "./problem-text";
 
 export interface ProjectedArtifact {
   id: string;
@@ -23,7 +24,8 @@ export function ArtifactDeliveryList({
   const [representations, setRepresentations] = useState<
     Readonly<Record<string, ArtifactRepresentation>>
   >({});
-  const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
+  /** The failure itself; its sentence is chosen at render, in the reader's language. */
+  const [errors, setErrors] = useState<Readonly<Record<string, unknown>>>({});
 
   useEffect(() => {
     let active = true;
@@ -41,10 +43,7 @@ export function ArtifactDeliveryList({
           if (active)
             setErrors((current) => ({
               ...current,
-              [artifact.id]:
-                error instanceof Error
-                  ? error.message
-                  : "Artifact is unavailable.",
+              [artifact.id]: error ?? new Error("ARTIFACT_UNAVAILABLE"),
             }));
         });
     }
@@ -54,36 +53,43 @@ export function ArtifactDeliveryList({
   }, [artifacts]);
 
   if (artifacts.length === 0)
-    return (
-      <p role="status">No generated artifacts are attached to this record.</p>
-    );
+    return <p role="status">{t("experience.artifacts.none")}</p>;
   return (
-    <section aria-label="Immutable document artifacts">
-      <h3>{t("ui.97")}</h3>
+    <section aria-label={t("experience.artifacts.label")}>
+      <h3>{t("common.documents")}</h3>
       <ul>
         {artifacts.map((artifact) => {
           const representation = representations[artifact.id];
-          const error = errors[artifact.id];
+          const error = Object.hasOwn(errors, artifact.id)
+            ? problemText(errors[artifact.id], t, {
+                fallback: t("experience.artifacts.unavailable"),
+                notFound: t("experience.artifacts.unavailable"),
+                forbidden: t("experience.artifacts.forbidden"),
+              })
+            : null;
           return (
             <li key={`${artifact.kind}:${artifact.id}`}>
               <strong>{artifact.label}</strong>{" "}
               {artifact.state === "pending" ? (
-                <span role="status">Generation pending</span>
+                <span role="status">{t("experience.artifacts.pending")}</span>
               ) : artifact.state === "missing" ? (
-                <span role="alert">Document missing</span>
+                <span role="alert">{t("experience.artifacts.missing")}</span>
               ) : error ? (
                 <span role="alert">{error}</span>
               ) : representation ? (
                 <>
                   <a href={representation.downloadHref}>
-                    Download verified PDF
+                    {t("experience.artifacts.download")}
                   </a>{" "}
                   <span>
-                    {representation.filename} · version {representation.version}
+                    {t("experience.artifacts.fileVersion", {
+                      filename: representation.filename,
+                      version: representation.version,
+                    })}
                   </span>
                 </>
               ) : (
-                <span role="status">Checking document integrity…</span>
+                <span role="status">{t("experience.artifacts.checking")}</span>
               )}
             </li>
           );

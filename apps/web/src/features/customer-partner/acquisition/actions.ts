@@ -8,48 +8,49 @@ import { DatabaseCustomerAcquisitionRepository } from "@clockwork/db";
 import { requireRecentAuthentication } from "@/src/auth/session";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { getServiceDatabase } from "@/src/db/service";
+import type { MessageId, Translator } from "@/src/i18n";
+import { getTranslations } from "@/src/i18n/server";
 import { DemoCustomerAcquisitionRepository } from "./demo";
 
-const messages: Record<string, string> = {
+/**
+ * The repository's error codes a reader is told about, in their language. The
+ * code travels with the message so the page can offer the one recovery that
+ * depends on it (refreshing a changed offer).
+ */
+const messages: Readonly<Record<string, MessageId>> = {
   ACQUISITION_ACCOUNT_AUTHORITY_REQUIRED:
-    "An owner or administrator of this organization must submit the request.",
-  ACQUISITION_ACCOUNT_BLOCKED:
-    "Your account needs review before a new service request can proceed.",
-  ACQUISITION_OFFER_CHANGED:
-    "This offer changed or is no longer effective. Refresh and review the current terms before accepting.",
-  ACQUISITION_OFFER_UNAVAILABLE:
-    "Customer terms are not available for this offer. Contact your account team.",
-  ACQUISITION_KIND_UNAVAILABLE:
-    "This offer is not currently accepting that kind of request.",
-  ACQUISITION_REQUEST_PENDING:
-    "Your organization already has a pending request. Review its status below.",
-  ACQUISITION_TRIAL_ALREADY_USED:
-    "This organization has already used its trial. Trial eligibility cannot be reset.",
-  ACQUISITION_TRIAL_MISMATCH:
-    "The trial is not available for conversion in this organization.",
-  ACQUISITION_ENROLLMENT_MISMATCH:
-    "The enrollment is not current or does not belong to this organization.",
-  ACQUISITION_REQUEST_CHANGED:
-    "This request has already changed. Refresh before recording a decision.",
+    "customer.payg.error.accountAuthorityRequired",
+  ACQUISITION_ACCOUNT_BLOCKED: "customer.payg.error.accountBlocked",
+  ACQUISITION_OFFER_CHANGED: "customer.payg.error.offerChanged",
+  ACQUISITION_OFFER_UNAVAILABLE: "customer.payg.error.offerUnavailable",
+  ACQUISITION_KIND_UNAVAILABLE: "customer.payg.error.kindUnavailable",
+  ACQUISITION_REQUEST_PENDING: "customer.payg.error.requestPending",
+  ACQUISITION_TRIAL_ALREADY_USED: "customer.payg.error.trialAlreadyUsed",
+  ACQUISITION_TRIAL_MISMATCH: "customer.payg.error.trialMismatch",
+  ACQUISITION_ENROLLMENT_MISMATCH: "customer.payg.error.enrollmentMismatch",
+  ACQUISITION_REQUEST_CHANGED: "customer.payg.error.requestChanged",
   ACQUISITION_VERIFIED_RESULT_REQUIRED:
-    "Record and verify the matching trial, PAYG enrollment, cancellation or conversion first. It must match the request’s account, organization and approved offer.",
-  ACQUISITION_REPLAY_CONFLICT:
-    "This request identifier was already used with different details. Refresh before retrying.",
+    "customer.payg.error.verifiedResultRequired",
+  ACQUISITION_REPLAY_CONFLICT: "customer.payg.error.replayConflict",
 };
-function failure(error: unknown) {
+function knownCode(error: unknown): string | undefined {
+  return error instanceof Error && Object.hasOwn(messages, error.message)
+    ? error.message
+    : undefined;
+}
+function failure(error: unknown, t: Translator) {
+  const code = knownCode(error);
+  const id = code ? messages[code] : undefined;
   return {
     ok: false,
-    ...(error instanceof Error && messages[error.message]
-      ? { code: error.message }
-      : {}),
-    message:
-      (error instanceof Error ? messages[error.message] : undefined) ??
-      "The request was not saved. Refresh and check your access before retrying.",
+    ...(code ? { code } : {}),
+    message: t(id ?? "customer.payg.error.notSaved"),
   };
 }
 export async function submitCustomerAcquisition(
   value: unknown,
 ): Promise<{ ok: boolean; message: string; code?: string }> {
+  const t = await getTranslations();
   try {
     const session = await requireRecentAuthentication();
     const demo = demoDeployIdentityEnabled(process.env);
@@ -62,15 +63,13 @@ export async function submitCustomerAcquisition(
     )
       return {
         ok: false,
-        message:
-          "Use your own customer owner or administrator session to accept these terms.",
+        message: t("customer.payg.error.ownSessionRequired"),
       };
     const parsed = CustomerAcquisitionCommandSchema.safeParse(value);
     if (!parsed.success)
       return {
         ok: false,
-        message:
-          "Review the offer, organization and required acceptance before submitting.",
+        message: t("customer.payg.error.reviewBeforeSubmitting"),
       };
     if (
       parsed.data.accountId !== session.selectedAccountId ||
@@ -78,9 +77,7 @@ export async function submitCustomerAcquisition(
     )
       return {
         ok: false,
-        message:
-          messages.ACQUISITION_ACCOUNT_AUTHORITY_REQUIRED ??
-          "An owner or administrator must submit this request.",
+        message: t("customer.payg.error.accountAuthorityRequired"),
       };
     const input = {
       command: parsed.data,
@@ -96,18 +93,20 @@ export async function submitCustomerAcquisition(
     revalidatePath("/internal/payg-requests");
     return {
       ok: true,
-      message:
+      message: t(
         parsed.data.kind === "cancel_payg"
-          ? "Cancellation requested. Service and billing continue until the provider confirms the service end."
-          : "Terms recorded and request submitted. Provider setup and billing activation are pending verified handoff.",
+          ? "customer.payg.submitted.cancellation"
+          : "customer.payg.submitted.request",
+      ),
     };
   } catch (error) {
-    return failure(error);
+    return failure(error, t);
   }
 }
 export async function resolveCustomerAcquisition(
   value: unknown,
 ): Promise<{ ok: boolean; message: string; code?: string }> {
+  const t = await getTranslations();
   try {
     const session = await requireRecentAuthentication();
     const demo = demoDeployIdentityEnabled(process.env);
@@ -122,14 +121,13 @@ export async function resolveCustomerAcquisition(
     )
       return {
         ok: false,
-        message:
-          "Use a direct finance session with current MFA to resolve this request.",
+        message: t("customer.payg.error.financeSessionRequired"),
       };
     const parsed = ResolveAcquisitionCommandSchema.safeParse(value);
     if (!parsed.success)
       return {
         ok: false,
-        message: "Select the request, decision, verified source and a reason.",
+        message: t("customer.payg.error.resolutionIncomplete"),
       };
     const input = {
       command: parsed.data,
@@ -145,13 +143,15 @@ export async function resolveCustomerAcquisition(
     revalidatePath("/internal/payg-requests");
     return {
       ok: true,
-      message: demo
-        ? "Fictional handoff recorded in demo state. No provider or billing action occurred."
-        : parsed.data.decision === "fulfilled"
-          ? "Request linked to its verified service record. No new provider or billing effect was dispatched."
-          : "Request declined with the recorded reason.",
+      message: t(
+        demo
+          ? "customer.payg.resolved.demo"
+          : parsed.data.decision === "fulfilled"
+            ? "customer.payg.resolved.linked"
+            : "customer.payg.resolved.declined",
+      ),
     };
   } catch (error) {
-    return failure(error);
+    return failure(error, t);
   }
 }

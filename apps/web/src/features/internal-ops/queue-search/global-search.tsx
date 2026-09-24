@@ -1,6 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -16,10 +15,12 @@ import {
 
 import { Button, EmptyState } from "@clockwork/ui";
 
-import { plural } from "@/src/i18n/en";
+import type { Translator } from "@/src/i18n";
+import { richText } from "@/src/i18n/rich";
 
+import { formatOperationalTimestamp } from "../presentation";
 import styles from "./queue-search.module.css";
-import { SEARCH_COPY } from "./copy";
+import { codeLabel, recordStatusLabels, searchGroupLabels } from "./copy";
 import {
   groupSearchResults,
   nextSearchIndex,
@@ -27,13 +28,43 @@ import {
   type SearchRecord,
 } from "./search-model";
 
+/** The status a result shows: the source's wording, else its status code named. */
+function statusText(record: SearchRecord, t: Translator): string {
+  if (record.statusLabel) return record.statusLabel;
+  if (record.status) return codeLabel(recordStatusLabels, record.status, t);
+  return t("operations.search.status.available");
+}
+
+function DetailLine({ record }: { record: SearchRecord }) {
+  const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
+  const { detail } = record;
+  if (detail.kind === "text") return <p>{detail.text}</p>;
+  if (detail.kind === "context")
+    return (
+      <p>
+        {detail.entries
+          .map(({ label, value }) =>
+            t("operations.search.contextEntry", { label, value }),
+          )
+          .join(" · ")}
+      </p>
+    );
+  return (
+    <p>
+      {t("common.updatedAt", {
+        time: formatOperationalTimestamp(detail.at, formattingLocale),
+      })}
+    </p>
+  );
+}
+
 export function GlobalSearch({
   records,
 }: {
   records: readonly SearchRecord[];
 }) {
   const t = useTranslations();
-  const localizedSEARCH_COPY = localizeCopy(SEARCH_COPY, t);
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -46,8 +77,11 @@ export function GlobalSearch({
   const submittedQueries = useRef(new Set<string>());
   const latestSubmittedQuery = useRef<string | null>(null);
   const results = useMemo(
-    () => searchRecords(query, records),
-    [query, records],
+    () =>
+      searchRecords(query, records, (record) =>
+        [t(searchGroupLabels[record.group]), statusText(record, t)].join(" "),
+      ),
+    [query, records, t],
   );
   const groups = useMemo(() => groupSearchResults(results), [results]);
 
@@ -135,9 +169,9 @@ export function GlobalSearch({
   return (
     <main className={styles.searchPage} id="main-content">
       <header className={styles.searchHeader}>
-        <p className={styles.eyebrow}>{localizedSEARCH_COPY.eyebrow}</p>
-        <h1>{localizedSEARCH_COPY.title}</h1>
-        <p>{localizedSEARCH_COPY.description}</p>
+        <p className={styles.eyebrow}>{t("operations.eyebrow")}</p>
+        <h1>{t("operations.search.title")}</h1>
+        <p>{t("operations.search.description")}</p>
         <form
           className={styles.searchForm}
           role="search"
@@ -149,7 +183,7 @@ export function GlobalSearch({
             commit(typeof value === "string" ? value : "");
           }}
         >
-          <label htmlFor="global-search">{localizedSEARCH_COPY.label}</label>
+          <label htmlFor="global-search">{t("operations.search.label")}</label>
           <div>
             <input
               id="global-search"
@@ -160,21 +194,27 @@ export function GlobalSearch({
               defaultValue={query}
               onKeyDown={onKeyDown}
               aria-controls="global-search-results"
-              placeholder={localizedSEARCH_COPY.placeholder}
+              placeholder={t("operations.search.placeholder")}
               autoFocus
             />
-            <button type="submit">{localizedSEARCH_COPY.action}</button>
+            <button type="submit">{t("common.search")}</button>
           </div>
           <p>
-            <kbd>↑</kbd>
-            <kbd>↓</kbd> {localizedSEARCH_COPY.keyboardHelp}
+            {richText(t, "operations.search.keyboardHelp", {
+              keys: (
+                <>
+                  <kbd>↑</kbd>
+                  <kbd>↓</kbd>
+                </>
+              ),
+            })}
           </p>
         </form>
       </header>
 
       {isPending ? (
         <p className={styles.searchProgress} role="status">
-          {localizedSEARCH_COPY.searching}
+          {t("operations.search.searching")}
         </p>
       ) : null}
       {!query ? (
@@ -182,18 +222,19 @@ export function GlobalSearch({
           className={styles.searchWelcome}
           aria-labelledby="search-scope-title"
         >
-          <h2 id="search-scope-title">{localizedSEARCH_COPY.scopeTitle}</h2>
-          <p>{localizedSEARCH_COPY.scopeDescription}</p>
+          <h2 id="search-scope-title">{t("operations.search.scope.title")}</h2>
+          <p>{t("operations.search.scope.description")}</p>
           <ul>
-            {localizedSEARCH_COPY.scope.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
+            <li>{t("operations.search.scope.accounts")}</li>
+            <li>{t("operations.search.scope.agreements")}</li>
+            <li>{t("operations.search.scope.commercial")}</li>
+            <li>{t("operations.queueWork")}</li>
           </ul>
         </section>
       ) : results.length === 0 ? (
         <EmptyState
-          title={`No results for “${query}”`}
-          description="Check the spelling, use fewer terms, or search a known entity name instead of an identifier."
+          title={t("operations.search.noResults.title", { query })}
+          description={t("operations.search.noResults.description")}
           action={
             <Button
               variant="secondary"
@@ -202,7 +243,7 @@ export function GlobalSearch({
                 commit("");
               }}
             >
-              {localizedSEARCH_COPY.clear}
+              {t("operations.search.clear")}
             </Button>
           }
         />
@@ -210,31 +251,25 @@ export function GlobalSearch({
         <section
           id="global-search-results"
           className={styles.searchResults}
-          aria-label={localizedSEARCH_COPY.resultsLabel}
+          aria-label={t("operations.search.results")}
         >
           <div className={styles.searchResultCount} aria-live="polite">
-            <strong>
-              {plural(results.length, "{count} result", "{count} results")}
-            </strong>
-            <span>{localizedSEARCH_COPY.grouped}</span>
+            <strong>{t("common.results", { count: results.length })}</strong>
+            <span>{t("operations.search.grouped")}</span>
           </div>
           {groups.map((entry) => (
             <section
               className={styles.searchGroup}
               key={entry.group}
-              aria-labelledby={`search-group-${entry.group.replaceAll(" ", "-")}`}
+              aria-labelledby={`search-group-${entry.group}`}
             >
-              <h2 id={`search-group-${entry.group.replaceAll(" ", "-")}`}>
-                {entry.group}
+              <h2 id={`search-group-${entry.group}`}>
+                {t(searchGroupLabels[entry.group])}
                 <span className={styles.groupCount} aria-hidden="true">
                   {entry.results.length}
                 </span>
                 <span className="sr-only">
-                  {plural(
-                    entry.results.length,
-                    "{count} result",
-                    "{count} results",
-                  )}
+                  {t("common.results", { count: entry.results.length })}
                 </span>
               </h2>
               <ul>
@@ -259,12 +294,12 @@ export function GlobalSearch({
                         >
                           {record.title}
                         </Link>
-                        <p>{record.subtitle}</p>
+                        <DetailLine record={record} />
                       </div>
                       <div className={styles.searchMeta}>
-                        <span>{record.status}</span>
+                        <span>{statusText(record, t)}</span>
                         <details>
-                          <summary>{localizedSEARCH_COPY.reference}</summary>
+                          <summary>{t("common.referenceLabel")}</summary>
                           <code>{record.id}</code>
                         </details>
                       </div>

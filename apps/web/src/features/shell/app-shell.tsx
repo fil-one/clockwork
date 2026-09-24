@@ -48,17 +48,23 @@ import {
   Stamp,
   StatusBadge,
   Tooltip,
+  UserRound,
   Users,
   WalletCards,
   Webhook,
   ChartNoAxesCombined,
+  KitTextProvider,
   type CommandPaletteItem,
   type NavigationGroup,
 } from "@clockwork/ui";
 
 import { switchCommerceAccount } from "@/src/auth/actions";
 import { signOutCommerceSession } from "@/src/auth/sign-out";
-import { type MessageId } from "@/src/i18n/en";
+import {
+  commandPaletteLabels,
+  kitText,
+} from "@/src/features/shared/ui-kit-labels";
+import type { MessageId } from "@/src/i18n";
 
 import { brandAsset } from "./brand-assets";
 import { getCommandItems } from "./command-items";
@@ -257,7 +263,7 @@ function Wordmark({ audience }: { audience: ExperienceAudience }) {
     <Link
       className="wordmark"
       href={audienceHome[audience]}
-      aria-label={`${t("app.name")} ${t("app.product")}`}
+      aria-label={t("platform.brand.productName")}
     >
       <BrandLogo src={brandAsset()} name={t("app.name")} />
       <small>{t("app.product")}</small>
@@ -289,9 +295,11 @@ function OrganizationSwitcher({
   const changeOrganization = (accountId: string) => {
     if (!organizationSwitchAllowed) {
       announce(
-        session.assistedSession
-          ? "Exit assisted mode before switching organizations."
-          : "Organization switching is unavailable for this authenticated proof session.",
+        t(
+          session.assistedSession
+            ? "platform.shell.switch.assisted"
+            : "platform.shell.switch.proofSession",
+        ),
       );
       return;
     }
@@ -299,7 +307,7 @@ function OrganizationSwitcher({
       (candidate) => candidate.accountId === accountId,
     );
     if (!membership) {
-      announce("That account is not an authorized membership.");
+      announce(t("platform.shell.switch.notMember"));
       return;
     }
 
@@ -313,9 +321,7 @@ function OrganizationSwitcher({
       const result = await switchCommerceAccount(accountId);
       if (!result.ok) {
         setSelected(session.selectedAccountId);
-        announce(
-          "Organization switch was denied. Your session was not changed.",
-        );
+        announce(t("platform.shell.switch.denied"));
       }
     });
   };
@@ -349,9 +355,11 @@ function OrganizationSwitcher({
       </span>
       {!organizationSwitchAllowed ? (
         <span className="sr-only" id={`${selectId}-switch-disabled`}>
-          {session.assistedSession
-            ? "Exit assisted mode before switching organizations."
-            : "Organization switching is unavailable for this authenticated proof session."}
+          {t(
+            session.assistedSession
+              ? "platform.shell.switch.assisted"
+              : "platform.shell.switch.proofSession",
+          )}
         </span>
       ) : null}
     </label>
@@ -420,16 +428,7 @@ function ShellUtilities({
       <CommandPalette
         audience={audience}
         items={commandItems}
-        title={t("app.command.title")}
-        description={t("app.command.description")}
-        searchLabel={t("app.command.searchLabel")}
-        placeholder={t("app.search.hint")}
-        noResultsLabel={t("app.command.noResults")}
-        groupLabels={{
-          navigation: t("app.command.group.navigation"),
-          actions: t("app.command.group.actions"),
-          records: t("app.command.group.records"),
-        }}
+        {...commandPaletteLabels(t)}
         onSelect={(item) => {
           if (item.href) router.push(item.href as Route);
         }}
@@ -441,8 +440,11 @@ function ShellUtilities({
           >
             <Search aria-hidden="true" size={18} strokeWidth={1.8} />
             <span>{t("app.search")}</span>
-            <kbd aria-hidden="true">⌘/Ctrl K</kbd>
-            <span className="sr-only">{t("app.command.shortcut")}</span>
+            {/* Key names read left to right in every script. */}
+            <kbd aria-hidden="true" dir="ltr">
+              {t("platform.command.shortcutKeys")}
+            </kbd>
+            <span className="sr-only">{t("platform.command.shortcut")}</span>
           </Button>
         }
       />
@@ -471,7 +473,9 @@ function ShellUtilities({
           aria-controls={profilePopoverId}
           onClick={() => setProfileOpen((open) => !open)}
         >
-          {initials || "U"}
+          {initials || (
+            <UserRound aria-hidden="true" size={18} strokeWidth={1.8} />
+          )}
         </button>
         <div
           className="utility-popover"
@@ -625,6 +629,7 @@ export function AppShell({
     };
   }, [t]);
 
+  const words = useMemo(() => kitText(t), [t]);
   const banner = (
     <>
       <p className="sr-only" aria-live="polite">
@@ -643,78 +648,84 @@ export function AppShell({
       className="experience-shell"
       data-hydrated={hydrated ? "true" : "false"}
     >
-      <StructuralAppShell
-        navigation={navigationGroups}
-        /*
-         * The rail renders framework links so moving between surfaces is a
-         * client transition against a prefetched route rather than a document
-         * load. A plain anchor would rebuild the shell, the session header and
-         * the command palette on every click. A disabled item has no href, so
-         * it stays a plain anchor and keeps its aria-disabled semantics.
-         */
-        renderNavigationItem={(item, content, linkProps) => {
-          const { href, ...rest } = linkProps;
-          // A disabled item has no href, so it stays a plain anchor.
-          if (!href) return <a {...linkProps}>{content}</a>;
-          // The rest of the bag is anchor attributes, which `Link` accepts at
-          // runtime. The assertion only satisfies exactOptionalPropertyTypes,
-          // which treats an explicitly undefined handler as different from an
-          // absent one.
-          return (
-            <Link
-              {...(rest as Omit<ComponentProps<typeof Link>, "href">)}
-              href={href as Route}
-            >
-              {content}
-            </Link>
-          );
-        }}
-        skipLabel={t("app.skip")}
-        brand={<Wordmark audience={audience} />}
-        organization={
-          <OrganizationSwitcher session={session} announce={setAnnouncement} />
-        }
-        utilities={
-          <ShellUtilities
-            audience={audience}
-            commandItems={commandItems}
-            profile={session.profile}
-            providerBacked={session.providerBacked}
-          />
-        }
-        banner={banner}
-        footer={
-          <div className="shell-footer-content">
-            <p>{t("app.footer")}</p>
-          </div>
-        }
-        navigationLabel={t("app.nav.primary")}
-        navigationDensity="comfortable"
-        mobileNavigationLabel={t("app.nav.open")}
-        mobileNavigationTitle={t("app.nav.title")}
-        mobileNavigationDescription={t("app.nav.description")}
-        mobileNavigationCloseLabel={t("app.nav.close")}
-        mainId="main-content"
-        contentElement="div"
-        contentOwnsTarget={false}
-        className={`web-shell web-shell--${audience}`}
-        onNavigate={(item, event) => {
-          if (
-            event.defaultPrevented ||
-            event.button !== 0 ||
-            event.metaKey ||
-            event.ctrlKey ||
-            event.shiftKey ||
-            event.altKey
-          ) {
-            return;
+      <KitTextProvider text={words}>
+        <StructuralAppShell
+          navigation={navigationGroups}
+          /*
+           * The rail renders framework links so moving between surfaces is a
+           * client transition against a prefetched route rather than a document
+           * load. A plain anchor would rebuild the shell, the session header and
+           * the command palette on every click. A disabled item has no href, so
+           * it stays a plain anchor and keeps its aria-disabled semantics.
+           */
+          renderNavigationItem={(item, content, linkProps) => {
+            const { href, ...rest } = linkProps;
+            // A disabled item has no href, so it stays a plain anchor.
+            if (!href) return <a {...linkProps}>{content}</a>;
+            // The rest of the bag is anchor attributes, which `Link` accepts at
+            // runtime. The assertion only satisfies exactOptionalPropertyTypes,
+            // which treats an explicitly undefined handler as different from an
+            // absent one.
+            return (
+              <Link
+                {...(rest as Omit<ComponentProps<typeof Link>, "href">)}
+                href={href as Route}
+              >
+                {content}
+              </Link>
+            );
+          }}
+          skipLabel={t("app.skip")}
+          brand={<Wordmark audience={audience} />}
+          organization={
+            <OrganizationSwitcher
+              session={session}
+              announce={setAnnouncement}
+            />
           }
-          event.preventDefault();
-          router.push(item.href as Route);
-        }}
-      >
-        <div className="shell-content">{children}</div>
-      </StructuralAppShell>
+          utilities={
+            <ShellUtilities
+              audience={audience}
+              commandItems={commandItems}
+              profile={session.profile}
+              providerBacked={session.providerBacked}
+            />
+          }
+          banner={banner}
+          bannerLabel={t("platform.shell.banner")}
+          footer={
+            <div className="shell-footer-content">
+              <p>{t("platform.shell.footer")}</p>
+            </div>
+          }
+          navigationLabel={t("app.nav.primary")}
+          navigationDensity="comfortable"
+          mobileNavigationLabel={t("app.nav.open")}
+          mobileNavigationTitle={t("app.nav.title")}
+          mobileNavigationDescription={t("app.nav.description")}
+          mobileNavigationCloseLabel={t("app.nav.close")}
+          mainId="main-content"
+          contentElement="div"
+          contentOwnsTarget={false}
+          className={`web-shell web-shell--${audience}`}
+          onNavigate={(item, event) => {
+            if (
+              event.defaultPrevented ||
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            ) {
+              return;
+            }
+            event.preventDefault();
+            router.push(item.href as Route);
+          }}
+        >
+          <div className="shell-content">{children}</div>
+        </StructuralAppShell>
+      </KitTextProvider>
     </div>
   );
 }

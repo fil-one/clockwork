@@ -28,7 +28,7 @@ describe("resettable demo operator ledger", () => {
       readDemoDeadLetters({ store }),
       readDemoWebhookEvents({ store }),
       readDemoReconciliationWorkspace({ store }),
-      readDemoRuntimeFailureIncidents({ store }),
+      readDemoRuntimeFailureIncidents({ locale: "en", store }),
     ]);
 
     expect(recovery.map(({ source }) => source)).toEqual([
@@ -71,6 +71,29 @@ describe("resettable demo operator ledger", () => {
           safeCode: "PROVIDER_TIMEOUT",
         },
       ],
+    });
+  });
+
+  /**
+   * The provider message in the demo ledger stands in for text a provider
+   * would send, so it is demo-authored and reaches each reader in their
+   * language. Its provenance stays a key the page words, never a sentence.
+   */
+  it("gives the demo provider message in the reader's language", async () => {
+    const store = createMemoryDemoStore();
+    const [english, portuguese] = await Promise.all([
+      readDemoRuntimeFailureIncidents({ locale: "en", store }),
+      readDemoRuntimeFailureIncidents({ locale: "pt", store }),
+    ]);
+    expect(english.source).toBe("demo");
+    expect(english.incidents[0]?.diagnosis).toEqual({
+      kind: "provider_message",
+      message: "The activation provider did not answer before its deadline.",
+      provenance: "operationAttempt",
+    });
+    expect(portuguese.incidents[0]?.diagnosis).toMatchObject({
+      message: "O provedor de ativação não respondeu antes do prazo.",
+      provenance: "operationAttempt",
     });
   });
 
@@ -173,7 +196,7 @@ describe("resettable demo operator ledger", () => {
       }),
     ).resolves.toEqual({ recordVersion: 1 });
     await expect(
-      readDemoRuntimeFailureIncidents({ store }),
+      readDemoRuntimeFailureIncidents({ locale: "en", store }),
     ).resolves.toMatchObject({
       incidents: [
         {
@@ -210,7 +233,7 @@ describe("resettable demo operator ledger", () => {
 
     await expect(readDemoWebhookEvents({ store })).resolves.toHaveLength(1);
     await expect(
-      readDemoRuntimeFailureIncidents({ store }),
+      readDemoRuntimeFailureIncidents({ locale: "en", store }),
     ).resolves.toMatchObject({
       incidents: [{ decisionCount: 0, latestDecision: null }],
     });

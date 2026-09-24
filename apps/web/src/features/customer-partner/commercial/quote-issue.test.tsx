@@ -14,7 +14,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh }),
 }));
-vi.mock("@/src/features/contracts/commerce-client", () => ({
+vi.mock("@/src/features/contracts/commerce-client", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   sendCoreCommand: mocks.command,
 }));
 vi.mock("./quote-issuance-client", async (importOriginal) => ({

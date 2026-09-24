@@ -1,4 +1,4 @@
-import { localeCookie, resolveLocale, formattingLocales } from "@/src/i18n";
+import { formattingLocaleFor, localeCookie, resolveLocale } from "@/src/i18n";
 import { redirect } from "next/navigation";
 import "server-only";
 
@@ -61,7 +61,7 @@ const demoMemberships: Readonly<
   },
   partner: {
     userId: "20000000-0000-4000-8000-000000000003",
-    userName: "Demo partner admin",
+    userName: "Demo partner admin", // i18n-exempt: placeholder identity for local development without a persona (a demo deploy signs in as a catalog persona); names are data
     userEmail: "admin@redwood.test",
     isInternalStaff: false,
     organizationId: "30000000-0000-4000-8000-000000000002",
@@ -75,14 +75,14 @@ const demoMemberships: Readonly<
   },
   internal: {
     userId: "20000000-0000-4000-8000-000000000001",
-    userName: "Demo internal operator",
+    userName: "Demo internal operator", // i18n-exempt: placeholder identity for local development without a persona (a demo deploy signs in as a catalog persona); names are data
     userEmail: "operator@filone.test",
     isInternalStaff: true,
     organizationId: "30000000-0000-4000-8000-000000000008",
     workosOrganizationId: "org_local_clockwork_staff",
-    organizationName: "Fil One Staff",
+    organizationName: "Fil One Staff", // i18n-exempt: organization name (data)
     accountId: "10000000-0000-4000-8000-000000000009",
-    accountName: "Fil One Internal Operations",
+    accountName: "Fil One Internal Operations", // i18n-exempt: account name (data)
     role: "internal_operator",
     audience: "internal",
     home: "/internal",
@@ -153,14 +153,17 @@ export async function getRouteSession(
   audience: ExperienceAudience,
 ): Promise<RouteSession> {
   await connection();
-  const language = (await cookies()).get(localeCookie)?.value;
+  // The interface language decides how numbers and dates are written; a
+  // persona's regional variant of the same language (en-GB) is kept.
+  const language = resolveLocale((await cookies()).get(localeCookie)?.value);
   const formatting = {
     ...defaultRouteFormatting,
-    ...(language ? { locale: formattingLocales[resolveLocale(language)] } : {}),
+    locale: formattingLocaleFor(language),
   };
   if (!providerAuthenticationConfigured()) {
     if (!explicitDemoIdentityEnabled())
       throw new Error(
+        // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
         "Portal identity is unavailable without an explicit non-production demo adapter",
       );
     // A demo deploy signs in as a catalog persona, whose own account and
@@ -178,10 +181,10 @@ export async function getRouteSession(
         profile: { name: membership.userName, email: membership.userEmail },
         // The catalog has carried a locale and a zone per persona all along --
         // `en-GB`/`Europe/London` for the reseller and the distributor,
-        // `America/Los_Angeles` for the end client. Nothing read them.
-        locale: language
-          ? formattingLocales[resolveLocale(language)]
-          : persona.locale,
+        // `America/Los_Angeles` for the end client. The zone is the persona's;
+        // the formatting locale follows the interface language, keeping the
+        // persona's regional variant only when it is the same language.
+        locale: formattingLocaleFor(language, persona.locale),
         timeZone: persona.timeZone,
         memberships: [membership],
         selectedAccountId: membership.accountId,
@@ -215,6 +218,7 @@ export async function getRouteSession(
     throw error;
   });
   if (!session.selectedAccountId)
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Selected commerce account is unavailable");
   return {
     roles: session.roles,
@@ -269,6 +273,7 @@ export async function getRouteIdentity(
     );
   if (!membership)
     throw new Error(
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       "Authorized membership for the selected account is missing",
     );
   return {
@@ -301,6 +306,7 @@ export async function getAuthenticatedHome(): Promise<
       return "/dashboard";
     }
     throw new Error(
+      // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       "Portal identity is unavailable without an explicit non-production demo adapter",
     );
   }

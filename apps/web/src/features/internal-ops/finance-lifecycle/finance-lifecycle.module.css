@@ -26,61 +26,64 @@
 }
 
 .eyebrow {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.25rem;
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .title {
   margin: 0;
   color: var(--web-ink);
-  max-width: 32ch;
+  max-width: 40ch;
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
+  line-height: var(--cw-leading-tight);
+  text-wrap: balance;
 }
 
 .description {
   max-width: 49rem;
-  margin: 0.7rem 0 0;
+  margin: 0.25rem 0 0;
   color: var(--web-muted);
-  font-size: var(--cw-text-lg);
-  line-height: 1.6;
+  font-size: var(--cw-text-md);
+  line-height: var(--cw-leading-body);
 }
 
 .freshness {
   flex: 0 0 auto;
-  border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-sm);
-  background: var(--web-paper);
-  padding: 0.65rem 0.8rem;
+  margin: 0;
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
   line-height: 1.45;
-  text-align: right;
+  text-align: end;
 }
 
 .freshness strong {
   display: block;
   color: var(--web-ink);
+  font-weight: 500;
 }
 
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: 0.75rem;
 }
 
+/* Summary cards are the console's stat cards: an uppercase label, a 24px
+   figure, a muted footnote. */
 .summaryCard {
   min-width: 0;
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-sm);
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
-  padding: 1rem;
+  box-shadow: var(--cw-shadow-xs);
+  padding: 1rem 1.25rem;
 }
 
 .summaryCard p,
@@ -91,13 +94,20 @@
   line-height: 1.45;
 }
 
+.summaryCard p {
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
+}
+
 .summaryCard strong {
   display: block;
-  margin: 0.35rem 0 0.2rem;
+  margin: 0.5rem 0 0.25rem;
   color: var(--web-ink);
-  font-size: var(--cw-text-2xl);
+  font-size: var(--cw-text-display);
+  font-weight: 600;
+  line-height: var(--cw-leading-tight);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.025em;
 }
 
 .notice,
@@ -105,19 +115,31 @@
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
-  border: 1px solid var(--cw-success);
-  border-radius: var(--cw-radius-sm);
+  border: 1px solid var(--cw-success-border);
+  border-radius: var(--cw-radius-lg);
   background: var(--cw-success-soft);
-  padding: 0.75rem 0.9rem;
+  padding: 0.625rem 1rem;
   color: var(--cw-success);
   font-size: var(--cw-text-sm);
   line-height: 1.5;
 }
 
 .warningNotice {
-  border-color: var(--cw-warning);
+  border-color: var(--cw-warning-border);
   background: var(--cw-warning-soft);
   color: var(--cw-warning-ink);
+}
+
+.notice strong,
+.warningNotice strong {
+  font-weight: 600;
+}
+
+.notice a,
+.warningNotice a {
+  color: var(--cw-action-strong);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
 }
 
 .notice strong,
@@ -129,12 +151,59 @@
 .panel {
   min-width: 0;
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-sm);
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .section + .section {
-  margin-top: 0.85rem;
+  margin-top: 1rem;
+}
+
+/* A section that carries its copy directly (the demo order handoff) gets the
+   same inset as a section with a header row. */
+.section > h2 {
+  margin: 0;
+  padding: 0.875rem 1rem 0;
+  color: var(--web-ink);
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
+}
+
+.section > p,
+.section > ul {
+  margin: 0.25rem 0 0;
+  padding-inline: 1rem;
+  color: var(--web-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.section > ul {
+  display: grid;
+  gap: 0.5rem;
+  padding-inline-start: 2rem;
+  color: var(--web-ink);
+}
+
+.section > :is(p, ul):last-child {
+  padding-bottom: 0.875rem;
+}
+
+.section > ul button {
+  min-height: var(--cw-control-height-small);
+  border: 1px solid rgb(9 9 11 / 0.15);
+  border-radius: var(--cw-radius-sm);
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
+  padding: 0.25rem 0.75rem;
+  color: var(--web-ink);
+  cursor: pointer;
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
+}
+
+.section > ul button:hover:not(:disabled) {
+  background: var(--cw-canvas-deep);
 }
 
 .sectionHeader,
@@ -144,16 +213,23 @@
   justify-content: space-between;
   gap: 1rem;
   border-bottom: 1px solid var(--web-line);
-  padding: 0.9rem 1rem;
+  padding: 0.875rem 1rem;
 }
 
 .sectionHeader h2,
-.sectionHeader h3,
-.panelHeader h2,
-.panelHeader h3 {
+.panelHeader h2 {
   margin: 0;
   color: var(--web-ink);
   font-size: var(--cw-text-lg);
+  font-weight: 600;
+}
+
+.sectionHeader h3,
+.panelHeader h3 {
+  margin: 0;
+  color: var(--web-ink);
+  font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 
 .sectionHeader p,
@@ -169,7 +245,7 @@
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: end;
 }
 
 /*
@@ -180,7 +256,8 @@
  */
 .dsTable {
   border: 0;
-  border-radius: 0;
+  border-radius: 0 0 var(--cw-radius-lg) var(--cw-radius-lg);
+  box-shadow: none;
   overscroll-behavior-inline: contain;
   /* Amounts, ages, and deadlines stack down a column, so the digits hold one
      width and the eye can compare rows without re-reading each number. */
@@ -200,6 +277,7 @@
 
 .primaryCell strong {
   font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 
 .secondary,
@@ -216,7 +294,8 @@
 }
 
 .truthStack strong {
-  color: var(--web-warm);
+  color: var(--cw-warning-ink);
+  font-weight: 600;
 }
 
 .truthStack span {
@@ -229,23 +308,30 @@
 .riskLow {
   display: inline-flex;
   width: max-content;
+  max-width: 100%;
+  align-items: center;
+  border: 1px solid transparent;
   border-radius: 999px;
-  padding: 0.17rem 0.48rem;
+  padding: 0.125rem 0.5rem;
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 500;
+  line-height: 1.25;
 }
 
 .riskHigh {
+  border-color: var(--cw-danger-border);
   background: var(--cw-danger-soft);
   color: var(--cw-danger-strong);
 }
 
 .riskMedium {
+  border-color: var(--cw-warning-border);
   background: var(--cw-warning-soft);
   color: var(--cw-warning-ink);
 }
 
 .riskLow {
+  border-color: var(--cw-success-border);
   background: var(--cw-success-soft);
   color: var(--cw-success);
 }
@@ -259,8 +345,9 @@
 .disclosure summary {
   width: max-content;
   max-width: 100%;
+  color: var(--cw-action);
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .disclosure p,
@@ -289,7 +376,7 @@
 .blocked,
 .waiting {
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .safe {
@@ -297,11 +384,11 @@
 }
 
 .blocked {
-  color: var(--web-danger);
+  color: var(--cw-danger-strong);
 }
 
 .waiting {
-  color: var(--cw-warning);
+  color: var(--cw-warning-ink);
 }
 
 .reviewGrid {
@@ -314,56 +401,57 @@
 .reviewGrid div {
   border: 1px solid var(--web-line);
   border-radius: var(--cw-radius-sm);
-  padding: 0.62rem;
+  padding: 0.625rem 0.75rem;
 }
 
 .reviewGrid dt {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .reviewGrid dd {
   margin: 0.2rem 0 0;
   color: var(--web-ink);
-  font-size: var(--cw-text-xs);
+  font-size: var(--cw-text-sm);
   line-height: 1.45;
 }
 
 .actorNote {
-  border-left: 3px solid var(--web-warm);
+  border: 1px solid var(--cw-warning-border);
+  border-radius: var(--cw-radius-sm);
   background: var(--cw-warning-soft);
-  padding: 0.65rem 0.75rem;
-  color: var(--web-muted);
-  font-size: var(--cw-text-xs);
+  padding: 0.625rem 0.75rem;
+  color: var(--cw-warning-ink);
+  font-size: var(--cw-text-sm);
   line-height: 1.45;
 }
 
 .reviewHandoff {
   display: grid;
   gap: 0.2rem;
-  border: 1px solid var(--web-line);
-  border-left: 3px solid var(--web-warm);
+  border: 1px solid var(--cw-warning-border);
   border-radius: var(--cw-radius-sm);
-  background: color-mix(in srgb, var(--web-canvas) 55%, var(--web-paper));
-  padding: 0.65rem 0.75rem;
-  color: var(--web-muted);
-  font-size: var(--cw-text-xs);
+  background: var(--cw-warning-soft);
+  padding: 0.625rem 0.75rem;
+  color: var(--cw-ink-soft);
+  font-size: var(--cw-text-sm);
   line-height: 1.45;
 }
 
 .reviewHandoff strong {
   color: var(--web-ink);
+  font-weight: 600;
 }
 
 .statusMessage {
   margin: 0.75rem 0 0;
   color: var(--cw-success);
-  font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 
 .migrationGrid {
@@ -375,11 +463,12 @@
 .migrationCard {
   display: grid;
   min-width: 0;
-  gap: 0.85rem;
+  gap: 0.875rem;
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-sm);
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
-  padding: 1rem;
+  box-shadow: var(--cw-shadow-xs);
+  padding: 1rem 1.25rem;
 }
 
 .migrationCard:first-child {
@@ -396,6 +485,7 @@
 .migrationHeading h2 {
   margin: 0;
   font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 
 .migrationHeading p {
@@ -418,7 +508,7 @@
   gap: 0.65rem;
   border: 1px solid var(--web-line);
   border-radius: var(--cw-radius-sm);
-  padding: 0.55rem;
+  padding: 0.5rem 0.75rem;
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
@@ -427,7 +517,8 @@
 .candidateList strong {
   display: block;
   color: var(--web-ink);
-  font-size: var(--cw-text-xs);
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 
 .checkbox {
@@ -435,7 +526,7 @@
   align-items: flex-start;
   gap: 0.55rem;
   color: var(--web-ink);
-  font-size: var(--cw-text-xs);
+  font-size: var(--cw-text-sm);
   line-height: 1.45;
 }
 
@@ -443,7 +534,8 @@
   flex: 0 0 auto;
   width: 1rem;
   height: 1rem;
-  margin-top: 0.08rem;
+  margin-top: 0.125rem;
+  accent-color: var(--cw-action);
 }
 
 .migrationFooter {
@@ -467,14 +559,22 @@
   align-items: end;
   gap: 0.75rem;
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-sm);
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
-  padding: 0.9rem;
+  box-shadow: var(--cw-shadow-xs);
+  padding: 1rem;
 }
 
 .filterBar button {
-  min-height: 2.75rem;
-  margin-bottom: 0.02rem;
+  min-height: var(--cw-control-height);
+}
+
+/* Inside a section the filter row is part of that card, not a card of its own. */
+.section .filterBar {
+  border: 0;
+  border-bottom: 1px solid var(--web-line);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .reportLayout {
@@ -492,15 +592,16 @@
 .reportCard {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.8rem;
+  gap: 0.75rem;
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-sm);
-  padding: 0.8rem;
+  border-radius: var(--cw-radius-lg);
+  padding: 0.75rem 1rem;
 }
 
 .reportCard h3 {
   margin: 0;
   font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 
 .reportCard p {
@@ -524,7 +625,7 @@
 }
 
 .reportActions button {
-  min-height: 2.75rem;
+  min-height: var(--cw-control-height);
 }
 
 .chartBody {
@@ -554,12 +655,13 @@
 }
 
 .estimatedLine {
-  stroke: var(--web-warm);
+  stroke: var(--cw-warning-mark);
   stroke-dasharray: 5 4;
 }
 
+/* Chart marks draw in the Filecoin ramp, as the design-system chart does. */
 .finalLine {
-  stroke: var(--web-accent);
+  stroke: var(--cw-blue-900);
 }
 
 .legend {
@@ -574,14 +676,14 @@
   display: inline-block;
   width: 0.85rem;
   height: 0.16rem;
-  margin-right: 0.35rem;
-  background: var(--web-accent);
+  margin-inline-end: 0.35rem;
+  background: var(--cw-blue-900);
   content: "";
   vertical-align: middle;
 }
 
 .legend span:first-child::before {
-  background: var(--web-warm);
+  background: var(--cw-warning-mark);
 }
 
 .dataAlternative {
@@ -594,12 +696,12 @@
 
 .dataAlternative summary {
   display: flex;
-  min-height: 2.75rem;
+  min-height: var(--cw-control-height);
   align-items: center;
   cursor: pointer;
-  color: var(--web-accent);
-  font-size: var(--cw-text-xs);
-  font-weight: 700;
+  color: var(--cw-action);
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 
 /*
@@ -621,17 +723,17 @@
 .compactTable td {
   border-top: 1px solid var(--web-line);
   padding: 0.4rem 0.25rem;
-  text-align: right;
+  text-align: end;
 }
 
 .compactTable th:first-child,
 .compactTable td:first-child {
-  text-align: left;
+  text-align: start;
 }
 
 .empty {
-  border: 1px dashed var(--web-line);
-  border-radius: var(--cw-radius-sm);
+  border: 1px dashed var(--cw-border-strong);
+  border-radius: var(--cw-radius-lg);
   padding: 1rem;
   color: var(--web-muted);
   font-size: var(--cw-text-sm);
@@ -661,7 +763,7 @@
 
   .freshness {
     width: 100%;
-    text-align: left;
+    text-align: start;
   }
 
   .migrationGrid,
@@ -707,7 +809,7 @@
   }
 
   .title {
-    font-size: 1.7rem;
+    font-size: var(--cw-text-2xl);
   }
 }
 

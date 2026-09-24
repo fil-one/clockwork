@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "@/src/i18n/client";
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 import { commercialArtifactRetainUntil } from "./artifact-retention";
+import { CommercialStop, commercialFailureText } from "./failure-message";
 import {
   preparedArtifactRequestId,
   readPreparedQuoteArtifact,
@@ -51,15 +52,15 @@ export function QuoteIssue({
     try {
       const current = await readBuyQuoteProjection({ quoteId, accountId });
       if (current.status !== "found")
-        throw new Error(t("quotes.issue.refresh"));
+        throw new CommercialStop("customer.commercial.issue.refresh");
       if (current.quoteStatus !== "issued") {
         if (current.quoteStatus !== "draft")
-          throw new Error(t("quotes.issue.refresh"));
+          throw new CommercialStop("customer.commercial.issue.refresh");
         if (
           current.marginResult === "exception_required" ||
           current.marginResult === "rejected"
         )
-          throw new Error(t("quotes.issue.pricingReview"));
+          throw new CommercialStop("customer.commercial.issue.pricingReview");
         attempt.current ??= {
           version: current.rowVersion,
           issuedAt: new Date().toISOString(),
@@ -68,7 +69,7 @@ export function QuoteIssue({
         };
         const saved = attempt.current;
         if (current.rowVersion !== saved.version)
-          throw new Error(t("quotes.issue.refresh"));
+          throw new CommercialStop("customer.commercial.issue.refresh");
         const prepared = await sendCoreCommand(
           {
             resource: "quotes",
@@ -86,7 +87,9 @@ export function QuoteIssue({
         );
         const artifactRequestId = preparedArtifactRequestId(prepared);
         if (!artifactRequestId)
-          throw new Error(t("quotes.issue.documentUnavailable"));
+          throw new CommercialStop(
+            "customer.commercial.issue.documentUnavailable",
+          );
         let documentId: string | undefined;
         for (let i = 0; i < pollAttempts; i += 1) {
           const artifact = await readPreparedQuoteArtifact({
@@ -99,10 +102,13 @@ export function QuoteIssue({
             break;
           }
           if (artifact.status !== "pending")
-            throw new Error(t("quotes.issue.documentUnavailable"));
+            throw new CommercialStop(
+              "customer.commercial.issue.documentUnavailable",
+            );
           if (i + 1 < pollAttempts) await pause();
         }
-        if (!documentId) throw new Error(t("quotes.issue.rendering"));
+        if (!documentId)
+          throw new CommercialStop("customer.commercial.issue.rendering");
         await sendCoreCommand(
           {
             resource: "quotes",
@@ -134,17 +140,18 @@ export function QuoteIssue({
             projection.status === "forbidden" ||
             projection.status === "unavailable"
           )
-            throw new Error(t("quotes.issue.refresh"));
+            throw new CommercialStop("customer.commercial.issue.refresh");
           if (i + 1 < pollAttempts) await pause();
         }
-        if (!confirmed) throw new Error(t("quotes.issue.synchronizing"));
+        if (!confirmed)
+          throw new CommercialStop("customer.commercial.issue.synchronizing");
       }
       setPhase("ready");
       router.refresh();
     } catch (error) {
       setPhase("error");
       setMessage(
-        error instanceof Error ? error.message : t("quotes.issue.refresh"),
+        commercialFailureText(error, t, "customer.commercial.issue.refresh"),
       );
     } finally {
       busy.current = false;
@@ -156,15 +163,17 @@ export function QuoteIssue({
       className={`${styles.panel} ${styles.section}`}
       aria-labelledby="issue-quote-title"
     >
-      <h2 id="issue-quote-title">{t("quotes.issue.title")}</h2>
-      <p className={styles.description}>{t("quotes.issue.description")}</p>
+      <h2 id="issue-quote-title">{t("customer.commercial.issue.title")}</h2>
+      <p className={styles.description}>
+        {t("customer.commercial.issue.description")}
+      </p>
       {phase === "ready" ? (
         <p role="status">
           <Link
             className={styles.primary}
             href={`/orders/accept?quote=${encodeURIComponent(recordKey)}`}
           >
-            {t("quotes.issue.accept")}
+            {t("customer.commercial.detail.step.acceptOrder")}
           </Link>
         </p>
       ) : (
@@ -178,10 +187,10 @@ export function QuoteIssue({
         >
           {t(
             phase === "working"
-              ? "quotes.issue.working"
+              ? "customer.commercial.issue.working"
               : phase === "error"
-                ? "quotes.issue.retry"
-                : "quotes.issue.action",
+                ? "customer.commercial.issue.retry"
+                : "customer.commercial.issue.action",
           )}
         </button>
       )}

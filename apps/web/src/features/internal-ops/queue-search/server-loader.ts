@@ -68,18 +68,31 @@ export async function loadSearchRecords(): Promise<readonly SearchRecord[]> {
           return accountKeysByIdentity.get(value);
       }
     const context = record.data.context;
-    if (Array.isArray(context))
-      for (const entry of context) {
+    if (Array.isArray(context)) {
+      const values = context.flatMap((entry) => {
         if (!entry || typeof entry !== "object" || Array.isArray(entry))
-          continue;
+          return [];
         const item = entry as Readonly<Record<string, unknown>>;
-        if (item.label !== "Account" || typeof item.value !== "string")
-          continue;
-        const match = accountKeysByIdentity.get(
-          item.value.trim().toLocaleLowerCase(),
-        );
+        return typeof item.value === "string"
+          ? [
+              {
+                label: item.label,
+                value: item.value.trim().toLocaleLowerCase(),
+              },
+            ]
+          : [];
+      });
+      // The line labelled "Account" names the owner. A reader's language can
+      // relabel that line, so any line whose value is an account's name is
+      // the next best evidence of which account the record belongs to.
+      for (const entry of [
+        ...values.filter((candidate) => candidate.label === "Account"),
+        ...values.filter((candidate) => candidate.label !== "Account"),
+      ]) {
+        const match = accountKeysByIdentity.get(entry.value);
         if (match) return match;
       }
+    }
     return undefined;
   };
   return pages.flatMap((page, index) => {

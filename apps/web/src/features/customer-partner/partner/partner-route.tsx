@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { getRouteSession } from "@/src/features/shell/route-session";
+import type { MessageId } from "@/src/i18n";
 import { loadPartnerRecords } from "@/src/features/experience-server/portal-view-loader";
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
+import {
+  getFormattingLocale,
+  getLocale,
+  getTranslations,
+} from "@/src/i18n/server";
 
 import {
   PartnerCollection,
@@ -23,6 +30,19 @@ import {
   demoPartnerCollectionRenewalContext,
   demoPartnerRenewalRecords,
 } from "./demo-partner-renewal";
+
+/** The browser title for a partner page, in the reader's language. */
+export async function partnerPageMetadata(title: MessageId): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t(title) };
+}
+
+/** The browser title for a partner collection, from its own heading. */
+export function partnerSurfaceMetadata(
+  surface: PartnerSurfaceKey,
+): Promise<Metadata> {
+  return partnerPageMetadata(partnerSurfaces[surface].title);
+}
 
 export async function PartnerCollectionRoute({
   surface,
@@ -49,22 +69,38 @@ export async function PartnerCollectionRoute({
   const demoState = demoDeployIdentityEnabled(process.env)
     ? await configuredDemoStateStore().read()
     : undefined;
+  // Records the demo created are worded here, for this reader, exactly as the
+  // loader words the projected ones: same language, same formatting tag.
+  const reader = {
+    t: await getTranslations(),
+    locale: await getLocale(),
+    formatting: await getFormattingLocale(),
+  };
   const projectedRecords =
     demoState && surface === "renewals"
       ? demoPartnerRenewalRecords(
           demoState,
           partnerMembership.accountId,
           projection.records,
+          reader,
         )
       : projection.records;
   const createdRecords = !demoState
     ? []
     : surface === "registrations"
-      ? demoCreatedRegistrations(demoState, partnerMembership.accountId)
+      ? demoCreatedRegistrations(demoState, partnerMembership.accountId, reader)
       : surface === "quotes"
-        ? demoCreatedPartnerQuotes(demoState, partnerMembership.accountId)
+        ? demoCreatedPartnerQuotes(
+            demoState,
+            partnerMembership.accountId,
+            reader,
+          )
         : surface === "brand"
-          ? demoPartnerBrandRecords(demoState, partnerMembership.accountId)
+          ? demoPartnerBrandRecords(
+              demoState,
+              partnerMembership.accountId,
+              reader,
+            )
           : [];
   const renewalContext =
     demoState && surface === "renewals" && projectedRecords[0]

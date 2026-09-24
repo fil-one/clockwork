@@ -94,6 +94,7 @@ describe("tooltip Storybook accessibility", () => {
       "Overview",
       <Navigation
         key="nav"
+        label="Primary"
         density="compact"
         groups={[
           {

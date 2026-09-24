@@ -3,14 +3,33 @@ import "server-only";
 import type { Route } from "next";
 import type { RenewalState } from "@clockwork/ui";
 import { NOT_RECORDED } from "@clockwork/workflows";
+import { demoText, demoTextIn } from "@clockwork/testing/demo-localized-text";
 import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
 import { getCommerceSession } from "@/src/auth/session";
+import { formatMoney } from "@/src/features/shared/format";
+import type { Locale, MessageId, Translator } from "@/src/i18n";
+import {
+  getFormattingLocale,
+  getLocale,
+  getTranslations,
+} from "@/src/i18n/server";
 import type { CollectionKind } from "@/src/features/customer-partner/commercial/model";
 import type { CustomerDashboardProjection } from "@/src/features/customer-partner/customer/customer-dashboard";
 import type { PartnerDashboardProjection } from "@/src/features/customer-partner/partner/partner-dashboard";
 
+import {
+  ago,
+  dateRange,
+  formatDemoFact,
+  onDate,
+  onDay,
+  percent,
+  terabytes,
+  type DemoFact,
+} from "./demo-message";
+import { demoCloudServiceAgreementTitle } from "./demo-portal-records";
 import {
   ExperienceProblem,
   type ExperienceAudience,
@@ -28,6 +47,7 @@ function string(value: unknown, field: string): string {
     throw new ExperienceProblem(
       502,
       "DASHBOARD_PROJECTION_INVALID",
+      // i18n-exempt: problem-details message for integrators; the page shows its own error state
       `Dashboard field ${field} is invalid`,
     );
   return value;
@@ -45,6 +65,7 @@ function route(value: unknown, field: string): Route {
     throw new ExperienceProblem(
       502,
       "DASHBOARD_PROJECTION_INVALID",
+      // i18n-exempt: problem-details message for integrators; the page shows its own error state
       `Dashboard field ${field} is not a same-origin route`,
     );
   const parsed = new URL(path, "https://experience.invalid");
@@ -52,6 +73,7 @@ function route(value: unknown, field: string): Route {
     throw new ExperienceProblem(
       502,
       "DASHBOARD_PROJECTION_INVALID",
+      // i18n-exempt: problem-details message for integrators; the page shows its own error state
       `Dashboard field ${field} is not a same-origin route`,
     );
   return `${parsed.pathname}${parsed.search}${parsed.hash}` as Route;
@@ -67,6 +89,7 @@ function array(value: unknown, field: string): Record<string, unknown>[] {
     throw new ExperienceProblem(
       502,
       "DASHBOARD_PROJECTION_INVALID",
+      // i18n-exempt: problem-details message for integrators; the page shows its own error state
       `Dashboard field ${field} is invalid`,
     );
   return value as Record<string, unknown>[];
@@ -77,6 +100,7 @@ function object(value: unknown, field: string): Record<string, unknown> {
     throw new ExperienceProblem(
       502,
       "DASHBOARD_PROJECTION_INVALID",
+      // i18n-exempt: problem-details message for integrators; the page shows its own error state
       `Dashboard field ${field} is invalid`,
     );
   return value as Record<string, unknown>;
@@ -93,147 +117,40 @@ export function explicitDashboardDemoEnabled(
   );
 }
 
-const demoCustomer: CustomerDashboardProjection = {
-  generatedAt: "2026-07-31T15:42:00.000Z",
-  stale: false,
-  obligations: [
-    {
-      id: "invoice-0781",
-      priority: 1,
-      type: "Invoice",
-      title: "$15,400 due Aug 15",
-      detail: "Invoice INV-2026-0781 is awaiting payment.",
-      actionLabel: "Review invoice",
-      href: "/billing",
-      tone: "warning",
-      state: "Action due",
-      recordVersion: 3,
-    },
-    {
-      id: "renewal-0098",
-      priority: 2,
-      type: "Notice and renewal",
-      title: "Notice window opens Nov 1",
-      detail: "Review the service plan before the account notice date.",
-      actionLabel: "Review services",
-      href: "/services",
-      tone: "warning",
-      state: "Action due",
-      recordVersion: 4,
-    },
-    {
-      id: "quote-0184",
-      priority: 3,
-      type: "Quote",
-      title: "Enterprise quote expires Aug 3",
-      detail: "Three days remain to accept or let the open quote expire.",
-      actionLabel: "Review quote",
-      href: "/quotes/Q-2026-0184-v3" as Route,
-      tone: "warning",
-      state: "Action due",
-      recordVersion: 3,
-    },
-  ],
-  term: {
-    title: "Northstar annual term",
-    rangeLabel: "Jan 1 - Dec 31, 2026",
-    progressPercent: 58,
-    progressLabel: "58 percent of the current commercial term elapsed",
-    renewalState: "Auto-renews",
-    noticeLabel: "Opens Nov 1 - 93 days",
-    renewalLabel: "Jan 1, 2027",
-    agreementLabel: "Cloud Service Agreement v3.2",
-  },
-  services: [
-    {
-      id: "service-primary",
-      name: "Northstar primary archive",
-      detail: "500 TB - active - follows account term",
-    },
-    {
-      id: "service-madrid",
-      name: "Madrid compliance replica",
-      detail: "120 TB - provisioning - ends Dec 31, 2026",
-    },
-  ],
-  capacity: {
-    committed: "620 TB",
-    current: "311 TB - 50.2%",
-    prior: "292 TB - up 19 TB",
-    freshnessLabel: "Usage projection refreshed 18 minutes ago",
-  },
-  activity: [
-    {
-      id: "activity-marketplace",
-      title: "Marketplace fulfillment synchronized",
-      detail: "AWS private offer - provider-reported",
-      occurredAt: "2026-07-31T15:42:00.000Z",
-      occurredLabel: "18 minutes ago",
-    },
-  ],
-};
-
-const demoPartner: PartnerDashboardProjection = {
-  generatedAt: "2026-07-31T16:00:00.000Z",
-  stale: false,
-  agreement: {
-    label: "Meridian Channel Partner Agreement - v4.1",
-    start: "2026-01-01T00:00:00.000Z",
-    noticeStart: "2026-09-01T00:00:00.000Z",
-    end: "2026-12-31T00:00:00.000Z",
-    now: "2026-07-31T16:00:00.000Z",
-    renewalState: "auto-renews",
-    authorityState: "Active - notice review due Sep 1",
-    nextDecision: "Review authority and notice position by Sep 1",
-    commercialRoute: "Resale and two-tier distributor",
-    merchantBoundary: "Meridian is merchant of record to end clients",
-  },
-  work: [
-    {
-      id: "partner-renewal",
-      account: "Halcyon Research Cooperative",
-      task: "Renewal route and economics",
-      evidence: "Transfer floor and resale term",
-      due: "Sep 2",
-      href: "/partner/renewals",
-      adminOnly: true,
-      recordVersion: 4,
-    },
-    {
-      id: "partner-registration",
-      account: "Atlas Field Imaging",
-      task: "Protect deal registration",
-      evidence: "Commercial qualification missing",
-      due: "Today",
-      href: "/partner/registrations",
-      adminOnly: false,
-      recordVersion: 2,
-    },
-  ],
-  commission: {
-    id: "STM-2026-Q3",
-    statement: "Q3 commission statement",
-    accruedAmount: "$18,420 accrued",
-    href: "/partner/commissions?q=STM-2026-Q3",
-  },
-  boundary: [
-    { label: "Transfer price", value: "Private to Meridian" },
-    { label: "Partner price", value: "Controlled by Meridian" },
-    { label: "Merchant of record", value: "Meridian on resale routes" },
-  ],
-};
-
 const DAY_IN_MS = 86_400_000;
 
-const dayFormat = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeZone: "UTC",
-});
-const momentFormat = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "UTC",
-});
+/**
+ * Who the dashboard is composed for: the interface language (demo text), the
+ * formatting tag (dates, amounts, quantities) and the translator. Every phrase
+ * the loader writes is a message rendered here, on the server, for this
+ * reader; the dashboard components render the strings as given.
+ */
+interface DashboardReader {
+  readonly locale: Locale;
+  readonly formatting: string;
+  readonly t: Translator;
+}
+
+async function dashboardReader(): Promise<DashboardReader> {
+  const [locale, formatting, t] = await Promise.all([
+    getLocale(),
+    getFormattingLocale(),
+    getTranslations(),
+  ]);
+  return { locale, formatting, t };
+}
+
+/**
+ * Dates are formatted with the reader's formatting locale (the interface
+ * language), passed in from the loader; there is no default.
+ */
+function formatMoment(time: number, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(time));
+}
 
 function parseTime(value: string | null): number | null {
   if (!value) return null;
@@ -241,16 +158,23 @@ function parseTime(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function formatDay(time: number | null): string | null {
-  return time === null ? null : dayFormat.format(new Date(time));
+function formatDay(time: number | null, locale: string): string | null {
+  return time === null
+    ? null
+    : new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeZone: "UTC",
+      }).format(new Date(time));
 }
 
-function titleCase(value: string): string {
-  return value
-    .split(/[_\s-]+/u)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+/** Formats one demo fact (an ISO date, a quantity, an age) for the reader. */
+function fact(value: DemoFact, reader: DashboardReader): string {
+  return formatDemoFact(value, reader.formatting);
+}
+
+/** A share of the term, 0–100, as the reader writes a percentage. */
+function percentText(share: number, reader: DashboardReader): string {
+  return fact(percent(share / 100), reader);
 }
 
 type DashboardTone = CustomerDashboardProjection["obligations"][number]["tone"];
@@ -269,7 +193,7 @@ function tone(value: unknown): DashboardTone {
     throw new ExperienceProblem(
       502,
       "DASHBOARD_PROJECTION_INVALID",
-      "Dashboard record tone is invalid",
+      "Dashboard record tone is invalid", // i18n-exempt: problem-details message for integrators; the page shows its own error state
     );
   return match;
 }
@@ -421,26 +345,26 @@ function governingOrder(records: ChannelRecords): DashboardRecord | null {
 const customerObligationSources = [
   {
     channel: "billing",
-    type: "Invoice",
-    actionLabel: "Review invoice",
+    type: "recordKind.invoice",
+    actionLabel: "experience.data.dashboard.reviewInvoice",
     dueField: "dueAt",
   },
   {
     channel: "quotes",
-    type: "Quote",
-    actionLabel: "Review quote",
+    type: "recordKind.quote",
+    actionLabel: "experience.data.dashboard.reviewQuote",
     dueField: "expiresAt",
   },
   {
     channel: "orders",
-    type: "Notice and renewal",
-    actionLabel: "Review order",
+    type: "experience.data.dashboard.noticeAndRenewal",
+    actionLabel: "experience.data.dashboard.reviewOrder",
     dueField: "noticeOn",
   },
 ] as const satisfies readonly {
   channel: CollectionKind;
-  type: string;
-  actionLabel: string;
+  type: MessageId;
+  actionLabel: MessageId;
   dueField: string;
 }[];
 
@@ -465,13 +389,16 @@ const toneUrgency: Readonly<Record<DashboardTone, number>> = {
   success: 3,
 };
 
-function obligationTitle(record: DashboardRecord): string {
+function obligationTitle(record: DashboardRecord, t: Translator): string {
   const value = displayed(record.value);
-  return value ? `${record.title} · ${value}` : record.title;
+  return value
+    ? t("common.join.labels", { first: record.title, second: value })
+    : record.title;
 }
 
 function customerObligations(
   records: ChannelRecords,
+  t: Translator,
 ): CustomerDashboardProjection["obligations"] {
   return customerObligationSources
     .flatMap((source) =>
@@ -499,10 +426,10 @@ function customerObligations(
     .map((item, index) => ({
       id: item.record.recordKey,
       priority: index + 1,
-      type: item.source.type,
-      title: obligationTitle(item.record),
+      type: t(item.source.type),
+      title: obligationTitle(item.record, t),
       detail: item.record.description,
-      actionLabel: item.source.actionLabel,
+      actionLabel: t(item.source.actionLabel),
       href: route(
         recordRoute(item.source.channel, item.record.recordKey),
         "obligations.href",
@@ -513,26 +440,78 @@ function customerObligations(
     }));
 }
 
+/** Whether the notice window has opened, as of `now`. */
+function noticeOpened(noticeAt: number | null, now: number): boolean {
+  return noticeAt !== null && Math.round((noticeAt - now) / DAY_IN_MS) < 0;
+}
+
 function noticeLabel(
   noticeAt: number | null,
   noticeDays: number | null,
   now: number,
+  reader: DashboardReader,
 ): string {
+  const { t, formatting } = reader;
   if (noticeAt !== null) {
     const days = Math.round((noticeAt - now) / DAY_IN_MS);
-    const formatted = formatDay(noticeAt);
-    if (days > 0) return `Opens ${formatted} · ${days} days`;
-    if (days === 0) return `Opens ${formatted} · today`;
-    return `Opened ${formatted}`;
+    const date = formatDay(noticeAt, formatting) ?? "";
+    if (days > 0)
+      return t("experience.data.dashboard.noticeOpensIn", {
+        date,
+        count: days,
+      });
+    if (days === 0)
+      return t("experience.data.dashboard.noticeOpensToday", { date });
+    return t("experience.data.dashboard.noticeOpened", { date });
   }
-  if (noticeDays !== null) return `${noticeDays} days notice required`;
-  return "No notice date recorded";
+  if (noticeDays !== null)
+    return t("experience.data.dashboard.noticeDaysRequired", {
+      count: noticeDays,
+    });
+  return t("experience.data.dashboard.noticeNone");
 }
+
+const renewalTypeLabels: Readonly<Record<string, MessageId>> = {
+  auto_renew: "experience.data.dashboard.renewalAutoRenews",
+  expires: "experience.data.dashboard.renewalExpires",
+};
+
+/**
+ * The renewal badge's tone, decided from facts rather than from the words on
+ * the badge: an opened notice window is the decision that matters, then the
+ * renewal type. The component used to read these off the English labels.
+ */
+function renewalTone(
+  opened: boolean,
+  renewalType: string | null,
+): "neutral" | "success" | "warning" {
+  if (opened) return "warning";
+  if (renewalType === "auto_renew") return "success";
+  if (renewalType === "expires") return "warning";
+  return "neutral";
+}
+
+/** A code with no message is shown as recorded rather than dropped. */
+function renewalTypeText(renewalType: string | null, t: Translator): string {
+  if (!renewalType) return t("common.notRecorded");
+  const id = renewalTypeLabels[renewalType];
+  return id ? t(id) : renewalType;
+}
+
+type CustomerTerm = CustomerDashboardProjection["term"] & {
+  /**
+   * The renewal badge's tone. `customer-dashboard.tsx` prefers it over reading
+   * the (now translated) notice and renewal labels.
+   */
+  renewalTone: "neutral" | "success" | "warning";
+};
 
 function customerTerm(
   records: ChannelRecords,
   now: number,
-): CustomerDashboardProjection["term"] {
+  reader: DashboardReader,
+): CustomerTerm {
+  const { t, formatting } = reader;
   const agreement = channelRecords(records, "agreements")[0] ?? null;
   const order = governingOrder(records);
   const start = order ? authoritativeTime(order, "serviceStartsOn") : null;
@@ -547,37 +526,50 @@ function customerTerm(
   const renewalType = agreement
     ? authoritativeText(agreement, "renewalType")
     : null;
+  const noticeAt = order ? authoritativeTime(order, "noticeOn") : null;
   return {
-    title: order?.title ?? agreement?.title ?? "Account term",
+    title:
+      order?.title ??
+      agreement?.title ??
+      t("experience.data.dashboard.termFallbackTitle"),
     rangeLabel:
-      order?.term ?? agreement?.term ?? "No service term recorded yet",
+      order?.term ??
+      agreement?.term ??
+      t("experience.data.dashboard.termNoRange"),
     progressPercent: elapsed ?? 0,
     progressLabel:
       elapsed === null
-        ? "Service term progress is not yet available"
-        : `${elapsed} percent of the current commercial term elapsed`,
-    renewalState: renewalType ? titleCase(renewalType) : NOT_RECORDED,
+        ? t("experience.data.dashboard.termProgressUnavailable")
+        : t("experience.data.dashboard.termProgress", {
+            percent: percentText(elapsed, reader),
+          }),
+    renewalState: renewalTypeText(renewalType, t),
     noticeLabel: noticeLabel(
-      order ? authoritativeTime(order, "noticeOn") : null,
+      noticeAt,
       agreement ? authoritativeNumber(agreement, "noticeDays") : null,
       now,
+      reader,
     ),
-    renewalLabel: formatDay(end) ?? NOT_RECORDED,
-    agreementLabel: agreement?.title ?? "No agreement recorded",
+    renewalLabel: formatDay(end, formatting) ?? t("common.notRecorded"),
+    agreementLabel:
+      agreement?.title ?? t("experience.data.dashboard.termNoAgreement"),
+    renewalTone: renewalTone(noticeOpened(noticeAt, now), renewalType),
   };
 }
 
-const activityNouns: Readonly<Partial<Record<ProjectionChannel, string>>> = {
-  agreements: "Agreement",
-  billing: "Invoice",
-  orders: "Order",
-  portfolio: "Account",
-  quotes: "Quote",
+const activityNouns: Readonly<Partial<Record<ProjectionChannel, MessageId>>> = {
+  agreements: "recordKind.agreement",
+  billing: "recordKind.invoice",
+  orders: "recordKind.order",
+  portfolio: "recordKind.account",
+  quotes: "recordKind.quote",
 };
 
 function recentActivity(
   records: ChannelRecords,
+  reader: DashboardReader,
 ): CustomerDashboardProjection["activity"] {
+  const { t, formatting } = reader;
   return [...records.values()]
     .flat()
     .sort(
@@ -590,12 +582,18 @@ function recentActivity(
       return {
         id: record.recordKey,
         title: record.title,
-        detail: `${activityNouns[record.channel] ?? "Record"} · ${record.statusLabel}`,
+        detail: t("common.join.labels", {
+          first: t(
+            activityNouns[record.channel] ??
+              "experience.data.dashboard.activityRecord",
+          ),
+          second: record.statusLabel,
+        }),
         occurredAt: record.updatedAt,
         occurredLabel:
           occurredAt === null
             ? record.updatedAt
-            : momentFormat.format(new Date(occurredAt)),
+            : formatMoment(occurredAt, formatting),
       };
     });
 }
@@ -607,6 +605,137 @@ const customerChannels: readonly ProjectionChannel[] = [
   "agreements",
 ];
 
+/** Checked against the app's routes, as the fixture it replaced was. */
+const servicesRoute: Route = "/services";
+
+/**
+ * The demo customer's account agreement, services, usage and activity: fixed
+ * facts, rendered for the reader. Only the obligations come from records; the
+ * rest has no projection channel in the demo.
+ */
+function demoCustomerDashboard(input: {
+  loaded: LoadedChannels;
+  accountName: string;
+  reader: DashboardReader;
+}): CustomerDashboardProjection & { term: CustomerTerm } {
+  const { loaded, accountName, reader } = input;
+  const { t } = reader;
+  // Keep the fictional term dates, but age their display using the same
+  // projection timestamp shown in Account facts.
+  const demoTermStart = Date.parse("2026-01-01T00:00:00Z");
+  const demoTermEnd = Date.parse("2027-01-01T00:00:00Z");
+  const demoNoticeAt = Date.parse("2026-11-01T00:00:00Z");
+  const progressPercent = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(
+        ((loaded.now - demoTermStart) / (demoTermEnd - demoTermStart)) * 100,
+      ),
+    ),
+  );
+  const noticeDay = fact(onDay("2026-11-01"), reader);
+  const madridReplica = demoText({
+    en: "Madrid compliance replica",
+    es: "Réplica de cumplimiento en Madrid",
+    fr: "Réplique de conformité de Madrid",
+    de: "Compliance-Replikat Madrid",
+    ja: "マドリードのコンプライアンス用レプリカ",
+    pt: "Réplica de conformidade em Madri",
+    zh: "马德里合规副本",
+    ar: "النسخة المتماثلة للامتثال في مدريد",
+  });
+  return {
+    generatedAt: loaded.generatedAt,
+    stale: loaded.stale,
+    obligations: [
+      ...customerObligations(loaded.records, t),
+      {
+        id: "renewal-0098",
+        priority: 0,
+        type: t("experience.data.dashboard.noticeAndRenewal"),
+        title:
+          loaded.now < demoNoticeAt
+            ? t("experience.data.dashboard.noticeWindowOpens", {
+                date: noticeDay,
+              })
+            : t("experience.data.dashboard.noticeWindowOpened", {
+                date: noticeDay,
+              }),
+        detail: t("experience.data.dashboard.reviewServicePlan"),
+        actionLabel: t("experience.data.dashboard.reviewServices"),
+        href: servicesRoute,
+        tone: "warning" as const,
+        state: t("experience.data.dashboard.actionDue"),
+        recordVersion: 4,
+      },
+    ].map((item, index) => ({ ...item, priority: index + 1 })),
+    term: {
+      title: t("experience.data.dashboard.termAnnual", {
+        account: accountName,
+      }),
+      rangeLabel: fact(dateRange("2026-01-01", "2026-12-31"), reader),
+      progressPercent,
+      progressLabel: t("experience.data.dashboard.termProgress", {
+        percent: percentText(progressPercent, reader),
+      }),
+      renewalState: t("experience.data.dashboard.renewalAutoRenews"),
+      noticeLabel: noticeLabel(demoNoticeAt, null, loaded.now, reader),
+      renewalLabel: fact(onDate("2027-01-01"), reader),
+      agreementLabel: t("experience.data.dashboard.agreementWithVersion", {
+        title: demoTextIn(demoCloudServiceAgreementTitle, reader.locale),
+        version: "3.2",
+      }),
+      renewalTone: renewalTone(
+        noticeOpened(demoNoticeAt, loaded.now),
+        "auto_renew",
+      ),
+    },
+    services: [
+      {
+        id: "service-primary",
+        name: t("experience.data.dashboard.servicePrimaryArchive", {
+          account: accountName,
+        }),
+        detail: t("experience.data.dashboard.serviceActiveFollowsTerm", {
+          capacity: fact(terabytes(500), reader),
+        }),
+      },
+      {
+        id: "service-madrid",
+        name: demoTextIn(madridReplica, reader.locale),
+        detail: t("experience.data.dashboard.serviceProvisioningEnds", {
+          capacity: fact(terabytes(120), reader),
+          date: fact(onDate("2026-12-31"), reader),
+        }),
+      },
+    ],
+    capacity: {
+      committed: fact(terabytes(620), reader),
+      current: t("common.join.labels", {
+        first: fact(terabytes(311), reader),
+        second: fact(percent(0.502), reader),
+      }),
+      prior: t("experience.data.dashboard.capacityPriorChange", {
+        capacity: fact(terabytes(292), reader),
+        change: fact(terabytes(19), reader),
+      }),
+      freshnessLabel: t("experience.data.dashboard.capacityRefreshed", {
+        relative: fact(ago(18, "minute"), reader),
+      }),
+    },
+    activity: [
+      {
+        id: "activity-marketplace",
+        title: t("experience.data.dashboard.activityMarketplaceSynced"),
+        detail: t("experience.data.dashboard.activityAwsPrivateOffer"),
+        occurredAt: "2026-07-31T15:42:00.000Z",
+        occurredLabel: fact(ago(18, "minute"), reader),
+      },
+    ],
+  };
+}
+
 /**
  * Composed at read time from the per-record channels rather than read from one
  * precomputed row: the rollup spans quotes, orders, invoices and agreements, so
@@ -616,57 +745,19 @@ export async function loadCustomerDashboardProjection(
   accountName?: string,
 ): Promise<CustomerDashboardProjection> {
   const session = await getCommerceSession();
+  const reader = await dashboardReader();
   if (explicitDashboardDemoEnabled()) {
     const loaded = await loadDashboardChannels(
       "customer",
       ["billing", "quotes"],
       session,
     );
-    // Keep the fictional term dates, but age their display using the same
-    // projection timestamp shown in Account facts.
-    const demoTermStart = Date.parse("2026-01-01T00:00:00Z");
-    const demoTermEnd = Date.parse("2027-01-01T00:00:00Z");
-    const demoNoticeAt = Date.parse("2026-11-01T00:00:00Z");
-    const progressPercent = Math.min(
-      100,
-      Math.max(
-        0,
-        Math.round(
-          ((loaded.now - demoTermStart) / (demoTermEnd - demoTermStart)) * 100,
-        ),
-      ),
-    );
-    return {
-      ...demoCustomer,
-      generatedAt: loaded.generatedAt,
-      stale: loaded.stale,
-      obligations: [
-        ...customerObligations(loaded.records),
-        ...demoCustomer.obligations
-          .filter((item) => item.type === "Notice and renewal")
-          .map((item) => ({
-            ...item,
-            title:
-              loaded.now < demoNoticeAt
-                ? "Notice window opens Nov 1"
-                : "Notice window opened Nov 1",
-          })),
-      ].map((item, index) => ({ ...item, priority: index + 1 })),
-      term: {
-        ...demoCustomer.term,
-        title: `${accountName ?? "Northstar"} annual term`,
-        progressPercent,
-        progressLabel: `${progressPercent} percent of the current commercial term elapsed`,
-        noticeLabel: noticeLabel(demoNoticeAt, null, loaded.now),
-      },
-      services: demoCustomer.services.map((service) => ({
-        ...service,
-        name:
-          service.id === "service-primary"
-            ? `${accountName ?? "Northstar"} primary archive`
-            : service.name,
-      })),
-    };
+    return demoCustomerDashboard({
+      loaded,
+      // i18n-exempt: the demo account's name
+      accountName: accountName ?? "Northstar",
+      reader,
+    });
   }
   const loaded = await loadDashboardChannels(
     "customer",
@@ -676,8 +767,8 @@ export async function loadCustomerDashboardProjection(
   return {
     generatedAt: loaded.generatedAt,
     stale: loaded.stale,
-    obligations: customerObligations(loaded.records),
-    term: customerTerm(loaded.records, loaded.now),
+    obligations: customerObligations(loaded.records, reader.t),
+    term: customerTerm(loaded.records, loaded.now, reader),
     services: channelRecords(loaded.records, "orders").map((record) => ({
       id: record.recordKey,
       name: record.title,
@@ -687,7 +778,7 @@ export async function loadCustomerDashboardProjection(
     // back to its empty state rather than deriving a number from commercial
     // records that do not measure use.
     capacity: null,
-    activity: recentActivity(loaded.records),
+    activity: recentActivity(loaded.records, reader),
   };
 }
 
@@ -716,13 +807,15 @@ function addMonths(time: number, months: number): number {
  * the agreement window becomes available once agreement writes publish an
  * authoritative event.
  */
-function termWindow(records: ChannelRecords): TermWindow | null {
+function termWindow(records: ChannelRecords, t: Translator): TermWindow | null {
   const order = governingOrder(records);
   const start = order ? authoritativeTime(order, "serviceStartsOn") : null;
   const end = order ? authoritativeTime(order, "serviceEndsOn") : null;
   if (order && start !== null && end !== null && end > start)
     return {
-      label: `${order.title} service term`,
+      label: t("experience.data.dashboard.partnerOrderServiceTerm", {
+        order: order.title,
+      }),
       start,
       end,
       notice: authoritativeTime(order, "noticeOn"),
@@ -763,7 +856,9 @@ function endClientReference(record: DashboardRecord): string | null {
 
 function partnerWork(
   records: ChannelRecords,
+  reader: DashboardReader,
 ): PartnerDashboardProjection["work"] {
+  const { t, formatting } = reader;
   return [...channelRecords(records, "quotes")]
     .filter((record) => record.status === "open" || record.tone === "danger")
     .map((record) => ({
@@ -781,10 +876,14 @@ function partnerWork(
     .map((item) => ({
       id: item.record.recordKey,
       account: endClientReference(item.record) ?? item.record.title,
-      task: item.record.nextAction ?? "Review quote",
+      task:
+        item.record.nextAction ?? t("experience.data.dashboard.reviewQuote"),
       // No projection carries the evidence a partner task requires yet.
-      evidence: NOT_RECORDED,
-      due: item.record.term ?? formatDay(item.due) ?? NOT_RECORDED,
+      evidence: t("common.notRecorded"),
+      due:
+        item.record.term ??
+        formatDay(item.due, formatting) ??
+        t("common.notRecorded"),
       href: route(
         `/partner/quotes/${encodeURIComponent(item.record.recordKey)}`,
         "work.href",
@@ -795,26 +894,43 @@ function partnerWork(
     }));
 }
 
+const partnerTypeLabels: Readonly<Record<string, MessageId>> = {
+  referral: "experience.data.dashboard.routeReferral",
+  resale: "experience.data.dashboard.routeResale",
+  msp: "experience.data.dashboard.routeMsp",
+  embedded: "experience.data.dashboard.routeEmbedded",
+};
+
 function partnerAgreement(
   records: ChannelRecords,
   work: PartnerDashboardProjection["work"],
   now: number,
+  reader: DashboardReader,
 ): PartnerDashboardProjection["agreement"] {
+  const { t, formatting } = reader;
   const account = channelRecords(records, "portfolio")[0] ?? null;
   const agreement = channelRecords(records, "agreements")[0] ?? null;
-  const window = termWindow(records);
+  const window = termWindow(records, t);
   const partnerType = account
     ? authoritativeText(account, "partnerAgreementType")
     : null;
+  const partnerTypeLabel = partnerType
+    ? partnerTypeLabels[partnerType]
+    : undefined;
   const nextDecision =
     work[0] === undefined
-      ? "No partner decision is pending."
-      : `${work[0].account} · ${work[0].task}`;
+      ? t("experience.data.dashboard.partnerNoDecision")
+      : t("common.join.labels", {
+          first: work[0].account,
+          second: work[0].task,
+        });
   const shared = {
     nextDecision,
-    commercialRoute: partnerType ? titleCase(partnerType) : NOT_RECORDED,
+    commercialRoute: partnerTypeLabel
+      ? t(partnerTypeLabel)
+      : (partnerType ?? t("common.notRecorded")),
     // Merchant of record is not carried by any authoritative payload yet.
-    merchantBoundary: NOT_RECORDED,
+    merchantBoundary: t("common.notRecorded"),
   };
 
   // TermBar requires a valid window, so an account with no recorded term gets a
@@ -822,13 +938,13 @@ function partnerAgreement(
   if (!window)
     return {
       ...shared,
-      label: "No partner agreement term recorded",
+      label: t("experience.data.dashboard.partnerNoTerm"),
       start: new Date(now - 2 * DAY_IN_MS).toISOString(),
       noticeStart: new Date(now - DAY_IN_MS).toISOString(),
       end: new Date(now - DAY_IN_MS).toISOString(),
       now: new Date(now).toISOString(),
       renewalState: "expired",
-      authorityState: "No partner agreement term recorded",
+      authorityState: t("experience.data.dashboard.partnerNoTerm"),
     };
 
   const renewalState = partnerRenewalState(
@@ -846,12 +962,16 @@ function partnerAgreement(
     renewalState,
     authorityState:
       renewalState === "expired"
-        ? `Term ended ${formatDay(window.end)}`
+        ? t("experience.data.dashboard.partnerTermEnded", {
+            date: formatDay(window.end, formatting) ?? "",
+          })
         : renewalState === "notice-open"
-          ? "Notice window open"
+          ? t("experience.data.dashboard.partnerNoticeOpen")
           : window.notice === null
-            ? "Active"
-            : `Active · notice opens ${formatDay(window.notice)}`,
+            ? t("experience.data.status.agreementInForce")
+            : t("experience.data.dashboard.partnerInForceNoticeOpens", {
+                date: formatDay(window.notice, formatting) ?? "",
+              }),
   };
 }
 
@@ -873,42 +993,134 @@ function partnerCommission(
   };
 }
 
+/**
+ * The demo partner desk: the agreement clock, the two work items and the
+ * commercial boundary for the selected organization, rendered for the reader.
+ */
+function demoPartnerDashboard(input: {
+  identity?: { accountId: string; accountName: string };
+  reader: DashboardReader;
+}): PartnerDashboardProjection {
+  const { reader } = input;
+  const { t, formatting } = reader;
+  const name =
+    input.identity?.accountName ??
+    t("experience.data.dashboard.partnerYourOrganization");
+  const referral = input.identity?.accountId === demoAccountIds.referral;
+  const noticeReview = fact(onDay("2026-09-01"), reader);
+  return {
+    generatedAt: "2026-07-31T16:00:00.000Z",
+    stale: false,
+    agreement: {
+      label: t("experience.data.dashboard.partnerAgreementLabel", {
+        partner: name,
+        version: "4.1",
+      }),
+      start: "2026-01-01T00:00:00.000Z",
+      noticeStart: "2026-09-01T00:00:00.000Z",
+      end: "2026-12-31T00:00:00.000Z",
+      now: "2026-07-31T16:00:00.000Z",
+      renewalState: "auto-renews",
+      authorityState: t(
+        "experience.data.dashboard.partnerInForceNoticeReviewDue",
+        { date: noticeReview },
+      ),
+      nextDecision: t("experience.data.dashboard.partnerReviewAuthorityBy", {
+        date: noticeReview,
+      }),
+      commercialRoute: referral
+        ? t("experience.data.dashboard.routeReferral")
+        : t("experience.data.dashboard.routeResaleAndTwoTier"),
+      merchantBoundary: referral
+        ? t("experience.data.dashboard.merchantFilOneReferred")
+        : t("experience.data.dashboard.merchantPartnerResale", {
+            partner: name,
+          }),
+    },
+    work: [
+      {
+        id: "partner-renewal",
+        account: "Halcyon Research Cooperative",
+        task: t("experience.data.dashboard.workRenewalRouteEconomics"),
+        evidence: t("experience.data.dashboard.workTransferFloorResaleTerm"),
+        due: fact(onDay("2026-09-02"), reader),
+        href: "/partner/renewals",
+        adminOnly: true,
+        recordVersion: 4,
+      },
+      {
+        id: "partner-registration",
+        account: "Atlas Field Imaging",
+        task: t("experience.data.dashboard.workProtectDealRegistration"),
+        evidence: t("experience.data.dashboard.workQualificationMissing"),
+        due: t("experience.data.dashboard.workToday"),
+        href: "/partner/registrations",
+        adminOnly: false,
+        recordVersion: 2,
+      },
+    ],
+    commission: {
+      id: "STM-2026-Q3",
+      statement: t("experience.data.dashboard.commissionStatementQuarter", {
+        quarter: 3,
+      }),
+      accruedAmount: t("experience.data.value.accrued", {
+        amount: formatMoney("1842000", "USD", formatting),
+      }),
+      href: "/partner/commissions?q=STM-2026-Q3",
+    },
+    boundary: referral
+      ? [
+          {
+            label: t("experience.data.dashboard.boundaryCustomerPricing"),
+            value: t("experience.data.dashboard.boundarySetByFilOne"),
+          },
+          {
+            label: t("experience.data.dashboard.boundaryMerchantOfRecord"),
+            value: "Fil One",
+          },
+          {
+            label: t("experience.data.dashboard.boundaryPartnerEarnings"),
+            value: t("experience.data.dashboard.boundaryReferralCommission"),
+          },
+        ]
+      : [
+          {
+            label: t("experience.data.dashboard.boundaryTransferPrice"),
+            value: t("experience.data.dashboard.boundaryPrivateTo", {
+              partner: name,
+            }),
+          },
+          {
+            label: t("experience.data.dashboard.boundaryPartnerPrice"),
+            value: t("experience.data.dashboard.boundaryControlledBy", {
+              partner: name,
+            }),
+          },
+          {
+            label: t("experience.data.dashboard.boundaryMerchantOfRecord"),
+            value: t(
+              "experience.data.dashboard.boundaryPartnerOnResaleRoutes",
+              {
+                partner: name,
+              },
+            ),
+          },
+        ],
+  };
+}
+
 /** Partner account records route to `portfolio`, never to a `dashboard` row. */
 export async function loadPartnerDashboardProjection(identity?: {
   accountId: string;
   accountName: string;
 }): Promise<PartnerDashboardProjection> {
-  if (explicitDashboardDemoEnabled()) {
-    const name = identity?.accountName ?? "Your organization";
-    const referral = identity?.accountId === demoAccountIds.referral;
-    return {
-      ...demoPartner,
-      agreement: {
-        ...demoPartner.agreement,
-        label: `${name} Partner Agreement - v4.1`,
-        commercialRoute: referral
-          ? "Referral"
-          : "Resale and two-tier distributor",
-        merchantBoundary: referral
-          ? "Fil One is merchant of record to referred customers"
-          : `${name} is merchant of record to end clients on resale routes`,
-      },
-      boundary: referral
-        ? [
-            { label: "Customer pricing", value: "Set by Fil One" },
-            { label: "Merchant of record", value: "Fil One" },
-            {
-              label: "Partner earnings",
-              value: "Referral commission on eligible collected revenue",
-            },
-          ]
-        : [
-            { label: "Transfer price", value: `Private to ${name}` },
-            { label: "Partner price", value: `Controlled by ${name}` },
-            { label: "Merchant of record", value: `${name} on resale routes` },
-          ],
-    };
-  }
+  const reader = await dashboardReader();
+  if (explicitDashboardDemoEnabled())
+    return demoPartnerDashboard({
+      ...(identity ? { identity } : {}),
+      reader,
+    });
   const session = await getCommerceSession();
   const [loaded, commissions] = await Promise.all([
     loadDashboardChannels("partner", partnerChannels, session),
@@ -921,7 +1133,7 @@ export async function loadPartnerDashboardProjection(identity?: {
         )
       : Promise.resolve(null),
   ]);
-  const work = partnerWork(loaded.records);
+  const work = partnerWork(loaded.records, reader);
   const account = channelRecords(loaded.records, "portfolio")[0] ?? null;
   const commission = partnerCommission(commissions?.records[0]);
   return {
@@ -933,7 +1145,7 @@ export async function loadPartnerDashboardProjection(identity?: {
     // stale merely because older statements exist; only the selected record's
     // own projection freshness does.
     stale: loaded.stale || Boolean(commissions?.records[0]?.stale),
-    agreement: partnerAgreement(loaded.records, work, loaded.now),
+    agreement: partnerAgreement(loaded.records, work, loaded.now, reader),
     work,
     ...(commission ? { commission } : {}),
     boundary: account ? account.context : [],

@@ -106,8 +106,14 @@ export function parseCollectionState(input: RawSearchParams): CollectionState {
   };
 }
 
-function numericValue(value: string): number {
-  const number = Number(value.replace(/[^0-9.-]+/g, ""));
+/**
+ * The value column's ordering. A record rendered from facts carries the number
+ * itself; only a record that arrives as a pre-formatted string is parsed, and
+ * that parse assumes the string's own digits, not the reader's locale.
+ */
+function numericValue(record: CommercialRecord): number {
+  if (record.valueSort !== undefined) return record.valueSort;
+  const number = Number(record.value.replace(/[^0-9.-]+/g, ""));
   return Number.isFinite(number) ? number : 0;
 }
 
@@ -140,9 +146,9 @@ export function filterAndSortRecords(
       if (state.sort === "title_desc")
         return right.title.localeCompare(left.title);
       if (state.sort === "value_desc")
-        return numericValue(right.value) - numericValue(left.value);
+        return numericValue(right) - numericValue(left);
       if (state.sort === "value_asc")
-        return numericValue(left.value) - numericValue(right.value);
+        return numericValue(left) - numericValue(right);
       const direction = state.sort === "updated_asc" ? 1 : -1;
       return left.updatedAt.localeCompare(right.updatedAt) * direction;
     });

@@ -35,6 +35,7 @@ function renderBuy(input?: {
   catalogueMode?: "authoritative" | "simulated";
   mode?: "authoritative" | "demo";
   pollAttempts?: number;
+  thresholdTb?: number;
 }) {
   return render(
     <SelfServeBuy
@@ -44,6 +45,7 @@ function renderBuy(input?: {
       offers={authoritativeQuoteOffers}
       pollAttempts={input?.pollAttempts ?? 1}
       pollIntervalMs={0}
+      {...(input?.thresholdTb ? { thresholdTb: input.thresholdTb } : {})}
     />,
   );
 }
@@ -168,6 +170,27 @@ describe("self-serve Buy", () => {
     ).toHaveAttribute("href", "/quotes/new?capacity=100&term=12");
     expect(mocks.sendCoreCommand).not.toHaveBeenCalled();
     expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The routing line comes from channel policy. The page used to print "100 TB"
+   * whatever the policy said, so a 250 TB policy routed at 250 TB while the
+   * meter and the rule beneath it told the reader 100 TB.
+   */
+  it("states the threshold the channel policy actually routes at", async () => {
+    const user = userEvent.setup();
+    renderBuy({ thresholdTb: 250 });
+
+    expect(
+      screen.getByText("250 TB routes to the full quote workspace"),
+    ).toBeVisible();
+    expect(screen.getByText(/^Self-serve is below 250 TB\./u)).toBeVisible();
+    expect(screen.queryByText(/100 TB/u)).toBeNull();
+
+    await user.type(screen.getByLabelText("Committed capacity (TB)"), "200");
+    expect(
+      screen.queryByRole("link", { name: "Continue in a quote" }),
+    ).toBeNull();
   });
 
   it("binds bodyless artifact and projection GETs before the handoff", async () => {

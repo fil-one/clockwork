@@ -2,8 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import type { ProjectedArtifact } from "@/src/features/experience-server/artifact-delivery-list";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import type { CommercialRecord, OrderLifecycleStatus } from "./model";
-import { orderTimeline } from "./order-timeline";
+import { orderTimeline as renderTimeline } from "./order-timeline";
+
+const en = translatorFor("en");
+const orderTimeline = (
+  record: CommercialRecord,
+  artifacts: readonly ProjectedArtifact[],
+) => renderTimeline(record, artifacts, en);
 
 function publicOrderStatus(status: OrderLifecycleStatus | null): string {
   if (status === "accepted" || status === "active") return status;

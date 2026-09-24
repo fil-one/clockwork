@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   runtimeDatabase: vi.fn(),
   serviceDatabase: vi.fn(),
   demoPreparedOrderForm: vi.fn(),
+  database: false,
 }));
 
 vi.mock("@/src/auth/session", () => ({
@@ -22,10 +23,22 @@ vi.mock("@/src/auth/session", () => ({
     process.env.VERCEL_ENV !== "production" &&
     process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV !== "production",
 }));
-vi.mock("./projection-source", () => ({
-  configuredProjectionSource: () => ({ list: mocks.list, find: mocks.find }),
-  projectionInput: (input: Record<string, unknown>) => input,
-}));
+vi.mock("./projection-source", () => {
+  // Rows from the database source are re-rendered for the reader from their
+  // facts; any other source's rows come back as written.
+  class DatabaseProjectionSource {}
+  return {
+    configuredProjectionSource: () =>
+      mocks.database
+        ? Object.assign(new DatabaseProjectionSource(), {
+            list: mocks.list,
+            find: mocks.find,
+          })
+        : { list: mocks.list, find: mocks.find },
+    DatabaseProjectionSource,
+    projectionInput: (input: Record<string, unknown>) => input,
+  };
+});
 vi.mock("@/src/db/service", () => ({
   getOptionalRuntimeDatabase: mocks.runtimeDatabase,
   getOptionalServiceDatabase: mocks.serviceDatabase,
@@ -243,7 +256,7 @@ describe("partner record context", () => {
     const page = await loadPartnerRecords("quotes");
 
     expect(page.records[0]?.context).toBe(
-      "Floor check Pass · Expires Aug 14, 2026",
+      "Floor check: Pass · Expires: Aug 14, 2026",
     );
     expect(page.records[0]?.href).toBe(
       "/partner/quotes/quote-60000000-0000-4000-8000-000000000001",
@@ -1028,4 +1041,68 @@ it("maps separate partner quote prices only from complete authorized money field
       (await loadPartnerRecords("quotes")).records[0]?.quotePricing,
     ).toBeUndefined();
   }
+});
+
+describe("production rows are rendered for the reader", () => {
+  beforeEach(() => {
+    mocks.getCommerceSession.mockResolvedValue({
+      userId: "20000000-0000-4000-8000-000000000001",
+      accountIds: [accountId],
+      roles: ["owner"],
+      isInternalStaff: false,
+    });
+  });
+
+  it("re-derives stored English labels from the row's facts, and only for the database source", async () => {
+    const stored = projection({
+      audience: "customer",
+      data: {
+        id: "60000000-0000-4000-8000-000000000001",
+        kind: "quotes",
+        reference: "Q-60000000",
+        title: "Q-60000000 rev 3",
+        description: "Expires Aug 14, 2026 · 14 days remaining",
+        status: "open",
+        statusLabel: "Open",
+        tone: "neutral",
+        risk: "low",
+        owner: "Q-60000000",
+        value: "$184,800.00",
+        valueLabel: "Total USD",
+        dateLabel: "Aug 14, 2026",
+        term: "Expires Aug 14, 2026 · 14 days remaining",
+        nextAction: "Expire",
+        allowedActions: ["expire"],
+        context: [],
+        authoritative: {
+          status: "issued",
+          revision: 3,
+          currency: "USD",
+          totalMinor: "18480000",
+          expiresAt: "2026-08-14T00:00:00.000Z",
+        },
+      },
+    });
+    returns([stored]);
+
+    mocks.database = true;
+    try {
+      const [production] = (await loadPortalRecords("customer", "quotes"))
+        .records;
+      expect(production?.data).toMatchObject({
+        title: "Q-60000000 · revision 3",
+        valueLabel: "Total (USD)",
+        nextAction: "Expire now",
+      });
+    } finally {
+      mocks.database = false;
+    }
+
+    const [demo] = (await loadPortalRecords("customer", "quotes")).records;
+    expect(demo?.data).toMatchObject({
+      title: "Q-60000000 rev 3",
+      valueLabel: "Total USD",
+      nextAction: "Expire",
+    });
+  });
 });

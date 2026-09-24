@@ -10,19 +10,20 @@ import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 
 import { readDemoWebhookEvents } from "../demo-operator-state";
 
-import { webhookReplayCopy } from "./copy";
+import type { ReplaySource } from "./copy";
 
 export type { ReplayableWebhookEvent };
 
 export interface WebhookReplayQueue {
   events: readonly ReplayableWebhookEvent[];
-  source: string;
+  /** Which store answered; the page names it in the reader's language. */
+  source: ReplaySource;
   readable: boolean;
 }
 
 const unreadable: WebhookReplayQueue = {
   events: [],
-  source: webhookReplayCopy.sourceUnreadable,
+  source: "unavailable",
   readable: false,
 };
 
@@ -47,7 +48,7 @@ export async function loadReplayableWebhookEvents(input: {
       });
       return {
         events,
-        source: webhookReplayCopy.sourceDemo,
+        source: "demo",
         readable: true,
       };
     } catch {
@@ -61,7 +62,7 @@ export async function loadReplayableWebhookEvents(input: {
       limit: input.limit ?? 100,
       ...(input.provider ? { provider: input.provider } : {}),
     });
-    return { events, source: webhookReplayCopy.sourceReadable, readable: true };
+    return { events, source: "live", readable: true };
   } catch {
     return unreadable;
   }

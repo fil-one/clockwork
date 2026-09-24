@@ -1,13 +1,28 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
+import {
+  useFormattingLocale,
+  useLocale,
+  useTranslations,
+} from "@/src/i18n/client";
+import type { MessageId, Translator } from "@/src/i18n";
 
 import { useMemo, useState } from "react";
 
+import {
+  resolveDemoText,
+  type ResolvedDemoText,
+} from "@clockwork/testing/demo-localized-text";
 import { Select } from "@clockwork/ui";
 
+import { formatMoney } from "@/src/features/shared/format";
+
 import { adminSafetyCopy } from "./copy";
-import { approvalCases } from "./data";
+import {
+  approvalCases,
+  type ApprovalCase,
+  type ApprovalCaseKind,
+  type SelectOption,
+} from "./data";
 import { buildReviewSummary, canDecide, type ReviewSummary } from "./policy";
 import {
   AdministrationPage,
@@ -18,51 +33,114 @@ import {
   styles,
 } from "./ui";
 
-const actorNames: Readonly<Record<string, string>> = {
-  internal_operator: "Morgan Ellis · Internal operator",
-  finance_approver: "Elena Torres · Finance approver",
-  legal_approver: "Priya Nair · Legal approver",
-  destructive_action_approver: "Sasha Reed · Destructive-action approver",
+/** Demo actors by role; names are data, the role label is a message. */
+const actorNames: Readonly<Record<string, [string, MessageId]>> = {
+  internal_operator: ["Morgan Ellis", "role.internalOperator"],
+  finance_approver: ["Elena Torres", "role.financeApprover"],
+  legal_approver: ["Priya Nair", "role.legalApprover"],
+  destructive_action_approver: ["Sasha Reed", "role.destructiveActionApprover"],
 };
+
+const kindLabels: Readonly<Record<ApprovalCaseKind, MessageId>> = {
+  approval: "adminGovernance.approvals.kind.approval",
+  rejection: "adminGovernance.approvals.kind.rejection",
+  offboarding: "adminGovernance.approvals.kind.offboarding",
+  destructive: "adminGovernance.approvals.kind.destructive",
+};
+
+const kindReviewLabels: Readonly<Record<ApprovalCaseKind, MessageId>> = {
+  approval: "adminGovernance.approvals.kindReview.approval",
+  rejection: "adminGovernance.approvals.kindReview.rejection",
+  offboarding: "adminGovernance.approvals.kindReview.offboarding",
+  destructive: "adminGovernance.approvals.kindReview.destructive",
+};
+
+/** A case with its demo text resolved and its summary line formatted. */
+type ApprovalCaseView = ResolvedDemoText<Omit<ApprovalCase, "summary">> &
+  SelectOption & { description: string };
+
+function presentCase(
+  approvalCase: ApprovalCase,
+  t: Translator,
+  locale: string,
+  formattingLocale: string,
+): ApprovalCaseView {
+  const { summary, ...rest } = approvalCase;
+  const description =
+    summary.kind === "priceException"
+      ? t("adminGovernance.approvals.case.priceException", {
+          percent: new Intl.NumberFormat(formattingLocale, {
+            style: "percent",
+            maximumFractionDigits: 1,
+          }).format(summary.belowFloor),
+          amount: formatMoney(
+            summary.annualValueMinor,
+            summary.currency,
+            formattingLocale,
+          ),
+        })
+      : resolveDemoText(summary.text, locale);
+  return { ...resolveDemoText(rest, locale), description };
+}
 
 export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
   const t = useTranslations();
-  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
-  const [caseId, setCaseId] = useState(approvalCases[0]?.id ?? "");
+  const locale = useLocale();
+  const formattingLocale = useFormattingLocale();
+  const cases = useMemo(
+    () =>
+      approvalCases.map((approvalCase) =>
+        presentCase(approvalCase, t, locale, formattingLocale),
+      ),
+    [t, locale, formattingLocale],
+  );
+  const [caseId, setCaseId] = useState(cases[0]?.id ?? "");
   const [decision, setDecision] = useState<"approved" | "rejected">("approved");
   const [reason, setReason] = useState("");
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const selected =
-    approvalCases.find((approvalCase) => approvalCase.id === caseId) ??
-    approvalCases[0];
-  const actor = useMemo(
-    () =>
-      roles.map((role) => actorNames[role]).find(Boolean) ??
-      "Authenticated staff actor",
-    [roles],
-  );
+    cases.find((approvalCase) => approvalCase.id === caseId) ?? cases[0];
+  const actor = useMemo(() => {
+    const known = roles.map((role) => actorNames[role]).find(Boolean);
+    return known
+      ? t("common.join.labels", { first: known[0], second: t(known[1]) })
+      : t("adminGovernance.approvals.actorFallback");
+  }, [roles, t]);
 
   if (!selected) return null;
   const permitted = canDecide(roles, selected.decision);
+  const heading = adminSafetyCopy.approvals;
+  const identifiers = selected.identifiers.map(({ label, value }) => ({
+    label: t(label),
+    value,
+  }));
 
   const resetReview = () => {
     setSummary(null);
   };
 
   return (
-    <AdministrationPage {...localizedadminSafetyCopy.approvals}>
+    <AdministrationPage
+      eyebrow={t(heading.eyebrow)}
+      title={t(heading.title)}
+      description={t(heading.description)}
+    >
       <div className={styles.decisionGrid}>
         <section className={styles.panel} aria-labelledby="approval-work-title">
           <div className={styles.panelHeading}>
             <div>
-              <h2 id="approval-work-title">Decision work</h2>
+              <h2 id="approval-work-title">
+                {t("adminGovernance.approvals.casesHeading")}
+              </h2>
               <p>
-                {approvalCases.length} cases demonstrate segregated authority.
+                {t("adminGovernance.approvals.casesCount", {
+                  count: cases.length,
+                })}
               </p>
             </div>
           </div>
           <div className={styles.caseList}>
-            {approvalCases.map((approvalCase) => (
+            {cases.map((approvalCase) => (
               <button
                 className={styles.caseButton}
                 type="button"
@@ -77,7 +155,12 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
               >
                 <strong>{approvalCase.label}</strong>
                 <span>
-                  {approvalCase.kind} · Owner {approvalCase.owner}
+                  {t("common.join.labels", {
+                    first: t(kindLabels[approvalCase.kind]),
+                    second: t("adminGovernance.approvals.ownerIs", {
+                      owner: approvalCase.owner,
+                    }),
+                  })}
                 </span>
                 <small>{approvalCase.description}</small>
               </button>
@@ -93,10 +176,22 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
             <div>
               <h2 id="approval-detail-title">{selected.label}</h2>
               <p>
-                {selected.kind} review · Owner {selected.owner}
+                {t("common.join.labels", {
+                  first: t(kindReviewLabels[selected.kind]),
+                  second: t("adminGovernance.approvals.ownerIs", {
+                    owner: selected.owner,
+                  }),
+                })}
               </p>
             </div>
-            <StatusPill state={permitted ? "Authorized role" : "Read only"} />
+            <StatusPill
+              state={t(
+                permitted
+                  ? "adminGovernance.approvals.authorizedRole"
+                  : "adminGovernance.readOnly",
+              )}
+              tone="warning"
+            />
           </div>
           <form
             className={styles.panelBody}
@@ -108,22 +203,25 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
                   impact:
                     decision === "approved"
                       ? selected.impact
-                      : `Rejects the requested operation. ${selected.impact}`,
+                      : t("common.join.sentences", {
+                          first: t("adminGovernance.approvals.rejectImpact"),
+                          second: selected.impact,
+                        }),
                   evidence: selected.evidence,
                   policyBasis: selected.policyBasis,
                   downstreamEffect:
                     decision === "approved"
                       ? selected.downstreamEffect
-                      : "The request remains blocked and returns to its owner with the recorded reason.",
+                      : t("adminGovernance.approvals.rejectDownstream"),
                   reason,
                 }),
               );
             }}
           >
             <HumanSelector
-              label="Affected case"
+              label={t("adminGovernance.approvals.affectedCase")}
               name="caseId"
-              options={approvalCases}
+              options={cases}
               value={caseId}
               onChange={(nextId) => {
                 setCaseId(nextId || caseId);
@@ -134,15 +232,15 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
 
             <dl className={styles.metaGrid}>
               <div>
-                <dt>Requested by</dt>
+                <dt>{t("adminGovernance.approvals.requestedBy")}</dt>
                 <dd>{selected.requestedBy}</dd>
               </div>
               <div>
-                <dt>Authenticated actor</dt>
+                <dt>{t("adminGovernance.approvals.authenticatedActor")}</dt>
                 <dd>{actor}</dd>
               </div>
               <div>
-                <dt>Policy gates</dt>
+                <dt>{t("adminGovernance.approvals.policyGates")}</dt>
                 <dd>
                   <ul className={styles.gateList}>
                     {selected.gates.map((gate) => (
@@ -152,17 +250,13 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
                 </dd>
               </div>
               <div>
-                <dt>Authority</dt>
-                <dd>
-                  Server session role, requester separation, recent
-                  authentication, and dual control are rechecked when the
-                  decision is submitted.
-                </dd>
+                <dt>{t("adminGovernance.approvals.authority")}</dt>
+                <dd>{t("adminGovernance.approvals.authorityDetail")}</dd>
               </div>
             </dl>
 
             <Select
-              label="Decision"
+              label={t("adminGovernance.approvals.decision")}
               name="decision"
               value={decision}
               onChange={(event) => {
@@ -172,36 +266,42 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
                 resetReview();
               }}
               options={[
-                { value: "approved", label: "Approve" },
-                { value: "rejected", label: "Reject" },
+                {
+                  value: "approved",
+                  label: t("adminGovernance.approvals.approve"),
+                },
+                {
+                  value: "rejected",
+                  label: t("adminGovernance.approvals.reject"),
+                },
               ]}
             />
             <label className={styles.field}>
-              Decision reason
+              {t("adminGovernance.decisionReason")}
               <textarea
                 name="reason"
                 value={reason}
                 minLength={8}
                 required
-                placeholder="State the evidence and policy rationale for this decision."
+                placeholder={t("adminGovernance.approvals.reasonPlaceholder")}
                 onChange={(event) => {
                   setReason(event.currentTarget.value);
                   resetReview();
                 }}
               />
               <span className={styles.fieldHint}>
-                Required for approvals and rejections; retained with actor
-                attribution.
+                {t("adminGovernance.approvals.reasonHint")}
               </span>
             </label>
             {!permitted ? (
               <div className={styles.roleNotice} role="note">
-                <strong>This role cannot decide this case.</strong>
-                You may inspect evidence, but the matching finance, legal, or
-                destructive-action authority must record the decision.
+                <strong>
+                  {t("adminGovernance.approvals.roleCannotDecide")}
+                </strong>
+                {t("adminGovernance.approvals.roleCannotDecideDetail")}
               </div>
             ) : null}
-            <TechnicalEvidence identifiers={selected.identifiers} />
+            <TechnicalEvidence identifiers={identifiers} />
             <div className={styles.actions}>
               <button
                 className={styles.button}
@@ -210,8 +310,8 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
               >
                 {t(
                   decision === "approved"
-                    ? "approval.reviewApprove"
-                    : "approval.reviewReject",
+                    ? "adminGovernance.approvals.reviewApprove"
+                    : "adminGovernance.approvals.reviewReject",
                 )}
               </button>
             </div>
@@ -223,15 +323,16 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
         <>
           <ReviewSummaryCard
             summary={summary}
-            identifiers={selected.identifiers}
-            title={`${decision === "approved" ? "Approval" : "Rejection"} review summary`}
+            identifiers={identifiers}
+            title={t(
+              decision === "approved"
+                ? "adminGovernance.approvals.summaryApprove"
+                : "adminGovernance.approvals.summaryReject",
+            )}
           />
           <section className={styles.handoff} role="note">
-            <strong>No decision recorded</strong>
-            <p>
-              Continue in the authorized workflow, where authority, actor
-              separation, evidence, retention, and policy gates are revalidated.
-            </p>
+            <strong>{t("adminGovernance.approvals.noDecisionRecorded")}</strong>
+            <p>{t("adminGovernance.approvals.handoff")}</p>
           </section>
         </>
       ) : null}

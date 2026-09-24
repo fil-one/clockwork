@@ -11,14 +11,16 @@
  * fails if either list here stops agreeing with the constraint it mirrors.
  */
 
+import type { MessageId } from "@/src/i18n";
+
 /** The one channel `notification_preferences_channel_check` accepts. */
 export const notificationChannel = "email";
 
 export interface ManageableAlert {
   /** The `alert_kind` value the PUT body carries. */
   kind: string;
-  label: string;
-  description: string;
+  label: MessageId;
+  description: MessageId;
 }
 
 /**
@@ -28,29 +30,26 @@ export interface ManageableAlert {
 export const manageableAlerts: readonly ManageableAlert[] = [
   {
     kind: "renewal_term_window",
-    label: "Renewal term reminders",
-    description:
-      "Advance notice that a service term is approaching the window in which it renews.",
+    label: "customer.notifications.alert.renewalTermWindow",
+    description: "customer.notifications.alert.renewalTermWindow.description",
   },
   {
     kind: "poc_milestone",
-    label: "Proof-of-concept milestones",
-    description:
-      "Progress updates while a proof of concept is running, including success-test results.",
+    label: "customer.notifications.alert.pocMilestone",
+    description: "customer.notifications.alert.pocMilestone.description",
   },
   {
     kind: "quote_expiry",
-    label: "Quote expiry warnings",
-    description:
-      "A warning before an issued quote lapses and has to be re-priced.",
+    label: "customer.notifications.alert.quoteExpiry",
+    description: "customer.notifications.alert.quoteExpiry.description",
   },
 ];
 
 export interface RefusedAlert {
   kind: string;
-  label: string;
+  label: MessageId;
   /** Why the constraint refuses it. Not a policy this surface invented. */
-  reason: string;
+  reason: MessageId;
 }
 
 /**
@@ -63,15 +62,13 @@ export interface RefusedAlert {
 export const refusedAlerts: readonly RefusedAlert[] = [
   {
     kind: "renewal_notice_window",
-    label: "Renewal notice deadline",
-    reason:
-      "The agreement requires this warning before the notice window closes, so it cannot be switched off.",
+    label: "customer.notifications.refused.renewalNoticeWindow",
+    reason: "customer.notifications.refused.renewalNoticeWindow.reason",
   },
   {
     kind: "collections_dunning",
-    label: "Collections and payment demands",
-    reason:
-      "This is a demand for payment on an issued invoice. A debtor cannot opt out of being told it owes money.",
+    label: "customer.notifications.refused.collectionsDunning",
+    reason: "customer.notifications.refused.collectionsDunning.reason",
   },
 ];
 

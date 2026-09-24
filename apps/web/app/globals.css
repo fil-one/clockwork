@@ -33,7 +33,9 @@ input {
 .sr-only {
   position: absolute !important;
   top: 0 !important;
-  left: 0 !important;
+  /* Logical, so a right-to-left page does not gain a 1px scrollable
+     overflow on its start edge from the negative margin. */
+  inset-inline-start: 0 !important;
   width: 1px !important;
   height: 1px !important;
   padding: 0 !important;
@@ -74,9 +76,9 @@ input {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 /*
  * The supplied mark is a fixed-width asset, and the compact header clips its
@@ -88,51 +90,70 @@ input {
   min-width: 0;
   max-width: 100%;
 }
+/*
+ * The organization switcher sits on one line in the header: a muted label,
+ * then the current organization as an outline dropdown, as in the console.
+ * Where the tablet header is too narrow for both, the label is clipped from
+ * sight but stays the select's accessible name, because the label element
+ * still wraps it. On a phone the switcher has its own row and the label
+ * shows again.
+ */
 .organization-switcher {
-  display: grid;
-  gap: 0.2rem;
-  max-width: 22rem;
+  display: flex;
+  min-width: 0;
+  max-width: 30rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.625rem;
 }
 .organization-switcher > span:first-child {
+  flex: 0 0 auto;
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
-  font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.015em;
+  font-size: var(--cw-text-sm);
+  font-weight: 400;
+  white-space: nowrap;
 }
 .organization-switcher__control {
   display: grid;
   min-width: 0;
-  min-height: 2.75rem;
+  flex: 1 1 12rem;
+  min-height: var(--cw-control-height);
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--web-line);
   border-radius: var(--cw-radius-sm);
-  padding-inline: 0.65rem;
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
+  padding-inline: 0.625rem;
   color: var(--web-muted);
   transition:
     border-color var(--cw-motion-fast) var(--cw-motion-ease),
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
     color var(--cw-motion-fast) var(--cw-motion-ease);
 }
-.organization-switcher:focus-within .organization-switcher__control,
 .organization-switcher__control:hover {
-  border-color: var(--web-line);
+  border-color: rgb(9 9 11 / 0.2);
   background: var(--web-canvas);
+  color: var(--web-ink);
+}
+.organization-switcher:focus-within .organization-switcher__control {
+  border-color: var(--cw-action);
+  outline: 2px solid color-mix(in srgb, var(--cw-action) 35%, transparent);
   color: var(--web-ink);
 }
 .organization-switcher select {
   width: 100%;
   min-width: 0;
-  min-height: 2.625rem;
+  min-height: calc(var(--cw-control-height) - 2px);
   appearance: none;
   border: 0;
   background: transparent;
   color: var(--web-ink);
   padding: 0;
   font-size: var(--cw-text-md);
-  font-weight: 700;
+  font-weight: 500;
   outline: none;
 }
 .header-actions {
@@ -143,28 +164,29 @@ input {
   gap: 0.45rem;
 }
 .top-action {
-  min-height: 2.75rem !important;
-  padding: 0.45rem 0.7rem !important;
+  min-height: var(--cw-control-height) !important;
+  padding: 0.25rem 0.5rem 0.25rem 0.75rem !important;
   color: var(--web-muted) !important;
-  font-size: var(--cw-text-sm) !important;
+  font-size: var(--cw-text-md) !important;
 }
 .top-action kbd {
   border: 1px solid var(--web-line);
   border-radius: var(--cw-radius-xs);
   background: var(--web-canvas);
   padding: 0.05rem 0.3rem;
+  font-family: var(--cw-font-sans);
   font-size: var(--cw-text-xs);
 }
 .icon-action,
 .avatar {
   position: relative;
   display: inline-grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  flex: 0 0 2.75rem;
+  width: var(--cw-control-height);
+  height: var(--cw-control-height);
+  flex: 0 0 var(--cw-control-height);
   place-items: center;
   border: 1px solid transparent;
-  border-radius: 50%;
+  border-radius: var(--cw-radius-sm);
   background: transparent;
   padding: 0;
   color: var(--web-ink);
@@ -197,12 +219,19 @@ input {
   background: var(--web-warm);
 }
 .avatar {
-  margin-left: 0.25rem;
-  background: var(--web-ink);
-  color: white;
+  width: 2rem;
+  height: 2rem;
+  flex-basis: 2rem;
+  margin-inline-start: 0.25rem;
+  border-radius: 50%;
+  background: var(--cw-canvas-deep);
+  border-color: var(--web-line);
+  color: var(--web-ink);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.avatar:hover {
+  background: var(--cw-surface);
 }
 .utility-menu {
   position: relative;
@@ -210,21 +239,21 @@ input {
 .utility-popover {
   position: absolute;
   z-index: 60;
-  top: calc(100% + 0.65rem);
-  right: 0;
+  top: calc(100% + 0.5rem);
+  inset-inline-end: 0;
   width: min(20rem, calc(100vw - 2rem));
   border: 1px solid var(--web-line);
   border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
-  box-shadow: 0 1.25rem 3rem rgb(var(--cw-shadow-color) / 16%);
+  box-shadow: var(--cw-shadow-dialog);
   padding: 1rem;
-  font-size: var(--cw-text-xs);
+  font-size: var(--cw-text-sm);
 }
 .utility-popover ul {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.5rem;
   margin: 0.75rem 0 0;
-  padding-left: 1.1rem;
+  padding-inline-start: 1.1rem;
   color: var(--web-muted);
 }
 .utility-popover p {
@@ -248,7 +277,7 @@ input {
 }
 .shell-footer-content p {
   margin: 0;
-  text-align: right;
+  text-align: end;
 }
 .shell-content {
   min-width: 0;
@@ -261,41 +290,41 @@ input {
 .experience-main {
   display: grid;
   gap: 1.5rem;
-  padding: clamp(1.25rem, 4vw, 3.25rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
 }
+/* The console's page header: plain semibold title, one muted line, no rule. */
 .page-header {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 1rem 2rem;
-  padding-block-end: 1.1rem;
-  border-bottom: 2px solid var(--web-ink);
 }
 .page-header > div:first-child {
   max-width: 52rem;
 }
 .eyebrow {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.25rem;
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 .page-header h1 {
-  max-width: 32ch;
+  max-width: 40ch;
   margin: 0;
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
+  line-height: var(--cw-leading-tight);
   text-wrap: balance;
 }
 .page-description {
   max-width: 47rem;
-  margin: 1rem 0 0;
+  margin: 0.25rem 0 0;
   color: var(--web-muted);
-  font-size: clamp(0.96rem, 1.4vw, 1.08rem);
+  font-size: var(--cw-text-md);
 }
 .workflow-panel {
   border-block: 1px solid var(--web-line);
@@ -310,7 +339,8 @@ input {
 }
 .workflow-panel h2 {
   margin: 0;
-  font-size: var(--cw-text-2xl);
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 .workflow-panel form {
   display: grid;
@@ -330,7 +360,7 @@ input {
   align-items: start;
   gap: 0.6rem;
   font-size: var(--cw-text-sm);
-  font-weight: 600;
+  font-weight: 500;
 }
 .checkbox-field input {
   width: 1.1rem;
@@ -343,13 +373,14 @@ input {
 }
 .form-message {
   margin: 0;
-  border-left: 3px solid var(--web-accent);
+  border: 1px solid var(--cw-info-border);
+  border-radius: var(--cw-radius-sm);
   background: var(--web-soft);
-  padding: 0.65rem 0.8rem;
+  padding: 0.5rem 0.75rem;
   font-size: var(--cw-text-sm);
 }
 .form-message--error {
-  border-color: var(--web-danger);
+  border-color: var(--cw-danger-border);
   background: var(--cw-danger-soft);
   color: var(--cw-danger-strong);
 }
@@ -366,22 +397,22 @@ input {
   display: grid;
   justify-items: start;
   align-content: start;
-  gap: 0.8rem;
-  min-height: 15rem;
+  gap: 0.75rem;
+  min-height: 12rem;
   border: 1px solid var(--web-line);
-  border-top: 3px solid var(--web-line);
   border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
   padding: 1.25rem;
+  box-shadow: var(--cw-shadow-xs);
 }
 .state-card--success {
-  border-top-color: var(--web-accent);
+  border-color: var(--cw-success-border);
 }
 .state-card--warning {
-  border-top-color: var(--web-warm);
+  border-color: var(--cw-warning-border);
 }
 .state-card--danger {
-  border-top-color: var(--web-danger);
+  border-color: var(--cw-danger-border);
 }
 .state-card h1,
 .state-card h2,
@@ -429,7 +460,8 @@ input {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  text-transform: uppercase;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 .signing-card,
 .access-card {
@@ -437,8 +469,8 @@ input {
   border: 1px solid var(--web-line);
   border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
-  box-shadow: 0 1.5rem 4rem rgb(var(--cw-shadow-color) / 8%);
-  padding: clamp(1.4rem, 5vw, 3.5rem);
+  box-shadow: var(--cw-shadow-xs);
+  padding: clamp(1.25rem, 5vw, 2.5rem);
 }
 .registration-card {
   width: min(58rem, 100%);
@@ -456,10 +488,10 @@ input {
 .signing-card h1,
 .access-card h1 {
   margin: 0;
-  font-size: var(--cw-text-hero);
+  font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.05em;
-  line-height: 1;
+  line-height: var(--cw-leading-tight);
+  text-wrap: balance;
 }
 .signing-card > p:not(.eyebrow),
 .access-card > p:not(.eyebrow) {
@@ -478,14 +510,14 @@ input {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 .signing-summary dd {
   margin: 0.25rem 0 0;
   font-size: var(--cw-text-sm);
-  font-weight: 700;
+  font-weight: 600;
 }
 .signing-actions {
   display: flex;
@@ -495,16 +527,17 @@ input {
   display: grid;
   justify-items: start;
   gap: 0.65rem;
-  border-left: 3px solid var(--web-warm);
+  border: 1px solid var(--cw-warning-border);
+  border-radius: var(--cw-radius-lg);
   background: var(--cw-warning-soft);
   padding: 1rem;
 }
 .provider-state--error {
-  border-color: var(--web-danger);
+  border-color: var(--cw-danger-border);
   background: var(--cw-danger-soft);
 }
 .provider-state--success {
-  border-color: var(--web-accent);
+  border-color: var(--cw-info-border);
   background: var(--web-soft);
 }
 .provider-state h2,
@@ -515,6 +548,7 @@ input {
   width: 100%;
   min-height: 32rem;
   border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
 }
 .provider-progress {
@@ -560,6 +594,16 @@ input {
     display: none;
   }
 }
+@media (min-width: 48rem) and (max-width: 80rem) {
+  .organization-switcher > span:first-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
 @media (max-width: 52rem) {
   .organization-switcher {
     max-width: none;
@@ -567,6 +611,17 @@ input {
   .top-action span,
   .top-action kbd {
     display: none;
+  }
+  /* With its label gone the search trigger is an icon button like help. */
+  .top-action {
+    width: var(--cw-control-height);
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .top-action:hover {
+    background: var(--web-canvas) !important;
   }
   .header-actions > .cw-badge {
     display: none;
@@ -576,7 +631,7 @@ input {
     flex-direction: column;
   }
   .shell-footer-content p {
-    text-align: left;
+    text-align: start;
   }
   .experience-main {
     padding: 1.4rem 1rem 2.5rem;
@@ -638,80 +693,48 @@ input {
   }
 }
 
-/* The three audiences take different steps of the one brand ramp. The step is a
-   quiet marker; composition and structure carry the real difference. */
-.web-shell--customer {
+/* Customer, partner, and operator surfaces share the console's one action
+   blue. Composition and density tell them apart, not a different hue. */
+.web-shell--customer,
+.web-shell--partner,
+.web-shell--internal {
   --web-accent: var(--color-accent-strong);
   --web-soft: var(--color-accent-soft);
 }
 
-.web-shell--partner {
-  --web-accent: var(--cw-blue-800);
-  --web-soft: var(--cw-blue-50);
-}
-
-.web-shell--internal {
-  --web-accent: var(--cw-blue-950);
-  --web-soft: var(--cw-canvas-deep);
-}
-
-.web-shell--partner .cw-shell__rail {
-  border-right-color: color-mix(
-    in srgb,
-    var(--web-accent) 32%,
-    var(--web-line)
-  );
-}
-
-/*
- * Monospace is for values that line up in a column, so it stays on the rail's
- * timestamps and comes off the navigation labels, which are prose. The
- * operator portal is already told apart by its ramp step and its denser
- * composition; setting its wayfinding in a different family made the labels
- * harder to scan without adding any information.
- */
-.web-shell--internal .sidebar-meta {
-  font-family: var(--cw-font-mono);
-}
-
 /* Shared legacy surfaces use a work heading, fact ledger, and disclosed context. */
-.page-header {
-  padding-block-end: 1.1rem;
-  border-bottom: 2px solid var(--web-ink);
-}
-
 .surface-context {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.25rem;
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-}
-
-.page-header h1 {
-  max-width: 32ch;
-  font-family: var(--cw-font-display);
-  font-size: var(--cw-text-display);
-  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .surface-facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   margin: 0;
-  border-block: 1px solid var(--web-line);
+  overflow: hidden;
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .surface-facts > div {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem;
-  padding: 0.75rem;
-  border-left: 3px solid var(--web-line);
+  padding: 0.75rem 1rem;
+  border-inline-start: 1px solid var(--web-line);
+  margin-inline-start: -1px;
 }
 
 .surface-facts > div[data-tone="attention"] {
-  border-left-color: var(--web-warm);
+  background: var(--cw-warning-soft);
 }
 
 .surface-facts dt,
@@ -736,11 +759,11 @@ input {
 }
 
 .supporting-disclosure > summary {
-  min-height: 3.25rem;
-  padding-block: 0.85rem;
+  min-height: 2.75rem;
+  padding-block: 0.65rem;
   color: var(--web-accent);
   font-size: var(--cw-text-md);
-  font-weight: 800;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -765,44 +788,21 @@ input {
   }
 }
 
-/* Arabic uses the same layout with logical inline edges. Keep technical input
-   readable without changing stored values or the direction of chart axes. */
-html[dir="rtl"] .utility-popover {
-  right: auto;
-  left: 0;
-}
-html[dir="rtl"] .cw-shell__brand,
-html[dir="rtl"] .cw-shell__rail,
+/*
+ * Arabic uses the same layout. The shell, drawer, popovers, and badges are set
+ * with logical properties, so they mirror without overrides here. What stays
+ * is the drawer's entrance, which slides from the physical left, and the rule
+ * that keeps technical input left-to-right. Isolating those fields keeps a URL
+ * or an email address readable; it does not touch the direction of running
+ * text, so the Unicode isolates the application puts around interpolated
+ * values keep working. Letter-spacing and case are switched off for Arabic in
+ * the design system, not here.
+ */
 html[dir="rtl"] .cw-drawer-content {
-  border-right: 0;
-  border-left: 1px solid var(--cw-border);
-}
-html[dir="rtl"] .cw-drawer-content {
-  left: auto;
-  right: 0;
   animation: none;
-}
-html[dir="rtl"] .cw-skip-link {
-  left: auto;
-  right: var(--cw-space-3);
-}
-html[dir="rtl"] .cw-navigation__badge {
-  margin-left: 0;
-  margin-right: auto;
-}
-html[dir="rtl"] .avatar {
-  margin-left: 0;
-  margin-right: 0.25rem;
-}
-html[dir="rtl"] .utility-popover ul {
-  padding-left: 0;
-  padding-right: 1.1rem;
 }
 html[dir="rtl"] :is(th, td, label, h1, h2, h3) {
   text-align: start;
-}
-html[dir="rtl"] :is(h1, h2, h3, button, label, .cw-navigation__label) {
-  letter-spacing: normal;
 }
 html[dir="rtl"] :is(input[type="email"], input[type="url"], code, pre) {
   direction: ltr;

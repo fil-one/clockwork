@@ -1,6 +1,8 @@
 import type { SessionClaims } from "@clockwork/api";
 import { DOCUMENT_KINDS } from "@clockwork/documents/model";
 
+import type { Locale } from "@/src/i18n";
+
 export const experienceAudiences = ["customer", "partner", "internal"] as const;
 export type ExperienceAudience = (typeof experienceAudiences)[number];
 
@@ -80,6 +82,13 @@ export interface ProjectionListInput {
   /** Defaults to `updated_desc`, the ordering every existing caller assumed. */
   orderBy?: ProjectionOrder;
   now: Date;
+  /**
+   * The reader's interface language. Only the demo source reads it: it resolves
+   * demo-authored fixture text (`demoText`) and formats the amounts it derives
+   * for the reader. The database source ignores it, because a production
+   * record's content is never translated.
+   */
+  locale?: Locale;
 }
 
 export interface ProjectionActionInput {

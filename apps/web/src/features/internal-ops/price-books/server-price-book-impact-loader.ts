@@ -37,7 +37,7 @@ export function demoPriceBookImpact(
   });
   return {
     availability: "available",
-    source: "Illustrative demo scenario",
+    source: "demoScenario",
     asOf,
     records,
   };
@@ -66,7 +66,7 @@ export async function loadPriceBookImpact(input: {
     return {
       ...snapshot,
       availability: "available",
-      source: "Retained commerce records",
+      source: "retainedRecords",
     };
   } catch {
     return { availability: "unavailable" };

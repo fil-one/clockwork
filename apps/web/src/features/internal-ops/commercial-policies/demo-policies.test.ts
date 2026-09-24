@@ -1,7 +1,16 @@
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { createMemoryDemoStore } from "@clockwork/testing/demo-reset";
 import { createPristineDemoAdapterState } from "@clockwork/testing/demo-state";
-import { DemoCommercialPolicyRepository } from "./demo-policies";
+import {
+  ChannelPolicyRecordSchema,
+  PaygOfferRecordSchema,
+  type PaygOfferRecord,
+} from "@clockwork/domain/core";
+import {
+  DemoCommercialPolicyRepository,
+  localizeDemoChannelPolicy,
+  localizeDemoPaygPolicy,
+} from "./demo-policies";
 import type { SessionClaims } from "@clockwork/api";
 import { simulateDemoPayg, handleDemoPaygPolicy } from "./demo-payg-handler";
 vi.mock("server-only", () => ({}));
@@ -160,4 +169,74 @@ it("rejects unauthorized/assisted finance and never fabricates billing execution
   const response = await handleDemoPaygPolicy(request(), session, repo);
   expect(response.status).toBe(200);
   expect(await response.json()).toHaveProperty("offers");
+});
+
+it("shows demo-authored policy text in the reader's language and leaves stored and user-typed text alone", async () => {
+  const repo = new DemoCommercialPolicyRepository(createMemoryDemoStore());
+  const [proposal, customer] = await repo.listPayg(now);
+  if (!proposal || !customer) throw new Error("Missing fictional offers");
+  // The stored records stay English for the domain and other readers.
+  expect(proposal.terms.name).toBe("Fictional PAYG review scenario");
+
+  const pt = localizeDemoPaygPolicy(proposal, "pt");
+  expect(pt.terms.name).toBe(
+    "Cenário fictício de revisão de pagamento conforme o uso",
+  );
+  expect(pt.terms.owner).toBe("Equipe comercial da demonstração");
+  expect(pt.decisionReason).toBe(
+    "Proposta fictícia preparada por outro autor financeiro da demonstração.",
+  );
+  expect(pt.terms.sku).toBe(proposal.terms.sku);
+  expect(
+    localizeDemoPaygPolicy(customer, "de").terms.customerAcquisition
+      ?.cancellationNotice,
+  ).toMatch(/^Nur fiktive Demo\. Die Kündigung bleibt eine Anfrage/u);
+  expect(localizeDemoPaygPolicy(proposal, "en")).toEqual(proposal);
+
+  const edited: PaygOfferRecord = {
+    ...proposal,
+    decisionReason: "Revisado pela equipe financeira.",
+    terms: { ...proposal.terms, name: "Minha política" },
+  };
+  const untouched = localizeDemoPaygPolicy(edited, "pt");
+  expect(untouched.terms.name).toBe("Minha política");
+  expect(untouched.decisionReason).toBe("Revisado pela equipe financeira.");
+
+  // A localized record still satisfies the domain schema in every language.
+  for (const locale of ["es", "fr", "de", "ja", "pt", "zh", "ar"]) {
+    PaygOfferRecordSchema.parse(localizeDemoPaygPolicy(customer, locale));
+  }
+  const [channel] = await repo.listChannel(now);
+  if (!channel) throw new Error("Missing fictional channel policy");
+  const ja = ChannelPolicyRecordSchema.parse(
+    localizeDemoChannelPolicy(channel, "ja"),
+  );
+  expect(ja.terms.sourceEvidence).toBe(
+    "デモ用の架空のチャネルプログラムです。承認済みの実際の商用ポリシーではありません。",
+  );
+});
+
+it("returns demo policies in the language of the request's cookie", async () => {
+  const repo = new DemoCommercialPolicyRepository(createMemoryDemoStore());
+  const session: SessionClaims = {
+    userId: reviewer,
+    organizationId: "30000000-0000-4000-8000-000000000008",
+    accountIds: [],
+    roles: ["finance_approver"],
+    isInternalStaff: true,
+    mfaVerified: true,
+    recentAuthenticationVerified: true,
+  };
+  const response = await handleDemoPaygPolicy(
+    new Request("https://demo.clockwork.test/api/v1/core/payg-offers", {
+      headers: { cookie: "clockwork-csrf=x; clockwork-language=fr" },
+    }),
+    session,
+    repo,
+  );
+  const body = (await response.json()) as { offers: PaygOfferRecord[] };
+  expect(body.offers.map((offer) => offer.terms.name)).toEqual([
+    "Scénario fictif de revue du paiement à l’usage",
+    "Stockage fictif sans engagement de durée",
+  ]);
 });

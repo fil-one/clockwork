@@ -12,13 +12,15 @@
 }
 .header h1 {
   font-family: var(--cw-font-display);
-  font-size: clamp(1.8rem, 4vw, 2.5rem);
-  line-height: 1.2;
-  letter-spacing: -0.035em;
+  font-size: var(--cw-text-display);
+  font-weight: 600;
+  line-height: var(--cw-leading-tight);
   overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 .header p {
   color: var(--web-muted);
+  font-size: var(--cw-text-md);
 }
 .logo {
   width: 150px;
@@ -28,18 +30,21 @@
 .panel {
   background: var(--web-paper);
   border: 1px solid var(--web-line);
-  border-radius: 12px;
+  border-radius: var(--cw-radius-lg);
+  box-shadow: var(--cw-shadow-xs);
   display: grid;
-  gap: 18px;
-  padding: clamp(20px, 3vw, 32px);
+  gap: 16px;
+  padding: clamp(20px, 3vw, 28px);
 }
 .panel h2 {
-  font-size: 1.3rem;
-  font-weight: 650;
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 .panel > strong {
   font-family: var(--cw-font-display);
-  font-size: 2rem;
+  font-size: var(--cw-text-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .panel p {
   line-height: 1.6;
@@ -57,8 +62,9 @@
 }
 .panel label {
   display: grid;
-  gap: 8px;
-  font-weight: 550;
+  gap: 6px;
+  font-size: var(--cw-text-md);
+  font-weight: 500;
   line-height: 1.5;
 }
 .panel label:has(input[type="checkbox"]) {
@@ -69,13 +75,16 @@
 .panel input:not([type="checkbox"]),
 .panel select,
 .panel textarea {
-  background: var(--web-canvas);
-  border: 1px solid var(--web-line);
-  border-radius: 6px;
+  background: var(--web-paper);
+  border: 1px solid var(--cw-border-strong);
+  border-radius: var(--cw-radius-sm);
+  box-shadow: var(--cw-shadow-xs);
   color: inherit;
   font: inherit;
+  font-weight: 400;
+  min-height: var(--cw-control-height);
   min-width: 0;
-  padding: 12px;
+  padding: 6px 12px;
   width: 100%;
 }
 .panel textarea {
@@ -91,25 +100,35 @@
   gap: 20px;
 }
 .primary {
-  background: var(--web-accent);
-  border: 1px solid transparent;
-  border-radius: 6px;
+  background: var(--cw-action);
+  border: 1px solid var(--cw-action);
+  border-radius: var(--cw-radius-sm);
+  box-shadow: var(--cw-shadow-xs);
   color: white;
   cursor: pointer;
   font: inherit;
-  font-weight: 650;
-  min-height: 48px;
-  padding: 12px 20px;
+  font-size: var(--cw-text-md);
+  font-weight: 500;
+  min-height: 2.5rem;
+  padding: 8px 18px;
   justify-self: start;
+}
+.primary:hover:not(:disabled) {
+  background: var(--cw-action-strong);
+  border-color: var(--cw-action-strong);
 }
 .primary:disabled {
   opacity: 0.65;
   cursor: wait;
 }
-.primary:focus-visible,
+.primary:focus-visible {
+  outline: 2px solid var(--cw-focus);
+  outline-offset: 2px;
+}
 .panel input:focus-visible,
 .panel select:focus-visible,
 .panel textarea:focus-visible {
-  outline: 3px solid var(--web-accent);
-  outline-offset: 3px;
+  border-color: var(--cw-action);
+  outline: 2px solid color-mix(in srgb, var(--cw-action) 35%, transparent);
+  outline-offset: 0;
 }

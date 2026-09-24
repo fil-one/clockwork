@@ -8,11 +8,37 @@ import type {
   DemoAdapterState,
   DemoAdapterStateStore,
 } from "@clockwork/testing/demo-state";
+import {
+  resolveDemoText,
+  demoText,
+} from "@clockwork/testing/demo-localized-text";
 import { z } from "zod";
 
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
 
 import type { PartnerRecord } from "./partner-data";
+import {
+  partnerMilestoneText,
+  partnerPositionText,
+  type PartnerReader,
+} from "./partner-presentation";
+
+/*
+ * Problem `title` and `detail` strings in this file are English API text for
+ * logs and API clients; the brand workflow words outcomes itself.
+ */
+
+/** Who owns brand work; stands in for the partner's own role name. */
+const brandOwner = demoText({
+  en: "Partner admin",
+  es: "Administrador del socio",
+  fr: "Administrateur partenaire",
+  de: "Partneradministration",
+  ja: "パートナー管理者",
+  pt: "Administrador do parceiro",
+  zh: "合作伙伴管理员",
+  ar: "مسؤول الشريك",
+});
 
 const brandPrefix = "demo-partner-brand:";
 const receiptPrefix = "demo-partner-brand-receipt:";
@@ -32,12 +58,52 @@ const bodySchema = z
   })
   .strict();
 
+/**
+ * Brand settings as stored. The ledger row is worded from `settings` when a
+ * reader opens the page. State written before this shape also stored a
+ * `record` rendered once in English; only its `id` is still read.
+ */
 interface StoredBrand {
   readonly kind: "demo_partner_brand";
   readonly accountId: string;
-  readonly record: PartnerRecord;
+  readonly record: { readonly id: string };
   readonly updatedAt: string;
   readonly settings: Readonly<Record<string, unknown>>;
+}
+
+function presentBrand(
+  brand: StoredBrand,
+  { t, locale, formatting }: PartnerReader,
+): PartnerRecord {
+  const domain =
+    typeof brand.settings.domain === "string" ? brand.settings.domain : "";
+  const brandName =
+    typeof brand.settings.brandName === "string"
+      ? brand.settings.brandName
+      : domain;
+  return {
+    id: brand.record.id,
+    name: brandName,
+    context: t(
+      brand.settings.communicationOwner === "partner"
+        ? "partner.brand.created.partnerCommunications"
+        : "partner.brand.created.filOneCommunications",
+      { domain },
+    ),
+    status: "pending",
+    risk: "medium",
+    owner: resolveDemoText(brandOwner, locale),
+    value: partnerPositionText(
+      { kind: "dnsVerificationRequested" },
+      t,
+      formatting,
+    ),
+    secondary: partnerMilestoneText(
+      { kind: "addVerificationRecord" },
+      t,
+      formatting,
+    ),
+  };
 }
 
 interface StoredReceipt {
@@ -88,6 +154,7 @@ function digest(value: string): string {
 export function demoPartnerBrandRecords(
   state: DemoAdapterState,
   accountId: string,
+  reader: PartnerReader,
 ): readonly PartnerRecord[] {
   return Object.entries(state.projectionOverrides)
     .filter(([key]) => key.startsWith(brandPrefix))
@@ -101,7 +168,7 @@ export function demoPartnerBrandRecords(
           ? -1
           : 0,
     )
-    .map((brand) => brand.record);
+    .map((brand) => presentBrand(brand, reader));
 }
 
 function problem(requestId: string, error: unknown): Response {
@@ -117,14 +184,14 @@ function problem(requestId: string, error: unknown): Response {
   return Response.json(
     {
       type: `https://clockwork.test/problems/${code.toLowerCase().replaceAll("_", "-")}`,
-      title: "Brand settings refused",
+      title: "Brand settings refused", // i18n-exempt: API problem title, not rendered
       status,
       detail:
         known || validation
           ? error instanceof Error
             ? error.message
-            : "The brand settings are invalid"
-          : "The demo could not record the brand settings.",
+            : "The brand settings are invalid" // i18n-exempt: API problem detail, not rendered
+          : "The demo could not record the brand settings.", // i18n-exempt: API problem detail, not rendered
       code,
       requestId,
       retryable: status >= 500,
@@ -159,7 +226,7 @@ export async function handleDemoPartnerBrand(
       throw new BrandProblem(
         403,
         "PARTNER_BRAND_AUTHORITY_FORBIDDEN",
-        "Partner account administration authority is required",
+        "Partner account administration authority is required", // i18n-exempt: API problem detail, not rendered
       );
     const idempotencyKey = request.headers.get("idempotency-key")?.trim();
     if (
@@ -170,7 +237,7 @@ export async function handleDemoPartnerBrand(
       throw new BrandProblem(
         422,
         "IDEMPOTENCY_KEY_REQUIRED",
-        "A valid idempotency-key header is required",
+        "A valid idempotency-key header is required", // i18n-exempt: API problem detail, not rendered
       );
     const bytes = new Uint8Array(await request.arrayBuffer());
     const requestHash = createHash("sha256")
@@ -201,21 +268,15 @@ export async function handleDemoPartnerBrand(
           throw new BrandProblem(
             409,
             "IDEMPOTENCY_CONFLICT",
-            "The idempotency key is already bound to other brand settings",
+            "The idempotency key is already bound to other brand settings", // i18n-exempt: API problem detail, not rendered
           );
         replayed = true;
         result = prior.response;
         return state;
       }
-      const record: PartnerRecord = {
+      // The row itself is worded at read time from `settings`.
+      const record = {
         id: `DNS-${digest(settings.domain).slice(0, 8).toUpperCase()}`,
-        name: settings.brandName,
-        context: `${settings.domain} · ${settings.communicationOwner === "partner" ? "partner" : "Fil One"} communications`,
-        status: "pending",
-        risk: "medium",
-        owner: "Partner admin",
-        value: "DNS verification requested",
-        secondary: "Add the verification record at your DNS provider",
       };
       return {
         ...state,

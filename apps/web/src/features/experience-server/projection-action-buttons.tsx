@@ -10,65 +10,10 @@ import {
   readProjectionAction,
   sendProjectionAction,
 } from "@/src/features/contracts/experience-client";
-import { t as englishTranslator, type MessageId } from "@/src/i18n/en";
-
 import type { ExperienceAudience, ProjectionChannel } from "./model";
+import { actionLabel, isDestructiveAction } from "./projection-action-labels";
+import { problemText } from "./problem-text";
 import { canRunProjectionAction } from "./projection-authorization";
-
-/**
- * Server action identifiers carry no presentation. Without this map an operator
- * reads the raw command name (`mark_uncollectible`) on a control that changes
- * money. Every identifier the command executor accepts is listed here; anything
- * new falls back to the humanized identifier rather than rendering nothing.
- */
-const actionLabels: Readonly<Record<string, MessageId>> = {
-  accept: "projection.action.accept",
-  add_contact: "projection.action.addContact",
-  add_role: "projection.action.addRole",
-  apply: "projection.action.applyAmendment",
-  approve_exception: "projection.action.approveException",
-  consolidate: "projection.action.consolidate",
-  create: "projection.action.create",
-  evaluate_dunning: "projection.action.evaluateDunning",
-  execute_agreement: "projection.action.executeAgreement",
-  expire: "projection.action.expire",
-  issue: "projection.action.issue",
-  mark_uncollectible: "projection.action.markUncollectible",
-  open: "projection.action.openInvoice",
-  pay: "projection.action.pay",
-  prepare_artifact: "projection.action.prepareArtifact",
-  convert_poc: "projection.action.convertPoc",
-  price: "projection.action.price",
-  reject_exception: "projection.action.rejectException",
-  request_teardown: "projection.action.requestTeardown",
-  request_renewal: "projection.action.requestRenewal",
-  revise: "projection.action.revise",
-  set_partner_credit: "projection.action.setPartnerCredit",
-  set_payment_terms: "projection.action.setPaymentTerms",
-  update: "projection.action.update",
-  void: "projection.action.void",
-};
-
-/** Transitions that end a commercial record or remove a running service. */
-const irreversibleActions = new Set([
-  "expire",
-  "mark_uncollectible",
-  "reject_exception",
-  "request_teardown",
-  "void",
-]);
-
-export function actionLabel(action: string, t = englishTranslator): string {
-  const id = actionLabels[action];
-  return id ? t(id) : action.replaceAll("_", " ");
-}
-
-export function isDestructiveAction(action: string): boolean {
-  return (
-    irreversibleActions.has(action) ||
-    /delete|teardown|terminate|cancel/i.test(action)
-  );
-}
 
 type ActionFeedback = {
   readonly tone: "progress" | "success" | "error";
@@ -149,10 +94,10 @@ export function ProjectionActionButtons({
           tone: "success",
           message:
             receipt.authoritativeVersion === null
-              ? t("projection.action.appliedUnknownVersion", {
+              ? t("experience.action.appliedUnknownVersion", {
                   action: actionLabel(action, t),
                 })
-              : t("projection.action.applied", {
+              : t("experience.action.applied", {
                   action: actionLabel(action, t),
                   version: receipt.authoritativeVersion,
                 }),
@@ -160,38 +105,52 @@ export function ProjectionActionButtons({
       else
         report(action, {
           tone: "error",
-          message: t("projection.action.rejected", {
-            action: actionLabel(action, t),
-            status: receipt.status,
-            code: receipt.resultCode ?? "AUTHORITATIVE_COMMAND_REJECTED",
-          }),
+          // The receipt status is a closed pair; each gets its own sentence
+          // rather than the raw status word inside a translated one.
+          message: t(
+            receipt.status === "failed"
+              ? "experience.action.failed"
+              : "experience.action.rejected",
+            {
+              action: actionLabel(action, t),
+              code: receipt.resultCode ?? "AUTHORITATIVE_COMMAND_REJECTED",
+            },
+          ),
         });
       router.refresh();
       return;
     }
     report(action, {
       tone: "progress",
-      message: t("projection.action.timeout", {
+      message: t("experience.action.timeout", {
         action: actionLabel(action, t),
       }),
       recheck: actionRequestId,
     });
   };
 
+  /**
+   * The API's problem title is English for integrators and is never shown; the
+   * reader gets a sentence chosen from its stable code and status.
+   */
   const failed = (action: string) => (error: unknown) =>
     report(action, {
       tone: "error",
-      message:
-        error instanceof Error
-          ? error.message
-          : t("projection.action.conflict"),
+      message: t("common.join.sentences", {
+        first: t("experience.action.notApplied", {
+          action: actionLabel(action, t),
+        }),
+        second: problemText(error, t, {
+          fallback: t("experience.problem.refused"),
+        }),
+      }),
     });
 
   const run = (action: string) => {
     track(action, true);
     report(action, {
       tone: "progress",
-      message: t("projection.action.submitting", {
+      message: t("experience.action.submitting", {
         action: actionLabel(action, t),
       }),
     });
@@ -211,7 +170,7 @@ export function ProjectionActionButtons({
       .then(async (queued) => {
         report(action, {
           tone: "progress",
-          message: t("projection.action.queued", {
+          message: t("experience.action.queued", {
             action: actionLabel(action, t),
           }),
         });
@@ -225,7 +184,7 @@ export function ProjectionActionButtons({
     track(action, true);
     report(action, {
       tone: "progress",
-      message: t("projection.action.rechecking", {
+      message: t("experience.action.rechecking", {
         action: actionLabel(action, t),
       }),
     });

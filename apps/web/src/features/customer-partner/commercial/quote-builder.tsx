@@ -1,7 +1,6 @@
 "use client";
-import { localizeCopy } from "@/src/i18n/copy";
 
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
@@ -10,15 +9,15 @@ import { uuidV7 } from "@clockwork/contracts";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 
-import { t as englishTranslator } from "@/src/i18n/en";
+import type { MessageId, Translator } from "@/src/i18n";
 
-import { customerPartnerCopy } from "../copy";
 import { draftIsDirty } from "../draft-state";
 import {
   LeaveDraftControl,
   useUnsavedChangesWarning,
 } from "../unsaved-changes";
 import styles from "./commercial.module.css";
+import { CommercialStop, commercialFailureText } from "./failure-message";
 import {
   QuoteLines,
   validateAdditionalLines,
@@ -28,6 +27,7 @@ import { SearchableSelector } from "./searchable-selector";
 import {
   emptyQuoteDraft,
   customerQuoteRoute,
+  quoteStageLabels,
   firstQuoteError,
   quotePayload,
   prefilledQuoteDraft,
@@ -58,36 +58,61 @@ export interface QuoteOrigin {
   };
 }
 
-function originLabel(origin: QuoteOrigin, t = englishTranslator): string {
-  if (!origin.resolved) return t("quotes.builder.origin.unavailable");
+function originLabel(origin: QuoteOrigin, t: Translator): string {
+  if (!origin.resolved)
+    return t("customer.commercial.builder.origin.unavailable");
   return origin.kind === "revision"
-    ? t("quotes.builder.origin.revision", { reference: origin.reference })
-    : t("quotes.builder.origin.poc", { reference: origin.reference });
+    ? t("customer.commercial.builder.origin.revision", {
+        reference: origin.reference,
+      })
+    : t("customer.commercial.builder.origin.poc", {
+        reference: origin.reference,
+      });
 }
 
-function labelFor(value: string, fallback = "Not selected") {
-  return value.trim() || fallback;
+function labelFor(value: string, t: Translator) {
+  return value.trim() || t("customer.commercial.accept.notSelected");
 }
 
-function regionLabel(value: string) {
-  return (
-    {
-      "us-east": "US East · Virginia",
-      "eu-west": "EU West · Madrid",
-      "uk-south": "UK South · London",
-    }[value] ?? labelFor(value)
-  );
+const regionSites: Readonly<Record<string, MessageId>> = {
+  "us-east": "region.usEast.site",
+  "eu-west": "region.euWest.site",
+  "uk-south": "region.ukSouth.site",
+};
+
+function regionLabel(value: string, t: Translator) {
+  const site = regionSites[value];
+  return site ? t(site) : labelFor(value, t);
 }
 
-function expiryLabel(value: string) {
-  if (!value) return "Not set";
+function expiryLabel(value: string, locale: string, t: Translator) {
+  if (!value) return t("customer.commercial.builder.notSet");
   const parsed = new Date(value);
   return Number.isNaN(parsed.valueOf())
     ? value
-    : new Intl.DateTimeFormat("en-US", {
+    : new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
       }).format(parsed);
+}
+
+/** "120 TB" (fr "120 To") from what the reader typed; the input as typed otherwise. */
+function capacityLabel(value: string, locale: string): string {
+  const capacity = Number(value);
+  return value.trim() && Number.isFinite(capacity)
+    ? new Intl.NumberFormat(locale, {
+        style: "unit",
+        unit: "terabyte",
+        maximumFractionDigits: 3,
+      }).format(capacity)
+    : value;
+}
+
+function monthsLabel(value: string, t: Translator): string {
+  const months = Number(value);
+  return value.trim() && Number.isInteger(months)
+    ? t("customer.commercial.months", { count: months })
+    : value;
 }
 
 function Summary({
@@ -100,62 +125,76 @@ function Summary({
   offers: readonly QuoteOfferOption[];
 }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
+  const formattingLocale = useFormattingLocale();
   return (
     <aside
       className={`${styles.summary} ${styles.commitmentSummary}`}
       aria-labelledby="quote-summary-title"
     >
       <div>
-        <p className={styles.taskContext}>Draft facts</p>
+        <p className={styles.taskContext}>
+          {t("customer.commercial.builder.draftFacts")}
+        </p>
         <h2 id="quote-summary-title">
-          {localizedcustomerPartnerCopy.commercial.quoteSummary}
+          {t("customer.commercial.builder.summaryTitle")}
         </h2>
       </div>
       <dl>
         <div>
-          <dt>Customer</dt>
-          <dd>{labelFor(draft.account)}</dd>
+          <dt>{t("customer.commercial.builder.customer")}</dt>
+          <dd>{labelFor(draft.account, t)}</dd>
         </div>
         <div>
-          <dt>Offer</dt>
-          <dd>{labelFor(draft.offer)}</dd>
+          <dt>{t("customer.commercial.builder.offer")}</dt>
+          <dd>{labelFor(draft.offer, t)}</dd>
         </div>
         <div>
-          <dt>Region</dt>
-          <dd>{regionLabel(draft.region)}</dd>
+          <dt>{t("customer.commercial.builder.region")}</dt>
+          <dd>{regionLabel(draft.region, t)}</dd>
         </div>
         <div>
-          <dt>Capacity</dt>
-          <dd>{draft.capacity ? `${draft.capacity} TB` : "Not set"}</dd>
-        </div>
-        <div>
-          <dt>Term and route</dt>
+          <dt>{t("customer.commercial.builder.capacity")}</dt>
           <dd>
-            {draft.termMonths ? `${draft.termMonths} months` : "Not set"} ·{" "}
-            Direct
+            {draft.capacity
+              ? capacityLabel(draft.capacity, formattingLocale)
+              : t("customer.commercial.builder.notSet")}
           </dd>
         </div>
         <div>
-          <dt>Expiry</dt>
-          <dd>{expiryLabel(draft.expiresAt)}</dd>
+          <dt>{t("customer.commercial.builder.termAndRoute")}</dt>
+          <dd>
+            {t("customer.commercial.builder.termDirect", {
+              term: draft.termMonths
+                ? monthsLabel(draft.termMonths, t)
+                : t("customer.commercial.builder.notSet"),
+            })}
+          </dd>
+        </div>
+        <div>
+          <dt>{t("customer.commercial.builder.expiry")}</dt>
+          <dd>{expiryLabel(draft.expiresAt, formattingLocale, t)}</dd>
         </div>
       </dl>
       {lines.length ? (
         <ul>
           {lines.map((line, index) => (
             <li key={index}>
-              Line {index + 2}:{" "}
-              {offers.find((offer) => offer.id === line.offerId)?.label ??
-                "Choose an offer"}{" "}
-              · {line.capacity || "—"} TB · {line.termMonths || "—"} months
+              {t("customer.commercial.builder.lineSummary", {
+                line: index + 2,
+                offer:
+                  offers.find((offer) => offer.id === line.offerId)?.label ??
+                  t("customer.commercial.builder.chooseOffer"),
+                capacity: line.capacity
+                  ? capacityLabel(line.capacity, formattingLocale)
+                  : "—",
+                term: line.termMonths ? monthsLabel(line.termMonths, t) : "—",
+              })}
             </li>
           ))}
         </ul>
       ) : null}
       <p className={styles.notice}>
-        Pricing and availability are confirmed by the server when the quote is
-        issued. This summary is not a commitment.
+        {t("customer.commercial.builder.summaryNotice")}
       </p>
     </aside>
   );
@@ -170,10 +209,11 @@ function Field({
 }: {
   id: QuoteField;
   label: string;
-  error?: string | undefined;
+  error?: MessageId | undefined;
   children: React.ReactNode;
   span?: boolean;
 }) {
+  const t = useTranslations();
   return (
     <div
       className={`${styles.field} ${span ? styles.spanTwo : ""}`}
@@ -183,7 +223,7 @@ function Field({
       {children}
       {error ? (
         <p className={styles.fieldError} id={`${id}-error`} role="alert">
-          {error}
+          {t(error)}
         </p>
       ) : null}
     </div>
@@ -205,16 +245,13 @@ export function QuoteBuilder({
   origin?: QuoteOrigin;
 }) {
   const t = useTranslations();
-  const stages = [
-    t("cp.commercial.quoteStages.0"),
-    t("quotes.form.stageTerms"),
-    t("quotes.form.stageReview"),
-  ];
+  const formattingLocale = useFormattingLocale();
+  const stages = quoteStageLabels.map((id) => t(id));
   const accountOptions: readonly SelectorOption[] = [
     {
       id: account.id,
       label: account.name,
-      description: t("quotes.builder.account.description"),
+      description: t("customer.commercial.builder.accountDescription"),
     },
   ];
   const [stage, setStage] = useState<QuoteStage>(1);
@@ -295,6 +332,7 @@ export function QuoteBuilder({
         lines,
         offers,
         selectedOffer?.priceBookId,
+        t,
       );
       setLineError(problem);
       if (problem) return;
@@ -315,6 +353,7 @@ export function QuoteBuilder({
       lines,
       offers,
       selectedOffer?.priceBookId,
+      t,
     );
     setLineError(problem);
     if (problem) {
@@ -344,15 +383,18 @@ export function QuoteBuilder({
     setErrorMessage("");
     try {
       if (origin?.kind === "revision" && !origin.revision)
-        throw new Error(
-          "This quote cannot be revised here. Return to its details and refresh.",
+        throw new CommercialStop(
+          "customer.commercial.builder.error.revisionUnavailable",
         );
       if (!quoteInputRef.current) {
         const input = quotePayload(draft, accountOptions, offers);
         input.payload.lines.push(
           ...lines.map((line) => {
             const offer = offers.find((item) => item.id === line.offerId);
-            if (!offer) throw new Error("Choose an offer for every line.");
+            if (!offer)
+              throw new CommercialStop(
+                "customer.commercial.builder.error.lineOffer",
+              );
             return {
               lineId: uuidV7(),
               sku: offer.sku,
@@ -368,7 +410,9 @@ export function QuoteBuilder({
       idempotencyKeyRef.current ??= crypto.randomUUID();
       quoteIdRef.current ??= uuidV7();
       if (!input.accountId)
-        throw new Error("Choose a customer account before creating the draft.");
+        throw new CommercialStop(
+          "customer.commercial.builder.error.accountRequired",
+        );
       await sendCoreCommand(
         {
           resource: "quotes",
@@ -389,12 +433,14 @@ export function QuoteBuilder({
         { idempotencyKey: idempotencyKeyRef.current },
       );
       setCreatedQuoteId(quoteIdRef.current);
-      setMessage(t("quotes.builder.created"));
+      setMessage(t("customer.commercial.builder.created"));
     } catch (caught) {
       setErrorMessage(
-        caught instanceof Error
-          ? caught.message
-          : "The quote could not be issued. Nothing was changed.",
+        commercialFailureText(
+          caught,
+          t,
+          "customer.commercial.builder.error.failed",
+        ),
       );
     } finally {
       setPending(false);
@@ -408,16 +454,26 @@ export function QuoteBuilder({
     >
       <header className={styles.header}>
         <div>
-          <p className={styles.taskContext}>Quote draft · no commitment yet</p>
-          <h1>{origin?.revision ? "Revise quote" : "Create a quote"}</h1>
-          <p className={styles.description}>{t("quotes.form.description")}</p>
+          <p className={styles.taskContext}>
+            {t("customer.commercial.builder.taskContext")}
+          </p>
+          <h1>
+            {t(
+              origin?.revision
+                ? "customer.commercial.builder.title.revise"
+                : "customer.commercial.builder.title.create",
+            )}
+          </h1>
+          <p className={styles.description}>
+            {t("customer.commercial.builder.description")}
+          </p>
         </div>
         <LeaveDraftControl
           armed={unsaved}
           className={styles.secondary ?? ""}
           discardClassName={styles.secondary ?? ""}
           href="/quotes"
-          label="Cancel and return"
+          label={t("customer.commercial.builder.cancelAndReturn")}
         />
       </header>
 
@@ -429,23 +485,29 @@ export function QuoteBuilder({
 
       {offers.length === 0 ? (
         <p className={styles.errorMessage} role="alert">
-          No authoritative active offer catalogue is available for this account.
-          No quote command can be sent.
+          {t("customer.commercial.builder.noOffers")}
         </p>
       ) : null}
 
-      <ol aria-label="Commercial promise chain" className={styles.promiseChain}>
+      <ol
+        aria-label={t("customer.commercial.accept.chainLabel")}
+        className={styles.promiseChain}
+      >
         <li>
-          <span>Required upstream</span>
-          <strong>Agreement and account authority</strong>
+          <span>{t("customer.commercial.builder.chain.upstream")}</span>
+          <strong>
+            {t("customer.commercial.builder.chain.upstreamValue")}
+          </strong>
         </li>
         <li aria-current="step">
-          <span>Current task</span>
-          <strong>Quote scope, route, and expiry</strong>
+          <span>{t("customer.commercial.builder.chain.current")}</span>
+          <strong>{t("customer.commercial.builder.chain.currentValue")}</strong>
         </li>
         <li>
-          <span>Not created</span>
-          <strong>Order commitment after acceptance</strong>
+          <span>{t("customer.commercial.builder.chain.notCreated")}</span>
+          <strong>
+            {t("customer.commercial.builder.chain.notCreatedValue")}
+          </strong>
         </li>
       </ol>
 
@@ -457,7 +519,10 @@ export function QuoteBuilder({
           role="region"
           tabIndex={-1}
         >
-          <ol className={styles.steps} aria-label="Quote creation stages">
+          <ol
+            className={styles.steps}
+            aria-label={t("customer.commercial.builder.stagesLabel")}
+          >
             {stages.map((label, index) => {
               const number = (index + 1) as QuoteStage;
               const className =
@@ -472,34 +537,44 @@ export function QuoteBuilder({
                   className={className}
                   key={label}
                 >
-                  {index + 1}. {label}
+                  {t("customer.commercial.builder.stageItem", {
+                    stage: index + 1,
+                    label,
+                  })}
                 </li>
               );
             })}
           </ol>
 
           <div>
-            <p className={styles.taskContext}>Stage {stage} of 3</p>
+            <p className={styles.taskContext}>
+              {t("customer.commercial.builder.stageOf", {
+                stage,
+                total: stages.length,
+              })}
+            </p>
             <h2 id="quote-stage-heading">{stages[stage - 1]}</h2>
           </div>
 
           {stage === 1 ? (
             <fieldset className={styles.stageFields}>
-              <legend>Customer and authoritative offer</legend>
+              <legend>{t("customer.commercial.builder.legend.offer")}</legend>
               <div className={styles.formGrid}>
                 <SearchableSelector
-                  error={errors.account}
+                  error={errors.account && t(errors.account)}
                   id="account"
-                  label="Customer account"
+                  label={t("customer.commercial.builder.label.account")}
                   onChange={(value) => update("account", value)}
                   options={accountOptions}
+                  placeholder={t("customer.commercial.builder.search.account")}
                   value={draft.account}
                 />
                 <SearchableSelector
-                  error={errors.offer}
-                  help={t("quotes.form.offerHelp")}
+                  error={errors.offer && t(errors.offer)}
+                  help={t("customer.commercial.builder.offerHelp")}
                   id="offer"
-                  label="Offer"
+                  label={t("customer.commercial.builder.offer")}
+                  placeholder={t("customer.commercial.builder.search.offer")}
                   onChange={(value) => {
                     update("offer", value);
                     const selected = offers.find(
@@ -519,12 +594,12 @@ export function QuoteBuilder({
 
           {stage === 2 ? (
             <fieldset className={styles.stageFields}>
-              <legend>Commitment, route, and expiry</legend>
+              <legend>{t("customer.commercial.builder.legend.terms")}</legend>
               <div className={styles.formGrid}>
                 <Field
                   error={errors.capacity}
                   id="capacity"
-                  label="Committed capacity (TB)"
+                  label={t("customer.commercial.builder.label.capacity")}
                 >
                   <input
                     aria-describedby={
@@ -542,7 +617,7 @@ export function QuoteBuilder({
                 <Field
                   error={errors.termMonths}
                   id="termMonths"
-                  label="Term (months)"
+                  label={t("customer.commercial.builder.label.term")}
                 >
                   <input
                     aria-describedby={
@@ -562,7 +637,9 @@ export function QuoteBuilder({
                 <fieldset
                   className={`${styles.routeChoices} ${styles.spanTwo}`}
                 >
-                  <legend>Commercial route</legend>
+                  <legend>
+                    {t("customer.commercial.builder.legend.route")}
+                  </legend>
                   <label className={styles.routeChoice}>
                     <input
                       checked
@@ -572,33 +649,27 @@ export function QuoteBuilder({
                       value={customerQuoteRoute}
                     />
                     <span>
-                      <strong>Direct</strong>
+                      <strong>
+                        {t("customer.commercial.builder.route.direct")}
+                      </strong>
                       <span>
-                        Fil One contracts with and invoices this customer at the
-                        server-priced amount.
+                        {t(
+                          "customer.commercial.builder.route.directDescription",
+                        )}
                       </span>
                     </span>
                   </label>
                   <p className={styles.description}>
-                    This customer workspace creates direct quotes only. Partner
-                    quotes use the agreement-bound partner workspace, and
-                    marketplace purchases remain on their provider-backed
-                    surface.
+                    {t("customer.commercial.builder.route.scope")}
                   </p>
                   <p className={styles.routeRule}>
-                    The commercial route is fixed when this quote is issued;
-                    changing it later means issuing a revised quote.
+                    {t("customer.commercial.builder.route.rule")}
                   </p>
                 </fieldset>
                 <Field
-                  error={
-                    errors.expiresAt ===
-                    "Choose an expiry after the current time."
-                      ? t("quotes.form.expiryFuture")
-                      : errors.expiresAt
-                  }
+                  error={errors.expiresAt}
                   id="expiresAt"
-                  label="Quote expiry"
+                  label={t("customer.commercial.builder.label.expiry")}
                 >
                   <input
                     aria-describedby={
@@ -615,7 +686,7 @@ export function QuoteBuilder({
                     value={draft.expiresAt}
                   />
                   <p id="expiresAt-help" className={styles.muted}>
-                    {t("quotes.form.expiryHelp")}
+                    {t("customer.commercial.builder.expiryHelp")}
                   </p>
                 </Field>
               </div>
@@ -639,35 +710,63 @@ export function QuoteBuilder({
           ) : null}
           {stage === 3 ? (
             <section aria-labelledby="quote-review-heading">
-              <h3 id="quote-review-heading">{t("quotes.form.reviewTitle")}</h3>
+              <h3 id="quote-review-heading">
+                {t("customer.commercial.builder.reviewTitle")}
+              </h3>
               <p className={styles.notice}>
-                {t("quotes.form.reviewDescription")}
+                {t("customer.commercial.builder.reviewDescription")}
               </p>
               <ul className={styles.reviewList}>
                 {lines.map((line, index) => (
                   <li key={index}>
-                    <span>Line {index + 2}</span>
+                    <span>
+                      {t("customer.commercial.builder.line", {
+                        line: index + 2,
+                      })}
+                    </span>
                     <strong>
-                      {offers.find((item) => item.id === line.offerId)?.label} ·{" "}
-                      {line.capacity} TB · {line.termMonths} months
+                      {t("customer.commercial.builder.lineValue", {
+                        offer:
+                          offers.find((item) => item.id === line.offerId)
+                            ?.label ?? "",
+                        capacity: capacityLabel(
+                          line.capacity,
+                          formattingLocale,
+                        ),
+                        term: monthsLabel(line.termMonths, t),
+                      })}
                     </strong>
                   </li>
                 ))}
                 <li>
-                  <span>Offer and region</span>
+                  <span>{t("customer.commercial.builder.stage.offer")}</span>
                   <strong>
-                    {draft.offer} · {regionLabel(draft.region)}
+                    {t("common.join.labels", {
+                      first: draft.offer,
+                      second: regionLabel(draft.region, t),
+                    })}
                   </strong>
                 </li>
                 <li>
-                  <span>Capacity and term</span>
+                  <span>
+                    {t("customer.commercial.builder.review.capacityTerm")}
+                  </span>
                   <strong>
-                    {draft.capacity} TB · {draft.termMonths} months
+                    {t("common.join.labels", {
+                      first: capacityLabel(draft.capacity, formattingLocale),
+                      second: monthsLabel(draft.termMonths, t),
+                    })}
                   </strong>
                 </li>
                 <li>
-                  <span>Route and expiry</span>
-                  <strong>Direct · {expiryLabel(draft.expiresAt)}</strong>
+                  <span>
+                    {t("customer.commercial.builder.review.routeExpiry")}
+                  </span>
+                  <strong>
+                    {t("customer.commercial.builder.review.routeExpiryValue", {
+                      expiry: expiryLabel(draft.expiresAt, formattingLocale, t),
+                    })}
+                  </strong>
                 </li>
               </ul>
             </section>
@@ -678,7 +777,7 @@ export function QuoteBuilder({
               {message}{" "}
               {createdQuoteId ? (
                 <Link href={`/quotes/quote-${createdQuoteId}`}>
-                  {t("quotes.builder.createdLink")}
+                  {t("customer.commercial.builder.createdLink")}
                 </Link>
               ) : null}
             </p>
@@ -700,7 +799,7 @@ export function QuoteBuilder({
                   }
                   type="button"
                 >
-                  Back
+                  {t("common.back")}
                 </button>
               ) : null}
             </div>
@@ -712,7 +811,7 @@ export function QuoteBuilder({
                   onClick={next}
                   type="button"
                 >
-                  {t("demo.access.submit")}
+                  {t("common.continue")}
                 </button>
               ) : (
                 <button
@@ -723,7 +822,11 @@ export function QuoteBuilder({
                   }}
                   type="button"
                 >
-                  {pending ? "Creating…" : "Create priced draft"}
+                  {t(
+                    pending
+                      ? "customer.commercial.builder.creating"
+                      : "customer.commercial.builder.createDraft",
+                  )}
                 </button>
               )}
             </div>

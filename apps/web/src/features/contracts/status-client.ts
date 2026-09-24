@@ -45,6 +45,7 @@ export async function readGeneratedLaneStatus(
         ? await client.GET("/v1/lifecycle/status")
         : await client.GET("/v1/system/status");
   if (response.error || !response.data)
+    // i18n-exempt: caught by Promise.allSettled in status-panel.tsx, which renders its own unavailable state
     throw new Error(`Lane status unavailable: ${lane}`);
   return response.data;
 }

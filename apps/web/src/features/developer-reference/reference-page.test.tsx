@@ -5,6 +5,8 @@ import { render, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   apiReferenceGroups,
   apiReferenceOperations,
@@ -95,8 +97,12 @@ describe("api reference page", () => {
 
   it("publishes a count for every authentication class it distinguishes", () => {
     render(<ApiReferencePage specHref="/developers/openapi.json" />);
+    // The unit harness renders English (vitest.setup.ts).
+    const t = translatorFor("en");
     for (const entry of authenticationClasses()) {
-      expect(screen.getAllByText(entry.title).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(t(entry.title)).length).toBeGreaterThanOrEqual(
+        1,
+      );
       expect(
         screen.getAllByText(String(entry.operations.length)).length,
       ).toBeGreaterThanOrEqual(1);

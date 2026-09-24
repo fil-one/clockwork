@@ -8,6 +8,7 @@ export * from "./components/data-display";
 export * from "./components/dialog";
 export * from "./components/error-boundary";
 export * from "./components/input";
+export * from "./components/kit-text";
 export * from "./components/icons";
 export * from "./components/record";
 export * from "./components/breadcrumbs";

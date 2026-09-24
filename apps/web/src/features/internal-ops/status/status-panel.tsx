@@ -1,11 +1,11 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import { useEffect, useState } from "react";
 
 import { StatusBadge } from "@clockwork/ui";
 
+import type { Translator } from "@/src/i18n";
 import {
   readGeneratedLaneStatus,
   type LaneStatus,
@@ -13,7 +13,12 @@ import {
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { formatOperationalTimestamp } from "../presentation";
-import { integrationStatusCopy } from "./copy";
+import {
+  detailLabels,
+  detailValueLabels,
+  laneLabels,
+  laneStatusLabels,
+} from "./copy";
 
 type Lane = LaneStatus["lane"];
 type LaneResult =
@@ -22,30 +27,37 @@ type LaneResult =
   | { state: "unavailable"; readAt: string };
 
 const lanes = ["core", "lifecycle", "system"] as const;
-const laneLabels: Readonly<Record<Lane, string>> = {
-  core: "Commerce",
-  lifecycle: "Customer lifecycle",
-  system: "Operations",
-};
 
-const detailLabels: Readonly<Record<string, string>> = {
-  service: "Service store",
-  stripeWebhook: "Stripe webhook",
-  registration: "Registration provider",
-  esign: "E-sign provider",
-  provisioningWebhook: "Provisioning webhook",
-  marketplaceWebhook: "Marketplace webhook",
-  evidenceStorage: "Evidence storage",
-  externalGates: "External gates",
-  activationTestRunner: "Activation test runner",
-  workosWebhook: "WorkOS webhook",
-};
+/**
+ * A detail value in the reader's language. A value outside the generated
+ * contract is shown as the code the API sent, which is what support will ask
+ * for.
+ */
+function detailValue(value: unknown, t: Translator): string {
+  const code =
+    value === true ? "configured" : value === false ? "missing" : String(value);
+  const id = Object.hasOwn(detailValueLabels, code)
+    ? detailValueLabels[code]
+    : undefined;
+  return id ? t(id) : code;
+}
 
-function detailValue(value: unknown): string {
-  if (value === "database") return "Connected";
-  if (value === "configured" || value === true) return "Configured";
-  if (value === "unconfigured" || value === false) return "Not configured";
-  return String(value).replaceAll("_", " ");
+function detailLabel(key: string, t: Translator): string {
+  const id = Object.hasOwn(detailLabels, key) ? detailLabels[key] : undefined;
+  return id ? t(id) : key;
+}
+
+/**
+ * The rows a lane reported. The generated contract declares `details`, but a
+ * responder that omits it (the demo API does) must not take the page down:
+ * `Object.entries(undefined)` threw, and the error boundary replaced the whole
+ * status page, in every language.
+ */
+function laneDetails(value: LaneStatus): Array<[string, unknown]> {
+  const details: unknown = value.details;
+  return details && typeof details === "object" && !Array.isArray(details)
+    ? Object.entries(details)
+    : [];
 }
 
 function tone(status: LaneStatus["status"]) {
@@ -58,7 +70,7 @@ function tone(status: LaneStatus["status"]) {
 
 export function StatusPanel() {
   const t = useTranslations();
-  const localizedintegrationStatusCopy = localizeCopy(integrationStatusCopy, t);
+  const formattingLocale = useFormattingLocale();
   const [results, setResults] = useState<Readonly<Record<Lane, LaneResult>>>(
     () => ({
       core: { state: "loading" },
@@ -100,9 +112,9 @@ export function StatusPanel() {
       <header className={styles.sectionHeader}>
         <div>
           <h2 id="service-configuration">
-            {localizedintegrationStatusCopy.lanes.heading}
+            {t("operations.status.lanes.heading")}
           </h2>
-          <p>{localizedintegrationStatusCopy.lanes.detail}</p>
+          <p>{t("operations.status.lanes.detail")}</p>
         </div>
       </header>
       <div className={styles.reportList}>
@@ -111,41 +123,43 @@ export function StatusPanel() {
           return (
             <article className={styles.reportCard} key={lane}>
               <div>
-                <h3>{laneLabels[lane]}</h3>
+                <h3>{t(laneLabels[lane])}</h3>
                 {result.state === "loading" ? (
-                  <p role="status">
-                    {localizedintegrationStatusCopy.lanes.loading}
-                  </p>
+                  <p role="status">{t("operations.status.lanes.loading")}</p>
                 ) : result.state === "unavailable" ? (
                   <>
                     <p role="alert">
-                      {localizedintegrationStatusCopy.lanes.unavailable}
+                      {t("operations.status.lanes.unavailable")}
                     </p>
                     <p>
-                      {localizedintegrationStatusCopy.lanes.readAt(
-                        formatOperationalTimestamp(result.readAt),
-                      )}
+                      {t("common.readAt", {
+                        time: formatOperationalTimestamp(
+                          result.readAt,
+                          formattingLocale,
+                        ),
+                      })}
                     </p>
                   </>
                 ) : (
                   <>
                     <StatusBadge tone={tone(result.value.status)}>
-                      {result.value.status}
+                      {t(laneStatusLabels[result.value.status])}
                     </StatusBadge>
                     <dl className={styles.reviewGrid}>
-                      {Object.entries(result.value.details).map(
-                        ([key, value]) => (
-                          <div key={key}>
-                            <dt>{detailLabels[key] ?? key}</dt>
-                            <dd>{detailValue(value)}</dd>
-                          </div>
-                        ),
-                      )}
+                      {laneDetails(result.value).map(([key, value]) => (
+                        <div key={key}>
+                          <dt>{detailLabel(key, t)}</dt>
+                          <dd>{detailValue(value, t)}</dd>
+                        </div>
+                      ))}
                     </dl>
                     <p>
-                      {localizedintegrationStatusCopy.lanes.readAt(
-                        formatOperationalTimestamp(result.readAt),
-                      )}
+                      {t("common.readAt", {
+                        time: formatOperationalTimestamp(
+                          result.readAt,
+                          formattingLocale,
+                        ),
+                      })}
                     </p>
                   </>
                 )}

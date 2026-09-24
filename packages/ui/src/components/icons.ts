@@ -30,6 +30,7 @@ export {
   SlidersHorizontal,
   Stamp,
   TriangleAlert,
+  UserRound,
   Users,
   WalletCards,
   Webhook,

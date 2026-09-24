@@ -5,14 +5,10 @@
 .main {
   display: grid;
   width: min(100%, var(--cw-content-max));
-  gap: calc(var(--cw-space-6) + var(--cw-space-1));
+  gap: var(--cw-space-6);
   min-width: 0;
   margin: 0 auto;
-  padding: clamp(
-    var(--cw-space-4),
-    3vw,
-    calc(var(--cw-space-8) + var(--cw-space-1))
-  );
+  padding: clamp(var(--cw-space-5), 3vw, var(--cw-space-10));
 }
 
 .main > * {
@@ -28,8 +24,7 @@
 }
 
 .header {
-  padding-block-end: calc(var(--cw-space-4) + var(--cw-space-1));
-  border-bottom: 2px solid var(--cw-ink);
+  align-items: flex-start;
 }
 
 .bandHeading {
@@ -42,19 +37,20 @@
   width: min(32rem, 70%);
 }
 
+/* The skeleton bands are the same console cards the resolved page draws. */
 .recommendations,
 .rows {
   display: grid;
   gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-surface);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .recommendations {
-  border-block: 1px solid var(--cw-border);
-}
-
-.rows {
-  border-block: 1px solid var(--cw-border-strong);
-  border-left: 4px solid var(--cw-border-strong);
+  padding-inline: var(--cw-space-4);
 }
 
 .recommendation {
@@ -76,7 +72,7 @@
 }
 
 .row {
-  padding: var(--cw-space-3) var(--cw-space-2);
+  padding: var(--cw-space-3) var(--cw-space-4);
   border-bottom: 1px solid var(--cw-border);
 }
 

@@ -1,4 +1,6 @@
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
+import type { MessageId, Translator } from "@/src/i18n";
+import { richText } from "@/src/i18n/rich";
 import { EmptyState } from "@clockwork/ui";
 
 import { ProjectionActionButtons } from "./projection-action-buttons";
@@ -38,12 +40,95 @@ function allowedActions(record: ProjectionRecord): readonly string[] {
     : [];
 }
 
-function scalarEntries(record: ProjectionRecord) {
-  return Object.entries(record.data).filter(
-    ([key, value]) =>
-      key !== "allowedActions" &&
-      ["string", "number", "boolean"].includes(typeof value),
+/**
+ * Keys already shown elsewhere on the record card (header, status chip, next
+ * step) or that exist only for sorting and styling. Every other scalar the
+ * projection carries is listed in the fact ledger, so nothing the record holds
+ * is hidden from an operator.
+ */
+const presentedElsewhere = new Set([
+  "allowedActions",
+  "id",
+  "kind",
+  "title",
+  "name",
+  "label",
+  "account",
+  "description",
+  "status",
+  "statusLabel",
+  "tone",
+  "risk",
+  "nextAction",
+  "nextActionHref",
+  "href",
+  "valueSort",
+  "updatedLabel",
+]);
+
+/** Facts the product names, in reading order, with their labels. */
+const namedFacts: readonly {
+  key: string;
+  label: (record: ProjectionRecord, t: Translator) => string;
+}[] = [
+  { key: "reference", label: (_, t) => t("common.referenceLabel") },
+  { key: "owner", label: (_, t) => t("common.owner") },
+  {
+    key: "value",
+    label: (record, t) =>
+      text(record, "valueLabel") ?? t("experience.detail.fact.value"),
+  },
+  { key: "term", label: (_, t) => t("experience.detail.fact.term") },
+  { key: "dateLabel", label: (_, t) => t("experience.detail.fact.timing") },
+];
+
+interface Fact {
+  readonly key: string;
+  readonly label: string;
+  readonly value: string;
+  /** A projection field the product has no label for: its name is shown as the code it is. */
+  readonly code?: true;
+}
+
+function contextFacts(record: ProjectionRecord): readonly Fact[] {
+  if (!Array.isArray(record.data.context)) return [];
+  return record.data.context.flatMap((entry, index) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const { label, value } = entry as Record<string, unknown>;
+    return typeof label === "string" &&
+      label.trim() &&
+      typeof value === "string" &&
+      value.trim()
+      ? [{ key: `context:${index}`, label, value }]
+      : [];
+  });
+}
+
+/**
+ * The generic ledger for records outside the commercial decision surfaces.
+ * Named facts carry translated labels; context entries carry the labels their
+ * source wrote; any remaining scalar is an unmodelled projection field and is
+ * shown under its field name, marked as code, rather than dropped.
+ */
+function recordFacts(record: ProjectionRecord, t: Translator): readonly Fact[] {
+  const named = namedFacts.flatMap(({ key, label }) => {
+    const value = text(record, key);
+    return value ? [{ key, label: label(record, t), value }] : [];
+  });
+  const handled = new Set([
+    ...presentedElsewhere,
+    "valueLabel",
+    "context",
+    ...namedFacts.map(({ key }) => key),
+  ]);
+  const unmodelled = Object.entries(record.data).flatMap(([key, value]) =>
+    !handled.has(key) &&
+    ["string", "number", "boolean"].includes(typeof value) &&
+    String(value).trim()
+      ? [{ key, label: key, value: String(value), code: true as const }]
+      : [],
   );
+  return [...named, ...contextFacts(record), ...unmodelled];
 }
 
 function text(record: ProjectionRecord, key: string): string | undefined {
@@ -51,10 +136,11 @@ function text(record: ProjectionRecord, key: string): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
-function humanLabel(value: string): string {
-  const spaced = value.replaceAll(/([A-Z_])/g, " $1").trim();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
+const riskChips: Readonly<Record<string, MessageId>> = {
+  low: "risk.chip.low",
+  medium: "risk.chip.medium",
+  high: "risk.chip.high",
+};
 
 function isCommercialDecision(
   audience: ExperienceAudience,
@@ -69,43 +155,85 @@ function isCommercialDecision(
 function commercialFacts(
   record: ProjectionRecord,
   channel: "quotes" | "orders",
-): readonly { label: string; value: string }[] {
+  t: Translator,
+): readonly Fact[] {
   return [
     {
-      label: text(record, "valueLabel") ?? "Commercial value",
+      key: "value",
+      label: text(record, "valueLabel") ?? t("experience.detail.fact.value"),
       value: text(record, "value"),
     },
     {
-      label: channel === "quotes" ? "Quote term" : "Service term",
+      key: "term",
+      label:
+        channel === "quotes"
+          ? t("experience.detail.fact.quoteTerm")
+          : t("experience.detail.fact.serviceTerm"),
       value: text(record, "term"),
     },
-    { label: "Timing", value: text(record, "dateLabel") },
-    { label: "Owner", value: text(record, "owner") },
-  ].filter(
-    (fact): fact is { label: string; value: string } =>
-      fact.value !== undefined,
-  );
+    {
+      key: "dateLabel",
+      label: t("experience.detail.fact.timing"),
+      value: text(record, "dateLabel"),
+    },
+    { key: "owner", label: t("common.owner"), value: text(record, "owner") },
+  ].filter((fact): fact is Fact => fact.value !== undefined);
 }
 
-function promiseChain(channel: "quotes" | "orders") {
+function promiseChain(
+  channel: "quotes" | "orders",
+): readonly (readonly [MessageId, MessageId])[] {
   return channel === "quotes"
     ? [
-        ["Required upstream", "Agreement and account authority"],
-        ["Current decision", "Quote scope, price, and expiry"],
-        ["Follows acceptance", "Order commitment"],
+        [
+          "experience.detail.chain.requiredUpstream",
+          "experience.detail.chain.agreementAuthority",
+        ],
+        [
+          "experience.detail.chain.currentDecision",
+          "experience.detail.chain.quoteScope",
+        ],
+        [
+          "experience.detail.chain.followsAcceptance",
+          "experience.detail.chain.orderCommitment",
+        ],
       ]
     : [
-        ["Authoritative input", "Accepted quote"],
-        ["Current decision", "Order commitment and service timing"],
-        ["Authoritative result", "Provisioning and service state"],
+        [
+          "experience.detail.chain.authoritativeInput",
+          "experience.detail.chain.acceptedQuote",
+        ],
+        [
+          "experience.detail.chain.currentDecision",
+          "experience.detail.chain.orderTiming",
+        ],
+        [
+          "experience.detail.chain.authoritativeResult",
+          "experience.detail.chain.serviceState",
+        ],
       ];
 }
+
+const workspaceLabels: Readonly<Record<ExperienceAudience, MessageId>> = {
+  internal: "experience.workspace.internal",
+  partner: "experience.workspace.partner",
+  customer: "experience.workspace.customer",
+};
 
 function tone(record: ProjectionRecord): string {
   const value = text(record, "tone");
   return ["success", "warning", "danger"].includes(value ?? "")
     ? (value as string)
     : "neutral";
+}
+
+/** The status the source wrote, with the risk level from the closed set. */
+function statusChip(record: ProjectionRecord, t: Translator): string {
+  const status = text(record, "statusLabel") as string;
+  const risk = riskChips[text(record, "risk") ?? ""];
+  return risk
+    ? t("common.join.labels", { first: status, second: t(risk) })
+    : status;
 }
 
 function artifacts(record: ProjectionRecord): readonly ProjectedArtifact[] {
@@ -153,6 +281,7 @@ export async function ProjectionDetailPage({
   supporting?: ReactNode;
 }) {
   const t = await getTranslations();
+  const formattingLocale = await getFormattingLocale();
   const [projection, roles] = await Promise.all([
     loadPortalRecords(audience, channel),
     getRouteRoles(audience),
@@ -171,14 +300,7 @@ export async function ProjectionDetailPage({
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.pageHeader}>
-        <p className={styles.context}>
-          {audience === "internal"
-            ? "Operator"
-            : audience === "partner"
-              ? "Partner"
-              : "Customer"}{" "}
-          workspace
-        </p>
+        <p className={styles.context}>{t(workspaceLabels[audience])}</p>
         <h1>{title}</h1>
         <p className={styles.description}>{description}</p>
         <p
@@ -186,23 +308,33 @@ export async function ProjectionDetailPage({
           role={projection.stale ? "alert" : "status"}
         >
           {projection.stale
-            ? "Operational data needs a refresh"
-            : "Operational data is current"}
-          <time className="sr-only" dateTime={projection.generatedAt}>
-            {formatOperationalTimestamp(projection.generatedAt)}
-          </time>
+            ? t("experience.detail.freshness.stale")
+            : t("experience.detail.freshness.current")}
+          <span className="sr-only">
+            {" "}
+            {richText(t, "common.asOf", {
+              time: (
+                <time dateTime={projection.generatedAt}>
+                  {formatOperationalTimestamp(
+                    projection.generatedAt,
+                    formattingLocale,
+                  )}
+                </time>
+              ),
+            })}
+          </span>
         </p>
       </header>
 
       {commercial ? (
         <ol
-          aria-label="Commercial promise chain"
+          aria-label={t("experience.detail.chain.label")}
           className={styles.promiseChain}
         >
           {promiseChain(channel).map(([step, meaning], index) => (
             <li aria-current={index === 1 ? "step" : undefined} key={step}>
-              <span>{step}</span>
-              <strong>{meaning}</strong>
+              <span>{t(step)}</span>
+              <strong>{t(meaning)}</strong>
             </li>
           ))}
         </ol>
@@ -212,17 +344,27 @@ export async function ProjectionDetailPage({
 
       {visibleRecords.length === 0 ? (
         <EmptyState
-          title={recordKey ? "Record unavailable" : "No records yet"}
+          title={
+            recordKey
+              ? t("experience.detail.empty.missing.title")
+              : t("experience.detail.empty.none.title")
+          }
           description={
             recordKey
-              ? "Check the reference, or switch to the account that holds this record."
-              : "Records appear here once they exist in your authorized account scope."
+              ? t("experience.detail.empty.missing.description")
+              : t("experience.detail.empty.none.description")
           }
         />
       ) : (
         <section
           aria-label={
-            commercial ? `${humanLabel(channel)} decision ledger` : title
+            commercial
+              ? t(
+                  channel === "quotes"
+                    ? "experience.detail.ledger.quotes"
+                    : "experience.detail.ledger.orders",
+                )
+              : title
           }
           className={styles.recordLedger}
         >
@@ -231,19 +373,19 @@ export async function ProjectionDetailPage({
               <h2>
                 {commercial
                   ? channel === "quotes"
-                    ? "Choose the commercial record"
-                    : "Review persisted commitments"
-                  : "Authorized records"}
+                    ? t("experience.detail.heading.quotes")
+                    : t("experience.detail.heading.orders")
+                  : t("experience.detail.heading.records")}
               </h2>
               <p>
-                {visibleRecords.length}{" "}
-                {visibleRecords.length === 1 ? "record" : "records"} · current
-                operational data
+                {t("experience.detail.count", {
+                  count: visibleRecords.length,
+                })}
               </p>
             </div>
             {commercial ? (
               <p className={styles.ledgerBoundary}>
-                Actions apply to the displayed record and its current version.
+                {t("experience.detail.boundary")}
               </p>
             ) : null}
           </header>
@@ -254,8 +396,10 @@ export async function ProjectionDetailPage({
                 <header className={styles.recordHeader}>
                   <div>
                     <p className={styles.recordReference}>
-                      {t("partner.detail.reference")}
-                      {record.recordKey} · version {record.version}
+                      {t("experience.detail.referenceVersion", {
+                        reference: record.recordKey,
+                        version: record.version,
+                      })}
                     </p>
                     <h3>{label(record)}</h3>
                     {text(record, "description") ? (
@@ -268,24 +412,20 @@ export async function ProjectionDetailPage({
                     <p
                       className={`${styles.recordStatus} ${styles[tone(record)]}`}
                     >
-                      {text(record, "statusLabel")}
-                      {text(record, "risk")
-                        ? ` · ${humanLabel(text(record, "risk") as string)} risk`
-                        : ""}
+                      {statusChip(record, t)}
                     </p>
                   ) : null}
                 </header>
 
                 <dl className={styles.factLedger}>
                   {(commercial
-                    ? commercialFacts(record, channel)
-                    : scalarEntries(record).map(([key, value]) => ({
-                        label: humanLabel(key),
-                        value: String(value),
-                      }))
+                    ? commercialFacts(record, channel, t)
+                    : recordFacts(record, t)
                   ).map((fact) => (
-                    <div key={fact.label}>
-                      <dt>{fact.label}</dt>
+                    <div key={fact.key}>
+                      <dt>
+                        {fact.code ? <code>{fact.label}</code> : fact.label}
+                      </dt>
                       <dd>{fact.value}</dd>
                     </div>
                   ))}
@@ -293,9 +433,10 @@ export async function ProjectionDetailPage({
 
                 <div className={styles.recordDecision}>
                   <div>
-                    <p>Next step</p>
+                    <p>{t("experience.detail.nextStep")}</p>
                     <strong>
-                      {text(record, "nextAction") ?? "Review record evidence"}
+                      {text(record, "nextAction") ??
+                        t("experience.detail.nextStep.fallback")}
                     </strong>
                   </div>
                   <div className={styles.recordActions}>
@@ -320,7 +461,7 @@ export async function ProjectionDetailPage({
                           `/signing/redirect?agreementId=${encodeURIComponent(record.aggregateId)}` as Route
                         }
                       >
-                        Sign this authorized agreement
+                        {t("experience.detail.sign")}
                       </Link>
                       <EvidenceUploadControl
                         journey="customer_paper"
@@ -356,11 +497,23 @@ export async function ProjectionDetailPage({
                 </div>
 
                 <details className={styles.technical}>
-                  <summary>{t("ui.98")}</summary>
-                  <p>System record {record.recordKey}</p>
+                  <summary>{t("common.auditEvidence")}</summary>
                   <p>
-                    {t("ui.9")}
-                    {formatOperationalTimestamp(record.sourceUpdatedAt)}
+                    {t("experience.detail.systemRecord", {
+                      reference: record.recordKey,
+                    })}
+                  </p>
+                  <p>
+                    {richText(t, "common.updatedAt", {
+                      time: (
+                        <time dateTime={record.sourceUpdatedAt}>
+                          {formatOperationalTimestamp(
+                            record.sourceUpdatedAt,
+                            formattingLocale,
+                          )}
+                        </time>
+                      ),
+                    })}
                   </p>
                 </details>
               </article>

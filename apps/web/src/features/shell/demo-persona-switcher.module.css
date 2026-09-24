@@ -1,6 +1,6 @@
 .panel {
   position: fixed;
-  right: clamp(0.75rem, 2vw, 1.5rem);
+  inset-inline-end: clamp(0.75rem, 2vw, 1.5rem);
   bottom: clamp(0.75rem, 2vw, 1.5rem);
   z-index: 60;
   max-width: min(21rem, calc(100vw - 1.5rem));
@@ -20,16 +20,21 @@
 
 .launcher {
   display: flex;
+  min-height: var(--cw-control-height);
   gap: 0.5rem;
   align-items: center;
   border-radius: 999px;
-  box-shadow: 0 0.75rem 2rem rgb(var(--cw-shadow-color) / 18%);
-  padding: 0.5rem 0.9rem;
-  font-weight: 600;
+  box-shadow: var(--cw-shadow-dialog);
+  padding: 0.375rem 0.875rem;
+  font-weight: 500;
   transition:
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
     border-color var(--cw-motion-fast) var(--cw-motion-ease),
     color var(--cw-motion-fast) var(--cw-motion-ease);
+}
+
+.launcher:hover {
+  background: var(--web-canvas);
 }
 
 .launcher::before {
@@ -38,17 +43,24 @@
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 999px;
-  background: var(--web-accent);
+  background: var(--cw-success);
+}
+
+.launcher:focus-visible,
+.toggle:focus-visible,
+.step a:focus-visible {
+  outline: 2px solid var(--cw-focus);
+  outline-offset: 2px;
 }
 
 .body {
   display: grid;
   gap: 0.75rem;
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-sm);
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
-  box-shadow: 0 0.75rem 2.5rem rgb(var(--cw-shadow-color) / 20%);
-  padding: 0.9rem;
+  box-shadow: var(--cw-shadow-dialog);
+  padding: 1rem;
 }
 
 .head {
@@ -58,24 +70,23 @@
   align-items: baseline;
 }
 
-/* The label register sits at the type floor, so the tracking carries the
-   compact reading rather than the size. */
+/* The console's section label. */
 .title {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .toggle {
   border: 0;
   background: none;
-  color: var(--web-muted);
+  color: var(--cw-action);
   padding: 0;
-  text-decoration: underline;
   font-size: var(--cw-text-xs);
+  font-weight: 500;
   transition:
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
     border-color var(--cw-motion-fast) var(--cw-motion-ease),
@@ -88,13 +99,17 @@
   margin: 0;
 }
 
+.toggle:hover {
+  text-decoration: underline;
+}
+
 .journey span {
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .journeyTitle {
@@ -113,8 +128,8 @@
 
 .step {
   display: grid;
-  grid-template-columns: 1.15rem minmax(0, 1fr);
-  gap: 0.45rem;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  gap: 0.5rem;
   align-items: start;
   counter-increment: demo-step;
 }
@@ -123,21 +138,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.15rem;
-  height: 1.15rem;
-  border: 1px solid var(--web-line);
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid var(--cw-border-strong);
   border-radius: 999px;
   color: var(--web-muted);
   content: counter(demo-step);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .step[data-state="current"]::before {
-  border-color: var(--web-accent);
-  background: var(--web-accent);
-  color: var(--web-paper);
+  border-color: var(--cw-action);
+  background: var(--cw-action);
+  color: #fff;
 }
 
 .step[data-state="complete"]::before {
@@ -146,7 +161,7 @@
 
 .step a {
   color: inherit;
-  font-size: var(--cw-text-xs);
+  font-size: var(--cw-text-sm);
   line-height: 1.35;
   transition:
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
@@ -159,7 +174,8 @@
 }
 
 .step[data-state="current"] a {
-  font-weight: 600;
+  color: var(--cw-action-strong);
+  font-weight: 500;
 }
 
 .error {

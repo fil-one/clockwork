@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   defaultQuoteExpiry,
   emptyResaleQuoteDraft,
   merchantOfRecordName,
+  parseDecimalAmount,
   partnerRouteConsequence,
   quotableOffers,
   quoteExpiryLeadDays,
@@ -96,9 +99,9 @@ describe("human-readable partner quote selectors", () => {
       context,
       pinnedClock,
     );
-    expect(errors.endClientName).toBe(
-      "Select a registered end client by name.",
-    );
+    expect(errors.endClientName).toEqual({
+      id: "partner.quote.new.error.endClient",
+    });
   });
 
   it("offers only the books that can price the named client's quote", () => {
@@ -187,7 +190,12 @@ describe("partner quote workflow validation", () => {
       context,
       pinnedClock,
     );
-    expect(errors.offerName).toBe(
+    expect(errors.offerName).toEqual({
+      id: "partner.quote.new.error.currency",
+      values: { currency: "EUR", client: halcyon.name },
+    });
+    const problem = errors.offerName;
+    expect(problem ? translatorFor("en")(problem.id, problem.values) : "").toBe(
       `Select an offer priced in EUR, the billing currency for ${halcyon.name}.`,
     );
   });
@@ -205,14 +213,17 @@ describe("partner quote workflow validation", () => {
   });
 
   it("describes resale and distributor routes from their enforced merchant and tier rules", () => {
-    expect(partnerRouteConsequence("resale")).toContain(
+    const t = translatorFor("en");
+    expect(t(partnerRouteConsequence("resale"))).toContain(
       "partner is merchant of record",
     );
-    expect(partnerRouteConsequence("resale")).toContain("saved transfer tier");
-    expect(partnerRouteConsequence("distributor")).toContain(
+    expect(t(partnerRouteConsequence("resale"))).toContain(
+      "saved transfer tier",
+    );
+    expect(t(partnerRouteConsequence("distributor"))).toContain(
       "saved transfer tier is distributor",
     );
-    expect(partnerRouteConsequence("distributor")).toContain(
+    expect(t(partnerRouteConsequence("distributor"))).toContain(
       "partner as merchant of record",
     );
   });
@@ -221,9 +232,11 @@ describe("partner quote workflow validation", () => {
     const summary = quoteReviewSummary(
       completedDraft(pinnedClock),
       context,
+      translatorFor("en"),
+      "en-US",
     ).join(" ");
-    expect(summary).toContain("Partner resale price: EUR 68,400.00");
-    expect(summary).toContain("authoritative transfer price");
+    expect(summary).toContain("Partner resale price: €68,400.00");
+    expect(summary).toContain("binding transfer price");
     expect(summary).toContain(halcyon.name);
     expect(summary).toContain("Merchant of record: Blue Harbor MSP");
     expect(summary).toContain("LOCKED-STORAGE-TB");
@@ -280,5 +293,38 @@ describe("the command payload", () => {
         context,
       ),
     ).toThrow("Quote currency does not match the end client.");
+  });
+});
+
+describe("a resale price as a seller types it", () => {
+  it("reads the decimal mark the seller's language uses", () => {
+    expect(parseDecimalAmount("68400")).toBe(68400);
+    expect(parseDecimalAmount("68400.5")).toBe(68400.5);
+    expect(parseDecimalAmount("68400,50")).toBe(68400.5);
+    expect(parseDecimalAmount("68.400,50")).toBe(68400.5);
+    expect(parseDecimalAmount("68,400.50")).toBe(68400.5);
+    expect(parseDecimalAmount("68\u202f400,50")).toBe(68400.5);
+    expect(parseDecimalAmount("68.400")).toBe(68400);
+  });
+
+  it("refuses text that is not one amount", () => {
+    for (const input of ["", "abc", "-5", "1,2,3", "12.345,678", "1e5"])
+      expect(parseDecimalAmount(input), input).toBeUndefined();
+  });
+
+  it("accepts a German seller's price where a bare Number() refused it", () => {
+    const errors = validateResaleQuoteStage(
+      3,
+      { ...completedDraft(pinnedClock), resalePrice: "68.400,00" },
+      context,
+      pinnedClock,
+    );
+    expect(errors.resalePrice).toBeUndefined();
+    expect(
+      resaleQuotePayload(
+        { ...completedDraft(pinnedClock), resalePrice: "68.400,00" },
+        context,
+      ).partnerResaleTotal?.minor,
+    ).toBe("6840000");
   });
 });

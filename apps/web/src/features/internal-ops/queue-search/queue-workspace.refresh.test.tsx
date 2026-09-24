@@ -39,6 +39,7 @@ const item: QueueItem = {
   policyReason: null,
   policyBasis: null,
   evidence: [],
+  sourceRecord: null,
   related: [],
   permittedActions: [],
 };

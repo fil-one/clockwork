@@ -1,3 +1,5 @@
+import type { MessageId, Translator } from "@/src/i18n";
+
 export type ForecastStage = "committed_backlog" | "pipeline";
 
 export interface StageRevenue {
@@ -47,37 +49,69 @@ export interface RevenueWorkspace {
   readable: boolean;
 }
 
-export function formatMinor(minor: string, currency: string): string {
-  const negative = minor.startsWith("-");
-  const digits = (negative ? minor.slice(1) : minor).padStart(3, "0");
-  return `${negative ? "-" : ""}${digits.slice(0, -2)}.${digits.slice(-2)} ${currency}`;
+/**
+ * Where a workspace's rows were read from. It is recorded on the workspace for
+ * diagnostics and tests; no surface renders it, so it is not interface text.
+ */
+export const revenueSources = {
+  live: "core_revenue_forecast and core_arr_mrr", // i18n-exempt: provenance source name (the two reporting views), never rendered
+  unavailable: "No revenue reporting read is available", // i18n-exempt: provenance source name, never rendered
+  demo: "Demonstration commerce reporting ledger", // i18n-exempt: provenance source name, never rendered
+} as const;
+
+export function stageLabel(stage: ForecastStage, t: Translator): string {
+  return t(
+    stage === "committed_backlog"
+      ? "operations.finance.revenue.stage.committedBacklog"
+      : "operations.finance.revenue.stage.pipeline",
+  );
 }
 
-export function stageLabel(stage: ForecastStage): string {
-  return stage === "committed_backlog" ? "Contracted backlog" : "Pipeline";
+const basisMessages: Readonly<Record<string, MessageId>> = {
+  gross: "operations.finance.revenue.basis.gross",
+  transfer_price: "operations.finance.revenue.basis.transferPrice",
+};
+
+/** The revenue basis, which says whose gross the amount is. */
+export function basisLabel(basis: string, t: Translator): string {
+  const id = basisMessages[basis];
+  return id ? t(id) : basis;
 }
 
-export function basisLabel(basis: string): string {
-  return basis === "transfer_price"
-    ? "Transfer price — partner-retained-margin basis, not gross"
-    : basis === "gross"
-      ? "Gross"
-      : basis;
+const merchantMessages: Readonly<Record<string, MessageId>> = {
+  fil_one: "operations.finance.revenue.merchant.filOne",
+  partner: "operations.finance.revenue.merchant.partner",
+  marketplace: "operations.finance.revenue.merchant.marketplace",
+};
+
+/** `orders.merchant_of_record`: `fil_one`, `partner` or `marketplace`. */
+export function merchantLabel(value: string, t: Translator): string {
+  const id = merchantMessages[value];
+  return id ? t(id) : value;
 }
 
-export function businessLabel(value: string): string {
+const methodologyMessages: Readonly<Record<string, MessageId>> = {
+  merchant_of_record: "operations.finance.revenue.methodology.merchantOfRecord",
+};
+
+/**
+ * `<rule>.<version>` as the view states it (`merchant_of_record.v1`): the rule
+ * worded, the version kept as written. An unknown rule is shown as recorded.
+ */
+export function methodologyLabel(value: string, t: Translator): string {
   const [name, version] = value.split(".", 2);
-  const label = (name ?? value)
-    .replaceAll("_", " ")
-    .replace(/^\w/u, (letter) => letter.toUpperCase());
-  return version ? `${label} · ${version}` : label;
+  const id = name ? methodologyMessages[name] : undefined;
+  if (!id) return value;
+  return version
+    ? t("common.join.labels", { first: t(id), second: version })
+    : t(id);
 }
 
-export function monthLabel(value: string): string {
+export function monthLabel(value: string, locale: string): string {
   const date = new Date(`${value.slice(0, 7)}-01T00:00:00.000Z`);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat("en-US", {
+    : new Intl.DateTimeFormat(locale, {
         month: "short",
         year: "numeric",
         timeZone: "UTC",

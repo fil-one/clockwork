@@ -40,7 +40,7 @@ export default function InternalLoading() {
   return (
     <main className={styles.main} id="main-content">
       <p className="cw-sr-only" role="status">
-        {t("state.loading.title")}
+        {t("common.loading")}
       </p>
 
       <div className={styles.header}>

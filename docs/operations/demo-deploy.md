@@ -140,9 +140,10 @@ the hosted suite against `https://clockwork-commerce-demo.netlify.app`.
 curl -s https://clockwork-commerce-demo.netlify.app/demo/access | grep -o '<html[^>]*'
 ```
 
-A current build carries the three font variable classes (`aspekta_…`,
-`funnelsans_…`, `funneldisplay_…`) on the `<html>` tag. Then sign in as any
-persona and sign out; it should land on the persona picker, not an error card.
+A current build carries the two Inter font variable classes (`inter_…` and
+`interextended_…`) on the `<html>` tag; a build that still shows `aspekta_…` or
+`funnelsans_…` predates the console typeface. Then sign in as any persona and
+sign out; it should land on the persona picker, not an error card.
 
 That check proves the build is current and the shell renders. It does not prove
 the demo still demonstrates anything, so walk these too — each corresponds to

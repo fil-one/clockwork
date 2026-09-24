@@ -1,3 +1,4 @@
+// i18n-exempt-file: the runtime-failure catalogue and its types. The only prose here is the reason each excluded event type is out of scope, which model.test.ts and developers read and no page renders; the page's words are in copy.ts.
 /**
  * What an operator can actually learn about an unhandled runtime failure, and
  * what the tree does not keep.
@@ -270,8 +271,12 @@ export function isContainmentReference(value: string): boolean {
  * which of the two joins reached it.
  */
 export type IncidentDiagnosis =
-  | { kind: "code_only"; discardedAt: string }
-  | { kind: "provider_message"; message: string; provenance: string };
+  | { kind: "code_only"; discardedAt: CauseDiscardSite }
+  | {
+      kind: "provider_message";
+      message: string;
+      provenance: ProviderMessageProvenance;
+    };
 
 /**
  * How a shown provider message was reached, because the two joins do not
@@ -281,13 +286,16 @@ export type IncidentDiagnosis =
  * terminal. The provider-operation join lands on the attempt behind a
  * `lifecycle.provider_effect.*` event, whose `lastError` is whatever the most
  * recent dispatch wrote -- for a retry sequence that can be a later attempt than
- * the event being read. Saying so is cheaper than being wrong about it.
+ * the event being read. Saying so is cheaper than being wrong about it. The page
+ * words each one in the reader's language.
  */
 export const providerMessageProvenance = {
-  commandAttempt: "Provider-supplied, from this command's provisioning attempt",
-  operationAttempt:
-    "Provider-supplied, the provisioning attempt's most recent error",
+  commandAttempt: "commandAttempt",
+  operationAttempt: "operationAttempt",
 } as const;
+
+export type ProviderMessageProvenance =
+  (typeof providerMessageProvenance)[keyof typeof providerMessageProvenance];
 
 export interface RuntimeFailureIncident {
   /** The immutable audit row this incident is anchored on. */
@@ -314,9 +322,12 @@ export interface RuntimeFailureIncident {
 
 export type IncidentQueueState = "read" | "read_failed" | "no_connection";
 
+/** Which store answered, or why none did; the page words it for the reader. */
+export type IncidentQueueSource = "live" | "demo" | "unavailable" | "unwired";
+
 export interface IncidentQueue {
   incidents: readonly RuntimeFailureIncident[];
-  source: string;
+  source: IncidentQueueSource;
   /** True only when a read completed. */
   readable: boolean;
   /**
@@ -327,19 +338,48 @@ export interface IncidentQueue {
   state: IncidentQueueState;
 }
 
-/** Where the cause was thrown away, per writer, for the `code_only` rows. */
-export function causeDiscardSite(eventType: string): string {
+/** The check the code-only writers pass a failure through before storing it. */
+export const safeCodePattern = "/^[A-Z0-9_]{3,100}$/";
+
+/**
+ * Where the cause was thrown away, per writer, for the `code_only` rows. The
+ * column, pattern and module are identifiers and are shown as written; the page
+ * supplies the sentence around them in the reader's language.
+ */
+export type CauseDiscardSite =
+  | { kind: "coerced"; column: string; module: string }
+  | { kind: "coerced_attempt_survives"; column: string; module: string }
+  | { kind: "attempt_document"; field: string }
+  | { kind: "code_column"; column: string }
+  | { kind: "unknown" };
+
+export function causeDiscardSite(eventType: string): CauseDiscardSite {
   if (eventType.startsWith("workflow.task."))
-    return "workflow_runs.last_error, coerced to /^[A-Z0-9_]{3,100}$/ in packages/db/src/repositories/workflows/core.ts";
+    return {
+      kind: "coerced",
+      column: "workflow_runs.last_error",
+      module: "packages/db/src/repositories/workflows/core.ts",
+    };
   if (eventType.startsWith("lifecycle.provider_effect."))
-    return "provider_operations.last_error, coerced to /^[A-Z0-9_]{3,100}$/ in packages/db/src/repositories/workflows/lifecycle.ts; the message survives on the provisioning attempt only while that row is present";
+    return {
+      kind: "coerced_attempt_survives",
+      column: "provider_operations.last_error",
+      module: "packages/db/src/repositories/workflows/lifecycle.ts",
+    };
   if (eventType.startsWith("lifecycle.effect."))
-    return "provider_operations.last_error, coerced to /^[A-Z0-9_]{3,100}$/ in packages/db/src/repositories/workflows/lifecycle.ts";
+    return {
+      kind: "coerced",
+      column: "provider_operations.last_error",
+      module: "packages/db/src/repositories/workflows/lifecycle.ts",
+    };
   if (eventType === "order.provisioning_dead_lettered")
-    return "the provisioning attempt document, whose lastError.message is the cause when the attempt row is still present";
+    return { kind: "attempt_document", field: "lastError.message" };
   if (eventType === "experience.projection_action.failed")
-    return "experience_projection_action_claims.last_error, which stores the failure code only";
-  return "the writer of this event records a code and no message";
+    return {
+      kind: "code_column",
+      column: "experience_projection_action_claims.last_error",
+    };
+  return { kind: "unknown" };
 }
 
 /**

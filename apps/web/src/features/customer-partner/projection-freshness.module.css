@@ -1,19 +1,21 @@
 .freshness {
   display: inline-flex;
   align-items: center;
-  flex: 0 0 auto;
-  gap: 0.45rem;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 0 0.45rem;
   margin: 0;
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .dot {
-  width: 0.45rem;
-  height: 0.45rem;
+  width: 0.4rem;
+  height: 0.4rem;
   border-radius: 50%;
-  background: var(--web-accent);
+  background: var(--cw-success);
 }
 
 .staleBanner {
@@ -21,8 +23,8 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.75rem;
-  border: 1px solid var(--cw-warning);
-  border-radius: var(--cw-radius-sm);
+  border: 1px solid var(--cw-warning-border);
+  border-radius: var(--cw-radius-lg);
   background: var(--cw-warning-soft);
   padding: 0.75rem 1rem;
   color: var(--cw-warning-ink);
@@ -36,18 +38,20 @@
  */
 .partialBanner {
   grid-template-columns: auto minmax(0, 1fr);
-  border-color: var(--web-danger);
+  border-color: var(--cw-danger-border);
+  background: var(--cw-danger-soft);
+  color: var(--cw-danger-strong);
 }
 
 .staleBanner button {
-  min-height: 2.75rem;
+  min-height: var(--cw-control-height);
   border: 0;
   background: transparent;
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 0.2em;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 @media (max-width: 48rem) {

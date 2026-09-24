@@ -4,34 +4,50 @@ import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { FinancePageFrame } from "../finance-lifecycle/page-frame";
+import { use } from "react";
+
+import type { Translator } from "@/src/i18n";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
+import { richText } from "@/src/i18n/rich";
+
 import { formatOperationalTimestamp } from "../presentation";
-import { unhandledErrorsCopy } from "./copy";
+import {
+  causeDiscardText,
+  incidentDecisionLabels,
+  incidentSourceLabels,
+  provenanceLabels,
+} from "./copy";
 import { IncidentDecisionControl } from "./incident-decision";
 import {
   diagnosableCount,
   groupIncidents,
-  runtimeFailureEventTypes,
   type IncidentQueue,
   type IncidentSignature,
 } from "./model";
 
-const { page, summary, unreadable, unwiredDetail, table } = unhandledErrorsCopy;
-
-const catalogueSize = runtimeFailureEventTypes.length;
-
-function Cause({ signature }: { signature: IncidentSignature }) {
+function Cause({
+  signature,
+  t,
+}: {
+  signature: IncidentSignature;
+  t: Translator;
+}) {
   const { diagnosis: found } = signature.latest;
   if (found.kind === "provider_message")
     return (
       <div className={styles.primaryCell}>
         <strong>{found.message}</strong>
-        <span className={styles.secondary}>{found.provenance}</span>
+        <span className={styles.secondary}>
+          {t(provenanceLabels[found.provenance])}
+        </span>
       </div>
     );
   return (
     <div className={styles.primaryCell}>
-      <strong>{table.codeOnlyCell}</strong>
-      <span className={styles.secondary}>{found.discardedAt}</span>
+      <strong>{t("operations.incidents.cause.codeOnly")}</strong>
+      <span className={styles.secondary}>
+        {causeDiscardText(found.discardedAt, t)}
+      </span>
     </div>
   );
 }
@@ -46,13 +62,21 @@ function Cause({ signature }: { signature: IncidentSignature }) {
  * boundary and the task identifier as separate facts, and several catalogued
  * writers record neither, so each absence is stated.
  */
-function Where({ signature }: { signature: IncidentSignature }) {
+function Where({
+  signature,
+  t,
+}: {
+  signature: IncidentSignature;
+  t: Translator;
+}) {
   const { boundary, taskIdentifier } = signature.latest;
   return (
     <div className={styles.primaryCell}>
-      <strong>{boundary ?? table.boundaryMissing}</strong>
+      <strong>{boundary ?? t("operations.incidents.row.noBoundary")}</strong>
       <span className={styles.secondary}>
-        {taskIdentifier ? `task ${taskIdentifier}` : table.taskMissing}
+        {taskIdentifier
+          ? t("operations.incidents.row.task", { id: taskIdentifier })
+          : t("operations.incidents.row.noTask")}
       </span>
     </div>
   );
@@ -64,7 +88,13 @@ function Where({ signature }: { signature: IncidentSignature }) {
  * then dropped before render, while the runbook told the operator this surface
  * carried them.
  */
-function Record({ signature }: { signature: IncidentSignature }) {
+function Record({
+  signature,
+  t,
+}: {
+  signature: IncidentSignature;
+  t: Translator;
+}) {
   const { aggregateId, requestId, auditEventId, outboxMessageId } =
     signature.latest;
   return (
@@ -73,15 +103,15 @@ function Record({ signature }: { signature: IncidentSignature }) {
         {signature.aggregateType} {aggregateId}
       </strong>
       <span className={styles.secondary}>
-        {table.requestPrefix} {requestId}
+        {t("operations.incidents.row.request", { id: requestId })}
       </span>
       <span className={styles.secondary}>
-        {table.auditPrefix} {auditEventId}
+        {t("operations.incidents.row.auditEvent", { id: auditEventId })}
       </span>
       <span className={styles.secondary}>
         {outboxMessageId
-          ? `${table.outboxPrefix} ${outboxMessageId}`
-          : table.outboxMissing}
+          ? t("operations.incidents.row.outbox", { id: outboxMessageId })
+          : t("operations.incidents.row.noOutbox")}
       </span>
     </div>
   );
@@ -95,37 +125,56 @@ export function UnhandledErrorsView({
   now?: Date;
 }) {
   const { incidents, readable, source, state } = result;
+  const t = use(getTranslations());
+  const formattingLocale = use(getFormattingLocale());
   const signatures = groupIncidents(incidents);
   const withCause = diagnosableCount(signatures);
-  const failureNotice = readable ? null : unreadable[state];
+  const sourceLabel = t(incidentSourceLabels[source]);
+  const failureNotice = readable
+    ? null
+    : state === "no_connection"
+      ? {
+          title: t("operations.incidents.unwired.title"),
+          detail: t("operations.incidents.unwired.detail"),
+        }
+      : {
+          title: t("operations.incidents.unreadable.title"),
+          detail: t("operations.incidents.unreadable.detail"),
+        };
 
   return (
     <FinancePageFrame
-      title={page.title}
-      description={page.description}
+      title={t("operations.incidents.title")}
+      description={t("operations.incidents.description")}
       provenance={
         readable
-          ? { kind: "read", source, readAt: now.toISOString() }
+          ? { kind: "read", source: sourceLabel, readAt: now.toISOString() }
           : state === "no_connection"
-            ? { kind: "unwired", detail: unwiredDetail }
-            : { kind: "unreadable", source }
+            ? {
+                kind: "unwired",
+                detail: t("operations.incidents.unwired.provenance"),
+              }
+            : { kind: "unreadable", source: sourceLabel }
       }
     >
-      <section className={styles.summaryGrid} aria-label={summary.label}>
+      <section
+        className={styles.summaryGrid}
+        aria-label={t("operations.incidents.signatures.heading")}
+      >
         <article className={styles.summaryCard}>
-          <p>{summary.signatures.title}</p>
+          <p>{t("operations.incidents.summary.signatures")}</p>
           <strong>{signatures.length}</strong>
-          <span>{summary.signatures.detail}</span>
+          <span>{t("operations.incidents.summary.signatures.detail")}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{summary.occurrences.title}</p>
+          <p>{t("operations.incidents.summary.occurrences")}</p>
           <strong>{incidents.length}</strong>
-          <span>{summary.occurrences.detail}</span>
+          <span>{t("operations.incidents.summary.occurrences.detail")}</span>
         </article>
         <article className={styles.summaryCard}>
-          <p>{summary.diagnosable.title}</p>
+          <p>{t("operations.incidents.summary.withCause")}</p>
           <strong>{withCause}</strong>
-          <span>{summary.diagnosable.detail}</span>
+          <span>{t("operations.incidents.summary.withCause.detail")}</span>
         </article>
       </section>
 
@@ -139,86 +188,113 @@ export function UnhandledErrorsView({
       <section className={styles.section} aria-labelledby="failure-signatures">
         <header className={styles.sectionHeader}>
           <div>
-            <h2 id="failure-signatures">{table.heading}</h2>
-            <p>{table.subheading}</p>
+            <h2 id="failure-signatures">
+              {t("operations.incidents.signatures.heading")}
+            </h2>
+            <p>{t("operations.incidents.signatures.subheading")}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {table.count(signatures.length)}
+            {t("operations.incidents.signatures.count", {
+              count: signatures.length,
+            })}
           </span>
         </header>
         {signatures.length === 0 && readable ? (
-          <p className={styles.empty}>{table.empty(catalogueSize)}</p>
+          <p className={styles.empty}>
+            {t("operations.incidents.signatures.empty")}
+          </p>
         ) : (
           <Table
             className={styles.dsTable ?? ""}
-            caption={table.caption}
+            caption={t("operations.incidents.signatures.caption")}
             captionHidden
             density="compact"
             headers={[
-              table.columns.failure,
-              table.columns.boundary,
-              table.columns.record,
-              table.columns.cause,
-              table.columns.occurrences,
-              table.columns.window,
-              table.columns.decision,
+              t("operations.incidents.column.failure"),
+              t("operations.incidents.column.boundary"),
+              t("operations.incidents.column.record"),
+              t("operations.incidents.column.cause"),
+              t("operations.incidents.summary.occurrences"),
+              t("operations.incidents.column.window"),
+              t("operations.column.decision"),
             ]}
             numericColumns={[4]}
             rowKeys={signatures.map((signature) => signature.key)}
-            rows={signatures.map((signature) => [
-              <div className={styles.primaryCell}>
-                <strong>{signature.safeCode ?? table.codeMissing}</strong>
-                <span className={styles.secondary}>{signature.eventType}</span>
-              </div>,
-              <Where signature={signature} />,
-              <Record signature={signature} />,
-              <Cause signature={signature} />,
-              <strong>{table.occurrencesCell(signature.occurrences)}</strong>,
-              <div className={styles.primaryCell}>
+            rows={signatures.map((signature) => {
+              const decided = signature.latest.latestDecision;
+              const decidedReason = signature.latest.latestDecisionReason;
+              return [
+                <div className={styles.primaryCell}>
+                  <strong>
+                    {signature.safeCode ?? t("operations.incidents.row.noCode")}
+                  </strong>
+                  <span className={styles.secondary}>
+                    {signature.eventType}
+                  </span>
+                </div>,
+                <Where signature={signature} t={t} />,
+                <Record signature={signature} t={t} />,
+                <Cause signature={signature} t={t} />,
                 <strong>
-                  <time dateTime={signature.lastSeenAt}>
-                    {formatOperationalTimestamp(signature.lastSeenAt)}
-                  </time>
-                </strong>
-                <span className={styles.secondary}>
-                  first{" "}
-                  <time dateTime={signature.firstSeenAt}>
-                    {formatOperationalTimestamp(signature.firstSeenAt)}
-                  </time>
-                </span>
-              </div>,
-              <div className={styles.actionStack}>
-                {signature.latest.latestDecision ? (
-                  <StatusBadge
-                    tone={
-                      signature.latest.latestDecision === "contain"
-                        ? "warning"
-                        : "neutral"
-                    }
+                  {new Intl.NumberFormat(formattingLocale).format(
+                    signature.occurrences,
+                  )}
+                </strong>,
+                <div className={styles.primaryCell}>
+                  <strong>
+                    <time dateTime={signature.lastSeenAt}>
+                      {formatOperationalTimestamp(
+                        signature.lastSeenAt,
+                        formattingLocale,
+                      )}
+                    </time>
+                  </strong>
+                  <span className={styles.secondary}>
+                    {richText(t, "operations.incidents.row.firstSeen", {
+                      time: (
+                        <time dateTime={signature.firstSeenAt}>
+                          {formatOperationalTimestamp(
+                            signature.firstSeenAt,
+                            formattingLocale,
+                          )}
+                        </time>
+                      ),
+                    })}
+                  </span>
+                </div>,
+                <div className={styles.actionStack}>
+                  {decided ? (
+                    <StatusBadge
+                      tone={decided === "contain" ? "warning" : "neutral"}
+                    >
+                      {decidedReason
+                        ? t(
+                            incidentDecisionLabels[decided].recordedWithReason,
+                            {
+                              reason: decidedReason,
+                            },
+                          )
+                        : t(incidentDecisionLabels[decided].recorded)}
+                    </StatusBadge>
+                  ) : null}
+                  <SurfaceActionGate
+                    audience="internal"
+                    requiredPermission="system:operate"
                   >
-                    {table.decidedCell(
-                      signature.latest.latestDecision,
-                      signature.latest.latestDecisionReason,
-                    )}
-                  </StatusBadge>
-                ) : null}
-                <SurfaceActionGate
-                  audience="internal"
-                  requiredPermission="system:operate"
-                >
-                  <IncidentDecisionControl
-                    decision="contain"
-                    auditEventId={signature.latest.auditEventId}
-                    label={signature.safeCode ?? signature.eventType}
-                  />
-                  <IncidentDecisionControl
-                    decision="release"
-                    auditEventId={signature.latest.auditEventId}
-                    label={signature.safeCode ?? signature.eventType}
-                  />
-                </SurfaceActionGate>
-              </div>,
-            ])}
+                    <IncidentDecisionControl
+                      decision="contain"
+                      auditEventId={signature.latest.auditEventId}
+                      label={signature.safeCode ?? signature.eventType}
+                    />
+                    <IncidentDecisionControl
+                      decision="release"
+                      auditEventId={signature.latest.auditEventId}
+                      label={signature.safeCode ?? signature.eventType}
+                    />
+                  </SurfaceActionGate>
+                </div>,
+              ];
+            })}
           />
         )}
       </section>

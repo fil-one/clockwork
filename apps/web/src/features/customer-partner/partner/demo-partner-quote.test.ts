@@ -10,12 +10,26 @@ import { demoAccountIds } from "@clockwork/testing/personas";
 
 vi.mock("server-only", () => ({}));
 
+import { formatDate, formatMoney } from "@/src/features/shared/format";
+import { formattingLocales, type Locale } from "@/src/i18n";
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   demoCreatedPartnerQuotes,
   demoPartnerQuoteContext,
   demoPartnerQuoteRecord,
   handleDemoPartnerQuoteCommand,
 } from "./demo-partner-quote";
+import type { PartnerReader } from "./partner-presentation";
+
+function reader(locale: Locale): PartnerReader {
+  return {
+    t: translatorFor(locale),
+    locale,
+    formatting: formattingLocales[locale],
+  };
+}
+const en = reader("en");
 
 const store = createMemoryDemoStore();
 const partner: SessionClaims = {
@@ -111,14 +125,23 @@ describe("durable partner quote demo", () => {
       },
     });
     const state = await store.read();
-    const [created] = demoCreatedPartnerQuotes(state, demoAccountIds.reseller);
+    const [created] = demoCreatedPartnerQuotes(
+      state,
+      demoAccountIds.reseller,
+      en,
+    );
     expect(created).toMatchObject({
       status: "draft",
       name: "Aster House Media · LOCKED-STORAGE-TB",
       value: "£26,400.00 transfer / £30,000.00 resale",
     });
     expect(
-      demoPartnerQuoteRecord(state, demoAccountIds.reseller, created?.id ?? ""),
+      demoPartnerQuoteRecord(
+        state,
+        demoAccountIds.reseller,
+        created?.id ?? "",
+        en,
+      ),
     ).toEqual(created);
   });
 
@@ -149,7 +172,7 @@ describe("durable partner quote demo", () => {
     );
     expect(conflict.status).toBe(409);
     expect(
-      demoCreatedPartnerQuotes(await store.read(), demoAccountIds.reseller),
+      demoCreatedPartnerQuotes(await store.read(), demoAccountIds.reseller, en),
     ).toHaveLength(1);
   });
 
@@ -173,7 +196,7 @@ describe("durable partner quote demo", () => {
       expect(response.status).toBe(403);
     }
     expect(
-      demoCreatedPartnerQuotes(await store.read(), demoAccountIds.reseller),
+      demoCreatedPartnerQuotes(await store.read(), demoAccountIds.reseller, en),
     ).toHaveLength(0);
   });
 
@@ -184,11 +207,11 @@ describe("durable partner quote demo", () => {
       { store, now: "2026-08-18T12:00:00.000Z" },
     );
     expect(
-      demoCreatedPartnerQuotes(await store.read(), demoAccountIds.reseller),
+      demoCreatedPartnerQuotes(await store.read(), demoAccountIds.reseller, en),
     ).toHaveLength(1);
     await store.replace(createPristineDemoAdapterState());
     expect(
-      demoCreatedPartnerQuotes(await store.read(), demoAccountIds.reseller),
+      demoCreatedPartnerQuotes(await store.read(), demoAccountIds.reseller, en),
     ).toHaveLength(0);
   });
 });
@@ -207,11 +230,12 @@ it("keeps quotes with the same UUID timestamp prefix separately addressable", as
     expect(response.status).toBe(200);
   }
   const state = await store.read();
-  const quotes = demoCreatedPartnerQuotes(state, demoAccountIds.reseller);
+  const quotes = demoCreatedPartnerQuotes(state, demoAccountIds.reseller, en);
   expect(new Set(quotes.map((quote) => quote.recordKey)).size).toBe(2);
   for (const id of [body.id, secondId]) {
     expect(
-      demoPartnerQuoteRecord(state, demoAccountIds.reseller, `quote-${id}`)?.id,
+      demoPartnerQuoteRecord(state, demoAccountIds.reseller, `quote-${id}`, en)
+        ?.id,
     ).toBe(`quote-${id}`);
   }
 });
@@ -231,13 +255,14 @@ it("restores separate prices for drafts saved before the pricing display update"
     legacy,
     demoAccountIds.reseller,
     body.id,
+    en,
   );
   expect(detail?.quotePricing).toEqual({
     transferPrice: "£26,400.00",
     resalePrice: "£30,000.00",
   });
   expect(
-    demoPartnerQuoteRecord(legacy, demoAccountIds.referral, body.id),
+    demoPartnerQuoteRecord(legacy, demoAccountIds.referral, body.id, en),
   ).toBeUndefined();
 });
 
@@ -341,6 +366,7 @@ it("issues two bound documents, protects transfer prices, and safely replays", a
       await store.read(),
       demoAccountIds.reseller,
       body.id,
+      en,
     ),
   ).toMatchObject({
     status: "open",
@@ -398,6 +424,7 @@ it("issues two bound documents, protects transfer prices, and safely replays", a
       await store.read(),
       demoAccountIds.reseller,
       body.id,
+      en,
     ),
   ).toMatchObject({ status: "accepted", orderId: accepted.id });
   const revision = await handleDemoPartnerQuoteCommand(
@@ -507,8 +534,12 @@ it("edits drafts, revises multiple lines and invalidates client review after rep
     new Date(options.now),
   );
   expect(
-    demoPartnerQuoteRecord(await store.read(), demoAccountIds.reseller, body.id)
-      ?.clientResponse?.decision,
+    demoPartnerQuoteRecord(
+      await store.read(),
+      demoAccountIds.reseller,
+      body.id,
+      en,
+    )?.clientResponse?.decision,
   ).toBe("request_changes");
   await expect(
     recordClientReview(
@@ -594,8 +625,12 @@ it("withdraws a quote with a reason and refuses stale or cross-account withdrawa
     ).status,
   ).toBe(200);
   expect(
-    demoPartnerQuoteRecord(await store.read(), demoAccountIds.reseller, body.id)
-      ?.status,
+    demoPartnerQuoteRecord(
+      await store.read(),
+      demoAccountIds.reseller,
+      body.id,
+      en,
+    )?.status,
   ).toBe("canceled");
   expect(
     (
@@ -606,4 +641,194 @@ it("withdraws a quote with a reason and refuses stale or cross-account withdrawa
       )
     ).status,
   ).toBe(409);
+});
+
+/*
+ * Demo state lives in Netlify Blobs and outlives any one reader. What a quote
+ * writes there must be facts -- minor units, currency, ISO dates -- so that the
+ * next reader, in any language, sees amounts and dates in their own format.
+ * The writer used to store "£26,400.00 transfer / £30,000.00 resale" and
+ * "Draft · expires 18/09/2026", rendered once in British English.
+ */
+describe("partner quotes persist facts, not one reader's rendering", () => {
+  const storedQuote = async () => {
+    const state = await store.read();
+    const entry = state.projectionOverrides[`demo-partner-quote:${body.id}`];
+    if (!entry) throw new Error("Quote was not stored");
+    return entry.data as {
+      record: Record<string, unknown>;
+      snapshot: Record<string, unknown>;
+    };
+  };
+
+  it("stores minor units, currency and ISO dates, and no rendered text", async () => {
+    await handleDemoPartnerQuoteCommand(
+      request("facts-only-create-0001"),
+      partner,
+      { store, now: "2026-08-18T12:00:00.000Z" },
+    );
+    const stored = await storedQuote();
+    for (const key of [
+      "context",
+      "owner",
+      "value",
+      "secondary",
+      "quotePricing",
+    ])
+      expect(stored.record, key).not.toHaveProperty(key);
+    expect(JSON.stringify(stored.record)).not.toMatch(
+      /£|\$|€|transfer|resale|expires|months|Draft/u,
+    );
+    expect(stored.snapshot).toMatchObject({
+      total: { currency: "GBP", minor: "2640000" },
+      partnerResaleTotal: { currency: "GBP", minor: "3000000" },
+      expiresAt: "2026-09-18T12:00:00.000Z",
+    });
+  });
+
+  it("renders the same stored quote in each reader's language and number format", async () => {
+    await handleDemoPartnerQuoteCommand(
+      request("facts-only-render-0001"),
+      partner,
+      { store, now: "2026-08-18T12:00:00.000Z" },
+    );
+    const state = await store.read();
+    for (const locale of ["pt", "de", "ja", "ar"] as const) {
+      const { t, formatting } = reader(locale);
+      const [quote] = demoCreatedPartnerQuotes(
+        state,
+        demoAccountIds.reseller,
+        reader(locale),
+      );
+      expect(quote?.value, locale).toBe(
+        t("partner.position.transferAndResale", {
+          transfer: formatMoney("2640000", "GBP", formatting),
+          resale: formatMoney("3000000", "GBP", formatting),
+        }),
+      );
+      expect(quote?.secondary, locale).toBe(
+        t("partner.milestone.draftExpires", {
+          date: formatDate("2026-09-18", formatting),
+        }),
+      );
+      expect(quote?.quotePricing?.transferPrice, locale).toBe(
+        formatMoney("2640000", "GBP", formatting),
+      );
+      expect(
+        `${quote?.context} ${quote?.value} ${quote?.secondary} ${quote?.owner}`,
+        locale,
+      ).not.toMatch(/transfer|resale|expires|months|Draft|Partner commercial/u);
+    }
+  });
+
+  it("reads a quote written in the old English-only shape, in the reader's language", async () => {
+    await handleDemoPartnerQuoteCommand(
+      request("facts-only-legacy-0001"),
+      partner,
+      { store, now: "2026-08-18T12:00:00.000Z" },
+    );
+    // Exactly what the previous writer left in the store.
+    await store.update((state) => {
+      const key = `demo-partner-quote:${body.id}`;
+      const entry = state.projectionOverrides[key];
+      if (!entry) throw new Error("Quote was not stored");
+      const data = entry.data as { record: Record<string, unknown> };
+      return {
+        ...state,
+        projectionOverrides: {
+          ...state.projectionOverrides,
+          [key]: {
+            ...entry,
+            data: {
+              ...data,
+              record: {
+                ...data.record,
+                context: "Resale · uk-south · 20 TB · 12 months",
+                owner: "Partner commercial team",
+                value: "£26,400.00 transfer / £30,000.00 resale",
+                secondary: "Draft · expires 18/09/2026",
+                quotePricing: {
+                  transferPrice: "£26,400.00",
+                  resalePrice: "£30,000.00",
+                },
+              },
+            },
+          },
+        },
+      };
+    });
+    const german = reader("de");
+    const quote = demoPartnerQuoteRecord(
+      await store.read(),
+      demoAccountIds.reseller,
+      body.id,
+      german,
+    );
+    expect(quote?.value).toBe(
+      german.t("partner.position.transferAndResale", {
+        transfer: formatMoney("2640000", "GBP", "de-DE"),
+        resale: formatMoney("3000000", "GBP", "de-DE"),
+      }),
+    );
+    expect(quote?.secondary).toBe(
+      german.t("partner.milestone.draftExpires", {
+        date: formatDate("2026-09-18", "de-DE"),
+      }),
+    );
+    expect(quote?.quotePricing).toEqual({
+      transferPrice: formatMoney("2640000", "GBP", "de-DE"),
+      resalePrice: formatMoney("3000000", "GBP", "de-DE"),
+    });
+    expect(`${quote?.context} ${quote?.owner}`).not.toMatch(
+      /Resale|months|Partner commercial/u,
+    );
+  });
+
+  it("keeps an old withdrawal reason and supersession while wording them for the reader", async () => {
+    await handleDemoPartnerQuoteCommand(
+      request("facts-only-legacy-0002"),
+      partner,
+      { store, now: "2026-08-18T12:00:00.000Z" },
+    );
+    await store.update((state) => {
+      const key = `demo-partner-quote:${body.id}`;
+      const entry = state.projectionOverrides[key];
+      if (!entry) throw new Error("Quote was not stored");
+      const data = entry.data as {
+        record: Record<string, unknown>;
+        snapshot: Record<string, unknown>;
+      };
+      return {
+        ...state,
+        projectionOverrides: {
+          ...state.projectionOverrides,
+          [key]: {
+            ...entry,
+            data: {
+              ...data,
+              snapshot: { ...data.snapshot, status: "rejected" },
+              record: {
+                ...data.record,
+                status: "canceled",
+                secondary: "Withdrawn: Client requirements changed",
+              },
+            },
+          },
+        },
+      };
+    });
+    const portuguese = reader("pt");
+    expect(
+      demoPartnerQuoteRecord(
+        await store.read(),
+        demoAccountIds.reseller,
+        body.id,
+        portuguese,
+      )?.secondary,
+    ).toBe(
+      portuguese.t("partner.milestone.withdrawn", {
+        reason: "Client requirements changed",
+      }),
+    );
+  });
 });

@@ -1,5 +1,6 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import type { MessageId, Translator } from "@/src/i18n";
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -10,43 +11,159 @@ import type {
   PaygOfferTerms,
 } from "@clockwork/domain/core";
 
+import { bookMoney } from "./price-book-presentation";
 import { AdministrationPage, styles } from "./ui";
+
+/*
+ * Every word on this page is a message ID. Stored facts (minor units, byte
+ * counts, ISO timestamps, codes) are formatted for the reader here and placed
+ * into messages as values. Errors travel as message IDs (`PaygError`), so a
+ * failure is worded in the reader's language at the point it is shown.
+ */
+
+/** A failure whose reader-facing sentence is a message ID. */
+class PaygError extends Error {
+  public constructor(public readonly messageId: MessageId) {
+    super(messageId);
+    this.name = "PaygError";
+  }
+}
+
+function errorText(
+  failure: unknown,
+  t: Translator,
+  fallback: MessageId,
+): string {
+  return failure instanceof PaygError ? t(failure.messageId) : t(fallback);
+}
 
 function value(data: FormData, name: string): string {
   const field = data.get(name);
   return typeof field === "string" ? field.trim() : "";
 }
+
+/** Minor units as the plain decimal an input accepts ("4.99"). */
 function moneyInput(minor?: string): string {
   if (minor === undefined) return "";
   return `${BigInt(minor) / 100n}.${(BigInt(minor) % 100n).toString().padStart(2, "0")}`;
 }
-function decimalStorage(bytes: string | undefined): string {
-  if (bytes === undefined) return "Not specified";
+
+const storageUnits = [
+  [1_000_000_000_000n, "terabyte"],
+  [1_000_000_000n, "gigabyte"],
+  [1_000_000n, "megabyte"],
+  [1_000n, "kilobyte"],
+] as const;
+
+/** A decimal (SI) byte count in the reader's number and unit format. */
+function decimalStorage(
+  bytes: string | undefined,
+  t: Translator,
+  locale: string,
+): string {
+  if (bytes === undefined) return t("adminPricing.payg.notSpecified");
   const count = BigInt(bytes);
-  const units = [
-    [1_000_000_000_000n, "TB"],
-    [1_000_000_000n, "GB"],
-    [1_000_000n, "MB"],
-    [1_000n, "kB"],
-  ] as const;
-  const unit = units.find(([scale]) => count >= scale);
-  if (!unit) return `${bytes} bytes`;
-  const [scale, label] = unit;
+  const unit = storageUnits.find(([scale]) => count >= scale);
+  if (!unit)
+    return new Intl.NumberFormat(locale, {
+      style: "unit",
+      unit: "byte",
+      unitDisplay: "long",
+    }).format(count);
+  const [scale, name] = unit;
   const fraction = (((count % scale) * 100n) / scale)
     .toString()
-    .padStart(2, "0")
-    .replace(/0+$/, "");
-  return `${count / scale}${fraction ? `.${fraction}` : ""} ${label}`;
+    .padStart(2, "0");
+  return new Intl.NumberFormat(locale, {
+    style: "unit",
+    unit: name,
+    maximumFractionDigits: 2,
+  }).format(`${count / scale}.${fraction}` as Intl.StringNumericLiteral);
+}
+
+/** An ISO timestamp in the reader's format, in UTC and labelled as UTC. */
+function utcTimestamp(value: string, locale: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(parsed);
+}
+
+/** A service month ("2026-09") in the reader's format. */
+function serviceMonth(value: string, locale: string): string {
+  const parsed = new Date(`${value}-01T00:00:00.000Z`);
+  if (Number.isNaN(parsed.valueOf())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(parsed);
 }
 
 function minor(value: string): string {
   const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(value);
-  if (!match?.[1])
-    throw new Error("Enter monetary amounts with at most two decimal places.");
+  if (!match?.[1]) throw new PaygError("adminPricing.payg.error.moneyFormat");
   return (
     BigInt(match[1]) * 100n +
     BigInt((match[2] ?? "").padEnd(2, "0"))
   ).toString();
+}
+
+/** What the reader is told for each problem code the PAYG API returns. */
+const problemMessages: Readonly<Record<string, MessageId>> = {
+  PAYG_APPROVED_POLICY_BINDING_MISMATCH:
+    "adminPricing.payg.error.bindingMismatch",
+  TRIAL_ACCOUNT_NOT_CLEARED: "adminPricing.payg.error.trialAccountNotCleared",
+  TRIAL_ALREADY_USED: "adminPricing.payg.error.trialAlreadyUsed",
+  TRIAL_PERSISTED_DOMAIN_EVIDENCE_REQUIRED:
+    "adminPricing.payg.error.trialDomainEvidence",
+  TRIAL_VERIFIED_TENANT_REQUIRED: "adminPricing.payg.error.trialTenantRequired",
+  TRIAL_PAID_CONVERSION_NOT_CONFIRMED:
+    "adminPricing.payg.error.trialPaidNotConfirmed",
+  TRIAL_APPROVED_POLICY_REQUIRED: "adminPricing.payg.error.trialPolicyRequired",
+  PAYG_ENROLLMENT_SOURCE_ALREADY_BOUND:
+    "adminPricing.payg.error.enrollmentAlreadyBound",
+  PAYG_STRIPE_CUSTOMER_UNMAPPED:
+    "adminPricing.payg.error.stripeCustomerUnmapped",
+  PAYG_VERIFIED_ENROLLMENT_EVIDENCE_REQUIRED:
+    "adminPricing.payg.error.enrollmentEvidenceRequired",
+  PAYG_CREDIT_ORIGINAL_INVOICE_NOT_ISSUED:
+    "adminPricing.payg.error.creditOriginalNotIssued",
+  PAYG_ENROLLMENT_START_INVALID:
+    "adminPricing.payg.error.enrollmentStartInvalid",
+  PAYG_CONFIRMED_CANCELLATION_REQUIRED:
+    "adminPricing.payg.error.cancellationRequired",
+  PAYG_ENROLLMENT_REPLAY_CONFLICT:
+    "adminPricing.payg.error.enrollmentReplayConflict",
+  PAYG_OFFER_VERSION_EXISTS: "adminPricing.payg.error.versionExists",
+  PAYG_OFFER_STALE_VERSION: "adminPricing.payg.error.staleVersion",
+  PAYG_OFFER_DISTINCT_APPROVER_REQUIRED:
+    "adminPricing.payg.error.distinctApprover",
+  PAYG_OFFER_FINANCE_AUTHORITY_REQUIRED:
+    "adminPricing.payg.error.financeAuthority",
+  PAYG_OFFERS_UNAVAILABLE: "adminPricing.payg.error.unavailable",
+  RECENT_AUTHENTICATION_REQUIRED:
+    "adminPricing.payg.error.recentAuthentication",
+  PAYG_OFFER_SOURCE_CHECKED_IN_FUTURE:
+    "adminPricing.payg.error.sourceCheckedInFuture",
+};
+
+function problemMessage(code: string, status: number): MessageId {
+  if (code.startsWith("PAYG_TAX_REVIEW_REQUIRED"))
+    return "adminPricing.payg.error.taxReview";
+  return (
+    problemMessages[code] ??
+    (status === 422
+      ? "adminPricing.payg.error.validation"
+      : "adminPricing.payg.error.notSaved")
+  );
 }
 
 async function postPayg(path: string, body: unknown): Promise<unknown> {
@@ -56,7 +173,7 @@ async function postPayg(path: string, body: unknown): Promise<unknown> {
     .find((part) => part.startsWith("clockwork-csrf="))
     ?.slice("clockwork-csrf=".length);
   if (!csrf || csrf.length < 32)
-    throw new Error("Refresh the page to restore the secure form token.");
+    throw new PaygError("adminPricing.payg.error.csrf");
   const response = await fetch(`/api/v1/core/payg-offers${path}`, {
     method: "POST",
     credentials: "same-origin",
@@ -73,58 +190,7 @@ async function postPayg(path: string, body: unknown): Promise<unknown> {
       result && typeof result === "object" && "code" in result
         ? String(result.code)
         : "";
-    const messages: Record<string, string> = {
-      PAYG_APPROVED_POLICY_BINDING_MISMATCH:
-        "The approved policy must match this provider entitlement and be effective on the service start date.",
-      TRIAL_ACCOUNT_NOT_CLEARED:
-        "The customer account must clear screening before a trial is claimed.",
-      TRIAL_ALREADY_USED:
-        "This organization or verified domain has already claimed a trial. Its lifetime eligibility cannot be reset.",
-      TRIAL_PERSISTED_DOMAIN_EVIDENCE_REQUIRED:
-        "Use a retained successful registration verification event or verified DNS domain record for this organization’s account.",
-      TRIAL_VERIFIED_TENANT_REQUIRED:
-        "The organization needs a verified provider tenant mapping before a trial can be recorded.",
-      TRIAL_PAID_CONVERSION_NOT_CONFIRMED:
-        "The paid source must be active, verified, and bound to the same account and tenant.",
-      TRIAL_APPROVED_POLICY_REQUIRED:
-        "Choose an approved trial policy with retained approval evidence.",
-      PAYG_ENROLLMENT_SOURCE_ALREADY_BOUND:
-        "This provider entitlement already has an enrollment. Refresh the enrollment list to inspect its retained identity.",
-      PAYG_STRIPE_CUSTOMER_UNMAPPED:
-        "The customer account needs a verified Stripe customer mapping before enrollment.",
-      PAYG_VERIFIED_ENROLLMENT_EVIDENCE_REQUIRED:
-        "Identity verification and approved Clockwork billing cutover evidence are required.",
-      PAYG_CREDIT_ORIGINAL_INVOICE_NOT_ISSUED:
-        "The original invoices must finish provider delivery before this correction can create credits.",
-      PAYG_ENROLLMENT_START_INVALID:
-        "Enter a confirmed past service start at an exact UTC hour.",
-      PAYG_CONFIRMED_CANCELLATION_REQUIRED:
-        "Enter a confirmed past service end at an exact UTC hour, with provider evidence.",
-      PAYG_ENROLLMENT_REPLAY_CONFLICT:
-        "This enrollment is already recorded with different source or billing evidence.",
-      PAYG_OFFER_VERSION_EXISTS:
-        "This SKU, region, and offer version already exists. Open the existing draft or choose a new version.",
-      PAYG_OFFER_STALE_VERSION:
-        "This version changed. Refresh the page before trying again.",
-      PAYG_OFFER_DISTINCT_APPROVER_REQUIRED:
-        "A finance approver who did not create, edit, or propose this version must decide.",
-      PAYG_OFFER_FINANCE_AUTHORITY_REQUIRED:
-        "Your persisted finance membership and MFA enrollment are required to change policies.",
-      PAYG_OFFERS_UNAVAILABLE:
-        "The policy service is unavailable. Your changes were not saved.",
-      RECENT_AUTHENTICATION_REQUIRED:
-        "Sign in again before changing commercial policy.",
-      PAYG_OFFER_SOURCE_CHECKED_IN_FUTURE:
-        "The evidence check date cannot be in the future.",
-    };
-    throw new Error(
-      (code.startsWith("PAYG_TAX_REVIEW_REQUIRED")
-        ? "The account tax evidence requires finance review before an invoice can be created."
-        : messages[code]) ??
-        (response.status === 422
-          ? "Check every required field. Evidence links must use HTTPS and contain no query string, fragment, or credentials."
-          : "The policy change was not saved. Refresh the page and check your finance access."),
-    );
+    throw new PaygError(problemMessage(code, response.status));
   }
   return result;
 }
@@ -135,17 +201,52 @@ async function command(body: PaygOfferCommand): Promise<PaygOfferRecord> {
 
 function tbBytes(value: string): string {
   const match = /^(\d+)(?:\.(\d{1,12}))?$/.exec(value);
-  if (!match?.[1])
-    throw new Error(
-      "Enter TB as a non-negative number with at most twelve decimal places.",
-    );
+  if (!match?.[1]) throw new PaygError("adminPricing.payg.error.tbFormat");
   return (
     BigInt(match[1]) * 1_000_000_000_000n +
     BigInt((match[2] ?? "").padEnd(12, "0"))
   ).toString();
 }
 
+const policyStatusLabels: Readonly<
+  Record<PaygOfferRecord["status"], MessageId>
+> = {
+  draft: "adminPricing.payg.status.draft",
+  proposed: "adminPricing.payg.status.proposed",
+  approved: "adminPricing.payg.status.approved",
+  retired: "adminPricing.payg.status.retired",
+};
+
+const savedMessages: Readonly<Record<PaygOfferRecord["status"], MessageId>> = {
+  draft: "adminPricing.payg.saved.draft",
+  proposed: "adminPricing.payg.saved.proposed",
+  approved: "adminPricing.payg.saved.approved",
+  retired: "adminPricing.payg.saved.retired",
+};
+
+const simulationLineLabels: Readonly<Record<string, MessageId>> = {
+  storage_bytes: "adminPricing.payg.simulator.line.storage",
+  egress_bytes: "adminPricing.payg.simulator.line.egress",
+  api_operations: "adminPricing.payg.simulator.line.api",
+  monthly_minimum_adjustment: "adminPricing.payg.simulator.line.minimum",
+};
+
+const billingEffectLabels: Readonly<Record<string, MessageId>> = {
+  invoice: "recordKind.invoice",
+  debit_adjustment: "adminPricing.payg.billing.kind.debitAdjustment",
+  credit_adjustment: "adminPricing.payg.billing.kind.creditAdjustment",
+};
+
+const partialMinimumLabels: Readonly<
+  Record<PaygOfferTerms["payg"]["partialMonthMinimum"], MessageId>
+> = {
+  full: "adminPricing.payg.form.partial.full",
+  prorated: "adminPricing.payg.form.partial.prorated",
+};
+
 function PaygOfferSimulator({ offer }: { offer: PaygOfferRecord }) {
+  const t = useTranslations();
+  const locale = useFormattingLocale();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{
@@ -169,31 +270,20 @@ function PaygOfferSimulator({ offer }: { offer: PaygOfferRecord }) {
       setResult(response as NonNullable<typeof result>);
     } catch (failure) {
       setError(
-        failure instanceof Error
-          ? failure.message
-          : "The simulation could not be completed.",
+        errorText(failure, t, "adminPricing.payg.error.simulationFailed"),
       );
     } finally {
       setBusy(false);
     }
   }
-  const lineLabels: Record<string, string> = {
-    storage_bytes: "Storage",
-    egress_bytes: "Egress",
-    api_operations: "API operations",
-    monthly_minimum_adjustment: "Monthly minimum adjustment",
-  };
   return (
     <div className={styles.panelBody}>
-      <h3>Monthly rating preview</h3>
-      <p>
-        Uses the saved policy and a full UTC calendar month. This simulation
-        creates no customer enrollment or invoice. Taxes are excluded.
-      </p>
+      <h3>{t("adminPricing.payg.simulator.title")}</h3>
+      <p>{t("adminPricing.payg.simulator.description")}</p>
       <form onSubmit={(event) => void simulate(event)}>
         <div className={styles.toolbar}>
           <label className={styles.field}>
-            Service month
+            {t("adminPricing.payg.simulator.month")}
             <input
               type="month"
               name="month"
@@ -202,7 +292,7 @@ function PaygOfferSimulator({ offer }: { offer: PaygOfferRecord }) {
             />
           </label>
           <label className={styles.field}>
-            Average daily storage (TB)
+            {t("adminPricing.payg.simulator.storage")}
             <input
               name="storageTb"
               inputMode="decimal"
@@ -211,7 +301,7 @@ function PaygOfferSimulator({ offer }: { offer: PaygOfferRecord }) {
             />
           </label>
           <label className={styles.field}>
-            Total monthly egress (TB)
+            {t("adminPricing.payg.simulator.egress")}
             <input
               name="egressTb"
               inputMode="decimal"
@@ -220,7 +310,7 @@ function PaygOfferSimulator({ offer }: { offer: PaygOfferRecord }) {
             />
           </label>
           <label className={styles.field}>
-            Total API operations
+            {t("adminPricing.payg.simulator.operations")}
             <input
               name="operations"
               inputMode="numeric"
@@ -234,26 +324,30 @@ function PaygOfferSimulator({ offer }: { offer: PaygOfferRecord }) {
           className={styles.buttonSecondary}
           disabled={busy}
         >
-          {busy ? "Calculating…" : "Calculate monthly estimate"}
+          {busy
+            ? t("adminPricing.payg.simulator.calculating")
+            : t("adminPricing.payg.simulator.calculate")}
         </button>
       </form>
       {error ? <p role="alert">{error}</p> : null}
       {result ? (
         <div role="status">
           <dl>
-            {result.lines.map((line) => (
-              <div key={line.kind}>
-                <dt>{lineLabels[line.kind] ?? line.kind}</dt>
-                <dd>
-                  {line.amount.currency} {moneyInput(line.amount.minor)}
-                </dd>
-              </div>
-            ))}
+            {result.lines.map((line) => {
+              const label = simulationLineLabels[line.kind];
+              return (
+                <div key={line.kind}>
+                  <dt>{label ? t(label) : line.kind}</dt>
+                  <dd>{bookMoney(line.amount, locale)}</dd>
+                </div>
+              );
+            })}
           </dl>
           <p>
             <strong>
-              Estimated monthly total: {result.total.currency}{" "}
-              {moneyInput(result.total.minor)}
+              {t("adminPricing.payg.simulator.total", {
+                amount: bookMoney(result.total, locale),
+              })}
             </strong>
           </p>
         </div>
@@ -261,6 +355,23 @@ function PaygOfferSimulator({ offer }: { offer: PaygOfferRecord }) {
     </div>
   );
 }
+
+const documentFields = {
+  customerTerms: {
+    heading: "adminPricing.payg.form.terms.heading",
+    documentId: "adminPricing.payg.form.terms.documentId",
+    version: "adminPricing.payg.form.terms.version",
+    uri: "adminPricing.payg.form.terms.uri",
+    hash: "adminPricing.payg.form.terms.hash",
+  },
+  customerRetention: {
+    heading: "adminPricing.payg.form.retention.heading",
+    documentId: "adminPricing.payg.form.retention.documentId",
+    version: "adminPricing.payg.form.retention.version",
+    uri: "adminPricing.payg.form.retention.uri",
+    hash: "adminPricing.payg.form.retention.hash",
+  },
+} as const satisfies Record<string, Record<string, MessageId>>;
 
 function OfferForm({
   offer,
@@ -272,6 +383,7 @@ function OfferForm({
   busy: boolean;
 }) {
   const t = useTranslations();
+  const locale = useFormattingLocale();
   const terms = offer?.terms;
   const [customerPolicyConfigured, setCustomerPolicyConfigured] = useState(
     Boolean(terms?.customerAcquisition),
@@ -279,13 +391,13 @@ function OfferForm({
   const [error, setError] = useState("");
   const field = (
     name: string,
-    label: string,
+    label: MessageId,
     defaultValue: string | number | undefined,
     type = "text",
     hint?: string,
   ) => (
     <label className={styles.field} key={name}>
-      {label}
+      {t(label)}
       <input
         name={name}
         defaultValue={defaultValue ?? ""}
@@ -367,55 +479,58 @@ function OfferForm({
         },
       });
     } catch (failure) {
-      setError(
-        failure instanceof Error ? failure.message : "The draft was not saved.",
-      );
+      setError(errorText(failure, t, "adminPricing.payg.error.draftNotSaved"));
     }
   }
   return (
     <form onSubmit={(event) => void submit(event)} className={styles.panelBody}>
       <fieldset disabled={busy} style={{ border: 0, padding: 0, minWidth: 0 }}>
-        <legend>Offer and evidence</legend>
+        <legend>{t("adminPricing.payg.form.offerAndEvidence")}</legend>
         <div className={styles.toolbar}>
-          {field("name", "Policy name", terms?.name)}
-          {field("sku", "Provisionable SKU", terms?.sku)}
-          {field("region", "Region code", terms?.region)}
-          {field("version", "Offer version", terms?.version ?? 1, "number")}
+          {field("name", "adminPricing.payg.form.name", terms?.name)}
+          {field("sku", "adminPricing.payg.form.sku", terms?.sku)}
+          {field("region", "adminPricing.payg.form.region", terms?.region)}
+          {field(
+            "version",
+            "adminPricing.payg.form.version",
+            terms?.version ?? 1,
+            "number",
+          )}
           {field(
             "effectiveFrom",
-            "Effective from",
+            "adminPricing.payg.form.effectiveFrom",
             terms?.effectiveFrom,
             "date",
           )}
-          {field("owner", "Policy owner", terms?.owner)}
+          {field("owner", "adminPricing.payg.form.owner", terms?.owner)}
           {field(
             "sourceUri",
-            "Evidence link",
+            "adminPricing.payg.form.sourceUri",
             terms?.sourceUri,
             "url",
-            "HTTPS document URL without a query string or fragment.",
+            t("adminPricing.payg.form.sourceUriHint"),
           )}
           {field(
             "sourceCheckedAt",
-            "Evidence checked on (UTC)",
+            "adminPricing.payg.form.sourceCheckedAt",
             terms?.sourceCheckedAt.slice(0, 10),
             "date",
           )}
           {field(
             "sourceDocumentId",
-            "Source document reference",
+            "adminPricing.payg.form.sourceDocumentId",
             terms?.sourceDocumentId,
           )}
         </div>
-        <h3>Monthly PAYG pricing</h3>
+        <h3>{t("adminPricing.payg.form.pricingHeading")}</h3>
         <p>
-          Average daily storage uses hourly measurements in UTC. One TB is
-          1,000,000,000,000 bytes. Egress and API operations are recorded at
-          zero charge.
+          {t("adminPricing.payg.form.pricingDescription", {
+            bytes: new Intl.NumberFormat(locale).format(1_000_000_000_000),
+          })}
         </p>
         <div className={styles.toolbar}>
           <label className={styles.field}>
-            {t("ui.120")}
+            {t("common.currency")}
             <select
               name="currency"
               defaultValue={terms?.payg.currency ?? "USD"}
@@ -427,106 +542,112 @@ function OfferForm({
           </label>
           {field(
             "storagePrice",
-            "Price per TB-month",
+            "adminPricing.payg.form.storagePrice",
             moneyInput(terms?.payg.storageTbMonthMinor),
             "text",
-            "Amount in the selected currency, such as 4.99.",
+            t("adminPricing.payg.form.storagePriceHint", { example: "4.99" }),
           )}
           {field(
             "minimum",
-            "Monthly minimum charge",
+            "adminPricing.payg.form.minimum",
             moneyInput(terms?.payg.monthlyMinimumMinor),
           )}
           <label className={styles.field}>
-            First/final partial-month minimum
+            {t("adminPricing.payg.form.partialMinimum")}
             <select
               name="partialMinimum"
               required
               defaultValue={terms?.payg.partialMonthMinimum ?? ""}
             >
               <option value="" disabled>
-                Select approved treatment
+                {t("adminPricing.payg.form.selectTreatment")}
               </option>
-              <option value="full">Full monthly minimum</option>
-              <option value="prorated">Prorated by service hours</option>
+              <option value="full">
+                {t("adminPricing.payg.form.partial.full")}
+              </option>
+              <option value="prorated">
+                {t("adminPricing.payg.form.partial.prorated")}
+              </option>
             </select>
           </label>
           {field(
             "correctionWindowDays",
-            "Automatic correction window (days)",
+            "adminPricing.payg.form.correctionWindow",
             terms?.payg.correctionWindowDays,
             "number",
-            "After the service period; later corrections require finance review.",
+            t("adminPricing.payg.form.correctionWindowHint"),
           )}
         </div>
         <div className={styles.toolbar}>
-          {field("stripeTaxCode", "Stripe tax code", terms?.payg.stripeTaxCode)}
+          {field(
+            "stripeTaxCode",
+            "adminPricing.rate.stripeTaxCode",
+            terms?.payg.stripeTaxCode,
+          )}
           {field(
             "qboIncomeAccount",
-            "Accounting income account",
+            "adminPricing.rate.incomeAccount",
             terms?.payg.qboIncomeAccount,
           )}
         </div>
-        <h3>Trial limits and access</h3>
+        <h3>{t("adminPricing.payg.form.trialHeading")}</h3>
         <div className={styles.toolbar}>
           {field(
             "durationDays",
-            "Trial duration (days)",
+            "adminPricing.payg.form.trialDuration",
             terms?.trial.durationDays,
             "number",
           )}
           {field(
             "gracePeriodDays",
-            "Read-only grace period (days)",
+            "adminPricing.payg.form.gracePeriod",
             terms?.trial.gracePeriodDays,
             "number",
           )}
           {field(
             "storageLimitBytes",
-            "Storage limit (bytes)",
+            "adminPricing.payg.form.storageLimit",
             terms?.trial.storageLimitBytes,
             "text",
-            "1 TB = 1000000000000 bytes.",
+            t("adminPricing.payg.form.storageLimitHint", {
+              bytes: "1000000000000",
+            }),
           )}
           {field(
             "cumulativeEgressLimitBytes",
-            "Cumulative trial egress limit (bytes)",
+            "adminPricing.payg.form.egressLimit",
             terms?.trial.cumulativeEgressLimitBytes,
             "text",
-            "This budget does not reset each month.",
+            t("adminPricing.payg.form.egressLimitHint"),
           )}
           {field(
             "maximumCounterAgeSeconds",
-            "Maximum usage counter age (seconds)",
+            "adminPricing.payg.form.counterAge",
             terms?.trial.maximumCounterAgeSeconds,
             "number",
           )}
           <label className={styles.field}>
-            When the egress budget is exhausted
+            {t("adminPricing.payg.form.egressExhaustion")}
             <select
               name="egressExhaustion"
               required
               defaultValue={terms?.trial.egressExhaustion ?? ""}
             >
               <option value="" disabled>
-                Select approved behavior
+                {t("adminPricing.payg.form.selectBehavior")}
               </option>
-              <option value="disable_all">Disable all access</option>
-              <option value="block_egress">Block egress only</option>
+              <option value="disable_all">
+                {t("adminPricing.payg.form.exhaustion.disableAll")}
+              </option>
+              <option value="block_egress">
+                {t("adminPricing.payg.form.exhaustion.blockEgress")}
+              </option>
             </select>
           </label>
         </div>
-        <p>
-          Storage exhaustion blocks writes. Trial expiry starts the read-only
-          grace period; the account is disabled when grace ends. Automatic
-          deletion is not configured here.
-        </p>
-        <h3>Customer request notices and terms</h3>
-        <p>
-          Configure approved documents before offering this version to
-          customers. These flags permit collecting requests; they do not
-          activate billing, provision a tenant, or authorize a provider cutover.
-        </p>
+        <p>{t("adminPricing.payg.form.exhaustionNote")}</p>
+        <h3>{t("adminPricing.payg.form.customerHeading")}</h3>
+        <p>{t("adminPricing.payg.form.customerDescription")}</p>
         <label>
           <input
             type="checkbox"
@@ -535,7 +656,7 @@ function OfferForm({
               setCustomerPolicyConfigured(event.target.checked)
             }
           />{" "}
-          Include customer acquisition policy
+          {t("adminPricing.payg.form.includeCustomerPolicy")}
         </label>
         {customerPolicyConfigured ? (
           <>
@@ -548,7 +669,7 @@ function OfferForm({
                     terms?.customerAcquisition?.paygRequestsEnabled
                   }
                 />{" "}
-                Accept PAYG activation requests
+                {t("adminPricing.payg.form.acceptPayg")}
               </label>
               <label>
                 <input
@@ -558,19 +679,22 @@ function OfferForm({
                     terms?.customerAcquisition?.trialRequestsEnabled
                   }
                 />{" "}
-                Accept trial requests
+                {t("adminPricing.payg.form.acceptTrial")}
               </label>
             </div>
             <div className={styles.formGrid}>
               {(
                 [
-                  ["serviceNotice", "Service and billing notice"],
-                  ["cancellationNotice", "Cancellation and service-end notice"],
-                  ["trialNotice", "Trial eligibility and expiry notice"],
+                  ["serviceNotice", "adminPricing.payg.form.serviceNotice"],
+                  [
+                    "cancellationNotice",
+                    "adminPricing.payg.form.cancellationNotice",
+                  ],
+                  ["trialNotice", "adminPricing.payg.form.trialNotice"],
                 ] as const
               ).map(([name, label]) => (
                 <label className={styles.field} key={name}>
-                  {label}
+                  {t(label)}
                   <textarea
                     name={name}
                     required
@@ -582,44 +706,38 @@ function OfferForm({
               ))}
               {(
                 [
-                  ["customerTerms", "Terms", terms?.customerAcquisition?.terms],
-                  [
-                    "customerRetention",
-                    "Retention policy",
-                    terms?.customerAcquisition?.retention,
-                  ],
+                  ["customerTerms", terms?.customerAcquisition?.terms],
+                  ["customerRetention", terms?.customerAcquisition?.retention],
                 ] as const
-              ).map(([prefix, label, reference]) => (
-                <div key={prefix}>
-                  <h4>{label}</h4>
-                  {field(
-                    `${prefix}Id`,
-                    `${label} document reference`,
-                    reference?.documentId,
-                  )}
-                  {field(
-                    `${prefix}Version`,
-                    `${label} document version`,
-                    reference?.version,
-                  )}
-                  {field(
-                    `${prefix}Uri`,
-                    `${label} document URL`,
-                    reference?.uri,
-                    "url",
-                  )}
-                  {field(
-                    `${prefix}Hash`,
-                    `${label} exact document SHA-256`,
-                    reference?.sha256,
-                  )}
-                </div>
-              ))}
+              ).map(([prefix, reference]) => {
+                const labels = documentFields[prefix];
+                return (
+                  <div key={prefix}>
+                    <h4>{t(labels.heading)}</h4>
+                    {field(
+                      `${prefix}Id`,
+                      labels.documentId,
+                      reference?.documentId,
+                    )}
+                    {field(
+                      `${prefix}Version`,
+                      labels.version,
+                      reference?.version,
+                    )}
+                    {field(`${prefix}Uri`, labels.uri, reference?.uri, "url")}
+                    {field(`${prefix}Hash`, labels.hash, reference?.sha256)}
+                  </div>
+                );
+              })}
             </div>
           </>
         ) : null}
         <button className={styles.button} type="submit">
-          {busy ? "Saving…" : offer ? "Save draft" : "Create policy draft"}
+          {busy
+            ? t("common.saving")
+            : offer
+              ? t("adminPricing.payg.form.saveDraft")
+              : t("adminPricing.payg.form.createDraft")}
         </button>
       </fieldset>
       {error ? <p role="alert">{error}</p> : null}
@@ -632,6 +750,8 @@ function TrialAdministration({
 }: {
   offers: readonly PaygOfferRecord[];
 }) {
+  const t = useTranslations();
+  const locale = useFormattingLocale();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [trials, setTrials] = useState<
@@ -652,15 +772,16 @@ function TrialAdministration({
       const response = await fetch("/api/v1/core/payg-offers/trials", {
         credentials: "same-origin",
       });
-      if (!response.ok) throw new Error("Trial list unavailable.");
+      if (!response.ok)
+        throw new PaygError("adminPricing.payg.error.trialListUnavailable");
       const result = (await response.json()) as { trials: typeof trials };
       setTrials(result.trials);
       setMessage(
-        result.trials.length ? "" : "No lifetime trial claims are recorded.",
+        result.trials.length ? "" : t("adminPricing.payg.trials.none"),
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Trial list unavailable.",
+        errorText(error, t, "adminPricing.payg.error.trialListUnavailable"),
       );
     } finally {
       setBusy(false);
@@ -695,12 +816,12 @@ function TrialAdministration({
       };
       setMessage(
         action === "claim"
-          ? `Lifetime trial claim ${result.trial.id} retained. Provider enforcement requires the verified authorization adapter.`
-          : `Trial ${result.trial.id} converted to its confirmed paid binding. Tenant and stored data are preserved.`,
+          ? t("adminPricing.payg.trials.claimed", { id: result.trial.id })
+          : t("adminPricing.payg.trials.converted", { id: result.trial.id }),
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Trial command was not saved.",
+        errorText(error, t, "adminPricing.payg.error.trialCommandFailed"),
       );
     } finally {
       setBusy(false);
@@ -708,81 +829,94 @@ function TrialAdministration({
   }
   return (
     <section className={styles.card}>
-      <h2>Verified trial lifecycle</h2>
-      <p>
-        Record a trial only for a mapped provider tenant and an existing
-        server-verified domain. One claim is retained for each organization and
-        domain. This does not provision storage or enable a live trial adapter.
-      </p>
+      <h2>{t("adminPricing.payg.trials.title")}</h2>
+      <p>{t("adminPricing.payg.trials.description")}</p>
       <button
         type="button"
         className={styles.buttonSecondary}
         disabled={busy}
         onClick={() => void refresh()}
       >
-        Refresh trial claims
+        {t("adminPricing.payg.trials.refresh")}
       </button>
       {trials.map(({ trial }) => (
         <p key={trial.id}>
-          Trial {trial.id} · {trial.verifiedDomain} ·{" "}
           {trial.convertedAt
-            ? `Converted ${trial.convertedAt}`
-            : `Write access expires ${trial.expiresAt}`}
+            ? t("adminPricing.payg.trials.rowConverted", {
+                id: trial.id,
+                domain: trial.verifiedDomain,
+                time: utcTimestamp(trial.convertedAt, locale),
+              })
+            : t("adminPricing.payg.trials.rowActive", {
+                id: trial.id,
+                domain: trial.verifiedDomain,
+                time: utcTimestamp(trial.expiresAt, locale),
+              })}
         </p>
       ))}
       <details>
-        <summary>Record verified trial claim</summary>
+        <summary>{t("adminPricing.payg.trials.recordClaim")}</summary>
         <form onSubmit={(event) => void submit(event, "claim")}>
           <label>
-            Organization ID
+            {t("adminPricing.payg.trials.organizationId")}
             <input name="trialOrganizationId" required />
           </label>
           <label>
-            Approved trial policy
+            {t("adminPricing.payg.trials.approvedPolicy")}
             <select name="trialOfferVersionId" required>
               {approved.map((offer) => (
                 <option key={offer.id} value={offer.id}>
-                  {offer.terms.name} v{offer.terms.version}
+                  {t("adminPricing.bookName", {
+                    name: offer.terms.name,
+                    version: offer.terms.version,
+                  })}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Persisted domain verification reference
+            {t("adminPricing.payg.trials.evidence")}
             <input
               name="trialEvidence"
               required
-              placeholder="registration:verified-event-uuid or dns:verified-domain-uuid"
+              placeholder={t("adminPricing.payg.trials.evidencePlaceholder", {
+                registration: "registration:verified-event-uuid",
+                dns: "dns:verified-domain-uuid",
+              })}
             />
           </label>
           <button
             className={styles.buttonPrimary}
             disabled={busy || approved.length === 0}
           >
-            Record trial claim
+            {t("adminPricing.payg.trials.recordClaimButton")}
           </button>
         </form>
       </details>
       <details>
-        <summary>Confirm paid conversion</summary>
+        <summary>{t("adminPricing.payg.trials.confirmConversion")}</summary>
         <form onSubmit={(event) => void submit(event, "convert")}>
           <label>
-            Trial ID
+            {t("adminPricing.payg.trials.trialId")}
             <input name="trialId" required />
           </label>
           <label>
-            Confirmed paid source
+            {t("adminPricing.payg.trials.paidSource")}
             <select name="paidSource">
-              <option value="payg">PAYG enrollment</option>
-              <option value="term">Active committed entitlement</option>
+              <option value="payg">
+                {t("adminPricing.payg.trials.paidSource.payg")}
+              </option>
+              <option value="term">
+                {t("adminPricing.payg.trials.paidSource.term")}
+              </option>
             </select>
           </label>
           <label>
-            Paid source ID
+            {t("adminPricing.payg.trials.paidSourceId")}
             <input name="paidId" required />
           </label>
           <button className={styles.buttonSecondary} disabled={busy}>
-            Confirm trial conversion
+            {t("adminPricing.payg.trials.confirmConversionButton")}
           </button>
         </form>
       </details>
@@ -791,7 +925,20 @@ function TrialAdministration({
   );
 }
 
+const enrollmentFields = [
+  ["accountId", "adminPricing.payg.enrollments.accountId"],
+  ["organizationId", "adminPricing.payg.enrollments.organizationId"],
+  ["tenantId", "adminPricing.payg.enrollments.tenantId"],
+  ["entitlementId", "adminPricing.payg.enrollments.entitlementId"],
+  ["source", "adminPricing.payg.enrollments.source"],
+  ["mappingVersionId", "adminPricing.payg.enrollments.mappingVersionId"],
+  ["bindingEvidenceId", "adminPricing.payg.enrollments.bindingEvidenceId"],
+  ["startsAt", "adminPricing.payg.enrollments.startsAt"],
+] as const satisfies readonly (readonly [string, MessageId])[];
+
 function PaygEnrollments({ offers }: { offers: readonly PaygOfferRecord[] }) {
+  const t = useTranslations();
+  const locale = useFormattingLocale();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [enrollments, setEnrollments] = useState<
@@ -809,7 +956,10 @@ function PaygEnrollments({ offers }: { offers: readonly PaygOfferRecord[] }) {
       const response = await fetch("/api/v1/core/payg-offers/enrollments", {
         credentials: "same-origin",
       });
-      if (!response.ok) throw new Error("Enrollment list unavailable.");
+      if (!response.ok)
+        throw new PaygError(
+          "adminPricing.payg.error.enrollmentListUnavailable",
+        );
       const result = (await response.json()) as {
         enrollments: typeof enrollments;
       };
@@ -817,11 +967,15 @@ function PaygEnrollments({ offers }: { offers: readonly PaygOfferRecord[] }) {
       setMessage(
         result.enrollments.length
           ? ""
-          : "No verified enrollments are recorded.",
+          : t("adminPricing.payg.enrollments.none"),
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Enrollment list unavailable.",
+        errorText(
+          error,
+          t,
+          "adminPricing.payg.error.enrollmentListUnavailable",
+        ),
       );
     } finally {
       setBusy(false);
@@ -836,7 +990,7 @@ function PaygEnrollments({ offers }: { offers: readonly PaygOfferRecord[] }) {
       (candidate) => candidate.id === value(data, "offerVersionId"),
     );
     if (!offer) {
-      setMessage("Choose an approved policy version.");
+      setMessage(t("adminPricing.payg.error.choosePolicy"));
       setBusy(false);
       return;
     }
@@ -865,11 +1019,13 @@ function PaygEnrollments({ offers }: { offers: readonly PaygOfferRecord[] }) {
           : {}),
       });
       setMessage(
-        `Enrollment ${(retained as { enrollment: { id: string } }).enrollment.id} retained. Its approved policy and supplier identity are now frozen.`,
+        t("adminPricing.payg.enrollments.retained", {
+          id: (retained as { enrollment: { id: string } }).enrollment.id,
+        }),
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Enrollment was not saved.",
+        errorText(error, t, "adminPricing.payg.error.enrollmentNotSaved"),
       );
     } finally {
       setBusy(false);
@@ -886,12 +1042,10 @@ function PaygEnrollments({ offers }: { offers: readonly PaygOfferRecord[] }) {
         serviceEndsAt: new Date(value(data, "serviceEndsAt")).toISOString(),
         evidenceId: value(data, "evidenceId"),
       });
-      setMessage(
-        "Confirmed service end retained. The next billing sweep will close the final service period.",
-      );
+      setMessage(t("adminPricing.payg.enrollments.cancellationRetained"));
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Cancellation was not saved.",
+        errorText(error, t, "adminPricing.payg.error.cancellationNotSaved"),
       );
     } finally {
       setBusy(false);
@@ -899,57 +1053,62 @@ function PaygEnrollments({ offers }: { offers: readonly PaygOfferRecord[] }) {
   }
   return (
     <section className={styles.card}>
-      <h2>Verified PAYG enrollment</h2>
+      <h2>{t("adminPricing.payg.enrollments.title")}</h2>
       <button
         type="button"
         className={styles.buttonSecondary}
         disabled={busy}
         onClick={() => void refreshEnrollments()}
       >
-        Refresh enrollments
+        {t("adminPricing.payg.enrollments.refresh")}
       </button>
-      {enrollments.map((enrollment) => (
-        <p key={enrollment.id}>
-          Enrollment {enrollment.id} · Account {enrollment.binding.accountId} ·{" "}
-          {enrollment.billingAuthority === "clockwork"
-            ? "Clockwork bills"
-            : "Fil One bills"}{" "}
-          ·{" "}
-          {enrollment.endsAt
-            ? `Service ended ${enrollment.endsAt}`
-            : `Service from ${enrollment.startsAt}`}
-        </p>
-      ))}
-      <p>
-        Record an existing verified provider entitlement and its approved
-        commercial cutover. This records billing authority; it does not create a
-        provider account or stop storage service.
-      </p>
+      {enrollments.map((enrollment) => {
+        const values = {
+          id: enrollment.id,
+          account: enrollment.binding.accountId,
+        };
+        const clockwork = enrollment.billingAuthority === "clockwork";
+        return (
+          <p key={enrollment.id}>
+            {enrollment.endsAt
+              ? t(
+                  clockwork
+                    ? "adminPricing.payg.enrollments.rowEnded.clockwork"
+                    : "adminPricing.payg.enrollments.rowEnded.filOne",
+                  { ...values, time: utcTimestamp(enrollment.endsAt, locale) },
+                )
+              : t(
+                  clockwork
+                    ? "adminPricing.payg.enrollments.rowActive.clockwork"
+                    : "adminPricing.payg.enrollments.rowActive.filOne",
+                  {
+                    ...values,
+                    time: utcTimestamp(enrollment.startsAt, locale),
+                  },
+                )}
+          </p>
+        );
+      })}
+      <p>{t("adminPricing.payg.enrollments.description")}</p>
       <details>
-        <summary>Record verified enrollment</summary>
+        <summary>{t("adminPricing.payg.enrollments.record")}</summary>
         <form onSubmit={(event) => void enroll(event)}>
           <label>
-            Approved policy
+            {t("adminPricing.payg.enrollments.approvedPolicy")}
             <select name="offerVersionId" required>
               {approved.map((offer) => (
                 <option key={offer.id} value={offer.id}>
-                  {offer.terms.name} v{offer.terms.version}
+                  {t("adminPricing.bookName", {
+                    name: offer.terms.name,
+                    version: offer.terms.version,
+                  })}
                 </option>
               ))}
             </select>
           </label>
-          {[
-            ["accountId", "Customer account ID"],
-            ["organizationId", "Verified provider organization ID"],
-            ["tenantId", "Verified provider tenant ID"],
-            ["entitlementId", "Verified provider entitlement ID"],
-            ["source", "Metering source name"],
-            ["mappingVersionId", "Verified mapping version"],
-            ["bindingEvidenceId", "Identity verification evidence reference"],
-            ["startsAt", "Confirmed service start (UTC, full hour)"],
-          ].map(([name, label]) => (
+          {enrollmentFields.map(([name, label]) => (
             <label key={name}>
-              {label}
+              {t(label)}
               <input
                 name={name}
                 required
@@ -960,35 +1119,37 @@ function PaygEnrollments({ offers }: { offers: readonly PaygOfferRecord[] }) {
             </label>
           ))}
           <label>
-            Billing authority
+            {t("adminPricing.payg.enrollments.billingAuthority")}
             <select name="authority">
-              <option value="fil_one">Fil One retains billing</option>
+              <option value="fil_one">
+                {t("adminPricing.payg.enrollments.authority.filOne")}
+              </option>
               <option value="clockwork">
-                Clockwork, with approved cutover evidence
+                {t("adminPricing.payg.enrollments.authority.clockwork")}
               </option>
             </select>
           </label>
           <label>
-            Approved cutover evidence reference
+            {t("adminPricing.payg.enrollments.cutoverEvidence")}
             <input name="cutoverEvidenceId" />
           </label>
           <button
             disabled={busy || approved.length === 0}
             className={styles.buttonPrimary}
           >
-            Record enrollment
+            {t("adminPricing.payg.enrollments.recordButton")}
           </button>
         </form>
       </details>
       <details>
-        <summary>Record confirmed service cancellation</summary>
+        <summary>{t("adminPricing.payg.enrollments.cancelSummary")}</summary>
         <form onSubmit={(event) => void cancel(event)}>
           <label>
-            Enrollment ID
+            {t("adminPricing.payg.enrollments.enrollmentId")}
             <input name="enrollmentId" required />
           </label>
           <label>
-            Confirmed service end (UTC, full hour)
+            {t("adminPricing.payg.enrollments.serviceEnd")}
             <input
               name="serviceEndsAt"
               required
@@ -996,11 +1157,11 @@ function PaygEnrollments({ offers }: { offers: readonly PaygOfferRecord[] }) {
             />
           </label>
           <label>
-            Provider service-end evidence reference
+            {t("adminPricing.payg.enrollments.serviceEndEvidence")}
             <input name="evidenceId" required />
           </label>
           <button disabled={busy} className={styles.buttonSecondary}>
-            Record confirmed cancellation
+            {t("adminPricing.payg.enrollments.recordCancellation")}
           </button>
         </form>
       </details>
@@ -1010,6 +1171,8 @@ function PaygEnrollments({ offers }: { offers: readonly PaygOfferRecord[] }) {
 }
 
 function PaygBillingQueue() {
+  const t = useTranslations();
+  const locale = useFormattingLocale();
   const [effects, setEffects] = useState<
     {
       idempotencyKey: string;
@@ -1028,17 +1191,15 @@ function PaygBillingQueue() {
         credentials: "same-origin",
       });
       if (!response.ok)
-        throw new Error("Unable to load retained billing effects.");
+        throw new PaygError("adminPricing.payg.error.billingQueueUnavailable");
       const result = (await response.json()) as { effects: typeof effects };
       setEffects(result.effects);
       setMessage(
-        result.effects.length
-          ? ""
-          : "No billing effects await materialization.",
+        result.effects.length ? "" : t("adminPricing.payg.billing.none"),
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Billing queue unavailable.",
+        errorText(error, t, "adminPricing.payg.error.billingQueueUnavailable"),
       );
     } finally {
       setBusy(false);
@@ -1056,12 +1217,19 @@ function PaygBillingQueue() {
       );
       setMessage(
         result.creditNoteIds?.length
-          ? `Credit notes ${result.creditNoteIds.join(", ")} saved and queued for provider delivery.`
-          : `Invoice ${result.invoiceId} saved and queued for provider delivery.`,
+          ? t("adminPricing.payg.billing.creditNotesSaved", {
+              count: result.creditNoteIds.length,
+              ids: new Intl.ListFormat(locale, { type: "conjunction" }).format(
+                result.creditNoteIds,
+              ),
+            })
+          : t("adminPricing.payg.billing.invoiceSaved", {
+              id: result.invoiceId,
+            }),
       );
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Billing requires review.",
+        errorText(error, t, "adminPricing.payg.error.billingNeedsReview"),
       );
     } finally {
       setBusy(false);
@@ -1069,40 +1237,40 @@ function PaygBillingQueue() {
   }
   return (
     <section className={styles.card}>
-      <h2>Retained billing effects</h2>
-      <p>
-        Review rated periods and corrections, then create the corresponding
-        financial documents. Each effect can be materialized once; provider
-        delivery remains subject to capability gates. Corrections to paid
-        invoices create customer balance credits; cash refunds require a
-        separate approved refund.
-      </p>
+      <h2>{t("adminPricing.payg.billing.title")}</h2>
+      <p>{t("adminPricing.payg.billing.description")}</p>
       <button
         type="button"
         className={styles.buttonSecondary}
         disabled={busy}
         onClick={() => void refresh()}
       >
-        Refresh billing queue
+        {t("adminPricing.payg.billing.refresh")}
       </button>
       {message ? <p role="status">{message}</p> : null}
-      {effects.map((effect) => (
-        <div key={effect.idempotencyKey}>
-          <p>
-            {effect.month} · {effect.kind.replaceAll("_", " ")} ·{" "}
-            {effect.amount.currency} {moneyInput(effect.amount.minor)} · Account{" "}
-            {effect.accountId}
-          </p>
-          <button
-            type="button"
-            className={styles.buttonSecondary}
-            disabled={busy}
-            onClick={() => void materialize(effect.idempotencyKey)}
-          >
-            Create financial document
-          </button>
-        </div>
-      ))}
+      {effects.map((effect) => {
+        const kind = billingEffectLabels[effect.kind];
+        return (
+          <div key={effect.idempotencyKey}>
+            <p>
+              {t("adminPricing.payg.billing.row", {
+                month: serviceMonth(effect.month, locale),
+                kind: kind ? t(kind) : effect.kind,
+                amount: bookMoney(effect.amount, locale),
+                account: effect.accountId,
+              })}
+            </p>
+            <button
+              type="button"
+              className={styles.buttonSecondary}
+              disabled={busy}
+              onClick={() => void materialize(effect.idempotencyKey)}
+            >
+              {t("adminPricing.payg.billing.create")}
+            </button>
+          </div>
+        );
+      })}
     </section>
   );
 }
@@ -1120,6 +1288,8 @@ export function PaygOfferAdministration({
   roles: readonly string[];
   userId: string;
 }) {
+  const t = useTranslations();
+  const locale = useFormattingLocale();
   const router = useRouter();
   const [offers, setOffers] = useState(initial);
   const [selected, setSelected] = useState<PaygOfferRecord>();
@@ -1141,13 +1311,11 @@ export function PaygOfferAdministration({
       setSelected(saved);
       setCreating(false);
       setMessage(
-        `Policy version ${saved.terms.version} is ${saved.status}. Sales activation is unchanged.`,
+        t(savedMessages[saved.status], { version: saved.terms.version }),
       );
       router.refresh();
     } catch (failure) {
-      setError(
-        failure instanceof Error ? failure.message : "Policy change failed.",
-      );
+      setError(errorText(failure, t, "adminPricing.payg.error.changeFailed"));
       throw failure;
     } finally {
       setBusy(false);
@@ -1179,27 +1347,22 @@ export function PaygOfferAdministration({
     );
   return (
     <AdministrationPage
-      eyebrow="Commercial administration"
-      title="PAYG and trial policies"
-      description="Configure versioned usage pricing and trial rules. Drafts require a distinct finance approver. Approval records policy readiness; provider mappings, external gates, and account cutover still control activation."
+      eyebrow={t("adminPricing.payg.eyebrow")}
+      title={t("adminPricing.payg.title")}
+      description={t("adminPricing.payg.description")}
       actions={
         <Link href="/internal/price-books" className={styles.buttonSecondary}>
-          Committed price books
+          {t("adminPricing.payg.priceBooksLink")}
         </Link>
       }
     >
       <p>
         <Link href="/internal/payg-requests">
-          Review customer activation, trial and cancellation requests
+          {t("adminPricing.payg.requestsLink")}
         </Link>
       </p>
       {demo ? (
-        <p className={styles.notice}>
-          Fictional policy workspace. Changes persist until demo reset. Review
-          the proposal from a different demo author or create a draft. No
-          enrollment, provider verification, billing execution, or live policy
-          approval occurs here.
-        </p>
+        <p className={styles.notice}>{t("adminPricing.payg.demoNotice")}</p>
       ) : null}
       {available && canManage && !demo ? (
         <>
@@ -1210,13 +1373,12 @@ export function PaygOfferAdministration({
       ) : null}
       {!available ? (
         <p className={styles.notice} role="status">
-          The policy database is unavailable. No policy versions are shown and
-          changes cannot be saved.
+          {t("adminPricing.payg.unavailable")}
         </p>
       ) : null}
       {!canManage ? (
         <p className={styles.roleNotice}>
-          Finance approver access is required to manage these policies.
+          {t("adminPricing.payg.financeRequired")}
         </p>
       ) : null}
       {message ? (
@@ -1229,9 +1391,12 @@ export function PaygOfferAdministration({
           {error}
         </p>
       ) : null}
-      <section className={styles.panel} aria-label="Policy versions">
+      <section
+        className={styles.panel}
+        aria-label={t("adminPricing.payg.versions.title")}
+      >
         <div className={styles.panelHeading}>
-          <h2>Policy versions</h2>
+          <h2>{t("adminPricing.payg.versions.title")}</h2>
           <button
             type="button"
             className={styles.button}
@@ -1241,7 +1406,7 @@ export function PaygOfferAdministration({
               setCreating(true);
             }}
           >
-            New policy draft
+            {t("adminPricing.payg.versions.new")}
           </button>
         </div>
         <div className={styles.panelBody}>
@@ -1258,22 +1423,32 @@ export function PaygOfferAdministration({
                   setCreating(false);
                 }}
               >
-                {offer.terms.name} · {offer.terms.region} · v
-                {offer.terms.version} · {offer.status}
+                {t("adminPricing.payg.versions.option", {
+                  name: offer.terms.name,
+                  region: offer.terms.region,
+                  version: offer.terms.version,
+                  status: t(policyStatusLabels[offer.status]),
+                })}
               </button>
             ))
           ) : (
-            <p>No saved PAYG or trial policy versions.</p>
+            <p>{t("adminPricing.payg.versions.none")}</p>
           )}
         </div>
       </section>
       {creating || selected ? (
-        <section className={styles.panel} aria-label="Selected policy">
+        <section
+          className={styles.panel}
+          aria-label={t("adminPricing.payg.selected.label")}
+        >
           <div className={styles.panelHeading}>
             <h2>
-              {creating
-                ? "New policy draft"
-                : `${selected?.terms.name} · ${selected?.status}`}
+              {creating || !selected
+                ? t("adminPricing.payg.versions.new")
+                : t("common.join.labels", {
+                    first: selected.terms.name,
+                    second: t(policyStatusLabels[selected.status]),
+                  })}
             </h2>
           </div>
           {creating || selected?.status === "draft" ? (
@@ -1294,28 +1469,55 @@ export function PaygOfferAdministration({
                 )
               }
             />
-          ) : (
+          ) : selected ? (
             <div className={styles.panelBody}>
               <p>
-                {selected?.terms.payg.currency}{" "}
-                {moneyInput(selected?.terms.payg.storageTbMonthMinor)} per
-                TB-month; minimum{" "}
-                {moneyInput(selected?.terms.payg.monthlyMinimumMinor)}.
-                Partial-month minimum:{" "}
-                {selected?.terms.payg.partialMonthMinimum}.
+                {t("adminPricing.payg.selected.pricing", {
+                  price: bookMoney(
+                    {
+                      currency: selected.terms.payg.currency,
+                      minor: selected.terms.payg.storageTbMonthMinor,
+                    },
+                    locale,
+                  ),
+                  minimum: bookMoney(
+                    {
+                      currency: selected.terms.payg.currency,
+                      minor: selected.terms.payg.monthlyMinimumMinor,
+                    },
+                    locale,
+                  ),
+                  partial: t(
+                    partialMinimumLabels[
+                      selected.terms.payg.partialMonthMinimum
+                    ],
+                  ),
+                })}
               </p>
               <p>
-                Trial: {selected?.terms.trial.durationDays} days, then{" "}
-                {selected?.terms.trial.gracePeriodDays} days read-only. Storage
-                cap: {decimalStorage(selected?.terms.trial.storageLimitBytes)}.
-                Cumulative egress cap:{" "}
-                {decimalStorage(
-                  selected?.terms.trial.cumulativeEgressLimitBytes,
-                )}
-                .
+                {t("adminPricing.payg.selected.trial", {
+                  duration: t("adminPricing.payg.days", {
+                    count: selected.terms.trial.durationDays,
+                  }),
+                  grace: t("adminPricing.payg.days", {
+                    count: selected.terms.trial.gracePeriodDays,
+                  }),
+                  storage: decimalStorage(
+                    selected.terms.trial.storageLimitBytes,
+                    t,
+                    locale,
+                  ),
+                  egress: decimalStorage(
+                    selected.terms.trial.cumulativeEgressLimitBytes,
+                    t,
+                    locale,
+                  ),
+                })}
               </p>
               <details>
-                <summary>Full policy and approval evidence</summary>
+                <summary>
+                  {t("adminPricing.payg.selected.fullEvidence")}
+                </summary>
                 <pre
                   style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
                 >
@@ -1323,7 +1525,7 @@ export function PaygOfferAdministration({
                 </pre>
               </details>
             </div>
-          )}
+          ) : null}
           {selected && canManage ? (
             <PaygOfferSimulator
               key={`simulation:${selected.id}:${selected.rowVersion}`}
@@ -1337,7 +1539,7 @@ export function PaygOfferAdministration({
               className={styles.panelBody}
             >
               <label className={styles.field}>
-                Decision reason
+                {t("adminPricing.payg.decision.reason")}
                 <textarea
                   name="reason"
                   required
@@ -1348,7 +1550,7 @@ export function PaygOfferAdministration({
               </label>
               {selected.status === "proposed" ? (
                 <label className={styles.field}>
-                  Approval evidence reference
+                  {t("adminPricing.payg.decision.evidence")}
                   <input
                     name="approvalEvidenceId"
                     maxLength={255}
@@ -1364,7 +1566,7 @@ export function PaygOfferAdministration({
                     disabled={busy || !canManage}
                     className={styles.button}
                   >
-                    Propose for finance approval
+                    {t("adminPricing.payg.decision.propose")}
                   </button>
                 ) : null}
                 {selected.status === "proposed" ? (
@@ -1375,7 +1577,7 @@ export function PaygOfferAdministration({
                       disabled={busy || !canManage || !distinct}
                       className={styles.button}
                     >
-                      Approve policy version
+                      {t("adminPricing.payg.decision.approve")}
                     </button>
                     <button
                       name="decision"
@@ -1383,7 +1585,7 @@ export function PaygOfferAdministration({
                       disabled={busy || !canManage || !distinct}
                       className={styles.buttonSecondary}
                     >
-                      Return to draft
+                      {t("adminPricing.payg.decision.reject")}
                     </button>
                   </>
                 ) : null}
@@ -1394,12 +1596,12 @@ export function PaygOfferAdministration({
                     disabled={busy || !canManage}
                     className={styles.buttonDanger}
                   >
-                    Retire for future enrollments
+                    {t("adminPricing.payg.decision.retire")}
                   </button>
                 ) : null}
               </div>
               {selected.status === "proposed" && !distinct ? (
-                <p>A different finance approver must review this version.</p>
+                <p>{t("adminPricing.payg.decision.distinctRequired")}</p>
               ) : null}
             </form>
           ) : null}

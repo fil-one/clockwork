@@ -25,17 +25,19 @@ export interface ProvisioningWork {
   accountId: string | null;
   /** `null` when the projection row does not identify its aggregate. */
   kind: ProvisioningKind | null;
-  kindLabel: string;
   reference: string;
   title: string;
   description: string | null;
   status: string | null;
-  statusLabel: string;
+  /** The read boundary's label, used only when no status code is known. */
+  statusLabel: string | null;
   risk: ProjectionRisk | null;
   /** Provider operations only. `null` on a termination, which has no attempts. */
   attemptCount: number | null;
-  /** Provider operations only. */
-  nextAttemptLabel: string | null;
+  /** Provider operations only: when the next automatic attempt is due. */
+  nextAttemptAt: string | null;
+  /** Terminations only: when the service ends. */
+  effectiveAt: string | null;
   provider: string | null;
   owner: string | null;
   nextAction: string | null;
@@ -43,11 +45,6 @@ export interface ProvisioningWork {
   version: number;
   updatedAt: string;
 }
-
-const kindLabels: Readonly<Record<ProvisioningKind, string>> = {
-  provider_operation: "Provider operation",
-  termination: "Service termination",
-};
 
 /**
  * Which aggregate a row came from.
@@ -83,16 +80,17 @@ export function provisioningWorkFromProjection(
     aggregateId: record.aggregateId,
     accountId: record.accountId,
     kind,
-    kindLabel: kind ? kindLabels[kind] : "Unclassified provisioning record",
     reference,
     title: text(data, "title") ?? reference,
     description: text(data, "description"),
     status: text(data, "status"),
-    statusLabel: text(data, "statusLabel") ?? "Not recorded",
+    statusLabel: text(data, "statusLabel"),
     risk: risk(data),
     attemptCount:
       kind === "provider_operation" ? integer(state, "attemptCount") : null,
-    nextAttemptLabel: kind === "provider_operation" ? text(data, "term") : null,
+    nextAttemptAt:
+      kind === "provider_operation" ? text(state, "nextAttemptAt") : null,
+    effectiveAt: kind === "termination" ? text(state, "effectiveAt") : null,
     provider: text(state, "provider"),
     owner: owner && owner !== reference ? owner : null,
     nextAction: text(data, "nextAction"),

@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       return NextResponse.json(
         {
           type: "https://clockwork.test/problems/authentication-not-configured",
-          title: "Authentication is not configured",
+          title: "Authentication is not configured", // i18n-exempt: API problem for operators; returned only by a production deployment with no WorkOS settings
           status: 503,
           code: "AUTHENTICATION_NOT_CONFIGURED",
           requestId: requestId(request),

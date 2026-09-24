@@ -2,6 +2,9 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { catalogs } from "@/src/i18n/catalogs";
+import { LanguageProvider } from "@/src/i18n/client";
+
 import {
   clearEvidenceUploadState,
   EvidenceUploadControl,
@@ -99,8 +102,8 @@ describe("record-bound evidence upload", () => {
     expect(
       await screen.findByRole("button", { name: "Download verified evidence" }),
     ).toBeVisible();
-    expect(screen.getByText(/Status:/).parentElement).toHaveTextContent(
-      "promoted",
+    expect(screen.getByText(/Status:/)).toHaveTextContent(
+      "Status: Stored · upload upl_opaque",
     );
     const providerInit = fetchMock.mock.calls[1]?.[1];
     expect(providerInit?.credentials).toBe("omit");
@@ -149,7 +152,14 @@ describe("record-bound evidence upload", () => {
       )
       .mockResolvedValueOnce(new Response(null, { status: 200 }))
       .mockResolvedValueOnce(
-        Response.json({ upload: upload("quarantined") }, { status: 422 }),
+        Response.json(
+          {
+            code: "EVIDENCE_QUARANTINED",
+            title: "Evidence remains quarantined",
+            upload: upload("quarantined"),
+          },
+          { status: 422 },
+        ),
       );
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
@@ -166,9 +176,10 @@ describe("record-bound evidence upload", () => {
     );
     await waitFor(() =>
       expect(screen.getByRole("status")).toHaveTextContent(
-        /quarantined|could not/i,
+        "The file did not pass the security scan and stays in quarantine. Nothing was moved to permanent storage.",
       ),
     );
+    expect(screen.queryByText(/Evidence remains quarantined/)).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Download verified evidence" }),
     ).not.toBeInTheDocument();
@@ -248,5 +259,61 @@ describe("record-bound evidence upload", () => {
       ),
     ).toBeNull();
     expect(window.sessionStorage.getItem("unrelated")).toBe("keep");
+  });
+
+  it("states the limit, the steps and the stored state in the reader's language", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({
+          upload: upload("uploaded"),
+          method: "PUT",
+          uploadUrl: "https://upload.example/object",
+          headers: { "content-type": "application/pdf" },
+          expiresAt: "2026-07-31T12:15:00.000Z",
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(Response.json({ upload: upload("promoted") }));
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(
+      <LanguageProvider locale="fr" catalog={catalogs.fr}>
+        <EvidenceUploadControl
+          journey="customer_paper"
+          targetId={targetId}
+          kind="agreement"
+        />
+      </LanguageProvider>,
+    );
+
+    const megabytes = new Intl.NumberFormat("fr-FR", {
+      style: "unit",
+      unit: "megabyte",
+    }).format(50);
+    // Intl writes the unit ("Mo") with a no-break space; compare raw text.
+    expect(
+      screen.getByText(/^PDF, PNG, JPEG ou texte brut/).textContent,
+    ).toContain(`${megabytes} maximum`);
+    expect(
+      screen.getByRole("heading", { name: "Joindre des preuves" }),
+    ).toBeVisible();
+    await user.upload(
+      screen.getByLabelText("Fichier de preuve"),
+      new File(["%PDF-1.4\n%%EOF"], "accord.pdf", {
+        type: "application/pdf",
+      }),
+    );
+    expect(
+      await screen.findByRole("button", {
+        name: "Télécharger la preuve vérifiée",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Preuve analysée et stockée de façon immuable."),
+    ).toBeVisible();
+    expect(screen.getByText(/Statut/).textContent).toBe(
+      "Statut\u00a0: Conservée · envoi upl_opaque",
+    );
   });
 });

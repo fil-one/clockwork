@@ -16,14 +16,6 @@ function nested(data: Data, key: string): Data {
     : {};
 }
 
-function titleCase(value: string): string {
-  return value
-    .split(/[_\s-]+/u)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 function risk(data: Data): QueueRisk | null {
   const value = text(data, "risk");
   return value === "low" || value === "medium" || value === "high"
@@ -47,9 +39,10 @@ function status(data: Data): QueueStatus | null {
   return null;
 }
 
+/** The context lines the source wrote, label and value as supplied. */
 function evidence(record: ProjectionRecord) {
   const entries = record.data.context;
-  const context = Array.isArray(entries)
+  return Array.isArray(entries)
     ? entries.flatMap((entry) => {
         if (!entry || typeof entry !== "object" || Array.isArray(entry))
           return [];
@@ -59,14 +52,12 @@ function evidence(record: ProjectionRecord) {
         return label && value ? [{ label, value }] : [];
       })
     : [];
-  return [
-    ...context,
-    {
-      label: "Source record",
-      value: `Version ${record.version} · updated ${record.sourceUpdatedAt}`,
-      technicalId: record.aggregateId,
-    },
-  ];
+}
+
+/** Lower-case machine code, or null. Queue and subject codes arrive this way. */
+function code(data: Data, key: string): string | null {
+  const value = text(data, key);
+  return value ? value.trim().toLocaleLowerCase() : null;
 }
 
 /**
@@ -77,14 +68,18 @@ function evidence(record: ProjectionRecord) {
  * plausible value. `owner` is dropped when it repeats the record's own
  * reference, which is what the canonical presentation supplies when no person
  * is recorded against the case.
+ *
+ * Queue, subject and action stay the source's codes. The workspace names them
+ * in the reader's language; title-casing a code here used to put English
+ * ("Legal Review", "Review Exception") in front of every reader.
  */
 export function queueItemFromProjection(record: ProjectionRecord): QueueItem {
   const data = record.data;
   const authoritative = nested(data, "authoritative");
   const owner = text(data, "owner");
   const reference = text(data, "reference");
-  const queue = text(authoritative, "queue");
-  const subject = text(authoritative, "objectType");
+  const queue = code(authoritative, "queue");
+  const subject = code(authoritative, "objectType");
   const actions = Array.isArray(data.allowedActions)
     ? data.allowedActions.filter(
         (action): action is string => typeof action === "string",
@@ -94,8 +89,8 @@ export function queueItemFromProjection(record: ProjectionRecord): QueueItem {
   return {
     id: record.recordKey,
     title: text(data, "title") ?? text(data, "name") ?? record.recordKey,
-    entity: subject ? titleCase(subject) : null,
-    type: queue ? titleCase(queue) : null,
+    entity: subject,
+    type: queue,
     owner: owner && owner !== reference ? owner : null,
     ownerId: null,
     backup: null,
@@ -111,7 +106,12 @@ export function queueItemFromProjection(record: ProjectionRecord): QueueItem {
     policyReason: null,
     policyBasis: null,
     evidence: evidence(record),
+    sourceRecord: {
+      version: record.version,
+      updatedAt: record.sourceUpdatedAt,
+      technicalId: record.aggregateId,
+    },
     related: [],
-    permittedActions: actions.map(titleCase),
+    permittedActions: actions,
   };
 }

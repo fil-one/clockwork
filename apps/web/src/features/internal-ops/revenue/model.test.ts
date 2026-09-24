@@ -1,31 +1,42 @@
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   basisLabel,
-  businessLabel,
-  formatMinor,
+  merchantLabel,
+  methodologyLabel,
   monthLabel,
   stageLabel,
 } from "./model";
 
+const en = translatorFor("en");
+const de = translatorFor("de");
+
 describe("revenue presentation", () => {
-  it("keeps units and basis explicit", () => {
-    expect(formatMinor("12345", "USD")).toBe("123.45 USD");
-    expect(formatMinor("-5", "EUR")).toBe("-0.05 EUR");
-    expect(basisLabel("transfer_price")).toContain("not gross");
-    expect(basisLabel("gross")).toBe("Gross");
+  it("keeps the revenue basis explicit", () => {
+    expect(basisLabel("transfer_price", en)).toContain("not gross");
+    expect(basisLabel("gross", en)).toBe("Gross");
+    expect(basisLabel("gross", de)).toBe("Brutto");
+    // An unknown basis is shown as stored rather than as a plausible label.
+    expect(basisLabel("net_of_fees", en)).toBe("net_of_fees");
   });
 
   it("does not describe pipeline as weighted", () => {
-    expect(stageLabel("pipeline")).toBe("Pipeline");
-    expect(stageLabel("committed_backlog")).toBe("Contracted backlog");
+    expect(stageLabel("pipeline", en)).toBe("Pipeline");
+    expect(stageLabel("committed_backlog", en)).toBe("Contracted backlog");
   });
 
-  it("presents storage tokens as business labels", () => {
-    expect(businessLabel("merchant_of_record.v1")).toBe(
-      "Merchant of record · v1",
+  it("words stored codes as business labels and keeps versions and names", () => {
+    expect(methodologyLabel("merchant_of_record.v1", en)).toBe(
+      "Merchant-of-record basis · v1",
     );
-    expect(businessLabel("resale")).toBe("Resale");
-    expect(monthLabel("2026-08-01")).toBe("Aug 2026");
+    expect(methodologyLabel("merchant_of_record.v1", de)).toBe(
+      "Merchant-of-Record-Basis · v1",
+    );
+    expect(methodologyLabel("contracted-v1", en)).toBe("contracted-v1");
+    expect(merchantLabel("fil_one", de)).toBe("Fil One");
+    expect(merchantLabel("partner", de)).toBe("Partner");
+    expect(monthLabel("2026-08-01", "en-US")).toBe("Aug 2026");
   });
 });

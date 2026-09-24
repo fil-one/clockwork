@@ -1,9 +1,26 @@
 import type { AcceptedOrder } from "@clockwork/domain/core";
+import {
+  demoText,
+  type DemoLocalizedText,
+} from "@clockwork/testing/demo-localized-text";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
 import { formatMoney } from "@/src/features/shared/format";
 
 import { demoUuid } from "./demo-artifact-catalog";
+import {
+  ago,
+  dateRange,
+  demoMessage,
+  inMonth,
+  money,
+  onDate,
+  onDay,
+  percent,
+  terabytes,
+  type DemoFact,
+  type DemoMessage,
+} from "./demo-message";
 import type { ExperienceAudience, ProjectionChannel } from "./model";
 
 /**
@@ -94,57 +111,72 @@ export const DEMO_DEFAULT_CUSTOMER_ACCOUNT = DIRECT;
 /** Partner records not named above; the resale book is the larger one. */
 export const DEMO_DEFAULT_PARTNER_ACCOUNT = RESELLER;
 
+/**
+ * A fixture text field. Product-authored text (status labels, next actions,
+ * value labels, date and term lines) is a `DemoMessage` with its facts;
+ * text that stands in for what a person typed (titles, descriptions, context
+ * lines, team names) is `demoText`; an amount or a date on its own is a fact.
+ * Names, identifiers and email addresses stay plain strings. The demo read
+ * boundary renders all of it for the reader (`resolveDemoContent`).
+ */
+type DemoField = string | DemoLocalizedText | DemoMessage | DemoFact;
+
 function commercial(input: {
   kind: string;
   id: string;
-  title: string;
-  description: string;
+  title: DemoField;
+  description: DemoField;
   status: string;
-  statusLabel: string;
+  statusLabel: DemoField;
   tone: "neutral" | "success" | "warning" | "danger";
   risk: "low" | "medium" | "high";
-  owner: string;
-  value: string;
-  valueLabel: string;
-  dateLabel: string;
-  term: string;
-  nextAction: string;
+  owner: DemoField;
+  value: DemoField;
+  valueLabel: DemoField;
+  dateLabel: DemoField;
+  term: DemoField;
+  nextAction: DemoField;
   allowedActions?: readonly string[];
+  /** Aggregate facts the dashboard orders by (due and expiry instants). */
+  authoritative?: Readonly<Record<string, unknown>>;
 }): Readonly<Record<string, unknown>> {
+  const { authoritative, ...fields } = input;
+  const facts = {
+    ...(authoritative ?? {}),
+    ...(input.kind === "orders" ? { status: input.status } : {}),
+  };
   return {
-    ...input,
-    ...(input.kind === "orders"
-      ? { authoritative: { status: input.status } }
-      : {}),
+    ...fields,
+    ...(Object.keys(facts).length > 0 ? { authoritative: facts } : {}),
     allowedActions: input.allowedActions ?? [],
   };
 }
 
 function collection(input: {
   id: string;
-  title: string;
-  description: string;
+  title: DemoField;
+  description: DemoField;
   status: "active" | "pending" | "review" | "complete" | "blocked";
-  statusLabel: string;
+  statusLabel: DemoField;
   risk: "low" | "medium" | "high";
-  owner: string;
-  value: string;
+  owner: DemoField;
+  value: DemoField;
   valueSort: number;
-  updatedLabel: string;
-  context: readonly { label: string; value: string }[];
+  updatedLabel: DemoField;
+  context: readonly { label: DemoField; value: DemoField }[];
 }): Readonly<Record<string, unknown>> {
   return { ...input, allowedActions: [] };
 }
 
 function partner(input: {
   id: string;
-  name: string;
-  context: string;
+  name: DemoField;
+  context: DemoField;
   status: string;
   risk: "low" | "medium" | "high";
-  owner: string;
-  value: string;
-  secondary: string;
+  owner: DemoField;
+  value: DemoField;
+  secondary: DemoField;
 }): Readonly<Record<string, unknown>> {
   return { ...input, allowedActions: [] };
 }
@@ -172,6 +204,131 @@ function record(
 }
 
 /* --------------------------------------------------------------------------
+ * Shared demo-authored text
+ *
+ * Team names and document titles stand in for what an administrator or a
+ * counterparty would have typed, so they are demo text in every language.
+ * ----------------------------------------------------------------------- */
+
+const team = {
+  serviceOperations: demoText({
+    en: "Service operations",
+    es: "Operaciones de servicio",
+    fr: "Opérations de service",
+    de: "Servicebetrieb",
+    ja: "サービス運用チーム",
+    pt: "Operações de serviço",
+    zh: "服务运营团队",
+    ar: "فريق عمليات الخدمة",
+  }),
+  accountsPayable: demoText({
+    en: "Accounts payable",
+    es: "Cuentas a pagar",
+    fr: "Comptabilité fournisseurs",
+    de: "Kreditorenbuchhaltung",
+    ja: "買掛金担当",
+    pt: "Contas a pagar",
+    zh: "应付账款团队",
+    ar: "فريق الحسابات الدائنة",
+  }),
+  partnerBilling: demoText({
+    en: "Partner billing",
+    es: "Facturación de socios",
+    fr: "Facturation partenaires",
+    de: "Partnerabrechnung",
+    ja: "パートナー請求担当",
+    pt: "Faturamento de parceiros",
+    zh: "合作伙伴账务团队",
+    ar: "فريق فوترة الشركاء",
+  }),
+  partnerFinance: demoText({
+    en: "Partner finance",
+    es: "Finanzas de socios",
+    fr: "Finance partenaires",
+    de: "Partnerfinanzen",
+    ja: "パートナー財務担当",
+    pt: "Financeiro de parceiros",
+    zh: "合作伙伴财务团队",
+    ar: "فريق مالية الشركاء",
+  }),
+  filOneSupport: demoText({
+    en: "Fil One support",
+    es: "Soporte de Fil One",
+    fr: "Support Fil One",
+    de: "Support von Fil One",
+    ja: "Fil One サポート",
+    pt: "Suporte da Fil One",
+    zh: "Fil One 支持团队",
+    ar: "فريق دعم Fil One",
+  }),
+  revenueOperations: demoText({
+    en: "Revenue operations",
+    es: "Operaciones de ingresos",
+    fr: "Opérations de revenus",
+    de: "Revenue Operations",
+    ja: "レベニューオペレーション",
+    pt: "Operações de receita",
+    zh: "营收运营团队",
+    ar: "فريق عمليات الإيرادات",
+  }),
+} as const;
+
+/** The agreement title the Lumen record, the Meridian record and the dashboard show. */
+export const demoCloudServiceAgreementTitle = demoText({
+  en: "Cloud Service Agreement",
+  es: "Acuerdo de servicios en la nube",
+  fr: "Accord de services cloud",
+  de: "Cloud-Servicevereinbarung",
+  ja: "クラウドサービス契約",
+  pt: "Acordo de serviços em nuvem",
+  zh: "云服务协议",
+  ar: "اتفاقية الخدمات السحابية",
+});
+
+const lumenFieldArchive = demoText({
+  en: "Lumen field archive",
+  es: "Archivo de campo de Lumen",
+  fr: "Archive terrain Lumen",
+  de: "Lumen-Feldarchiv",
+  ja: "Lumen フィールドアーカイブ",
+  pt: "Arquivo de campo da Lumen",
+  zh: "Lumen 现场归档",
+  ar: "أرشيف Lumen الميداني",
+});
+
+/**
+ * The overdue direct invoice's title before and after a sandbox payment.
+ * `projection-source` swaps the paid form in when the demo payment completes.
+ */
+const committedCapacityOverdue = demoText({
+  en: "Committed capacity · overdue",
+  es: "Capacidad contratada · vencida",
+  fr: "Capacité souscrite · en retard",
+  de: "Vertraglich zugesagte Kapazität · überfällig",
+  ja: "契約容量・期限超過",
+  pt: "Capacidade contratada · vencida",
+  zh: "承诺容量 · 已逾期",
+  ar: "السعة المتعاقد عليها · متأخرة السداد",
+});
+const committedCapacityPaid = demoText({
+  en: "Committed capacity · paid",
+  es: "Capacidad contratada · pagada",
+  fr: "Capacité souscrite · payée",
+  de: "Vertraglich zugesagte Kapazität · bezahlt",
+  ja: "契約容量・支払済み",
+  pt: "Capacidade contratada · paga",
+  zh: "承诺容量 · 已付款",
+  ar: "السعة المتعاقد عليها · مدفوعة",
+});
+
+/** Record key to the title a completed demo payment gives the invoice. */
+export const demoPaidInvoiceTitles: Readonly<
+  Record<string, DemoLocalizedText>
+> = {
+  "invoice-meridian-overdue": committedCapacityPaid,
+};
+
+/* --------------------------------------------------------------------------
  * The direct buyer's journey records
  *
  * `demoJourneys` sends Mara Voss to `/quotes/quote-direct-renewal-v2` and Theo
@@ -186,26 +343,50 @@ const directJourney: readonly DemoPortalRecord[] = [
     ...commercial({
       kind: "quotes",
       id: "quote-direct-renewal-v2",
-      title: "Annual renewal · committed capacity",
-      description: "400 TB · US East · 12 months · direct renewal",
+      title: demoText({
+        en: "Annual renewal · committed capacity",
+        es: "Renovación anual · capacidad contratada",
+        fr: "Renouvellement annuel · capacité souscrite",
+        de: "Jährliche Verlängerung · vertraglich zugesagte Kapazität",
+        ja: "年次の契約更新・契約容量",
+        pt: "Renovação anual · capacidade contratada",
+        zh: "年度续约 · 承诺容量",
+        ar: "التجديد السنوي · السعة المتعاقد عليها",
+      }),
+      description: demoText({
+        en: "400 TB · US East · 12 months · direct renewal",
+        es: "400 TB · EE. UU. Este · 12 meses · renovación directa",
+        fr: "400 To · Est des États-Unis · 12 mois · renouvellement direct",
+        de: "400 TB · USA Ost · 12 Monate · direkte Verlängerung",
+        ja: "400 TB・米国東部・12か月・直接契約の更新",
+        pt: "400 TB · Leste dos EUA · 12 meses · renovação direta",
+        zh: "400 TB · 美国东部 · 12 个月 · 直销续约",
+        ar: "400 تيرابايت · شرق الولايات المتحدة · 12 شهرًا · تجديد مباشر",
+      }),
       status: "open",
-      statusLabel: "Issued · awaiting acceptance",
+      statusLabel: demoMessage(
+        "experience.data.status.quoteIssuedAwaitingAcceptance",
+      ),
       tone: "warning",
       risk: "medium",
       owner: "Mara Voss",
-      value: "$184,800.00",
-      valueLabel: "Estimated annual spend",
-      dateLabel: "Expires Aug 28",
-      term: "Jan 1–Dec 31, 2027 · notice window opens Nov 1",
-      nextAction: "Accept before the notice window opens",
+      value: money("18480000", "USD"),
+      valueLabel: demoMessage("experience.data.label.estimatedAnnualSpend"),
+      dateLabel: demoMessage("common.expiresOn", { date: onDay("2026-08-28") }),
+      term: demoMessage("experience.data.term.rangeNoticeOpens", {
+        range: dateRange("2027-01-01", "2027-12-31"),
+        date: onDay("2026-11-01"),
+      }),
+      nextAction: demoMessage("experience.data.next.acceptBeforeNoticeWindow"),
       allowedActions: ["accept", "expire"],
     }),
     // These are commercial identity, not projection metadata. The row's
     // `version` remains the materialized projection version; the acceptance
     // ceremony and its paper name the quote number and revision carried by
-    // the authoritative quote snapshot instead.
+    // the authoritative quote snapshot instead. `expiresAt` is what the
+    // dashboard orders obligations by, so it never parses a display label.
     reference: "Q-2026-0312",
-    authoritative: { revision: 2 },
+    authoritative: { revision: 2, expiresAt: "2026-08-28T23:59:59.000Z" },
   }),
   record(
     "customer",
@@ -215,18 +396,28 @@ const directJourney: readonly DemoPortalRecord[] = [
     commercial({
       kind: "billing",
       id: "invoice-meridian-overdue",
-      title: "Committed capacity · overdue",
-      description: "Invoice INV-MER-0042 · first ACH attempt was returned",
+      title: committedCapacityOverdue,
+      description: demoMessage("experience.data.desc.invoiceAchReturned", {
+        invoice: "INV-MER-0042",
+      }),
       status: "open",
-      statusLabel: "Overdue · payment retry available",
+      statusLabel: demoMessage("experience.data.status.invoiceOverdueRetry"),
       tone: "danger",
       risk: "high",
       owner: "Theo Grant",
-      value: "$15,400.00",
-      valueLabel: "Invoiced net of tax",
-      dateLabel: "Due Jul 15 · 16 days overdue",
-      term: "Service period Jun 1–30, 2026",
-      nextAction: "Retry payment or change the payment method",
+      value: money("1540000", "USD"),
+      valueLabel: demoMessage("experience.data.label.invoicedNetOfTax"),
+      dateLabel: demoMessage("experience.data.date.dueOverdueDays", {
+        date: onDay("2026-07-15"),
+        count: 16,
+      }),
+      term: demoMessage("experience.data.term.servicePeriod", {
+        range: dateRange("2026-06-01", "2026-06-30"),
+      }),
+      nextAction: demoMessage(
+        "experience.data.next.retryPaymentOrChangeMethod",
+      ),
+      authoritative: { dueAt: "2026-07-15T23:59:59.000Z" },
     }),
     {
       type: "invoice",
@@ -241,18 +432,25 @@ const directJourney: readonly DemoPortalRecord[] = [
     commercial({
       kind: "billing",
       id: "invoice-meridian-paid",
-      title: "Committed capacity · paid",
-      description: "Receipt RCT-MER-0038 · ACH ending 1842",
+      title: committedCapacityPaid,
+      description: demoMessage("experience.data.desc.receiptAchEnding", {
+        receipt: "RCT-MER-0038",
+        digits: "1842",
+      }),
       status: "paid",
-      statusLabel: "Paid",
+      statusLabel: demoMessage("status.invoice.paid"),
       tone: "success",
       risk: "low",
       owner: "Theo Grant",
-      value: "$15,400.00",
-      valueLabel: "Invoiced net of tax",
-      dateLabel: "Provider confirmed Jun 5",
-      term: "Service period May 1–31, 2026",
-      nextAction: "Download the receipt",
+      value: money("1540000", "USD"),
+      valueLabel: demoMessage("experience.data.label.invoicedNetOfTax"),
+      dateLabel: demoMessage("experience.data.date.providerConfirmed", {
+        date: onDay("2026-06-05"),
+      }),
+      term: demoMessage("experience.data.term.servicePeriod", {
+        range: dateRange("2026-05-01", "2026-05-31"),
+      }),
+      nextAction: demoMessage("experience.data.next.downloadReceipt"),
     }),
   ),
 ];
@@ -273,18 +471,25 @@ const endClientBook: readonly DemoPortalRecord[] = [
     commercial({
       kind: "agreements",
       id: "AGR-LUMEN-0004",
-      title: "Cloud Service Agreement",
-      description: "Fil One paper · version 2.0 · referred by Northstar",
+      title: demoCloudServiceAgreementTitle,
+      description: demoMessage(
+        "experience.data.desc.agreementFilOnePaperReferred",
+        // i18n-exempt: "Northstar" is the referring partner's name
+        { version: "2.0", partner: "Northstar" },
+      ),
       status: "active",
-      statusLabel: "Active",
+      statusLabel: demoMessage("experience.data.status.agreementInForce"),
       tone: "success",
       risk: "low",
       owner: "Nora Chen",
-      value: "Mar 31, 2027",
-      valueLabel: "Term end",
-      dateLabel: "Updated Jul 12",
-      term: "Apr 1, 2026–Mar 31, 2027 · notice opens Feb 1",
-      nextAction: "No action due",
+      value: onDate("2027-03-31"),
+      valueLabel: demoMessage("experience.data.label.termEnd"),
+      dateLabel: demoMessage("common.updatedAt", { time: onDay("2026-07-12") }),
+      term: demoMessage("experience.data.term.rangeNoticeOpens", {
+        range: dateRange("2026-04-01", "2027-03-31"),
+        date: onDay("2027-02-01"),
+      }),
+      nextAction: demoMessage("experience.data.next.noActionDue"),
     }),
   ),
   record(
@@ -295,19 +500,40 @@ const endClientBook: readonly DemoPortalRecord[] = [
     commercial({
       kind: "quotes",
       id: "Q-LUMEN-0032-v1",
-      title: "POC conversion · field telemetry archive",
-      description: "60 TB · US West · annual · referral sourced",
+      title: demoText({
+        en: "POC conversion · field telemetry archive",
+        es: "Conversión de la POC · archivo de telemetría de campo",
+        fr: "Conversion du POC · archive de télémétrie terrain",
+        de: "POC-Umwandlung · Archiv für Feldtelemetrie",
+        ja: "PoC の本契約移行・フィールドテレメトリーのアーカイブ",
+        pt: "Conversão da POC · arquivo de telemetria de campo",
+        zh: "POC 转商用 · 现场遥测归档",
+        ar: "تحويل إثبات المفهوم · أرشيف القياس الميداني عن بُعد",
+      }),
+      description: demoText({
+        en: "60 TB · US West · annual · referral sourced",
+        es: "60 TB · EE. UU. Oeste · anual · procedente de una recomendación",
+        fr: "60 To · Ouest des États-Unis · annuel · issu d’un apport d’affaires",
+        de: "60 TB · USA West · jährlich · über Empfehlung",
+        ja: "60 TB・米国西部・年間・紹介経由",
+        pt: "60 TB · Oeste dos EUA · anual · originado por indicação",
+        zh: "60 TB · 美国西部 · 年度 · 推荐来源",
+        ar: "60 تيرابايت · غرب الولايات المتحدة · سنوي · عن طريق الإحالة",
+      }),
       status: "open",
-      statusLabel: "Open",
+      statusLabel: demoMessage("experience.data.status.quoteOpen"),
       tone: "warning",
       risk: "medium",
       owner: "Nora Chen",
-      value: "$41,400.00",
-      valueLabel: "Estimated annual spend",
-      dateLabel: "Expires Aug 12",
-      term: "12 months from acceptance",
-      nextAction: "Accept or request a revision",
+      value: money("4140000", "USD"),
+      valueLabel: demoMessage("experience.data.label.estimatedAnnualSpend"),
+      dateLabel: demoMessage("common.expiresOn", { date: onDay("2026-08-12") }),
+      term: demoMessage("experience.data.term.monthsFromAcceptance", {
+        count: 12,
+      }),
+      nextAction: demoMessage("experience.data.next.acceptOrRequestRevision"),
       allowedActions: ["accept", "expire"],
+      authoritative: { expiresAt: "2026-08-12T23:59:59.000Z" },
     }),
   ),
   record(
@@ -318,18 +544,35 @@ const endClientBook: readonly DemoPortalRecord[] = [
     commercial({
       kind: "orders",
       id: "ORD-LUMEN-0021",
-      title: "Lumen field archive",
-      description: "PO-LF-0221 · 45 TB · US West · referral sourced",
+      title: lumenFieldArchive,
+      description: demoText({
+        en: "PO-LF-0221 · 45 TB · US West · referral sourced",
+        es: "PO-LF-0221 · 45 TB · EE. UU. Oeste · procedente de una recomendación",
+        fr: "PO-LF-0221 · 45 To · Ouest des États-Unis · issu d’un apport d’affaires",
+        de: "PO-LF-0221 · 45 TB · USA West · über Empfehlung",
+        ja: "PO-LF-0221・45 TB・米国西部・紹介経由",
+        pt: "PO-LF-0221 · 45 TB · Oeste dos EUA · originado por indicação",
+        zh: "PO-LF-0221 · 45 TB · 美国西部 · 推荐来源",
+        ar: "PO-LF-0221 · 45 تيرابايت · غرب الولايات المتحدة · عن طريق الإحالة",
+      }),
       status: "active",
-      statusLabel: "Active",
+      statusLabel: demoMessage("status.order.active"),
       tone: "success",
       risk: "low",
-      owner: "Service operations",
-      value: "$31,050 annual",
-      valueLabel: "Committed annual spend",
-      dateLabel: "Started Apr 1",
-      term: "Apr 1, 2026–Mar 31, 2027 · auto-renews",
-      nextAction: "Renewal notice opens Feb 1",
+      owner: team.serviceOperations,
+      value: demoMessage("experience.data.value.perYear", {
+        amount: money("3105000", "USD"),
+      }),
+      valueLabel: demoMessage("experience.data.label.committedAnnualSpend"),
+      dateLabel: demoMessage("experience.data.date.started", {
+        date: onDay("2026-04-01"),
+      }),
+      term: demoMessage("experience.data.term.rangeAutoRenews", {
+        range: dateRange("2026-04-01", "2027-03-31"),
+      }),
+      nextAction: demoMessage("experience.data.next.renewalNoticeOpens", {
+        date: onDay("2027-02-01"),
+      }),
     }),
   ),
   record(
@@ -340,18 +583,33 @@ const endClientBook: readonly DemoPortalRecord[] = [
     commercial({
       kind: "services",
       id: "service-referral-end-client",
-      title: "Lumen field archive",
-      description: "45 TB committed · 28 TB stored · US West",
+      title: lumenFieldArchive,
+      description: demoText({
+        en: "45 TB committed · 28 TB stored · US West",
+        es: "45 TB contratados · 28 TB almacenados · EE. UU. Oeste",
+        fr: "45 To souscrits · 28 To stockés · Ouest des États-Unis",
+        de: "45 TB vertraglich zugesagt · 28 TB gespeichert · USA West",
+        ja: "契約容量 45 TB・保存量 28 TB・米国西部",
+        pt: "45 TB contratados · 28 TB armazenados · Oeste dos EUA",
+        zh: "承诺容量 45 TB · 已存储 28 TB · 美国西部",
+        ar: "45 تيرابايت متعاقد عليها · 28 تيرابايت مخزّنة · غرب الولايات المتحدة",
+      }),
       status: "active",
-      statusLabel: "Active",
+      statusLabel: demoMessage("experience.data.status.serviceActive"),
       tone: "success",
       risk: "low",
-      owner: "Service operations",
-      value: "62% used",
-      valueLabel: "Capacity usage",
-      dateLabel: "Metered 12 min ago",
-      term: "Ends Mar 31, 2027",
-      nextAction: "No action due",
+      owner: team.serviceOperations,
+      value: demoMessage("experience.data.value.percentUsed", {
+        percent: percent(0.62),
+      }),
+      valueLabel: demoMessage("experience.data.label.capacityUsage"),
+      dateLabel: demoMessage("experience.data.date.meteredRelative", {
+        relative: ago(12, "minute"),
+      }),
+      term: demoMessage("experience.data.date.endsOn", {
+        date: onDate("2027-03-31"),
+      }),
+      nextAction: demoMessage("experience.data.next.noActionDue"),
     }),
   ),
   record(
@@ -362,18 +620,38 @@ const endClientBook: readonly DemoPortalRecord[] = [
     commercial({
       kind: "pocs",
       id: "POC-LUMEN-0009",
-      title: "Field telemetry restore",
-      description: "8 TB · three of three success tests passed",
+      title: demoText({
+        en: "Field telemetry restore",
+        es: "Restauración de la telemetría de campo",
+        fr: "Restauration de la télémétrie terrain",
+        de: "Wiederherstellung der Feldtelemetrie",
+        ja: "フィールドテレメトリーの復元",
+        pt: "Restauração da telemetria de campo",
+        zh: "现场遥测数据恢复",
+        ar: "استعادة بيانات القياس الميداني عن بُعد",
+      }),
+      description: demoText({
+        en: "8 TB · three of three success tests passed",
+        es: "8 TB · superadas las tres pruebas de éxito",
+        fr: "8 To · trois tests de réussite sur trois validés",
+        de: "8 TB · alle drei Erfolgstests bestanden",
+        ja: "8 TB・成功基準テスト 3 件すべてに合格",
+        pt: "8 TB · aprovada nos três testes de sucesso",
+        zh: "8 TB · 3 项成功标准测试全部通过",
+        ar: "8 تيرابايت · اجتياز اختبارات النجاح الثلاثة كلها",
+      }),
       status: "complete",
-      statusLabel: "Complete",
+      statusLabel: demoMessage("experience.data.status.pocComplete"),
       tone: "success",
       risk: "low",
       owner: "Amina Cole",
-      value: "Ready to convert",
-      valueLabel: "Outcome",
-      dateLabel: "Completed Jul 20",
-      term: "Evaluation complete · data retained in place",
-      nextAction: "Review the conversion quote",
+      value: demoMessage("experience.data.value.readyToConvert"),
+      valueLabel: demoMessage("experience.data.label.outcome"),
+      dateLabel: demoMessage("experience.data.date.completed", {
+        date: onDay("2026-07-20"),
+      }),
+      term: demoMessage("experience.data.term.evaluationCompleteDataRetained"),
+      nextAction: demoMessage("experience.data.next.reviewConversionQuote"),
     }),
   ),
   record(
@@ -384,18 +662,41 @@ const endClientBook: readonly DemoPortalRecord[] = [
     commercial({
       kind: "billing",
       id: "INV-LUMEN-0114",
-      title: "July field archive",
-      description: "Invoice for the Lumen field archive · PO-LF-0221",
+      title: demoText({
+        en: "July field archive",
+        es: "Archivo de campo · julio",
+        fr: "Archive terrain · juillet",
+        de: "Feldarchiv · Juli",
+        ja: "フィールドアーカイブ（7月分）",
+        pt: "Arquivo de campo · julho",
+        zh: "现场归档 · 7 月",
+        ar: "الأرشيف الميداني · يوليو",
+      }),
+      description: demoText({
+        en: "Invoice for the Lumen field archive · PO-LF-0221",
+        es: "Factura del archivo de campo de Lumen · PO-LF-0221",
+        fr: "Facture de l’archive terrain Lumen · PO-LF-0221",
+        de: "Rechnung für das Lumen-Feldarchiv · PO-LF-0221",
+        ja: "Lumen フィールドアーカイブの請求書・PO-LF-0221",
+        pt: "Fatura do arquivo de campo da Lumen · PO-LF-0221",
+        zh: "Lumen 现场归档发票 · PO-LF-0221",
+        ar: "فاتورة أرشيف Lumen الميداني · PO-LF-0221",
+      }),
       status: "open",
-      statusLabel: "Open",
+      statusLabel: demoMessage("status.invoice.open"),
       tone: "warning",
       risk: "low",
-      owner: "Accounts payable",
-      value: "$2,587.50",
-      valueLabel: "Invoiced amount",
-      dateLabel: "Due Aug 12",
-      term: "Service period Jul 1–31, 2026",
-      nextAction: "Review and pay by Aug 12",
+      owner: team.accountsPayable,
+      value: money("258750", "USD"),
+      valueLabel: demoMessage("experience.data.label.invoicedAmount"),
+      dateLabel: demoMessage("common.dueOn", { date: onDay("2026-08-12") }),
+      term: demoMessage("experience.data.term.servicePeriod", {
+        range: dateRange("2026-07-01", "2026-07-31"),
+      }),
+      nextAction: demoMessage("experience.data.next.reviewAndPayBy", {
+        date: onDay("2026-08-12"),
+      }),
+      authoritative: { dueAt: "2026-08-12T23:59:59.000Z" },
     }),
   ),
   record(
@@ -405,18 +706,43 @@ const endClientBook: readonly DemoPortalRecord[] = [
     END_CLIENT,
     collection({
       id: "AMD-LUMEN-0003",
-      title: "Field archive capacity increase",
-      description: "Adds 15 TB to the field archive after the POC conversion.",
+      title: demoText({
+        en: "Field archive capacity increase",
+        es: "Ampliación de capacidad del archivo de campo",
+        fr: "Augmentation de capacité de l’archive terrain",
+        de: "Kapazitätserweiterung für das Feldarchiv",
+        ja: "フィールドアーカイブの容量追加",
+        pt: "Aumento de capacidade do arquivo de campo",
+        zh: "现场归档扩容",
+        ar: "زيادة سعة الأرشيف الميداني",
+      }),
+      description: demoText({
+        en: "Adds 15 TB to the field archive after the POC conversion.",
+        es: "Añade 15 TB al archivo de campo tras la conversión de la POC.",
+        fr: "Ajoute 15 To à l’archive terrain après la conversion du POC.",
+        de: "Erweitert das Feldarchiv nach der POC-Umwandlung um 15 TB.",
+        ja: "PoC の本契約移行後、フィールドアーカイブに 15 TB を追加します。",
+        pt: "Adiciona 15 TB ao arquivo de campo após a conversão da POC.",
+        zh: "POC 转商用后，为现场归档增加 15 TB。",
+        ar: "يضيف 15 تيرابايت إلى الأرشيف الميداني بعد تحويل إثبات المفهوم.",
+      }),
       status: "pending",
-      statusLabel: "Awaiting customer",
+      statusLabel: demoMessage("experience.data.status.awaitingCustomer"),
       risk: "low",
       owner: "Nora Chen",
-      value: "+$10,350 / year",
+      value: demoMessage("experience.data.value.increasePerYear", {
+        amount: money("1035000", "USD"),
+      }),
       valueSort: 10350,
-      updatedLabel: "Updated Jul 29",
+      updatedLabel: demoMessage("common.updatedAt", {
+        time: onDay("2026-07-29"),
+      }),
       context: [
-        { label: "Service", value: "Lumen field archive" },
-        { label: "Effective", value: "Sep 1, 2026" },
+        { label: demoMessage("recordKind.service"), value: lumenFieldArchive },
+        {
+          label: demoMessage("experience.data.label.effective"),
+          value: onDate("2026-09-01"),
+        },
       ],
     }),
   ),
@@ -428,17 +754,32 @@ const endClientBook: readonly DemoPortalRecord[] = [
     collection({
       id: "USR-LUMEN-NORA",
       title: "Nora Chen",
-      description: "Platform engineer with read access to services and usage.",
+      description: demoText({
+        en: "Platform engineer with read access to services and usage.",
+        es: "Ingeniera de plataforma con acceso de lectura a servicios y uso.",
+        fr: "Ingénieure plateforme avec accès en lecture aux services et à l’utilisation.",
+        de: "Plattform-Engineer mit Lesezugriff auf Dienste und Nutzung.",
+        ja: "サービスと使用状況の閲覧権限を持つプラットフォームエンジニア。",
+        pt: "Engenheira de plataforma com acesso de leitura a serviços e uso.",
+        zh: "平台工程师，拥有服务和用量的只读权限。",
+        ar: "مهندسة منصات لديها صلاحية قراءة الخدمات والاستخدام.",
+      }),
       status: "active",
-      statusLabel: "Active",
+      statusLabel: demoMessage("status.active"),
       risk: "low",
       owner: "Nora Chen",
-      value: "Member",
+      value: demoMessage("role.member"),
       valueSort: 2,
-      updatedLabel: "Active today",
+      updatedLabel: demoMessage("experience.data.date.activeToday"),
       context: [
-        { label: "Access", value: "Services and usage" },
-        { label: "Security", value: "MFA verified" },
+        {
+          label: demoMessage("experience.data.label.access"),
+          value: demoMessage("experience.data.value.servicesAndUsage"),
+        },
+        {
+          label: demoMessage("experience.data.label.security"),
+          value: demoMessage("experience.data.value.mfaVerified"),
+        },
       ],
     }),
   ),
@@ -449,18 +790,35 @@ const endClientBook: readonly DemoPortalRecord[] = [
     END_CLIENT,
     collection({
       id: "PROC-LUMEN-AP",
-      title: "Accounts payable routing",
-      description: "Routes invoices to the verified Lumen billing inbox.",
+      title: demoMessage("experience.data.title.accountsPayableRouting"),
+      description: demoText({
+        en: "Routes invoices to the verified Lumen billing inbox.",
+        es: "Envía las facturas al buzón de facturación verificado de Lumen.",
+        fr: "Achemine les factures vers la boîte de facturation vérifiée de Lumen.",
+        de: "Leitet Rechnungen an das verifizierte Abrechnungspostfach von Lumen weiter.",
+        ja: "請求書を Lumen の確認済み請求用メールボックスに送付します。",
+        pt: "Encaminha as faturas para a caixa de faturamento verificada da Lumen.",
+        zh: "将发票发送至 Lumen 已验证的账单收件箱。",
+        ar: "يوجّه الفواتير إلى صندوق بريد الفوترة المعتمد لدى Lumen.",
+      }),
       status: "active",
-      statusLabel: "Verified",
+      statusLabel: demoMessage("experience.data.status.verified"),
       risk: "low",
       owner: "Nora Chen",
       value: "billing@lumen-field.test",
       valueSort: 5,
-      updatedLabel: "Verified Jul 18",
+      updatedLabel: demoMessage("experience.data.date.verified", {
+        date: onDay("2026-07-18"),
+      }),
       context: [
-        { label: "Invoice delivery", value: "Email and portal" },
-        { label: "Purchase order", value: "PO-LF-0221" },
+        {
+          label: demoMessage("experience.data.label.invoiceDelivery"),
+          value: demoMessage("experience.data.value.emailAndPortal"),
+        },
+        {
+          label: demoMessage("experience.data.label.purchaseOrder"),
+          value: "PO-LF-0221",
+        },
       ],
     }),
   ),
@@ -471,18 +829,39 @@ const endClientBook: readonly DemoPortalRecord[] = [
     END_CLIENT,
     collection({
       id: "AWS-OFFER-LUMEN-0221",
-      title: "AWS private offer · field archive",
-      description: "Provider reports the accepted offer is fulfilled.",
+      title: demoText({
+        en: "AWS private offer · field archive",
+        es: "Oferta privada de AWS · archivo de campo",
+        fr: "Offre privée AWS · archive terrain",
+        de: "Privates Angebot von AWS · Feldarchiv",
+        ja: "AWS プライベートオファー・フィールドアーカイブ",
+        pt: "Oferta privada da AWS · arquivo de campo",
+        zh: "AWS 私有报价 · 现场归档",
+        ar: "عرض AWS الخاص · الأرشيف الميداني",
+      }),
+      description: demoMessage("experience.data.desc.providerReportsFulfilled"),
       status: "active",
-      statusLabel: "Active",
+      statusLabel: demoMessage("status.active"),
       risk: "low",
       owner: "Nora Chen",
-      value: "$31,050 / year",
+      value: demoMessage("experience.data.value.perYear", {
+        amount: money("3105000", "USD"),
+      }),
       valueSort: 31050,
-      updatedLabel: "Provider sync 22 min ago",
+      updatedLabel: demoMessage("experience.data.date.providerSyncRelative", {
+        relative: ago(22, "minute"),
+      }),
       context: [
-        { label: "Marketplace", value: "AWS Marketplace" },
-        { label: "Billing", value: "AWS is merchant of record" },
+        {
+          label: demoMessage("experience.data.label.marketplace"),
+          value: "AWS Marketplace", // i18n-exempt: the provider's product name
+        },
+        {
+          label: demoMessage("experience.data.label.billing"),
+          value: demoMessage("experience.data.value.merchantOfRecord", {
+            merchant: "AWS",
+          }),
+        },
       ],
     }),
   ),
@@ -493,18 +872,41 @@ const endClientBook: readonly DemoPortalRecord[] = [
     END_CLIENT,
     collection({
       id: "SUP-LUMEN-19004",
-      title: "Restore throughput question",
-      description: "Support is reviewing the observed restore throughput.",
+      title: demoText({
+        en: "Restore throughput question",
+        es: "Consulta sobre el rendimiento de la restauración",
+        fr: "Question sur le débit de restauration",
+        de: "Frage zum Wiederherstellungsdurchsatz",
+        ja: "復元スループットに関する問い合わせ",
+        pt: "Dúvida sobre a taxa de transferência da restauração",
+        zh: "关于恢复吞吐量的问题",
+        ar: "استفسار عن معدل نقل البيانات أثناء الاستعادة",
+      }),
+      description: demoText({
+        en: "Support is reviewing the observed restore throughput.",
+        es: "Soporte está revisando el rendimiento de restauración observado.",
+        fr: "Le support examine le débit de restauration constaté.",
+        de: "Der Support prüft den beobachteten Wiederherstellungsdurchsatz.",
+        ja: "サポートが、観測された復元スループットを確認しています。",
+        pt: "O suporte está analisando a taxa de transferência observada na restauração.",
+        zh: "支持团队正在核查观测到的恢复吞吐量。",
+        ar: "يراجع فريق الدعم معدل نقل البيانات المرصود أثناء الاستعادة.",
+      }),
       status: "active",
-      statusLabel: "In progress",
+      statusLabel: demoMessage("status.inProgress"),
       risk: "low",
       owner: "Nora Chen",
-      value: "Normal priority",
+      value: demoMessage("experience.data.value.normalPriority"),
       valueSort: 2,
-      updatedLabel: "Provider update 40 min ago",
+      updatedLabel: demoMessage("experience.data.date.providerUpdateRelative", {
+        relative: ago(40, "minute"),
+      }),
       context: [
-        { label: "Service", value: "Lumen field archive" },
-        { label: "Source", value: "Support provider" },
+        { label: demoMessage("recordKind.service"), value: lumenFieldArchive },
+        {
+          label: demoMessage("experience.data.label.source"),
+          value: demoMessage("experience.data.value.supportProvider"),
+        },
       ],
     }),
   ),
@@ -522,13 +924,37 @@ const partnerBook: readonly DemoPortalRecord[] = [
     RESELLER,
     partner({
       id: "quote-resale-customer-v4",
-      name: "Aster House customer quotation",
-      context: "Resale · EU West · 120 TB · 12 months",
+      name: demoText({
+        en: "Aster House customer quotation",
+        es: "Presupuesto para el cliente Aster House",
+        fr: "Devis client Aster House",
+        de: "Kundenangebot für Aster House",
+        ja: "Aster House 向け顧客見積書",
+        pt: "Cotação para o cliente Aster House",
+        zh: "Aster House 客户报价单",
+        ar: "عرض سعر للعميل Aster House",
+      }),
+      context: demoText({
+        en: "Resale · EU West · 120 TB · 12 months",
+        es: "Reventa · UE Oeste · 120 TB · 12 meses",
+        fr: "Revente · Ouest de l’UE · 120 To · 12 mois",
+        de: "Wiederverkauf · EU West · 120 TB · 12 Monate",
+        ja: "再販・EU 西部・120 TB・12か月",
+        pt: "Revenda · Oeste da UE · 120 TB · 12 meses",
+        zh: "转售 · 欧盟西部 · 120 TB · 12 个月",
+        ar: "إعادة البيع · غرب الاتحاد الأوروبي · 120 تيرابايت · 12 شهرًا",
+      }),
       status: "draft",
       risk: "medium",
       owner: "Priya Nair",
-      value: "£17,250 transfer / £21,400 resale",
-      secondary: "Customer price set by Ember Peak · expires Aug 14",
+      value: demoMessage("experience.data.value.transferAndResale", {
+        transfer: money("1725000", "GBP"),
+        resale: money("2140000", "GBP"),
+      }),
+      secondary: demoMessage("experience.data.partner.customerPriceSetBy", {
+        partner: "Ember Peak",
+        date: onDay("2026-08-14"),
+      }),
     }),
   ),
   record(
@@ -538,13 +964,38 @@ const partnerBook: readonly DemoPortalRecord[] = [
     DISTRIBUTOR,
     partner({
       id: "quote-distributor-exception-v1",
-      name: "Cobalt Orchard below-floor exception",
-      context: "Two-tier · EU West · 80 TB · 12 months",
+      name: demoText({
+        en: "Cobalt Orchard below-floor exception",
+        es: "Excepción por debajo del precio mínimo · Cobalt Orchard",
+        fr: "Exception sous le prix plancher · Cobalt Orchard",
+        de: "Ausnahme unter der Preisuntergrenze · Cobalt Orchard",
+        ja: "Cobalt Orchard の下限価格割れの例外",
+        pt: "Exceção abaixo do preço mínimo · Cobalt Orchard",
+        zh: "Cobalt Orchard 低于底价的例外",
+        ar: "استثناء بسعر أقل من الحد الأدنى · Cobalt Orchard",
+      }),
+      context: demoText({
+        en: "Two-tier · EU West · 80 TB · 12 months",
+        es: "Dos niveles · UE Oeste · 80 TB · 12 meses",
+        fr: "Deux niveaux · Ouest de l’UE · 80 To · 12 mois",
+        de: "Zweistufig · EU West · 80 TB · 12 Monate",
+        ja: "2 階層販売・EU 西部・80 TB・12か月",
+        pt: "Dois níveis · Oeste da UE · 80 TB · 12 meses",
+        zh: "两级分销 · 欧盟西部 · 80 TB · 12 个月",
+        ar: "على مستويين · غرب الاتحاد الأوروبي · 80 تيرابايت · 12 شهرًا",
+      }),
       status: "pending",
       risk: "high",
       owner: "Elias Ward",
-      value: "€31,680 transfer",
-      secondary: "Awaiting finance approval · expires Aug 18",
+      value: demoMessage("experience.data.value.transfer", {
+        amount: money("3168000", "EUR"),
+      }),
+      secondary: demoMessage(
+        "experience.data.partner.awaitingFinanceApproval",
+        {
+          date: onDay("2026-08-18"),
+        },
+      ),
     }),
   ),
   record(
@@ -554,13 +1005,35 @@ const partnerBook: readonly DemoPortalRecord[] = [
     REFERRAL,
     partner({
       id: "DSP-2026-0021",
-      name: "Solace attribution claim",
-      context: "Registration ownership · referral evidence submitted",
+      name: demoText({
+        en: "Solace attribution claim",
+        es: "Reclamación de atribución de Solace",
+        fr: "Réclamation d’attribution Solace",
+        de: "Zuordnungsanspruch von Solace",
+        ja: "Solace のアトリビューション申し立て",
+        pt: "Reivindicação de atribuição da Solace",
+        zh: "Solace 归属申诉",
+        ar: "مطالبة Solace بإسناد الصفقة",
+      }),
+      context: demoText({
+        en: "Registration ownership · referral evidence submitted",
+        es: "Titularidad del registro · evidencia de recomendación enviada",
+        fr: "Titularité de l’enregistrement · preuves d’apport d’affaires transmises",
+        de: "Zuordnung der Registrierung · Empfehlungsnachweis eingereicht",
+        ja: "登録の帰属・紹介の証跡を提出済み",
+        pt: "Titularidade do registro · evidência de indicação enviada",
+        zh: "报备归属 · 已提交推荐证据",
+        ar: "ملكية التسجيل · قُدِّم دليل الإحالة",
+      }),
       status: "open",
       risk: "medium",
       owner: "Mira Patel",
-      value: "$28,600 at risk",
-      secondary: "Response due Aug 6",
+      value: demoMessage("experience.data.value.atRisk", {
+        amount: money("2860000", "USD"),
+      }),
+      secondary: demoMessage("experience.data.date.responseDue", {
+        date: onDay("2026-08-06"),
+      }),
     }),
   ),
   record(
@@ -570,13 +1043,33 @@ const partnerBook: readonly DemoPortalRecord[] = [
     DISTRIBUTOR,
     partner({
       id: "DSP-2026-0015",
-      name: "Cobalt Orchard provisioning credit",
-      context: "Invoice line dispute · provider evidence attached",
+      name: demoText({
+        en: "Cobalt Orchard provisioning credit",
+        es: "Crédito por aprovisionamiento · Cobalt Orchard",
+        fr: "Crédit de service sur le provisionnement · Cobalt Orchard",
+        de: "Servicegutschrift für die Bereitstellung · Cobalt Orchard",
+        ja: "Cobalt Orchard のプロビジョニングに関するクレジット",
+        pt: "Crédito de provisionamento · Cobalt Orchard",
+        zh: "Cobalt Orchard 开通服务抵扣",
+        ar: "رصيد تعويض عن التهيئة · Cobalt Orchard",
+      }),
+      context: demoText({
+        en: "Invoice line dispute · provider evidence attached",
+        es: "Disputa sobre una línea de factura · evidencia del proveedor adjunta",
+        fr: "Litige sur une ligne de facture · preuves du prestataire jointes",
+        de: "Streitfall zu einer Rechnungsposition · Nachweis des Anbieters beigefügt",
+        ja: "請求明細への異議・プロバイダーの証跡を添付済み",
+        pt: "Contestação de item da fatura · evidência do provedor anexada",
+        zh: "发票明细争议 · 已附服务商证据",
+        ar: "نزاع على بند في الفاتورة · أُرفق دليل المزوّد",
+      }),
       status: "pending",
       risk: "medium",
       owner: "Elias Ward",
-      value: "€1,980 disputed",
-      secondary: "Fil One reviewing",
+      value: demoMessage("experience.data.value.disputed", {
+        amount: money("198000", "EUR"),
+      }),
+      secondary: demoMessage("experience.data.partner.filOneReviewing"),
     }),
   ),
   record(
@@ -586,13 +1079,35 @@ const partnerBook: readonly DemoPortalRecord[] = [
     REFERRAL,
     partner({
       id: "GCP-OFFER-0087",
-      name: "Solace Google Cloud offer",
-      context: "Referral · disbursement pending in the provider feed",
+      name: demoText({
+        en: "Solace Google Cloud offer",
+        es: "Oferta de Google Cloud para Solace",
+        fr: "Offre Google Cloud pour Solace",
+        de: "Google Cloud-Angebot für Solace",
+        ja: "Solace 向け Google Cloud オファー",
+        pt: "Oferta do Google Cloud para a Solace",
+        zh: "Solace 的 Google Cloud 市场报价",
+        ar: "عرض Google Cloud المقدَّم إلى Solace",
+      }),
+      context: demoText({
+        en: "Referral · disbursement pending in the provider feed",
+        es: "Recomendación · pago al socio pendiente en los datos del proveedor",
+        fr: "Apport d’affaires · versement en attente dans le flux du prestataire",
+        de: "Empfehlung · Auszahlung im Datenfeed des Anbieters ausstehend",
+        ja: "紹介・プロバイダーのフィード上で支払いが保留中",
+        pt: "Indicação · repasse pendente no feed do provedor",
+        zh: "推荐 · 服务商数据中的付款待处理",
+        ar: "إحالة · صرف المستحقات معلّق في بيانات المزوّد",
+      }),
       status: "pending",
       risk: "low",
       owner: "Mira Patel",
-      value: "$28,600 buyer price",
-      secondary: "Google is merchant of record",
+      value: demoMessage("experience.data.value.buyerPrice", {
+        amount: money("2860000", "USD"),
+      }),
+      secondary: demoMessage("experience.data.value.merchantOfRecord", {
+        merchant: "Google", // i18n-exempt: company name
+      }),
     }),
   ),
   record(
@@ -602,13 +1117,33 @@ const partnerBook: readonly DemoPortalRecord[] = [
     REFERRAL,
     partner({
       id: "SUP-18512",
-      name: "Solace usage export",
-      context: "Referral-visible summary · standard priority",
+      name: demoText({
+        en: "Solace usage export",
+        es: "Exportación de uso de Solace",
+        fr: "Export d’utilisation Solace",
+        de: "Nutzungsexport für Solace",
+        ja: "Solace の使用状況エクスポート",
+        pt: "Exportação de uso da Solace",
+        zh: "Solace 用量导出",
+        ar: "تصدير بيانات استخدام Solace",
+      }),
+      context: demoText({
+        en: "Referral-visible summary · standard priority",
+        es: "Resumen visible para el socio prescriptor · prioridad estándar",
+        fr: "Résumé visible par l’apporteur d’affaires · priorité standard",
+        de: "Für den Empfehlungspartner sichtbare Zusammenfassung · Standardpriorität",
+        ja: "紹介パートナーに表示される概要・標準優先度",
+        pt: "Resumo visível ao parceiro de indicação · prioridade padrão",
+        zh: "推荐合作伙伴可见的摘要 · 标准优先级",
+        ar: "ملخص مرئي لشريك الإحالة · أولوية عادية",
+      }),
       status: "active",
       risk: "low",
-      owner: "Fil One support",
-      value: "Updated 1 hour ago",
-      secondary: "Support system is source",
+      owner: team.filOneSupport,
+      value: demoMessage("common.updatedRelative", {
+        relative: ago(1, "hour"),
+      }),
+      secondary: demoMessage("experience.data.partner.supportSystemSource"),
     }),
   ),
   record(
@@ -618,13 +1153,35 @@ const partnerBook: readonly DemoPortalRecord[] = [
     DISTRIBUTOR,
     partner({
       id: "INV-HL-2026-0714",
-      name: "July consolidated distributor invoice",
-      context: "4 end clients · SEPA · Harborline is merchant of record",
+      name: demoText({
+        en: "July consolidated distributor invoice",
+        es: "Factura consolidada del distribuidor de julio",
+        fr: "Facture distributeur consolidée de juillet",
+        de: "Konsolidierte Distributorrechnung Juli",
+        ja: "7月分ディストリビューター一括請求書",
+        pt: "Fatura consolidada do distribuidor de julho",
+        zh: "7 月分销商合并发票",
+        ar: "فاتورة الموزّع الموحدة لشهر يوليو",
+      }),
+      context: demoText({
+        en: "4 end clients · SEPA · Harborline is merchant of record",
+        es: "4 clientes finales · SEPA · Harborline es el vendedor responsable de la transacción",
+        fr: "4 clients finaux · SEPA · Harborline est le vendeur responsable de la transaction",
+        de: "4 Endkunden · SEPA · Harborline ist Merchant of Record",
+        ja: "エンド顧客 4社・SEPA・販売主体は Harborline",
+        pt: "4 clientes finais · SEPA · Harborline é o vendedor responsável pela transação",
+        zh: "4 个终端客户 · SEPA · Harborline 为交易责任商户",
+        ar: "4 عملاء نهائيين · SEPA · Harborline هي التاجر المسؤول عن المعاملة",
+      }),
       status: "pending",
       risk: "medium",
-      owner: "Partner billing",
-      value: "€48,220 invoiced",
-      secondary: "Due Aug 20 · webhook payment truth",
+      owner: team.partnerBilling,
+      value: demoMessage("experience.data.value.invoiced", {
+        amount: money("4822000", "EUR"),
+      }),
+      secondary: demoMessage("experience.data.partner.dueWebhookTruth", {
+        date: onDay("2026-08-20"),
+      }),
     }),
   ),
   record(
@@ -634,13 +1191,33 @@ const partnerBook: readonly DemoPortalRecord[] = [
     DISTRIBUTOR,
     partner({
       id: "STM-HL-2026-Q3",
-      name: "Q3 distributor statement",
-      context: "9 collections · 1 credit · no holdback",
+      name: demoText({
+        en: "Q3 distributor statement",
+        es: "Liquidación del distribuidor del tercer trimestre",
+        fr: "Relevé distributeur du 3e trimestre",
+        de: "Distributorabrechnung Q3",
+        ja: "第3四半期のディストリビューター明細書",
+        pt: "Demonstrativo do distribuidor do 3º trimestre",
+        zh: "第三季度分销商结算单",
+        ar: "كشف الموزّع للربع الثالث",
+      }),
+      context: demoText({
+        en: "9 collections · 1 credit · no holdback",
+        es: "9 cobros · 1 factura rectificativa · sin retención",
+        fr: "9 encaissements · 1 avoir · aucune retenue",
+        de: "9 Zahlungseingänge · 1 Gutschrift · kein Einbehalt",
+        ja: "回収 9 件・クレジットノート 1 件・留保額なし",
+        pt: "9 recebimentos · 1 nota de crédito · sem valor retido",
+        zh: "9 笔收款 · 1 张贷项通知单 · 无暂扣款",
+        ar: "9 تحصيلات · إشعار دائن واحد · لا مبالغ محتجزة",
+      }),
       status: "pending",
       risk: "low",
-      owner: "Partner finance",
-      value: "€5,786 accrued",
-      secondary: "Pays after collection truth settles",
+      owner: team.partnerFinance,
+      value: demoMessage("experience.data.value.accrued", {
+        amount: money("578600", "EUR"),
+      }),
+      secondary: demoMessage("experience.data.partner.paysAfterCollections"),
     }),
   ),
   record(
@@ -651,12 +1228,19 @@ const partnerBook: readonly DemoPortalRecord[] = [
     partner({
       id: "REN-EC-0047",
       name: "Cobalt Orchard GmbH",
-      context: "Two-tier · 80 TB · current term ends Dec 31",
+      context: demoMessage("experience.data.partner.twoTierTermEnds", {
+        capacity: terabytes(80),
+        date: onDay("2026-12-31"),
+      }),
       status: "attention",
       risk: "medium",
       owner: "Elias Ward",
-      value: "€31,680 transfer",
-      secondary: "Notice action due Oct 2",
+      value: demoMessage("experience.data.value.transfer", {
+        amount: money("3168000", "EUR"),
+      }),
+      secondary: demoMessage("experience.data.date.noticeActionDue", {
+        date: onDay("2026-10-02"),
+      }),
     }),
   ),
 ];
@@ -680,67 +1264,151 @@ function internal(
   return record("internal", channel, key, null, data, aggregate);
 }
 
+const meridianAccount = "Meridian Archive Labs, Inc.";
+/** "Cloud Service Agreement · Meridian", joined the way each language joins labels. */
+const meridianAgreementTitle = demoMessage("common.join.labels", {
+  first: demoCloudServiceAgreementTitle,
+  second: "Meridian", // i18n-exempt: company name
+});
+
 const internalBook: readonly DemoPortalRecord[] = [
   internal("queues", "queue-legal-meridian", {
-    title: "Customer paper review · Meridian",
+    title: demoText({
+      en: "Customer paper review · Meridian",
+      es: "Revisión del contrato del cliente · Meridian",
+      fr: "Revue du contrat client · Meridian",
+      de: "Prüfung des Kundenvertrags · Meridian",
+      ja: "顧客契約書の確認・Meridian",
+      pt: "Revisão do contrato do cliente · Meridian",
+      zh: "客户合同审核 · Meridian",
+      ar: "مراجعة عقد العميل · Meridian",
+    }),
     reference: "queue-legal-meridian",
-    description:
-      "Meridian's data processing addendum was superseded while the review was open.",
-    statusLabel: "Stale version · legal review",
+    description: demoText({
+      en: "Meridian's data processing addendum was superseded while the review was open.",
+      es: "El anexo de tratamiento de datos de Meridian se sustituyó mientras la revisión seguía abierta.",
+      fr: "L’avenant relatif au traitement des données de Meridian a été remplacé alors que la revue était en cours.",
+      de: "Der Auftragsverarbeitungsvertrag von Meridian wurde ersetzt, während die Prüfung noch lief.",
+      ja: "確認の途中で、Meridian のデータ処理補遺が新しい版に置き換えられました。",
+      pt: "O adendo de tratamento de dados da Meridian foi substituído enquanto a revisão estava em andamento.",
+      zh: "审核尚未完成时，Meridian 的数据处理附录已被新版本取代。",
+      ar: "استُبدل ملحق معالجة البيانات لدى Meridian بينما كانت المراجعة لا تزال مفتوحة.",
+    }),
+    statusLabel: demoMessage("experience.data.status.staleVersionLegalReview"),
     status: "pending",
     risk: "high",
     owner: "Imani Ross",
-    nextAction: "Restore focus to version 2 before deciding",
+    nextAction: demoMessage("experience.data.next.moveReviewToVersion", {
+      version: "2",
+    }),
     authoritative: {
       queue: "legal_review",
       objectType: "agreement_draft",
       targetAt: "2026-08-03T17:00:00.000Z",
     },
     context: [
-      { label: "Account", value: "Meridian Archive Labs, Inc." },
-      { label: "Document", value: "Data processing addendum v2" },
+      { label: demoMessage("recordKind.account"), value: meridianAccount },
+      {
+        label: demoMessage("experience.data.label.document"),
+        value: demoText({
+          en: "Data processing addendum v2",
+          es: "Anexo de tratamiento de datos, versión 2",
+          fr: "Avenant relatif au traitement des données, version 2",
+          de: "Auftragsverarbeitungsvertrag, Version 2",
+          ja: "データ処理補遺（第 2 版）",
+          pt: "Adendo de tratamento de dados, versão 2",
+          zh: "数据处理附录（第 2 版）",
+          ar: "ملحق معالجة البيانات، الإصدار 2",
+        }),
+      },
     ],
     allowedActions: ["review_exception"],
   }),
   internal("queues", "queue-price-harborline", {
-    title: "Below-floor pricing decision · Harborline",
+    title: demoText({
+      en: "Below-floor pricing decision · Harborline",
+      es: "Decisión sobre un precio por debajo del mínimo · Harborline",
+      fr: "Décision sur un prix sous le plancher · Harborline",
+      de: "Entscheidung über einen Preis unter der Untergrenze · Harborline",
+      ja: "下限価格を下回る価格の判断・Harborline",
+      pt: "Decisão sobre preço abaixo do mínimo · Harborline",
+      zh: "低于底价的定价决策 · Harborline",
+      ar: "قرار بشأن سعر أقل من الحد الأدنى · Harborline",
+    }),
     reference: "queue-price-harborline",
-    description:
-      "The two-tier quote for Cobalt Orchard prices 8.4% below the published floor.",
-    statusLabel: "Awaiting finance decision",
+    description: demoText({
+      en: "The two-tier quote for Cobalt Orchard prices 8.4% below the published floor.",
+      es: "El presupuesto de dos niveles para Cobalt Orchard queda un 8,4\u00a0% por debajo del precio mínimo publicado.",
+      fr: "Le devis à deux niveaux pour Cobalt Orchard est inférieur de 8,4\u202f% au prix plancher publié.",
+      de: "Das zweistufige Angebot für Cobalt Orchard liegt 8,4\u00a0% unter der veröffentlichten Preisuntergrenze.",
+      ja: "Cobalt Orchard 向けの 2 階層販売の見積もりは、公表済みの下限価格を 8.4% 下回っています。",
+      pt: "A cotação em dois níveis para a Cobalt Orchard está 8,4% abaixo do preço mínimo publicado.",
+      zh: "Cobalt Orchard 的两级分销报价比公布的底价低 8.4%。",
+      ar: "يقل عرض السعر على مستويين المقدَّم إلى Cobalt Orchard بنسبة 8.4% عن الحد الأدنى المنشور للسعر.",
+    }),
+    statusLabel: demoMessage("experience.data.status.awaitingFinanceDecision"),
     status: "open",
     risk: "high",
     owner: "Mateo Silva",
-    nextAction: "Compare the floor variance with the approval policy",
+    nextAction: demoMessage("experience.data.next.compareFloorVariance"),
     authoritative: {
       queue: "price_exception",
       objectType: "quote",
       targetAt: "2026-08-01T16:00:00.000Z",
     },
     context: [
-      { label: "Partner", value: "Harborline Distribution Ltd" },
-      { label: "Annual value", value: "EUR 31,680.00" },
+      {
+        label: demoMessage("experience.data.label.partner"),
+        value: "Harborline Distribution Ltd",
+      },
+      {
+        label: demoMessage("experience.data.label.annualValue"),
+        value: money("3168000", "EUR"),
+      },
     ],
     allowedActions: ["review_exception"],
   }),
   internal("queues", "queue-provision-cobalt", {
-    title: "Provisioning recovery · Cobalt Orchard",
+    title: demoText({
+      en: "Provisioning recovery · Cobalt Orchard",
+      es: "Recuperación del aprovisionamiento · Cobalt Orchard",
+      fr: "Reprise du provisionnement · Cobalt Orchard",
+      de: "Wiederherstellung der Bereitstellung · Cobalt Orchard",
+      ja: "プロビジョニングの復旧・Cobalt Orchard",
+      pt: "Recuperação do provisionamento · Cobalt Orchard",
+      zh: "开通恢复 · Cobalt Orchard",
+      ar: "استعادة التهيئة · Cobalt Orchard",
+    }),
     reference: "queue-provision-cobalt",
-    description:
-      "The EU West provisioning run failed after the provider accepted the order.",
-    statusLabel: "Provider recovery queued",
+    description: demoText({
+      en: "The EU West provisioning run failed after the provider accepted the order.",
+      es: "El aprovisionamiento en la región UE Oeste falló después de que el proveedor aceptara el pedido.",
+      fr: "Le provisionnement dans la région Ouest de l’UE a échoué après l’acceptation de la commande par le prestataire.",
+      de: "Die Bereitstellung in der Region EU West ist fehlgeschlagen, nachdem der Anbieter den Auftrag angenommen hatte.",
+      ja: "プロバイダーが注文を受け付けた後、EU 西部でのプロビジョニングが失敗しました。",
+      pt: "O provisionamento na região Oeste da UE falhou depois que o provedor aceitou o pedido.",
+      zh: "服务商接受订单后，欧盟西部的开通流程失败。",
+      ar: "فشلت عملية التهيئة في غرب الاتحاد الأوروبي بعد أن قبل المزوّد الطلب.",
+    }),
+    statusLabel: demoMessage("experience.data.status.providerRecoveryQueued"),
     status: "blocked",
     risk: "high",
     owner: "Ada Mercer",
-    nextAction: "Enter assisted mode and record a retry reason",
+    nextAction: demoMessage("experience.data.next.enterAssistedModeRetry"),
     authoritative: {
       queue: "provisioning_recovery",
       objectType: "order",
       targetAt: "2026-07-31T20:00:00.000Z",
     },
     context: [
-      { label: "End client", value: "Cobalt Orchard GmbH" },
-      { label: "Region", value: "eu-west-2" },
+      {
+        label: demoMessage("experience.data.label.endClient"),
+        value: "Cobalt Orchard GmbH",
+      },
+      {
+        label: demoMessage("experience.data.label.region"),
+        value: "eu-west-2",
+      },
     ],
     allowedActions: ["review_exception"],
   }),
@@ -748,18 +1416,35 @@ const internalBook: readonly DemoPortalRecord[] = [
     "dashboard",
     "meridian-archive",
     {
-      title: "Meridian Archive Labs, Inc.",
-      name: "Meridian Archive Labs, Inc.",
-      reference: "Meridian Archive Labs, Inc.",
-      description: "Direct buyer · US · USD · one overdue invoice",
-      statusLabel: "Attention · overdue invoice",
+      title: meridianAccount,
+      name: meridianAccount,
+      reference: meridianAccount,
+      description: demoText({
+        en: "Direct buyer · US · USD · one overdue invoice",
+        es: "Comprador directo · US · USD · una factura vencida",
+        fr: "Acheteur direct · US · USD · une facture en retard",
+        de: "Direktkunde · US · USD · eine überfällige Rechnung",
+        ja: "直接購入・US・USD・期限超過の請求書 1 件",
+        pt: "Comprador direto · US · USD · uma fatura vencida",
+        zh: "直接买家 · US · USD · 1 张逾期发票",
+        ar: "مشترٍ مباشر · US · USD · فاتورة واحدة متأخرة السداد",
+      }),
+      statusLabel: demoMessage(
+        "experience.data.status.attentionOverdueInvoice",
+      ),
       status: "attention",
       risk: "medium",
       owner: "Ada Mercer",
-      nextAction: "Confirm the ACH retry before the renewal notice opens",
+      nextAction: demoMessage("experience.data.next.confirmAchRetry"),
       context: [
-        { label: "Relationship", value: "Direct" },
-        { label: "Annual value", value: "USD 184,800.00" },
+        {
+          label: demoMessage("experience.data.label.relationship"),
+          value: demoMessage("experience.data.value.relationshipDirect"),
+        },
+        {
+          label: demoMessage("experience.data.label.annualValue"),
+          value: money("18480000", "USD"),
+        },
       ],
     },
     { type: "account", id: DIRECT },
@@ -771,15 +1456,34 @@ const internalBook: readonly DemoPortalRecord[] = [
       title: "Cobalt Orchard GmbH",
       name: "Cobalt Orchard GmbH",
       reference: "Cobalt Orchard GmbH",
-      description: "Distributor end client · DE · EUR · onboarding",
-      statusLabel: "Onboarding · provisioning recovery",
+      description: demoText({
+        en: "Distributor end client · DE · EUR · onboarding",
+        es: "Cliente final de un distribuidor · DE · EUR · en proceso de alta",
+        fr: "Client final d’un distributeur · DE · EUR · intégration en cours",
+        de: "Endkunde eines Distributors · DE · EUR · Onboarding läuft",
+        ja: "ディストリビューター経由のエンド顧客・DE・EUR・オンボーディング中",
+        pt: "Cliente final de distribuidor · DE · EUR · em integração",
+        zh: "分销商的终端客户 · DE · EUR · 入驻中",
+        ar: "عميل نهائي لدى موزّع · DE · EUR · قيد الإعداد",
+      }),
+      statusLabel: demoMessage(
+        "experience.data.status.onboardingProvisioningRecovery",
+      ),
       status: "pending",
       risk: "high",
       owner: "Ada Mercer",
-      nextAction: "Verify actual and effective actors on the account timeline",
+      nextAction: demoMessage("experience.data.next.verifyActors"),
       context: [
-        { label: "Relationship", value: "Two-tier end client" },
-        { label: "Distributor", value: "Harborline Distribution Ltd" },
+        {
+          label: demoMessage("experience.data.label.relationship"),
+          value: demoMessage(
+            "experience.data.value.relationshipTwoTierEndClient",
+          ),
+        },
+        {
+          label: demoMessage("experience.data.label.distributor"),
+          value: "Harborline Distribution Ltd",
+        },
       ],
     },
     { type: "account", id: UK_END_CLIENT },
@@ -791,63 +1495,147 @@ const internalBook: readonly DemoPortalRecord[] = [
       title: "Ember Peak Systems Ltd",
       name: "Ember Peak Systems Ltd",
       reference: "Ember Peak Systems Ltd",
-      description:
-        "Reseller · GB · GBP · agreement notice window opens tomorrow",
-      statusLabel: "Attention · notice window",
+      description: demoText({
+        en: "Reseller · GB · GBP · agreement notice window opens tomorrow",
+        es: "Revendedor · GB · GBP · el plazo de preaviso del acuerdo se abre mañana",
+        fr: "Revendeur · GB · GBP · la période de préavis de l’accord s’ouvre demain",
+        de: "Reseller · GB · GBP · Kündigungsfrist der Vereinbarung beginnt morgen",
+        ja: "リセラー・GB・GBP・契約の通知期間が明日から開始",
+        pt: "Revendedor · GB · GBP · o aviso prévio do acordo começa amanhã",
+        zh: "经销商 · GB · GBP · 协议通知期明天开始",
+        ar: "شريك إعادة البيع · GB · GBP · تبدأ فترة الإشعار الخاصة بالاتفاقية غدًا",
+      }),
+      statusLabel: demoMessage("experience.data.status.attentionNoticeWindow"),
       status: "attention",
       risk: "medium",
       owner: "Ada Mercer",
-      nextAction: "Confirm the partner agreement renewal path",
+      nextAction: demoMessage("experience.data.next.confirmPartnerRenewalPath"),
       context: [
-        { label: "Relationship", value: "Reseller" },
-        { label: "End clients", value: "2 named" },
+        {
+          label: demoMessage("experience.data.label.relationship"),
+          value: demoMessage("experience.data.value.relationshipReseller"),
+        },
+        {
+          label: demoMessage("experience.data.label.endClients"),
+          value: demoMessage("experience.data.value.namedCount", { count: 2 }),
+        },
       ],
     },
     { type: "account", id: RESELLER },
   ),
   internal("agreements", "AGR-2026-0042", {
-    title: "Cloud Service Agreement · Meridian",
-    name: "Cloud Service Agreement · Meridian",
-    description: "Fil One paper · version 3.2 · active",
-    statusLabel: "Active",
+    title: meridianAgreementTitle,
+    name: meridianAgreementTitle,
+    description: demoMessage(
+      "experience.data.desc.agreementFilOnePaperInForce",
+      {
+        version: "3.2",
+      },
+    ),
+    statusLabel: demoMessage("experience.data.status.agreementInForce"),
     status: "active",
     risk: "low",
     owner: "Imani Ross",
-    nextAction: "No action due",
+    nextAction: demoMessage("experience.data.next.noActionDue"),
     context: [
-      { label: "Account", value: "Meridian Archive Labs, Inc." },
-      { label: "Term end", value: "Dec 31, 2026" },
+      { label: demoMessage("recordKind.account"), value: meridianAccount },
+      {
+        label: demoMessage("experience.data.label.termEnd"),
+        value: onDate("2026-12-31"),
+      },
     ],
   }),
   internal("quotes", "Q-2026-0184-v3", {
-    title: "Enterprise committed capacity · Meridian",
-    name: "Enterprise committed capacity · Meridian",
-    description: "400 TB · US East · annual · direct",
-    statusLabel: "Open",
+    title: demoText({
+      en: "Enterprise committed capacity · Meridian",
+      es: "Capacidad contratada para empresas · Meridian",
+      fr: "Capacité souscrite entreprise · Meridian",
+      de: "Vertraglich zugesagte Kapazität (Enterprise) · Meridian",
+      ja: "エンタープライズ向け契約容量・Meridian",
+      pt: "Capacidade contratada empresarial · Meridian",
+      zh: "企业级承诺容量 · Meridian",
+      ar: "السعة المتعاقد عليها للمؤسسات · Meridian",
+    }),
+    name: demoText({
+      en: "Enterprise committed capacity · Meridian",
+      es: "Capacidad contratada para empresas · Meridian",
+      fr: "Capacité souscrite entreprise · Meridian",
+      de: "Vertraglich zugesagte Kapazität (Enterprise) · Meridian",
+      ja: "エンタープライズ向け契約容量・Meridian",
+      pt: "Capacidade contratada empresarial · Meridian",
+      zh: "企业级承诺容量 · Meridian",
+      ar: "السعة المتعاقد عليها للمؤسسات · Meridian",
+    }),
+    description: demoText({
+      en: "400 TB · US East · annual · direct",
+      es: "400 TB · EE. UU. Este · anual · directo",
+      fr: "400 To · Est des États-Unis · annuel · direct",
+      de: "400 TB · USA Ost · jährlich · direkt",
+      ja: "400 TB・米国東部・年間・直接販売",
+      pt: "400 TB · Leste dos EUA · anual · direto",
+      zh: "400 TB · 美国东部 · 年度 · 直销",
+      ar: "400 تيرابايت · شرق الولايات المتحدة · سنوي · مباشر",
+    }),
+    statusLabel: demoMessage("experience.data.status.quoteOpen"),
     status: "open",
     risk: "medium",
     owner: "Mateo Silva",
-    nextAction: "Monitor acceptance before expiry",
+    nextAction: demoMessage("experience.data.next.monitorAcceptance"),
     context: [
-      { label: "Account", value: "Meridian Archive Labs, Inc." },
-      { label: "Annual value", value: "USD 184,800.00" },
+      { label: demoMessage("recordKind.account"), value: meridianAccount },
+      {
+        label: demoMessage("experience.data.label.annualValue"),
+        value: money("18480000", "USD"),
+      },
     ],
   }),
   internal(
     "orders",
     "ORD-2026-0098",
     {
-      title: "Northstar primary archive · Meridian",
-      name: "Northstar primary archive · Meridian",
-      description: "PO-NA-1048 · 500 TB · US East · direct",
-      statusLabel: "Active",
+      title: demoText({
+        en: "Northstar primary archive · Meridian",
+        es: "Archivo principal de Northstar · Meridian",
+        fr: "Archive principale Northstar · Meridian",
+        de: "Northstar-Primärarchiv · Meridian",
+        ja: "Northstar プライマリアーカイブ・Meridian",
+        pt: "Arquivo principal da Northstar · Meridian",
+        zh: "Northstar 主归档 · Meridian",
+        ar: "أرشيف Northstar الرئيسي · Meridian",
+      }),
+      name: demoText({
+        en: "Northstar primary archive · Meridian",
+        es: "Archivo principal de Northstar · Meridian",
+        fr: "Archive principale Northstar · Meridian",
+        de: "Northstar-Primärarchiv · Meridian",
+        ja: "Northstar プライマリアーカイブ・Meridian",
+        pt: "Arquivo principal da Northstar · Meridian",
+        zh: "Northstar 主归档 · Meridian",
+        ar: "أرشيف Northstar الرئيسي · Meridian",
+      }),
+      description: demoText({
+        en: "PO-NA-1048 · 500 TB · US East · direct",
+        es: "PO-NA-1048 · 500 TB · EE. UU. Este · directo",
+        fr: "PO-NA-1048 · 500 To · Est des États-Unis · direct",
+        de: "PO-NA-1048 · 500 TB · USA Ost · direkt",
+        ja: "PO-NA-1048・500 TB・米国東部・直接販売",
+        pt: "PO-NA-1048 · 500 TB · Leste dos EUA · direto",
+        zh: "PO-NA-1048 · 500 TB · 美国东部 · 直销",
+        ar: "PO-NA-1048 · 500 تيرابايت · شرق الولايات المتحدة · مباشر",
+      }),
+      statusLabel: demoMessage("status.order.active"),
       status: "active",
       risk: "low",
       owner: "Ada Mercer",
-      nextAction: "Renewal notice opens Nov 1",
+      nextAction: demoMessage("experience.data.next.renewalNoticeOpens", {
+        date: onDay("2026-11-01"),
+      }),
       context: [
-        { label: "Account", value: "Meridian Archive Labs, Inc." },
-        { label: "Service term", value: "Jan 1–Dec 31, 2026" },
+        { label: demoMessage("recordKind.account"), value: meridianAccount },
+        {
+          label: demoMessage("experience.data.label.serviceTerm"),
+          value: dateRange("2026-01-01", "2026-12-31"),
+        },
       ],
       authoritative: {
         invoicingAccountId: DIRECT,
@@ -864,17 +1652,39 @@ const internalBook: readonly DemoPortalRecord[] = [
     "collections",
     "INV-2026-0781",
     {
-      title: "July committed capacity · Meridian",
-      name: "July committed capacity · Meridian",
+      title: demoText({
+        en: "July committed capacity · Meridian",
+        es: "Capacidad contratada de julio · Meridian",
+        fr: "Capacité souscrite de juillet · Meridian",
+        de: "Vertraglich zugesagte Kapazität Juli · Meridian",
+        ja: "7月分の契約容量・Meridian",
+        pt: "Capacidade contratada de julho · Meridian",
+        zh: "7 月承诺容量 · Meridian",
+        ar: "السعة المتعاقد عليها لشهر يوليو · Meridian",
+      }),
+      name: demoText({
+        en: "July committed capacity · Meridian",
+        es: "Capacidad contratada de julio · Meridian",
+        fr: "Capacité souscrite de juillet · Meridian",
+        de: "Vertraglich zugesagte Kapazität Juli · Meridian",
+        ja: "7月分の契約容量・Meridian",
+        pt: "Capacidade contratada de julho · Meridian",
+        zh: "7 月承诺容量 · Meridian",
+        ar: "السعة المتعاقد عليها لشهر يوليو · Meridian",
+      }),
       reference: "INV-2026-0781",
-      description: "Open invoice · gross of determined Washington sales tax",
-      statusLabel: "Open · due Aug 8",
+      description: demoMessage("experience.data.desc.openInvoiceSalesTax"),
+      statusLabel: demoMessage("experience.data.status.invoiceOpenDue", {
+        date: onDay("2026-08-08"),
+      }),
       status: "open",
       risk: "medium",
       owner: "Amina Cole",
-      dateLabel: "Due Aug 8, 2026",
-      nextAction: "Watch for the provider payment webhook",
-      context: [{ label: "Account", value: "Meridian Archive Labs, Inc." }],
+      dateLabel: demoMessage("common.dueOn", { date: onDate("2026-08-08") }),
+      nextAction: demoMessage("experience.data.next.watchPaymentWebhook"),
+      context: [
+        { label: demoMessage("recordKind.account"), value: meridianAccount },
+      ],
       authoritative: {
         orderId: MERIDIAN_ORDER_ID,
         status: "open",
@@ -888,12 +1698,14 @@ const internalBook: readonly DemoPortalRecord[] = [
     "reports",
     "RPT-2026-07",
     {
-      title: "Renewal and churn exposure · July 2026",
+      title: demoMessage("experience.data.title.renewalReport", {
+        period: inMonth("2026-07"),
+      }),
       reference: "RPT-2026-07",
-      description: "Current commerce records at the generation timestamp",
+      description: demoMessage("experience.data.desc.reportBasis"),
       status: "complete",
-      statusLabel: "Complete",
-      owner: "Revenue operations",
+      statusLabel: demoMessage("status.complete"),
+      owner: team.revenueOperations,
       authoritative: {
         report: "renewal_churn_exposure",
         documentId: RENEWAL_REPORT_DOCUMENT_ID,
@@ -925,6 +1737,23 @@ export const demoAdditionalRecords: readonly DemoPortalRecord[] = [
   ...partnerBook,
   ...internalBook,
 ];
+
+/**
+ * Due and expiry instants for the commercial fixtures of the direct account,
+ * which `commercial/model.ts` states only as display labels ("Expires Aug 4").
+ *
+ * The customer dashboard orders its obligations by these instants. It used to
+ * fall back to `Date.parse` on the English label, which V8 happens to read as
+ * a date in 2001; a translated label does not parse at all, so the same demo
+ * listed its obligations in a different order in every language. The
+ * projection source merges these into the rows' authoritative facts.
+ */
+export const demoCommercialDueDates: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
+  "quotes:Q-2026-0184-v3": { expiresAt: "2026-08-04T23:59:59.000Z" },
+  "billing:INV-2026-0781": { dueAt: "2026-08-08T23:59:59.000Z" },
+};
 
 /* --------------------------------------------------------------------------
  * Orders a prospect created during the demo
@@ -986,6 +1815,8 @@ export function demoCreatedOrderKey(orderId: string): string {
  */
 export function demoCreatedOrderRecord(
   order: DemoCreatedOrder,
+  /** The reader's formatting locale; this record is built on every read. */
+  formatting: string,
 ): DemoPortalRecord {
   return {
     audience: "customer",
@@ -998,22 +1829,35 @@ export function demoCreatedOrderRecord(
       ...commercial({
         kind: "orders",
         id: demoCreatedOrderKey(order.id),
-        title: `Committed capacity · ${order.poNumber}`,
-        description: `Accepted from ${order.quoteReference} · order form on file`,
+        title: demoMessage("experience.data.title.createdOrder", {
+          po: order.poNumber,
+        }),
+        description: demoMessage("experience.data.desc.orderAcceptedFrom", {
+          quote: order.quoteReference,
+        }),
         status: order.provisioning ? "provisioning" : "pending",
         statusLabel: order.provisioning
-          ? "Provisioning · demo request submitted"
-          : "Accepted · awaiting provisioning",
+          ? demoMessage("experience.data.status.orderProvisioningDemoSubmitted")
+          : demoMessage(
+              "experience.data.status.orderAcceptedAwaitingProvisioning",
+            ),
         tone: "warning",
         risk: "low",
         owner: order.signerName,
-        value: formatMoney(order.totalMinor, order.currency),
-        valueLabel: "Committed spend",
-        dateLabel: `Accepted ${order.acceptedAt.slice(0, 10)}`,
-        term: `${order.serviceStartsOn} – ${order.serviceEndsOn} · governed by ${order.agreementReference}`,
+        value: formatMoney(order.totalMinor, order.currency, formatting),
+        valueLabel: demoMessage("experience.data.label.committedSpend"),
+        dateLabel: demoMessage("experience.data.date.accepted", {
+          date: onDate(order.acceptedAt.slice(0, 10)),
+        }),
+        term: demoMessage("experience.data.term.rangeGovernedBy", {
+          range: dateRange(order.serviceStartsOn, order.serviceEndsOn),
+          agreement: order.agreementReference,
+        }),
         nextAction: order.provisioning
-          ? "The demo provisioner received this order. Service activation awaits a provider completion result."
-          : `Service starts ${order.serviceStartsOn}. Your accepted order is queued for the provisioning team.`,
+          ? demoMessage("experience.data.next.demoProvisionerReceived")
+          : demoMessage("experience.data.next.serviceStartsQueued", {
+              date: onDate(order.serviceStartsOn),
+            }),
       }),
       authoritative: {
         status: order.provisioning ? "provisioning" : "accepted",
@@ -1025,7 +1869,9 @@ export function demoCreatedOrderRecord(
         {
           kind: "order_form" as const,
           id: order.artifactRequestId,
-          label: `Order form · ${order.poNumber}`,
+          label: demoMessage("experience.data.artifact.orderFormPo", {
+            po: order.poNumber,
+          }),
           state: "stored" as const,
         },
       ],

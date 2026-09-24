@@ -5,11 +5,18 @@ import type {
   DeadLetterSource,
   ReplayableWebhookEvent,
 } from "@clockwork/db";
+import {
+  demoText,
+  resolveDemoText,
+  type DemoTextField,
+} from "@clockwork/testing/demo-localized-text";
 import type {
   DemoAdapterState,
   DemoAdapterStateStore,
   DemoProjectionOverride,
 } from "@clockwork/testing/demo-state";
+
+import type { Locale } from "@/src/i18n";
 
 import { demoUuid } from "@/src/features/experience-server/demo-artifact-catalog";
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
@@ -27,6 +34,21 @@ import type {
   IncidentQueue,
   RuntimeFailureIncident,
 } from "./unhandled-errors/model";
+
+/**
+ * A demo incident. The provider's message is demo-authored text standing in
+ * for what a real provider would return, so it carries every interface
+ * language (translation policy rule 4) and is resolved for the reader on read.
+ */
+type DemoIncident = Omit<RuntimeFailureIncident, "diagnosis"> & {
+  diagnosis:
+    | Extract<RuntimeFailureIncident["diagnosis"], { kind: "code_only" }>
+    | {
+        kind: "provider_message";
+        message: DemoTextField;
+        provenance: "commandAttempt" | "operationAttempt";
+      };
+};
 import { illustrativeMigrations } from "./finance-lifecycle/lifecycle-data";
 
 export const demoOperatorIds = {
@@ -147,7 +169,7 @@ const reconciliationVariances: readonly ReconciliationVariance[] = [
   },
 ];
 
-const incidents: readonly RuntimeFailureIncident[] = [
+const incidents: readonly DemoIncident[] = [
   {
     auditEventId: demoOperatorIds.incident,
     eventType: "lifecycle.provider_effect.dead_lettered",
@@ -162,9 +184,17 @@ const incidents: readonly RuntimeFailureIncident[] = [
     outboxMessageId: demoOperatorIds.incidentOutbox,
     diagnosis: {
       kind: "provider_message",
-      message: "The activation provider did not answer before its deadline.",
-      provenance:
-        "Provider-supplied, the provisioning attempt's most recent error",
+      message: demoText({
+        en: "The activation provider did not answer before its deadline.",
+        es: "El proveedor de activación no respondió antes del plazo límite.",
+        fr: "Le prestataire d’activation n’a pas répondu avant l’échéance.",
+        de: "Der Aktivierungsanbieter hat nicht vor Ablauf der Frist geantwortet.",
+        ja: "アクティベーションのプロバイダーが期限までに応答しませんでした。",
+        pt: "O provedor de ativação não respondeu antes do prazo.",
+        zh: "激活服务商未在截止时间前响应。",
+        ar: "لم يستجب مزوّد التفعيل قبل انقضاء المهلة.",
+      }),
+      provenance: "operationAttempt",
     },
     decisionCount: 0,
     latestDecision: null,
@@ -375,6 +405,7 @@ export async function readDemoReconciliationWorkspace(
   return {
     periods: tieOutPeriods.slice(0, limit),
     variances,
+    // i18n-exempt: the finance page frame reads this as provenance and does not render it; the finance lane owns ReconciliationWorkspace.source
     source: "Demonstration tie-out and reconciliation ledger",
     readable: true,
   };
@@ -419,16 +450,20 @@ export async function classifyDemoReconciliationVariance(input: {
   return { blocksClose: blocksClose(input.classification), rowVersion };
 }
 
-export async function readDemoRuntimeFailureIncidents(
-  input: {
-    limit?: number;
-    store?: DemoAdapterStateStore;
-  } = {},
-): Promise<IncidentQueue> {
+export async function readDemoRuntimeFailureIncidents(input: {
+  /** The reader's interface language, for the demo-authored provider text. */
+  locale: Locale;
+  limit?: number;
+  store?: DemoAdapterStateStore;
+}): Promise<IncidentQueue> {
   const state = await (input.store ?? configuredDemoStateStore()).read();
   const limit = Math.min(Math.max(input.limit ?? 100, 1), 200);
   return {
-    incidents: incidents.slice(0, limit).map((incident) => {
+    incidents: incidents.slice(0, limit).map((seed) => {
+      const incident: RuntimeFailureIncident = resolveDemoText(
+        seed,
+        input.locale,
+      );
       const data = override(
         state,
         `${prefixes.incident}${incident.auditEventId}`,
@@ -447,7 +482,7 @@ export async function readDemoRuntimeFailureIncidents(
         latestDecisionAt: string(data.decidedAt),
       };
     }),
-    source: "Demonstration runtime failure ledger",
+    source: "demo",
     readable: true,
     state: "read",
   };
@@ -506,6 +541,7 @@ function migrationDecision(
     !decidedAt ||
     !version
   )
+    // i18n-exempt: an invariant on stored demo state, caught by the caller and never shown
     throw new Error("Demo migration decision is invalid");
   return {
     migrationId,

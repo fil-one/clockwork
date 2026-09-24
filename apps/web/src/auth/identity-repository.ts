@@ -150,6 +150,7 @@ export async function resolveAuthorizedAccountSwitch(
     ({ accountId }) => accountId === input.requestedAccountId,
   );
   if (matches.length !== 1)
+    // i18n-exempt: caught by switchCommerceAccount, which returns { ok: false }; never rendered
     throw new Error("Requested account is not an authorized membership");
   return matches[0] as AuthorizedMembership;
 }
@@ -162,6 +163,7 @@ export function selectedMembership(
     (item) => item.workosOrganizationId === workosOrganizationId,
   );
   if (matches.length !== 1)
+    // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Selected organization is not an authorized membership");
   return matches[0] as AuthorizedMembership;
 }

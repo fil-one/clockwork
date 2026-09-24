@@ -1,7 +1,15 @@
 "use client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+
+import { lifecycleCopy } from "./copy";
+import { formatCalendarDay } from "./projection-fields";
 import styles from "./finance-lifecycle.module.css";
+
+const copy = lifecycleCopy.handoff;
+
 export function DemoOrderHandoff({
   orders,
 }: {
@@ -14,6 +22,8 @@ export function DemoOrderHandoff({
   }[];
 }) {
   const router = useRouter();
+  const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const busy = useRef(false);
   const [pending, setPending] = useState("");
   const [message, setMessage] = useState("");
@@ -37,53 +47,78 @@ export function DemoOrderHandoff({
         },
         body: JSON.stringify({ orderId: id }),
       });
-      const data = (await response.json()) as { detail?: string };
-      if (!response.ok)
-        throw new Error(data.detail ?? "Provisioning request failed.");
-      setMessage(
-        "Demo provisioner received the order. This is dispatch evidence, not service activation.",
-      );
+      if (!response.ok) {
+        // The route answers in English problem details for API callers; the
+        // reader is told what happened in their language, keyed on the status:
+        // 403 is the authority check, 422 the provisioner refusing the order
+        // (`DEMO_PROVISIONING_REFUSED`), anything else a failed submission.
+        setMessage(
+          t(
+            response.status === 403
+              ? copy.forbidden
+              : response.status === 422
+                ? copy.refused
+                : copy.failed,
+          ),
+        );
+        return;
+      }
+      setMessage(t(copy.received));
       router.refresh();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Retry the request.");
+    } catch {
+      setMessage(t(copy.failed));
     } finally {
       busy.current = false;
       setPending("");
     }
   }
   return (
-    <section className={styles.section} aria-label="Accepted order handoff">
-      <h2>Accepted orders · demo provisioning</h2>
-      <p>
-        Orders appear here as soon as the customer accepts. Submit the saved
-        entitlements to the demo provisioner; an operation reference confirms
-        receipt. Real service activation needs a provider completion result.
-      </p>
+    <section className={styles.section} aria-label={t(copy.label)}>
+      <h2>{t(copy.heading)}</h2>
+      <p>{t(copy.intro)}</p>
       {orders.length ? (
         <ul>
-          {orders.map((order) => (
-            <li key={order.id}>
-              <strong>{order.reference}</strong> · Service starts{" "}
-              {order.startsOn} ·{" "}
-              {order.submittedAt ? (
-                `Request submitted ${new Date(order.submittedAt).toLocaleString()}`
-              ) : order.ready ? (
-                <button
-                  disabled={Boolean(pending)}
-                  onClick={() => void submit(order.id)}
-                >
-                  {pending === order.id
-                    ? "Submitting…"
-                    : "Submit to demo provisioner"}
-                </button>
-              ) : (
-                "Historical demo order · provisioning source unavailable"
-              )}
-            </li>
-          ))}
+          {orders.map((order) => {
+            const starts = t(copy.serviceStarts, {
+              date:
+                formatCalendarDay(order.startsOn, formattingLocale) ??
+                order.startsOn,
+            });
+            const state = order.submittedAt ? (
+              t(copy.submitted, {
+                time: new Date(order.submittedAt).toLocaleString(
+                  formattingLocale,
+                ),
+              })
+            ) : order.ready ? (
+              <button
+                disabled={Boolean(pending)}
+                onClick={() => void submit(order.id)}
+              >
+                {pending === order.id ? t(copy.submitting) : t(copy.submit)}
+              </button>
+            ) : (
+              t(copy.historical)
+            );
+            return (
+              <li key={order.id}>
+                {richText(t, "common.join.labels", {
+                  first: (
+                    <strong>
+                      <bdi>{order.reference}</bdi>
+                    </strong>
+                  ),
+                  second: richText(t, "common.join.labels", {
+                    first: starts,
+                    second: state,
+                  }),
+                })}
+              </li>
+            );
+          })}
         </ul>
       ) : (
-        <p>No accepted demo orders yet.</p>
+        <p>{t(copy.empty)}</p>
       )}
       <p role="status">{message}</p>
     </section>

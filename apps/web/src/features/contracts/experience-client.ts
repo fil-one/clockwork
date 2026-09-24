@@ -69,7 +69,7 @@ function responseError(response: Response, value: unknown) {
       : "EXPERIENCE_ERROR",
     "title" in problem && typeof problem.title === "string"
       ? problem.title
-      : "The operation could not be completed",
+      : "The operation could not be completed", // i18n-exempt: English diagnostic; surfaces render experienceErrorText(error, t)
   );
 }
 
@@ -94,7 +94,7 @@ function mutation(options: ExperienceClientOptions) {
     throw new ExperienceClientError(
       403,
       "CSRF_MISSING",
-      "The secure form token is unavailable",
+      "The secure form token is unavailable", // i18n-exempt: English diagnostic; surfaces render experienceErrorText(error, t)
     );
   return {
     "content-type": "application/json",
@@ -112,7 +112,7 @@ function requirePositiveVersion(value: number): void {
     throw new ExperienceClientError(
       422,
       "EXPECTED_VERSION_INVALID",
-      "expectedVersion must be a positive integer",
+      "expectedVersion must be a positive integer", // i18n-exempt: English diagnostic; surfaces render experienceErrorText(error, t)
     );
 }
 
@@ -121,7 +121,7 @@ function requireArtifactSourceVersion(value: string): void {
     throw new ExperienceClientError(
       422,
       "ARTIFACT_VERSION_INVALID",
-      "expectedVersion must contain between 1 and 80 characters",
+      "expectedVersion must contain between 1 and 80 characters", // i18n-exempt: English diagnostic; surfaces render experienceErrorText(error, t)
     );
 }
 
@@ -361,14 +361,14 @@ export async function downloadArtifact(
     throw new ExperienceClientError(
       502,
       "ARTIFACT_RESPONSE_INVALID",
-      "The artifact response is not a PDF",
+      "The artifact response is not a PDF", // i18n-exempt: English diagnostic; surfaces render experienceErrorText(error, t)
     );
   const contentHash = response.headers.get("x-content-sha256") ?? "";
   if (!/^[a-f0-9]{64}$/.test(contentHash))
     throw new ExperienceClientError(
       502,
       "ARTIFACT_RESPONSE_INVALID",
-      "The artifact response has no valid content hash",
+      "The artifact response has no valid content hash", // i18n-exempt: English diagnostic; surfaces render experienceErrorText(error, t)
     );
   const bytes = await response.arrayBuffer();
   const prefix = new TextDecoder("latin1").decode(bytes.slice(0, 5));
@@ -383,7 +383,7 @@ export async function downloadArtifact(
     throw new ExperienceClientError(
       502,
       "ARTIFACT_RESPONSE_INVALID",
-      "The artifact response failed immutable metadata validation",
+      "The artifact response failed immutable metadata validation", // i18n-exempt: English diagnostic; surfaces render experienceErrorText(error, t)
     );
   return {
     bytes,

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { Decorator, Meta, StoryObj } from "@storybook/nextjs-vite";
 import {
   BadgeDollarSign,
   Bell,
@@ -17,7 +17,15 @@ import {
   WorkflowStepper,
   AppShell,
   ApplicationStatePanel,
+  KitTextProvider,
 } from "../index";
+import {
+  fixtureCommandPaletteLabels,
+  fixtureDrawerLabels,
+  fixtureKitText,
+  fixtureShellLabels,
+  fixtureToolbarLabels,
+} from "./fixture-labels";
 
 const navigation = [
   {
@@ -80,6 +88,8 @@ const commands = [
 function ShellDemo() {
   return (
     <AppShell
+      brand="Fil One"
+      {...fixtureShellLabels}
       navigation={navigation}
       organization={
         <EntityCombobox
@@ -93,7 +103,12 @@ function ShellDemo() {
       }
       utilities={
         <>
-          <CommandPalette items={commands} audience="internal" />
+          <CommandPalette
+            triggerLabel="Search and commands"
+            {...fixtureCommandPaletteLabels}
+            items={commands}
+            audience="internal"
+          />
           <Button
             variant="quiet"
             aria-label="Notifications"
@@ -122,6 +137,7 @@ function ShellDemo() {
           </p>
         </header>
         <CollectionToolbar
+          {...fixtureToolbarLabels}
           resultCount={2}
           filters={<Button variant="secondary">Status</Button>}
           actions={<Button>New agreement</Button>}
@@ -147,7 +163,15 @@ function ShellDemo() {
   );
 }
 
+/** The kit has no default words; the stories supply English ones. */
+const withKitText: Decorator = (Story) => (
+  <KitTextProvider text={fixtureKitText}>
+    <Story />
+  </KitTextProvider>
+);
+
 const meta = {
+  decorators: [withKitText],
   title: "Design shell/Responsive system",
   component: ShellDemo,
   tags: ["autodocs"],
@@ -168,7 +192,11 @@ export const MobileShell: Story = {
 export const MobileDrawer: Story = {
   render: () => (
     <div style={{ minHeight: "30rem", padding: 16 }}>
-      <ResponsiveNavigationDrawer groups={navigation} defaultOpen />
+      <ResponsiveNavigationDrawer
+        {...fixtureDrawerLabels}
+        groups={navigation}
+        defaultOpen
+      />
     </div>
   ),
   parameters: {
@@ -179,7 +207,7 @@ export const MobileDrawer: Story = {
 export const Loading: Story = {
   render: () => (
     <div style={{ display: "grid", gap: 12, padding: 24 }}>
-      <CollectionToolbar loading resultCount={3} />
+      <CollectionToolbar {...fixtureToolbarLabels} loading resultCount={3} />
       <ResponsiveRecord title="Loading agreement" loading />
       <ResponsiveRecord title="Loading agreement" loading />
     </div>
@@ -200,7 +228,14 @@ export const Empty: Story = {
 };
 
 export const NoMatch: Story = {
-  render: () => <CommandPalette items={[]} defaultOpen />,
+  render: () => (
+    <CommandPalette
+      triggerLabel="Search and commands"
+      {...fixtureCommandPaletteLabels}
+      items={[]}
+      defaultOpen
+    />
+  ),
 };
 
 export const Partial: Story = {
@@ -252,6 +287,12 @@ export const Error: Story = {
 
 export const KeyboardFocus: Story = {
   render: () => (
-    <CommandPalette items={commands} audience="internal" defaultOpen />
+    <CommandPalette
+      triggerLabel="Search and commands"
+      {...fixtureCommandPaletteLabels}
+      items={commands}
+      audience="internal"
+      defaultOpen
+    />
   ),
 };

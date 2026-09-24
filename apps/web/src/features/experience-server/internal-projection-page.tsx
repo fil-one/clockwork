@@ -6,6 +6,8 @@ import type { ProjectionChannel, ProjectionRecord } from "./model";
 import { EvidenceUploadControl } from "./evidence-upload-control";
 import { getRouteRoles } from "@/src/features/shell/route-session";
 import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
+import { richText } from "@/src/i18n/rich";
 import styles from "./internal-projection-page.module.css";
 
 function value(
@@ -36,38 +38,58 @@ export async function InternalProjectionPage({
   title: string;
   description: string;
 }) {
-  const [projection, roles] = await Promise.all([
+  const [projection, roles, formattingLocale, t] = await Promise.all([
     loadPortalRecords("internal", channel),
     getRouteRoles("internal"),
+    getFormattingLocale(),
+    getTranslations(),
   ]);
+  const notRecorded = t("common.notRecorded");
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
-        <p className={styles.eyebrow}>Operator workspace</p>
+        <p className={styles.eyebrow}>{t("experience.workspace.internal")}</p>
         <h1>{title}</h1>
         <p className={styles.description}>{description}</p>
         <p
           className={projection.stale ? styles.stale : styles.freshness}
           role={projection.stale ? "alert" : "status"}
         >
-          {projection.stale ? "Some records need a refresh" : "Up to date"} ·
-          Updated{" "}
-          <time dateTime={projection.generatedAt}>
-            {formatOperationalTimestamp(projection.generatedAt)}
-          </time>
+          {richText(
+            t,
+            projection.stale
+              ? "experience.internal.freshness.stale"
+              : "experience.internal.freshness.current",
+            {
+              time: (
+                <time dateTime={projection.generatedAt}>
+                  {formatOperationalTimestamp(
+                    projection.generatedAt,
+                    formattingLocale,
+                  )}
+                </time>
+              ),
+            },
+          )}
         </p>
       </header>
       {projection.records.length === 0 ? (
         <EmptyState
-          title="No work in this queue"
-          description="Work authorized for your operator scope appears here."
+          title={t("experience.internal.empty.title")}
+          description={t("experience.internal.empty.description")}
         />
       ) : (
         <Table
           className={styles.records ?? ""}
           caption={title}
           captionHidden
-          headers={["Record", "Status", "Owner", "Next task", "Actions"]}
+          headers={[
+            t("experience.internal.column.record"),
+            t("common.status"),
+            t("common.owner"),
+            t("experience.internal.column.nextTask"),
+            t("common.actions"),
+          ]}
           rowKeys={projection.records.map((record) => record.id)}
           rows={projection.records.map((record) => [
             <>
@@ -78,9 +100,9 @@ export async function InternalProjectionPage({
               )}
               <small className={styles.recordKey}>{record.recordKey}</small>
             </>,
-            value(record, ["statusLabel", "status", "state"], "Not recorded"),
-            value(record, ["owner", "assignee", "requestedBy"], "Not recorded"),
-            value(record, ["nextAction", "task", "decision"], "Not recorded"),
+            value(record, ["statusLabel"], notRecorded),
+            value(record, ["owner", "assignee", "requestedBy"], notRecorded),
+            value(record, ["nextAction", "task", "decision"], notRecorded),
             <>
               <ProjectionActionButtons
                 audience="internal"
@@ -96,7 +118,7 @@ export async function InternalProjectionPage({
                   journey="exception"
                   targetId={record.aggregateId}
                   kind="screening"
-                  label="Attach exception evidence"
+                  label={t("experience.evidence.attachException")}
                   headingLevel={2}
                 />
               ) : channel === "approvals" ? (
@@ -104,7 +126,7 @@ export async function InternalProjectionPage({
                   journey="approval"
                   targetId={record.aggregateId}
                   kind="approval"
-                  label="Attach approval evidence"
+                  label={t("experience.evidence.attachApproval")}
                   headingLevel={2}
                 />
               ) : null}

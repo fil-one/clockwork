@@ -1,25 +1,26 @@
 import { expect, test } from "@playwright/test";
-import { catalogs, type Locale } from "../src/i18n";
+import { translatorFor } from "../src/i18n/catalogs";
+import { locales } from "../src/i18n/locales";
 
 import { gotoHydrated } from "./shell-hydration";
 
 // Visits use separate browser contexts: a preference must never become global.
-for (const language of Object.keys(catalogs) as Locale[]) {
+for (const language of locales) {
   test(`saved ${language} preference survives navigation and reload`, async ({
     page,
     context,
   }) => {
-    const copy = catalogs[language];
+    const t = translatorFor(language);
     await gotoHydrated(page, "/settings");
     await page.locator('select[name="language"]').selectOption(language);
     await page
       .getByRole("button", { name: "Save language", exact: true })
       .click();
     await expect(
-      page.getByRole("heading", { name: copy["settings.title"], exact: true }),
+      page.getByRole("heading", { name: t("settings.title"), exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole("status").filter({ hasText: copy["settings.saved"] }),
+      page.getByRole("status").filter({ hasText: t("settings.saved") }),
     ).toBeVisible();
     const cookie = (await context.cookies()).find(
       (cookie) => cookie.name === "clockwork-language",
@@ -33,7 +34,10 @@ for (const language of Object.keys(catalogs) as Locale[]) {
     await expect(page.locator('select[name="language"]')).toHaveValue(language);
     await page.goto("/internal");
     await expect(
-      page.getByRole("heading", { name: copy["ui.0"], exact: true }),
+      page.getByRole("heading", {
+        name: t("operations.home.title"),
+        exact: true,
+      }),
     ).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute(
       "dir",
@@ -41,13 +45,13 @@ for (const language of Object.keys(catalogs) as Locale[]) {
     );
     await expect(
       page
-        .getByRole("link", { name: copy["nav.internal.search"], exact: true })
+        .getByRole("link", { name: t("nav.internal.search"), exact: true })
         .first(),
     ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoHydrated(page, "/settings");
     await expect(
-      page.getByRole("heading", { name: copy["settings.title"], exact: true }),
+      page.getByRole("heading", { name: t("settings.title"), exact: true }),
     ).toBeVisible();
     expect(
       await page.evaluate(
@@ -60,7 +64,7 @@ for (const language of Object.keys(catalogs) as Locale[]) {
     });
     await page.locator('select[name="language"]').selectOption("en");
     await page
-      .getByRole("button", { name: copy["settings.save"], exact: true })
+      .getByRole("button", { name: t("settings.save"), exact: true })
       .click();
     await expect(
       page.getByRole("heading", { name: "Settings", exact: true }),

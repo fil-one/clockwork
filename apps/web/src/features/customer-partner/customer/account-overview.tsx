@@ -1,4 +1,3 @@
-import { localizeCopy } from "@/src/i18n/copy";
 import { getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import Link from "next/link";
@@ -7,12 +6,9 @@ import type { ReactNode } from "react";
 
 import { StatusBadge } from "@clockwork/ui";
 
-import { t as englishTranslator } from "@/src/i18n/en";
+import type { Translator } from "@/src/i18n";
 
-import { customerPartnerCopy } from "../copy";
 import styles from "./customer-pages.module.css";
-
-const copy = customerPartnerCopy.customer;
 
 export interface AccountOverviewProjection {
   accountName: string;
@@ -24,28 +20,28 @@ export interface AccountOverviewProjection {
 
 function accountAreas(
   meta: AccountOverviewProjection["areaMeta"],
-  t = englishTranslator,
+  t: Translator,
 ) {
   return [
     {
-      title: "Users and access",
-      description:
-        "Review roles, approval authority, MFA state, and pending invitations.",
+      key: "users",
+      title: t("customer.collection.users.title"),
+      description: t("customer.account.areas.users.description"),
       meta: meta.users,
       href: "/account/users" as Route,
     },
     {
-      title: "Procurement",
-      description:
-        "Maintain invoice delivery, supplier onboarding, purchase orders, and tax evidence.",
+      key: "procurement",
+      title: t("customer.collection.procurement.title"),
+      description: t("customer.account.areas.procurement.description"),
       meta: meta.procurement,
       href: "/account/procurement" as Route,
     },
     {
-      title: "Offboarding",
-      description:
-        "Review retrieval, final billing, retention exclusions, and teardown authority.",
-      meta: t("account.areas.offboarding.meta"),
+      key: "offboarding",
+      title: t("customer.account.areas.offboarding.title"),
+      description: t("customer.account.areas.offboarding.description"),
+      meta: t("customer.account.areas.offboarding.meta"),
       href: "/account/offboarding" as Route,
     },
   ];
@@ -65,15 +61,14 @@ export function AccountOverview({
   actions?: ReactNode;
 }) {
   const t = use(getTranslations());
-  const localizedcopy = localizeCopy(copy, t);
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>{t("ui.103")}</p>
-          <h1>{localizedcopy.accountTitle}</h1>
+          <p className={styles.eyebrow}>{t("customer.account.eyebrow")}</p>
+          <h1>{t("customer.account.title")}</h1>
           <p className={styles.description}>
-            {localizedcopy.accountDescription}
+            {t("customer.account.description")}
           </p>
         </div>
       </header>
@@ -100,8 +95,10 @@ export function AccountOverview({
       <section className={styles.section} aria-labelledby="account-areas-title">
         <div className={styles.sectionHeading}>
           <div>
-            <h2 id="account-areas-title">Account controls</h2>
-            <p>Choose a task area to review its current state.</p>
+            <h2 id="account-areas-title">
+              {t("customer.account.controls.title")}
+            </h2>
+            <p>{t("customer.account.controls.description")}</p>
           </div>
         </div>
         {canManageAccount ? (
@@ -110,17 +107,20 @@ export function AccountOverview({
               <Link
                 className={styles.accountCard}
                 href={area.href}
-                key={area.title}
+                key={area.key}
               >
                 <h2>{area.title}</h2>
                 <p>{area.description}</p>
-                <span>{area.meta} →</span>
+                <span>
+                  {area.meta}{" "}
+                  <span aria-hidden="true">{t("customer.link.arrow")}</span>
+                </span>
               </Link>
             ))}
           </div>
         ) : (
           <p className={styles.permissionNote}>
-            {localizedcopy.accountPermissionNote}
+            {t("customer.account.permissionNote")}
           </p>
         )}
       </section>
