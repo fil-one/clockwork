@@ -93,7 +93,11 @@ export function DemoOrderHandoff({
             return (
               <li key={order.id}>
                 {richText(t, "common.join.labels", {
-                  first: <strong>{order.reference}</strong>,
+                  first: (
+                    <strong>
+                      <bdi>{order.reference}</bdi>
+                    </strong>
+                  ),
                   second: richText(t, "common.join.labels", {
                     first: starts,
                     second: state,

@@ -139,7 +139,8 @@ export function IdentifierLine({
   return (
     <p>
       {richText(t, label, {
-        id: <span className={styles.id}>{value}</span>,
+        // <bdi> keeps a Latin identifier from reordering an Arabic sentence.
+        id: <bdi className={styles.id}>{value}</bdi>,
       })}
     </p>
   );

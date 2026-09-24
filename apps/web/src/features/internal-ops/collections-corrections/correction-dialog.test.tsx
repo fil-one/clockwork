@@ -114,7 +114,7 @@ describe("collections corrections", () => {
   });
 
   /**
-   * No read surface resolves a payment, so the refund form has to say the field
+   * No page looks up payments, so the refund form has to say the field
    * is the operator's and not the record's.
    */
   it("labels the payment identity on a refund as operator-supplied", async () => {
@@ -123,9 +123,7 @@ describe("collections corrections", () => {
 
     await user.click(screen.getByRole("button", { name: "Submit refund" }));
 
-    expect(
-      screen.getByText(/No read surface resolves a payment/u),
-    ).toBeVisible();
+    expect(screen.getByText(/No page looks up payments/u)).toBeVisible();
   });
 
   it("asks a dispute for the Stripe identifier and no internal reason code", async () => {

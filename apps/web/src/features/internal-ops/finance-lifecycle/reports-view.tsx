@@ -241,7 +241,7 @@ export function ReportsView({
             <p>
               {richText(t, copy.submittedAccount, {
                 account: accountLabel(t, selectedAccount),
-                id: <span className={styles.id}>{accountId}</span>,
+                id: <bdi className={styles.id}>{accountId}</bdi>,
               })}
             </p>
           </details>
