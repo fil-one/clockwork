@@ -1331,7 +1331,7 @@ export const commonMessages = defineMessages({
   },
   "common.allRiskLevels": {
     en: "All risk levels",
-    es: "Todos los niveles de riesgo",
+    es: "Todos los riesgos",
     fr: "Tous les niveaux de risque",
     de: "Alle Risikostufen",
     ja: "すべてのリスクレベル",

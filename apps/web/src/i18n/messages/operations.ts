@@ -1645,7 +1645,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queue.sort.updated": {
     en: "Recently updated",
-    es: "Actualizados recientemente",
+    es: "Actualización reciente",
     fr: "Mis à jour récemment",
     de: "Zuletzt aktualisiert",
     ja: "最近更新された順",

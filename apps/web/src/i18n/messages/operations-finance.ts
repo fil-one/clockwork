@@ -3073,7 +3073,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.report.partnerPerformance": {
     en: "Partner performance",
-    es: "Rendimiento de socios",
+    es: "Rendimiento de los socios",
     fr: "Performance des partenaires",
     de: "Partnerleistung",
     ja: "パートナー実績",
@@ -3083,7 +3083,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.report.funnelCycleTime": {
     en: "Funnel cycle time",
-    es: "Duración del ciclo del embudo",
+    es: "Duración del ciclo de ventas",
     fr: "Durée du cycle de l’entonnoir",
     de: "Zykluszeit im Vertriebstrichter",
     ja: "ファネルのサイクルタイム",

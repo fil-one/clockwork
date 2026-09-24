@@ -397,7 +397,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.sort.updatedDesc": {
     en: "Recently updated",
-    es: "Actualizados recientemente",
+    es: "Actualización reciente",
     fr: "Mis à jour récemment",
     de: "Zuletzt aktualisiert",
     ja: "更新日が新しい順",
@@ -407,7 +407,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.sort.updatedAsc": {
     en: "Oldest updated",
-    es: "Actualizados hace más tiempo",
+    es: "Actualización antigua",
     fr: "Mis à jour il y a le plus longtemps",
     de: "Am längsten nicht aktualisiert",
     ja: "更新日が古い順",
