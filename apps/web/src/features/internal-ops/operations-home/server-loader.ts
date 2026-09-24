@@ -1,5 +1,5 @@
-import { t as englishTranslator, type MessageId } from "@/src/i18n/en";
-import { translateInterfaceText, type Translator } from "@/src/i18n/copy";
+import type { MessageId, Translator } from "@/src/i18n";
+import { translateInterfaceText } from "@/src/i18n/copy";
 import "server-only";
 
 import type { Route } from "next";
@@ -50,19 +50,26 @@ export interface OperationsHomeData {
   staleChannels: readonly ProjectionChannel[];
 }
 
+const countMessages = {
+  cases: "operations.cases",
+  records: "operations.records",
+  orders: "operations.orders",
+  exports: "operations.exports",
+  priority: "operations.priority",
+} as const satisfies Record<string, MessageId>;
+
+/**
+ * `t` and `locale` are required: a default translator is how this page used
+ * to render English to every reader whose caller forgot to pass one.
+ */
 export async function loadOperationsHome(
-  now: Date = new Date(),
-  t: Translator = englishTranslator,
-  locale = "en-US",
+  now: Date,
+  t: Translator,
+  locale: string,
 ): Promise<OperationsHomeData> {
   const number = (count: number) => new Intl.NumberFormat(locale).format(count);
-  const countText = (
-    count: number,
-    key: "cases" | "records" | "orders" | "exports" | "priority",
-  ) =>
-    t(`operations.${key}.${count === 1 ? "one" : "other"}` as MessageId, {
-      count: number(count),
-    });
+  const countText = (count: number, key: keyof typeof countMessages) =>
+    t(countMessages[key], { count });
   const [queues, provisioning, collections, orders, reports] =
     await Promise.all([
       loadPortalRecords("internal", "queues"),

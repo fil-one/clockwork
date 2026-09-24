@@ -1,6 +1,5 @@
 import type { Permission } from "@clockwork/contracts";
 
-import { customerPartnerCopy } from "../copy";
 import type { CustomerCollectionRecord } from "./collection-state";
 
 export type CustomerCollectionKey =
@@ -436,7 +435,38 @@ const supportRecords: readonly CustomerCollectionRecord[] = [
   },
 ];
 
-const copy = customerPartnerCopy.customer.collections;
+// Collection chrome is English here and rendered as-is; the customer lane
+// replaces these with message IDs. Moved verbatim from the retired
+// customer-partner/copy.ts so that file no longer sits between two lanes.
+const copy = {
+  amendments: {
+    title: "Amendments",
+    description: "Track requested and completed changes to active services.",
+    searchPlaceholder: "Search amendments",
+  },
+  users: {
+    title: "Users and access",
+    description: "See who can view and approve commercial work.",
+    searchPlaceholder: "Search users",
+  },
+  procurement: {
+    title: "Procurement",
+    description:
+      "Keep invoice routing, supplier onboarding, and tax evidence current.",
+    searchPlaceholder: "Search procurement records",
+  },
+  marketplace: {
+    title: "Marketplace purchases",
+    description: "Follow private offers and provider-reported fulfillment.",
+    searchPlaceholder: "Search marketplace offers",
+  },
+  support: {
+    title: "Support",
+    description:
+      "Follow customer issues while the support provider remains the source of truth.",
+    searchPlaceholder: "Search support tickets",
+  },
+} as const;
 
 export const customerCollections: Readonly<
   Record<CustomerCollectionKey, CustomerCollectionConfig>

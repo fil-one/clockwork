@@ -1,13 +1,11 @@
 "use client";
 import { useTranslations } from "@/src/i18n/client";
 
-import { localizeCopy } from "@/src/i18n/copy";
 import type { Route } from "next";
 import Link from "next/link";
 
 import { buttonClassName, Table } from "@clockwork/ui";
 
-import { customerPartnerCopy } from "../copy";
 import type { SurfaceFormatting } from "../formatting";
 import {
   ProjectionFreshnessNotice,
@@ -105,12 +103,11 @@ function RecordTable({
   state: CollectionState;
 }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const headers = [
     "Record",
-    localizedcustomerPartnerCopy.common.status,
-    localizedcustomerPartnerCopy.common.risk,
-    localizedcustomerPartnerCopy.common.owner,
+    t("common.status"),
+    t("common.risk"),
+    t("common.owner"),
     "Commercial context",
     "Timing",
   ];
@@ -130,6 +127,7 @@ function RecordTable({
                 sortable.column,
                 state.sort,
                 sortable.name,
+                t,
               )}
               className={styles.sortLink}
               // Sorting reorders the whole filtered set, so the reader is put
@@ -227,12 +225,11 @@ function RecordCards({
 
 export function CommercialLoadingState() {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   return (
     <main className={styles.main} id="main-content">
       <section className={styles.state} role="status">
-        <h1>{localizedcustomerPartnerCopy.common.loadingTitle}</h1>
-        <p>{localizedcustomerPartnerCopy.common.loadingBody}</p>
+        <h1>{t("cp.common.loadingTitle")}</h1>
+        <p>{t("cp.common.loadingBody")}</p>
       </section>
     </main>
   );
@@ -240,12 +237,11 @@ export function CommercialLoadingState() {
 
 export function CommercialErrorState({ retry }: { retry?: () => void }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   return (
     <main className={styles.main} id="main-content">
       <section className={styles.state} role="alert">
-        <h1>{localizedcustomerPartnerCopy.common.errorTitle}</h1>
-        <p>{localizedcustomerPartnerCopy.common.errorBody}</p>
+        <h1>{t("cp.common.errorTitle")}</h1>
+        <p>{t("cp.common.errorBody")}</p>
         {retry ? (
           <button
             className={buttonClassName({ variant: "secondary" })}
@@ -278,7 +274,6 @@ export function CommercialCollectionPage({
   canUsePrimaryAction?: boolean;
 }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const definition = collectionDefinitions[kind];
   const state = parseCollectionState(searchParams);
   const filtered = filterAndSortRecords(allRecords, state);
@@ -321,9 +316,7 @@ export function CommercialCollectionPage({
 
       <form className={`${styles.panel} ${styles.filters}`} method="get">
         <div className={styles.field}>
-          <label htmlFor={`${kind}-search`}>
-            {localizedcustomerPartnerCopy.common.search}
-          </label>
+          <label htmlFor={`${kind}-search`}>{t("common.search")}</label>
           <input
             defaultValue={state.q}
             id={`${kind}-search`}
@@ -333,9 +326,7 @@ export function CommercialCollectionPage({
           />
         </div>
         <div className={styles.field}>
-          <label htmlFor={`${kind}-status`}>
-            {localizedcustomerPartnerCopy.common.status}
-          </label>
+          <label htmlFor={`${kind}-status`}>{t("common.status")}</label>
           <select
             defaultValue={state.status}
             id={`${kind}-status`}
@@ -350,9 +341,7 @@ export function CommercialCollectionPage({
           </select>
         </div>
         <div className={styles.field}>
-          <label htmlFor={`${kind}-risk`}>
-            {localizedcustomerPartnerCopy.common.risk}
-          </label>
+          <label htmlFor={`${kind}-risk`}>{t("common.risk")}</label>
           <select defaultValue={state.risk} id={`${kind}-risk`} name="risk">
             <option value="">All risk levels</option>
             <option value="high">High</option>
@@ -361,9 +350,7 @@ export function CommercialCollectionPage({
           </select>
         </div>
         <div className={styles.field}>
-          <label htmlFor={`${kind}-owner`}>
-            {localizedcustomerPartnerCopy.common.owner}
-          </label>
+          <label htmlFor={`${kind}-owner`}>{t("common.owner")}</label>
           <select defaultValue={state.owner} id={`${kind}-owner`} name="owner">
             <option value="">All owners</option>
             {ownerValues.map((owner) => (
@@ -374,9 +361,7 @@ export function CommercialCollectionPage({
           </select>
         </div>
         <div className={styles.field}>
-          <label htmlFor={`${kind}-sort`}>
-            {localizedcustomerPartnerCopy.common.sort}
-          </label>
+          <label htmlFor={`${kind}-sort`}>{t("common.sort")}</label>
           <select defaultValue={state.sort} id={`${kind}-sort`} name="sort">
             {/*
               Every token `parseCollectionState` accepts has an option here.
@@ -393,9 +378,7 @@ export function CommercialCollectionPage({
           </select>
         </div>
         <div className={styles.field}>
-          <label htmlFor={`${kind}-size`}>
-            {localizedcustomerPartnerCopy.common.pageSize}
-          </label>
+          <label htmlFor={`${kind}-size`}>{t("common.rowsPerPage")}</label>
           <select
             defaultValue={state.pageSize}
             id={`${kind}-size`}
@@ -428,9 +411,7 @@ export function CommercialCollectionPage({
           </div>
           <div className={styles.resultActions}>
             <div className={styles.viewControls}>
-              <span className={styles.viewLabel}>
-                {localizedcustomerPartnerCopy.common.view}
-              </span>
+              <span className={styles.viewLabel}>{t("common.view")}</span>
               <Link
                 className={styles.viewLink}
                 href={collectionUrl(pathname, state, {
@@ -476,14 +457,14 @@ export function CommercialCollectionPage({
             <nav className={styles.pagination} aria-label="Result pages">
               {page <= 1 ? (
                 <span aria-disabled="true" className={styles.pageLink}>
-                  {localizedcustomerPartnerCopy.common.previous}
+                  {t("common.pagination.previous")}
                 </span>
               ) : (
                 <Link
                   className={styles.pageLink}
                   href={collectionUrl(pathname, state, { page: page - 1 })}
                 >
-                  {localizedcustomerPartnerCopy.common.previous}
+                  {t("common.pagination.previous")}
                 </Link>
               )}
               <span aria-live="polite">
@@ -491,14 +472,14 @@ export function CommercialCollectionPage({
               </span>
               {page >= totalPages ? (
                 <span aria-disabled="true" className={styles.pageLink}>
-                  {localizedcustomerPartnerCopy.common.next}
+                  {t("common.pagination.next")}
                 </span>
               ) : (
                 <Link
                   className={styles.pageLink}
                   href={collectionUrl(pathname, state, { page: page + 1 })}
                 >
-                  {localizedcustomerPartnerCopy.common.next}
+                  {t("common.pagination.next")}
                 </Link>
               )}
             </nav>
@@ -507,13 +488,13 @@ export function CommercialCollectionPage({
           <div className={styles.state}>
             <h3>
               {hasFilters
-                ? localizedcustomerPartnerCopy.common.noMatchTitle
-                : localizedcustomerPartnerCopy.common.emptyTitle}
+                ? t("cp.common.noMatchTitle")
+                : t("cp.common.emptyTitle")}
             </h3>
             <p>
               {hasFilters
-                ? localizedcustomerPartnerCopy.common.noMatchBody
-                : localizedcustomerPartnerCopy.common.emptyBody}
+                ? t("cp.common.noMatchBody")
+                : t("cp.common.emptyBody")}
             </p>
             {hasFilters ? (
               <Link

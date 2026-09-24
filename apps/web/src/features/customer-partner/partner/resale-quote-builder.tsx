@@ -1,6 +1,5 @@
 "use client";
 import { localQuoteExpiry } from "./resale-quote-model";
-import { localizeCopy } from "@/src/i18n/copy";
 
 import { useTranslations } from "@/src/i18n/client";
 
@@ -11,7 +10,6 @@ import { useRef, useState } from "react";
 import { ApplicationStatePanel, Button, buttonClassName } from "@clockwork/ui";
 import { uuidV7 } from "@clockwork/contracts";
 
-import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
 import { draftIsDirty } from "@/src/features/customer-partner/draft-state";
 import {
   LeaveDraftControl,
@@ -126,7 +124,6 @@ export function ResaleQuoteBuilder({
 
 function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const [stage, setStage] = useState<1 | 2 | 3>(1);
   // Derived from the clock this form was opened against, never from a calendar
   // date compiled into the bundle. One clock read seeds both the editable draft
@@ -511,7 +508,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                 </label>
                 {partnerPriced ? (
                   <label className={styles.field}>
-                    {localizedcustomerPartnerCopy.partner.partnerPrice} (
+                    {t("cp.partner.partnerPrice")} (
                     {offer?.currency ?? endClient?.quoteCurrency ?? "major"}{" "}
                     major units)
                     <input
@@ -572,9 +569,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
-                <p className={styles.gate}>
-                  {localizedcustomerPartnerCopy.partner.boundary}
-                </p>
+                <p className={styles.gate}>{t("cp.partner.boundary")}</p>
                 <label className={styles.confirm}>
                   <input
                     type="checkbox"
@@ -639,9 +634,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
           className={`${styles.summary} ${styles.sticky}`}
           aria-labelledby="quote-summary-title"
         >
-          <h2 id="quote-summary-title">
-            {localizedcustomerPartnerCopy.commercial.quoteSummary}
-          </h2>
+          <h2 id="quote-summary-title">{t("cp.commercial.quoteSummary")}</h2>
           <ul className={styles.summaryList}>
             <li>
               <strong>Offer:</strong> {draft.offerName || "Not selected"}
@@ -664,9 +657,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
               {draft.termMonths ? `${draft.termMonths} months` : "Not recorded"}
             </li>
             <li>
-              <strong>
-                {localizedcustomerPartnerCopy.partner.partnerPrice}:
-              </strong>{" "}
+              <strong>{t("cp.partner.partnerPrice")}:</strong>{" "}
               {!partnerPriced
                 ? "Not set on a referral"
                 : draft.resalePrice
@@ -674,15 +665,11 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                   : "Not set"}
             </li>
             <li>
-              <strong>
-                {localizedcustomerPartnerCopy.partner.transferPrice}:
-              </strong>{" "}
-              Server-priced after draft creation
+              <strong>{t("cp.partner.transferPrice")}:</strong> Server-priced
+              after draft creation
             </li>
             <li>
-              <strong>
-                {localizedcustomerPartnerCopy.partner.merchantOfRecord}:
-              </strong>{" "}
+              <strong>{t("cp.partner.merchantOfRecord")}:</strong>{" "}
               {merchantOfRecordName(context)}
             </li>
             <li>
@@ -703,9 +690,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
             </ul>
           ) : null}
           <details className={styles.technical}>
-            <summary>
-              {localizedcustomerPartnerCopy.common.technicalDetails}
-            </summary>
+            <summary>{t("common.technicalDetails")}</summary>
             <p>
               Price book ID: <code>{offer?.priceBookId ?? "Unresolved"}</code>
             </p>

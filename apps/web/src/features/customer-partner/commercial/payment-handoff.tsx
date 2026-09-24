@@ -1,6 +1,5 @@
 "use client";
 import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
 
 import { useRef, useState } from "react";
 
@@ -10,7 +9,6 @@ import {
 } from "@/src/features/contracts/commerce-client";
 import { trustedStripePaymentUrl } from "@/src/features/contracts/provider-navigation";
 
-import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
 
 /**
@@ -105,7 +103,6 @@ export function PaymentHandoff({
   guidedDemo = false,
 }: PayableInvoice) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [providerUrl, setProviderUrl] = useState("");
@@ -214,11 +211,11 @@ export function PaymentHandoff({
       </div>
       <dl>
         <div>
-          <dt>{localizedcustomerPartnerCopy.commercial.invoiceTruth}</dt>
+          <dt>{t("cp.commercial.invoiceTruth")}</dt>
           <dd>{amountLabel}</dd>
         </div>
         <div>
-          <dt>{localizedcustomerPartnerCopy.commercial.paymentTruth}</dt>
+          <dt>{t("cp.commercial.paymentTruth")}</dt>
           <dd>
             {guidedDemo
               ? demoSession?.status === "paid"
@@ -235,7 +232,7 @@ export function PaymentHandoff({
       <p className={styles.notice}>
         {guidedDemo
           ? "This guided sandbox never contacts Stripe, a bank, or a card network. Completing it changes only resettable demo records; no money moves."
-          : localizedcustomerPartnerCopy.commercial.externalPayment}
+          : t("cp.commercial.externalPayment")}
       </p>
       <label className={styles.check} htmlFor="payment-confirmation">
         <input
@@ -310,7 +307,7 @@ export function PaymentHandoff({
       <p className={styles.muted}>
         {guidedDemo
           ? "Reset demo data to remove the sandbox payment, receipt, and paid invoice state."
-          : `${localizedcustomerPartnerCopy.commercial.paymentWebhook}. Returning from the provider does not mark the invoice paid.`}
+          : `${t("cp.commercial.paymentWebhook")}. Returning from the provider does not mark the invoice paid.`}
       </p>
     </section>
   );

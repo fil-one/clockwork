@@ -1,5 +1,4 @@
 "use client";
-import { localizeCopy } from "@/src/i18n/copy";
 
 import { useTranslations } from "@/src/i18n/client";
 
@@ -13,7 +12,6 @@ import {
 } from "@/src/features/contracts/commerce-client";
 import { sendProjectionAction } from "@/src/features/contracts/experience-client";
 
-import { customerPartnerCopy } from "../copy";
 import { anyEntered } from "../draft-state";
 import {
   LeaveDraftControl,
@@ -53,7 +51,6 @@ export function AgreementAcceptance({
   demoTemplate?: ActiveAgreementTemplate;
 }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const jurisdiction = agreement?.jurisdiction ?? "US";
   const type = agreement?.type ?? "csa";
   const [template, setTemplate] = useState<ActiveAgreementTemplate | undefined>(
@@ -182,7 +179,7 @@ export function AgreementAcceptance({
       <header className={styles.header}>
         <div>
           <p className={styles.eyebrow}>Legal review</p>
-          <h1>{localizedcustomerPartnerCopy.commercial.agreementReview}</h1>
+          <h1>{t("cp.commercial.agreementReview")}</h1>
           <p className={styles.description}>
             {t("agreements.execute.binding", { account: account.name })}
           </p>
@@ -233,9 +230,7 @@ export function AgreementAcceptance({
               <p className={styles.description}>{template.exactText}</p>
             </article>
             <details className={styles.technical}>
-              <summary>
-                {localizedcustomerPartnerCopy.common.technicalDetails}
-              </summary>
+              <summary>{t("common.technicalDetails")}</summary>
               <dl className={styles.definitionGrid}>
                 <div>
                   <dt>Template identifier</dt>
@@ -306,9 +301,7 @@ export function AgreementAcceptance({
                 required
                 type="checkbox"
               />
-              <span>
-                {localizedcustomerPartnerCopy.commercial.agreementAuthority}
-              </span>
+              <span>{t("cp.commercial.agreementAuthority")}</span>
             </label>
             {validationError ? (
               <p

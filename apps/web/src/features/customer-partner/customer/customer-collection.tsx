@@ -1,6 +1,5 @@
 import { getTranslations } from "@/src/i18n/server";
 import { use } from "react";
-import { localizeCopy } from "@/src/i18n/copy";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -12,7 +11,6 @@ import {
   Table,
 } from "@clockwork/ui";
 
-import { customerPartnerCopy } from "../copy";
 import type { SurfaceFormatting } from "../formatting";
 import {
   ProjectionFreshnessNotice,
@@ -41,8 +39,6 @@ import {
 import type { CustomerCollectionConfig } from "./customer-data";
 import styles from "./customer-collection.module.css";
 import { EvidenceUploadControl } from "@/src/features/experience-server/evidence-upload-control";
-
-const common = customerPartnerCopy.common;
 
 function asRoute(path: string): Route {
   return path as Route;
@@ -113,10 +109,9 @@ function CollectionTable({
   state: CollectionUrlState;
 }) {
   const t = use(getTranslations());
-  const localizedcommon = localizeCopy(common, t);
   const headers = [
     config.recordLabel,
-    localizedcommon.status,
+    t("common.status"),
     config.ownerLabel,
     config.valueLabel,
     "Updated",
@@ -133,7 +128,7 @@ function CollectionTable({
           direction: columnSortDirection(column, state.sort),
           control: (
             <Link
-              aria-label={columnSortLabel(column, state.sort, header)}
+              aria-label={columnSortLabel(column, state.sort, header, t)}
               className={styles.sortLink}
               // A new ordering starts at its own first page; keeping the old
               // page number would land the reader in the middle of a list
@@ -188,7 +183,6 @@ function CollectionCards({
   params: URLSearchParams;
 }) {
   const t = use(getTranslations());
-  const localizedcommon = localizeCopy(common, t);
   return (
     <div className={styles.cards} aria-label={`${config.title} compact cards`}>
       {records.map((record) => (
@@ -218,7 +212,7 @@ function CollectionCards({
                 <dd>{record.value}</dd>
               </div>
               <div>
-                <dt>{localizedcommon.risk}</dt>
+                <dt>{t("common.risk")}</dt>
                 <dd>{optionLabel(record.risk)}</dd>
               </div>
               <div>
@@ -243,7 +237,6 @@ function SelectedRecord({
   config: CustomerCollectionConfig;
 }) {
   const t = use(getTranslations());
-  const localizedcommon = localizeCopy(common, t);
   return (
     <section
       className={styles.selectedRecord}
@@ -261,11 +254,11 @@ function SelectedRecord({
       </div>
       <dl className={styles.selectedDetails}>
         <div>
-          <dt>{localizedcommon.status}</dt>
+          <dt>{t("common.status")}</dt>
           <dd>{record.statusLabel}</dd>
         </div>
         <div>
-          <dt>{localizedcommon.owner}</dt>
+          <dt>{t("common.owner")}</dt>
           <dd>{record.owner}</dd>
         </div>
         <div>
@@ -280,7 +273,7 @@ function SelectedRecord({
         ))}
       </dl>
       <details className={styles.technical}>
-        <summary>{localizedcommon.technicalDetails}</summary>
+        <summary>{t("common.technicalDetails")}</summary>
         <p>Record reference: {record.id}</p>
       </details>
       {config.key === "procurement" && record.aggregateId ? (
@@ -325,7 +318,6 @@ export function CustomerCollection({
   actions?: ReactNode;
 }) {
   const t = use(getTranslations());
-  const localizedcommon = localizeCopy(common, t);
   const state = parseCollectionState(searchParams);
   const filtered = filterAndSortRecords(config.records, state);
   const page = paginateRecords(filtered, state);
@@ -373,7 +365,7 @@ export function CustomerCollection({
 
       <form className={styles.filters} action={config.path} method="get">
         <label className={styles.field}>
-          <span>{localizedcommon.search}</span>
+          <span>{t("common.search")}</span>
           <input
             type="search"
             name="q"
@@ -383,7 +375,7 @@ export function CustomerCollection({
           />
         </label>
         <label className={styles.field}>
-          <span>{localizedcommon.status}</span>
+          <span>{t("common.status")}</span>
           <select name="status" defaultValue={state.status}>
             {collectionStatuses.map((status) => (
               <option value={status} key={status}>
@@ -393,7 +385,7 @@ export function CustomerCollection({
           </select>
         </label>
         <label className={styles.field}>
-          <span>{localizedcommon.risk}</span>
+          <span>{t("common.risk")}</span>
           <select name="risk" defaultValue={state.risk}>
             {collectionRisks.map((risk) => (
               <option value={risk} key={risk}>
@@ -403,7 +395,7 @@ export function CustomerCollection({
           </select>
         </label>
         <label className={styles.field}>
-          <span>{localizedcommon.owner}</span>
+          <span>{t("common.owner")}</span>
           <select name="owner" defaultValue={state.owner}>
             <option value="all">All owners</option>
             {owners.map((owner) => (
@@ -414,7 +406,7 @@ export function CustomerCollection({
           </select>
         </label>
         <label className={styles.field}>
-          <span>{localizedcommon.sort}</span>
+          <span>{t("common.sort")}</span>
           <select name="sort" defaultValue={state.sort}>
             {collectionSorts.map((sort) => (
               <option value={sort} key={sort}>
@@ -424,7 +416,7 @@ export function CustomerCollection({
           </select>
         </label>
         <label className={styles.field}>
-          <span>{localizedcommon.pageSize}</span>
+          <span>{t("common.rowsPerPage")}</span>
           <select name="pageSize" defaultValue={state.pageSize}>
             {collectionPageSizes.map((pageSize) => (
               <option value={pageSize} key={pageSize}>
@@ -461,11 +453,8 @@ export function CustomerCollection({
               ? ` · showing ${page.firstResult}–${page.lastResult}`
               : ""}
           </p>
-          <div
-            className={styles.viewControls}
-            aria-label={localizedcommon.view}
-          >
-            <span className={styles.viewLabel}>{localizedcommon.view}</span>
+          <div className={styles.viewControls} aria-label={t("common.view")}>
+            <span className={styles.viewLabel}>{t("common.view")}</span>
             <Link
               className={styles.viewLink}
               href={tableHref}
@@ -489,13 +478,13 @@ export function CustomerCollection({
             state="empty"
             title={
               config.records.length === 0
-                ? localizedcommon.emptyTitle
-                : localizedcommon.noMatchTitle
+                ? t("cp.common.emptyTitle")
+                : t("cp.common.noMatchTitle")
             }
             description={
               config.records.length === 0
-                ? localizedcommon.emptyBody
-                : localizedcommon.noMatchBody
+                ? t("cp.common.emptyBody")
+                : t("cp.common.noMatchBody")
             }
             {...(config.records.length > 0
               ? {
@@ -551,11 +540,11 @@ export function CustomerCollection({
               )}
               rel="prev"
             >
-              {localizedcommon.previous}
+              {t("common.pagination.previous")}
             </Link>
           ) : (
             <span className={styles.pageDisabled} aria-disabled="true">
-              {localizedcommon.previous}
+              {t("common.pagination.previous")}
             </span>
           )}
           {page.page < page.pageCount ? (
@@ -567,11 +556,11 @@ export function CustomerCollection({
               )}
               rel="next"
             >
-              {localizedcommon.next}
+              {t("common.pagination.next")}
             </Link>
           ) : (
             <span className={styles.pageDisabled} aria-disabled="true">
-              {localizedcommon.next}
+              {t("common.pagination.next")}
             </span>
           )}
         </div>

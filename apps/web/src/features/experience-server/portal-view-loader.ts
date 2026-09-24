@@ -1,6 +1,9 @@
 import { formatMoney } from "@/src/features/shared/format";
 import "server-only";
 
+import { formattingLocales, type Translator } from "@/src/i18n";
+import { getLocale, getTranslations } from "@/src/i18n/server";
+
 import type { Route } from "next";
 
 import { hasPermission, uuidV7 } from "@clockwork/contracts";
@@ -29,6 +32,12 @@ import {
   type OrderLifecycleStatus,
 } from "@/src/features/customer-partner/commercial/model";
 import type { PreparedOrderFormLookup } from "@/src/features/customer-partner/commercial/prepared-order-form";
+import {
+  partnerMilestoneText,
+  partnerPositionText,
+  readPartnerMilestone,
+  readPartnerPosition,
+} from "@/src/features/customer-partner/partner/partner-presentation";
 import type {
   BuyQuoteProjectionLookup,
   PreparedQuoteArtifactLookup,
@@ -333,6 +342,7 @@ export async function loadPortalRecords(
   presetSession?: Awaited<ReturnType<typeof getCommerceSession>>,
 ): Promise<PortalRecords<ProjectionRecord>> {
   const session = presetSession ?? (await getCommerceSession());
+  const locale = await getLocale();
   const source = configuredProjectionSource();
   const records: ProjectionRecord[] = [];
   let cursor: string | undefined;
@@ -348,6 +358,7 @@ export async function loadPortalRecords(
         requestedAccountId: portalAccountId(audience, session),
         ...(cursor ? { cursor } : {}),
         limit: PROJECTION_PAGE_SIZE,
+        locale,
       }),
     );
     records.push(...page.items);
@@ -399,6 +410,7 @@ export async function loadTopPortalRecords(
       requestedAccountId: portalAccountId(audience, session),
       limit: Math.min(options.limit, PROJECTION_PAGE_SIZE),
       orderBy: options.orderBy,
+      locale: await getLocale(),
     }),
   );
   const truncated = page.nextCursor !== null;
@@ -530,6 +542,7 @@ export async function loadBuyQuoteProjection(
       accountId: portalAccountId("customer", session),
       recordKey: `quote-${quoteId}`,
       now: new Date(),
+      locale: await getLocale(),
     });
   } catch (error) {
     if (isProjectionAbsent(error)) return { status: "pending" };
@@ -695,6 +708,7 @@ export async function loadCommercialRecord(
       accountId: portalAccountId("customer", session),
       recordKey,
       now: new Date(),
+      locale: await getLocale(),
     });
   } catch (error) {
     if (isProjectionAbsent(error)) return null;
@@ -744,6 +758,7 @@ function partnerDetailRoute(
 
 function partnerQuotePricing(
   data: Readonly<Record<string, unknown>>,
+  formatting: string,
 ): PartnerRecord["quotePricing"] {
   const value = data.authoritative;
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -760,17 +775,28 @@ function partnerQuotePricing(
   )
     return undefined;
   return {
-    transferPrice: formatMoney(facts.totalMinor, currency),
-    resalePrice: formatMoney(facts.partnerResaleTotalMinor, currency),
+    transferPrice: formatMoney(facts.totalMinor, currency, formatting),
+    resalePrice: formatMoney(
+      facts.partnerResaleTotalMinor,
+      currency,
+      formatting,
+    ),
   };
 }
 
 function partnerRecord(
   record: ProjectionRecord,
   surface: PartnerSurfaceKey,
+  t: Translator,
+  formatting: string,
 ): PartnerRecord {
   const data = record.data;
-  const pricing = surface === "quotes" ? partnerQuotePricing(data) : undefined;
+  const pricing =
+    surface === "quotes" ? partnerQuotePricing(data, formatting) : undefined;
+  // Facts, where the record carries them, are rendered for this reader. A
+  // record that still carries pre-rendered strings shows them as written.
+  const position = readPartnerPosition(data.position);
+  const milestone = readPartnerMilestone(data.milestone);
   return {
     ...(pricing ? { quotePricing: pricing } : {}),
     id: text(data, "id"),
@@ -794,8 +820,12 @@ function partnerRecord(
     ),
     risk: oneOf(text(data, "risk"), ["low", "medium", "high"], "risk"),
     owner: text(data, "owner"),
-    value: text(data, "value"),
-    secondary: text(data, "secondary"),
+    value: position
+      ? partnerPositionText(position, t, formatting)
+      : text(data, "value"),
+    secondary: milestone
+      ? partnerMilestoneText(milestone, t, formatting)
+      : text(data, "secondary"),
     ...(mountsPartnerDetail(surface)
       ? { href: partnerDetailRoute(surface, record.recordKey) }
       : {}),
@@ -812,9 +842,13 @@ function partnerRecord(
 
 export async function loadPartnerRecords(surface: PartnerSurfaceKey) {
   const page = await loadPortalRecords("partner", surface);
+  const t = await getTranslations();
+  const formatting = formattingLocales[await getLocale()];
   return {
     ...page,
-    records: page.records.map((record) => partnerRecord(record, surface)),
+    records: page.records.map((record) =>
+      partnerRecord(record, surface, t, formatting),
+    ),
   };
 }
 

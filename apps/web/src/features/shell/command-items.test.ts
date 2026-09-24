@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import { getCommandItems } from "./command-items";
 import { isNavigationItemActive, navigation } from "./navigation";
 
 describe("audience-aware shell commands", () => {
+  const t = translatorFor("en");
   const providerContext = { providerBacked: true } as const;
   const audienceRoles = {
     customer: ["owner"],
@@ -23,6 +26,7 @@ describe("audience-aware shell commands", () => {
         audience,
         audienceRoles[audience],
         providerContext,
+        t,
       );
 
       expect(new Set(items.map((item) => item.category))).toEqual(
@@ -39,11 +43,13 @@ describe("audience-aware shell commands", () => {
       "customer",
       ["owner"],
       providerContext,
+      t,
     ).flatMap((item) => (item.href ? [item.href] : []));
     const partnerHrefs = getCommandItems(
       "partner",
       ["partner_admin"],
       providerContext,
+      t,
     ).flatMap((item) => (item.href ? [item.href] : []));
 
     expect(customerHrefs.some((href) => href.startsWith("/partner"))).toBe(
@@ -55,7 +61,7 @@ describe("audience-aware shell commands", () => {
   });
 
   it("does not expose fixture records in a provider-backed shell", () => {
-    const items = getCommandItems("customer", ["owner"], providerContext);
+    const items = getCommandItems("customer", ["owner"], providerContext, t);
 
     expect(items.some((item) => item.category === "records")).toBe(false);
     expect(items.map((item) => item.label).join(" ")).not.toMatch(
@@ -68,6 +74,7 @@ describe("audience-aware shell commands", () => {
       "customer",
       ["billing"],
       providerContext,
+      t,
     ).flatMap((item) => (item.href ? [item.href] : []));
 
     expect(hrefs).not.toContain("/quotes/new");
@@ -81,6 +88,7 @@ describe("audience-aware shell commands", () => {
       "partner",
       ["partner_seller"],
       providerContext,
+      t,
     ).flatMap((item) => (item.href ? [item.href] : []));
 
     expect(hrefs).not.toContain("/partner/billing");
@@ -98,6 +106,7 @@ describe("audience-aware shell commands", () => {
       "internal",
       ["internal_operator"],
       providerContext,
+      t,
     ).flatMap((item) => (item.href ? [item.href] : []));
 
     expect(hrefs).not.toContain("/internal/approvals");
@@ -117,6 +126,7 @@ describe("audience-aware shell commands", () => {
       "internal",
       ["finance_approver"],
       providerContext,
+      t,
     ).flatMap((item) => (item.href ? [item.href] : []));
     expect(financeHrefs).toContain("/internal/billing-reconciliation");
     expect(financeHrefs).toContain("/internal/revenue");

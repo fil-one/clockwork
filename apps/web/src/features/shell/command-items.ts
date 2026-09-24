@@ -8,7 +8,7 @@ import {
 } from "@clockwork/contracts";
 import type { CommandPaletteItem } from "@clockwork/ui";
 
-import { t as englishTranslator } from "@/src/i18n/en";
+import type { Translator } from "@/src/i18n";
 
 import {
   canAccessNavigationItem,
@@ -31,7 +31,7 @@ export interface CommandItemContext {
 }
 
 const actionsFor = (
-  t = englishTranslator,
+  t: Translator,
 ): Readonly<Record<ExperienceAudience, readonly CommandAction[]>> => ({
   customer: [
     {
@@ -119,7 +119,7 @@ export function getCommandItems(
   audience: ExperienceAudience,
   roles: readonly string[],
   context: CommandItemContext,
-  t = englishTranslator,
+  t: Translator,
 ): CommandPaletteItem[] {
   const navigationItems: CommandPaletteItem[] = navigation[audience]
     .filter((item) => canAccessNavigationItem(item, roles))

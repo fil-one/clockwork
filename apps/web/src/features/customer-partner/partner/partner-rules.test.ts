@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import { merchantOfRecord } from "@clockwork/domain/core";
 
 import {
@@ -43,8 +45,9 @@ describe("structural partner attribution", () => {
   );
 
   it("claims sourced credit only for the accepted projection of an approved registration", () => {
-    expect(registrationCreditLabel("accepted")).toBe("Attribution: sourced");
-    expect(registrationCreditLabel("pending")).toBe(
+    const t = translatorFor("en");
+    expect(t(registrationCreditLabel("accepted"))).toBe("Attribution: sourced");
+    expect(t(registrationCreditLabel("pending"))).toBe(
       "Attribution: decision pending",
     );
     for (const status of [
@@ -57,7 +60,7 @@ describe("structural partner attribution", () => {
       "blocked",
       "complete",
     ] as const) {
-      expect(registrationCreditLabel(status)).toBe(
+      expect(t(registrationCreditLabel(status))).toBe(
         "Attribution: no sourced credit recorded",
       );
     }

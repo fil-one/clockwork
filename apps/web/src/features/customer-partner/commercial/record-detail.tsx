@@ -1,4 +1,3 @@
-import { localizeCopy } from "@/src/i18n/copy";
 import { getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import type { Route } from "next";
@@ -12,7 +11,6 @@ import {
   buttonClassName,
 } from "@clockwork/ui";
 
-import { customerPartnerCopy } from "../copy";
 import styles from "./commercial.module.css";
 import type { CommercialRecord } from "./model";
 import { orderTimeline } from "./order-timeline";
@@ -322,7 +320,6 @@ export async function CommercialRecordDetail({
   actions?: ReactNode;
 }) {
   const t = await getTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   if (!record) return <UnreadableRecord />;
   // Every `CollectionKind` is also the collection's own path segment, so this
   // is checked rather than asserted. The `services` special case this replaces
@@ -379,9 +376,7 @@ export async function CommercialRecordDetail({
         className={styles.nextAction}
         aria-labelledby="next-action-title"
       >
-        <p id="next-action-title">
-          {localizedcustomerPartnerCopy.common.nextAction}
-        </p>
+        <p id="next-action-title">{t("common.nextAction")}</p>
         {record.nextActionHref ? (
           <Link href={record.nextActionHref as Route}>{record.nextAction}</Link>
         ) : (
@@ -396,7 +391,7 @@ export async function CommercialRecordDetail({
             aria-labelledby="commercial-summary-title"
           >
             <h2 id="commercial-summary-title">
-              {localizedcustomerPartnerCopy.common.commercialSummary}
+              {t("common.commercialSummary")}
             </h2>
             <dl className={styles.definitionGrid}>
               {summary.map((item) => (
@@ -411,9 +406,7 @@ export async function CommercialRecordDetail({
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="term-title"
           >
-            <h2 id="term-title">
-              {localizedcustomerPartnerCopy.common.termState}
-            </h2>
+            <h2 id="term-title">{t("common.termState")}</h2>
             <p className={styles.description}>{record.term}</p>
           </section>
           {record.kind === "orders" ? (
@@ -433,9 +426,7 @@ export async function CommercialRecordDetail({
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="artifact-title"
           >
-            <h2 id="artifact-title">
-              {localizedcustomerPartnerCopy.common.artifactChain}
-            </h2>
+            <h2 id="artifact-title">{t("common.artifactChain")}</h2>
             <ol className={styles.chain}>
               {chain.map(([label, value]) => (
                 <li key={label}>
@@ -449,9 +440,7 @@ export async function CommercialRecordDetail({
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="documents-title"
           >
-            <h2 id="documents-title">
-              {localizedcustomerPartnerCopy.common.documents}
-            </h2>
+            <h2 id="documents-title">{t("common.documents")}</h2>
             {/*
              * The list is the whole statement, and it is the same list every
              * other surface that shows generated paper renders. When documents
@@ -479,9 +468,7 @@ export async function CommercialRecordDetail({
             className={`${styles.panel} ${styles.section}`}
             aria-labelledby="audit-title"
           >
-            <h2 id="audit-title">
-              {localizedcustomerPartnerCopy.common.auditEvidence}
-            </h2>
+            <h2 id="audit-title">{t("common.auditEvidence")}</h2>
             <ol className={styles.audit}>
               <li>
                 <span>{record.dateLabel}</span>
@@ -493,9 +480,7 @@ export async function CommercialRecordDetail({
               </li>
             </ol>
             <details className={styles.technical}>
-              <summary>
-                {localizedcustomerPartnerCopy.common.technicalDetails}
-              </summary>
+              <summary>{t("common.technicalDetails")}</summary>
               <dl className={styles.definitionGrid}>
                 <div>
                   <dt>Record identifier</dt>

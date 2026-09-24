@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { partnerSurfaces } from "./partner-data";
+import { translatorFor } from "@/src/i18n/catalogs";
+
+import { presentedPartnerSurface } from "./partner-surface.test-fixture";
 import {
   filterPartnerRecords,
   paginatePartnerRecords,
@@ -59,7 +61,11 @@ describe("partner collection URL state", () => {
 });
 
 describe("partner collection sorting and paging", () => {
-  const records = partnerSurfaces.portfolio.records;
+  const records = presentedPartnerSurface(
+    "portfolio",
+    translatorFor("en"),
+    "en",
+  ).records;
 
   it("sorts highest risk first without mutating source data", () => {
     const original = records.map((record) => record.name);

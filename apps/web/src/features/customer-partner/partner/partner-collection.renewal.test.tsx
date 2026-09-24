@@ -35,7 +35,11 @@ vi.mock("@/src/features/contracts/experience-client", () => ({
 }));
 
 import { PartnerCollection } from "./partner-collection";
-import { partnerSurfaces } from "./partner-data";
+import { translatorFor } from "@/src/i18n/catalogs";
+
+import { presentedPartnerSurface } from "./partner-surface.test-fixture";
+
+const renewals = presentedPartnerSurface("renewals", translatorFor("en"), "en");
 
 const formatting = { locale: "en-US", timeZone: "America/New_York" };
 const freshness = {
@@ -54,7 +58,7 @@ describe("partner renewal collection action", () => {
     const user = userEvent.setup();
     render(
       <PartnerCollection
-        config={partnerSurfaces.renewals}
+        config={renewals}
         formatting={formatting}
         freshness={freshness}
         partnerName="Aurora Systems"
@@ -95,12 +99,12 @@ describe("partner renewal collection action", () => {
 
   it("keeps an already-requested renewal non-actionable", async () => {
     const user = userEvent.setup();
-    const renewal = partnerSurfaces.renewals.records[0];
+    const renewal = renewals.records[0];
     if (!renewal) throw new Error("The renewal fixture is unavailable");
     render(
       <PartnerCollection
         config={{
-          ...partnerSurfaces.renewals,
+          ...renewals,
           records: [
             {
               ...renewal,

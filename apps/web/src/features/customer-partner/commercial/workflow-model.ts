@@ -1,8 +1,13 @@
 import { uuidV7 } from "@clockwork/contracts";
 
-import { customerPartnerCopy } from "../copy";
+import type { MessageId } from "@/src/i18n";
 
-export const quoteStageLabels = customerPartnerCopy.commercial.quoteStages;
+/** The three quote-creation stages, in order, as message IDs. */
+export const quoteStageLabels = [
+  "cp.commercial.quoteStages.0",
+  "cp.commercial.quoteStages.1",
+  "cp.commercial.reviewIssue",
+] as const satisfies readonly MessageId[];
 
 export type QuoteStage = 1 | 2 | 3;
 export type QuoteStatus = "draft" | "open" | "accepted" | "canceled";

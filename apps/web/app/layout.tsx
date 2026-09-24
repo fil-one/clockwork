@@ -1,4 +1,4 @@
-import { catalogs } from "@/src/i18n";
+import { catalogs } from "@/src/i18n/catalogs";
 import { LanguageProvider } from "@/src/i18n/client";
 import { getLocale } from "@/src/i18n/server";
 import type { Metadata, Viewport } from "next";

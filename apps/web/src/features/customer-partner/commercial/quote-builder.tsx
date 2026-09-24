@@ -1,5 +1,4 @@
 "use client";
-import { localizeCopy } from "@/src/i18n/copy";
 
 import { useTranslations } from "@/src/i18n/client";
 
@@ -10,9 +9,8 @@ import { uuidV7 } from "@clockwork/contracts";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 
-import { t as englishTranslator } from "@/src/i18n/en";
+import type { Translator } from "@/src/i18n";
 
-import { customerPartnerCopy } from "../copy";
 import { draftIsDirty } from "../draft-state";
 import {
   LeaveDraftControl,
@@ -58,7 +56,7 @@ export interface QuoteOrigin {
   };
 }
 
-function originLabel(origin: QuoteOrigin, t = englishTranslator): string {
+function originLabel(origin: QuoteOrigin, t: Translator): string {
   if (!origin.resolved) return t("quotes.builder.origin.unavailable");
   return origin.kind === "revision"
     ? t("quotes.builder.origin.revision", { reference: origin.reference })
@@ -100,7 +98,6 @@ function Summary({
   offers: readonly QuoteOfferOption[];
 }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   return (
     <aside
       className={`${styles.summary} ${styles.commitmentSummary}`}
@@ -108,9 +105,7 @@ function Summary({
     >
       <div>
         <p className={styles.taskContext}>Draft facts</p>
-        <h2 id="quote-summary-title">
-          {localizedcustomerPartnerCopy.commercial.quoteSummary}
-        </h2>
+        <h2 id="quote-summary-title">{t("cp.commercial.quoteSummary")}</h2>
       </div>
       <dl>
         <div>

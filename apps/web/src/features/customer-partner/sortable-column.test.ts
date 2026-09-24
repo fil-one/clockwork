@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   columnSortDirection,
   columnSortLabel,
@@ -45,17 +47,24 @@ describe("sortable column state", () => {
   it("names the column and what activating it will do", () => {
     // The control replaces the header label, so this string is the only thing
     // naming the column to anyone tabbing through the header row.
-    expect(columnSortLabel(title, "value-desc", "Record")).toBe(
+    const t = translatorFor("en");
+    expect(columnSortLabel(title, "value-desc", "Record", t)).toBe(
       "Record. Sort ascending",
     );
-    expect(columnSortLabel(title, "title-asc", "Record")).toBe(
+    expect(columnSortLabel(title, "title-asc", "Record", t)).toBe(
       "Record, sorted ascending. Sort descending",
     );
-    expect(columnSortLabel(title, "title-desc", "Record")).toBe(
+    expect(columnSortLabel(title, "title-desc", "Record", t)).toBe(
       "Record, sorted descending. Sort ascending",
     );
-    expect(columnSortLabel(value, "title-asc", "Value")).toBe(
+    expect(columnSortLabel(value, "title-asc", "Value", t)).toBe(
       "Value. Sort descending",
     );
+  });
+
+  it("says it in the reader's language, with the column name kept whole", () => {
+    expect(
+      columnSortLabel(title, "title-asc", "Cliente final", translatorFor("pt")),
+    ).toBe("Cliente final, em ordem crescente. Ordenar em ordem decrescente");
   });
 });

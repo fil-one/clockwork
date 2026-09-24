@@ -1,5 +1,4 @@
 "use client";
-import { localizeCopy } from "@/src/i18n/copy";
 
 import { useTranslations } from "@/src/i18n/client";
 
@@ -9,7 +8,6 @@ import { useRef, useState } from "react";
 import { requestOffboarding } from "@/src/features/contracts/commerce-client";
 import { sendProjectionAction } from "@/src/features/contracts/experience-client";
 
-import { customerPartnerCopy } from "../copy";
 import { draftIsDirty } from "../draft-state";
 import {
   LeaveDraftControl,
@@ -40,7 +38,6 @@ export function OffboardingWorkflow({
   };
 }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const [reviewing, setReviewing] = useState(false);
   const [orderId, setOrderId] = useState(
     selectedServiceId ?? services[0]?.id ?? "",
@@ -254,7 +251,7 @@ export function OffboardingWorkflow({
               onClick={() => setReviewing(true)}
               type="button"
             >
-              {localizedcustomerPartnerCopy.commercial.confirmMutation}
+              {t("cp.commercial.confirmMutation")}
             </button>
           </section>
 

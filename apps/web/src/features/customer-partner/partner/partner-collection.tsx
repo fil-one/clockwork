@@ -1,7 +1,4 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
-
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -9,26 +6,32 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ApplicationStatePanel, Button, Table } from "@clockwork/ui";
 
-import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
+import { requestRenewal } from "@/src/features/contracts/commerce-client";
+import { sendProjectionAction } from "@/src/features/contracts/experience-client";
 import type { SurfaceFormatting } from "@/src/features/customer-partner/formatting";
 import {
   ProjectionFreshnessNotice,
   type ProjectionFreshness,
 } from "@/src/features/customer-partner/projection-freshness";
-import { requestRenewal } from "@/src/features/contracts/commerce-client";
 import {
   columnSortDirection,
   columnSortLabel,
   nextColumnSort,
   type SortableColumn,
 } from "@/src/features/customer-partner/sortable-column";
-import { sendProjectionAction } from "@/src/features/contracts/experience-client";
+import type { MessageId } from "@/src/i18n";
+import { useTranslations } from "@/src/i18n/client";
 
 import type {
   PartnerRecord,
   PartnerSurfaceConfig,
   PartnerSurfaceKey,
 } from "./partner-data";
+import {
+  partnerRiskChips,
+  partnerRiskLevels,
+  partnerStatusLabels,
+} from "./partner-presentation";
 import {
   filterPartnerRecords,
   paginatePartnerRecords,
@@ -40,18 +43,21 @@ import {
 import { registrationCreditLabel, roleCanUseSurface } from "./partner-rules";
 import styles from "./partner.module.css";
 
-const copy = customerPartnerCopy.common;
-const partnerCopy = customerPartnerCopy.partner;
+/*
+ * Every word on this page is a message ID rendered with `t`. Record facts
+ * (names, references, owners, amounts) arrive already formatted for the reader
+ * from the read boundary and are placed into messages as values; nothing here
+ * joins translated fragments into a sentence.
+ */
 
 export function PartnerSurfacePermission() {
   const t = useTranslations();
-  const localizedcopy = localizeCopy(copy, t);
   return (
     <div className={styles.state}>
       <ApplicationStatePanel
         state="permission"
-        title={localizedcopy.permissionTitle}
-        description={localizedcopy.permissionBody}
+        title={t("cp.common.permissionTitle")}
+        description={t("cp.common.permissionBody")}
       />
     </div>
   );
@@ -70,12 +76,11 @@ function RecordTitle({ record }: { record: PartnerRecord }) {
       )}
       <span className={styles.meta}>{record.context}</span>
       <span className={styles.id}>
-        {t("partner.detail.reference")}
-        {record.id}
+        {t("common.reference", { reference: record.id })}
       </span>
       {!record.href ? (
         <span className={styles.meta}>
-          Summary only · follow the contextual gate on this page
+          {t("partner.collection.summaryOnly")}
         </span>
       ) : null}
     </>
@@ -109,17 +114,16 @@ function RecordsTable({
   onSort: (next: PartnerSort) => void;
 }) {
   const t = useTranslations();
-  const localizedcopy = localizeCopy(copy, t);
   const headers = [
-    config.columns[0],
-    localizedcopy.status,
-    "Risk and owner",
-    config.columns[1],
-    config.columns[2],
+    t(config.columns[0]),
+    t("common.status"),
+    t("partner.collection.riskAndOwner"),
+    t(config.columns[1]),
+    t(config.columns[2]),
   ];
   return (
     <Table
-      caption={config.title}
+      caption={t(config.title)}
       captionHidden
       className={styles.tableWrap ?? ""}
       columnSort={headers.map((header, index) => {
@@ -129,7 +133,7 @@ function RecordsTable({
           direction: columnSortDirection(column, sort),
           control: (
             <button
-              aria-label={columnSortLabel(column, sort, String(header))}
+              aria-label={columnSortLabel(column, sort, header, t)}
               className={styles.sortButton}
               onClick={() => onSort(nextColumnSort(column, sort))}
               type="button"
@@ -147,11 +151,11 @@ function RecordsTable({
       rows={records.map((record) => [
         <RecordTitle record={record} />,
         <span className={styles.pill} data-tone={record.status}>
-          {record.status}
+          {t(partnerStatusLabels[record.status])}
         </span>,
         <>
           <span className={styles.pill} data-risk={record.risk}>
-            {record.risk} risk
+            {t(partnerRiskChips[record.risk])}
           </span>
           <span className={styles.meta}>{record.owner}</span>
         </>,
@@ -160,7 +164,7 @@ function RecordsTable({
           {record.secondary}
           {surface === "registrations" ? (
             <span className={styles.meta}>
-              {registrationCreditLabel(record.status)}
+              {t(registrationCreditLabel(record.status))}
             </span>
           ) : null}
         </>,
@@ -186,7 +190,7 @@ function RecordCards({
               <RecordTitle record={record} />
             </div>
             <span className={styles.pill} data-tone={record.status}>
-              {record.status}
+              {t(partnerStatusLabels[record.status])}
             </span>
           </div>
           <div className={styles.cardValues}>
@@ -199,17 +203,17 @@ function RecordCards({
               <strong>{record.secondary}</strong>
               {surface === "registrations" ? (
                 <span className={styles.meta}>
-                  {registrationCreditLabel(record.status)}
+                  {t(registrationCreditLabel(record.status))}
                 </span>
               ) : null}
             </div>
             <div>
-              <span>{t("partner.detail.owner")}</span>
+              <span>{t("common.owner")}</span>
               <strong>{record.owner}</strong>
             </div>
             <div>
-              <span>{t("ui.89")}</span>
-              <strong>{record.risk}</strong>
+              <span>{t("common.risk")}</span>
+              <strong>{t(partnerRiskLevels[record.risk])}</strong>
             </div>
           </div>
         </article>
@@ -217,6 +221,14 @@ function RecordCards({
     </div>
   );
 }
+
+const surfacesWithPriceBoundary: readonly PartnerSurfaceKey[] = [
+  "portfolio",
+  "quotes",
+  "billing",
+  "renewals",
+  "commissions",
+];
 
 function PriceBoundary({
   surface,
@@ -226,34 +238,31 @@ function PriceBoundary({
   partnerName: string;
 }) {
   const t = useTranslations();
-  const localizedpartnerCopy = localizeCopy(partnerCopy, t);
-  if (
-    !["portfolio", "quotes", "billing", "renewals", "commissions"].includes(
-      surface,
-    )
-  )
-    return null;
-  const merchant =
+  if (!surfacesWithPriceBoundary.includes(surface)) return null;
+  // One message per sentence set. The partner's name is a value inside it, so
+  // each language puts it where its grammar needs it.
+  const merchant: MessageId =
     surface === "billing"
-      ? `${partnerName} for end-client resale; Fil One invoices the selected partner account`
-      : `${partnerName} on resale routes`;
+      ? "partner.collection.merchantBilling"
+      : "partner.collection.merchantResale";
   return (
-    <section className={styles.boundary} aria-label="Commercial price boundary">
+    <section
+      className={styles.boundary}
+      aria-label={t("partner.collection.boundaryLabel")}
+    >
       <div>
-        <h2>{localizedpartnerCopy.transferPrice}</h2>
-        <p>Private partner cost from the approved Fil One price book.</p>
+        <h2>{t("cp.partner.transferPrice")}</h2>
+        <p>{t("partner.collection.transferPriceBody")}</p>
       </div>
       <div>
-        <h2>{localizedpartnerCopy.partnerPrice}</h2>
+        <h2>{t("cp.partner.partnerPrice")}</h2>
         <p>
-          Set and controlled by {partnerName}; shown to the named end client.
+          {t("partner.collection.resalePriceBody", { partner: partnerName })}
         </p>
       </div>
       <div>
-        <h2>{localizedpartnerCopy.merchantOfRecord}</h2>
-        <p>
-          {merchant}. {localizedpartnerCopy.boundary}
-        </p>
+        <h2>{t("cp.partner.merchantOfRecord")}</h2>
+        <p>{t(merchant, { partner: partnerName })}</p>
       </div>
     </section>
   );
@@ -272,13 +281,12 @@ function RenewalPanel({
   renewalContext?: RenewalCommandContext;
 }) {
   const t = useTranslations();
-  const localizedpartnerCopy = localizeCopy(partnerCopy, t);
   const router = useRouter();
   const [reviewing, setReviewing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<MessageId | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const canRequest = renewalContext
     ? Boolean(
@@ -296,7 +304,7 @@ function RenewalPanel({
   async function submit() {
     if (!confirmed || !record || !canRequest) return;
     setPending(true);
-    setMessage("");
+    setMessage(null);
     try {
       idempotencyKeyRef.current ??= crypto.randomUUID();
       if (renewalContext)
@@ -309,8 +317,14 @@ function RenewalPanel({
           { idempotencyKey: idempotencyKeyRef.current },
         );
       else {
-        if (!record.projectionId || !record.recordKey || !record.recordVersion)
-          throw new Error("The renewal record is no longer actionable.");
+        if (
+          !record.projectionId ||
+          !record.recordKey ||
+          !record.recordVersion
+        ) {
+          setMessage("partner.renewal.notActionable");
+          return;
+        }
         await sendProjectionAction(
           {
             audience: "partner",
@@ -325,31 +339,26 @@ function RenewalPanel({
         );
       }
       setSucceeded(true);
-      setMessage(
-        "Renewal request submitted. The current term remains authoritative until the server confirms a change.",
-      );
+      setMessage("partner.renewal.submitted");
       router.refresh();
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "The renewal request could not be submitted.",
-      );
+    } catch {
+      // The server's own wording is not shown: it is not in the reader's
+      // language, and the only fact the reader needs is that nothing changed.
+      setMessage("partner.renewal.failed");
     } finally {
       setPending(false);
     }
   }
   return (
     <section className={styles.workflow} aria-labelledby="renewal-review-title">
-      <h2 id="renewal-review-title">{localizedpartnerCopy.renewalReview}</h2>
+      <h2 id="renewal-review-title">{t("cp.partner.renewalReview")}</h2>
       {!reviewing ? (
         <>
-          <p className={styles.muted}>
-            A renewal request affects the next financial commitment and requires
-            an explicit review.
-          </p>
+          <p className={styles.muted}>{t("partner.renewal.explainer")}</p>
           <Button onClick={() => setReviewing(true)}>
-            {record ? `Review ${record.name}` : "No renewal selected"}
+            {record
+              ? t("partner.renewal.reviewRecord", { name: record.name })
+              : t("partner.renewal.noneSelected")}
           </Button>
         </>
       ) : (
@@ -365,10 +374,7 @@ function RenewalPanel({
               checked={confirmed}
               onChange={(event) => setConfirmed(event.target.checked)}
             />
-            <span>
-              I reviewed the end client, term, transfer price, resale price, and
-              merchant-of-record boundary.
-            </span>
+            <span>{t("partner.renewal.confirmation")}</span>
           </label>
           <div className={styles.actions}>
             <Button
@@ -378,7 +384,7 @@ function RenewalPanel({
                 setConfirmed(false);
               }}
             >
-              Back
+              {t("common.back")}
             </Button>
             <Button
               disabled={!confirmed || succeeded || !canRequest}
@@ -387,19 +393,50 @@ function RenewalPanel({
                 void submit();
               }}
             >
-              Confirm renewal request
+              {t("partner.renewal.submit")}
             </Button>
           </div>
         </>
       )}
       {message ? (
         <p className={styles.success} role="status">
-          {message}
+          {t(message)}
         </p>
       ) : null}
     </section>
   );
 }
+
+/** Status filter choices, in the order the select offers them. */
+const statusFilters: readonly {
+  value: string;
+  label: MessageId;
+}[] = [
+  { value: "all", label: "common.allStatuses" },
+  { value: "attention", label: "status.attention" },
+  { value: "draft", label: "status.draft" },
+  { value: "open", label: "status.open" },
+  { value: "active", label: "status.active" },
+  { value: "pending", label: "status.pending" },
+  { value: "accepted", label: "status.accepted" },
+  { value: "paid", label: "status.paid" },
+  { value: "blocked", label: "status.blocked" },
+];
+
+/**
+ * Every sort the URL accepts is offered here. A column header that produced a
+ * token this list did not carry would leave a controlled `<select>` with a
+ * value matching no option, and React would fall back to showing the first
+ * one -- the page telling the reader it is sorted by something it is not.
+ */
+const sortOptions: readonly { value: PartnerSort; label: MessageId }[] = [
+  { value: "name-asc", label: "common.sort.nameAsc" },
+  { value: "name-desc", label: "common.sort.nameDesc" },
+  { value: "risk-desc", label: "common.sort.riskDesc" },
+  { value: "risk-asc", label: "common.sort.riskAsc" },
+  { value: "status-asc", label: "common.sort.statusAsc" },
+  { value: "status-desc", label: "common.sort.statusDesc" },
+];
 
 export function PartnerCollection({
   surface,
@@ -431,7 +468,6 @@ export function PartnerCollection({
   renewalContext?: RenewalCommandContext;
 }) {
   const t = useTranslations();
-  const localizedcopy = localizeCopy(copy, t);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -471,9 +507,9 @@ export function PartnerCollection({
     <main className={styles.main} id="main-content">
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>{config.eyebrow}</p>
-          <h1>{config.title}</h1>
-          <p>{config.description}</p>
+          <p className={styles.eyebrow}>{t(config.eyebrow)}</p>
+          <h1>{t(config.title)}</h1>
+          <p>{t(config.description)}</p>
           <ProjectionFreshnessNotice
             formatting={formatting}
             freshness={freshness}
@@ -481,74 +517,70 @@ export function PartnerCollection({
         </div>
         {config.primaryAction && canCreate ? (
           <Link className={styles.buttonLink} href={config.primaryAction.href}>
-            {config.primaryAction.label}
+            {t(config.primaryAction.label)}
           </Link>
         ) : null}
       </header>
 
       <PriceBoundary partnerName={partnerName} surface={surface} />
-      {config.gate ? <p className={styles.gate}>{config.gate}</p> : null}
+      {config.gate ? <p className={styles.gate}>{t(config.gate)}</p> : null}
 
       {actions}
 
       <form
         className={styles.filters}
-        aria-label={localizedcopy.filters}
+        aria-label={t("common.filters")}
         onSubmit={(event) => {
           event.preventDefault();
           setQuery("q", queryDraft);
         }}
       >
         <label className={styles.field}>
-          {localizedcopy.search}
+          {t("common.search")}
           <span className={styles.searchControl}>
             <input
               type="search"
               value={queryDraft}
-              placeholder={`Search ${config.noun}`}
+              placeholder={t(config.searchPlaceholder)}
               onChange={(event) => setQueryDraft(event.target.value)}
             />
             <Button size="small" type="submit">
-              Apply
+              {t("common.apply")}
             </Button>
           </span>
         </label>
         <label className={styles.field}>
-          {localizedcopy.status}
+          {t("common.status")}
           <select
             value={state.status}
             onChange={(event) => setQuery("status", event.target.value)}
           >
-            <option value="all">All statuses</option>
-            <option value="attention">Needs attention</option>
-            <option value="draft">{t("status.draft")}</option>
-            <option value="open">Open</option>
-            <option value="active">{t("status.active")}</option>
-            <option value="pending">{t("status.pending")}</option>
-            <option value="accepted">Accepted</option>
-            <option value="paid">{t("status.paid")}</option>
-            <option value="blocked">{t("status.blocked")}</option>
+            {statusFilters.map((option) => (
+              <option key={option.value} value={option.value}>
+                {t(option.label)}
+              </option>
+            ))}
           </select>
         </label>
         <label className={styles.field}>
-          {localizedcopy.risk}
+          {t("common.risk")}
           <select
             value={state.risk}
             onChange={(event) => setQuery("risk", event.target.value)}
           >
-            <option value="all">All risk</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
+            <option value="all">{t("common.allRiskLevels")}</option>
+            <option value="high">{t("risk.level.high")}</option>
+            <option value="medium">{t("risk.level.medium")}</option>
+            <option value="low">{t("risk.level.low")}</option>
           </select>
         </label>
         <label className={styles.field}>
-          {localizedcopy.owner}
+          {t("common.owner")}
           <select
             value={state.owner}
             onChange={(event) => setQuery("owner", event.target.value)}
           >
-            <option value="all">All owners</option>
+            <option value="all">{t("common.allOwners")}</option>
             {owners.map((owner) => (
               <option value={owner} key={owner}>
                 {owner}
@@ -557,45 +589,39 @@ export function PartnerCollection({
           </select>
         </label>
         <label className={styles.field}>
-          {localizedcopy.sort}
+          {t("common.sort")}
           <select
             value={state.sort}
             onChange={(event) => setQuery("sort", event.target.value)}
           >
-            {/*
-              Every sort the URL accepts is offered here. A column header that
-              produced a token this list did not carry would leave a
-              controlled `<select>` with a value matching no option, and React
-              would fall back to showing the first one -- the page telling the
-              reader it is sorted by something it is not.
-            */}
-            <option value="name-asc">Name A–Z</option>
-            <option value="name-desc">Name Z–A</option>
-            <option value="risk-desc">Highest risk</option>
-            <option value="risk-asc">Lowest risk</option>
-            <option value="status-asc">Status A–Z</option>
-            <option value="status-desc">Status Z–A</option>
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {t(option.label)}
+              </option>
+            ))}
           </select>
         </label>
         <label className={styles.field}>
-          {localizedcopy.pageSize}
+          {t("common.rowsPerPage")}
           <select
             value={state.pageSize}
             onChange={(event) => setQuery("pageSize", event.target.value)}
           >
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="20">20</option>
+            {[5, 10, 20].map((size) => (
+              <option key={size} value={size}>
+                {new Intl.NumberFormat(formatting.locale).format(size)}
+              </option>
+            ))}
           </select>
         </label>
         <label className={styles.field}>
-          {localizedcopy.view}
+          {t("common.view")}
           <select
             value={state.view}
             onChange={(event) => setQuery("view", event.target.value)}
           >
-            <option value="table">Table</option>
-            <option value="cards">Cards</option>
+            <option value="table">{t("common.view.table")}</option>
+            <option value="cards">{t("common.view.cards")}</option>
           </select>
         </label>
       </form>
@@ -606,11 +632,11 @@ export function PartnerCollection({
       >
         <div className={styles.sectionHeader}>
           <div>
-            <p className={styles.eyebrow}>Results</p>
-            <h2 id="partner-results-title">{config.title}</h2>
+            <p className={styles.eyebrow}>{t("common.resultsHeading")}</p>
+            <h2 id="partner-results-title">{t(config.title)}</h2>
           </div>
           <p className={styles.count} aria-live="polite">
-            {filtered.length} {config.noun}
+            {t(config.count, { count: filtered.length })}
           </p>
         </div>
         {!canUse ? (
@@ -619,14 +645,14 @@ export function PartnerCollection({
           <div className={styles.state}>
             <ApplicationStatePanel
               state="empty"
-              title={localizedcopy.noMatchTitle}
-              description={localizedcopy.noMatchBody}
+              title={t("cp.common.noMatchTitle")}
+              description={t("cp.common.noMatchBody")}
               action={
                 <Button
                   variant="secondary"
                   onClick={() => router.replace(pathname as Route)}
                 >
-                  Clear filters
+                  {t("common.clearFilters")}
                 </Button>
               }
             />
@@ -644,9 +670,15 @@ export function PartnerCollection({
           </>
         )}
         {canUse && !noMatch ? (
-          <nav className={styles.pagination} aria-label="Results pages">
+          <nav
+            className={styles.pagination}
+            aria-label={t("common.pagination")}
+          >
             <p>
-              Page {page.page} of {page.pageCount}
+              {t("common.pagination.pageOf", {
+                page: page.page,
+                pages: page.pageCount,
+              })}
             </p>
             <div className={styles.actions}>
               <Button
@@ -655,7 +687,7 @@ export function PartnerCollection({
                 disabled={page.page <= 1}
                 onClick={() => setQuery("page", page.page - 1)}
               >
-                {localizedcopy.previous}
+                {t("common.pagination.previous")}
               </Button>
               <Button
                 size="small"
@@ -663,13 +695,13 @@ export function PartnerCollection({
                 disabled={page.page >= page.pageCount}
                 onClick={() => setQuery("page", page.page + 1)}
               >
-                {localizedcopy.next}
+                {t("common.pagination.next")}
               </Button>
             </div>
           </nav>
         ) : null}
       </section>
-      <p className={styles.ruleFooter}>{config.rule}</p>
+      <p className={styles.ruleFooter}>{t(config.rule)}</p>
       {surface === "renewals" && canUse ? (
         <RenewalPanel
           record={config.records[0]}

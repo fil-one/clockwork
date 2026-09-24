@@ -102,7 +102,10 @@ function recordData(value: unknown): Readonly<Record<string, unknown>> | null {
     : null;
 }
 
-export function serverPrice(value: unknown): ServerPrice | null {
+export function serverPrice(
+  value: unknown,
+  locale: string,
+): ServerPrice | null {
   const data = recordData(value);
   const totalMinor = data?.totalMinor;
   const currency = data?.currency;
@@ -115,7 +118,7 @@ export function serverPrice(value: unknown): ServerPrice | null {
   return {
     totalMinor,
     currency,
-    display: `${formatMoney(totalMinor, currency)} total / ${SELF_SERVE_TERM_MONTHS} months`,
+    display: `${formatMoney(totalMinor, currency, locale)} total / ${SELF_SERVE_TERM_MONTHS} months`,
   };
 }
 

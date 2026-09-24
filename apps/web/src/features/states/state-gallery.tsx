@@ -9,7 +9,7 @@ import {
   type ApplicationState,
 } from "@clockwork/ui";
 
-import { t as englishTranslator, type MessageId } from "@/src/i18n/en";
+import type { MessageId, Translator } from "@/src/i18n";
 
 export const stateGalleryStateKeys = [
   "loading",
@@ -87,7 +87,7 @@ const designedStates = [
   description: MessageId;
 }[];
 
-function stateAction(state: ApplicationState, t = englishTranslator) {
+function stateAction(state: ApplicationState, t: Translator) {
   if (
     state === "loading" ||
     state === "offline" ||

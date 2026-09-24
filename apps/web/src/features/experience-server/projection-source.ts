@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
 import { uuidV7 } from "@clockwork/contracts";
+import { resolveDemoText } from "@clockwork/testing/demo-localized-text";
 import {
   FileDemoAdapterStateStore,
   findDemoProductionMarker,
@@ -15,6 +16,7 @@ import { commercialRecords } from "@/src/features/customer-partner/commercial/mo
 import { customerCollections } from "@/src/features/customer-partner/customer/customer-data";
 import { partnerSurfaces } from "@/src/features/customer-partner/partner/partner-data";
 import { formatMoney } from "@/src/features/shared/format";
+import { formattingLocales, type Locale } from "@/src/i18n";
 
 import { resolveScopedAccount } from "./authorization";
 import {
@@ -347,13 +349,16 @@ const demoRecords = [
  * the ledger behind that link would not hold the order -- which is the same
  * dead end this whole change exists to close, moved one step later.
  */
-function createdOrderRecords(state: DemoAdapterState): DemoRecord[] {
+function createdOrderRecords(
+  state: DemoAdapterState,
+  formatting: string,
+): DemoRecord[] {
   const created = (
     state as { createdOrders?: Record<string, DemoCreatedOrder> }
   ).createdOrders;
   if (!created) return [];
   return Object.values(created).map((order) => {
-    const record = demoCreatedOrderRecord(order);
+    const record = demoCreatedOrderRecord(order, formatting);
     return {
       id: demoUuid(`projection:order:${order.id}`),
       key: record.key,
@@ -371,7 +376,10 @@ function createdOrderRecords(state: DemoAdapterState): DemoRecord[] {
 }
 
 /** Quotes created by the direct-buy command, projected into the customer ledger. */
-function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
+function createdQuoteRecords(
+  state: DemoAdapterState,
+  formatting: string,
+): DemoRecord[] {
   const created = (
     state as { createdQuotes?: Readonly<Record<string, DemoCreatedQuote>> }
   ).createdQuotes;
@@ -439,7 +447,11 @@ function createdQuoteRecords(state: DemoAdapterState): DemoRecord[] {
             ? "high"
             : "low",
         owner: "Buyer workspace",
-        value: formatMoney(snapshot.total.minor, snapshot.total.currency),
+        value: formatMoney(
+          snapshot.total.minor,
+          snapshot.total.currency,
+          formatting,
+        ),
         valueLabel: "Quoted total",
         dateLabel: `Expires ${snapshot.expiresAt.slice(0, 10)}`,
         term: `Net ${quote.paymentTermsDays} · agreement version ${quote.agreementVersion}`,
@@ -563,7 +575,10 @@ function accountControlRecords(state: DemoAdapterState): DemoRecord[] {
   });
 }
 
-function demoRecordsForState(state: DemoAdapterState): DemoRecord[] {
+function demoRecordsForState(
+  state: DemoAdapterState,
+  formatting: string,
+): DemoRecord[] {
   const controls = accountControlRecords(state);
   const replaced = new Set(
     controls.map(
@@ -579,8 +594,8 @@ function demoRecordsForState(state: DemoAdapterState): DemoRecord[] {
         ),
     ),
     ...controls,
-    ...createdOrderRecords(state),
-    ...createdQuoteRecords(state),
+    ...createdOrderRecords(state, formatting),
+    ...createdQuoteRecords(state, formatting),
   ];
 }
 
@@ -723,11 +738,12 @@ function withinAccount(record: DemoRecord, accountId: string | null): boolean {
  */
 async function taxedBillingData(
   record: DemoRecord,
+  formatting: string,
 ): Promise<Readonly<Record<string, unknown>>> {
   const figures = await demoInvoiceFigures();
-  const gross = formatMoney(figures.grossMinor, figures.currency);
-  const tax = formatMoney(figures.taxMinor, figures.currency);
-  const net = formatMoney(figures.netMinor, figures.currency);
+  const gross = formatMoney(figures.grossMinor, figures.currency, formatting);
+  const tax = formatMoney(figures.taxMinor, figures.currency, formatting);
+  const net = formatMoney(figures.netMinor, figures.currency, formatting);
   const existingAuthoritative =
     record.data.authoritative &&
     typeof record.data.authoritative === "object" &&
@@ -751,11 +767,12 @@ async function taxedBillingData(
 
 async function projectionData(
   record: DemoRecord,
+  formatting: string,
 ): Promise<Readonly<Record<string, unknown>>> {
   const data = demoTaxedBillingRecords.includes(
     `${record.audience}:${record.channel}:${record.key}`,
   )
-    ? await taxedBillingData(record)
+    ? await taxedBillingData(record, formatting)
     : record.data;
   const artifacts = demoRecordArtifacts(
     record.audience,
@@ -906,7 +923,6 @@ function appliedActionData(
     nextAction: "No further action is due",
   };
   return {
-    ...current,
     status: selected.status,
     statusLabel: selected.statusLabel,
     nextAction: selected.nextAction,
@@ -922,11 +938,23 @@ function appliedActionData(
   };
 }
 
+/**
+ * The demo read boundary: where a fixture becomes what one reader sees.
+ *
+ * Demo-authored text (`demoText`) resolves to the reader's language and the
+ * amounts the demo derives are formatted for them, here and nowhere earlier.
+ * Anything written back to the demo state store is taken from the record
+ * before this step (see `action`), so a stored override keeps facts and every
+ * language rather than one reader's rendering. `DatabaseProjectionSource`
+ * never reaches this function.
+ */
 async function projectRecord(
   record: DemoRecord,
   now: Date,
+  locale: Locale,
 ): Promise<ProjectionRecord> {
-  return asProjection(record, await projectionData(record), now);
+  const data = await projectionData(record, formattingLocales[locale]);
+  return asProjection(record, resolveDemoText(data, locale), now);
 }
 
 /** Deterministic fixtures selected only through CLOCKWORK_EXPERIENCE_ADAPTER=demo. */
@@ -944,7 +972,8 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         "Projection cursor is invalid",
       );
     const state = await this.stateStore.read();
-    const selected = demoRecordsForState(state)
+    const locale = input.locale ?? "en";
+    const selected = demoRecordsForState(state, formattingLocales[locale])
       .filter(
         (record) =>
           record.audience === input.audience &&
@@ -969,7 +998,7 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
     const page = matching.slice(offset, offset + input.limit);
     return {
       items: await Promise.all(
-        page.map((record) => projectRecord(record, input.now)),
+        page.map((record) => projectRecord(record, input.now, locale)),
       ),
       nextCursor:
         offset + page.length < matching.length
@@ -999,7 +1028,8 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
     // telling them apart would be an enumeration oracle for another tenant's
     // references.
     const state = await this.stateStore.read();
-    const record = demoRecordsForState(state).find(
+    const locale = input.locale ?? "en";
+    const record = demoRecordsForState(state, formattingLocales[locale]).find(
       (item) =>
         item.audience === input.audience &&
         item.channel === input.channel &&
@@ -1015,6 +1045,7 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
     return projectRecord(
       applyInvoicePayment(applyDemoState(record, state), state),
       input.now,
+      locale,
     );
   }
 
@@ -1119,10 +1150,17 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
           [record.id]: {
             version: authoritativeVersion,
             updatedAt: completedAt,
-            data: appliedActionData(
-              { ...record.data, ...(currentOverride?.data ?? {}) },
-              input.action,
-            ),
+            // Only what the action changed, on top of any earlier override.
+            // `record` is what this reader was shown (their language, their
+            // number formatting); persisting all of it would show the next
+            // reader someone else's rendering.
+            data: {
+              ...(currentOverride?.data ?? {}),
+              ...appliedActionData(
+                { ...record.data, ...(currentOverride?.data ?? {}) },
+                input.action,
+              ),
+            },
           },
         },
         actionReceipts: {
@@ -1298,6 +1336,7 @@ export function projectionInput(input: {
   limit: number;
   orderBy?: ProjectionOrder;
   now?: Date;
+  locale?: Locale;
 }): ProjectionListInput {
   const accountId = resolveScopedAccount(
     input.session,
@@ -1313,6 +1352,7 @@ export function projectionInput(input: {
     limit: input.limit,
     ...(input.orderBy ? { orderBy: input.orderBy } : {}),
     now: input.now ?? new Date(),
+    ...(input.locale ? { locale: input.locale } : {}),
   };
 }
 

@@ -11,7 +11,6 @@ import {
   reportNames,
   type ReportName,
 } from "@/src/features/contracts/commerce-client";
-import { plural } from "@/src/i18n/en";
 import { formatOperationalTimestamp } from "../presentation";
 
 import { lifecycleCopy } from "./copy";
@@ -137,7 +136,7 @@ export function ReportsView({
             <p>{localizedcopy.exportsCaption}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {plural(visibleExports.length, "{count} export", "{count} exports")}
+            {t("operations.exports", { count: visibleExports.length })}
           </span>
         </header>
         {exportRecords.length === 0 ? (

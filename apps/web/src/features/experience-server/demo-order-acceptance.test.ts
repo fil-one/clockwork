@@ -429,6 +429,7 @@ describe("the order form the prepare pass produced", () => {
       formatMoney(
         prepared.definition.totals.total.minorUnits,
         prepared.definition.totals.total.currency,
+        "en-US",
       ),
     ).toBe("$184,800.00");
   });
@@ -437,7 +438,7 @@ describe("the order form the prepare pass produced", () => {
 describe("the created order", () => {
   it("reaches the orders channel as a record a reader can open", async () => {
     const { created } = await walk();
-    const record = demoCreatedOrderRecord(created);
+    const record = demoCreatedOrderRecord(created, "en-US");
 
     expect(record.channel).toBe("orders");
     expect(record.accountId).toBe(demoAccountIds.direct);
@@ -456,7 +457,7 @@ describe("the created order", () => {
   it("is listed for its own account and nobody else's", async () => {
     const { created } = await walk();
 
-    expect(demoCreatedOrderRecord(created).accountId).not.toBe(
+    expect(demoCreatedOrderRecord(created, "en-US").accountId).not.toBe(
       demoAccountIds.endClient,
     );
   });

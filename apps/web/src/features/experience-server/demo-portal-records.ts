@@ -986,6 +986,8 @@ export function demoCreatedOrderKey(orderId: string): string {
  */
 export function demoCreatedOrderRecord(
   order: DemoCreatedOrder,
+  /** The reader's formatting locale; this record is built on every read. */
+  formatting: string,
 ): DemoPortalRecord {
   return {
     audience: "customer",
@@ -1007,7 +1009,7 @@ export function demoCreatedOrderRecord(
         tone: "warning",
         risk: "low",
         owner: order.signerName,
-        value: formatMoney(order.totalMinor, order.currency),
+        value: formatMoney(order.totalMinor, order.currency, formatting),
         valueLabel: "Committed spend",
         dateLabel: `Accepted ${order.acceptedAt.slice(0, 10)}`,
         term: `${order.serviceStartsOn} – ${order.serviceEndsOn} · governed by ${order.agreementReference}`,

@@ -8,7 +8,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { PartnerCollection } from "./partner-collection";
-import { partnerSurfaces } from "./partner-data";
+import { translatorFor } from "@/src/i18n/catalogs";
+
+import { presentedPartnerSurface } from "./partner-surface.test-fixture";
 
 const formatting = { locale: "en-US", timeZone: "America/New_York" };
 
@@ -19,7 +21,7 @@ function renderLedger(freshness: {
 }) {
   return render(
     <PartnerCollection
-      config={partnerSurfaces.portfolio}
+      config={presentedPartnerSurface("portfolio", translatorFor("en"), "en")}
       formatting={formatting}
       freshness={freshness}
       partnerName="Aurora Systems"

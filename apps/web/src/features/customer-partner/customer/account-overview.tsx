@@ -1,4 +1,3 @@
-import { localizeCopy } from "@/src/i18n/copy";
 import { getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import Link from "next/link";
@@ -7,12 +6,9 @@ import type { ReactNode } from "react";
 
 import { StatusBadge } from "@clockwork/ui";
 
-import { t as englishTranslator } from "@/src/i18n/en";
+import type { Translator } from "@/src/i18n";
 
-import { customerPartnerCopy } from "../copy";
 import styles from "./customer-pages.module.css";
-
-const copy = customerPartnerCopy.customer;
 
 export interface AccountOverviewProjection {
   accountName: string;
@@ -24,7 +20,7 @@ export interface AccountOverviewProjection {
 
 function accountAreas(
   meta: AccountOverviewProjection["areaMeta"],
-  t = englishTranslator,
+  t: Translator,
 ) {
   return [
     {
@@ -65,15 +61,14 @@ export function AccountOverview({
   actions?: ReactNode;
 }) {
   const t = use(getTranslations());
-  const localizedcopy = localizeCopy(copy, t);
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div>
           <p className={styles.eyebrow}>{t("ui.103")}</p>
-          <h1>{localizedcopy.accountTitle}</h1>
+          <h1>{t("cp.customer.accountTitle")}</h1>
           <p className={styles.description}>
-            {localizedcopy.accountDescription}
+            {t("cp.customer.accountDescription")}
           </p>
         </div>
       </header>
@@ -120,7 +115,7 @@ export function AccountOverview({
           </div>
         ) : (
           <p className={styles.permissionNote}>
-            {localizedcopy.accountPermissionNote}
+            {t("cp.customer.accountPermissionNote")}
           </p>
         )}
       </section>

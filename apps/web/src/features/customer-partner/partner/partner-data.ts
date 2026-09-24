@@ -1,6 +1,12 @@
 import type { Route } from "next";
 
-import { t } from "@/src/i18n/en";
+import {
+  demoText,
+  type DemoTextField,
+} from "@clockwork/testing/demo-localized-text";
+
+import type { SupportedCurrency } from "@/src/features/shared/format";
+import type { MessageId } from "@/src/i18n";
 
 export type PartnerRole = "partner_admin" | "partner_seller";
 export type PartnerRisk = "low" | "medium" | "high";
@@ -41,6 +47,49 @@ export interface PartnerRecord {
   quotePricing?: { transferPrice: string; resalePrice: string };
 }
 
+/**
+ * A commercial position as facts. The read boundary formats the amounts in the
+ * reader's locale and places them in a message; nothing here is pre-rendered.
+ */
+export type PartnerPosition =
+  | {
+      readonly kind: "transferAndResale";
+      readonly currency: SupportedCurrency;
+      readonly transferMinor: string;
+      readonly resaleMinor: string;
+    }
+  | {
+      readonly kind: "collected" | "proposedResale";
+      readonly currency: SupportedCurrency;
+      readonly amountMinor: string;
+    };
+
+/** The next milestone as facts; `on` is a calendar date (YYYY-MM-DD). */
+export type PartnerMilestone =
+  | { readonly kind: "renewalDecisionDue"; readonly on: string }
+  | { readonly kind: "commissionEligible"; readonly rate: number }
+  | { readonly kind: "qualificationDueToday" };
+
+/**
+ * A fixture row as it is stored, before the read boundary turns it into the
+ * `PartnerRecord` a page renders.
+ *
+ * `context` stands in for text a person would have typed, so a fixture may
+ * carry it in every language with `demoText` (translation policy rule 4).
+ * `position` and `milestone` replace the pre-rendered `value` and `secondary`
+ * strings; a fixture that still has only the strings renders them as written.
+ */
+export interface PartnerFixture extends Omit<
+  PartnerRecord,
+  "context" | "value" | "secondary"
+> {
+  context: DemoTextField;
+  value?: string;
+  secondary?: string;
+  position?: PartnerPosition;
+  milestone?: PartnerMilestone;
+}
+
 export type PartnerSurfaceKey =
   | "portfolio"
   | "registrations"
@@ -54,17 +103,24 @@ export type PartnerSurfaceKey =
   | "brand"
   | "support";
 
-export interface PartnerSurfaceConfig {
-  eyebrow: string;
-  title: string;
-  description: string;
-  rule: string;
-  noun: string;
-  columns: readonly [string, string, string];
-  records: readonly PartnerRecord[];
+/** Collection chrome is message IDs; the component renders each with `t`. */
+export interface PartnerSurfaceConfig<Row = PartnerRecord> {
+  eyebrow: MessageId;
+  title: MessageId;
+  description: MessageId;
+  rule: MessageId;
+  /** A plural message taking `{count}`: "{count} end clients". */
+  count: MessageId;
+  searchPlaceholder: MessageId;
+  columns: readonly [MessageId, MessageId, MessageId];
+  records: readonly Row[];
   roles: readonly PartnerRole[];
-  primaryAction?: { label: string; href: Route; roles: readonly PartnerRole[] };
-  gate?: string;
+  primaryAction?: {
+    label: MessageId;
+    href: Route;
+    roles: readonly PartnerRole[];
+  };
+  gate?: MessageId;
   amountColumn?: number;
 }
 
@@ -72,43 +128,79 @@ function partnerRoute(href: string): Route {
   return href as Route;
 }
 
-const portfolio: readonly PartnerRecord[] = [
+const portfolio: readonly PartnerFixture[] = [
   {
     id: "EC-0038",
     name: "Halcyon Research Cooperative",
-    context: "Resale · US East · 280 TB committed",
+    context: demoText({
+      en: "Resale · US East · 280 TB committed",
+      es: "Reventa · EE. UU. Este · 280 TB contratados",
+      fr: "Revente · Est des États-Unis · 280 To souscrits",
+      de: "Wiederverkauf · USA Ost · 280 TB vertraglich zugesagt",
+      ja: "再販・米国東部・契約容量 280 TB",
+      pt: "Revenda · Leste dos EUA · 280 TB contratados",
+      zh: "转售 · 美国东部 · 承诺容量 280 TB",
+      ar: "إعادة البيع · شرق الولايات المتحدة · 280 تيرابايت متعاقد عليها",
+    }),
     status: "attention",
     risk: "medium",
     owner: "Juno Okafor",
-    value: "$91,200 transfer / $112,000 resale",
-    secondary: "Renewal decision due Sep 2",
+    position: {
+      kind: "transferAndResale",
+      currency: "USD",
+      transferMinor: "9120000",
+      resaleMinor: "11200000",
+    },
+    milestone: { kind: "renewalDecisionDue", on: "2026-09-02" },
     href: partnerRoute("/partner/portfolio/EC-0038"),
   },
   {
     id: "EC-0041",
     name: "Solace Public Records",
-    context: "Referral · EU West · 65 TB committed",
+    context: demoText({
+      en: "Referral · EU West · 65 TB committed",
+      es: "Recomendación · UE Oeste · 65 TB contratados",
+      fr: "Apport d’affaires · Ouest de l’UE · 65 To souscrits",
+      de: "Empfehlung · EU West · 65 TB vertraglich zugesagt",
+      ja: "紹介・EU 西部・契約容量 65 TB",
+      pt: "Indicação · Oeste da UE · 65 TB contratados",
+      zh: "推荐 · 欧盟西部 · 承诺容量 65 TB",
+      ar: "إحالة · غرب الاتحاد الأوروبي · 65 تيرابايت متعاقد عليها",
+    }),
     status: "active",
     risk: "low",
     owner: "Mira Patel",
-    value: "$28,600 collected",
-    secondary: "10% commission eligible",
+    position: { kind: "collected", currency: "USD", amountMinor: "2860000" },
+    milestone: { kind: "commissionEligible", rate: 0.1 },
     href: partnerRoute("/partner/portfolio/EC-0041"),
   },
   {
     id: "EC-0047",
     name: "Atlas Field Imaging",
-    context: "Two-tier resale · UK South · 14 TB POC",
+    context: demoText({
+      en: "Two-tier resale · UK South · 14 TB POC",
+      es: "Reventa en dos niveles · Reino Unido Sur · POC de 14 TB",
+      fr: "Revente à deux niveaux · Sud du Royaume-Uni · POC de 14 To",
+      de: "Zweistufiger Wiederverkauf · UK Süd · POC mit 14 TB",
+      ja: "2 階層の再販・英国南部・14 TB の PoC",
+      pt: "Revenda em dois níveis · Sul do Reino Unido · POC de 14 TB",
+      zh: "两级转售 · 英国南部 · 14 TB 概念验证",
+      ar: "إعادة بيع على مستويين · جنوب المملكة المتحدة · إثبات مفهوم بسعة 14 تيرابايت",
+    }),
     status: "pending",
     risk: "high",
     owner: "Juno Okafor",
-    value: "$8,400 proposed resale",
-    secondary: "Qualification due today",
+    position: {
+      kind: "proposedResale",
+      currency: "USD",
+      amountMinor: "840000",
+    },
+    milestone: { kind: "qualificationDueToday" },
     href: partnerRoute("/partner/portfolio/EC-0047"),
   },
 ];
 
-const registrations: readonly PartnerRecord[] = [
+const registrations: readonly PartnerFixture[] = [
   {
     id: "REG-2026-0081",
     name: "Atlas Field Imaging expansion",
@@ -141,7 +233,7 @@ const registrations: readonly PartnerRecord[] = [
   },
 ];
 
-const disputes: readonly PartnerRecord[] = [
+const disputes: readonly PartnerFixture[] = [
   {
     id: "DSP-2026-0012",
     name: "Orchid City Records claim",
@@ -164,7 +256,7 @@ const disputes: readonly PartnerRecord[] = [
   },
 ];
 
-const quotes: readonly PartnerRecord[] = [
+const quotes: readonly PartnerFixture[] = [
   {
     id: "PQ-2026-0184-v3",
     name: "Halcyon archive expansion",
@@ -200,7 +292,7 @@ const quotes: readonly PartnerRecord[] = [
   },
 ];
 
-const billing: readonly PartnerRecord[] = [
+const billing: readonly PartnerFixture[] = [
   {
     id: "INV-2026-0781",
     name: "July consolidated partner invoice",
@@ -224,7 +316,7 @@ const billing: readonly PartnerRecord[] = [
   },
 ];
 
-const commissions: readonly PartnerRecord[] = [
+const commissions: readonly PartnerFixture[] = [
   {
     id: "STM-2026-Q3",
     name: "Q3 commission statement",
@@ -247,7 +339,7 @@ const commissions: readonly PartnerRecord[] = [
   },
 ];
 
-const renewals: readonly PartnerRecord[] = [
+const renewals: readonly PartnerFixture[] = [
   {
     id: "REN-EC-0038",
     name: "Halcyon Research Cooperative",
@@ -270,7 +362,7 @@ const renewals: readonly PartnerRecord[] = [
   },
 ];
 
-const sandboxes: readonly PartnerRecord[] = [
+const sandboxes: readonly PartnerFixture[] = [
   {
     id: "SBX-2026-014",
     name: "Meridian presales lab",
@@ -293,7 +385,7 @@ const sandboxes: readonly PartnerRecord[] = [
   },
 ];
 
-const marketplace: readonly PartnerRecord[] = [
+const marketplace: readonly PartnerFixture[] = [
   {
     id: "AWS-OFFER-1948",
     name: "Halcyon AWS private offer",
@@ -316,7 +408,7 @@ const marketplace: readonly PartnerRecord[] = [
   },
 ];
 
-const brand: readonly PartnerRecord[] = [
+const brand: readonly PartnerFixture[] = [
   {
     id: "BRAND-MERIDIAN",
     name: "Meridian resale experience",
@@ -339,7 +431,7 @@ const brand: readonly PartnerRecord[] = [
   },
 ];
 
-const support: readonly PartnerRecord[] = [
+const support: readonly PartnerFixture[] = [
   {
     id: "SUP-18421",
     name: "Halcyon restore sample timing",
@@ -366,140 +458,184 @@ const both = ["partner_admin", "partner_seller"] as const;
 const admin = ["partner_admin"] as const;
 
 export const partnerSurfaces: Readonly<
-  Record<PartnerSurfaceKey, PartnerSurfaceConfig>
+  Record<PartnerSurfaceKey, PartnerSurfaceConfig<PartnerFixture>>
 > = {
   portfolio: {
-    eyebrow: "Partner desk · Named-client position",
-    title: "End-client portfolio",
-    description:
-      "Commercial context, service position, and risk for every named end client.",
-    rule: "Commercial position is scoped to each named end client; Fil One transfer pricing remains partner-private.",
-    noun: "end clients",
-    columns: ["End client", "Commercial position", "Next milestone"],
+    eyebrow: "partner.surface.portfolio.eyebrow",
+    title: "partner.surface.portfolio.title",
+    description: "partner.surface.portfolio.description",
+    rule: "partner.surface.portfolio.rule",
+    count: "partner.surface.portfolio.count",
+    searchPlaceholder: "partner.surface.portfolio.search",
+    columns: [
+      "partner.surface.portfolio.column0",
+      "partner.surface.portfolio.column1",
+      "partner.surface.portfolio.column2",
+    ],
     records: portfolio,
     roles: both,
   },
   registrations: {
-    eyebrow: "Partner desk · Pipeline protection",
-    title: "Deal registrations",
-    description:
-      "Register named opportunities and track protection without exposing raw account identifiers.",
-    rule: "A requested protection window becomes effective only when Fil One accepts the registration.",
-    noun: "registrations",
-    columns: ["Opportunity", "Commercial value", "Decision"],
+    eyebrow: "partner.surface.registrations.eyebrow",
+    title: "partner.surface.registrations.title",
+    description: "partner.surface.registrations.description",
+    rule: "partner.surface.registrations.rule",
+    count: "partner.surface.registrations.count",
+    searchPlaceholder: "partner.surface.registrations.search",
+    columns: [
+      "partner.surface.registrations.column0",
+      "partner.surface.registrations.column1",
+      "partner.surface.registrations.column2",
+    ],
     records: registrations,
     roles: both,
-    gate: "Registration decisions are made by Fil One channel operations; partner roles can submit evidence and monitor the decision. This page derives sourced credit from an accepted registration, but influenced-credit and dispute decisions cannot be recorded here.",
+    gate: "partner.surface.registrations.gate",
   },
   disputes: {
-    eyebrow: "Partner desk · Evidence and resolution",
-    title: "Registration and billing disputes",
-    description:
-      "Track disputed claims, evidence deadlines, and the authority responsible for a decision.",
-    rule: "Submitting evidence does not decide a dispute; the recorded decision remains authoritative.",
-    noun: "disputes",
-    columns: ["Dispute", "Exposure", "Deadline"],
+    eyebrow: "partner.surface.disputes.eyebrow",
+    title: "partner.surface.disputes.title",
+    description: "partner.surface.disputes.description",
+    rule: "partner.surface.disputes.rule",
+    count: "partner.surface.disputes.count",
+    searchPlaceholder: "partner.surface.disputes.search",
+    columns: [
+      "partner.surface.disputes.column0",
+      "partner.surface.disputes.column1",
+      "partner.surface.disputes.column2",
+    ],
     records: disputes,
     roles: both,
-    gate: "Final dispute decisions are external to the partner desk and remain with Fil One operations or the billing provider.",
+    gate: "partner.surface.disputes.gate",
   },
   quotes: {
-    eyebrow: "Partner desk · Resale quoting",
-    title: "Partner & resale quotes",
-    description:
-      "Keep transfer economics private while issuing a clear partner-controlled resale price.",
-    rule: "Issued quotes are immutable; an end client on a resale route sees only the partner-set resale price.",
-    noun: "quotes",
-    columns: ["Quote", "Price boundary", "Expiry"],
+    eyebrow: "partner.surface.quotes.eyebrow",
+    title: "partner.surface.quotes.title",
+    description: "partner.surface.quotes.description",
+    rule: "partner.surface.quotes.rule",
+    count: "partner.surface.quotes.count",
+    searchPlaceholder: "partner.surface.quotes.search",
+    columns: [
+      "partner.surface.quotes.column0",
+      "partner.surface.quotes.column1",
+      "partner.surface.quotes.column2",
+    ],
     records: quotes,
     roles: both,
     primaryAction: {
-      label: "Create resale quote",
+      label: "partner.surface.quotes.primaryAction",
       href: "/partner/quotes/new",
       roles: both,
     },
   },
   billing: {
-    eyebrow: "Partner desk · Invoice and payment truth",
-    title: "Consolidated billing",
-    description:
-      "Reconcile partner invoices by end client; payment status remains provider-webhook derived.",
-    rule: "On resale routes, Fil One invoices the partner account at transfer price; payment state changes only from provider truth.",
-    noun: "invoices",
-    columns: ["Invoice", "Invoice truth", "Payment truth"],
+    eyebrow: "partner.surface.billing.eyebrow",
+    title: "partner.surface.billing.title",
+    description: "partner.surface.billing.description",
+    rule: "partner.surface.billing.rule",
+    count: "partner.surface.billing.count",
+    searchPlaceholder: "partner.surface.billing.search",
+    columns: [
+      "partner.surface.billing.column0",
+      "partner.surface.billing.column1",
+      "partner.surface.billing.column2",
+    ],
     records: billing,
     roles: admin,
     amountColumn: 3,
   },
   commissions: {
-    eyebrow: "Partner desk · Collected-revenue earnings",
-    title: "Commissions and statements",
-    description:
-      "See accruals, credits, holdbacks, and payouts without confusing estimates with collected revenue.",
-    rule: t("partner.commissions.description"),
-    noun: "commission entries",
-    columns: ["Statement or accrual", "Amount accrued", "Settlement"],
+    eyebrow: "partner.surface.commissions.eyebrow",
+    title: "partner.surface.commissions.title",
+    description: "partner.surface.commissions.description",
+    rule: "partner.surface.commissions.rule",
+    count: "partner.surface.commissions.count",
+    searchPlaceholder: "partner.surface.commissions.search",
+    columns: [
+      "partner.surface.commissions.column0",
+      "partner.surface.commissions.column1",
+      "partner.surface.commissions.column2",
+    ],
     records: commissions,
     roles: admin,
     amountColumn: 3,
   },
   renewals: {
-    eyebrow: "Partner desk · Renewal decisions",
-    title: "Partner renewals",
-    description:
-      "Review the transfer and resale commitment before requesting a renewal change.",
-    rule: "The current term remains authoritative until the server confirms a renewal change.",
-    noun: "renewals",
-    columns: ["End client", "Renewal economics", "Notice clock"],
+    eyebrow: "partner.surface.renewals.eyebrow",
+    title: "partner.surface.renewals.title",
+    description: "partner.surface.renewals.description",
+    rule: "partner.surface.renewals.rule",
+    count: "partner.surface.renewals.count",
+    searchPlaceholder: "partner.surface.renewals.search",
+    columns: [
+      "partner.surface.renewals.column0",
+      "partner.surface.renewals.column1",
+      "partner.surface.renewals.column2",
+    ],
     records: renewals,
     roles: admin,
   },
   sandboxes: {
-    eyebrow: "Partner desk · Presales environments",
-    title: "Sandboxes and POCs",
-    description:
-      "Track capacity caps, success tests, named access, and expiry before commercial conversion.",
-    rule: "Partner sandboxes are zero-price, capped, expiring entitlements on the standard provisioning path.",
-    noun: "sandboxes and POCs",
-    columns: ["Environment", "Progress", "Expiry"],
+    eyebrow: "partner.surface.sandboxes.eyebrow",
+    title: "partner.surface.sandboxes.title",
+    description: "partner.surface.sandboxes.description",
+    rule: "partner.surface.sandboxes.rule",
+    count: "partner.surface.sandboxes.count",
+    searchPlaceholder: "partner.surface.sandboxes.search",
+    columns: [
+      "partner.surface.sandboxes.column0",
+      "partner.surface.sandboxes.column1",
+      "partner.surface.sandboxes.column2",
+    ],
     records: sandboxes,
     roles: admin,
   },
   marketplace: {
-    eyebrow: "Partner desk · Provider fulfillment",
-    title: "Marketplace offers",
-    description:
-      "Follow offer and fulfillment state while preserving each provider as the acceptance source.",
-    rule: "The marketplace provider remains the source of offer acceptance, fulfillment, and payout state.",
-    noun: "marketplace offers",
-    columns: ["Offer", "Buyer price", "Provider state"],
+    eyebrow: "partner.surface.marketplace.eyebrow",
+    title: "partner.surface.marketplace.title",
+    description: "partner.surface.marketplace.description",
+    rule: "partner.surface.marketplace.rule",
+    count: "partner.surface.marketplace.count",
+    searchPlaceholder: "partner.surface.marketplace.search",
+    columns: [
+      "partner.surface.marketplace.column0",
+      "partner.surface.marketplace.column1",
+      "partner.surface.marketplace.column2",
+    ],
     records: marketplace,
     roles: both,
-    gate: "Offer acceptance and payout actions occur in the marketplace provider; Fil One shows synchronized provider truth.",
+    gate: "partner.surface.marketplace.gate",
   },
   brand: {
-    eyebrow: "Partner desk · Presentation controls",
-    title: "Brand and custom domains",
-    description:
-      "Manage partner-facing presentation while keeping legal and merchant boundaries explicit.",
-    rule: "Branding never changes the legal entity, merchant of record, or audit identity.",
-    noun: "brand settings",
-    columns: ["Experience", "Verification", "Boundary"],
+    eyebrow: "partner.surface.brand.eyebrow",
+    title: "partner.surface.brand.title",
+    description: "partner.surface.brand.description",
+    rule: "partner.surface.brand.rule",
+    count: "partner.surface.brand.count",
+    searchPlaceholder: "partner.surface.brand.search",
+    columns: [
+      "partner.surface.brand.column0",
+      "partner.surface.brand.column1",
+      "partner.surface.brand.column2",
+    ],
     records: brand,
     roles: admin,
-    gate: "DNS changes happen at your provider. Fil One verifies the record but does not navigate or submit changes on your behalf.",
+    gate: "partner.surface.brand.gate",
   },
   support: {
-    eyebrow: "Partner desk · Visible support cases",
-    title: "Support",
-    description:
-      "Follow end-client support work with source-system freshness and visibility boundaries.",
-    rule: "This surface is read-only; replies and attachments stay in the support provider.",
-    noun: "support cases",
-    columns: ["Case", "Freshness", "Source"],
+    eyebrow: "partner.surface.support.eyebrow",
+    title: "partner.surface.support.title",
+    description: "partner.surface.support.description",
+    rule: "partner.surface.support.rule",
+    count: "partner.surface.support.count",
+    searchPlaceholder: "partner.surface.support.search",
+    columns: [
+      "partner.surface.support.column0",
+      "partner.surface.support.column1",
+      "partner.surface.support.column2",
+    ],
     records: support,
     roles: both,
-    gate: "Replies and attachments are handled in the support provider; this page is a safe read-only handoff.",
+    gate: "partner.surface.support.gate",
   },
 };
 

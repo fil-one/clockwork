@@ -1,4 +1,16 @@
-export const en = {
+/**
+ * The English text of every message that existed before the lane-owned
+ * modules, frozen at the migration. Two things read it and nothing edits it:
+ *
+ * - `copy.ts`, the legacy `localizeCopy` path, maps authored English back to
+ *   an ID with it. It is English only, so client components on that path do
+ *   not ship every language.
+ * - `catalogs.test.ts`, which lets these IDs keep their pre-module names and
+ *   forbids any new `ui.<digits>` ID.
+ *
+ * Delete this file when the last `localizeCopy` caller is gone.
+ */
+export const legacyEnglish: Readonly<Record<string, string>> = {
   "clientReview.eyebrow": "Client review · demonstration",
   "clientReview.title": "Your quotation",
   "clientReview.respond": "Respond to your partner",
@@ -22,7 +34,6 @@ export const en = {
   "clientReview.seller":
     "Your partner is the seller and handles purchase arrangements and billing.",
   "clientReview.valid": "Revision {revision} · Valid until {date}",
-
   "quotes.form.description":
     "Choose an offer, set your capacity and term, then review your quote draft.",
   "quotes.form.offerHelp": "Choose an available offer for the region you need.",
@@ -35,7 +46,6 @@ export const en = {
   "quotes.form.stageReview": "Review draft",
   "quotes.form.partnerDescription":
     "Choose an offer and end client, then set your resale price. Fil One calculates your transfer price when you create the draft.",
-
   "quotes.issue.title": "Finish this quote",
   "quotes.issue.description":
     "Prepare the quote document and make this saved quote available for acceptance. Issuing a quote does not place an order.",
@@ -53,7 +63,6 @@ export const en = {
     "The document is still being prepared. Continue this quote to check again.",
   "quotes.issue.synchronizing":
     "The quote was issued. Its status is still updating; continue this quote to check again.",
-
   "cp.common.loadingTitle": "Loading records",
   "cp.common.loadingBody": "The latest records are being retrieved.",
   "cp.common.emptyTitle": "Nothing here yet",
@@ -153,7 +162,6 @@ export const en = {
   "cp.partner.renewalReview": "Review renewal before confirming",
   "cp.partner.registrationReview": "Review deal registration",
   "app.pageLoaded": "{page}. Page loaded.",
-
   "operations.stale":
     "Refresh needed for {channels}. Open the workspace before making a decision.",
   "operations.cases.one": "{count} case",
@@ -172,7 +180,6 @@ export const en = {
   "operations.exports.other": "{count} exports",
   "approval.reviewApprove": "Review approval",
   "approval.reviewReject": "Review rejection",
-
   "ui.0": "Operational health",
   "ui.1":
     "The work that needs attention across approvals, collections, provisioning, renewals, and reporting.",
@@ -320,7 +327,6 @@ export const en = {
   "ui.126": "Close",
   "ui.127": "Loading…",
   "ui.128": "No results",
-
   "settings.title": "Settings",
   "settings.description": "Personalize your workspace.",
   "settings.language": "Language",
@@ -333,7 +339,6 @@ export const en = {
   "settings.error": "Choose a supported language and try again.",
   "settings.language.records":
     "Names, entered data, and original contractual documents retain their original language.",
-
   "app.name": "Fil One",
   "app.product": "Commerce",
   "app.demo": "Demo environment",
@@ -922,30 +927,4 @@ export const en = {
     "Check the record identifiers, the reason, and the evidence reference. A decline, rejection, or teardown request closes the current commercial path; only a new decision reopens it.",
   "workflow.confirm.cancel": "Keep the record unchanged",
   "workflow.confirm.action": "Confirm and submit",
-} as const;
-
-export type MessageId = keyof typeof en;
-export type MessageValues = Readonly<Record<string, string | number>>;
-export type MessageCatalog = Readonly<Record<MessageId, string>>;
-
-export function createTranslator(catalog: MessageCatalog) {
-  return (id: MessageId, values: MessageValues = {}): string =>
-    catalog[id].replace(/\{([^{}]+)\}/gu, (placeholder, key: string) =>
-      Object.hasOwn(values, key) ? String(values[key]) : placeholder,
-    );
-}
-
-export const t = createTranslator(en);
-
-export function plural(
-  count: number,
-  one: string,
-  other: string,
-  locale = "en-US",
-): string {
-  const form = new Intl.PluralRules(locale).select(count);
-  return (form === "one" ? one : other).replaceAll(
-    "{count}",
-    new Intl.NumberFormat(locale).format(count),
-  );
-}
+};

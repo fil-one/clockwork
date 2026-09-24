@@ -7,6 +7,10 @@ import type {
   InvoiceDerivationLine,
 } from "@clockwork/db";
 
+import { use } from "react";
+
+import { formattingLocales } from "@/src/i18n";
+import { getLocale } from "@/src/i18n/server";
 import {
   formatMoney,
   type SupportedCurrency,
@@ -16,12 +20,12 @@ import styles from "./invoice-derivation-panel.module.css";
 
 const supportedCurrencies: readonly SupportedCurrency[] = ["USD", "EUR", "GBP"];
 
-function amount(minorUnits: string, currency: string): string {
+function amount(minorUnits: string, currency: string, locale: string): string {
   const supported = supportedCurrencies.find(
     (candidate) => candidate === currency,
   );
   return supported
-    ? formatMoney(minorUnits, supported)
+    ? formatMoney(minorUnits, supported, locale)
     : `${minorUnits} ${currency}`;
 }
 
@@ -39,7 +43,15 @@ function NoteList({ notes }: { notes: readonly DerivationNote[] }) {
   );
 }
 
-function Step({ step, currency }: { step: DerivationStep; currency: string }) {
+function Step({
+  step,
+  currency,
+  locale,
+}: {
+  step: DerivationStep;
+  currency: string;
+  locale: string;
+}) {
   return (
     <li className={styles.step}>
       <div className={styles.stepHeader}>
@@ -50,7 +62,7 @@ function Step({ step, currency }: { step: DerivationStep; currency: string }) {
         </span>
         {step.amountMinor ? (
           <span className={styles.lineAmount}>
-            {amount(step.amountMinor, currency)}
+            {amount(step.amountMinor, currency, locale)}
           </span>
         ) : null}
       </div>
@@ -73,9 +85,11 @@ function Step({ step, currency }: { step: DerivationStep; currency: string }) {
 function Line({
   line,
   currency,
+  locale,
 }: {
   line: InvoiceDerivationLine;
   currency: string;
+  locale: string;
 }) {
   return (
     <li className={styles.line}>
@@ -85,19 +99,30 @@ function Line({
           {line.superseded ? " · amended" : ""}
         </h4>
         <span className={styles.lineAmount}>
-          {amount(line.amountMinor, currency)}
+          {amount(line.amountMinor, currency, locale)}
         </span>
       </div>
       <ol className={styles.chain}>
         {line.steps.map((step) => (
-          <Step currency={currency} key={step.key} step={step} />
+          <Step
+            currency={currency}
+            key={step.key}
+            locale={locale}
+            step={step}
+          />
         ))}
       </ol>
     </li>
   );
 }
 
-function Invoice({ derivation }: { derivation: InvoiceDerivation }) {
+function Invoice({
+  derivation,
+  locale,
+}: {
+  derivation: InvoiceDerivation;
+  locale: string;
+}) {
   const variance = BigInt(derivation.varianceMinor);
   return (
     <li className={styles.invoice}>
@@ -109,7 +134,11 @@ function Invoice({ derivation }: { derivation: InvoiceDerivation }) {
           <div>
             <dt>Invoiced</dt>
             <dd>
-              {amount(derivation.invoicedTotalMinor, derivation.currency)}
+              {amount(
+                derivation.invoicedTotalMinor,
+                derivation.currency,
+                locale,
+              )}
             </dd>
           </div>
           {/*
@@ -121,17 +150,27 @@ function Invoice({ derivation }: { derivation: InvoiceDerivation }) {
           <div>
             <dt>Invoiced net of tax</dt>
             <dd>
-              {amount(derivation.invoicedNetTotalMinor, derivation.currency)}
+              {amount(
+                derivation.invoicedNetTotalMinor,
+                derivation.currency,
+                locale,
+              )}
             </dd>
           </div>
           <div>
             <dt>From source rows</dt>
-            <dd>{amount(derivation.derivedTotalMinor, derivation.currency)}</dd>
+            <dd>
+              {amount(
+                derivation.derivedTotalMinor,
+                derivation.currency,
+                locale,
+              )}
+            </dd>
           </div>
           <div>
             <dt>Difference</dt>
             <dd className={variance === 0n ? undefined : styles.variance}>
-              {amount(derivation.varianceMinor, derivation.currency)}
+              {amount(derivation.varianceMinor, derivation.currency, locale)}
             </dd>
           </div>
         </dl>
@@ -145,6 +184,7 @@ function Invoice({ derivation }: { derivation: InvoiceDerivation }) {
             currency={derivation.currency}
             key={line.orderLineId}
             line={line}
+            locale={locale}
           />
         ))}
       </ol>
@@ -154,8 +194,10 @@ function Invoice({ derivation }: { derivation: InvoiceDerivation }) {
 
 function PaygInvoice({
   derivation: invoice,
+  locale,
 }: {
   derivation: PaygInvoiceDerivation;
+  locale: string;
 }) {
   const labels: Record<string, string> = {
     storage_bytes: "Storage",
@@ -177,15 +219,19 @@ function PaygInvoice({
         <dl className={styles.totals}>
           <div>
             <dt>Invoiced</dt>
-            <dd>{amount(invoice.invoicedTotalMinor, invoice.currency)}</dd>
+            <dd>
+              {amount(invoice.invoicedTotalMinor, invoice.currency, locale)}
+            </dd>
           </div>
           <div>
             <dt>Net</dt>
-            <dd>{amount(invoice.invoicedNetTotalMinor, invoice.currency)}</dd>
+            <dd>
+              {amount(invoice.invoicedNetTotalMinor, invoice.currency, locale)}
+            </dd>
           </div>
           <div>
             <dt>Tax</dt>
-            <dd>{amount(invoice.taxMinor, invoice.currency)}</dd>
+            <dd>{amount(invoice.taxMinor, invoice.currency, locale)}</dd>
           </div>
         </dl>
       </div>
@@ -204,7 +250,7 @@ function PaygInvoice({
         {invoice.lines.map((line) => (
           <div key={line.kind}>
             <dt>{labels[line.kind] ?? line.kind}</dt>
-            <dd>{amount(line.minor, invoice.currency)}</dd>
+            <dd>{amount(line.minor, invoice.currency, locale)}</dd>
           </div>
         ))}
       </dl>
@@ -227,7 +273,7 @@ function PaygInvoice({
         {invoice.taxLines.map((line, index) => (
           <p key={`${line.jurisdiction}:${index}`}>
             {line.jurisdiction} · {line.treatment.replaceAll("_", " ")} ·{" "}
-            {amount(line.taxMinor, invoice.currency)}
+            {amount(line.taxMinor, invoice.currency, locale)}
             {line.notation ? ` · ${line.notation}` : ""}
           </p>
         ))}
@@ -246,6 +292,7 @@ export function InvoiceDerivationPanel({
 }: {
   derivations: readonly BillingInvoiceDerivation[];
 }) {
+  const locale = formattingLocales[use(getLocale())];
   return (
     <section aria-labelledby="derivation-title" className={styles.panel}>
       <div className={styles.heading}>
@@ -261,9 +308,17 @@ export function InvoiceDerivationPanel({
         <ol className={styles.invoices}>
           {derivations.map((derivation) =>
             "billingSource" in derivation ? (
-              <PaygInvoice derivation={derivation} key={derivation.invoiceId} />
+              <PaygInvoice
+                derivation={derivation}
+                key={derivation.invoiceId}
+                locale={locale}
+              />
             ) : (
-              <Invoice derivation={derivation} key={derivation.invoiceId} />
+              <Invoice
+                derivation={derivation}
+                key={derivation.invoiceId}
+                locale={locale}
+              />
             ),
           )}
         </ol>

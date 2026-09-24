@@ -1,13 +1,10 @@
 "use client";
 import { useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 
-import { localizeCopy } from "@/src/i18n/copy";
-import { customerPartnerCopy } from "./copy";
 import { formatSurfaceTimestamp, type SurfaceFormatting } from "./formatting";
 import styles from "./projection-freshness.module.css";
 import { RefreshProjection } from "./refresh-projection";
-
-const copy = customerPartnerCopy.common;
 
 /**
  * What `loadPortalRecords` already knows about the read a surface is rendering.
@@ -72,7 +69,6 @@ export function ProjectionFreshnessNotice({
   className?: string;
 }) {
   const t = useTranslations();
-  const localizedcopy = localizeCopy(copy, t);
   const readAt = (
     <time dateTime={freshness.generatedAt}>
       {formatSurfaceTimestamp(freshness.generatedAt, formatting)}
@@ -84,10 +80,12 @@ export function ProjectionFreshnessNotice({
         className={`${styles.staleBanner} ${styles.partialBanner} ${className}`.trim()}
         role="alert"
       >
-        <strong>{localizedcopy.freshnessPartialTitle}</strong>
+        <strong>{t("cp.common.freshnessPartialTitle")}</strong>
         <span>
-          {localizedcopy.freshnessPartialBody} {localizedcopy.freshnessReadAt}{" "}
-          {readAt}
+          {richText(t, "common.join.sentences", {
+            first: t("cp.common.freshnessPartialBody"),
+            second: richText(t, "common.readAt", { time: readAt }),
+          })}
         </span>
       </section>
     );
@@ -95,8 +93,10 @@ export function ProjectionFreshnessNotice({
     return (
       <p className={`${styles.freshness} ${className}`.trim()} role="status">
         <span aria-hidden="true" className={styles.dot} />
-        {localizedcopy.freshnessCurrent} · {localizedcopy.freshnessReadAt}{" "}
-        {readAt}
+        {richText(t, "common.join.labels", {
+          first: t("cp.common.freshnessCurrent"),
+          second: richText(t, "common.readAt", { time: readAt }),
+        })}
       </p>
     );
   return (
@@ -104,12 +104,14 @@ export function ProjectionFreshnessNotice({
       className={`${styles.staleBanner} ${className}`.trim()}
       role="alert"
     >
-      <strong>{localizedcopy.freshnessStaleTitle}</strong>
+      <strong>{t("cp.common.freshnessStaleTitle")}</strong>
       <span>
-        {localizedcopy.freshnessStaleBody} {localizedcopy.freshnessReadAt}{" "}
-        {readAt}
+        {richText(t, "common.join.sentences", {
+          first: t("cp.common.freshnessStaleBody"),
+          second: richText(t, "common.readAt", { time: readAt }),
+        })}
       </span>
-      <RefreshProjection label={localizedcopy.freshnessAction} />
+      <RefreshProjection label={t("cp.common.freshnessAction")} />
     </section>
   );
 }

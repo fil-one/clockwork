@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -69,6 +69,7 @@ export function SelfServeBuy({
   pollIntervalMs?: number;
 }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const [draft, setDraft] = useState<BuyDraft>(() => initialBuyDraft(offers));
   const [phase, setPhase] = useState<BuyPhase>("configure");
   const [message, setMessage] = useState("");
@@ -173,7 +174,7 @@ export function SelfServeBuy({
       const created = await sendCoreCommand(commandRef.current, {
         idempotencyKey: createKeyRef.current,
       });
-      setPrice(serverPrice(created));
+      setPrice(serverPrice(created, formattingLocale));
       const rowVersion = Number(
         (created as { record?: { rowVersion?: unknown } }).record?.rowVersion,
       );

@@ -7,10 +7,12 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-import { t } from "@/src/i18n/en";
+import { translatorFor } from "@/src/i18n/catalogs";
 
 import { PartnerCollection } from "./partner-collection";
-import { partnerSurfaces } from "./partner-data";
+import { presentedPartnerSurface } from "./partner-surface.test-fixture";
+
+const t = translatorFor("en");
 
 const formatting = { locale: "en-US", timeZone: "America/New_York" };
 const fresh = {
@@ -23,7 +25,7 @@ describe("partner collection truth copy", () => {
   it("renders the commission purpose, truthful columns, shared rule, and numeric amount", () => {
     render(
       <PartnerCollection
-        config={partnerSurfaces.commissions}
+        config={presentedPartnerSurface("commissions", t, "en")}
         formatting={formatting}
         freshness={fresh}
         partnerName="Aurora Systems"
@@ -50,7 +52,7 @@ describe("partner collection truth copy", () => {
   it("annotates registration credit from status and names the unavailable write boundary", () => {
     render(
       <PartnerCollection
-        config={partnerSurfaces.registrations}
+        config={presentedPartnerSurface("registrations", t, "en")}
         formatting={formatting}
         freshness={fresh}
         partnerName="Aurora Systems"

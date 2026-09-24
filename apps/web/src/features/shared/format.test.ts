@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import { formatAddress, formatDate, formatMoney, taxLabel } from "./format";
 
 describe("locale-aware experience formatting", () => {
@@ -20,7 +22,8 @@ describe("locale-aware experience formatting", () => {
         country: "Spain",
       }),
     ).toContain("Madrid");
-    expect(taxLabel("US")).toBe("Sales tax");
-    expect(taxLabel("ES")).toBe("VAT");
+    const t = translatorFor("en");
+    expect(taxLabel("US", t)).toBe("Sales tax");
+    expect(taxLabel("ES", t)).toBe("VAT");
   });
 });

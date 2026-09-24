@@ -1,15 +1,11 @@
 "use client";
 import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
 
 import type { Route } from "next";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
-import { customerPartnerCopy } from "./copy";
 import styles from "./unsaved-changes.module.css";
-
-const copy = customerPartnerCopy.common;
 
 /**
  * The browser-level half of unsaved-work protection.
@@ -91,7 +87,6 @@ export function LeaveDraftControl({
   keepClassName?: string;
 }) {
   const t = useTranslations();
-  const localizedcopy = localizeCopy(copy, t);
   const [confirming, setConfirming] = useState(false);
   const keepRef = useRef<HTMLButtonElement>(null);
   const promptId = useId();
@@ -130,8 +125,8 @@ export function LeaveDraftControl({
       data-unsaved-prompt="open"
     >
       <p id={promptId} role="alert">
-        <strong>{localizedcopy.unsavedTitle}</strong>{" "}
-        {localizedcopy.unsavedBody}
+        <strong>{t("cp.common.unsavedTitle")}</strong>{" "}
+        {t("cp.common.unsavedBody")}
       </p>
       <div className={styles.promptActions}>
         <button
@@ -140,10 +135,10 @@ export function LeaveDraftControl({
           ref={keepRef}
           type="button"
         >
-          {localizedcopy.unsavedKeep}
+          {t("cp.common.unsavedKeep")}
         </button>
         <Link className={discardClassName} href={href}>
-          {localizedcopy.unsavedDiscard}
+          {t("cp.common.unsavedDiscard")}
         </Link>
       </div>
     </div>

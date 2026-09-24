@@ -1,4 +1,3 @@
-import { localizeCopy } from "@/src/i18n/copy";
 import { getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import Link from "next/link";
@@ -6,7 +5,6 @@ import type { Route } from "next";
 
 import { TermBar, type RenewalState } from "@clockwork/ui";
 
-import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
 import {
   formatSurfaceTimestamp,
   type SurfaceFormatting,
@@ -60,8 +58,6 @@ export function PartnerDashboard({
   formatting: SurfaceFormatting;
 }) {
   const t = use(getTranslations());
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
-  const copy = localizedcustomerPartnerCopy.partner;
   const isAdmin = currentPartnerRole(roles) === "partner_admin";
   const visibleWork = projection.work.filter(
     (item) => isAdmin || !item.adminOnly,
@@ -71,8 +67,8 @@ export function PartnerDashboard({
     <main className={styles.main} id="main-content">
       <header className={styles.taskHeader}>
         <div>
-          <h1>{copy.deskTitle}</h1>
-          <p>{copy.deskDescription}</p>
+          <h1>{t("partner.title")}</h1>
+          <p>{t("cp.partner.deskDescription")}</p>
           <p className={styles.projectionFreshness}>
             {projection.stale
               ? "Stale projection from "
@@ -94,7 +90,7 @@ export function PartnerDashboard({
         <div className={styles.authorityHeading}>
           <div>
             <p className={styles.classifier}>Commercial authority</p>
-            <h2 id="agreement-clock-title">{copy.agreementClock}</h2>
+            <h2 id="agreement-clock-title">{t("cp.partner.agreementClock")}</h2>
           </div>
           <p className={styles.authorityState}>
             <strong>{projection.agreement.authorityState}</strong>
@@ -161,7 +157,7 @@ export function PartnerDashboard({
       >
         <div className={styles.ledgerHeading}>
           <div>
-            <h2 id="urgent-partner-title">{copy.urgentTitle}</h2>
+            <h2 id="urgent-partner-title">{t("cp.partner.urgentTitle")}</h2>
             <p>Named work ordered by protection deadline and consequence.</p>
           </div>
           <p className={styles.count}>{visibleWork.length} actions</p>
@@ -214,7 +210,7 @@ export function PartnerDashboard({
       >
         <div>
           <h2 id="commercial-boundary-title">Commercial boundary</h2>
-          <p>{copy.boundary}</p>
+          <p>{t("cp.partner.boundary")}</p>
         </div>
         <dl>
           {projection.boundary.map((fact) => (

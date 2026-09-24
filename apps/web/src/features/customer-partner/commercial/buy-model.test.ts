@@ -78,15 +78,19 @@ describe("self-serve buy model", () => {
 
   it("shows money only when the command response carries a supported server total", () => {
     expect(
-      serverPrice({
-        record: { data: { totalMinor: "120000", currency: "USD" } },
-      }),
+      serverPrice(
+        { record: { data: { totalMinor: "120000", currency: "USD" } } },
+        "en-US",
+      ),
     ).toMatchObject({ display: "$1,200.00 total / 12 months" });
-    expect(serverPrice({ record: { data: { currency: "USD" } } })).toBeNull();
     expect(
-      serverPrice({
-        record: { data: { totalMinor: "120000", currency: "DOGE" } },
-      }),
+      serverPrice({ record: { data: { currency: "USD" } } }, "en-US"),
+    ).toBeNull();
+    expect(
+      serverPrice(
+        { record: { data: { totalMinor: "120000", currency: "DOGE" } } },
+        "en-US",
+      ),
     ).toBeNull();
   });
 
