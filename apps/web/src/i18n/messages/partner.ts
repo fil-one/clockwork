@@ -226,7 +226,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.detail.term.unavailable.description": {
     en: "The elapsed term, notice window and end date appear here once an order or agreement publishes them.",
-    es: "La duración transcurrida, el plazo de preaviso y la fecha de finalización aparecerán aquí cuando un pedido o un acuerdo los publique.",
+    es: "El tiempo transcurrido de la vigencia, el plazo de preaviso y la fecha de finalización aparecerán aquí cuando un pedido o un acuerdo los publique.",
     fr: "La durée écoulée, la période de préavis et la date de fin s’afficheront ici lorsqu’une commande ou un accord les publiera.",
     de: "Abgelaufene Laufzeit, Kündigungsfrist und Enddatum erscheinen hier, sobald ein Auftrag oder eine Vereinbarung sie veröffentlicht.",
     ja: "注文または契約で公開されると、経過期間、通知期間、終了日がここに表示されます。",
@@ -590,7 +590,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.renewal.submitted": {
     en: "Renewal request submitted. The current term remains authoritative until the server confirms a change.",
-    es: "Solicitud de renovación enviada. La vigencia actual se mantiene hasta que el servidor confirme un cambio.",
+    es: "Solicitud de renovación enviada. La vigencia actual sigue siendo la que prevalece hasta que el servidor confirme un cambio.",
     fr: "Demande de renouvellement envoyée. La durée en cours fait foi jusqu’à ce que le serveur confirme un changement.",
     de: "Verlängerungsanfrage gesendet. Die aktuelle Laufzeit bleibt maßgeblich, bis der Server eine Änderung bestätigt.",
     ja: "契約更新を依頼しました。サーバーが変更を確定するまでは、現在の契約期間が有効です。",
@@ -1232,7 +1232,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.commissions.rule": {
     en: "Referral earnings accrue on net collected revenue and statements net refunds, credits, and chargebacks.",
-    es: "Las comisiones por recomendación se devengan sobre los ingresos netos cobrados y las liquidaciones descuentan reembolsos, facturas rectificativas y contracargos.",
+    es: "Las comisiones por recomendación se devengan sobre los ingresos netos cobrados y las liquidaciones descuentan reembolsos, abonos y contracargos.",
     fr: "Les commissions d’apport sont acquises sur les revenus nets encaissés et les relevés déduisent remboursements, avoirs et rétrofacturations.",
     de: "Empfehlungsprovisionen entstehen auf vereinnahmte Nettoumsätze; Abrechnungen verrechnen Erstattungen, Gutschriften und Rückbuchungen.",
     ja: "紹介報酬は回収済みの純収益に対して計上され、明細書では返金、クレジット、チャージバックが差し引かれます。",
@@ -1348,7 +1348,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.renewals.rule": {
     en: "The current term remains authoritative until the server confirms a renewal change.",
-    es: "La vigencia actual se mantiene hasta que el servidor confirme un cambio en la renovación.",
+    es: "La vigencia actual sigue siendo la que prevalece hasta que el servidor confirme un cambio en la renovación.",
     fr: "La durée en cours fait foi jusqu’à ce que le serveur confirme une modification du renouvellement.",
     de: "Die aktuelle Laufzeit bleibt maßgeblich, bis der Server eine Änderung der Verlängerung bestätigt.",
     ja: "サーバーが契約更新の変更を確定するまでは、現在の契約期間が有効です。",
@@ -1571,7 +1571,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.marketplace.rule": {
     en: "The marketplace provider remains the source of offer acceptance, fulfillment, and payout state.",
-    es: "El proveedor del marketplace sigue siendo la fuente de la aceptación de las ofertas, su tramitación y el estado de los pagos.",
+    es: "El proveedor del marketplace sigue siendo la fuente de la aceptación de las ofertas, su tramitación y el estado de los pagos que efectúa.",
     fr: "Le prestataire de la marketplace reste la source de l’acceptation des offres, de leur exécution et de l’état des versements.",
     de: "Der Marketplace-Anbieter bleibt die Quelle für Angebotsannahme, Erfüllung und Auszahlungsstatus.",
     ja: "オファーの承諾、提供処理、支払いの状況は、引き続きマーケットプレイスのプロバイダーを情報源とします。",
@@ -1657,7 +1657,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.marketplace.gate": {
     en: "Offer acceptance and payouts happen at the marketplace provider; Fil One shows the provider's synchronized data.",
-    es: "La aceptación de ofertas y los pagos se gestionan en el proveedor del marketplace; Fil One muestra los datos sincronizados del proveedor.",
+    es: "La aceptación de ofertas y los pagos que efectúa el marketplace se gestionan en el proveedor; Fil One muestra los datos sincronizados del proveedor.",
     fr: "L’acceptation des offres et les versements se font chez le prestataire de la marketplace\u202f; Fil One affiche les données synchronisées du prestataire.",
     de: "Angebotsannahme und Auszahlungen erfolgen beim Marketplace-Anbieter; Fil One zeigt die synchronisierten Angaben des Anbieters.",
     ja: "オファーの承諾と支払いの操作はマーケットプレイスのプロバイダーで行います。Fil One は同期されたプロバイダーの情報を表示します。",
@@ -1687,7 +1687,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.brand.description": {
     en: "Manage partner-facing presentation while keeping legal and merchant boundaries explicit.",
-    es: "Gestione la presentación de cara al socio sin alterar los límites legales ni el vendedor responsable de la transacción.",
+    es: "Gestione la presentación de cara al socio manteniendo explícitos los límites legales y el vendedor responsable de la transacción.",
     fr: "Gérez la présentation côté partenaire en gardant explicites les limites juridiques et le vendeur responsable.",
     de: "Verwalten Sie die Darstellung für Partner, während rechtliche Grenzen und der Merchant of Record klar erkennbar bleiben.",
     ja: "パートナー向けの表示を管理しつつ、法的な区分と販売主体を明確に保ちます。",
@@ -2127,7 +2127,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.milestone.renewalDecisionDue": {
     en: "Renewal decision due {date}",
-    es: "Decisión de renovación antes del {date}",
+    es: "Plazo de decisión de renovación: {date}",
     fr: "Décision de renouvellement attendue le {date}",
     de: "Verlängerungsentscheidung fällig am {date}",
     ja: "契約更新の判断期限 {date}",
@@ -2177,7 +2177,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.milestone.responseDue": {
     en: "Response due {date}",
-    es: "Respuesta antes del {date}",
+    es: "Plazo de respuesta: {date}",
     fr: "Réponse attendue le {date}",
     de: "Antwort fällig am {date}",
     ja: "回答期限 {date}",
@@ -2197,7 +2197,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.milestone.noticeActionDue": {
     en: "Notice action due {date}",
-    es: "Decisión sobre el preaviso antes del {date}",
+    es: "Plazo para actuar sobre el preaviso: {date}",
     fr: "Décision sur le préavis à prendre avant le {date}",
     de: "Entscheidung zur Kündigungsfrist fällig am {date}",
     ja: "通知期間の対応期限 {date}",
@@ -2373,7 +2373,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.milestone.paysAfterCollection": {
     en: "Paid out once collections are final",
-    es: "Se paga cuando los cobros son definitivos",
+    es: "Se paga al socio cuando los cobros son definitivos",
     fr: "Versement une fois les encaissements définitifs",
     de: "Auszahlung, sobald die Zahlungseingänge feststehen",
     ja: "回収の確定後に支払い",
@@ -3284,7 +3284,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.orders.handoffNote": {
     en: "Your order is in the internal provisioning handoff. It has not activated service.",
-    es: "Su pedido se ha traspasado internamente al equipo de aprovisionamiento. No se ha activado ningún servicio.",
+    es: "Su pedido se ha enviado internamente al aprovisionador. No se ha activado ningún servicio.",
     fr: "Votre commande est en cours de transmission interne au provisionnement. Elle n’a pas activé de service.",
     de: "Ihr Auftrag liegt in der internen Übergabe an die Bereitstellung. Er hat keinen Dienst aktiviert.",
     ja: "注文は社内のプロビジョニング引き継ぎ中です。サービスは有効化されていません。",
@@ -4560,7 +4560,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.registration.unavailable.description": {
     en: "Naming an end client requires a scoped read of the account directory, and this deployment has no database connection or no authorization context to read it with. Nothing is missing from your account; this page cannot link a registration here.",
-    es: "Para indicar un cliente final hace falta una lectura acotada del directorio de cuentas, y este entorno no tiene conexión a la base de datos o contexto de autorización para hacerla. No falta nada en su cuenta; esta página no puede vincular aquí un registro.",
+    es: "Para indicar un cliente final hace falta una lectura acotada del directorio de cuentas, y a este entorno le falta la conexión a la base de datos o el contexto de autorización para hacerla. No falta nada en su cuenta; esta página no puede vincular aquí un registro.",
     fr: "Désigner un client final nécessite une lecture restreinte de l’annuaire des comptes, et ce déploiement n’a pas de connexion à la base de données ou de contexte d’autorisation pour l’effectuer. Rien ne manque à votre compte\u202f; cette page ne peut simplement pas rattacher un enregistrement ici.",
     de: "Für die Angabe eines Endkunden ist ein eingeschränkter Lesezugriff auf das Kontoverzeichnis nötig. Diese Umgebung hat keine Datenbankverbindung oder keinen Autorisierungskontext dafür. In Ihrem Konto fehlt nichts; diese Seite kann hier nur keine Registrierung zuordnen.",
     ja: "エンド顧客を指定するには、アカウント一覧を範囲を限定して読み取る必要がありますが、この環境にはデータベース接続または認可コンテキストがありません。貴社アカウントに不足はありません。このページでは登録を紐づけられないだけです。",

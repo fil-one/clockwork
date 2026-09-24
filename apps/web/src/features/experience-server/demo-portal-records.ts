@@ -664,7 +664,7 @@ const endClientBook: readonly DemoPortalRecord[] = [
       id: "INV-LUMEN-0114",
       title: demoText({
         en: "July field archive",
-        es: "Archivo de campo · julio",
+        es: "Archivo de campo de julio",
         fr: "Archive terrain · juillet",
         de: "Feldarchiv · Juli",
         ja: "フィールドアーカイブ（7月分）",
@@ -1045,7 +1045,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       id: "DSP-2026-0015",
       name: demoText({
         en: "Cobalt Orchard provisioning credit",
-        es: "Crédito por aprovisionamiento · Cobalt Orchard",
+        es: "Abono por aprovisionamiento · Cobalt Orchard",
         fr: "Crédit de service sur le provisionnement · Cobalt Orchard",
         de: "Servicegutschrift für die Bereitstellung · Cobalt Orchard",
         ja: "Cobalt Orchard のプロビジョニングに関するクレジット",
@@ -1091,7 +1091,7 @@ const partnerBook: readonly DemoPortalRecord[] = [
       }),
       context: demoText({
         en: "Referral · disbursement pending in the provider feed",
-        es: "Recomendación · pago al socio pendiente en los datos del proveedor",
+        es: "Recomendación · liquidación del marketplace pendiente en los datos del proveedor",
         fr: "Apport d’affaires · versement en attente dans le flux du prestataire",
         de: "Empfehlung · Auszahlung im Datenfeed des Anbieters ausstehend",
         ja: "紹介・プロバイダーのフィード上で支払いが保留中",

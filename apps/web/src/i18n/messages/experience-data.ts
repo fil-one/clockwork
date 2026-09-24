@@ -63,7 +63,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.status.invoiceOpenDue": {
     en: "Open · due {date}",
-    es: "Pendiente · vence el {date}",
+    es: "Abierta · vence el {date}",
     fr: "Ouverte · échéance le {date}",
     de: "Offen · fällig am {date}",
     ja: "未払い・期限 {date}",
@@ -1607,7 +1607,7 @@ export const experienceDataMessages = defineMessages({
   // Record descriptions and titles the product writes around identifiers and facts.
   "experience.data.desc.invoiceAchReturned": {
     en: "Invoice {invoice} · first ACH attempt was returned",
-    es: "Factura {invoice} · el primer adeudo ACH fue devuelto",
+    es: "Factura {invoice} · el primer adeudo ACH ha sido devuelto",
     fr: "Facture {invoice} · le premier prélèvement ACH a été rejeté",
     de: "Rechnung {invoice} · erste ACH-Lastschrift wurde zurückgegeben",
     ja: "請求書 {invoice}・初回の ACH 引き落としが返却",
@@ -1657,7 +1657,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.desc.openInvoiceSalesTax": {
     en: "Open invoice · includes the determined Washington sales tax",
-    es: "Factura pendiente · incluye el impuesto sobre las ventas de Washington calculado",
+    es: "Factura abierta · incluye el impuesto sobre las ventas de Washington calculado",
     fr: "Facture ouverte · inclut la taxe sur les ventes de l’État de Washington déterminée",
     de: "Offene Rechnung · enthält die ermittelte Verkaufssteuer (US) für Washington",
     ja: "未払いの請求書・確定済みのワシントン州売上税を含む",
@@ -2629,7 +2629,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.workProtectDealRegistration": {
     en: "Protect deal registration",
-    es: "Proteger el registro de oportunidad",
+    es: "Proteger el registro de la oportunidad",
     fr: "Protéger l’enregistrement d’opportunité",
     de: "Deal-Registrierung schützen",
     ja: "案件登録の保護",

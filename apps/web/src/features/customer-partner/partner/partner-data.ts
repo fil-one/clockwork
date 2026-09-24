@@ -462,7 +462,7 @@ const disputes: readonly PartnerFixture[] = [
     id: "DSP-2026-0008",
     name: demoText({
       en: "Halcyon service credit",
-      es: "Crédito de servicio de Halcyon",
+      es: "Abono de servicio de Halcyon",
       fr: "Crédit de service Halcyon",
       de: "Servicegutschrift für Halcyon",
       ja: "Halcyon のサービスクレジット",
@@ -603,7 +603,7 @@ const billing: readonly PartnerFixture[] = [
     }),
     context: demoText({
       en: "12 end clients · ACH ending 1842 · Meridian is merchant of record",
-      es: "12 clientes finales · ACH terminada en 1842 · Meridian es el vendedor responsable de la transacción",
+      es: "12 clientes finales · cuenta ACH terminada en 1842 · Meridian es el vendedor responsable de la transacción",
       fr: "12 clients finaux · ACH se terminant par 1842 · Meridian est le vendeur responsable de la transaction",
       de: "12 Endkunden · ACH endet auf 1842 · Meridian ist Merchant of Record",
       ja: "エンド顧客 12社・末尾 1842 の ACH・販売主体は Meridian",

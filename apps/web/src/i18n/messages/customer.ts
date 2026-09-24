@@ -76,7 +76,7 @@ export const customerMessages = defineMessages({
   },
   "quotes.issue.description": {
     en: "Prepare the quote document and make this saved quote available for acceptance. Issuing a quote does not place an order.",
-    es: "Prepare el documento del presupuesto y deje este presupuesto guardado disponible para su aceptación. Emitir un presupuesto no crea ningún pedido.",
+    es: "Prepare el documento del presupuesto y ponga este presupuesto guardado a disposición para su aceptación. Emitir un presupuesto no crea ningún pedido.",
     fr: "Préparez le document de ce devis enregistré pour permettre son acceptation. Émettre un devis ne crée pas de commande.",
     de: "Bereiten Sie das Dokument dieses gespeicherten Angebots zur Annahme vor. Durch die Ausstellung entsteht noch keine Bestellung.",
     ja: "保存済みの見積書を作成し、承諾できる状態にします。見積もりを発行しても注文は確定しません。",
@@ -206,7 +206,7 @@ export const customerMessages = defineMessages({
   },
   "cp.commercial.agreementAuthority": {
     en: "I confirm I am authorized to bind this legal entity to this agreement.",
-    es: "Confirmo que tengo autorización para vincular a esta entidad jurídica mediante este acuerdo.",
+    es: "Confirmo que tengo autorización para obligar a esta persona jurídica en virtud de este acuerdo.",
     fr: "Je confirme être habilité à engager cette entité juridique au titre de cet accord.",
     de: "Ich bestätige, dass ich berechtigt bin, diese juristische Person an diese Vereinbarung zu binden.",
     ja: "私は、この法人を本契約に法的に拘束する権限を有することを確認します。",
@@ -366,7 +366,7 @@ export const customerMessages = defineMessages({
   },
   "agreements.execute.source": {
     en: "Executing under agreement {reference}",
-    es: "Formalización bajo el acuerdo {reference}",
+    es: "Formalización en virtud del acuerdo {reference}",
     fr: "Conclusion au titre de l’accord {reference}",
     de: "Abschluss gemäß Vereinbarung {reference}",
     ja: "契約 {reference} に基づく締結",
@@ -556,7 +556,7 @@ export const customerMessages = defineMessages({
   },
   "orders.accept.agreement.unknown": {
     en: "No active governing agreement is recorded for this account.",
-    es: "No consta un acuerdo vigente para esta cuenta.",
+    es: "No consta ningún acuerdo aplicable en vigor para esta cuenta.",
     fr: "Aucun accord actif applicable n’est enregistré pour ce compte.",
     de: "Für dieses Konto ist keine aktive maßgebliche Vereinbarung erfasst.",
     ja: "このアカウントに適用される有効な契約は記録されていません。",
@@ -736,7 +736,7 @@ export const customerMessages = defineMessages({
   },
   "billing.description": {
     en: "Invoices carry the originating order and PO, with receipts, credits, aging, tax treatment, and payment rails.",
-    es: "Las facturas incluyen el pedido y la orden de compra de origen, con recibos, facturas rectificativas, antigüedad, tratamiento fiscal y medios de pago.",
+    es: "Las facturas incluyen el pedido y la orden de compra de origen, con recibos, abonos, antigüedad, tratamiento fiscal y medios de pago.",
     fr: "Les factures indiquent la commande et le bon de commande d’origine, les reçus, les avoirs, l’ancienneté, le traitement fiscal et les moyens de paiement.",
     de: "Rechnungen verweisen auf Auftrag und Bestellung sowie Belege, Gutschriften, Alter, Steuern und Zahlungswege.",
     ja: "請求書には元の注文と発注書、領収書、貸方票、経過期間、税務処理、支払方法が紐付きます。",
@@ -1383,7 +1383,7 @@ export const customerMessages = defineMessages({
   },
   "customer.collection.status.closedNotAccepted": {
     en: "Closed · not accepted",
-    es: "Cerrado · no aceptado",
+    es: "Cierre · sin aceptación",
     fr: "Clos · non accepté",
     de: "Geschlossen · nicht angenommen",
     ja: "クローズ・未承諾",
@@ -1927,7 +1927,7 @@ export const customerMessages = defineMessages({
   },
   "customer.collection.context.removalRecorded": {
     en: "Removal recorded",
-    es: "Baja registrada",
+    es: "Retirada de acceso registrada",
     fr: "Retrait enregistré",
     de: "Entfernung erfasst",
     ja: "削除を記録済み",
@@ -3087,7 +3087,7 @@ export const customerMessages = defineMessages({
   },
   "customer.payg.perTbMonth": {
     en: "per TB-month",
-    es: "por TB y mes",
+    es: "por TB al mes",
     fr: "par To et par mois",
     de: "pro TB und Monat",
     ja: "/TB/月",
@@ -3395,7 +3395,7 @@ export const customerMessages = defineMessages({
   },
   "customer.payg.submit.conversion": {
     en: "Accept paid terms and request conversion",
-    es: "Aceptar condiciones de pago y solicitar conversión",
+    es: "Aceptar las condiciones de pago por uso y solicitar la conversión",
     fr: "Accepter les conditions payantes et demander le passage",
     de: "Kostenpflichtige Bedingungen annehmen und Umstellung beantragen",
     ja: "有料条件に同意して移行を申請",
@@ -3525,7 +3525,7 @@ export const customerMessages = defineMessages({
   },
   "customer.payg.result.payg": {
     en: "PAYG enrollment recorded from {start}. Billing authority: {authority}.",
-    es: "Alta de pago por uso registrada desde el {start}. Responsable de la facturación: {authority}.",
+    es: "Alta de pago por uso registrada desde el {start}. Entidad facturadora: {authority}.",
     fr: "Inscription au paiement à l’usage enregistrée à partir du {start}. Facturation assurée par\u00a0: {authority}.",
     de: "Anmeldung zur nutzungsbasierten Abrechnung ab {start} erfasst. Abrechnende Stelle: {authority}.",
     ja: "{start} からの従量課金の登録を記録しました。請求主体：{authority}。",

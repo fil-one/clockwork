@@ -68,7 +68,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.review.summaryTitle": {
     en: "Decision review summary",
-    es: "Resumen de la decisión",
+    es: "Resumen de la revisión de la decisión",
     fr: "Récapitulatif de la décision",
     de: "Zusammenfassung der Entscheidung",
     ja: "判断内容の確認",
@@ -558,7 +558,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.approvals.authenticatedActor": {
     en: "Authenticated actor",
-    es: "Autor autenticado",
+    es: "Empleado autenticado",
     fr: "Auteur authentifié",
     de: "Authentifizierte handelnde Person",
     ja: "認証済みの操作者",

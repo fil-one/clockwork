@@ -222,7 +222,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.action.timeout": {
     en: "“{action}” is still running. The result is not confirmed yet, so the record may still change.",
-    es: "«{action}» sigue en curso. El resultado aún no está confirmado, así que el registro todavía puede cambiar.",
+    es: "«{action}» sigue en curso. El resultado aún no está confirmado, por lo que el registro todavía puede cambiar.",
     fr: "«\u00a0{action}\u00a0» est toujours en cours. Le résultat n’est pas encore confirmé\u202f; l’enregistrement peut donc encore changer.",
     de: "„{action}“ läuft noch. Das Ergebnis ist noch nicht bestätigt; der Datensatz kann sich also noch ändern.",
     ja: "「{action}」は実行中です。結果はまだ確定していないため、記録が変わる可能性があります。",
@@ -1791,7 +1791,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.derivation.note.commitmentOverageVariance": {
     en: "Recorded overage differs from consumption above the adjusted allowance.",
-    es: "El excedente registrado no coincide con el consumo por encima de la franquicia ajustada.",
+    es: "El excedente registrado no coincide con el consumo por encima del cupo ajustado.",
     fr: "Le dépassement enregistré diffère de la consommation au-delà du volume inclus ajusté.",
     de: "Die erfasste Mehrnutzung weicht vom Verbrauch über dem angepassten Kontingent ab.",
     ja: "記録された超過分が、調整後の許容量を超えた消費量と一致しません。",

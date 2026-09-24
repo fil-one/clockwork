@@ -376,7 +376,7 @@ export const enumMessages = defineMessages({
   },
   "status.invoice.open": {
     en: "Open",
-    es: "Pendiente",
+    es: "Abierta",
     fr: "Ouverte",
     de: "Offen",
     ja: "未払い",

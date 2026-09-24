@@ -322,7 +322,7 @@ const fixtures: readonly CommercialFixture[] = [
       status: "active",
       description: demoText({
         en: "EU variant · attached to the governing agreement",
-        es: "Variante UE · vinculada al acuerdo aplicable",
+        es: "Variante UE · anexa al acuerdo aplicable",
         fr: "Variante UE · rattachée à l’accord applicable",
         de: "EU-Variante · Anhang zur maßgeblichen Vereinbarung",
         ja: "EU 版・適用契約に付属",

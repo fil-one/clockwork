@@ -342,7 +342,7 @@ export const operationsMessages = defineMessages({
   },
   "ui.47": {
     en: "Highest open amount, then days past due, then invoice reference. Amounts in a second currency are ranked but never added into a total.",
-    es: "Primero el importe pendiente más alto, después los días de retraso y la referencia. Los importes en otra moneda se ordenan, pero nunca se suman al total.",
+    es: "Primero el importe pendiente más alto, después los días de retraso y, por último, la referencia de la factura. Los importes en otra moneda se ordenan, pero nunca se suman al total.",
     fr: "Montant ouvert le plus élevé, puis jours de retard et référence de facture. Les montants dans une autre devise sont classés mais jamais additionnés au total.",
     de: "Höchster offener Betrag, dann Verzugstage, dann Rechnungsreferenz. Andere Währungen werden geordnet, aber nie addiert.",
     ja: "未払い額、延滞日数、請求書参照の順に並べます。別通貨の金額は順位付けされますが、合計には加算されません。",
@@ -1955,7 +1955,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queue.detail.reviewOnly.body": {
     en: "Nothing is submitted here. Continue through the authorized workflow, where role, actor, policy, and provider gates are revalidated.",
-    es: "Aquí no se envía nada. Continúe por el flujo autorizado, donde se vuelven a validar los controles de rol, de autor, de política y de proveedor.",
+    es: "Aquí no se envía nada. Continúe por el flujo autorizado, donde se vuelven a validar los controles de rol, de quien actúa, de política y de proveedor.",
     fr: "Rien n’est soumis ici. Poursuivez dans le workflow autorisé, où le rôle, l’acteur, la politique et les prérequis du prestataire sont revérifiés.",
     de: "Hier wird nichts übermittelt. Fahren Sie im autorisierten Workflow fort, in dem Rolle, handelnde Person, Richtlinie und Anbietervoraussetzungen erneut geprüft werden.",
     ja: "ここでは何も送信されません。承認済みのワークフローで続行してください。そこでロール、実行者、ポリシー、プロバイダー要件が再検証されます。",
@@ -2285,7 +2285,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.queueRecord.description": {
     en: "Review data freshness, evidence, and the recorded next task.",
-    es: "Revise la vigencia de los datos, la evidencia y la siguiente tarea registrada.",
+    es: "Revise la actualidad de los datos, la evidencia y la siguiente tarea registrada.",
     fr: "Vérifiez que les données sont à jour, puis examinez les preuves et la prochaine tâche enregistrée.",
     de: "Prüfen Sie die Aktualität der Daten, die Nachweise und die erfasste nächste Aufgabe.",
     ja: "データの鮮度、証跡、記録された次のタスクを確認します。",
@@ -4141,7 +4141,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.incidents.decision.anchor.detail": {
     en: "The immutable audit event that recorded the failure. Decisions are numbered against it in their own sequence, so no runtime writer's version can collide with one.",
-    es: "El evento de auditoría inmutable que registró el fallo. Las decisiones se numeran sobre él en su propia secuencia, de modo que ninguna versión escrita en tiempo de ejecución puede coincidir con ellas.",
+    es: "El evento de auditoría inmutable que registró el fallo. Las decisiones se numeran sobre él en su propia secuencia, de modo que la versión de ningún módulo que escribe en tiempo de ejecución puede colisionar con una de ellas.",
     fr: "L’événement d’audit immuable qui a consigné la défaillance. Les décisions sont numérotées par rapport à lui dans leur propre séquence, si bien qu’aucune version écrite à l’exécution ne peut entrer en conflit avec elles.",
     de: "Das unveränderliche Audit-Ereignis, das den Fehler erfasst hat. Entscheidungen werden daran in einer eigenen Folge nummeriert, sodass keine zur Laufzeit geschriebene Version mit ihnen kollidieren kann.",
     ja: "障害を記録した変更不可の監査イベントです。判断はこのイベントに対して独自の連番で記録されるため、実行時の書き込み元のバージョンと衝突することはありません。",

@@ -234,7 +234,7 @@ export const approvalCases: readonly ApprovalCase[] = [
     kind: "rejection",
     impact: demoText({
       en: "Accepts or rejects customer language that changes the liability and audit terms.",
-      es: "Acepta o rechaza redacción del cliente que modifica las cláusulas de responsabilidad y auditoría.",
+      es: "Acepta o rechaza la redacción del cliente que modifica las cláusulas de responsabilidad y auditoría.",
       fr: "Accepte ou rejette une rédaction du client qui modifie les clauses de responsabilité et d’audit.",
       de: "Nimmt Formulierungen des Kunden an oder weist sie zurück, die die Haftungs- und Prüfungsbedingungen ändern.",
       ja: "責任条項と監査条項を変更する顧客側の文言を受け入れるか却下します。",
@@ -286,7 +286,7 @@ export const approvalCases: readonly ApprovalCase[] = [
     }),
     downstreamEffect: demoText({
       en: "Approval unlocks counter-signature; rejection returns the redline to the account owner.",
-      es: "La aprobación habilita la contrafirma; el rechazo devuelve la revisión al propietario de la cuenta.",
+      es: "La aprobación habilita la contrafirma; el rechazo devuelve la versión con control de cambios al propietario de la cuenta.",
       fr: "L’approbation débloque la contre-signature\u202f; le rejet renvoie la version annotée au propriétaire du compte.",
       de: "Eine Genehmigung gibt die Gegenzeichnung frei; eine Zurückweisung schickt die Änderungen an den Kontoinhaber zurück.",
       ja: "承認するとカウンター署名が可能になり、却下すると修正履歴がアカウント所有者に差し戻されます。",
@@ -403,7 +403,7 @@ export const approvalCases: readonly ApprovalCase[] = [
       }),
       demoText({
         en: "Final credit and invoice check is clear",
-        es: "La comprobación final de créditos y facturas no presenta incidencias",
+        es: "La comprobación final de saldos a favor y facturas no presenta incidencias",
         fr: "Le contrôle final des avoirs et des factures est concluant",
         de: "Abschließende Prüfung von Gutschriften und Rechnungen ohne Befund",
         ja: "最終的なクレジットと請求書の確認で問題なし",
@@ -467,7 +467,7 @@ export const approvalCases: readonly ApprovalCase[] = [
       }),
       demoText({
         en: "Credit due check clear",
-        es: "Comprobación de créditos pendientes sin incidencias",
+        es: "Comprobación de saldo a favor sin incidencias",
         fr: "Contrôle des avoirs dus concluant",
         de: "Prüfung fälliger Gutschriften ohne Befund",
         ja: "未処理クレジットの確認で問題なし",
@@ -510,7 +510,7 @@ export const accounts: readonly DemoSelectOption[] = [
     label: "Northstar Archive Labs",
     description: demoText({
       en: "Direct buyer · active",
-      es: "Cliente directo · cuenta activa",
+      es: "Comprador directo · activo",
       fr: "Client direct · compte actif",
       de: "Direktkunde · Konto aktiv",
       ja: "直接購入・アカウント有効",

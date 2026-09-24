@@ -623,7 +623,7 @@ export const demoMessages = defineMessages({
   },
   "demo.panel.reset": {
     en: "Restore demo data",
-    es: "Restaurar los datos de la demo",
+    es: "Restablecer los datos de la demo",
     fr: "Restaurer les données de la démo",
     de: "Demo-Daten wiederherstellen",
     ja: "デモデータを復元",

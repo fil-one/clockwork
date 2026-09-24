@@ -176,7 +176,7 @@ export const commonMessages = defineMessages({
   },
   "cp.common.freshnessPartialTitle": {
     en: "Only part of this collection could be read.",
-    es: "Solo se pudo leer parte de esta colección.",
+    es: "Solo se ha podido leer parte de esta colección.",
     fr: "Seule une partie de cette liste a pu être chargée.",
     de: "Nur ein Teil dieser Sammlung konnte abgerufen werden.",
     ja: "この一覧の一部しか取得できませんでした。",

@@ -81,7 +81,7 @@ const fixtureText = {
   }),
   serviceNotice: demoText({
     en: "Fictional demo only. Your request does not activate a provider tenant or start billing. A verified handoff is required before service begins.",
-    es: "Solo es una demostración ficticia. Su solicitud no activa ningún inquilino del proveedor ni inicia la facturación. Antes de que empiece el servicio es necesario un traspaso verificado.",
+    es: "Solo es una demostración ficticia. Su solicitud no activa ningún inquilino en el proveedor ni inicia la facturación. Antes de que empiece el servicio se requiere un traspaso verificado.",
     fr: "Démonstration fictive uniquement. Votre demande n’active aucun locataire chez le prestataire et ne déclenche pas la facturation. Un transfert vérifié est requis avant le début du service.",
     de: "Nur fiktive Demo. Ihre Anfrage aktiviert keinen Mandanten beim Anbieter und startet keine Abrechnung. Vor Leistungsbeginn ist eine verifizierte Übergabe erforderlich.",
     ja: "架空のデモ専用です。この申請によってプロバイダーのテナントが有効化されたり、請求が開始されたりすることはありません。サービス開始前に、検証済みの引き継ぎが必要です。",
@@ -91,7 +91,7 @@ const fixtureText = {
   }),
   cancellationNotice: demoText({
     en: "Fictional demo only. Cancellation is a request until the provider confirms the service end. The retained offer controls any final billing minimum.",
-    es: "Solo es una demostración ficticia. La cancelación es una solicitud hasta que el proveedor confirme el fin del servicio. La oferta registrada determina cualquier mínimo de facturación final.",
+    es: "Solo es una demostración ficticia. La cancelación es una solicitud hasta que el proveedor confirme el fin del servicio. La oferta conservada determina cualquier mínimo de facturación final.",
     fr: "Démonstration fictive uniquement. La résiliation reste une demande tant que le prestataire n’a pas confirmé la fin du service. L’offre conservée détermine l’éventuel minimum de facturation final.",
     de: "Nur fiktive Demo. Die Kündigung bleibt eine Anfrage, bis der Anbieter das Leistungsende bestätigt. Ein etwaiges abschließendes Abrechnungsminimum richtet sich nach dem gespeicherten Tarif.",
     ja: "架空のデモ専用です。プロバイダーがサービス終了を確認するまで、解約は申請の扱いです。最終請求の最低料金は、保存されているオファーに従います。",
@@ -101,7 +101,7 @@ const fixtureText = {
   }),
   trialNotice: demoText({
     en: "Fictional demo only. Trial eligibility is verified once for the organization and domain. No paid conversion occurs without your separate request.",
-    es: "Solo es una demostración ficticia. El derecho al periodo de prueba se verifica una sola vez por organización y dominio. No se produce ninguna conversión a pago sin una solicitud aparte por su parte.",
+    es: "Solo es una demostración ficticia. La elegibilidad para el periodo de prueba se verifica una sola vez por organización y dominio. No se produce ninguna conversión a pago sin su solicitud independiente.",
     fr: "Démonstration fictive uniquement. L’éligibilité à l’essai est vérifiée une seule fois pour l’organisation et le domaine. Aucune conversion payante n’a lieu sans une demande distincte de votre part.",
     de: "Nur fiktive Demo. Die Berechtigung für die Testphase wird einmal für Organisation und Domain geprüft. Ohne Ihre gesonderte Anfrage erfolgt keine kostenpflichtige Umwandlung.",
     ja: "架空のデモ専用です。トライアルの利用資格は、組織とドメインについて1回だけ確認されます。別途お申し込みがない限り、有料プランへの移行は行われません。",

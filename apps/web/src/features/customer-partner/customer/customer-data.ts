@@ -201,7 +201,7 @@ const amendmentRecords: readonly CustomerCollectionFixture[] = [
     }),
     description: demoText({
       en: "Adds the enhanced response schedule to both services.",
-      es: "Añade el plan de respuesta ampliado a ambos servicios.",
+      es: "Añade el plan de tiempos de respuesta mejorado a ambos servicios.",
       fr: "Ajoute les délais de réponse renforcés aux deux services.",
       de: "Ergänzt beide Dienste um die erweiterten Reaktionszeiten.",
       ja: "両方のサービスに拡張応答時間を追加します。",
@@ -265,7 +265,7 @@ const amendmentRecords: readonly CustomerCollectionFixture[] = [
           kind: "text",
           text: demoText({
             en: "Signed addendum",
-            es: "Adenda firmada",
+            es: "Anexo firmado",
             fr: "Avenant signé",
             de: "Unterzeichneter Nachtrag",
             ja: "署名済みの追加条項",
@@ -813,7 +813,7 @@ const marketplaceRecords: readonly CustomerCollectionFixture[] = [
     }),
     description: demoText({
       en: "Disbursement is pending in the read-only provider feed.",
-      es: "El pago figura como pendiente en los datos de solo lectura del proveedor.",
+      es: "La liquidación del marketplace figura como pendiente en los datos de solo lectura del proveedor.",
       fr: "Le versement est en attente dans le flux en lecture seule du prestataire.",
       de: "Die Auszahlung ist im schreibgeschützten Anbieter-Feed als ausstehend gemeldet.",
       ja: "読み取り専用のプロバイダーフィードでは、支払いが保留中です。",

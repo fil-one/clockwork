@@ -1249,7 +1249,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.next.continueOrderAcceptance": {
     en: "Continue through the recorded order acceptance",
-    es: "Continuar con la aceptación del pedido registrada",
+    es: "Continuar con la aceptación registrada del pedido",
     fr: "Poursuivre l’acceptation de commande enregistrée",
     de: "Mit der erfassten Auftragsannahme fortfahren",
     ja: "記録済みの注文承諾手続きを続行",
@@ -3487,7 +3487,7 @@ export const customerCommercialMessages = defineMessages({
   },
   "customer.commercial.buy.step.price": {
     en: "Server price and document",
-    es: "Precio del servidor y documento",
+    es: "Precio calculado por el servidor y documento",
     fr: "Prix du serveur et document",
     de: "Serverpreis und Dokument",
     ja: "サーバーによる価格算出と書類",
@@ -3883,7 +3883,7 @@ export const customerCommercialMessages = defineMessages({
   // ---------------------------------------------------------------------------
   "customer.commercial.payment.eyebrow.demo": {
     en: "Guided demo · payment sandbox",
-    es: "Demostración guiada · entorno de pruebas de pagos",
+    es: "Demo guiada · entorno de pruebas de pagos",
     fr: "Démo guidée · environnement de test des paiements",
     de: "Geführte Demo · Testumgebung für Zahlungen",
     ja: "ガイド付きデモ・決済サンドボックス",

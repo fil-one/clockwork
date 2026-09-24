@@ -94,7 +94,7 @@ const demoOfferWording: Readonly<
     }),
     cancellationNotice: demoText({
       en: "Fictional demo only. Cancellation is a request until the provider confirms the service end. The retained offer controls any final billing minimum.",
-      es: "Solo es una demostración ficticia. La cancelación es una solicitud hasta que el proveedor confirma el fin del servicio. La oferta conservada determina cualquier mínimo de facturación final.",
+      es: "Solo es una demostración ficticia. La cancelación es una solicitud hasta que el proveedor confirme el fin del servicio. La oferta conservada determina cualquier mínimo de facturación final.",
       fr: "Démonstration fictive uniquement. La résiliation reste une demande jusqu’à ce que le prestataire confirme la fin du service. L’offre conservée détermine tout minimum de facturation final.",
       de: "Nur eine fiktive Demo. Die Kündigung bleibt eine Anfrage, bis der Anbieter das Dienstende bestätigt. Ein etwaiges Mindestentgelt der Schlussabrechnung richtet sich nach dem aufbewahrten Tarif.",
       ja: "架空のデモです。解約は、プロバイダーがサービス終了を確定するまでは申請の段階にとどまります。最終請求の最低料金は、保持されているオファーに従います。",

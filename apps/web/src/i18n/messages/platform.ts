@@ -690,7 +690,7 @@ export const platformMessages = defineMessages({
   },
   "nav.partner.quotes": {
     en: "Partner quotes",
-    es: "Presupuestos de socios",
+    es: "Presupuestos de socio",
     fr: "Devis partenaires",
     de: "Partnerangebote",
     ja: "パートナー見積もり",
@@ -1951,7 +1951,7 @@ export const platformMessages = defineMessages({
   },
   "signing.description": {
     en: "Your place is kept while the signing provider opens. No agreement becomes active until the provider’s completion notice arrives and is verified.",
-    es: "Se conserva su posición mientras se abre el proveedor de firma. Ningún acuerdo entra en vigor hasta que se recibe y se verifica el aviso de finalización del proveedor.",
+    es: "Su progreso se conserva mientras se abre el proveedor de firma. Ningún acuerdo entra en vigor hasta que se recibe y se verifica el aviso de finalización del proveedor.",
     fr: "Votre position est conservée pendant l’ouverture du prestataire de signature. Aucun accord n’entre en vigueur tant que l’avis de finalisation du prestataire n’a pas été reçu et vérifié.",
     de: "Ihre Position bleibt erhalten, während der Signaturanbieter geöffnet wird. Keine Vereinbarung tritt in Kraft, bevor die Abschlussmeldung des Anbieters eingegangen und geprüft ist.",
     ja: "署名プロバイダーを開いている間も、この画面の位置は保持されます。プロバイダーからの完了通知を受信して検証するまで、契約は有効になりません。",
@@ -2783,7 +2783,7 @@ export const platformMessages = defineMessages({
   // Panel frame, status and actions.
   "platform.workflow.eyebrow": {
     en: "Server-backed action",
-    es: "Acción registrada en el servidor",
+    es: "Acción ejecutada en el servidor",
     fr: "Action enregistrée sur le serveur",
     de: "Serverseitige Aktion",
     ja: "サーバーで処理する操作",
@@ -3419,7 +3419,7 @@ export const platformMessages = defineMessages({
   },
   "platform.workflow.renewal.evidenceDocumentId": {
     en: "Decline evidence document ID",
-    es: "ID del documento de evidencia de la decisión",
+    es: "ID del documento de evidencia para declinar",
     fr: "ID du document de preuve de la décision",
     de: "Nachweisdokument-ID der Ablehnung",
     ja: "辞退の証跡ドキュメント ID",
@@ -3932,7 +3932,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.metaDescription": {
     en: "The security, privacy and compliance controls this system implements, each citing the source that shows it, and a plain statement of what is not claimed.",
-    es: "Los controles de seguridad, privacidad y cumplimiento normativo que implementa este sistema, cada uno con la fuente que lo demuestra, y una declaración clara de lo que no se afirma.",
+    es: "Los controles de seguridad, privacidad y cumplimiento normativo que implementa este sistema, cada uno con la fuente que lo muestra, y una declaración clara de lo que no se afirma.",
     fr: "Les contrôles de sécurité, de confidentialité et de conformité que ce système met en œuvre, chacun avec la source qui le démontre, et un énoncé clair de ce qui n’est pas revendiqué.",
     de: "Die Sicherheits-, Datenschutz- und Compliance-Kontrollen, die dieses System umsetzt, jeweils mit dem Quellcode, der sie belegt, und eine klare Aussage darüber, was nicht behauptet wird.",
     ja: "このシステムが実装しているセキュリティ、プライバシー、コンプライアンスのコントロールと、それぞれを示すソース、そして主張していないことの明確な説明。",
@@ -3992,7 +3992,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.controls.caption": {
     en: "{section}: implemented controls and the source that shows each one",
-    es: "{section}: controles implementados y el código fuente que demuestra cada uno",
+    es: "{section}: controles implementados y el código fuente que muestra cada uno",
     fr: "{section}\u00a0: contrôles mis en œuvre et source qui démontre chacun d’eux",
     de: "{section}: umgesetzte Kontrollen und der Quellcode, der jede davon belegt",
     ja: "{section}：実装済みのコントロールと、それぞれを示すソース",
@@ -4194,7 +4194,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.section.dataProtection.summary": {
     en: "How records and documents are stored, retained and accessed, and how counterparties are screened.",
-    es: "Cómo se almacenan, conservan y consultan los registros y documentos, y cómo se controla a las contrapartes.",
+    es: "Cómo se almacenan, conservan y consultan los registros y documentos, y cómo se verifica el cumplimiento de las contrapartes.",
     fr: "Comment les enregistrements et les documents sont stockés, conservés et consultés, et comment les contreparties sont filtrées.",
     de: "Wie Datensätze und Dokumente gespeichert, aufbewahrt und abgerufen werden und wie Vertragspartner geprüft werden.",
     ja: "記録と文書の保存、保持、アクセスの方法と、取引相手のスクリーニング方法。",
@@ -4328,7 +4328,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.control.deniedPartyScreening": {
     en: "Counterparties are screened at registration, before signature and at partner activation, and re-screened on expiry. Four embargoed jurisdictions are refused regardless of what the screening provider answers, and a non-clear decision cannot be recorded without a stored match-evidence document.",
-    es: "Las contrapartes se someten a control de partes restringidas en el registro, antes de la firma y en la activación de socios, y se vuelven a controlar cuando el resultado caduca. Cuatro jurisdicciones bajo embargo se rechazan con independencia de lo que responda el proveedor de control, y no se puede registrar ninguna decisión distinta de «sin coincidencias» sin un documento almacenado con la evidencia de la coincidencia.",
+    es: "Las contrapartes se someten a verificación de partes restringidas en el registro, antes de la firma y en la activación de socios, y se vuelven a verificar cuando el resultado caduca. Cuatro jurisdicciones bajo embargo se rechazan con independencia de lo que responda el proveedor de verificación, y no se puede registrar ninguna decisión distinta de «sin coincidencias» sin un documento almacenado con la evidencia de la coincidencia.",
     fr: "Les contreparties font l’objet d’un filtrage à l’enregistrement, avant la signature et à l’activation d’un partenaire, puis d’un nouveau filtrage à l’expiration du résultat. Quatre juridictions sous embargo sont refusées quelle que soit la réponse du prestataire de filtrage, et aucune décision autre que «\u00a0aucune correspondance\u00a0» ne peut être enregistrée sans document de preuve de correspondance stocké.",
     de: "Vertragspartner werden bei der Registrierung, vor der Unterzeichnung und bei der Partneraktivierung einer Sanktionslistenprüfung unterzogen und nach Ablauf erneut geprüft. Vier Embargo-Rechtsordnungen werden unabhängig von der Antwort des Prüfanbieters abgelehnt, und eine Entscheidung, die nicht „unbedenklich“ lautet, kann ohne ein gespeichertes Nachweisdokument zum Treffer nicht erfasst werden.",
     ja: "取引相手は、登録時、署名前、パートナー有効化時にスクリーニングされ、結果の有効期限が切れると再スクリーニングされます。禁輸対象の4つの法域は、スクリーニングプロバイダーの回答にかかわらず拒否されます。また、「該当なし」以外の判定は、照合の証跡文書が保存されていなければ記録できません。",
@@ -5025,7 +5025,7 @@ export const platformMessages = defineMessages({
   },
   "platform.developers.class.providerSignature.detail": {
     en: "No session, no permission and no account scope. The signature is the whole control: it is verified against the unparsed body, and the event id is claimed so a redelivery is deduplicated rather than applied twice. These routes are deliberately exempt from the CSRF and idempotency-key checks, and the browser proxy does not put sign-in in front of them.",
-    es: "Sin sesión, sin permiso y sin ámbito de cuenta. La firma es todo el control: se verifica contra el cuerpo sin analizar y se registra el ID del evento, de modo que una reentrega se deduplica en lugar de aplicarse dos veces. Estas rutas quedan exentas a propósito de las comprobaciones de CSRF y de idempotency-key, y el proxy del navegador no les antepone el inicio de sesión.",
+    es: "Sin sesión, sin permiso y sin ámbito de cuenta. La firma es todo el control: se verifica contra el cuerpo sin analizar y se reclama el ID del evento, de modo que una reentrega se deduplica en lugar de aplicarse dos veces. Estas rutas quedan exentas a propósito de las comprobaciones de CSRF y de clave de idempotencia, y el proxy del navegador no les antepone el inicio de sesión.",
     fr: "Ni session, ni autorisation, ni périmètre de compte. La signature constitue tout le contrôle\u00a0: elle est vérifiée sur le corps non analysé, et l’identifiant de l’événement est enregistré afin qu’une nouvelle livraison soit dédupliquée au lieu d’être appliquée deux fois. Ces routes sont volontairement exemptées des contrôles CSRF et idempotency-key, et le proxy du navigateur ne leur impose pas de connexion.",
     de: "Keine Sitzung, keine Berechtigung, kein Kontobereich. Die Signatur ist die gesamte Kontrolle: sie wird gegen den nicht geparsten Anforderungstext geprüft, und die Ereignis-ID wird registriert, sodass eine erneute Zustellung dedupliziert statt doppelt angewendet wird. Diese Routen sind bewusst von den CSRF- und idempotency-key-Prüfungen ausgenommen, und der Browser-Proxy schaltet ihnen keine Anmeldung vor.",
     ja: "セッション、権限、アカウントスコープはいずれもありません。署名がすべての制御です。署名は解析前のボディに対して検証され、イベント ID が記録されるため、再送は二重に適用されず重複として除外されます。これらのルートは意図的に CSRF と idempotency-key のチェックの対象外で、ブラウザープロキシもサインインを要求しません。",

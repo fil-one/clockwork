@@ -1105,7 +1105,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.priceBooks.activation.awaitingSecondBody": {
     en: "You proposed this activation. Another finance approver decides it.",
-    es: "Usted propuso esta activación. La decide otro aprobador financiero.",
+    es: "Usted ha propuesto esta activación. La decide otro aprobador financiero.",
     fr: "Vous avez proposé cette activation. Un autre approbateur financier en décide.",
     de: "Sie haben diese Aktivierung beantragt. Darüber entscheidet eine andere genehmigende Person aus dem Finanzbereich.",
     ja: "この有効化はご自身が申請したものです。判断は別の財務承認者が行います。",
@@ -1845,7 +1845,7 @@ export const adminPricingMessages = defineMessages({
         "Copies the {count} saved rates into a new {currency} draft, with their floors, transfer prices, tax and accounting codes and the discount rules.",
     },
     es: {
-      one: "Copia la tarifa guardada en un nuevo borrador en {currency}, con su precio mínimo, sus precios de cesión, sus códigos fiscales y contables y las reglas de descuento.",
+      one: "Copia {count} tarifa guardada en un nuevo borrador en {currency}, con su precio mínimo, sus precios de cesión, sus códigos fiscales y contables y las reglas de descuento.",
       many: "Copia {count} de tarifas guardadas en un nuevo borrador en {currency}, con sus precios mínimos, precios de cesión, códigos fiscales y contables y las reglas de descuento.",
       other:
         "Copia las {count} tarifas guardadas en un nuevo borrador en {currency}, con sus precios mínimos, precios de cesión, códigos fiscales y contables y las reglas de descuento.",
@@ -3206,7 +3206,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.trials.description": {
     en: "Record a trial only for a mapped provider tenant and an existing server-verified domain. One claim is retained for each organization and domain. This does not provision storage or enable a live trial adapter.",
-    es: "Registre un periodo de prueba solo para un inquilino del proveedor ya asignado y un dominio existente verificado por el servidor. Solo se conserva un periodo de prueba por organización y dominio. Esto no aprovisiona almacenamiento ni habilita un adaptador de prueba real.",
+    es: "Registre un periodo de prueba solo para un inquilino del proveedor ya asignado y un dominio existente verificado por el servidor. Solo se conserva un periodo de prueba por organización y dominio. Esto no aprovisiona almacenamiento ni habilita un adaptador real de periodos de prueba.",
     fr: "N’enregistrez un essai que pour un locataire de prestataire mis en correspondance et un domaine existant vérifié par le serveur. Une seule demande est conservée par organisation et par domaine. Cette action ne provisionne pas de stockage et n’active aucun adaptateur d’essai réel.",
     de: "Erfassen Sie eine Testphase nur für einen zugeordneten Anbietermandanten und eine vorhandene, serverseitig verifizierte Domain. Pro Organisation und Domain wird eine Inanspruchnahme gespeichert. Dadurch wird weder Speicher bereitgestellt noch ein Live-Adapter für Testphasen aktiviert.",
     ja: "トライアルは、マッピング済みのプロバイダーテナントと、サーバーで検証済みの既存ドメインに対してのみ記録してください。利用登録は組織とドメインごとに1件保持されます。この操作でストレージがプロビジョニングされることはなく、本番のトライアルアダプターも有効になりません。",
@@ -3236,7 +3236,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.payg.trials.claimed": {
     en: "Lifetime trial claim {id} retained. Provider enforcement requires the verified authorization adapter.",
-    es: "Periodo de prueba {id} registrado; es el único que se admite para esta organización. La aplicación por parte del proveedor requiere el adaptador de autorización verificado.",
+    es: "Periodo de prueba {id} registrado; es el único que se admite para esta organización y este dominio. La aplicación por parte del proveedor requiere el adaptador de autorización verificado.",
     fr: "Demande d’essai unique {id} enregistrée. L’application côté prestataire nécessite l’adaptateur d’autorisation vérifié.",
     de: "Einmalige Inanspruchnahme der Testphase {id} gespeichert. Die Durchsetzung beim Anbieter erfordert den verifizierten Autorisierungsadapter.",
     ja: "トライアルの利用登録 {id}（組織につき1回限り）を保存しました。プロバイダー側での適用には、検証済みの認可アダプターが必要です。",
@@ -4654,7 +4654,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.simulation.guardrail.pass": {
     en: "Price guardrails: within the floor price and discount authority.",
-    es: "Controles de precio: dentro del precio mínimo y de los límites de descuento autorizados.",
+    es: "Controles de precio: respeta el precio mínimo y los límites de descuento autorizados.",
     fr: "Garde-fous tarifaires\u00a0: dans les limites du prix plancher et de la délégation de remise.",
     de: "Preisgrenzen: innerhalb der Preisuntergrenze und der Rabattbefugnis.",
     ja: "価格ガードレール：下限価格と値引き権限の範囲内です。",
@@ -5130,7 +5130,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.impact.scope": {
     en: "Activation changes the eligible price book for new quotes in this currency. It does not reprice retained quote, order, invoice or commitment snapshots. Issued quotes keep their quoted economics, and acceptance still checks their expiry, agreement and other existing controls.",
-    es: "La activación cambia la lista de precios aplicable a los nuevos presupuestos en esta moneda. No vuelve a calcular los precios de las instantáneas conservadas de presupuestos, pedidos, facturas ni compromisos. Los presupuestos emitidos mantienen sus condiciones económicas y, al aceptarlos, se siguen comprobando su vencimiento, su acuerdo y los demás controles existentes.",
+    es: "La activación cambia la lista de precios aplicable a los nuevos presupuestos en esta moneda. No vuelve a calcular los precios de las instantáneas conservadas de presupuestos, pedidos, facturas ni compromisos. Los presupuestos emitidos mantienen sus condiciones económicas y, al aceptarlos, se siguen comprobando su caducidad, su acuerdo y los demás controles existentes.",
     fr: "L’activation change la grille tarifaire applicable aux nouveaux devis dans cette devise. Elle ne revalorise pas les instantanés conservés de devis, de commandes, de factures ou d’engagements. Les devis émis conservent leurs conditions économiques, et leur acceptation reste soumise à la vérification de leur expiration, de leur accord et des autres contrôles existants.",
     de: "Die Aktivierung ändert die für neue Angebote in dieser Währung maßgebliche Preisliste. Gespeicherte Momentaufnahmen von Angeboten, Aufträgen, Rechnungen oder Verpflichtungen werden nicht neu bepreist. Ausgestellte Angebote behalten ihre angebotenen Konditionen, und bei der Annahme werden weiterhin Ablauf, Vereinbarung und die übrigen bestehenden Kontrollen geprüft.",
     ja: "有効化により、この通貨の新しい見積もりに適用される価格表が変わります。保存済みの見積もり、注文、請求書、契約コミットのスナップショットの価格は再計算されません。発行済みの見積もりは見積もり時の経済条件を維持し、受諾時には引き続き有効期限、契約、その他の既存の管理項目が確認されます。",
@@ -5270,7 +5270,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.impact.metric.unexpiredIssuedQuotes": {
     en: "Issued quotes before expiry",
-    es: "Presupuestos emitidos sin vencer",
+    es: "Presupuestos emitidos sin caducar",
     fr: "Devis émis non expirés",
     de: "Ausgestellte Angebote vor Ablauf",
     ja: "発行済みの見積もり（有効期限内）",
@@ -5280,7 +5280,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.impact.metric.expiredIssuedQuotes": {
     en: "Issued quotes past expiry",
-    es: "Presupuestos emitidos vencidos",
+    es: "Presupuestos emitidos caducados",
     fr: "Devis émis expirés",
     de: "Ausgestellte Angebote nach Ablauf",
     ja: "発行済みの見積もり（期限切れ）",
@@ -5923,7 +5923,7 @@ export const adminPricingMessages = defineMessages({
   },
   "adminPricing.command.idempotencyRequired": {
     en: "A valid idempotency-key header is required.",
-    es: "Se requiere un encabezado idempotency-key válido.",
+    es: "Se requiere una cabecera idempotency-key válida.",
     fr: "Un en-tête idempotency-key valide est requis.",
     de: "Ein gültiger idempotency-key-Header ist erforderlich.",
     ja: "有効な idempotency-key ヘッダーが必要です。",

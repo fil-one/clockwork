@@ -923,7 +923,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.creditNote.effect": {
     en: "A credit note is approved against this invoice and a Stripe credit-note operation is created for it. The invoice amount is reduced by the credit the provider confirms; nothing is refunded to a card.",
-    es: "Se aprueba una factura rectificativa sobre esta factura y se crea para ella una operación de factura rectificativa en Stripe. El importe de la factura se reduce en la cantidad que confirme el proveedor; no se reembolsa nada a ninguna tarjeta.",
+    es: "Se aprueba una factura rectificativa sobre esta factura y se crea para ella una operación de factura rectificativa en Stripe. El importe de la factura se reduce en el abono que confirme el proveedor; no se reembolsa nada a ninguna tarjeta.",
     fr: "Un avoir est approuvé sur cette facture et une opération d’avoir Stripe est créée pour celui-ci. Le montant de la facture est réduit du crédit confirmé par le prestataire\u202f; rien n’est remboursé sur une carte.",
     de: "Eine Gutschrift wird für diese Rechnung genehmigt und dafür ein Gutschriftvorgang in Stripe angelegt. Der Rechnungsbetrag verringert sich um die Gutschrift, die der Anbieter bestätigt; auf eine Karte wird nichts erstattet.",
     ja: "この請求書に対するクレジットノートが承認され、Stripe でクレジットノートの処理が作成されます。請求額はプロバイダーが確認したクレジット額だけ減額されます。カードへの返金は行われません。",
@@ -1303,7 +1303,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.refusal.amountExceedsInvoice": {
     en: "The credit is larger than the invoice total. The server allows less than this: it credits only what is still owed, minus any credit note already raised.",
-    es: "El importe de la factura rectificativa supera el total de la factura. El servidor permite menos que eso: solo acredita lo que aún se adeuda, descontadas las facturas rectificativas ya emitidas.",
+    es: "El importe de la factura rectificativa supera el total de la factura. El servidor permite menos que eso: solo abona lo que aún se adeuda, descontadas las facturas rectificativas ya emitidas.",
     fr: "Le montant de l’avoir dépasse le total de la facture. Le serveur autorise moins que cela\u00a0: il ne crédite que le reste dû, déduction faite des avoirs déjà émis.",
     de: "Die Gutschrift ist höher als die Rechnungssumme. Der Server lässt weniger zu: Er schreibt nur den noch offenen Betrag gut, abzüglich bereits ausgestellter Gutschriften.",
     ja: "クレジット額が請求書の合計を超えています。サーバーが認めるのはこれより少ない額で、未払い残高から発行済みのクレジットノートを差し引いた額のみがクレジットされます。",
@@ -1393,7 +1393,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.corrections.failure.validation": {
     en: "The server refused the correction, for example because the amount exceeds what can still be credited or refunded. Nothing was written.",
-    es: "El servidor ha rechazado la corrección, por ejemplo porque el importe supera lo que aún se puede acreditar o reembolsar. No se ha guardado nada.",
+    es: "El servidor ha rechazado la corrección, por ejemplo porque el importe supera lo que aún se puede abonar o reembolsar. No se ha guardado nada.",
     fr: "Le serveur a refusé la correction, par exemple parce que le montant dépasse ce qui peut encore être crédité ou remboursé. Rien n’a été écrit.",
     de: "Der Server hat die Korrektur abgelehnt, etwa weil der Betrag höher ist als das, was noch gutgeschrieben oder erstattet werden kann. Es wurde nichts gespeichert.",
     ja: "サーバーが修正を拒否しました（金額がクレジットまたは返金できる残額を超えている場合など）。何も書き込まれていません。",
@@ -2175,7 +2175,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.migrations.search.helpAmbiguous": {
     en: "Choose one verified legal entity. Selecting a candidate links the source record; it never creates another account.",
-    es: "Elija una única entidad legal verificada. Seleccionar un candidato vincula el registro de origen; nunca crea otra cuenta.",
+    es: "Elija una única persona jurídica verificada. Seleccionar un candidato vincula el registro de origen; nunca crea otra cuenta.",
     fr: "Choisissez une seule entité juridique vérifiée. Sélectionner un candidat rattache l’enregistrement source\u202f; cela ne crée jamais d’autre compte.",
     de: "Wählen Sie genau eine verifizierte juristische Person. Die Auswahl eines Kandidaten verknüpft den Quelldatensatz; sie legt nie ein weiteres Konto an.",
     ja: "検証済みの法人を1つ選択してください。候補を選択すると元の記録が紐付けられます。別のアカウントが作成されることはありません。",
@@ -2295,7 +2295,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.migrations.reason.confirmEvidence": {
     en: "Confirm the legal-entity evidence before review.",
-    es: "Confirme la evidencia de la entidad legal antes de la revisión.",
+    es: "Confirme la evidencia de la persona jurídica antes de la revisión.",
     fr: "Confirmez les preuves relatives à l’entité juridique avant l’examen.",
     de: "Bestätigen Sie die Nachweise zur juristischen Person vor der Prüfung.",
     ja: "確認に進む前に、法人に関する証跡を確認してください。",
@@ -2375,7 +2375,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.migrations.review.policyBasis": {
     en: "Migration identity policy §3 · verified legal entity and explicit resolution of ambiguity",
-    es: "Política de identidad en migraciones, §3 · entidad legal verificada y resolución explícita de ambigüedades",
+    es: "Política de identidad en migraciones, §3 · persona jurídica verificada y resolución explícita de ambigüedades",
     fr: "Politique d’identité des migrations, §3 · entité juridique vérifiée et levée explicite des ambiguïtés",
     de: "Richtlinie zur Identität bei Migrationen, §3 · verifizierte juristische Person und ausdrückliche Auflösung von Mehrdeutigkeiten",
     ja: "移行時の本人確認ポリシー §3・検証済みの法人と曖昧さの明示的な解消",
@@ -3883,7 +3883,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.reconciliation.classification.providerFee": {
     en: "Provider fee",
-    es: "Comisión del proveedor",
+    es: "Cargo del proveedor",
     fr: "Frais du prestataire",
     de: "Anbietergebühr",
     ja: "プロバイダー手数料",
