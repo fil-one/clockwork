@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   DatabaseSystemCapabilityAdmin,
@@ -11,14 +12,50 @@ import {
   StatusPill,
 } from "@/src/features/internal-ops/administration-safety/ui";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
+import type { MessageId, Translator } from "@/src/i18n";
+import { getTranslations } from "@/src/i18n/server";
+import { richText } from "@/src/i18n/rich";
 import { CapabilityControls } from "./controls";
 
 export const dynamic = "force-dynamic";
 
+const capabilityLabels: Readonly<Record<SystemCapabilityKey, MessageId>> = {
+  new_business: "adminGovernance.capabilities.key.newBusiness",
+  legal: "adminGovernance.capabilities.key.legal",
+  billing: "adminGovernance.capabilities.key.billing",
+  partner: "adminGovernance.capabilities.key.partner",
+  marketplace: "adminGovernance.capabilities.key.marketplace",
+  teardown: "adminGovernance.capabilities.key.teardown",
+};
+
+const roleLabels: Readonly<Record<string, MessageId>> = {
+  internal_operator: "role.internalOperator",
+  finance_approver: "role.financeApprover",
+  legal_approver: "role.legalApprover",
+  destructive_action_approver: "role.destructiveActionApprover",
+};
+
+/** A stored key as a label; an unknown key is shown as stored. */
+function keyLabel(
+  t: Translator,
+  labels: Readonly<Record<string, MessageId>>,
+  key: string,
+): string {
+  const id = Object.hasOwn(labels, key) ? labels[key] : undefined;
+  return id ? t(id) : key.replaceAll("_", " ");
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("adminGovernance.capabilities.title") };
+}
+
 export default async function Page() {
   const session = await getCommerceSession();
   if (!session.isInternalStaff)
+    // i18n-exempt: thrown to the route's error boundary, which shows its own copy
     throw new Error("Internal staff authority is required");
+  const t = await getTranslations();
   let capabilities: Awaited<
     ReturnType<DatabaseSystemCapabilityAdmin["list"]>
   > | null = null;
@@ -34,62 +71,72 @@ export default async function Page() {
   }
   return (
     <AdministrationPage
-      title="Capabilities"
-      eyebrow="Production controls"
-      description="Request activation with a distinct approver, or immediately stop new work. Recovery work has its own switch."
+      title={t("adminGovernance.capabilities.title")}
+      eyebrow={t("adminGovernance.capabilities.eyebrow")}
+      description={t("adminGovernance.capabilities.description")}
     >
       <p>
-        Activation requires current evidence and a different approver within 24
-        hours. External gates are independently enforced on every execution.{" "}
-        <Link href="/internal/gates">
-          Review external gates and provider tests
-        </Link>
-        .
+        {richText(t, "common.join.sentences", {
+          first: t("adminGovernance.capabilities.guidance"),
+          second: (
+            <Link href="/internal/gates">
+              {t("adminGovernance.capabilities.reviewGates")}
+            </Link>
+          ),
+        })}
       </p>
       {!capabilities ? (
         <section className={styles.panel}>
           <div className={styles.panelBody}>
-            <h2>Capability registry unavailable</h2>
-            <p>
-              Connect the production control database and authenticate with your
-              staff identity to inspect or change persisted capabilities. No
-              activation is implied.
-            </p>
+            <h2>{t("adminGovernance.capabilities.unavailable")}</h2>
+            <p>{t("adminGovernance.capabilities.unavailableDetail")}</p>
           </div>
         </section>
       ) : capabilities.length === 0 ? (
-        <p role="alert">
-          No capabilities are configured. All work remains disabled until the
-          production bootstrap is complete.
-        </p>
+        <p role="alert">{t("adminGovernance.capabilities.none")}</p>
       ) : (
         capabilities.map((capability) => (
           <section className={styles.panel} key={capability.capabilityKey}>
             <div className={styles.panelHeading}>
               <div>
-                <h2>{capability.capabilityKey.replaceAll("_", " ")}</h2>
+                <h2>
+                  {keyLabel(t, capabilityLabels, capability.capabilityKey)}
+                </h2>
                 <p>
-                  Version {capability.rowVersion} · Changed by{" "}
-                  {capability.changedBy}
+                  {t("adminGovernance.capabilities.versionChangedBy", {
+                    version: capability.rowVersion,
+                    actor: capability.changedBy,
+                  })}
                 </p>
               </div>
               <StatusPill
-                state={
-                  capability.enabled ? "New work enabled" : "New work disabled"
-                }
+                state={t(
+                  capability.enabled
+                    ? "adminGovernance.capabilities.newWorkEnabled"
+                    : "adminGovernance.capabilities.newWorkDisabled",
+                )}
+                tone="warning"
               />
             </div>
             <div className={styles.panelBody}>
               <p>
-                Recovery work:{" "}
-                {capability.recoveryEnabled ? "Enabled" : "Disabled"}
+                {t(
+                  capability.recoveryEnabled
+                    ? "adminGovernance.capabilities.recoveryEnabled"
+                    : "adminGovernance.capabilities.recoveryDisabled",
+                )}
               </p>
               <p>{capability.changeReason}</p>
               <p>
-                Activation authority:{" "}
-                {capabilityApprovalRole(
-                  capability.capabilityKey as SystemCapabilityKey,
-                ).replaceAll("_", " ")}
+                {t("adminGovernance.capabilities.activationAuthority", {
+                  role: keyLabel(
+                    t,
+                    roleLabels,
+                    capabilityApprovalRole(
+                      capability.capabilityKey as SystemCapabilityKey,
+                    ),
+                  ),
+                })}
               </p>
             </div>
             <CapabilityControls

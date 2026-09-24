@@ -1,13 +1,27 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import type { MessageId } from "@/src/i18n";
 
 import { useMemo, useState, type ReactNode } from "react";
 
 import { Table } from "@clockwork/ui";
 
-import { adminSafetyCopy } from "./copy";
-import { agreementVersions } from "./data";
+import { formatSurfaceTimestamp } from "@/src/features/customer-partner/formatting";
+import { formatDate } from "@/src/features/shared/format";
+
+import {
+  adminSafetyCopy,
+  agreementExecutionLabels,
+  agreementJurisdictionLabels,
+  agreementStateLabels,
+  agreementStateTones,
+} from "./copy";
+import type {
+  AgreementJurisdiction,
+  AgreementScan,
+  AgreementVersionState,
+  AgreementVersionView,
+} from "./data";
 import { buildReviewSummary, canDecide, type ReviewSummary } from "./policy";
 import {
   AdministrationPage,
@@ -18,12 +32,29 @@ import {
   styles,
 } from "./ui";
 
+const scanLabels: Readonly<Record<AgreementScan, MessageId>> = {
+  hashMatch: "adminGovernance.agreements.scan.hashMatch",
+  evidenceRequired: "adminGovernance.agreements.scan.evidenceRequired",
+  futureActivation: "adminGovernance.agreements.scan.futureActivation",
+};
+
+const jurisdictions = Object.keys(
+  agreementJurisdictionLabels,
+) as AgreementJurisdiction[];
+const states = Object.keys(agreementStateLabels) as AgreementVersionState[];
+
 export function AgreementAdministration({
   roles,
+  versions,
+  scannedAt,
   publishAction,
   readOnly = false,
 }: {
   roles: readonly string[];
+  /** Template versions with their demo text resolved for this reader. */
+  versions: readonly AgreementVersionView[];
+  /** ISO timestamp of the version scan these rows come from. */
+  scannedAt: string;
   readOnly?: boolean;
   /**
    * The authorized template publication workflow this review hands off to,
@@ -32,13 +63,15 @@ export function AgreementAdministration({
   publishAction?: ReactNode;
 }) {
   const t = useTranslations();
-  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
+  const formattingLocale = useFormattingLocale();
   const [query, setQuery] = useState("");
-  const [jurisdiction, setJurisdiction] = useState("All");
-  const [state, setState] = useState("All");
+  const [jurisdiction, setJurisdiction] = useState<
+    AgreementJurisdiction | "all"
+  >("all");
+  const [state, setState] = useState<AgreementVersionState | "all">("all");
   const [selectedId, setSelectedId] = useState(
-    agreementVersions.find((version) => version.state === "Draft")?.id ??
-      agreementVersions[0]?.id ??
+    versions.find((version) => version.state === "draft")?.id ??
+      versions[0]?.id ??
       "",
   );
   const [reason, setReason] = useState("");
@@ -47,97 +80,139 @@ export function AgreementAdministration({
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return agreementVersions.filter(
+    return versions.filter(
       (version) =>
-        (jurisdiction === "All" || version.jurisdiction === jurisdiction) &&
-        (state === "All" || version.state === state) &&
+        (jurisdiction === "all" || version.jurisdiction === jurisdiction) &&
+        (state === "all" || version.state === state) &&
         (!needle ||
           [
             version.label,
             version.type,
             version.version,
-            version.jurisdiction,
-            version.execution,
-            version.scan,
+            t(agreementJurisdictionLabels[version.jurisdiction]),
+            t(agreementExecutionLabels[version.execution]),
+            t(scanLabels[version.scan]),
           ].some((value) => value.toLowerCase().includes(needle))),
     );
-  }, [jurisdiction, query, state]);
+  }, [jurisdiction, query, state, t, versions]);
   const selected =
-    agreementVersions.find((version) => version.id === selectedId) ??
-    agreementVersions[0];
+    versions.find((version) => version.id === selectedId) ?? versions[0];
 
   if (!selected) return null;
 
+  const heading = adminSafetyCopy.agreements;
+  const templateName = (version: AgreementVersionView) =>
+    `${version.label} v${version.version}`;
+  const technicalIdentifiers = [
+    {
+      label: t("adminGovernance.identifier.template"),
+      value: selected.id,
+    },
+    {
+      label: t("adminGovernance.identifier.textHash"),
+      value: selected.textHash,
+    },
+  ];
+
   return (
-    <AdministrationPage {...localizedadminSafetyCopy.agreements}>
+    <AdministrationPage
+      eyebrow={t(heading.eyebrow)}
+      title={t(heading.title)}
+      description={t(heading.description)}
+    >
       <section
         className={styles.panel}
         aria-labelledby="agreement-versions-title"
       >
         <div className={styles.panelHeading}>
           <div>
-            <h2 id="agreement-versions-title">Version scan</h2>
-            <p>Canonical records only · Updated Jul 31, 2026 at 11:44 AM EDT</p>
+            <h2 id="agreement-versions-title">
+              {t("adminGovernance.agreements.scanHeading")}
+            </h2>
+            <p>
+              {t("adminGovernance.agreements.scanMeta", {
+                time: formatSurfaceTimestamp(scannedAt, {
+                  locale: formattingLocale,
+                  timeZone: "America/New_York",
+                }),
+              })}
+            </p>
           </div>
-          <StatusPill state="Fresh" />
+          <StatusPill state={t("adminGovernance.upToDate")} tone="warning" />
         </div>
         <div
           className={styles.toolbar}
           role="search"
-          aria-label="Agreement version filters"
+          aria-label={t("adminGovernance.agreements.filtersLabel")}
         >
           <label className={styles.field}>
-            Search templates
+            {t("adminGovernance.agreements.search")}
             <input
               type="search"
               value={query}
-              placeholder="Name, version, jurisdiction, or scan state"
+              placeholder={t("adminGovernance.agreements.searchPlaceholder")}
               onChange={(event) => setQuery(event.currentTarget.value)}
             />
           </label>
           <label className={styles.field}>
-            Jurisdiction
+            {t("adminGovernance.agreements.jurisdiction")}
             <select
               value={jurisdiction}
-              onChange={(event) => setJurisdiction(event.currentTarget.value)}
+              onChange={(event) =>
+                setJurisdiction(
+                  event.currentTarget.value as AgreementJurisdiction | "all",
+                )
+              }
             >
-              <option>{t("ui.113")}</option>
-              <option>United States</option>
-              <option>European Union</option>
-              <option>United Kingdom</option>
+              <option value="all">{t("common.all")}</option>
+              {jurisdictions.map((key) => (
+                <option key={key} value={key}>
+                  {t(agreementJurisdictionLabels[key])}
+                </option>
+              ))}
             </select>
           </label>
           <label className={styles.field}>
-            State
+            {t("common.status")}
             <select
               value={state}
-              onChange={(event) => setState(event.currentTarget.value)}
+              onChange={(event) =>
+                setState(
+                  event.currentTarget.value as AgreementVersionState | "all",
+                )
+              }
             >
-              <option>{t("ui.113")}</option>
-              <option>{t("status.active")}</option>
-              <option>Approved</option>
-              <option>{t("status.draft")}</option>
-              <option>Retired</option>
+              <option value="all">{t("common.all")}</option>
+              {states.map((key) => (
+                <option key={key} value={key}>
+                  {t(agreementStateLabels[key])}
+                </option>
+              ))}
             </select>
           </label>
         </div>
         <p className={styles.resultMeta} aria-live="polite">
-          {filtered.length} of {agreementVersions.length} versions · Sorted by
-          effective date, newest first
+          {t("common.join.labels", {
+            first: t("adminGovernance.agreements.resultCount", {
+              shown: filtered.length,
+              count: versions.length,
+            }),
+            second: t("adminGovernance.agreements.sortedByEffective"),
+          })}
         </p>
         <Table
           className={styles.scanTable ?? ""}
-          caption="Agreement template versions and approval scan state"
+          caption={t("adminGovernance.agreements.tableCaption")}
           captionHidden
           density="compact"
           headers={[
-            "Template",
-            "Version",
-            "Jurisdiction",
-            "Execution",
-            "Effective",
-            "State",
-            "Scan",
+            t("adminGovernance.agreements.column.template"),
+            t("adminGovernance.agreements.version"),
+            t("adminGovernance.agreements.jurisdiction"),
+            t("adminGovernance.agreements.execution"),
+            t("adminGovernance.agreements.effective"),
+            t("common.status"),
+            t("adminGovernance.agreements.column.scan"),
           ]}
           rowKeys={filtered.map((version) => version.id)}
           rows={filtered.map((version) => [
@@ -146,16 +221,19 @@ export function AgreementAdministration({
               <small>{version.type}</small>
             </span>,
             version.version,
-            version.jurisdiction,
-            version.execution,
-            version.effectiveOn,
-            <StatusPill state={version.state} />,
+            t(agreementJurisdictionLabels[version.jurisdiction]),
+            t(agreementExecutionLabels[version.execution]),
+            formatDate(version.effectiveOn, formattingLocale),
+            <StatusPill
+              state={t(agreementStateLabels[version.state])}
+              tone={agreementStateTones[version.state]}
+            />,
             <span className={styles.stackCell}>
-              <strong>{version.scan}</strong>
-              <small>Exact-text evidence retained</small>
+              <strong>{t(scanLabels[version.scan])}</strong>
+              <small>{t("adminGovernance.agreements.exactTextRetained")}</small>
             </span>,
           ])}
-          emptyState="No agreement versions match these filters."
+          emptyState={t("adminGovernance.agreements.noMatches")}
         />
       </section>
 
@@ -165,13 +243,19 @@ export function AgreementAdministration({
       >
         <div className={styles.panelHeading}>
           <div>
-            <h2 id="agreement-review-title">Legal activation review</h2>
-            <p>
-              Publication preserves version, exact text, approval evidence, and
-              prior executions.
-            </p>
+            <h2 id="agreement-review-title">
+              {t("adminGovernance.agreements.reviewHeading")}
+            </h2>
+            <p>{t("adminGovernance.agreements.reviewIntro")}</p>
           </div>
-          <StatusPill state={permitted ? "Legal authority" : "Read only"} />
+          <StatusPill
+            state={t(
+              permitted
+                ? "adminGovernance.agreements.legalAuthority"
+                : "adminGovernance.readOnly",
+            )}
+            tone="warning"
+          />
         </div>
         <form
           className={styles.panelBody}
@@ -179,30 +263,39 @@ export function AgreementAdministration({
             event.preventDefault();
             setSummary(
               buildReviewSummary({
-                entity: `${selected.label} v${selected.version} · ${selected.jurisdiction}`,
-                impact:
-                  "Makes this immutable, counsel-approved template eligible for activation on its effective date.",
+                entity: t("common.join.labels", {
+                  first: templateName(selected),
+                  second: t(agreementJurisdictionLabels[selected.jurisdiction]),
+                }),
+                impact: t("adminGovernance.agreements.review.impact"),
                 evidence: [
-                  selected.scan,
-                  `Exact approved text hash: ${selected.textHash}`,
-                  `Execution mode: ${selected.execution}`,
+                  t(scanLabels[selected.scan]),
+                  t("adminGovernance.agreements.review.textHash", {
+                    hash: selected.textHash,
+                  }),
+                  t("adminGovernance.agreements.review.executionMode", {
+                    mode: t(agreementExecutionLabels[selected.execution]),
+                  }),
                 ],
-                policyBasis:
-                  "Agreement policy AG-2 requires counsel authority, semantic versioning, exact-text hashing, and canonical-document evidence.",
-                downstreamEffect:
-                  "New eligible executions resolve to this version. Existing signed agreements and domain rules are unchanged.",
+                policyBasis: t("adminGovernance.agreements.review.policy"),
+                downstreamEffect: t(
+                  "adminGovernance.agreements.review.downstream",
+                ),
                 reason,
               }),
             );
           }}
         >
           <HumanSelector
-            label="Agreement template"
+            label={t("adminGovernance.agreements.templateSelector")}
             name="agreementTemplateId"
-            options={agreementVersions.map((version) => ({
-              ...version,
-              label: `${version.label} v${version.version}`,
-              description: `${version.jurisdiction} · ${version.state}`,
+            options={versions.map((version) => ({
+              id: version.id,
+              label: templateName(version),
+              description: t("common.join.labels", {
+                first: t(agreementJurisdictionLabels[version.jurisdiction]),
+                second: t(agreementStateLabels[version.state]),
+              }),
             }))}
             value={selectedId}
             onChange={(id) => {
@@ -213,32 +306,37 @@ export function AgreementAdministration({
           />
           <dl className={styles.metaGrid}>
             <div>
-              <dt>{t("ui.122")}</dt>
+              <dt>{t("adminGovernance.agreements.version")}</dt>
               <dd>
-                {selected.version} · {selected.state}
+                {t("common.join.labels", {
+                  first: selected.version,
+                  second: t(agreementStateLabels[selected.state]),
+                })}
               </dd>
             </div>
             <div>
-              <dt>Effective</dt>
-              <dd>{selected.effectiveOn}</dd>
+              <dt>{t("adminGovernance.agreements.effective")}</dt>
+              <dd>{formatDate(selected.effectiveOn, formattingLocale)}</dd>
             </div>
             <div>
-              <dt>Approval scan</dt>
-              <dd>{selected.scan}</dd>
+              <dt>{t("adminGovernance.agreements.approvalScan")}</dt>
+              <dd>{t(scanLabels[selected.scan])}</dd>
             </div>
             <div>
-              <dt>Execution</dt>
-              <dd>{selected.execution}</dd>
+              <dt>{t("adminGovernance.agreements.execution")}</dt>
+              <dd>{t(agreementExecutionLabels[selected.execution])}</dd>
             </div>
           </dl>
           {!readOnly ? (
             <label className={styles.field}>
-              Counsel decision reason
+              {t("adminGovernance.agreements.counselReason")}
               <textarea
                 value={reason}
                 required
                 minLength={8}
-                placeholder="Explain why this exact version is approved for publication."
+                placeholder={t(
+                  "adminGovernance.agreements.counselReasonPlaceholder",
+                )}
                 onChange={(event) => {
                   setReason(event.currentTarget.value);
                   setSummary(null);
@@ -246,23 +344,18 @@ export function AgreementAdministration({
               />
             </label>
           ) : null}
-          <TechnicalEvidence
-            identifiers={[
-              { label: "Template ID", value: selected.id },
-              { label: "Exact text hash", value: selected.textHash },
-            ]}
-          />
+          <TechnicalEvidence identifiers={technicalIdentifiers} />
           {readOnly ? (
             <div className={styles.roleNotice} role="note">
-              <strong>Template evidence is read only in this demo.</strong>
-              Publication needs counsel-approved canonical text and approval
-              evidence from the production agreement registry.
+              <strong>{t("adminGovernance.agreements.demoReadOnly")}</strong>
+              {t("adminGovernance.agreements.demoReadOnlyDetail")}
             </div>
           ) : !permitted ? (
             <div className={styles.roleNotice} role="note">
-              <strong>Legal approval authority is required.</strong>
-              Other internal roles may scan versions and evidence but cannot
-              approve or activate a template.
+              <strong>
+                {t("adminGovernance.agreements.legalAuthorityRequired")}
+              </strong>
+              {t("adminGovernance.agreements.legalAuthorityRequiredDetail")}
             </div>
           ) : null}
           {!readOnly ? (
@@ -272,7 +365,7 @@ export function AgreementAdministration({
                 type="submit"
                 disabled={!permitted}
               >
-                Review template approval
+                {t("adminGovernance.agreements.reviewAction")}
               </button>
             </div>
           ) : null}
@@ -283,19 +376,12 @@ export function AgreementAdministration({
         <>
           <ReviewSummaryCard
             summary={summary}
-            title="Agreement publication review"
-            identifiers={[
-              { label: "Template ID", value: selected.id },
-              { label: "Exact text hash", value: selected.textHash },
-            ]}
+            title={t("adminGovernance.agreements.summaryTitle")}
+            identifiers={technicalIdentifiers}
           />
           <section className={styles.handoff} role="note">
-            <strong>Not published</strong>
-            <p>
-              Publish through the template workflow. Counsel authority, exact
-              text hash, approval evidence, and effective date are verified
-              there.
-            </p>
+            <strong>{t("adminGovernance.agreements.notPublished")}</strong>
+            <p>{t("adminGovernance.agreements.handoff")}</p>
           </section>
         </>
       ) : null}

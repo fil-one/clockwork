@@ -6,11 +6,18 @@ import {
 } from "@clockwork/db";
 import { requireRecentAuthentication } from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
+import type { MessageId } from "@/src/i18n";
+
+/**
+ * The outcome as a message ID; the form renders it in the reader's language.
+ * An empty string is the form's initial state.
+ */
+export type ProviderReferenceResult = MessageId | "";
 
 export async function saveProviderReference(
-  _previous: string,
+  _previous: ProviderReferenceResult,
   data: FormData,
-): Promise<string> {
+): Promise<ProviderReferenceResult> {
   const session = await requireRecentAuthentication();
   if (
     !session.providerBacked ||
@@ -23,7 +30,7 @@ export async function saveProviderReference(
       (role) => role === "internal_operator" || role === "finance_approver",
     )
   )
-    return "Changes require a directly authenticated operator or finance approver with recent MFA.";
+    return "adminGovernance.providers.result.directSessionRequired";
   const parsed = ProviderReferenceCommandSchema.safeParse({
     provider: data.get("provider"),
     secretReference: data.get("secretReference"),
@@ -35,8 +42,7 @@ export async function saveProviderReference(
     expectedRowVersion: Number(data.get("expectedRowVersion")),
     reason: data.get("reason"),
   });
-  if (!parsed.success)
-    return "Check all fields. Use a secret-manager reference, an ISO UTC rotation timestamp, a review interval of 1–730 days, and an evidence reference.";
+  if (!parsed.success) return "adminGovernance.providers.result.invalid";
   try {
     await new DatabaseProviderReferenceAdmin(getServiceDatabase()).save({
       command: parsed.data,
@@ -44,18 +50,18 @@ export async function saveProviderReference(
       requestId: `provider-reference:${crypto.randomUUID()}`,
     });
     revalidatePath("/internal/providers");
-    return "Reference saved. Deployed credentials and provider qualification are unchanged.";
+    return "adminGovernance.providers.result.saved";
   } catch (error) {
     if (
       error instanceof Error &&
       error.message === "PROVIDER_REFERENCE_VERSION_CONFLICT"
     )
-      return "This reference changed while you were editing. Refresh and review the latest version before saving again.";
+      return "adminGovernance.providers.result.conflict";
     if (
       error instanceof Error &&
       error.message === "PROVIDER_REFERENCE_FUTURE_ROTATION"
     )
-      return "Rotation must already have occurred. Enter its actual timestamp, not a planned future date.";
-    return "The reference could not be saved. Refresh and check your current authority and evidence.";
+      return "adminGovernance.providers.result.futureRotation";
+    return "adminGovernance.providers.result.failed";
   }
 }

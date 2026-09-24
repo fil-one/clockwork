@@ -27,7 +27,15 @@ vi.mock("@clockwork/db", () => ({
     disable = mocks.disable;
   },
 }));
-import { changeCapability } from "./actions";
+import { translatorFor } from "@/src/i18n/catalogs";
+import { changeCapability, type CapabilityActionResult } from "./actions";
+
+/** The action returns a message ID; read it the way an English reader sees it. */
+const english = translatorFor("en");
+async function said(result: Promise<CapabilityActionResult>) {
+  const id = await result;
+  return id ? english(id) : "";
+}
 
 const staff = {
   userId: "20000000-0000-4000-8000-000000000001",
@@ -65,7 +73,7 @@ describe("capability server action", () => {
     "rejects demo, unverified, and assisted identities: %j",
     async (change) => {
       mocks.session.mockResolvedValue({ ...staff, ...change });
-      expect(await changeCapability("", form())).toContain(
+      expect(await said(changeCapability("", form()))).toContain(
         "directly authenticated staff session",
       );
       expect(mocks.propose).not.toHaveBeenCalled();
@@ -74,7 +82,9 @@ describe("capability server action", () => {
   it("binds the actor and exact reviewed version on the server", async () => {
     const data = form();
     data.set("actor", "attacker");
-    expect(await changeCapability("", data)).toContain("distinct approver");
+    expect(await said(changeCapability("", data))).toContain(
+      "distinct approver",
+    );
     expect(mocks.propose).toHaveBeenCalledWith(
       expect.objectContaining({
         actor: { kind: "user", id: staff.userId },
@@ -96,8 +106,8 @@ describe("capability server action", () => {
   it("rejects malformed versions and missing proposal identity", async () => {
     const data = form();
     data.set("expectedRowVersion", "0");
-    expect(await changeCapability("", data)).toContain("Check");
-    expect(await changeCapability("", form("approve"))).toContain(
+    expect(await said(changeCapability("", data))).toContain("Check");
+    expect(await said(changeCapability("", form("approve")))).toContain(
       "Select a pending",
     );
     expect(mocks.propose).not.toHaveBeenCalled();
@@ -107,13 +117,15 @@ describe("capability server action", () => {
     mocks.propose.mockRejectedValueOnce(
       new Error("CAPABILITY_VERSION_CONFLICT"),
     );
-    expect(await changeCapability("", form())).toContain("capability changed");
+    expect(await said(changeCapability("", form()))).toContain(
+      "capability changed",
+    );
     const data = form("approve");
     data.set("proposalId", "30000000-0000-4000-8000-000000000001");
     mocks.decide.mockRejectedValueOnce(
       new Error("CAPABILITY_DISTINCT_APPROVER_REQUIRED"),
     );
-    expect(await changeCapability("", data)).toContain(
+    expect(await said(changeCapability("", data))).toContain(
       "different authorized staff",
     );
     expect(mocks.revalidate).not.toHaveBeenCalled();

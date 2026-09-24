@@ -1,9 +1,16 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import { resolveDemoText } from "@clockwork/testing/demo-localized-text";
+
+import { catalogs } from "@/src/i18n/catalogs";
+import { LanguageProvider } from "@/src/i18n/client";
+
+import { AgreementAdministration } from "./agreements";
+
 import { ApprovalWorkspace } from "./approvals";
-import { accounts } from "./data";
+import { accounts, agreementScanAt, agreementVersions } from "./data";
 import {
   assistedCommercialActionReady,
   buildReviewSummary,
@@ -69,12 +76,13 @@ describe("administration and safety policy", () => {
 
 describe("administration and safety disclosure UI", () => {
   it("keeps the submitted account ID behind a human-readable selector", () => {
+    const options = resolveDemoText(accounts, "en");
     const { container } = render(
       <HumanSelector
         label="Effective account"
         name="effectiveAccountId"
-        options={accounts}
-        value={accounts[0]?.id ?? ""}
+        options={options}
+        value={options[0]?.id ?? ""}
         onChange={() => undefined}
       />,
     );
@@ -126,5 +134,36 @@ describe("administration and safety disclosure UI", () => {
     expect(
       screen.getByRole("heading", { name: "Approval review summary" }),
     ).toBeVisible();
+  });
+});
+
+describe("agreement version filters", () => {
+  it("filters by state and jurisdiction when the labels are translated", async () => {
+    const { container } = render(
+      <LanguageProvider locale="pt" catalog={catalogs.pt}>
+        <AgreementAdministration
+          roles={["legal_approver"]}
+          versions={resolveDemoText(agreementVersions, "pt")}
+          scannedAt={agreementScanAt}
+          readOnly
+        />
+      </LanguageProvider>,
+    );
+    const rows = () =>
+      within(screen.getByRole("table")).getAllByRole("row").slice(1);
+    const selects = container.querySelectorAll("select");
+    const jurisdiction = selects[0] as HTMLSelectElement;
+    const state = selects[1] as HTMLSelectElement;
+    expect(rows()).toHaveLength(4);
+    expect(rows()[0]).toHaveTextContent("Acordo de serviços em nuvem");
+
+    await userEvent.selectOptions(state, "Rascunho");
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0]).toHaveTextContent("3.3.0");
+
+    await userEvent.selectOptions(state, "Todos");
+    await userEvent.selectOptions(jurisdiction, "Reino Unido");
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0]).toHaveTextContent("1.4.0");
   });
 });

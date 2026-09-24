@@ -9,13 +9,7 @@
  */
 export default {
   /** Still import `localizeCopy` / `translateInterfaceText`. */
-  localizeCopy: [
-    "apps/web/src/features/internal-ops/administration-safety/agreements.tsx",
-    "apps/web/src/features/internal-ops/administration-safety/approvals.tsx",
-    "apps/web/src/features/internal-ops/administration-safety/assisted.tsx",
-    "apps/web/src/features/internal-ops/administration-safety/gates.tsx",
-    "apps/web/src/features/internal-ops/administration-safety/ui.tsx",
-  ],
+  localizeCopy: [],
   /** Still format with a literal locale or the runtime's default locale. */
   literalLocales: [],
 };

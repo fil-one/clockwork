@@ -1,4 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
+
+import { catalogs } from "@/src/i18n/catalogs";
+import { LanguageProvider } from "@/src/i18n/client";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/src/features/internal-ops/gates/demo-gate-actions", () => ({
@@ -8,7 +11,7 @@ vi.mock("@/src/features/internal-ops/gates/demo-gate-actions", () => ({
 
 import type { GeneratedExternalGate } from "@/src/features/contracts/external-gates-client";
 
-import { fallbackGateFreshness, fallbackGates } from "./data";
+import { demoGateText, fallbackGateFreshness, fallbackGates } from "./data";
 import { GateRegister, presentGeneratedGate } from "./gates";
 
 describe("truthful external-gate administration", () => {
@@ -106,13 +109,13 @@ describe("truthful external-gate administration", () => {
     const row = screen.getByRole("row", {
       name: /Counsel-approved legal policy/,
     });
-    expect(within(row).getByText("Configured: active")).toBeVisible();
+    expect(within(row).getByText("Configured: Active")).toBeVisible();
     expect(
       within(row).getByText("Blocked", { selector: "span" }),
     ).toBeVisible();
-    expect(within(row).getByText("Effective: blocked")).toBeVisible();
+    expect(within(row).getByText("Effective: Blocked")).toBeVisible();
     expect(within(row).getByText("Activation denied")).toBeVisible();
-    expect(within(row).getByText(/evidence_missing/)).toBeVisible();
+    expect(within(row).getByText("Blockers: Evidence missing")).toBeVisible();
   });
 
   it("renders registry failure as activation denied", () => {
@@ -138,7 +141,10 @@ describe("truthful external-gate administration", () => {
         source="Fail-closed operational fallback"
       />,
     );
-    expect(screen.getByText("Gate registry unavailable")).toBeVisible();
+    // The loader's stand-in row is product text, worded by the register.
+    expect(
+      screen.getByText("External-gate registry unavailable"),
+    ).toBeVisible();
     expect(screen.getByText("Activation denied")).toBeVisible();
   });
 
@@ -194,8 +200,129 @@ describe("truthful external-gate administration", () => {
       />,
     );
     const row = screen.getByRole("row", { name: /EXT-DOMAIN-01 gate/ });
-    expect(within(row).getByText("Configured: active")).toBeVisible();
-    expect(within(row).getByText("Effective: blocked")).toBeVisible();
+    expect(within(row).getByText("Configured: Active")).toBeVisible();
+    expect(within(row).getByText("Effective: Blocked")).toBeVisible();
     expect(within(row).getByText("Activation denied")).toBeVisible();
+  });
+});
+
+describe("the gate register in the reader's language", () => {
+  const seed = fallbackGates.find((gate) => gate.id === "EXT-ACC-01");
+  if (!seed) throw new Error("fixture EXT-ACC-01 is missing");
+  const demoRow = (overrides: Partial<GeneratedExternalGate> = {}) =>
+    presentGeneratedGate(
+      {
+        id: "90000000-0000-4000-8000-000000000009",
+        gateKey: "EXT-ACC-01",
+        title: seed.title,
+        owner: seed.owner,
+        inputRequired: seed.reason,
+        affectedFeature: seed.capability,
+        severity: "launch_blocker",
+        configuredStatus: "pending",
+        effectiveStatus: "pending",
+        simulatorState: "ready",
+        simulatorDetails: seed.activationTest,
+        inputProvenance: "repository_fixture",
+        lastActivationTestStatus: "passed",
+        lastActivationTestAt: "2026-07-31T15:00:00Z",
+        lastActivationTestedBy: "operator",
+        activationEvidenceReference: null,
+        reviewOn: null,
+        statusReason: seed.reason,
+        emergencyDisabledAt: null,
+        emergencyDisabledBy: null,
+        emergencyDisableReason: null,
+        emergencyDisableEvidenceReference: null,
+        activationAllowed: false,
+        blockedReasons: ["review_missing_or_expired"],
+        rowVersion: 2,
+        updatedAt: "2026-07-31T15:01:00Z",
+        ...overrides,
+      },
+      "pt-BR",
+    );
+  const inPortuguese = (ui: React.ReactNode) =>
+    render(
+      <LanguageProvider locale="pt" catalog={catalogs.pt}>
+        {ui}
+      </LanguageProvider>,
+    );
+
+  it("words demo fixture text, statuses and blocker codes in Portuguese", () => {
+    inPortuguese(
+      <GateRegister
+        roles={["internal_operator"]}
+        gates={[demoRow()]}
+        source="Demonstration gate registry"
+        demoText={demoGateText("pt")}
+      />,
+    );
+    expect(
+      screen.getByText("Registro de pré-requisitos de demonstração"),
+    ).toBeVisible();
+    const row = screen.getByRole("row", {
+      name: /Contas hospedadas e credenciais/,
+    });
+    expect(within(row).getByText("Responsável pela plataforma")).toBeVisible();
+    expect(
+      within(row).getByText("Testes de credenciais hospedadas não executados"),
+    ).toBeVisible();
+    expect(within(row).getByText(/^Aprovado · /)).toBeVisible();
+    expect(
+      within(row).getByText("Bloqueios: Data de revisão ausente ou vencida"),
+    ).toBeVisible();
+    expect(within(row).getByText("Ativação negada")).toBeVisible();
+  });
+
+  it("shows what an operator typed over a demo field as written", () => {
+    inPortuguese(
+      <GateRegister
+        roles={["internal_operator"]}
+        gates={[demoRow({ owner: "Northwind platform desk" })]}
+        source="Demonstration gate registry"
+        demoText={demoGateText("pt")}
+      />,
+    );
+    const row = screen.getByRole("row", {
+      name: /Contas hospedadas e credenciais/,
+    });
+    expect(within(row).getByText("Northwind platform desk")).toBeVisible();
+  });
+
+  it("leaves system registry rows as the registry wrote them", () => {
+    inPortuguese(
+      <GateRegister
+        roles={["internal_operator"]}
+        gates={[demoRow()]}
+        source="System gate registry"
+      />,
+    );
+    expect(
+      screen.getByRole("row", { name: /Hosted accounts and credentials/ }),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Registro de pré-requisitos do sistema"),
+    ).toBeVisible();
+  });
+
+  it("words the fallback fixtures, including their freshness, in Japanese", () => {
+    render(
+      <LanguageProvider locale="ja" catalog={catalogs.ja}>
+        <GateRegister
+          roles={["internal_operator"]}
+          gates={fallbackGates}
+          source="Fail-closed operational fallback"
+          demoText={demoGateText("ja")}
+        />
+      </LanguageProvider>,
+    );
+    expect(screen.getByText("ホスト環境のアカウントと認証情報")).toBeVisible();
+    expect(
+      screen.getAllByText(
+        "フォールバック記録：要件レジストリからは読み込んでいません",
+      ),
+    ).toHaveLength(fallbackGates.length);
+    expect(screen.queryByText(fallbackGateFreshness)).not.toBeInTheDocument();
   });
 });

@@ -36,12 +36,16 @@ export function canDecide(
 
 export function buildReviewSummary(input: ReviewSummaryInput): ReviewSummary {
   const reason = input.reason.trim();
+  // Callers run this in submit handlers behind `minLength` fields. The errors
+  // are for developers and tests; no surface renders their text.
   if (reason.length < 8) {
     throw new Error(
+      // i18n-exempt: developer-facing invariant error, never rendered
       "A specific decision reason of at least 8 characters is required.",
     );
   }
   if (input.evidence.length === 0) {
+    // i18n-exempt: developer-facing invariant error, never rendered
     throw new Error("At least one evidence item is required.");
   }
   return { ...input, reason };
@@ -68,3 +72,29 @@ export function assistedCommercialActionReady(input: {
     input.effectiveAccountId.trim().length > 0
   );
 }
+
+/*
+ * The external-gate register's closed-set keys. The operations lane's gate
+ * loader writes these values too, so they keep their established spelling;
+ * the register renders each one through a message (copy.ts).
+ */
+export const gateGroups = {
+  provider: "Provider", // i18n-exempt: closed-set key, rendered via gateGroupLabels
+  legal: "Legal", // i18n-exempt: closed-set key, rendered via gateGroupLabels
+  brand: "Brand", // i18n-exempt: closed-set key, rendered via gateGroupLabels
+  operations: "Operations", // i18n-exempt: closed-set key, rendered via gateGroupLabels
+} as const;
+
+export const gateSeverities = {
+  launchBlocker: "Launch blocker", // i18n-exempt: closed-set key, rendered via gateSeverityLabels
+  pathBlocker: "Path blocker", // i18n-exempt: closed-set key, rendered via gateSeverityLabels
+  high: "High", // i18n-exempt: closed-set key, rendered via gateSeverityLabels
+  medium: "Medium", // i18n-exempt: closed-set key, rendered via gateSeverityLabels
+} as const;
+
+export const gateStates = {
+  active: "Active", // i18n-exempt: closed-set key, rendered via gateStateLabels
+  blocked: "Blocked", // i18n-exempt: closed-set key, rendered via gateStateLabels
+  review: "Review", // i18n-exempt: closed-set key, rendered via gateStateLabels
+  pending: "Pending", // i18n-exempt: closed-set key, rendered via gateStateLabels
+} as const;

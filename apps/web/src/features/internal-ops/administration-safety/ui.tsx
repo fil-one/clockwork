@@ -1,13 +1,12 @@
 "use client";
 import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
 
 import type { Route } from "next";
 import Link from "next/link";
 import { useEffect, useId, useState, type ReactNode } from "react";
 
 import type { SelectOption } from "./data";
-import { adminSafetyCopy } from "./copy";
+import { adminSafetyCopy, type StatusTone } from "./copy";
 import {
   disclosedIdentifiers,
   type EvidenceIdentifier,
@@ -49,7 +48,7 @@ export function HumanSelector({
   options,
   value,
   onChange,
-  hint = adminSafetyCopy.selectorHint,
+  hint,
   required = true,
 }: {
   label: string;
@@ -57,9 +56,11 @@ export function HumanSelector({
   options: readonly SelectOption[];
   value: string;
   onChange: (id: string) => void;
+  /** Replaces the standard hint; omit it to show that hint. */
   hint?: string;
   required?: boolean;
 }) {
+  const t = useTranslations();
   const inputId = useId();
   const listId = useId();
   const hintId = useId();
@@ -107,7 +108,7 @@ export function HumanSelector({
       </datalist>
       <input type="hidden" name={name} value={value} />
       <p className={styles.fieldHint} id={hintId}>
-        {hint}
+        {hint ?? t(adminSafetyCopy.selectorHint)}
       </p>
     </div>
   );
@@ -115,16 +116,18 @@ export function HumanSelector({
 
 export function TechnicalEvidence({
   identifiers,
-  label = adminSafetyCopy.technicalEvidence,
+  label,
 }: {
   identifiers: readonly EvidenceIdentifier[];
+  /** Replaces the standard "Technical evidence" summary. */
   label?: string;
 }) {
+  const t = useTranslations();
   const disclosed = disclosedIdentifiers(identifiers);
   if (disclosed.length === 0) return null;
   return (
     <details className={styles.technical}>
-      <summary>{label}</summary>
+      <summary>{label ?? t(adminSafetyCopy.technicalEvidence)}</summary>
       <dl>
         {disclosed.map(({ label: itemLabel, value }) => (
           <div key={`${itemLabel}-${value}`}>
@@ -139,29 +142,32 @@ export function TechnicalEvidence({
 
 export function ReviewSummaryCard({
   summary,
-  title = adminSafetyCopy.reviewSummary,
+  title,
   identifiers = [],
 }: {
   summary: ReviewSummary;
+  /** Replaces the standard "Decision review summary" heading. */
   title?: string;
   identifiers?: readonly EvidenceIdentifier[];
 }) {
   const t = useTranslations();
-  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
+  const labels = adminSafetyCopy.reviewLabels;
   return (
     <section className={styles.summary} aria-labelledby="review-summary-title">
-      <h3 id="review-summary-title">{title}</h3>
+      <h3 id="review-summary-title">
+        {title ?? t(adminSafetyCopy.reviewSummary)}
+      </h3>
       <dl>
         <div>
-          <dt>{localizedadminSafetyCopy.reviewLabels.entity}</dt>
+          <dt>{t(labels.entity)}</dt>
           <dd>{summary.entity}</dd>
         </div>
         <div>
-          <dt>{localizedadminSafetyCopy.reviewLabels.impact}</dt>
+          <dt>{t(labels.impact)}</dt>
           <dd>{summary.impact}</dd>
         </div>
         <div>
-          <dt>{localizedadminSafetyCopy.reviewLabels.evidence}</dt>
+          <dt>{t(labels.evidence)}</dt>
           <dd>
             <ul>
               {summary.evidence.map((item) => (
@@ -171,15 +177,15 @@ export function ReviewSummaryCard({
           </dd>
         </div>
         <div>
-          <dt>{localizedadminSafetyCopy.reviewLabels.policy}</dt>
+          <dt>{t(labels.policy)}</dt>
           <dd>{summary.policyBasis}</dd>
         </div>
         <div>
-          <dt>{localizedadminSafetyCopy.reviewLabels.downstream}</dt>
+          <dt>{t(labels.downstream)}</dt>
           <dd>{summary.downstreamEffect}</dd>
         </div>
         <div>
-          <dt>{localizedadminSafetyCopy.reviewLabels.reason}</dt>
+          <dt>{t(labels.reason)}</dt>
           <dd>{summary.reason}</dd>
         </div>
       </dl>
@@ -188,16 +194,33 @@ export function ReviewSummaryCard({
   );
 }
 
-export function StatusPill({ state }: { state: string }) {
+export type { StatusTone };
+
+/**
+ * A status chip. Pass `tone` with translated text: the fallback reads English
+ * keywords in `state`, so it cannot colour a label in another language and
+ * shows the neutral warning tone instead.
+ */
+export function StatusPill({
+  state,
+  tone,
+}: {
+  state: string;
+  tone?: StatusTone;
+}) {
   const normalized = state.toLowerCase();
-  const tone = ["active", "complete", "approved", "passed"].some((part) =>
-    normalized.includes(part),
-  )
-    ? styles.success
-    : ["blocked", "retired", "failed"].some((part) => normalized.includes(part))
-      ? styles.danger
-      : styles.warning;
-  return <span className={`${styles.pill} ${tone}`}>{state}</span>;
+  const resolved: StatusTone =
+    tone ??
+    (["active", "complete", "approved", "passed"].some((part) =>
+      normalized.includes(part),
+    )
+      ? "success"
+      : ["blocked", "retired", "failed"].some((part) =>
+            normalized.includes(part),
+          )
+        ? "danger"
+        : "warning");
+  return <span className={`${styles.pill} ${styles[resolved]}`}>{state}</span>;
 }
 
 export function ExitLink({

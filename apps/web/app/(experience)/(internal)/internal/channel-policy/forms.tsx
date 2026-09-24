@@ -6,21 +6,43 @@ import type {
 } from "@clockwork/domain/core";
 import { Button } from "@clockwork/ui";
 import { styles } from "@/src/features/internal-ops/administration-safety/ui";
+import type { MessageId } from "@/src/i18n";
+import { useTranslations } from "@/src/i18n/client";
 import layout from "./channel-policy.module.css";
-import { changeChannelPolicy } from "./actions";
+import { changeChannelPolicy, type ChannelPolicyResult } from "./actions";
 const controls = [
-  ["version", "Policy version", 1, 1],
-  ["selfServeThresholdTb", "Sales handoff at capacity (TB)", 0.001, "any"],
-  ["defaultProtectionDays", "Default requested protection (days)", 1, 1],
+  ["version", "adminGovernance.channelPolicy.field.version", 1, 1],
   [
-    "maximumProtectionDays",
-    "Maximum initial requested protection (days)",
+    "selfServeThresholdTb",
+    "adminGovernance.channelPolicy.field.handoffThreshold",
+    0.001,
+    "any",
+  ],
+  [
+    "defaultProtectionDays",
+    "adminGovernance.channelPolicy.field.defaultProtection",
     1,
     1,
   ],
-  ["extensionDays", "Maximum days per extension", 1, 1],
-  ["maximumExtensions", "Maximum extensions", 0, 1],
-] as const;
+  [
+    "maximumProtectionDays",
+    "adminGovernance.channelPolicy.field.maximumProtection",
+    1,
+    1,
+  ],
+  ["extensionDays", "adminGovernance.channelPolicy.field.extensionDays", 1, 1],
+  [
+    "maximumExtensions",
+    "adminGovernance.channelPolicy.field.maximumExtensions",
+    0,
+    1,
+  ],
+] as const satisfies readonly (readonly [
+  string,
+  MessageId,
+  number,
+  number | "any",
+])[];
 export function ChannelTermsForm({
   current,
   nextVersion,
@@ -30,7 +52,11 @@ export function ChannelTermsForm({
   nextVersion: number;
   today: string;
 }) {
-  const [message, action, pending] = useActionState(changeChannelPolicy, "");
+  const t = useTranslations();
+  const [message, action, pending] = useActionState<
+    ChannelPolicyResult,
+    FormData
+  >(changeChannelPolicy, "");
   const prefix = useId();
   const terms: ChannelPolicyTerms = current?.terms ?? {
     version: nextVersion,
@@ -57,7 +83,11 @@ export function ChannelTermsForm({
       ) : null}
       <fieldset className={layout.fields} disabled={pending}>
         <legend>
-          {current ? "Edit draft controls" : "Draft a new policy"}
+          {t(
+            current
+              ? "adminGovernance.channelPolicy.form.editDraft"
+              : "adminGovernance.channelPolicy.form.newDraft",
+          )}
         </legend>
         {controls.map(([name, label, min, step]) => (
           <label
@@ -65,7 +95,7 @@ export function ChannelTermsForm({
             key={name}
             htmlFor={`${prefix}-${name}`}
           >
-            {label}
+            {t(label)}
             <input
               id={`${prefix}-${name}`}
               name={name}
@@ -78,7 +108,7 @@ export function ChannelTermsForm({
           </label>
         ))}
         <label className={styles.field} htmlFor={`${prefix}-effective`}>
-          Effective date (UTC)
+          {t("adminGovernance.channelPolicy.field.effectiveDate")}
           <input
             id={`${prefix}-effective`}
             name="effectiveFrom"
@@ -89,7 +119,7 @@ export function ChannelTermsForm({
           />
         </label>
         <label className={styles.field} htmlFor={`${prefix}-source`}>
-          Policy source or evidence reference
+          {t("adminGovernance.channelPolicy.field.source")}
           <textarea
             id={`${prefix}-source`}
             name="sourceEvidence"
@@ -101,9 +131,11 @@ export function ChannelTermsForm({
         </label>
       </fieldset>
       <Button type="submit" disabled={pending}>
-        {pending ? "Saving…" : "Save draft"}
+        {pending
+          ? t("common.saving")
+          : t("adminGovernance.channelPolicy.form.saveDraft")}
       </Button>
-      {message ? <p role="status">{message}</p> : null}
+      {message ? <p role="status">{t(message)}</p> : null}
     </form>
   );
 }
@@ -116,7 +148,11 @@ export function ChannelDecisionForm({
   action: "propose" | "approve" | "reject";
   allowed: boolean;
 }) {
-  const [message, action, pending] = useActionState(changeChannelPolicy, "");
+  const t = useTranslations();
+  const [message, action, pending] = useActionState<
+    ChannelPolicyResult,
+    FormData
+  >(changeChannelPolicy, "");
   const prefix = useId();
   return (
     <form action={action} className={layout.form}>
@@ -129,14 +165,16 @@ export function ChannelDecisionForm({
       />
       <fieldset className={layout.fields} disabled={pending || !allowed}>
         <legend>
-          {decision === "propose"
-            ? "Propose for approval"
-            : decision === "approve"
-              ? "Approve policy"
-              : "Return for changes"}
+          {t(
+            decision === "propose"
+              ? "adminGovernance.channelPolicy.decision.proposeLegend"
+              : decision === "approve"
+                ? "adminGovernance.channelPolicy.decision.approveLegend"
+                : "adminGovernance.channelPolicy.decision.returnLegend",
+          )}
         </legend>
         <label className={styles.field} htmlFor={`${prefix}-reason`}>
-          Decision reason
+          {t("adminGovernance.decisionReason")}
           <textarea
             id={`${prefix}-reason`}
             name="reason"
@@ -147,7 +185,7 @@ export function ChannelDecisionForm({
         </label>
         {decision === "approve" ? (
           <label className={styles.field} htmlFor={`${prefix}-evidence`}>
-            Approval evidence reference
+            {t("adminGovernance.channelPolicy.decision.evidence")}
             <input
               id={`${prefix}-evidence`}
               name="approvalEvidence"
@@ -158,19 +196,21 @@ export function ChannelDecisionForm({
           </label>
         ) : null}
         <Button type="submit" disabled={pending || !allowed}>
-          {pending
-            ? "Recording…"
-            : decision === "propose"
-              ? "Propose policy"
-              : decision === "approve"
-                ? "Approve policy"
-                : "Return draft"}
+          {t(
+            pending
+              ? "adminGovernance.channelPolicy.decision.recording"
+              : decision === "propose"
+                ? "adminGovernance.channelPolicy.decision.propose"
+                : decision === "approve"
+                  ? "adminGovernance.channelPolicy.decision.approve"
+                  : "adminGovernance.channelPolicy.decision.return",
+          )}
         </Button>
       </fieldset>
       {!allowed ? (
-        <p>A different finance approver must decide this version.</p>
+        <p>{t("adminGovernance.channelPolicy.decision.otherApprover")}</p>
       ) : null}
-      {message ? <p role="status">{message}</p> : null}
+      {message ? <p role="status">{t(message)}</p> : null}
     </form>
   );
 }
