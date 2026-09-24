@@ -102,7 +102,7 @@ const registrationOwner = demoText({
   en: "Fil One channel operations",
   es: "Operaciones de canal de Fil One",
   fr: "Équipe des opérations canal de Fil One",
-  de: "Kanalteam von Fil One",
+  de: "Partnermanagement von Fil One",
   ja: "Fil One チャネル運用チーム",
   pt: "Operações de canal da Fil One",
   zh: "Fil One 渠道运营团队",

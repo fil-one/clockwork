@@ -382,7 +382,7 @@ function internalRecords(): DemoRecord[] {
           en: "Madrid replica recovery",
           es: "Recuperación de la réplica de Madrid",
           fr: "Reprise de la réplique de Madrid",
-          de: "Wiederherstellung des Madrider Replikats",
+          de: "Wiederherstellung des Madrid-Replikats",
           ja: "マドリードのレプリカの復旧",
           pt: "Recuperação da réplica de Madri",
           zh: "马德里副本恢复",
