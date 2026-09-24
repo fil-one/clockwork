@@ -29,7 +29,7 @@ export const localeCookieOptions = {
 
 export const languageNames: Readonly<Record<Locale, string>> = {
   en: "English",
-  es: "Español",
+  es: "Español (España)",
   fr: "Français",
   de: "Deutsch",
   ja: "日本語",
@@ -45,7 +45,7 @@ export const languageNames: Readonly<Record<Locale, string>> = {
  */
 export const formattingLocales: Readonly<Record<Locale, string>> = {
   en: "en-US",
-  es: "es",
+  es: "es-ES",
   fr: "fr-FR",
   de: "de-DE",
   ja: "ja-JP",
@@ -57,7 +57,7 @@ export const formattingLocales: Readonly<Record<Locale, string>> = {
 /** The value for `<html lang>`; regional where the product commits to a region. */
 export const documentLanguages: Readonly<Record<Locale, string>> = {
   en: "en",
-  es: "es",
+  es: "es-ES",
   fr: "fr",
   de: "de",
   ja: "ja",
