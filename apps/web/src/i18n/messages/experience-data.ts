@@ -313,7 +313,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.status.providerReplayRecorded": {
     en: "Provider replay recorded",
-    es: "Reprocesamiento del proveedor registrado",
+    es: "Reejecución del proveedor registrada",
     fr: "Nouveau traitement du prestataire enregistré",
     de: "Erneute Verarbeitung beim Anbieter erfasst",
     ja: "プロバイダーの再処理を記録済み",
@@ -464,7 +464,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.next.reconcileProviderEvent": {
     en: "Reconcile provider event before replay",
-    es: "Conciliar el evento del proveedor antes de reprocesarlo",
+    es: "Conciliar el evento del proveedor antes de reejecutarlo",
     fr: "Rapprocher l’événement du prestataire avant de le retraiter",
     de: "Anbieterereignis vor der erneuten Verarbeitung abstimmen",
     ja: "再処理の前にプロバイダーのイベントを照合",
@@ -1793,7 +1793,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.owner.buyerWorkspace": {
     en: "Buyer workspace",
-    es: "Espacio de trabajo del comprador",
+    es: "Espacio del comprador",
     fr: "Espace de travail de l’acheteur",
     de: "Arbeitsbereich des Käufers",
     ja: "購入者のワークスペース",
@@ -2479,7 +2479,7 @@ export const experienceDataMessages = defineMessages({
   },
   "experience.data.dashboard.partnerReviewAuthorityBy": {
     en: "Review authority and notice position by {date}",
-    es: "Revisar las facultades y la situación del preaviso antes del {date}",
+    es: "Revisar la autoridad y la situación del preaviso antes del {date}",
     fr: "Examiner les pouvoirs et la situation de préavis avant le {date}",
     de: "Befugnisse und Kündigungssituation bis {date} prüfen",
     ja: "{date}までに権限と通知期間の状況を確認",

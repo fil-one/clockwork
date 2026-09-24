@@ -19,7 +19,7 @@ export const experienceMessages = defineMessages({
   },
   "ui.98": {
     en: "Audit evidence",
-    es: "Evidencias de auditoría",
+    es: "Evidencia de auditoría",
     fr: "Preuves d’audit",
     de: "Audit-Nachweise",
     ja: "監査証跡",
@@ -59,7 +59,7 @@ export const experienceMessages = defineMessages({
   },
   "detail.description": {
     en: "Identifiers, governing references, evidence, documents, and the latest audit events for this immutable version.",
-    es: "Identificadores, referencias aplicables, evidencias, documentos y últimos eventos de auditoría de esta versión inmutable.",
+    es: "Identificadores, referencias aplicables, evidencia, documentos y últimos eventos de auditoría de esta versión inmutable.",
     fr: "Identifiants, références applicables, preuves, documents et derniers événements d’audit de cette version immuable.",
     de: "Kennungen, maßgebliche Referenzen, Nachweise, Dokumente und die letzten Audit-Ereignisse dieser unveränderlichen Version.",
     ja: "この変更不可のバージョンの識別子、適用される参照、証跡、文書、最新の監査イベントです。",
@@ -552,7 +552,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.action.replayProviderEvent": {
     en: "Replay provider event",
-    es: "Reprocesar evento del proveedor",
+    es: "Reejecutar evento del proveedor",
     fr: "Rejouer l’événement du prestataire",
     de: "Anbieterereignis erneut verarbeiten",
     ja: "プロバイダーイベントを再処理",
@@ -1036,7 +1036,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.detail.nextStep.fallback": {
     en: "Review record evidence",
-    es: "Revisar las evidencias del registro",
+    es: "Revisar la evidencia del registro",
     fr: "Examiner les preuves de l’enregistrement",
     de: "Nachweise zum Datensatz prüfen",
     ja: "記録の証跡を確認",
@@ -1130,7 +1130,7 @@ export const experienceMessages = defineMessages({
   // Evidence upload.
   "experience.evidence.attach": {
     en: "Attach evidence",
-    es: "Adjuntar evidencias",
+    es: "Adjuntar evidencia",
     fr: "Joindre des preuves",
     de: "Nachweise anhängen",
     ja: "証跡を添付",
@@ -1140,7 +1140,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.evidence.attachException": {
     en: "Attach exception evidence",
-    es: "Adjuntar evidencias de la excepción",
+    es: "Adjuntar evidencia de la excepción",
     fr: "Joindre des preuves pour l’exception",
     de: "Nachweise zur Ausnahme anhängen",
     ja: "例外の証跡を添付",
@@ -1150,7 +1150,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.evidence.attachApproval": {
     en: "Attach approval evidence",
-    es: "Adjuntar evidencias de la aprobación",
+    es: "Adjuntar evidencia de la aprobación",
     fr: "Joindre des preuves d’approbation",
     de: "Genehmigungsnachweise anhängen",
     ja: "承認の証跡を添付",
@@ -1230,7 +1230,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.evidence.providerRejected": {
     en: "The evidence provider did not accept the upload.",
-    es: "El proveedor de almacenamiento de evidencias no ha aceptado la subida.",
+    es: "El proveedor de almacenamiento de evidencia no ha aceptado la subida.",
     fr: "Le prestataire de stockage des preuves n’a pas accepté l’envoi.",
     de: "Der Anbieter für Nachweise hat den Upload nicht angenommen.",
     ja: "証跡の保管プロバイダーがアップロードを受け付けませんでした。",
@@ -1921,7 +1921,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.derivation.usageEvidence": {
     en: "Usage and tax evidence",
-    es: "Evidencias de uso e impuestos",
+    es: "Evidencia de uso e impuestos",
     fr: "Justificatifs d’usage et de taxes",
     de: "Nutzungs- und Steuernachweise",
     ja: "利用量と税の証跡",
@@ -2665,7 +2665,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.label.screening": {
     en: "Screening",
-    es: "Control de partes restringidas",
+    es: "Verificación de cumplimiento",
     fr: "Contrôle des parties restreintes",
     de: "Sanktionslistenprüfung",
     ja: "取引制限対象者の審査",
@@ -2685,7 +2685,7 @@ export const experienceMessages = defineMessages({
   },
   "experience.display.screening": {
     en: "Screening: {status}",
-    es: "Control de partes restringidas: {status}",
+    es: "Verificación de cumplimiento: {status}",
     fr: "Contrôle des parties restreintes\u00a0: {status}",
     de: "Sanktionslistenprüfung: {status}",
     ja: "取引制限対象者の審査：{status}",

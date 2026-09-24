@@ -950,7 +950,7 @@ export const platformMessages = defineMessages({
   },
   "nav.internal.capabilities": {
     en: "Capabilities",
-    es: "Funciones habilitadas",
+    es: "Funciones",
     fr: "Fonctionnalités activées",
     de: "Freigeschaltete Funktionen",
     ja: "機能の有効化",
@@ -1901,7 +1901,7 @@ export const platformMessages = defineMessages({
   },
   "platform.api.gate.forbidden": {
     en: "Your authority or recent sign-in could not be verified.",
-    es: "No se ha podido verificar su autorización o su inicio de sesión reciente.",
+    es: "No se ha podido verificar su autoridad o su inicio de sesión reciente.",
     fr: "Votre habilitation ou votre connexion récente n’a pas pu être vérifiée.",
     de: "Ihre Befugnis oder Ihre kürzliche Anmeldung konnte nicht überprüft werden.",
     ja: "権限または最近のサインインを確認できませんでした。",
@@ -4408,7 +4408,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.control.idempotency": {
     en: "State-changing requests require an idempotency key, and a repeated key replays the stored first response instead of performing the operation twice. The inbound provider webhook routes are exempt from this requirement as well, because a provider chooses its own retry identifiers; they are deduplicated instead by claiming the provider’s event ID. A response with status 500 or above is never stored for replay, so a dependency failure does not become a cached outage.",
-    es: "Las solicitudes que modifican el estado exigen una clave de idempotencia, y una clave repetida devuelve la primera respuesta almacenada en lugar de ejecutar la operación dos veces. Las rutas de webhooks entrantes de proveedores también están exentas de este requisito, porque cada proveedor elige sus propios identificadores de reintento; en su lugar se deduplican reclamando el ID de evento del proveedor. Una respuesta con estado 500 o superior nunca se guarda para reproducirla, de modo que un fallo de una dependencia no se convierte en una interrupción almacenada en caché.",
+    es: "Las solicitudes que modifican el estado exigen una clave de idempotencia, y una clave repetida devuelve la primera respuesta almacenada en lugar de ejecutar la operación dos veces. Las rutas de webhooks entrantes de proveedores también están exentas de este requisito, porque cada proveedor elige sus propios identificadores de reintento; en su lugar se deduplican reclamando el ID de evento del proveedor. Una respuesta con estado 500 o superior nunca se guarda para servirla de nuevo, de modo que un fallo de una dependencia no se convierte en una interrupción almacenada en caché.",
     fr: "Les requêtes qui modifient l’état exigent une clé d’idempotence, et une clé répétée renvoie la première réponse stockée au lieu d’exécuter l’opération deux fois. Les routes de webhooks entrants des prestataires sont également exemptées de cette exigence, car chaque prestataire choisit ses propres identifiants de nouvelle tentative\u202f; elles sont dédoublonnées à la place en prenant en charge l’identifiant d’événement du prestataire. Une réponse de statut 500 ou plus n’est jamais conservée pour être rejouée, de sorte qu’une défaillance d’une dépendance ne devient pas une panne mise en cache.",
     de: "Zustandsändernde Anfragen erfordern einen Idempotenzschlüssel, und ein wiederholter Schlüssel liefert die gespeicherte erste Antwort erneut aus, statt den Vorgang zweimal auszuführen. Die Routen für eingehende Anbieter-Webhooks sind ebenfalls von dieser Pflicht ausgenommen, da jeder Anbieter seine eigenen Wiederholungskennungen wählt; sie werden stattdessen dedupliziert, indem die Ereignis-ID des Anbieters beansprucht wird. Eine Antwort mit Status 500 oder höher wird nie für die Wiedergabe gespeichert, damit ein Ausfall einer Abhängigkeit nicht zu einem zwischengespeicherten Ausfall wird.",
     ja: "状態を変更するリクエストには冪等性キーが必要で、同じキーが繰り返されると、操作を2回実行する代わりに保存済みの最初のレスポンスを再送します。プロバイダーからの受信 Webhook ルートは、プロバイダーが独自の再試行識別子を選ぶため、この要件からも除外されています。代わりに、プロバイダーのイベント ID を取得済みとして記録することで重複排除されます。ステータスが 500 以上のレスポンスが再送用に保存されることはないため、依存先の障害がキャッシュされた障害になることはありません。",
@@ -4480,7 +4480,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.integration.amazonS3": {
     en: "Immutable evidence and document storage under Object Lock.",
-    es: "Almacenamiento inmutable de evidencias y documentos con bloqueo de objetos (Object Lock).",
+    es: "Almacenamiento inmutable de evidencia y documentos con bloqueo de objetos (Object Lock).",
     fr: "Stockage immuable des preuves et des documents sous verrouillage d’objet (Object Lock).",
     de: "Unveränderlicher Speicher für Nachweise und Dokumente unter Objektsperre (Object Lock).",
     ja: "オブジェクトロック（Object Lock）による、証跡と文書の変更不可能なストレージ。",
@@ -4542,7 +4542,7 @@ export const platformMessages = defineMessages({
   },
   "platform.trust.capability.screening": {
     en: "Denied-party screening",
-    es: "Control de partes restringidas",
+    es: "Verificación de partes restringidas",
     fr: "Filtrage des parties soumises à restrictions",
     de: "Sanktionslistenprüfung",
     ja: "取引制限対象者のスクリーニング",

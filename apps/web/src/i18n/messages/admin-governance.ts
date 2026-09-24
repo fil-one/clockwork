@@ -367,9 +367,9 @@ export const adminGovernanceMessages = defineMessages({
       other: "{count} cases show how authority is segregated.",
     },
     es: {
-      one: "{count} caso muestra cómo se segregan las facultades.",
-      many: "{count} de casos muestran cómo se segregan las facultades.",
-      other: "{count} casos muestran cómo se segregan las facultades.",
+      one: "{count} caso muestra cómo se segrega la autoridad.",
+      many: "{count} de casos muestran cómo se segrega la autoridad.",
+      other: "{count} casos muestran cómo se segrega la autoridad.",
     },
     fr: {
       one: "{count} dossier montre comment les pouvoirs sont séparés.",
@@ -4096,7 +4096,7 @@ export const adminGovernanceMessages = defineMessages({
   },
   "adminGovernance.providers.name.evidence": {
     en: "Evidence storage",
-    es: "Almacenamiento de evidencias",
+    es: "Almacenamiento de evidencia",
     fr: "Stockage des preuves",
     de: "Nachweisspeicher",
     ja: "証跡ストレージ",

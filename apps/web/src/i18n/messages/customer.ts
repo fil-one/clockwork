@@ -346,7 +346,7 @@ export const customerMessages = defineMessages({
   },
   "agreements.description": {
     en: "Executed terms, signature evidence, governing versions, and renewal clocks in one record.",
-    es: "Condiciones formalizadas, evidencias de firma, versiones aplicables y plazos de renovación en un solo registro.",
+    es: "Condiciones formalizadas, evidencia de firma, versiones aplicables y plazos de renovación en un solo registro.",
     fr: "Conditions conclues, preuves de signature, versions applicables et échéances de renouvellement dans un même dossier.",
     de: "Vereinbarte Bedingungen, Signaturnachweise, maßgebliche Versionen und Verlängerungsfristen in einer Akte.",
     ja: "締結済み条件、署名証跡、適用バージョン、更新期限を一つの記録で管理します。",
@@ -2108,7 +2108,7 @@ export const customerMessages = defineMessages({
   },
   "customer.account.areas.users.description": {
     en: "Review roles, approval authority, MFA state, and pending invitations.",
-    es: "Revise los roles, las facultades de aprobación, el estado de MFA y las invitaciones pendientes.",
+    es: "Revise los roles, la autoridad de aprobación, el estado de MFA y las invitaciones pendientes.",
     fr: "Consultez les rôles, les pouvoirs d’approbation, l’état MFA et les invitations en attente.",
     de: "Prüfen Sie Rollen, Genehmigungsbefugnisse, MFA-Status und ausstehende Einladungen.",
     ja: "ロール、承認権限、MFA の状態、保留中の招待を確認します。",
@@ -2210,7 +2210,7 @@ export const customerMessages = defineMessages({
   },
   "customer.account.areas.offboarding.description": {
     en: "Review retrieval, final billing, retention exclusions, and teardown authority.",
-    es: "Revise la recuperación de datos, la facturación final, las exclusiones de conservación y la autorización para el desmantelamiento.",
+    es: "Revise la recuperación de datos, la facturación final, las exclusiones de conservación y la autoridad para el desmantelamiento.",
     fr: "Examinez la récupération des données, la facturation finale, les exclusions de conservation et l’autorisation de démantèlement.",
     de: "Prüfen Sie Datenabruf, Schlussabrechnung, Aufbewahrungsausnahmen und die Befugnis zum Rückbau.",
     ja: "データの取得、最終請求、保持の除外、撤去の権限を確認します。",
@@ -3177,7 +3177,7 @@ export const customerMessages = defineMessages({
   },
   "customer.payg.trialLimits": {
     en: "{storage} storage · {egress} lifetime trial egress.",
-    es: "{storage} de almacenamiento · {egress} de tráfico de salida durante toda la prueba.",
+    es: "{storage} de almacenamiento · {egress} de tráfico de salida durante todo el periodo de prueba.",
     fr: "{storage} de stockage · {egress} de trafic sortant sur toute la durée de l’essai.",
     de: "{storage} Speicher · {egress} ausgehender Datenverkehr für die gesamte Testphase.",
     ja: "ストレージ {storage}・トライアル期間全体の送信データ転送 {egress}。",
@@ -3947,7 +3947,7 @@ export const customerMessages = defineMessages({
   },
   "customer.paygFinance.description": {
     en: "Review accepted offers and link separately verified trial or PAYG service records. A request does not authorize provider provisioning or billing cutover.",
-    es: "Revise las ofertas aceptadas y vincule los registros de servicio de periodo de prueba o de pago por uso verificados por separado. Una solicitud no autoriza el aprovisionamiento en el proveedor ni el cambio de facturación.",
+    es: "Revise las ofertas aceptadas y vincule los registros de servicio de periodo de prueba o de pago por uso verificados por separado. Una solicitud no autoriza el aprovisionamiento en el proveedor ni el traspaso de la facturación.",
     fr: "Examinez les offres acceptées et associez les enregistrements de service d’essai ou de paiement à l’usage vérifiés séparément. Une demande n’autorise ni le provisionnement chez le prestataire ni le basculement de la facturation.",
     de: "Prüfen Sie angenommene Tarife und verknüpfen Sie separat verifizierte Servicedatensätze für Testphasen oder nutzungsbasierte Abrechnung. Eine Anfrage autorisiert weder die Bereitstellung beim Anbieter noch die Umstellung der Abrechnung.",
     ja: "承諾済みのオファーを確認し、別途確認済みのトライアルまたは従量課金のサービス記録を紐付けます。申請だけでは、プロバイダーでのプロビジョニングや課金の切り替えは承認されません。",
@@ -3977,7 +3977,7 @@ export const customerMessages = defineMessages({
   },
   "customer.paygFinance.unavailable": {
     en: "The request service is unavailable or your finance authority is insufficient.",
-    es: "El servicio de solicitudes no está disponible o sus facultades financieras no son suficientes.",
+    es: "El servicio de solicitudes no está disponible o su autoridad financiera no es suficiente.",
     fr: "Le service des demandes est indisponible ou vos droits financiers sont insuffisants.",
     de: "Der Anfragedienst ist nicht verfügbar oder Ihre Finanzbefugnis reicht nicht aus.",
     ja: "申請サービスを利用できないか、財務権限が不足しています。",

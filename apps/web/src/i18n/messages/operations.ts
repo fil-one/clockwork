@@ -3501,7 +3501,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.status.detail.marketplaceWebhook": {
     en: "Marketplace webhook",
-    es: "Webhook de Marketplace",
+    es: "Webhook del marketplace",
     fr: "Webhook Marketplace",
     de: "Marketplace-Webhook",
     ja: "マーケットプレイスの Webhook",
@@ -3511,7 +3511,7 @@ export const operationsMessages = defineMessages({
   },
   "operations.status.detail.evidenceStorage": {
     en: "Evidence storage",
-    es: "Almacenamiento de evidencias",
+    es: "Almacenamiento de evidencia",
     fr: "Stockage des preuves",
     de: "Nachweisspeicher",
     ja: "証跡ストレージ",

@@ -842,7 +842,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.registrations.gate": {
     en: "Registration decisions are made by Fil One channel operations; partner roles can submit evidence and monitor the decision. This page derives sourced credit from an accepted registration, but influenced-credit and dispute decisions cannot be recorded here.",
-    es: "Las decisiones sobre los registros las toma el equipo de operaciones de canal de Fil One; los roles de socio pueden aportar evidencias y seguir la decisión. Esta página calcula el crédito por origen a partir de un registro aceptado, pero aquí no se pueden registrar decisiones de crédito por influencia ni de disputas.",
+    es: "Las decisiones sobre los registros las toma el equipo de operaciones de canal de Fil One; los roles de socio pueden aportar evidencia y seguir la decisión. Esta página calcula el crédito por origen a partir de un registro aceptado, pero aquí no se pueden registrar decisiones de crédito por influencia ni de disputas.",
     fr: "Les décisions d’enregistrement relèvent des opérations de canal de Fil One\u202f; les rôles partenaires peuvent fournir des preuves et suivre la décision. Cette page déduit le crédit d’apport d’un enregistrement accepté, mais les décisions de crédit d’influence et de litige ne peuvent pas être enregistrées ici.",
     de: "Über Registrierungen entscheidet das Kanalteam von Fil One; Partnerrollen können Nachweise einreichen und die Entscheidung verfolgen. Diese Seite leitet die Zuordnung als vom Partner gewonnen aus einer angenommenen Registrierung ab; Entscheidungen zu beeinflussten Deals und Streitfällen können hier nicht erfasst werden.",
     ja: "登録の判断は Fil One のチャネル運用チームが行います。パートナーのロールは証跡を提出し、判断の状況を確認できます。このページは承認された登録から発掘クレジットを算出しますが、影響クレジットや異議の判断はここでは記録できません。",
@@ -852,7 +852,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.disputes.eyebrow": {
     en: "Partner desk · Evidence and resolution",
-    es: "Panel del socio · Evidencias y resolución",
+    es: "Panel del socio · Evidencia y resolución",
     fr: "Espace partenaire · Preuves et résolution",
     de: "Partnerbereich · Nachweise und Klärung",
     ja: "パートナー画面・証跡と解決",
@@ -872,7 +872,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.disputes.description": {
     en: "Track disputed claims, evidence deadlines, and the authority responsible for a decision.",
-    es: "Siga las reclamaciones en disputa, los plazos para aportar evidencias y quién tiene autoridad para decidir.",
+    es: "Siga las reclamaciones en disputa, los plazos para aportar evidencia y quién tiene autoridad para decidir.",
     fr: "Suivez les réclamations contestées, les délais de preuve et l’autorité chargée de la décision.",
     de: "Verfolgen Sie strittige Ansprüche, Fristen für Nachweise und die für die Entscheidung zuständige Stelle.",
     ja: "異議の申し立て、証跡の提出期限、判断の権限者を確認します。",
@@ -882,7 +882,7 @@ export const partnerMessages = defineMessages({
   },
   "partner.surface.disputes.rule": {
     en: "Submitting evidence does not decide a dispute; the recorded decision remains authoritative.",
-    es: "Aportar evidencias no resuelve una disputa; la decisión registrada es la que prevalece.",
+    es: "Aportar evidencia no resuelve una disputa; la decisión registrada es la que prevalece.",
     fr: "Fournir des preuves ne tranche pas un litige\u202f; la décision enregistrée fait foi.",
     de: "Das Einreichen von Nachweisen entscheidet keinen Streitfall; maßgeblich bleibt die erfasste Entscheidung.",
     ja: "証跡を提出しても異議は決着しません。記録された判断が優先されます。",
@@ -2242,9 +2242,9 @@ export const partnerMessages = defineMessages({
       other: "Evidence due in {count} days",
     },
     es: {
-      one: "Evidencias: plazo de {count} día",
-      many: "Evidencias: plazo de {count} de días",
-      other: "Evidencias: plazo de {count} días",
+      one: "Plazo de evidencia: {count} día",
+      many: "Plazo de evidencia: {count} de días",
+      other: "Plazo de evidencia: {count} días",
     },
     fr: {
       one: "Preuves à fournir sous {count} jour",

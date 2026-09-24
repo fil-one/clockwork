@@ -106,7 +106,7 @@ export const commonMessages = defineMessages({
   },
   "cp.common.errorTitle": {
     en: "Records could not be loaded",
-    es: "No se pudieron cargar los registros",
+    es: "No se han podido cargar los registros",
     fr: "Impossible de charger les données",
     de: "Datensätze konnten nicht geladen werden",
     ja: "記録を読み込めませんでした",
@@ -1511,7 +1511,7 @@ export const commonMessages = defineMessages({
   },
   "common.auditEvidence": {
     en: "Audit evidence",
-    es: "Evidencias de auditoría",
+    es: "Evidencia de auditoría",
     fr: "Preuves d’audit",
     de: "Audit-Nachweise",
     ja: "監査証跡",

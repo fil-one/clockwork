@@ -444,7 +444,7 @@ const disputes: readonly PartnerFixture[] = [
     }),
     context: demoText({
       en: "Registration ownership · partner evidence submitted",
-      es: "Titularidad del registro · evidencias del socio enviadas",
+      es: "Titularidad del registro · evidencia del socio enviada",
       fr: "Titularité de l’enregistrement · preuves du partenaire transmises",
       de: "Inhaberschaft der Registrierung · Nachweise des Partners eingereicht",
       ja: "登録の帰属・パートナーの証跡を提出済み",

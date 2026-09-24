@@ -98,7 +98,7 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.frame.guided": {
     en: "Guided demo workspace",
-    es: "Espacio de trabajo de la demostración guiada",
+    es: "Espacio de demostración guiada",
     fr: "Espace de démonstration guidée",
     de: "Arbeitsbereich der geführten Demo",
     ja: "ガイド付きデモのワークスペース",
