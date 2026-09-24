@@ -301,6 +301,36 @@ describe("projection action buttons", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("keeps the applied receipt when the refreshed record leaves nothing to press", async () => {
+    vi.useFakeTimers();
+    mocks.readProjectionAction.mockResolvedValue(
+      receipt("applied", { authoritativeVersion: 4 }),
+    );
+    const view = renderButtons(["issue"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Issue" }));
+    await elapse(1_000);
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+
+    // What the refresh delivers: the next version, with its action spent.
+    view.rerender(
+      <ProjectionActionButtons
+        audience="customer"
+        channel="billing"
+        recordKey="INV-2026-0781"
+        projectionId="projection-1"
+        version={4}
+        actions={[]}
+        roles={["owner"]}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "“Issue” was applied at authoritative version 4.",
+    );
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
   it("explains who can act when the role holds no authorized action", () => {
     renderButtons(["void", "issue"], ["member"]);
 
