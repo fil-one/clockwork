@@ -189,7 +189,7 @@ const incidents: readonly DemoIncident[] = [
         es: "El proveedor de activación no respondió antes del plazo límite.",
         fr: "Le prestataire d’activation n’a pas répondu avant l’échéance.",
         de: "Der Aktivierungsanbieter hat nicht vor Ablauf der Frist geantwortet.",
-        ja: "アクティベーションのプロバイダーが期限までに応答しませんでした。",
+        ja: "有効化プロバイダーが期限までに応答しませんでした。",
         pt: "O provedor de ativação não respondeu antes do prazo.",
         zh: "开通服务商未在截止时间前响应。",
         ar: "لم يستجب مزوّد التفعيل قبل انقضاء المهلة.",

@@ -94,7 +94,7 @@ const fixtureText = {
     es: "Revisión comercial completada para tarifas ficticias de demostración.",
     fr: "Examen commercial terminé pour des tarifs fictifs de démonstration.",
     de: "Kaufmännische Prüfung der fiktiven Demo-Preise abgeschlossen.",
-    ja: "架空のデモ料金の商務レビューが完了しました。",
+    ja: "架空のデモ料金の商取引上の確認が完了しました。",
     pt: "Revisão comercial concluída para tarifas fictícias de demonstração.",
     zh: "已完成对虚构演示费率的商务审核。",
     ar: "اكتملت المراجعة التجارية لأسعار افتراضية للعرض التوضيحي.",

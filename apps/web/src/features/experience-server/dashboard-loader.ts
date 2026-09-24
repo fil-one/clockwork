@@ -640,7 +640,7 @@ function demoCustomerDashboard(input: {
     es: "Réplica de cumplimiento en Madrid",
     fr: "Réplique de conformité de Madrid",
     de: "Compliance-Replikat Madrid",
-    ja: "マドリードのコンプライアンス用レプリカ",
+    ja: "マドリードのコンプライアンスレプリカ",
     pt: "Réplica de conformidade de Madri",
     zh: "马德里合规副本",
     ar: "النسخة المتماثلة للامتثال في مدريد",

@@ -67,7 +67,7 @@ const demoOfferWording: Readonly<
       es: "Almacenamiento ficticio sin permanencia",
       fr: "Stockage fictif sans engagement de durée",
       de: "Fiktiver Speicher ohne Laufzeit",
-      ja: "架空の期間なしストレージ",
+      ja: "期間の定めのない架空のストレージ",
       pt: "Armazenamento fictício sem fidelidade",
       zh: "虚构的无合约期存储",
       ar: "تخزين افتراضي بلا مدة التزام",
