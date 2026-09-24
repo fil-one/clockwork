@@ -1057,12 +1057,12 @@ export function localizedAcceptedOrderRecord(
   )
     return record;
   const fact = data.acceptedOrder;
+  const stated =
+    fact && typeof fact === "object" && !Array.isArray(fact)
+      ? (fact as { reference?: unknown }).reference
+      : undefined;
   const reference =
-    fact &&
-    typeof fact === "object" &&
-    !Array.isArray(fact) &&
-    typeof (fact as { reference?: unknown }).reference === "string" &&
-    ((fact as { reference: string }).reference.trim() || null);
+    typeof stated === "string" && stated.trim() ? stated.trim() : null;
   return {
     ...record,
     data: {
