@@ -47,7 +47,7 @@ describe("when nothing was read", () => {
     expect(queue.readable).toBe(false);
     expect(queue.state).toBe("no_connection");
     expect(queue.incidents).toEqual([]);
-    expect(queue.source).toBe("No service connection is configured");
+    expect(queue.source).toBe("unwired");
   });
 
   it("reads the resettable incident ledger in the exact demo", async () => {
@@ -64,7 +64,7 @@ describe("when nothing was read", () => {
     ).resolves.toMatchObject({
       readable: true,
       state: "read",
-      source: "Demonstration runtime failure ledger",
+      source: "demo",
       incidents: [
         {
           eventType: "lifecycle.provider_effect.dead_lettered",

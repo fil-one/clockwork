@@ -50,7 +50,7 @@ describe("replayable webhook event queue", () => {
 
     expect(queue).toEqual({
       events: [event],
-      source: "Verified provider callbacks",
+      source: "live",
       readable: true,
     });
     expect(mocks.list).toHaveBeenCalledWith({
@@ -84,7 +84,7 @@ describe("replayable webhook event queue", () => {
     // conclusions, so the page must be able to tell them apart.
     expect(queue.readable).toBe(false);
     expect(queue.events).toEqual([]);
-    expect(queue.source).toBe("No callback read is available");
+    expect(queue.source).toBe("unavailable");
   });
 
   it("reads the resettable callback ledger in the exact demo", async () => {
@@ -105,7 +105,7 @@ describe("replayable webhook event queue", () => {
       }),
     ).resolves.toEqual({
       events: [event],
-      source: "Demonstration verified callback ledger",
+      source: "demo",
       readable: true,
     });
     expect(mocks.readDemoWebhookEvents).toHaveBeenCalledWith({

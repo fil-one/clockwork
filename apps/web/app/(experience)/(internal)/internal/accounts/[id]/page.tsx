@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
@@ -6,6 +7,12 @@ import { ProjectionDetailPage } from "@/src/features/experience-server/projectio
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
+import { getTranslations } from "@/src/i18n/server";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("operations.account.title") };
+}
 
 export default async function Page({
   params,
@@ -13,6 +20,7 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations();
   // A report run from an account's page is a report about that account. The
   // internal `dashboard` channel projects the `account` aggregate, so the
   // record opened here supplies the account the report is scoped to; the
@@ -28,12 +36,14 @@ export default async function Page({
       audience="internal"
       channel="dashboard"
       recordKey={id}
-      title="Account operations"
-      description="Assisted access remains restricted to the persisted effective account."
+      title={t("operations.account.title")}
+      description={t("operations.account.description")}
       actions={
         <SurfaceActionGate audience="internal" requiredPermission="report:read">
           {guidedDemo ? (
-            <Link href="/internal/reports">Open reports workspace</Link>
+            <Link href="/internal/reports">
+              {t("operations.account.openReports")}
+            </Link>
           ) : (
             <WorkflowPanel
               context={

@@ -94,6 +94,7 @@ function queueItem(overrides: Partial<QueueItem> & { id: string }): QueueItem {
     policyReason: null,
     policyBasis: null,
     evidence: [],
+    sourceRecord: null,
     related: [],
     permittedActions: [],
     ...overrides,
@@ -312,19 +313,21 @@ describe("operator queue hydration", () => {
 const searchRecords: readonly SearchRecord[] = [
   {
     id: "EXC-COL-008",
-    group: "Queues",
+    group: "queues",
     title: "Collections aging decision",
-    subtitle: "Northstar Archive Labs",
+    detail: { kind: "text", text: "Northstar Archive Labs" },
     href: "/internal/queues/EXC-COL-008",
-    status: "Open",
+    statusLabel: "Open",
+    status: "open",
   },
   {
     id: "EXC-SCR-004",
-    group: "Queues",
+    group: "queues",
     title: "Screening exception",
-    subtitle: "Northstar Archive Labs",
+    detail: { kind: "text", text: "Northstar Archive Labs" },
     href: "/internal/queues/EXC-SCR-004",
-    status: "Open",
+    statusLabel: "Open",
+    status: "open",
   },
 ];
 

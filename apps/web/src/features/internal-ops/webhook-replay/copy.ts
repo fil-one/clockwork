@@ -1,75 +1,50 @@
-export const webhookReplayCopy = {
-  title: "Stopped provider callbacks",
-  description:
-    "Provider callbacks that failed or have not been processed. Replay re-runs one from the bytes verified when the provider delivered it.",
+import type { ReplayableWebhookEvent } from "@clockwork/db";
 
-  freshnessReadable: "Read at page load",
-  freshnessUnreadable: "No read completed for this request",
-  sourceReadable: "Verified provider callbacks",
-  sourceDemo: "Demonstration verified callback ledger",
-  sourceUnreadable: "No callback read is available",
+import type { MessageId, Translator } from "@/src/i18n";
 
-  unreadableTitle: "The callback store could not be read.",
-  unreadableBody:
-    "This page is showing nothing because no read completed, which is a different state from having no stopped callbacks. Check the service database connection before concluding every callback landed.",
+/**
+ * The shortest reason a replay accepts. The server action refuses below it and
+ * the help text states it, from this one constant.
+ */
+export const replayReasonMinimum = 8;
 
-  sectionHeading: "Stopped callbacks",
-  sectionHint: "Provider, event, failure, and how many times it was attempted.",
-  empty:
-    "No callback is stopped. Every verified event either processed or is still within its delivery attempts.",
+export const callbackStateLabels: Readonly<
+  Record<ReplayableWebhookEvent["state"], MessageId>
+> = {
+  failed: "operations.webhookReplay.state.failed",
+  unprocessed: "operations.webhookReplay.state.unprocessed",
+  processed: "operations.webhookReplay.state.processed",
+};
 
-  columns: {
-    provider: "Provider",
-    callback: "Callback",
-    eventType: "Type",
-    state: "State",
-    received: "Received",
-    attempts: "Attempts",
-    failure: "Last error",
-    decision: "Decision",
-  },
+/** Which store answered; the page names it in the reader's language. */
+export type ReplaySource = "live" | "demo" | "unavailable";
 
-  stateLabel: {
-    failed: "Failed",
-    unprocessed: "Not processed",
-    processed: "Processed",
-  },
+export const replaySourceLabels: Readonly<Record<ReplaySource, MessageId>> = {
+  live: "operations.webhookReplay.source.live",
+  demo: "operations.webhookReplay.source.demo",
+  unavailable: "operations.webhookReplay.source.unavailable",
+};
 
-  noError: "Not recorded",
+const outcomes: Readonly<Record<string, MessageId>> = {
+  WEBHOOK_REPLAY_REASON_REQUIRED: "operations.decision.reasonRequired",
+  WEBHOOK_REPLAY_RECENT_AUTH_REQUIRED:
+    "operations.webhookReplay.failure.recentAuth",
+  WEBHOOK_REPLAY_FORBIDDEN: "operations.webhookReplay.failure.forbidden",
+  WEBHOOK_REPLAY_EVENT_NOT_FOUND: "operations.webhookReplay.failure.notFound",
+  WEBHOOK_REPLAY_UNAVAILABLE: "operations.webhookReplay.failure.unavailable",
+  WEBHOOK_REPLAY_ALREADY_RUNNING:
+    "operations.webhookReplay.failure.alreadyRunning",
+  WEBHOOK_REPLAY_INVALID: "operations.webhookReplay.failure.failed",
+  WEBHOOK_REPLAY_FAILED: "operations.webhookReplay.failure.failed",
+};
 
-  action: "Replay",
-  confirmAccept: "Replay this callback",
-  pending: "Replaying…",
-
-  effect:
-    "The stored event is processed again from the bytes verified at delivery. A corrected payload cannot be picked up here; ask the provider to redeliver the event for that.",
-  repeatSubmission:
-    "One. A second submission reports the run already in flight and starts nothing.",
-
-  detail: {
-    callback: "Callback",
-    eventType: "Type",
-    payloadHash: "Payload hash",
-    repeatSubmission: "Replays started by submitting twice",
-  },
-
-  tableCaption:
-    "Stopped provider callbacks with their failure and the replay available",
-
-  reasonLabel: "Reason",
-  reasonHelp:
-    "At least 8 characters. Give the incident or ticket reference and why replay is safe. Kept with your name on the audit record.",
-
-  outcome: {
-    started: "Replay started.",
-    alreadyRunning:
-      "A replay for this callback is already running. Nothing new was started.",
-    reasonRequired: "Give a reason of at least 8 characters.",
-    recentAuthRequired:
-      "Sign in again to confirm it is you, then repeat the replay.",
-    forbidden: "Your permission to replay provider callbacks has changed.",
-    notFound: "No verified callback matches this provider and event id.",
-    unavailable: "The callback store cannot be reached.",
-    failed: "The replay could not be started. Nothing changed.",
-  },
-} as const;
+/** A refusal in the reader's language; unknown codes get the generic one. */
+export function replayFailureMessage(
+  code: string | undefined,
+  t: Translator,
+): string {
+  const id = code && Object.hasOwn(outcomes, code) ? outcomes[code] : undefined;
+  return t(id ?? "operations.webhookReplay.failure.failed", {
+    min: replayReasonMinimum,
+  });
+}

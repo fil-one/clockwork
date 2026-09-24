@@ -10,6 +10,7 @@ import { requireRecentAuthentication } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { decideDemoDeadLetter } from "../demo-operator-state";
+import { recoveryReasonMinimum } from "./copy";
 import { redriveRetriedWork } from "./redrive";
 
 export interface RecoveryDecisionResult {
@@ -48,7 +49,7 @@ export async function decideDeadLetterOperation(
     (action !== "retry" && action !== "abandon")
   )
     return { ok: false, code: "SYSTEM_RECOVERY_INVALID" };
-  if (reason.length < 8)
+  if (reason.length < recoveryReasonMinimum)
     return { ok: false, code: "SYSTEM_RECOVERY_REASON_REQUIRED" };
 
   const demoEnabled = demoDeployIdentityEnabled(process.env);

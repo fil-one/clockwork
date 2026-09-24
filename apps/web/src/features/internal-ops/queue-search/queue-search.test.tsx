@@ -7,13 +7,16 @@ import type {
   ProjectionRecord,
 } from "@/src/features/experience-server/model";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
-  activeFilterLabels,
+  activeFilters,
   DEFAULT_FILTERS,
   filterQueueItems,
   matchesSavedView,
   paginateQueueItems,
   parseQueueFilters,
+  ownerLabel,
   permittedActions,
   queueOwnerOptions,
   queueTypeOptions,
@@ -172,7 +175,7 @@ describe("queue records built from operational projections", () => {
       owner: "Amina Cole",
       statusLabel: "SLA breached · high risk",
       summary: "Verify retention hold before service action",
-      permittedActions: ["Review Exception"],
+      permittedActions: ["review_exception"],
       ownerId: null,
       backup: null,
       backupId: null,
@@ -187,21 +190,20 @@ describe("queue records built from operational projections", () => {
       policyBasis: null,
       related: [],
     });
-    expect(item.evidence).toEqual([
-      {
-        label: "Source record",
-        value: "Version 3 · updated 2026-07-31T15:42:00.000Z",
-        technicalId: record.aggregateId,
-      },
-    ]);
+    expect(item.evidence).toEqual([]);
+    expect(item.sourceRecord).toEqual({
+      version: 3,
+      updatedAt: "2026-07-31T15:42:00.000Z",
+      technicalId: record.aggregateId,
+    });
   });
 
   it("reads the queue, subject and deadline the canonical payload carries", () => {
     const [collections] = operationalQueue();
     expect(collections).toMatchObject({
       id: "col-008",
-      type: "Collections",
-      entity: "Invoice",
+      type: "collections",
+      entity: "invoice",
       risk: "high",
       status: "blocked",
       dueAt: "2026-07-30T17:00:00.000Z",
@@ -241,7 +243,8 @@ describe("queue records built from operational projections", () => {
 
 describe("operational queue saved views", () => {
   it("defines all five human-readable saved views", () => {
-    expect(SAVED_VIEWS.map((view) => view.label)).toEqual([
+    const t = translatorFor("en");
+    expect(SAVED_VIEWS.map((view) => t(view.label))).toEqual([
       "Assigned to me",
       "SLA breached",
       "High risk",
@@ -335,16 +338,21 @@ describe("queue URL state", () => {
     });
   });
 
-  it("names the active filters using the owners the records supplied", () => {
+  it("lists the active filters and names owners from the records supplied", () => {
     expect(
-      activeFilterLabels(
-        { ...DEFAULT_FILTERS, owner: "usr_amina_cole", risk: "high" },
-        [{ id: "usr_amina_cole", label: "Amina Cole" }],
-      ),
-    ).toEqual(["Owner: Amina Cole", "Risk: high"]);
-    expect(
-      activeFilterLabels({ ...DEFAULT_FILTERS, owner: "usr_amina_cole" }),
-    ).toEqual(["Owner: usr_amina_cole"]);
+      activeFilters({
+        ...DEFAULT_FILTERS,
+        owner: "usr_amina_cole",
+        risk: "high",
+      }),
+    ).toEqual([
+      { filter: "owner", value: "usr_amina_cole" },
+      { filter: "risk", value: "high" },
+    ]);
+    const people = [{ id: "usr_amina_cole", label: "Amina Cole" }];
+    expect(ownerLabel("usr_amina_cole", people)).toBe("Amina Cole");
+    expect(ownerLabel("usr_amina_cole", [])).toBe("usr_amina_cole");
+    expect(ownerLabel("unassigned", people)).toBeNull();
   });
 });
 
@@ -412,7 +420,7 @@ describe("queue filtering, priority and paging", () => {
   it("offers only the owners and types the loaded records contain", () => {
     const items = operationalQueue();
     expect(queueOwnerOptions(items)).toEqual([]);
-    expect(queueTypeOptions(items).map((option) => option.value)).toEqual([
+    expect(queueTypeOptions(items)).toEqual([
       "collections",
       "pricing",
       "qualification",
@@ -463,15 +471,16 @@ describe("queue permission and evidence disclosure", () => {
       permittedActions: ["Request legal review", "Attach screening evidence"],
       requiredRole: "legal_approver",
     });
-    const technicalId = gated.evidence.at(-1)?.technicalId as string;
+    const technicalId = gated.sourceRecord?.technicalId as string;
     render(<QueueDetail item={gated} />);
     expect(screen.getByRole("heading", { name: "Evidence" })).toBeVisible();
-    const disclosure = screen.getByText("Technical identifier");
+    const [disclosure] = screen.getAllByText("Technical identifier");
+    if (!disclosure) throw new Error("Expected a technical identifier.");
     expect(disclosure.closest("details")).not.toHaveAttribute("open");
     await user.click(disclosure);
     expect(screen.getByText(technicalId)).toBeVisible();
     expect(
-      screen.getByText(/does not have the required legal approver role/i),
+      screen.getByText(/lacks the required role: Legal approver/i),
     ).toBeVisible();
   });
 
@@ -496,7 +505,7 @@ describe("queue permission and evidence disclosure", () => {
 describe("split-view selection", () => {
   it("keeps the requested item selected and safely falls back after filtering", () => {
     const items = operationalQueue();
-    expect(selectQueueItem(items, "prc-019")?.type).toBe("Pricing");
+    expect(selectQueueItem(items, "prc-019")?.type).toBe("pricing");
     expect(selectQueueItem(items.slice(0, 2), "prc-019")?.id).toBe("col-008");
     expect(selectQueueItem([], "prc-019")).toBeNull();
   });
@@ -504,10 +513,10 @@ describe("split-view selection", () => {
 
 describe("grouped global search", () => {
   const searchable: ReadonlyArray<[ProjectionChannel, SearchGroup, string]> = [
-    ["dashboard", "Accounts", "acct-northstar"],
-    ["agreements", "Agreements", "AGR-2026-0042"],
-    ["collections", "Invoices", "INV-2026-0781"],
-    ["queues", "Queues", "EXC-COL-008"],
+    ["dashboard", "accounts", "acct-northstar"],
+    ["agreements", "agreements", "AGR-2026-0042"],
+    ["collections", "invoices", "INV-2026-0781"],
+    ["queues", "queues", "EXC-COL-008"],
   ];
 
   function catalog() {
@@ -519,24 +528,40 @@ describe("grouped global search", () => {
           statusLabel: "Active",
         }),
         group,
-        "en-US",
       ),
     );
   }
 
+  const noShownWords = () => "";
+
   it("searches IDs and human-readable fields, then groups by record type", () => {
-    const grouped = groupSearchResults(searchRecords("Northstar", catalog()));
-    expect(grouped.map((entry) => entry.group)).toEqual([
-      "Accounts",
-      "Agreements",
-      "Invoices",
-      "Queues",
-    ]);
-    expect(searchRecords("EXC-COL-008", catalog())[0]?.title).toBe(
-      "Northstar Queues",
+    const grouped = groupSearchResults(
+      searchRecords("Northstar", catalog(), noShownWords),
     );
-    expect(searchRecords("Northstar", [])).toEqual([]);
-    expect(searchRecords("", catalog())).toEqual([]);
+    expect(grouped.map((entry) => entry.group)).toEqual([
+      "accounts",
+      "agreements",
+      "invoices",
+      "queues",
+    ]);
+    expect(
+      searchRecords("EXC-COL-008", catalog(), noShownWords)[0]?.title,
+    ).toBe("Northstar queues");
+    expect(searchRecords("Northstar", [], noShownWords)).toEqual([]);
+    expect(searchRecords("", catalog(), noShownWords)).toEqual([]);
+  });
+
+  /**
+   * The group name and a status the source did not word are shown in the
+   * reader's language, so they are searched in it too.
+   */
+  it("matches the words the page adds in the reader's language", () => {
+    const records = catalog();
+    const shown = (record: (typeof records)[number]) =>
+      record.group === "invoices" ? "faturas" : "";
+    expect(
+      searchRecords("faturas", records, shown).map((record) => record.id),
+    ).toEqual(["INV-2026-0781"]);
   });
 
   it("falls back to the projection context when no description is written", () => {
@@ -548,21 +573,28 @@ describe("grouped global search", () => {
           { label: "Target", value: "Aug 3, 2026" },
         ],
       }),
-      "Queues",
-      "en-US",
+      "queues",
     );
-    expect(record.subtitle).toBe("Queue Pricing · Target Aug 3, 2026");
-    expect(record.status).toBe("Available");
+    expect(record.detail).toEqual({
+      kind: "context",
+      entries: [
+        { label: "Queue", value: "Pricing" },
+        { label: "Target", value: "Aug 3, 2026" },
+      ],
+    });
+    expect(record.statusLabel).toBeNull();
+    expect(record.status).toBeNull();
   });
 
   it("formats the update time when it is the only available subtitle", () => {
     const record = searchRecordFromProjection(
       projection("orders", "ORD-1", { title: "Archive renewal" }),
-      "Orders",
-      "en-US",
+      "orders",
     );
-    expect(record.subtitle).toBe("Updated Jul 31, 2026, 3:42 PM UTC");
-    expect(record.subtitle).not.toContain("2026-07-31T");
+    expect(record.detail).toEqual({
+      kind: "updated",
+      at: "2026-07-31T15:42:00.000Z",
+    });
   });
 
   it("wraps keyboard navigation in both directions", () => {
@@ -590,15 +622,13 @@ describe("grouped global search", () => {
           { title: "Committed capacity" },
           "10000000-0000-4000-8000-000000000001",
         ),
-        "Quotes",
-        "en-US",
+        "quotes",
       ).href,
     ).toBe("/internal/accounts/10000000-0000-4000-8000-000000000001");
     expect(
       searchRecordFromProjection(
         projection("quotes", "quote-9f2", { title: "Committed capacity" }),
-        "Quotes",
-        "en-US",
+        "quotes",
         "meridian-archive",
       ).href,
     ).toBe("/internal/accounts/meridian-archive");

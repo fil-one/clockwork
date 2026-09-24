@@ -362,9 +362,9 @@ describe("reading the failures back", () => {
     // blank.
     expect(incident?.diagnosis.kind).toBe("code_only");
     if (incident?.diagnosis.kind === "code_only")
-      expect(incident.diagnosis.discardedAt).toContain(
-        "workflow_runs.last_error",
-      );
+      expect(incident.diagnosis.discardedAt).toMatchObject({
+        column: "workflow_runs.last_error",
+      });
 
     expect(
       queue.incidents.some(

@@ -1,3 +1,5 @@
+import type { MessageId } from "@/src/i18n";
+
 export type QueueRisk = "low" | "medium" | "high";
 export type QueueStatus = "open" | "pending" | "blocked" | "resolved";
 export type QueueSla = "breached" | "due-soon" | "healthy";
@@ -6,32 +8,40 @@ export type QueueView =
 
 export const DEFAULT_QUEUE_SORT = "sla-risk-age" as const;
 
+/**
+ * The saved views, in tab order. `label` names the tab; `description` is its
+ * tooltip.
+ */
 export const SAVED_VIEWS: ReadonlyArray<{
   id: QueueView;
-  label: string;
-  description: string;
+  label: MessageId;
+  description: MessageId;
 }> = [
   {
     id: "assigned-to-me",
-    label: "Assigned to me",
-    description: "Open work assigned to the signed-in operator",
+    label: "operations.queue.view.assigned",
+    description: "operations.queue.view.assigned.description",
   },
   {
     id: "sla-breached",
-    label: "SLA breached",
-    description: "Items already outside their response policy",
+    label: "operations.queue.view.slaBreached",
+    description: "operations.queue.view.slaBreached.description",
   },
   {
     id: "high-risk",
-    label: "High risk",
-    description: "Open items with high business or compliance risk",
+    label: "risk.chip.high",
+    description: "operations.queue.view.highRisk.description",
   },
   {
     id: "awaiting-backup",
-    label: "Awaiting backup",
-    description: "Items that still need a backup owner",
+    label: "operations.queue.view.awaitingBackup",
+    description: "operations.queue.view.awaitingBackup.description",
   },
-  { id: "all", label: "All", description: "All queue work" },
+  {
+    id: "all",
+    label: "common.all",
+    description: "operations.queue.view.all.description",
+  },
 ];
 
 export interface QueuePerson {
@@ -48,7 +58,9 @@ export interface QueuePerson {
 export interface QueueItem {
   id: string;
   title: string;
+  /** The record the case is about, as the source's object-type code. */
   entity: string | null;
+  /** The exception queue, as the source's queue code. */
   type: string | null;
   owner: string | null;
   ownerId: string | null;
@@ -65,12 +77,23 @@ export interface QueueItem {
   summary: string | null;
   policyReason: string | null;
   policyBasis: string | null;
+  /** Context lines the source wrote, label and value as supplied. */
   evidence: ReadonlyArray<{
     label: string;
     value: string;
     technicalId?: string;
   }>;
+  /**
+   * The projection row the item was read from. Kept as facts so the detail
+   * panel states the version and update time in the reader's language.
+   */
+  sourceRecord: {
+    version: number;
+    updatedAt: string;
+    technicalId: string;
+  } | null;
   related: ReadonlyArray<{ label: string; href: string }>;
+  /** Action codes the source allows (`review_exception`, ...). */
   permittedActions: readonly string[];
   requiredRole?:
     "legal_approver" | "finance_approver" | "destructive_action_approver";
@@ -316,28 +339,50 @@ export function paginateQueueItems(
   };
 }
 
-export function activeFilterLabels(
+export type ActiveFilterKey =
+  | "view"
+  | "text"
+  | "type"
+  | "owner"
+  | "backup"
+  | "sla"
+  | "risk"
+  | "status"
+  | "age";
+
+/**
+ * The filters narrowing the list, in the order the summary names them. Values
+ * are the filter's own codes (a person id, `high`, `8-30`); the workspace
+ * turns each into words in the reader's language.
+ */
+export function activeFilters(
   filters: QueueFilters,
-  people: readonly QueuePerson[] = [],
-) {
-  const labels: string[] = [];
-  const view = SAVED_VIEWS.find((candidate) => candidate.id === filters.view);
-  if (filters.view !== "all" && view) labels.push(`View: ${view.label}`);
-  if (filters.text) labels.push(`Search: ${filters.text}`);
-  if (filters.type !== "all") labels.push(`Type: ${filters.type}`);
+): ReadonlyArray<{ filter: ActiveFilterKey; value: string }> {
+  const active: { filter: ActiveFilterKey; value: string }[] = [];
+  if (filters.view !== "all" && VIEWS.has(filters.view))
+    active.push({ filter: "view", value: filters.view });
+  if (filters.text) active.push({ filter: "text", value: filters.text });
+  if (filters.type !== "all")
+    active.push({ filter: "type", value: filters.type });
   if (filters.owner !== "all")
-    labels.push(`Owner: ${ownerLabel(filters.owner, people)}`);
+    active.push({ filter: "owner", value: filters.owner });
   if (filters.backup !== "all")
-    labels.push(`Backup: ${ownerLabel(filters.backup, people)}`);
-  if (filters.sla !== "all") labels.push(`SLA: ${filters.sla}`);
-  if (filters.risk !== "all") labels.push(`Risk: ${filters.risk}`);
-  if (filters.status !== "all") labels.push(`Status: ${filters.status}`);
-  if (filters.age !== "all") labels.push(`Age: ${filters.age} days`);
-  return labels;
+    active.push({ filter: "backup", value: filters.backup });
+  if (filters.sla !== "all") active.push({ filter: "sla", value: filters.sla });
+  if (filters.risk !== "all")
+    active.push({ filter: "risk", value: filters.risk });
+  if (filters.status !== "all")
+    active.push({ filter: "status", value: filters.status });
+  if (filters.age !== "all") active.push({ filter: "age", value: filters.age });
+  return active;
 }
 
-function ownerLabel(id: string, people: readonly QueuePerson[]) {
-  if (id === "unassigned") return "Unassigned";
+/** A person's name from the loaded records, or `null` for the unassigned bucket. */
+export function ownerLabel(
+  id: string,
+  people: readonly QueuePerson[],
+): string | null {
+  if (id === "unassigned") return null;
   return people.find((person) => person.id === id)?.label ?? id;
 }
 
@@ -355,13 +400,14 @@ export function queueOwnerOptions(
     .sort((left, right) => left.label.localeCompare(right.label));
 }
 
-export function queueTypeOptions(items: readonly QueueItem[]) {
+/** Queue codes present in the loaded records, for the type filter. */
+export function queueTypeOptions(
+  items: readonly QueueItem[],
+): readonly string[] {
   const types = items
-    .map((item) => item.type)
+    .map((item) => item.type?.toLocaleLowerCase())
     .filter((type): type is string => Boolean(type));
-  return [...new Set(types)]
-    .sort((left, right) => left.localeCompare(right))
-    .map((type) => ({ value: type.toLocaleLowerCase(), label: type }));
+  return [...new Set(types)].sort((left, right) => left.localeCompare(right));
 }
 
 export const operationalRoleNames = [
@@ -382,6 +428,10 @@ export function operationalRoles(
   );
 }
 
+/**
+ * Hides the decision actions a role cannot take. Matches action codes
+ * (`approve_exception`) as well as the worded forms older sources wrote.
+ */
 export function permittedActions(
   item: QueueItem,
   roles: readonly OperationalRole[],
@@ -390,7 +440,7 @@ export function permittedActions(
     return item.permittedActions;
   return item.permittedActions.filter(
     (action) =>
-      !/approve|recommendation|legal review|finance review/i.test(action),
+      !/approve|recommendation|legal[ _]review|finance[ _]review/i.test(action),
   );
 }
 

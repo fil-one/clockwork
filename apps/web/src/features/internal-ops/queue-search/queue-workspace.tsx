@@ -1,21 +1,34 @@
 "use client";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
 
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+import type { MessageId, Translator } from "@/src/i18n";
+import { richText } from "@/src/i18n/rich";
+
 import { formatOperationalTimestamp } from "../presentation";
 import styles from "./queue-search.module.css";
-import { QUEUE_COPY } from "./copy";
 import {
-  activeFilterLabels,
+  ageLabels,
+  codeLabel,
+  queueLabels,
+  riskLabels,
+  slaFilterLabels,
+  slaLabels,
+  sortLabels,
+  statusLabels,
+  subjectLabels,
+} from "./copy";
+import {
+  activeFilters,
   decodeQueueQuery,
   DEFAULT_FILTERS,
   encodeQueueQuery,
   filterQueueItems,
+  ownerLabel,
   paginateQueueItems,
   parseQueueFilters,
   queueOwnerOptions,
@@ -25,13 +38,13 @@ import {
   slaFor,
   sortQueueItems,
   SAVED_VIEWS,
+  type ActiveFilterKey,
   type QueueFilters,
   type QueueItem,
+  type QueuePerson,
   type OperationalRole,
 } from "./model";
 import { QueueDetail } from "./queue-detail";
-
-const NOT_RECORDED = "Not recorded";
 
 /**
  * How long typing has to settle before the filter reaches the URL. Short
@@ -39,6 +52,57 @@ const NOT_RECORDED = "Not recorded";
  * ordinary typing burst is one navigation rather than one per character.
  */
 const SEARCH_COMMIT_DELAY_MS = 180;
+
+/** The subject and queue under a row's title, or its reference when neither is known. */
+export function queueItemKind(item: QueueItem, t: Translator): string {
+  const entity = item.entity ? codeLabel(subjectLabels, item.entity, t) : null;
+  const queue = item.type ? codeLabel(queueLabels, item.type, t) : null;
+  if (entity && queue)
+    return t("common.join.labels", { first: entity, second: queue });
+  return entity ?? queue ?? item.id;
+}
+
+/** What the active-filter summary calls each filter. */
+const filterNames: Readonly<Record<ActiveFilterKey, MessageId>> = {
+  view: "common.view",
+  text: "common.search",
+  type: "operations.queue.filter.type",
+  owner: "common.owner",
+  backup: "operations.queue.filter.backup",
+  sla: "operations.queue.filter.sla",
+  risk: "common.risk",
+  status: "common.status",
+  age: "operations.queue.filter.age",
+};
+
+function activeFilterValue(
+  filter: ActiveFilterKey,
+  value: string,
+  people: readonly QueuePerson[],
+  t: Translator,
+): string {
+  switch (filter) {
+    case "view": {
+      const view = SAVED_VIEWS.find((candidate) => candidate.id === value);
+      return view ? t(view.label) : value;
+    }
+    case "type":
+      return codeLabel(queueLabels, value, t);
+    case "owner":
+    case "backup":
+      return ownerLabel(value, people) ?? t("operations.queue.unassigned");
+    case "sla":
+      return codeLabel(slaFilterLabels, value, t);
+    case "risk":
+      return codeLabel(riskLabels, value, t);
+    case "status":
+      return codeLabel(statusLabels, value, t);
+    case "age":
+      return codeLabel(ageLabels, value, t);
+    case "text":
+      return value;
+  }
+}
 
 function SelectFilter({
   label,
@@ -56,7 +120,7 @@ function SelectFilter({
     <label className={styles.filterField}>
       <span>{label}</span>
       <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="all">{t("ui.113")}</option>
+        <option value="all">{t("common.all")}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -75,19 +139,25 @@ function QueueState({
   onReset: () => void;
 }) {
   const t = useTranslations();
-  const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
-  const content = localizedQUEUE_COPY.states[kind];
   return (
     <section className={styles.stateCard} role="status">
-      <h2>{content[0]}</h2>
-      <p>{content[1]}</p>
+      <h2>
+        {kind === "empty"
+          ? t("operations.queue.empty.title")
+          : t("operations.queue.noMatch.title")}
+      </h2>
+      <p>
+        {kind === "empty"
+          ? t("operations.queue.empty.description")
+          : t("operations.queue.noMatch.description")}
+      </p>
       {kind === "no-match" ? (
         <button
           className={styles.secondaryButton}
           type="button"
           onClick={onReset}
         >
-          {localizedQUEUE_COPY.clearAll}
+          {t("operations.queue.filters.clearAll")}
         </button>
       ) : null}
     </section>
@@ -95,17 +165,14 @@ function QueueState({
 }
 
 function SlaCell({ item, now }: { item: QueueItem; now: Date }) {
+  const t = useTranslations();
   const formattingLocale = useFormattingLocale();
   const sla = slaFor(item, now);
-  if (!sla || !item.dueAt) return <span>{NOT_RECORDED}</span>;
+  if (!sla || !item.dueAt) return <span>{t("common.notRecorded")}</span>;
   return (
     <>
       <span className={`${styles.sla} ${styles[`sla_${sla}`]}`}>
-        {sla === "breached"
-          ? "Breached"
-          : sla === "due-soon"
-            ? "Due soon"
-            : "Healthy"}
+        {t(slaLabels[sla])}
       </span>
       <time dateTime={item.dueAt}>
         {new Intl.DateTimeFormat(formattingLocale, {
@@ -130,7 +197,20 @@ function QueueTable({
   onSelect: (id: string) => void;
 }) {
   const t = useTranslations();
-  const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
+  const formattingLocale = useFormattingLocale();
+  const days = new Intl.NumberFormat(formattingLocale, {
+    style: "unit",
+    unit: "day",
+    unitDisplay: "narrow",
+  });
+  const headings = [
+    t("operations.queue.column.workItem"),
+    t("common.owner"),
+    t("operations.queue.filter.sla"),
+    t("common.risk"),
+    t("common.status"),
+    t("operations.queue.filter.age"),
+  ] as const;
   return (
     // The table is wider than the panel on a narrow viewport, so this element
     // scrolls. A scroll container that holds no focusable element of its own
@@ -140,16 +220,16 @@ function QueueTable({
     <div
       className={styles.tableScroller}
       role="region"
-      aria-label={localizedQUEUE_COPY.tableRegionLabel}
+      aria-label={t("operations.queue.results.tableLabel")}
       tabIndex={0}
     >
       <table className={styles.table}>
         <caption className={styles.srOnly}>
-          {localizedQUEUE_COPY.resultCaption}
+          {t("operations.queue.results.caption")}
         </caption>
         <thead>
           <tr>
-            {localizedQUEUE_COPY.table.map((heading) => (
+            {headings.map((heading) => (
               <th key={heading} scope="col">
                 {heading}
               </th>
@@ -157,66 +237,72 @@ function QueueTable({
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
-            <tr
-              className={
-                selected?.id === item.id ? styles.selectedRow : undefined
-              }
-              key={item.id}
-            >
-              <th scope="row">
-                <button
-                  className={styles.rowSelect}
-                  type="button"
-                  aria-label={`Show details for ${item.title}`}
-                  aria-pressed={selected?.id === item.id}
-                  onClick={() => onSelect(item.id)}
-                >
-                  <strong>{item.title}</strong>
-                  <span>
-                    {[item.entity, item.type].filter(Boolean).join(" · ") ||
-                      item.id}
-                  </span>
-                </button>
-                <Link
-                  className={styles.mobileTitleLink}
-                  href={`/internal/queues/${item.id}` as Route}
-                >
-                  {item.title}
-                  <span>
-                    {[item.entity, item.type].filter(Boolean).join(" · ") ||
-                      item.id}
-                  </span>
-                </Link>
-              </th>
-              <td data-label="Owner">
-                <strong>{item.owner ?? NOT_RECORDED}</strong>
-                <span>
-                  {item.backup ? `Backup ${item.backup}` : "No backup"}
-                </span>
-              </td>
-              <td data-label="SLA">
-                <SlaCell item={item} now={now} />
-              </td>
-              <td data-label="Risk">
-                {item.risk ? (
-                  <span
-                    className={`${styles.risk} ${styles[`risk_${item.risk}`]}`}
+          {items.map((item) => {
+            const kind = queueItemKind(item, t);
+            return (
+              <tr
+                className={
+                  selected?.id === item.id ? styles.selectedRow : undefined
+                }
+                key={item.id}
+              >
+                <th scope="row">
+                  <button
+                    className={styles.rowSelect}
+                    type="button"
+                    aria-label={t("operations.queue.row.showDetails", {
+                      title: item.title,
+                    })}
+                    aria-pressed={selected?.id === item.id}
+                    onClick={() => onSelect(item.id)}
                   >
-                    {item.risk}
+                    <strong>{item.title}</strong>
+                    <span>{kind}</span>
+                  </button>
+                  <Link
+                    className={styles.mobileTitleLink}
+                    href={`/internal/queues/${item.id}` as Route}
+                  >
+                    {item.title}
+                    <span>{kind}</span>
+                  </Link>
+                </th>
+                <td data-label={headings[1]}>
+                  <strong>{item.owner ?? t("common.notRecorded")}</strong>
+                  <span>
+                    {item.backup
+                      ? t("operations.queue.row.backup", { name: item.backup })
+                      : t("operations.queue.row.noBackup")}
                   </span>
-                ) : (
-                  NOT_RECORDED
-                )}
-              </td>
-              <td data-label="Status">
-                {item.statusLabel ?? item.status ?? NOT_RECORDED}
-              </td>
-              <td data-label="Age">
-                {item.ageDays === null ? NOT_RECORDED : `${item.ageDays}d`}
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td data-label={headings[2]}>
+                  <SlaCell item={item} now={now} />
+                </td>
+                <td data-label={headings[3]}>
+                  {item.risk ? (
+                    <span
+                      className={`${styles.risk} ${styles[`risk_${item.risk}`]}`}
+                    >
+                      {t(riskLabels[item.risk])}
+                    </span>
+                  ) : (
+                    t("common.notRecorded")
+                  )}
+                </td>
+                <td data-label={headings[4]}>
+                  {item.statusLabel ??
+                    (item.status
+                      ? t(statusLabels[item.status])
+                      : t("common.notRecorded"))}
+                </td>
+                <td data-label={headings[5]}>
+                  {item.ageDays === null
+                    ? t("common.notRecorded")
+                    : days.format(item.ageDays)}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -240,7 +326,6 @@ export function QueueWorkspace({
 }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
-  const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -288,7 +373,18 @@ export function QueueWorkspace({
    */
   const lastCommit = useRef<{ text: string; from: QueueFilters } | null>(null);
   const people = useMemo(() => queueOwnerOptions(items), [items]);
-  const typeOptions = useMemo(() => queueTypeOptions(items), [items]);
+  const typeOptions = useMemo(
+    () =>
+      queueTypeOptions(items)
+        .map((type) => ({
+          value: type,
+          label: codeLabel(queueLabels, type, t),
+        }))
+        .sort((left, right) =>
+          left.label.localeCompare(right.label, formattingLocale),
+        ),
+    [formattingLocale, items, t],
+  );
   const ownerOptions = useMemo(
     () => people.map((person) => ({ value: person.id, label: person.label })),
     [people],
@@ -304,7 +400,12 @@ export function QueueWorkspace({
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = selectQueueItem(filtered, selectedId);
-  const labels = activeFilterLabels(filters, people);
+  const labels = activeFilters(filters).map(({ filter, value }) =>
+    t("operations.queue.activeFilter", {
+      filter: t(filterNames[filter]),
+      value: activeFilterValue(filter, value, people, t),
+    }),
+  );
   const {
     items: paginated,
     page,
@@ -409,6 +510,7 @@ export function QueueWorkspace({
           ...(token ? { "x-csrf-token": token } : {}),
         },
       });
+      // i18n-exempt: control flow only; caught below and shown as a message ID
       if (!response.ok) throw new Error("Projection refresh was refused");
       refreshIdempotencyKey.current = null;
       setRefreshState("idle");
@@ -422,43 +524,46 @@ export function QueueWorkspace({
     <main className={styles.page} id="main-content">
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>{localizedQUEUE_COPY.eyebrow}</p>
-          <h1>{localizedQUEUE_COPY.title}</h1>
-          <p>{localizedQUEUE_COPY.description}</p>
+          <p className={styles.eyebrow}>{t("operations.eyebrow")}</p>
+          <h1>{t("operations.queue.title")}</h1>
+          <p>{t("operations.queue.description")}</p>
         </div>
         <p className={styles.freshness}>
           <span aria-hidden="true" />
-          {localizedQUEUE_COPY.freshness}{" "}
-          <time dateTime={generatedAt}>
-            {formatOperationalTimestamp(generatedAt, formattingLocale)}
-          </time>
+          {richText(t, "common.updatedAt", {
+            time: (
+              <time dateTime={generatedAt}>
+                {formatOperationalTimestamp(generatedAt, formattingLocale)}
+              </time>
+            ),
+          })}
         </p>
       </header>
 
       {stale ? (
         <section className={styles.staleBanner} role="alert">
-          <strong>{localizedQUEUE_COPY.staleTitle}</strong>
-          <span>{localizedQUEUE_COPY.staleDescription}</span>
+          <strong>{t("operations.queue.stale.title")}</strong>
+          <span>{t("operations.queue.stale.description")}</span>
           <button
             type="button"
             disabled={refreshState === "pending"}
             onClick={() => void refreshProjection()}
           >
             {refreshState === "pending"
-              ? localizedQUEUE_COPY.staleRefreshing
+              ? t("operations.queue.stale.refreshing")
               : refreshState === "failed"
-                ? localizedQUEUE_COPY.staleRetry
-                : localizedQUEUE_COPY.staleAction}
+                ? t("operations.queue.stale.retry")
+                : t("operations.queue.stale.action")}
           </button>
           {refreshState === "failed" ? (
-            <span role="status">{localizedQUEUE_COPY.staleRefreshFailed}</span>
+            <span role="status">{t("operations.queue.stale.failed")}</span>
           ) : null}
         </section>
       ) : null}
 
       <nav
         className={styles.savedViews}
-        aria-label={localizedQUEUE_COPY.savedViewsLabel}
+        aria-label={t("operations.queue.savedViews")}
       >
         {SAVED_VIEWS.map((view) => (
           <button
@@ -466,10 +571,10 @@ export function QueueWorkspace({
             key={view.id}
             type="button"
             aria-current={filters.view === view.id ? "page" : undefined}
-            title={view.description}
+            title={t(view.description)}
             onClick={() => update({ view: view.id })}
           >
-            {view.label}
+            {t(view.label)}
           </button>
         ))}
       </nav>
@@ -477,95 +582,88 @@ export function QueueWorkspace({
       <section className={styles.filters} aria-labelledby="queue-filters-title">
         <div className={styles.filterHeading}>
           <div>
-            <h2 id="queue-filters-title">{localizedQUEUE_COPY.filtersTitle}</h2>
-            <p>{localizedQUEUE_COPY.filtersDescription}</p>
+            <h2 id="queue-filters-title">
+              {t("operations.queue.filters.title")}
+            </h2>
+            <p>{t("operations.queue.filters.description")}</p>
           </div>
           <button type="button" onClick={reset}>
-            {localizedQUEUE_COPY.clearAll}
+            {t("operations.queue.filters.clearAll")}
           </button>
         </div>
         <div className={styles.filterGrid}>
           <label className={`${styles.filterField} ${styles.searchField}`}>
-            <span>{localizedQUEUE_COPY.searchLabel}</span>
+            <span>{t("operations.queue.search.label")}</span>
             <input
               type="search"
               value={searchDraft}
-              placeholder={localizedQUEUE_COPY.searchPlaceholder}
+              placeholder={t("operations.queue.search.placeholder")}
               onChange={(event) => setPendingText(event.target.value)}
             />
           </label>
           <SelectFilter
-            label={localizedQUEUE_COPY.filterLabels.type}
+            label={t("operations.queue.filter.type")}
             value={filters.type}
             onChange={(type) => update({ type })}
             options={typeOptions}
           />
           <SelectFilter
-            label={localizedQUEUE_COPY.filterLabels.owner}
+            label={t("common.owner")}
             value={filters.owner}
             onChange={(owner) => update({ owner })}
             options={ownerOptions}
           />
           <SelectFilter
-            label={localizedQUEUE_COPY.filterLabels.backup}
+            label={t("operations.queue.filter.backup")}
             value={filters.backup}
             onChange={(backup) => update({ backup })}
             options={[
               ...ownerOptions,
-              { value: "unassigned", label: "Unassigned" },
+              { value: "unassigned", label: t("operations.queue.unassigned") },
             ]}
           />
           <SelectFilter
-            label={localizedQUEUE_COPY.filterLabels.sla}
+            label={t("operations.queue.filter.sla")}
             value={filters.sla}
             onChange={(sla) => update({ sla })}
-            options={[
-              { value: "breached", label: "Breached" },
-              { value: "due-soon", label: "Due in 24 hours" },
-              { value: "healthy", label: "Healthy" },
-            ]}
+            options={(["breached", "due-soon", "healthy"] as const).map(
+              (value) => ({ value, label: t(slaFilterLabels[value]) }),
+            )}
           />
           <SelectFilter
-            label={localizedQUEUE_COPY.filterLabels.risk}
+            label={t("common.risk")}
             value={filters.risk}
             onChange={(risk) => update({ risk })}
-            options={[
-              { value: "high", label: "High" },
-              { value: "medium", label: "Medium" },
-              { value: "low", label: "Low" },
-            ]}
+            options={(["high", "medium", "low"] as const).map((value) => ({
+              value,
+              label: t(riskLabels[value]),
+            }))}
           />
           <SelectFilter
-            label={localizedQUEUE_COPY.filterLabels.status}
+            label={t("common.status")}
             value={filters.status}
             onChange={(status) => update({ status })}
-            options={[
-              { value: "open", label: "Open" },
-              { value: "pending", label: "Pending" },
-              { value: "blocked", label: "Blocked" },
-              { value: "resolved", label: "Resolved" },
-            ]}
+            options={(["open", "pending", "blocked", "resolved"] as const).map(
+              (value) => ({ value, label: t(statusLabels[value]) }),
+            )}
           />
           <SelectFilter
-            label={localizedQUEUE_COPY.filterLabels.age}
+            label={t("operations.queue.filter.age")}
             value={filters.age}
             onChange={(age) => update({ age })}
-            options={[
-              { value: "7", label: "0–7 days" },
-              { value: "8-30", label: "8–30 days" },
-              { value: "30+", label: "More than 30 days" },
-            ]}
+            options={Object.entries(ageLabels).map(([value, label]) => ({
+              value,
+              label: t(label),
+            }))}
           />
           <SelectFilter
-            label={localizedQUEUE_COPY.filterLabels.sort}
+            label={t("common.sort")}
             value={filters.sort}
             onChange={(sort) => update({ sort })}
-            options={[
-              { value: "sla-risk-age", label: "SLA, risk, oldest" },
-              { value: "risk", label: "Highest risk" },
-              { value: "oldest", label: "Oldest" },
-              { value: "updated", label: "Recently updated" },
-            ]}
+            options={Object.entries(sortLabels).map(([value, label]) => ({
+              value,
+              label: t(label),
+            }))}
           />
         </div>
       </section>
@@ -575,24 +673,22 @@ export function QueueWorkspace({
         aria-live="polite"
         aria-atomic="true"
       >
-        <strong>
-          {filtered.length} {filtered.length === 1 ? "result" : "results"}
-        </strong>
+        <strong>{t("common.results", { count: filtered.length })}</strong>
         {labels.length ? (
-          <ul aria-label={localizedQUEUE_COPY.activeFilters}>
+          <ul aria-label={t("operations.queue.activeFilters")}>
             {labels.map((label) => (
               <li key={label}>{label}</li>
             ))}
           </ul>
         ) : (
-          <span>{localizedQUEUE_COPY.noActiveFilters}</span>
+          <span>{t("operations.queue.noActiveFilters")}</span>
         )}
       </section>
 
       {isPending ? (
         <div className={styles.loading} role="status">
           <span aria-hidden="true" />
-          {localizedQUEUE_COPY.updating}
+          {t("operations.queue.updating")}
         </div>
       ) : null}
       {items.length === 0 ? (
@@ -603,7 +699,7 @@ export function QueueWorkspace({
         <div className={styles.workspace} aria-busy={isPending}>
           <section
             className={styles.tablePanel}
-            aria-label={localizedQUEUE_COPY.resultTableLabel}
+            aria-label={t("operations.queue.results.label")}
           >
             <QueueTable
               items={paginated}
@@ -613,7 +709,7 @@ export function QueueWorkspace({
             />
             <div className={styles.pagination}>
               <label>
-                {localizedQUEUE_COPY.rowsPerPage}
+                {t("common.rowsPerPage")}
                 <select
                   value={filters.pageSize}
                   onChange={(event) =>
@@ -626,27 +722,27 @@ export function QueueWorkspace({
                 </select>
               </label>
               <span>
-                Page {page} of {pageCount}
+                {t("common.pagination.pageOf", { page, pages: pageCount })}
               </span>
               <button
                 type="button"
                 disabled={page <= 1}
                 onClick={() => update({ page: page - 1 })}
               >
-                {localizedQUEUE_COPY.previous}
+                {t("common.pagination.previous")}
               </button>
               <button
                 type="button"
                 disabled={page >= pageCount}
                 onClick={() => update({ page: page + 1 })}
               >
-                {localizedQUEUE_COPY.next}
+                {t("common.pagination.next")}
               </button>
             </div>
           </section>
           <aside
             className={styles.splitPanel}
-            aria-label={localizedQUEUE_COPY.detailLabel}
+            aria-label={t("operations.queue.detail.label")}
           >
             {selected ? (
               <QueueDetail item={selected} roles={roles} now={now} />
