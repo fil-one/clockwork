@@ -89,6 +89,7 @@ describe("durable partner quote demo", () => {
       await store.read(),
       demoAccountIds.reseller,
       "Redwood Channel Group",
+      "en",
     );
     expect(context).toMatchObject({
       route: "resale",
@@ -104,6 +105,24 @@ describe("durable partner quote demo", () => {
         },
       ],
     });
+  });
+
+  /**
+   * The offer picker named each offer after the price book's stored English
+   * fixture name, so a Portuguese partner chose from "Partner commerce GBP".
+   */
+  it("names the offers' price book in the reader's language", async () => {
+    const context = demoPartnerQuoteContext(
+      await store.read(),
+      demoAccountIds.reseller,
+      "Redwood Channel Group",
+      "pt",
+    );
+    expect(context?.offers.length).toBeGreaterThan(0);
+    for (const offer of context?.offers ?? []) {
+      expect(offer.name).toContain("Venda por parceiros GBP");
+      expect(offer.name).not.toContain("Partner commerce");
+    }
   });
 
   it("prices with production rules and persists collection plus detail data", async () => {
@@ -553,6 +572,7 @@ it("edits drafts, revises multiple lines and invalidates client review after rep
     await store.read(),
     demoAccountIds.reseller,
     "Partner",
+    "en",
     `quote-${body.id}`,
   );
   expect(context?.revision?.lines).toHaveLength(1);

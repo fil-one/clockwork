@@ -29,6 +29,7 @@ import {
   getRouteSession,
 } from "@/src/features/shell/route-session";
 import { partnerPageMetadata } from "@/src/features/customer-partner/partner/partner-route";
+import { getLocale } from "@/src/i18n/server";
 
 export const generateMetadata = () =>
   partnerPageMetadata("partner.quote.new.title.create");
@@ -256,6 +257,7 @@ async function ResaleQuoteWorkspace({
       await configuredDemoStateStore().read(),
       identity.accountId,
       identity.accountName,
+      await getLocale(),
       reference,
     );
     if (!context) return <NothingToQuote missing="agreement" />;
