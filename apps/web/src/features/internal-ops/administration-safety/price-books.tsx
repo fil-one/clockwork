@@ -1,5 +1,6 @@
 "use client";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 import type { MessageId, Translator } from "@/src/i18n";
 
 import Link from "next/link";
@@ -424,8 +425,9 @@ export function PriceBookAdministration({
     }
   }
 
-  // These pills keep the neutral tone they had when their tone was guessed
-  // from English words; only the price-book states carry a colour.
+  // The colour follows the state the pill reports, never its words: a read
+  // that failed is a problem, an empty registry needs attention, a current
+  // one is fine; finance authority is granted or it is not.
   const availabilityPill = (
     <PricingPill
       label={t(
@@ -435,13 +437,19 @@ export function PriceBookAdministration({
             ? "adminPricing.pill.noVersions"
             : "adminPricing.pill.upToDate",
       )}
-      tone="warning"
+      tone={
+        availability === "unavailable"
+          ? "danger"
+          : availability === "empty"
+            ? "warning"
+            : "success"
+      }
     />
   );
   const authorityPill = (available: boolean, unavailable: MessageId) => (
     <PricingPill
       label={t(available ? "adminPricing.pill.financeAuthority" : unavailable)}
-      tone="warning"
+      tone={available ? "success" : "warning"}
     />
   );
 
@@ -1023,8 +1031,10 @@ export function PriceBookAdministration({
                   date: date(book.activationSchedule.effectiveFrom),
                 })
               : book.activationRequestedByEmail
-                ? t("adminPricing.priceBooks.activation.proposedBy", {
-                    email: book.activationRequestedByEmail,
+                ? // The address is an identifier: <bdi> keeps it whole
+                  // (never hyphenated) and in its own direction.
+                  richText(t, "adminPricing.priceBooks.activation.proposedBy", {
+                    email: <bdi>{book.activationRequestedByEmail}</bdi>,
                   })
                 : book.status === "draft"
                   ? t("adminPricing.priceBooks.activation.notProposed")
@@ -1187,8 +1197,11 @@ export function PriceBookAdministration({
               <div>
                 <dt>{t("adminPricing.priceBooks.review.proposedBy")}</dt>
                 <dd>
-                  {selected.activationRequestedByEmail ??
-                    t("adminPricing.priceBooks.activation.notProposed")}
+                  {selected.activationRequestedByEmail ? (
+                    <bdi>{selected.activationRequestedByEmail}</bdi>
+                  ) : (
+                    t("adminPricing.priceBooks.activation.notProposed")
+                  )}
                 </dd>
               </div>
             </dl>

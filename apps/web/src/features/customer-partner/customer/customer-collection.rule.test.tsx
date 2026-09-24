@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { CustomerCollection } from "./customer-collection";
+import { resolveDemoText } from "@clockwork/testing/demo-localized-text";
+
 import { customerCollections } from "./customer-data";
 
 vi.mock("next/navigation", () => ({
@@ -36,5 +38,29 @@ describe("customer collection truth copy", () => {
     expect(results.compareDocumentPosition(rule)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
+  });
+});
+
+describe("customer collection values", () => {
+  /**
+   * A record's value is a fact -- an amount, an address, a reference -- and
+   * table cells hyphenate in de/fr/es/pt. The value sits in a <bdi>, which the
+   * stylesheet never hyphenates, and which keeps its own direction in Arabic.
+   */
+  it("sets each record's value apart from the surrounding prose", () => {
+    const config = resolveDemoText(customerCollections.procurement, "en");
+    const [record] = config.records;
+    if (!record) throw new Error("the procurement fixture has records");
+    render(
+      <CustomerCollection
+        config={config}
+        formatting={formatting}
+        freshness={fresh}
+        searchParams={{}}
+      />,
+    );
+    const values = screen.getAllByText(record.value);
+    expect(values.length).toBeGreaterThan(0);
+    for (const value of values) expect(value.tagName).toBe("BDI");
   });
 });

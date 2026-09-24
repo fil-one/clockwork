@@ -126,11 +126,20 @@ describe("price-book administration actionability", () => {
     expect(screen.getByText(/Guided demo data · Updated/)).toBeVisible();
     expect(screen.queryByText(/Deterministic demo fixture/)).toBeNull();
     expect(
-      screen.getByText("Proposed by commercial.policy@filone.test"),
+      screen.getByRole("cell", {
+        name: "Proposed by commercial.policy@filone.test",
+      }),
     ).toBeVisible();
+    // The address sits in its own <bdi>, which is never hyphenated.
+    for (const address of screen.getAllByText("commercial.policy@filone.test"))
+      expect(address.tagName).toBe("BDI");
     expect(
       screen.getByRole("button", { name: "Review price-book approval" }),
     ).toBeEnabled();
+    // A current registry and a held authority are not warnings.
+    expect(screen.getByText("Up to date")).toHaveClass(styles.success ?? "");
+    for (const pill of screen.getAllByText("Finance authority"))
+      expect(pill).toHaveClass(styles.success ?? "");
   });
 
   it("creates metadata then submits a complete first rate card", async () => {
@@ -582,7 +591,9 @@ describe("the page in the reader's language", () => {
       screen.getByText("Somente versões ativadas definem o preço."),
     ).toBeVisible();
     expect(
-      screen.getByText("Proposta por commercial.policy@filone.test"),
+      screen.getByRole("cell", {
+        name: "Proposta por commercial.policy@filone.test",
+      }),
     ).toBeVisible();
     // Amounts and dates are formatted for the reader, not pre-rendered.
     expect(screen.getAllByText("US$ 150,00").length).toBeGreaterThan(0);

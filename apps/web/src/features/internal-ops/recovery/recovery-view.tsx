@@ -3,6 +3,7 @@ import { use } from "react";
 import { StatusBadge, Table } from "@clockwork/ui";
 
 import type { MessageId, Translator } from "@/src/i18n";
+import { richText } from "@/src/i18n/rich";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
@@ -13,6 +14,7 @@ import type {
   DeadLetterOperation,
   DeadLetterResult,
 } from "./dead-letter-loader";
+import { MachineCode } from "../machine-code";
 import { RecoveryDecision } from "./recovery-decision";
 
 /** What the stopped work acts on, named the way the rest of the product names it. */
@@ -56,16 +58,38 @@ function elapsed(
   }).format(unit === "hour" ? hours : Math.floor(hours / 24));
 }
 
+function subjectKind(operation: DeadLetterOperation, t: Translator): string {
+  const kind = Object.hasOwn(subjectKinds, operation.subjectType)
+    ? subjectKinds[operation.subjectType]
+    : undefined;
+  return kind ? t(kind) : operation.subjectType;
+}
+
 export function recoverySubject(
   operation: DeadLetterOperation,
   t: Translator,
 ): string {
-  const kind = Object.hasOwn(subjectKinds, operation.subjectType)
-    ? subjectKinds[operation.subjectType]
-    : undefined;
   return t("operations.recovery.subject", {
-    kind: kind ? t(kind) : operation.subjectType,
+    kind: subjectKind(operation, t),
     reference: shortIdentifier(operation.subjectId),
+  });
+}
+
+/** The same subject in the table, with the reference kept on one line. */
+function RecoverySubjectCell({
+  operation,
+  t,
+}: {
+  operation: DeadLetterOperation;
+  t: Translator;
+}) {
+  return richText(t, "operations.recovery.subject", {
+    kind: subjectKind(operation, t),
+    reference: (
+      <bdi className={styles.reference}>
+        {shortIdentifier(operation.subjectId)}
+      </bdi>
+    ),
   });
 }
 
@@ -147,7 +171,7 @@ export function RecoveryView({
           <p className={styles.empty}>{t("operations.recovery.table.empty")}</p>
         ) : (
           <Table
-            className={styles.dsTable ?? ""}
+            className={`${styles.dsTable ?? ""} ${styles.denseTable ?? ""}`}
             caption={t("operations.recovery.table.caption")}
             captionHidden
             density="compact"
@@ -169,12 +193,17 @@ export function RecoveryView({
               return [
                 t(sourceLabels[operation.source]),
                 <div className={styles.primaryCell}>
-                  <strong>{operation.reference}</strong>
-                  <span className={styles.secondary}>
+                  <strong>
+                    <MachineCode
+                      className={styles.code}
+                      value={operation.reference}
+                    />
+                  </strong>
+                  <span className={`${styles.secondary} ${styles.code}`}>
                     {operation.id.slice(0, 8)}
                   </span>
                 </div>,
-                subject,
+                <RecoverySubjectCell operation={operation} t={t} />,
                 <StatusBadge tone="danger">
                   {operation.failureCode}
                 </StatusBadge>,

@@ -11,6 +11,7 @@ vi.mock("@/src/features/shell/permission-gate", () => ({
 }));
 vi.mock("./actions", () => ({ decideDeadLetterOperation: vi.fn() }));
 
+import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { recoverySubject, RecoveryView } from "./recovery-view";
 
 const invoiceDispatch: DeadLetterOperation = {
@@ -74,7 +75,13 @@ describe("stopped work", () => {
     );
     const table = screen.getByRole("table");
     expect(within(table).getByText("Dispatch queue")).toBeVisible();
-    expect(within(table).getByText("Invoice INV-2026-0781")).toBeVisible();
+    // The reference sits in its own element so it never splits across lines.
+    expect(
+      within(table).getByRole("cell", { name: "Invoice INV-2026-0781" }),
+    ).toBeVisible();
+    expect(within(table).getByText("INV-2026-0781")).toHaveClass(
+      styles.reference ?? "",
+    );
     expect(within(table).getByText("3 hours")).toBeVisible();
     expect(screen.getByText("1 record")).toBeVisible();
   });

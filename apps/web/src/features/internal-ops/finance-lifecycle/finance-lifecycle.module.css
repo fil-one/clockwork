@@ -269,6 +269,90 @@
   vertical-align: top;
 }
 
+/*
+ * The operator tables with seven or eight columns (stopped work, runtime
+ * incidents, stopped callbacks). Each column's 11rem floor and the default
+ * 1rem cell inset added up to 1,150-1,490px, so at 1440px the decision column
+ * -- the one the operator came to use -- sat past the card's edge in every
+ * language. Here a column is as wide as its content needs, the inset is
+ * tighter, and headers may wrap between words. The rows carry machine codes
+ * of any length (PROCESSING_ATTEMPTS_EXHAUSTED), so a long one can still make
+ * the table wider than its card; then it scrolls inside the card, and a soft
+ * shadow on the clipped edge says there is more (the wrapper is keyboard
+ * focusable for the scroll).
+ */
+.denseTable {
+  background:
+    linear-gradient(to right, var(--web-paper) 40%, transparent) left / 2rem
+      100% no-repeat local,
+    linear-gradient(to left, var(--web-paper) 40%, transparent) right / 2rem
+      100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgb(20 24 31 / 0.14), transparent)
+      left / 0.75rem 100% no-repeat scroll,
+    radial-gradient(
+        farthest-side at 100% 50%,
+        rgb(20 24 31 / 0.14),
+        transparent
+      )
+      right / 0.75rem 100% no-repeat scroll,
+    var(--web-paper);
+}
+
+.denseTable table th,
+.denseTable table td {
+  padding-inline: 0.5rem;
+}
+
+.denseTable table :is(th, td):first-child {
+  padding-inline-start: 1rem;
+}
+
+.denseTable table :is(th, td):last-child {
+  padding-inline-end: 1rem;
+}
+
+.denseTable .primaryCell,
+.denseTable .actionStack {
+  min-width: 0;
+}
+
+/*
+ * A header may wrap between words ("Record and / identifiers"), but never
+ * inside one: `keep-all` stops Japanese and Chinese from breaking a word
+ * such as プロバイダー between any two characters, which is what the default
+ * line breaking does once a header is allowed to wrap.
+ */
+.denseTable table thead th {
+  white-space: normal;
+  word-break: keep-all;
+}
+
+/* A decision button's label may take two lines rather than widen the column. */
+.denseTable .actionStack button {
+  width: auto;
+  text-align: start;
+}
+
+/* A reference such as INV-2026-0781 is one token and never splits. */
+.denseTable .reference {
+  white-space: nowrap;
+}
+
+/*
+ * Machine identifiers (task names, event types, UUIDs, error codes) are not
+ * words: automatic hyphenation for de/fr/es/pt would print
+ * "activate_sub-scription", a name that does not exist.
+ */
+.denseTable .code {
+  hyphens: manual;
+}
+
+/* A time reads as one unit ("Jul 31, 2026, 2:31 PM UTC" on two lines, not
+   five). */
+.denseTable time {
+  white-space: nowrap;
+}
+
 .primaryCell {
   display: grid;
   gap: 0.16rem;
