@@ -168,6 +168,24 @@ describe("the demo dashboard in every interface language", () => {
     );
   });
 
+  /**
+   * The commercial fixtures carry facts beside English display strings kept
+   * for older consumers. The dashboard read the strings, so a Spanish reader
+   * saw "Open", "$184,800.00" and "Invoice for Northstar primary archive".
+   */
+  it("renders the commercial obligations from their facts", async () => {
+    const dashboard = await dashboardIn("es");
+    const commercial = dashboard.obligations.filter((item) =>
+      ["Q-2026-0184-v3", "INV-2026-0781"].includes(item.id),
+    );
+    expect(commercial).toHaveLength(2);
+    for (const item of commercial)
+      expect(JSON.stringify([item.title, item.detail, item.state])).not.toMatch(
+        /\bOpen\b|\$\d|Invoice for|annual|direct\b|US East/u,
+      );
+    expect(commercial[0]?.title).toMatch(/184\.800,00\sUS\$/u);
+  });
+
   it("colours the renewal badge from facts, not from the words on it", async () => {
     for (const language of languages) {
       request.language = language;

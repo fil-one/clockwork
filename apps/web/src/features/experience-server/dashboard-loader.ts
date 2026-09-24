@@ -15,7 +15,11 @@ import {
   getLocale,
   getTranslations,
 } from "@/src/i18n/server";
-import type { CollectionKind } from "@/src/features/customer-partner/commercial/model";
+import {
+  collectionKinds,
+  type CollectionKind,
+} from "@/src/features/customer-partner/commercial/model";
+import { projectionDisplay } from "@/src/features/customer-partner/commercial/record-presentation";
 import type { CustomerDashboardProjection } from "@/src/features/customer-partner/customer/customer-dashboard";
 import type { PartnerDashboardProjection } from "@/src/features/customer-partner/partner/partner-dashboard";
 
@@ -222,7 +226,50 @@ interface DashboardRecord {
   authoritative: Readonly<Record<string, unknown>>;
 }
 
-function dashboardRecord(record: ProjectionRecord): DashboardRecord {
+function isCollectionKind(channel: string): channel is CollectionKind {
+  return (collectionKinds as readonly string[]).includes(channel);
+}
+
+/**
+ * The record's display strings for this reader.
+ *
+ * A commercial demo record carries `facts` beside English display strings
+ * kept for older consumers (`projection-compat.ts`). The commercial surfaces
+ * render the facts; this loader read the English strings, so the dashboard
+ * showed "Open", "$184,800.00" and "400 TB · US East · annual · direct" to a
+ * Spanish reader. A record without facts keeps its strings as written.
+ */
+function readerStrings(
+  record: ProjectionRecord,
+  reader: DashboardReader,
+): Partial<
+  Pick<
+    DashboardRecord,
+    "description" | "statusLabel" | "value" | "term" | "nextAction"
+  >
+> {
+  if (!record.data.facts || !isCollectionKind(record.channel)) return {};
+  const display = projectionDisplay(
+    record.data,
+    record.channel,
+    record.sourceUpdatedAt,
+    reader.t,
+    reader.formatting,
+  );
+  return {
+    description: display.description,
+    statusLabel: display.statusLabel,
+    ...(display.value ? { value: display.value } : {}),
+    ...(display.term ? { term: display.term } : {}),
+    ...(display.nextAction ? { nextAction: display.nextAction } : {}),
+  };
+}
+
+function dashboardRecord(
+  record: ProjectionRecord,
+  /** Omitted where only non-commercial fields are read (commissions). */
+  reader?: DashboardReader,
+): DashboardRecord {
   const payload = record.data;
   return {
     channel: record.channel,
@@ -249,6 +296,7 @@ function dashboardRecord(record: ProjectionRecord): DashboardRecord {
       payload.authoritative === undefined || payload.authoritative === null
         ? {}
         : object(payload.authoritative, "record.authoritative"),
+    ...(reader ? readerStrings(record, reader) : {}),
   };
 }
 
@@ -299,6 +347,7 @@ async function loadDashboardChannels(
   audience: ExperienceAudience,
   channels: readonly ProjectionChannel[],
   session: Awaited<ReturnType<typeof getCommerceSession>>,
+  reader: DashboardReader,
 ): Promise<LoadedChannels> {
   const pages = await Promise.all(
     channels.map(async (channel) => ({
@@ -315,7 +364,7 @@ async function loadDashboardChannels(
     records: new Map(
       pages.map((entry) => [
         entry.channel,
-        entry.page.records.map(dashboardRecord),
+        entry.page.records.map((record) => dashboardRecord(record, reader)),
       ]),
     ),
     generatedAt,
@@ -751,6 +800,7 @@ export async function loadCustomerDashboardProjection(
       "customer",
       ["billing", "quotes"],
       session,
+      reader,
     );
     return demoCustomerDashboard({
       loaded,
@@ -763,6 +813,7 @@ export async function loadCustomerDashboardProjection(
     "customer",
     customerChannels,
     session,
+    reader,
   );
   return {
     generatedAt: loaded.generatedAt,
@@ -1123,7 +1174,7 @@ export async function loadPartnerDashboardProjection(identity?: {
     });
   const session = await getCommerceSession();
   const [loaded, commissions] = await Promise.all([
-    loadDashboardChannels("partner", partnerChannels, session),
+    loadDashboardChannels("partner", partnerChannels, session, reader),
     session.roles.includes("partner_admin")
       ? loadTopPortalRecords(
           "partner",
