@@ -155,18 +155,29 @@ function problemCode(error: unknown): string | undefined {
   return /^[A-Z][A-Z0-9_]{2,63}$/.test(code) ? code : undefined;
 }
 
+/**
+ * The client's error for a refused call.
+ *
+ * Every class carries the server's problem code when there is one. The 403,
+ * 409 and 422 branches used to drop it, so a surface that tells two refusals
+ * of the same class apart -- a price book that already exists (`DUPLICATE`)
+ * versus one edited by someone else (`VERSION_CONFLICT`), both 409 -- could
+ * never see the difference, and its specific message was unreachable.
+ */
 function apiError(status: number, error: unknown): CommerceApiError {
   if (status === 403)
     return new CommerceApiError(
       status,
       "forbidden",
       "Your role or current session cannot perform this action.", // i18n-exempt: English diagnostic; surfaces render commerceErrorText(error, t)
+      problemCode(error),
     );
   if (status === 409)
     return new CommerceApiError(
       status,
       "conflict",
       "This record changed while you were working. Review the latest version and try again.", // i18n-exempt: English diagnostic; surfaces render commerceErrorText(error, t)
+      problemCode(error),
     );
   if (status === 422)
     return new CommerceApiError(
@@ -174,6 +185,7 @@ function apiError(status: number, error: unknown): CommerceApiError {
       "validation",
       problemDetail(error) ??
         "The request did not pass server validation. Review the highlighted information.", // i18n-exempt: English diagnostic; surfaces render commerceErrorText(error, t)
+      problemCode(error),
     );
   if (status === 503)
     /**
@@ -433,8 +445,9 @@ export interface ClickAgreementUiContext {
 
 /**
  * Executes a click-through agreement and records the rendered action label and
- * interface language as evidence. Prefer this to `executeClickAgreement`, which
- * records the English label whatever the reader saw.
+ * interface language as evidence. (Its predecessor recorded the English label
+ * "Accept and execute" whatever the reader saw; it had no caller left and was
+ * removed so none can come back.)
  */
 export function executeClickAgreementAs(
   input: ClickAgreementInput,
@@ -457,23 +470,6 @@ export function executeClickAgreementAs(
         previousAgreementId: null,
       },
     }),
-  );
-}
-
-/**
- * @deprecated Records the English label "Accept and execute" and locale "en"
- * as evidence regardless of what the reader saw. Use `executeClickAgreementAs`
- * with the rendered label and the interface language.
- */
-export function executeClickAgreement(
-  input: ClickAgreementInput,
-  options: CommerceClientOptions = {},
-) {
-  return executeClickAgreementAs(
-    input,
-    // i18n-exempt: legacy evidence value kept for the existing caller; see executeClickAgreementAs
-    { actionLabel: "Accept and execute", locale: "en" },
-    options,
   );
 }
 
