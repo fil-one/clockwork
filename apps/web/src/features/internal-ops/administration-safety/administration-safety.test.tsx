@@ -171,6 +171,25 @@ describe("agreement version filters", () => {
   });
 });
 
+describe("agreement registry scan time", () => {
+  /**
+   * The scan time was formatted in a fixed New York zone ("11:44 GMT-4")
+   * while every other operator page states UTC.
+   */
+  it("states the scan time in UTC like the other operator pages", () => {
+    render(
+      <AgreementAdministration
+        roles={["legal_approver"]}
+        versions={resolveDemoText(agreementVersions, "en")}
+        scannedAt="2026-07-31T15:44:00Z"
+        readOnly
+      />,
+    );
+    expect(screen.getByText(/Jul 31, 2026, 3:44\sPM UTC/u)).toBeVisible();
+    expect(screen.queryByText(/GMT-4|EDT/u)).toBeNull();
+  });
+});
+
 describe("status chip colour", () => {
   it("comes from the caller's tone, never from English words in the label", () => {
     render(

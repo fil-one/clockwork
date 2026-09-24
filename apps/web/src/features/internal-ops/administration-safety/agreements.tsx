@@ -6,8 +6,8 @@ import { useMemo, useState, type ReactNode } from "react";
 
 import { Table } from "@clockwork/ui";
 
-import { formatSurfaceTimestamp } from "@/src/features/customer-partner/formatting";
 import { formatDate } from "@/src/features/shared/format";
+import { formatOperationalTimestamp } from "../presentation";
 
 import {
   adminSafetyCopy,
@@ -131,10 +131,9 @@ export function AgreementAdministration({
             </h2>
             <p>
               {t("adminGovernance.agreements.scanMeta", {
-                time: formatSurfaceTimestamp(scannedAt, {
-                  locale: formattingLocale,
-                  timeZone: "America/New_York",
-                }),
+                // Internal pages state times in UTC, like every other
+                // operator page; this one used a fixed New York zone.
+                time: formatOperationalTimestamp(scannedAt, formattingLocale),
               })}
             </p>
           </div>
