@@ -1,6 +1,7 @@
 "use client";
 
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import type { MessageId } from "@/src/i18n";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -11,6 +12,7 @@ import {
   type ActiveAgreementTemplate,
 } from "@/src/features/contracts/commerce-client";
 import { sendProjectionAction } from "@/src/features/contracts/experience-client";
+import { formatDate } from "@/src/features/shared/format";
 
 import { anyEntered } from "../draft-state";
 import {
@@ -18,6 +20,7 @@ import {
   useUnsavedChangesWarning,
 } from "../unsaved-changes";
 import styles from "./commercial.module.css";
+import { CommercialStop, commercialFailureText } from "./failure-message";
 
 async function sha256(text: string): Promise<string> {
   const digest = await crypto.subtle.digest(
@@ -51,6 +54,7 @@ export function AgreementAcceptance({
   demoTemplate?: ActiveAgreementTemplate;
 }) {
   const t = useTranslations();
+  const locale = useFormattingLocale();
   const jurisdiction = agreement?.jurisdiction ?? "US";
   const type = agreement?.type ?? "csa";
   const [template, setTemplate] = useState<ActiveAgreementTemplate | undefined>(
@@ -64,7 +68,7 @@ export function AgreementAcceptance({
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState<{
     id: string;
-    message: string;
+    message: MessageId;
   } | null>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
@@ -90,29 +94,32 @@ export function AgreementAcceptance({
       .catch((caught: unknown) => {
         if (!active) return;
         setError(
-          caught instanceof Error
-            ? caught.message
-            : "The approved agreement could not be loaded.",
+          commercialFailureText(
+            caught,
+            t,
+            "customer.commercial.agreement.loadFailed",
+          ),
         );
       });
     return () => {
       active = false;
     };
-  }, [demoTemplate, jurisdiction, type]);
+  }, [demoTemplate, jurisdiction, t, type]);
 
   const accept = async () => {
     if (!template) return;
-    const invalid = !authorityTitle.trim()
-      ? {
-          id: "authority-title",
-          message: t("agreements.execute.validation.authority"),
-        }
-      : !attested
+    const invalid: { id: string; message: MessageId } | undefined =
+      !authorityTitle.trim()
         ? {
-            id: "authority-attestation",
-            message: t("agreements.execute.validation.attestation"),
+            id: "authority-title",
+            message: "customer.commercial.agreement.validation.authority",
           }
-        : undefined;
+        : !attested
+          ? {
+              id: "authority-attestation",
+              message: "customer.commercial.agreement.validation.attestation",
+            }
+          : undefined;
     if (invalid) {
       setValidationError(invalid);
       document.getElementById(invalid.id)?.focus();
@@ -125,8 +132,8 @@ export function AgreementAcceptance({
     try {
       const observedHash = await sha256(template.exactText);
       if (observedHash !== template.exactTextHash)
-        throw new Error(
-          "The approved agreement failed its integrity check. Nothing was accepted.",
+        throw new CommercialStop(
+          "customer.commercial.agreement.integrityFailed",
         );
       idempotencyKeyRef.current ??= crypto.randomUUID();
       if (agreement?.demoProjection)
@@ -161,12 +168,14 @@ export function AgreementAcceptance({
           { idempotencyKey: idempotencyKeyRef.current },
         );
       setExecuted(true);
-      setMessage(t("agreements.execute.accepted"));
+      setMessage(t("customer.commercial.agreement.accepted"));
     } catch (caught) {
       setError(
-        caught instanceof Error
-          ? caught.message
-          : "The agreement could not be accepted. Nothing was changed.",
+        commercialFailureText(
+          caught,
+          t,
+          "customer.commercial.agreement.failed",
+        ),
       );
       window.setTimeout(() => errorRef.current?.focus(), 0);
     } finally {
@@ -178,10 +187,14 @@ export function AgreementAcceptance({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Legal review</p>
-          <h1>{t("cp.commercial.agreementReview")}</h1>
+          <p className={styles.eyebrow}>
+            {t("customer.commercial.agreement.eyebrow")}
+          </p>
+          <h1>{t("customer.commercial.agreement.title")}</h1>
           <p className={styles.description}>
-            {t("agreements.execute.binding", { account: account.name })}
+            {t("customer.commercial.agreement.binding", {
+              account: account.name,
+            })}
           </p>
         </div>
         <LeaveDraftControl
@@ -189,20 +202,22 @@ export function AgreementAcceptance({
           className={styles.secondary ?? ""}
           discardClassName={styles.secondary ?? ""}
           href="/agreements"
-          label="Return to agreements"
+          label={t("customer.commercial.agreement.return")}
         />
       </header>
 
       {agreement ? (
         <p className={styles.notice} role="status">
-          {t("agreements.execute.source", { reference: agreement.reference })}
+          {t("customer.commercial.agreement.source", {
+            reference: agreement.reference,
+          })}
         </p>
       ) : null}
 
       {!template && !error ? (
         <section className={styles.state} role="status">
-          <h2>Loading counsel-approved agreement</h2>
-          <p>The current active version and exact text are being verified.</p>
+          <h2>{t("customer.commercial.agreement.loadingTitle")}</h2>
+          <p>{t("customer.commercial.agreement.loadingBody")}</p>
         </section>
       ) : null}
 
@@ -210,42 +225,58 @@ export function AgreementAcceptance({
         <div className={styles.workflowGrid}>
           <section className={`${styles.panel} ${styles.workflow}`}>
             <div>
-              <p className={styles.eyebrow}>Governing agreement</p>
+              <p className={styles.eyebrow}>
+                {t("customer.commercial.accept.label.agreement")}
+              </p>
               <h2>
-                {agreement?.title ?? template.type.toUpperCase()} · version{" "}
-                {template.semanticVersion}
+                {t("customer.commercial.detail.titleWithVersion", {
+                  title: agreement?.title ?? template.type.toUpperCase(),
+                  version: template.semanticVersion,
+                })}
               </h2>
               <p className={styles.description}>
-                {template.jurisdiction} · effective {template.effectiveOn} ·{" "}
-                {template.executionMode === "click_through"
-                  ? "click-through execution"
-                  : "counter-signature required"}
+                {t("customer.commercial.agreement.meta", {
+                  jurisdiction: template.jurisdiction,
+                  date: formatDate(template.effectiveOn, locale),
+                  mode: t(
+                    template.executionMode === "click_through"
+                      ? "customer.commercial.agreement.mode.clickThrough"
+                      : "customer.commercial.agreement.mode.counterSigned",
+                  ),
+                })}
               </p>
             </div>
+            {/*
+              The exact text is the legal instrument itself, in the language
+              the agreement was approved in (translation policy rule 5). It is
+              hashed and accepted as written, so it is never translated.
+            */}
             <article
               className={styles.section}
-              aria-label="Exact agreement text"
+              aria-label={t("customer.commercial.agreement.textLabel")}
             >
-              <h3>Terms presented for acceptance</h3>
+              <h3>{t("customer.commercial.agreement.termsTitle")}</h3>
               <p className={styles.description}>{template.exactText}</p>
             </article>
             <details className={styles.technical}>
               <summary>{t("common.technicalDetails")}</summary>
               <dl className={styles.definitionGrid}>
                 <div>
-                  <dt>Template identifier</dt>
+                  <dt>{t("customer.commercial.agreement.templateId")}</dt>
                   <dd>
                     <code>{template.id}</code>
                   </dd>
                 </div>
                 <div>
-                  <dt>Canonical document</dt>
+                  <dt>
+                    {t("customer.commercial.agreement.canonicalDocument")}
+                  </dt>
                   <dd>
                     <code>{template.canonicalDocumentId}</code>
                   </dd>
                 </div>
                 <div className={styles.spanTwo}>
-                  <dt>Approved text SHA-256</dt>
+                  <dt>{t("customer.commercial.agreement.textHash")}</dt>
                   <dd>
                     <code>{template.exactTextHash}</code>
                   </dd>
@@ -259,11 +290,17 @@ export function AgreementAcceptance({
             aria-labelledby="authority-review-title"
           >
             <div>
-              <p className={styles.eyebrow}>Authority evidence</p>
-              <h2 id="authority-review-title">Review and confirm</h2>
+              <p className={styles.eyebrow}>
+                {t("customer.commercial.agreement.authorityEyebrow")}
+              </p>
+              <h2 id="authority-review-title">
+                {t("customer.commercial.agreement.reviewTitle")}
+              </h2>
             </div>
             <div className={styles.field}>
-              <label htmlFor="authority-title">Authority title</label>
+              <label htmlFor="authority-title">
+                {t("customer.commercial.accept.label.authorityTitle")}
+              </label>
               <input
                 aria-describedby={
                   validationError?.id === "authority-title"
@@ -301,7 +338,7 @@ export function AgreementAcceptance({
                 required
                 type="checkbox"
               />
-              <span>{t("cp.commercial.agreementAuthority")}</span>
+              <span>{t("customer.commercial.agreement.authority")}</span>
             </label>
             {validationError ? (
               <p
@@ -309,20 +346,18 @@ export function AgreementAcceptance({
                 id="agreement-validation"
                 role="alert"
               >
-                {validationError.message}
+                {t(validationError.message)}
               </p>
             ) : null}
             <p className={styles.notice}>
-              Accepting binds your organization to this agreement. The version,
-              exact text hash, actor, title, and time are recorded as audit
-              evidence.
+              {t("customer.commercial.agreement.bindingNotice")}
             </p>
             {message ? (
               <p className={styles.successMessage} role="status">
                 {message}{" "}
                 {executed ? (
                   <Link href="/agreements">
-                    {t("agreements.execute.acceptedLink")}
+                    {t("customer.commercial.agreement.acceptedLink")}
                   </Link>
                 ) : null}
               </p>
@@ -345,7 +380,11 @@ export function AgreementAcceptance({
               }}
               type="button"
             >
-              {pending ? "Accepting…" : "Accept and execute"}
+              {t(
+                pending
+                  ? "customer.commercial.accept.accepting"
+                  : "customer.commercial.agreement.submit",
+              )}
             </button>
           </aside>
         </div>
@@ -353,12 +392,9 @@ export function AgreementAcceptance({
 
       {!template && error ? (
         <section className={styles.state} role="alert">
-          <h2>Agreement unavailable</h2>
+          <h2>{t("customer.commercial.agreement.unavailableTitle")}</h2>
           <p ref={errorRef}>{error}</p>
-          <p>
-            No legal acceptance action is available until the approved server
-            record loads.
-          </p>
+          <p>{t("customer.commercial.agreement.unavailableBody")}</p>
         </section>
       ) : null}
     </main>

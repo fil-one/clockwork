@@ -42,7 +42,7 @@ describe("commercial collection states", () => {
         formatting={formatting}
         freshness={fresh}
         kind="quotes"
-        records={recordsFor("quotes")}
+        records={recordsFor("quotes", "en")}
         searchParams={{ q: "does-not-exist" }}
       />,
     );

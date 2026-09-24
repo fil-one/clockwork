@@ -31,6 +31,7 @@ import {
   type CollectionKind,
   type OrderLifecycleStatus,
 } from "@/src/features/customer-partner/commercial/model";
+import { commercialFactsField } from "@/src/features/customer-partner/commercial/record-facts";
 import type { PreparedOrderFormLookup } from "@/src/features/customer-partner/commercial/prepared-order-form";
 import {
   partnerMilestoneText,
@@ -653,6 +654,7 @@ function commercialRecord(
           orderLifecycleStatus: authoritativeOrderLifecycleStatus(data),
         }
       : {}),
+    ...commercialFactsField(data),
   };
 }
 

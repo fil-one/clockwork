@@ -45,7 +45,7 @@ describe("commercial collection URL state", () => {
   });
 
   it("filters across human context and applies deterministic sorting", () => {
-    const records = recordsFor("quotes");
+    const records = recordsFor("quotes", "en");
     const filtered = filterAndSortRecords(
       records,
       parseCollectionState({

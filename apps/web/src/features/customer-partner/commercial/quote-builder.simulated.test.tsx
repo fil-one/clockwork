@@ -4,7 +4,8 @@ import { expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ sendCoreCommand: vi.fn() }));
 
-vi.mock("@/src/features/contracts/commerce-client", () => ({
+vi.mock("@/src/features/contracts/commerce-client", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   sendCoreCommand: mocks.sendCoreCommand,
 }));
 

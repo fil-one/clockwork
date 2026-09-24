@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
+import { getTranslations } from "@/src/i18n/server";
 import { loadChannelPolicy } from "@/src/features/experience-server/channel-policy-loader";
 import { explicitDemoIdentityEnabled } from "@/src/auth/session";
 import { SelfServeBuy } from "@/src/features/customer-partner/commercial/buy";
 import { loadCustomerQuoteOffers } from "@/src/features/experience-server/portal-view-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("customer.commercial.buy.title") };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +20,12 @@ async function BuyWorkspace() {
     loadCustomerQuoteOffers(),
     loadChannelPolicy(),
   ]);
-  if (!channelPolicy)
+  if (!channelPolicy) {
+    const t = await getTranslations();
     return (
-      <p role="status">
-        The acquisition policy is unavailable. Try again before starting a
-        quote.
-      </p>
+      <p role="status">{t("customer.commercial.buy.policyUnavailable")}</p>
     );
+  }
   const mode = explicitDemoIdentityEnabled() ? "demo" : "authoritative";
   return (
     <SelfServeBuy
