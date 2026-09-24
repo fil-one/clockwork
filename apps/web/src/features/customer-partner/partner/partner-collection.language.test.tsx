@@ -45,7 +45,7 @@ describe("partner portfolio in Portuguese", () => {
     renderPortfolio();
     const table = screen.getByRole("table");
     expect(within(table).getByText("Referência EC-0047")).toBeVisible();
-    expect(table.textContent).not.toMatch(/Referência(?:EC|⁨)/u);
+    expect(table.textContent).not.toMatch(/Referência(?:EC|\u2068)/u);
   });
 
   it("states the merchant of record in one language, with the partner named inside it", () => {
