@@ -33,6 +33,11 @@ const actionLabels: Readonly<Record<string, MessageId>> = {
   set_payment_terms: "projection.action.setPaymentTerms",
   update: "projection.action.update",
   void: "projection.action.void",
+  review_exception: "experience.action.reviewException",
+  replay_provider_event: "experience.action.replayProviderEvent",
+  cancel: "experience.action.cancelRecord",
+  download: "common.download",
+  edit: "common.edit",
 };
 
 /** Transitions that end a commercial record or remove a running service. */
