@@ -122,7 +122,7 @@ describe("projection detail task hierarchy", () => {
     expect(chain).toHaveTextContent("Order commitment");
 
     const ledger = screen.getByRole("region", {
-      name: "Quotes decision ledger",
+      name: "Quote decisions",
     });
     expect(
       within(ledger)
@@ -166,7 +166,7 @@ describe("projection detail task hierarchy", () => {
       "Accepted quoteCurrent decisionOrder commitment and service timingAuthoritative resultProvisioning and service state",
     );
     const ledger = screen.getByRole("region", {
-      name: "Orders decision ledger",
+      name: "Order decisions",
     });
     expect(ledger).toHaveTextContent("Northstar primary archive");
     expect(ledger).toHaveTextContent(
@@ -199,7 +199,13 @@ describe("projection detail task hierarchy", () => {
     );
 
     expect(screen.queryByLabelText("Commercial promise chain")).toBeNull();
-    expect(screen.getByText("Provider Reference")).toBeVisible();
+    // A field the product has no label for is shown under its own name, as
+    // code, rather than dropped or dressed up as an English label.
+    expect(screen.getByText("providerReference").tagName).toBe("CODE");
     expect(screen.getByText("case_018421")).toBeVisible();
+    // Named facts carry their labels; sort keys and styling do not appear.
+    expect(screen.getByText("Owner")).toBeVisible();
+    expect(screen.queryByText("valueSort")).toBeNull();
+    expect(screen.queryByText("tone")).toBeNull();
   });
 });

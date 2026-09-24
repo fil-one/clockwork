@@ -1,3 +1,4 @@
+// i18n-exempt-file: persisted production projection payload; the web app renders `nextAction` from `allowedActions` and the facts in the reader's language (apps/web/src/features/experience-server/projection-display.ts).
 import type {
   AuthoritativeOutboxEvent,
   AuthoritativeProjectionState,

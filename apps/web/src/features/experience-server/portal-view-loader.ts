@@ -64,8 +64,15 @@ import { demoCustomerQuoteOffers } from "./demo-quote-offers";
 import { configuredDemoStateStore } from "./demo-state-store";
 import {
   configuredProjectionSource,
+  DatabaseProjectionSource,
   projectionInput,
+  type ProjectionSource,
 } from "./projection-source";
+import {
+  localizedAcceptedOrderRecord,
+  localizedProductionRecord,
+  type DisplayContext,
+} from "./projection-display";
 
 export interface PortalRecords<T> {
   records: readonly T[];
@@ -81,10 +88,13 @@ export interface PortalRecords<T> {
   truncated: boolean;
 }
 
+// The three guards below throw on a malformed materializer payload. The message
+// names the field for the server log and the error boundary's digest; no reader
+// sees it, so it is not translated.
 function text(data: Readonly<Record<string, unknown>>, key: string): string {
   const value = data[key];
   if (typeof value !== "string" || !value.trim())
-    throw new Error(`Projection record omitted ${key}`);
+    throw new Error(`Projection record omitted ${key}`); // i18n-exempt: server-log diagnostic for a malformed projection payload; never rendered
   return value;
 }
 
@@ -94,8 +104,32 @@ function oneOf<T extends string>(
   field: string,
 ): T {
   const match = allowed.find((candidate) => candidate === value);
-  if (!match) throw new Error(`Projection field ${field} is invalid`);
+  if (!match) throw new Error(`Projection field ${field} is invalid`); // i18n-exempt: server-log diagnostic for a malformed projection payload; never rendered
   return match;
+}
+
+/** The reader's translator, formatting tag and clock, read once per request. */
+async function readerDisplay(): Promise<DisplayContext> {
+  const [t, locale] = await Promise.all([getTranslations(), getLocale()]);
+  return { t, locale: formattingLocales[locale], now: new Date() };
+}
+
+/**
+ * Every projection row a page renders passes through here, in the reader's
+ * language: a production row has its display fields re-derived from the facts
+ * it carries (`projection-display.ts`), and a demo order acceptance renders
+ * from the facts the acceptance stored. The HTTP API returns rows untouched.
+ */
+function forReader(
+  record: ProjectionRecord,
+  source: ProjectionSource,
+  display: DisplayContext,
+): ProjectionRecord {
+  const localized =
+    source instanceof DatabaseProjectionSource
+      ? localizedProductionRecord(record, display)
+      : record;
+  return localizedAcceptedOrderRecord(localized, display.t);
 }
 
 /**
@@ -150,22 +184,33 @@ function contextEntries(
   data: Readonly<Record<string, unknown>>,
 ): { label: string; value: string }[] {
   const raw = data.context;
-  if (!Array.isArray(raw)) throw new Error("Projection record omitted context");
+  if (!Array.isArray(raw)) throw new Error("Projection record omitted context"); // i18n-exempt: server-log diagnostic for a malformed projection payload; never rendered
   return raw.map((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item))
-      throw new Error("Projection context is invalid");
+      throw new Error("Projection context is invalid"); // i18n-exempt: server-log diagnostic for a malformed projection payload; never rendered
     const entry = item as Readonly<Record<string, unknown>>;
     return { label: text(entry, "label"), value: text(entry, "value") };
   });
 }
 
-function contextLine(data: Readonly<Record<string, unknown>>): string {
+function contextLine(
+  data: Readonly<Record<string, unknown>>,
+  t: Translator,
+): string {
   if (typeof data.context === "string" && data.context.trim())
     return data.context;
   const joined = contextEntries(data)
-    .map((entry) => `${entry.label} ${entry.value}`)
-    .join(" · ");
-  return joined || "Not recorded";
+    .map((entry) =>
+      t("experience.contextEntry", { label: entry.label, value: entry.value }),
+    )
+    .reduce<string | null>(
+      (line, entry) =>
+        line === null
+          ? entry
+          : t("common.join.labels", { first: line, second: entry }),
+      null,
+    );
+  return joined ?? t("common.notRecorded");
 }
 
 function authoritativeOrderLifecycleStatus(
@@ -211,11 +256,16 @@ export type CustomerQuoteOffersLookup =
  * No price amount crosses this boundary.
  */
 export async function loadCustomerQuoteOffers(): Promise<CustomerQuoteOffersLookup> {
+  const t = await getTranslations();
   if (explicitDemoIdentityEnabled())
     return {
       status: "available",
       catalogueMode: "authoritative",
-      offers: demoCustomerQuoteOffers(await configuredDemoStateStore().read()),
+      offers: demoCustomerQuoteOffers(
+        await configuredDemoStateStore().read(),
+        t,
+        await getLocale(),
+      ),
     };
   const session = await getCommerceSession();
   const permitted = session.roles.some((role) =>
@@ -250,15 +300,20 @@ export async function loadCustomerQuoteOffers(): Promise<CustomerQuoteOffersLook
     sku: row.sku,
     region: row.region,
     currency: row.currency,
+    // The claim and price-book name are records staff typed; the SKU, region
+    // and version are identifiers. None of them is translated.
     label: `${row.approved_claim} · ${row.sku} · ${row.region} · ${row.price_book_name} v${row.version}`,
-    description: `${row.currency} · active price-book version ${row.version}`,
+    description: t("experience.quoteOffer.description", {
+      currency: row.currency,
+      version: row.version,
+    }),
   }));
   if (
     new Set(offers.map((offer) => offer.id)).size !== offers.length ||
     new Set(offers.map((offer) => offer.label.toLocaleLowerCase())).size !==
       offers.length
   )
-    throw new Error("Active quote catalogue contains ambiguous offers");
+    throw new Error("Active quote catalogue contains ambiguous offers"); // i18n-exempt: server-log diagnostic for a catalogue defect; never rendered
   return {
     status: "available",
     catalogueMode: "authoritative",
@@ -337,6 +392,7 @@ export async function loadPortalRecords(
 ): Promise<PortalRecords<ProjectionRecord>> {
   const session = presetSession ?? (await getCommerceSession());
   const locale = await getLocale();
+  const display = await readerDisplay();
   const source = configuredProjectionSource();
   const records: ProjectionRecord[] = [];
   let cursor: string | undefined;
@@ -355,7 +411,9 @@ export async function loadPortalRecords(
         locale,
       }),
     );
-    records.push(...page.items);
+    records.push(
+      ...page.items.map((record) => forReader(record, source, display)),
+    );
     generatedAt = page.generatedAt;
     cursor = page.nextCursor ?? undefined;
     pagesRead += 1;
@@ -394,9 +452,11 @@ export async function loadTopPortalRecords(
   presetSession?: Awaited<ReturnType<typeof getCommerceSession>>,
 ): Promise<PortalRecords<ProjectionRecord>> {
   if (!Number.isSafeInteger(options.limit) || options.limit < 1)
-    throw new Error("Projection top-N limit must be a positive integer");
+    throw new Error("Projection top-N limit must be a positive integer"); // i18n-exempt: programming-error guard for a caller's limit; never rendered
   const session = presetSession ?? (await getCommerceSession());
-  const page = await configuredProjectionSource().list(
+  const source = configuredProjectionSource();
+  const display = await readerDisplay();
+  const page = await source.list(
     projectionInput({
       session,
       audience,
@@ -409,7 +469,7 @@ export async function loadTopPortalRecords(
   );
   const truncated = page.nextCursor !== null;
   return {
-    records: page.items,
+    records: page.items.map((record) => forReader(record, source, display)),
     generatedAt: page.generatedAt,
     stale: truncated || page.items.some((record) => record.stale),
     recordCount: page.items.length,
@@ -600,7 +660,7 @@ function commercialRecord(
 ): CommercialRecord {
   const data = record.data;
   if (text(data, "kind") !== kind)
-    throw new Error("Commercial projection channel binding is invalid");
+    throw new Error("Commercial projection channel binding is invalid"); // i18n-exempt: server-log diagnostic for a projection bound to the wrong channel; never rendered
   const displayVersion = commercialDisplayVersion(data, kind);
   const reference = optionalProjectionText(data, "reference");
   return {
@@ -623,11 +683,7 @@ function commercialRecord(
     dateLabel: text(data, "dateLabel"),
     href: recordRoute(kind, record.recordKey),
     term: text(data, "term"),
-    nextAction:
-      typeof data.nextActionHref === "string" &&
-      /^Track order [a-f0-9-]+$/u.test(text(data, "nextAction"))
-        ? "Track your order"
-        : text(data, "nextAction"),
+    nextAction: text(data, "nextAction"),
     ...(typeof data.nextActionHref === "string" &&
     /^\/orders\/order-[a-f0-9-]+$/u.test(data.nextActionHref)
       ? { nextActionHref: data.nextActionHref }
@@ -673,7 +729,7 @@ export async function loadCommercialRecords(kind: CollectionKind) {
  *
  * Nothing else is absence. A 401, 403, 409, 410, 422, 502 or 503, and every
  * error that is not an `ExperienceProblem` at all -- a malformed payload from
- * `text()`/`number()`/`oneOf()`, a database failure, a bug -- still throws.
+ * `text()`/`oneOf()`, a database failure, a bug -- still throws.
  */
 function isProjectionAbsent(error: unknown): boolean {
   return error instanceof ExperienceProblem && error.status === 404;
@@ -694,9 +750,10 @@ export async function loadCommercialRecord(
   recordKey: string,
 ): Promise<CommercialRecord | null> {
   const session = await getCommerceSession();
+  const source = configuredProjectionSource();
   let record: ProjectionRecord;
   try {
-    record = await configuredProjectionSource().find({
+    record = await source.find({
       session,
       audience: "customer",
       channel: kind,
@@ -709,7 +766,10 @@ export async function loadCommercialRecord(
     if (isProjectionAbsent(error)) return null;
     throw error;
   }
-  return commercialRecord(record, kind);
+  return commercialRecord(
+    forReader(record, source, await readerDisplay()),
+    kind,
+  );
 }
 
 /**
@@ -796,7 +856,7 @@ function partnerRecord(
     ...(pricing ? { quotePricing: pricing } : {}),
     id: text(data, "id"),
     name: text(data, "name"),
-    context: contextLine(data),
+    context: contextLine(data, t),
     status: oneOf(
       text(data, "status"),
       [

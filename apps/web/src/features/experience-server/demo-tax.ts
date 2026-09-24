@@ -1,3 +1,4 @@
+// i18n-exempt-file: wording for generated PDF documents only (translation policy rule 5: a document's language is the account's, not the viewer's); its one caller is demo-artifact-catalog.ts.
 import type {
   TaxDeterminationRequest,
   TaxDeterminationResult,
