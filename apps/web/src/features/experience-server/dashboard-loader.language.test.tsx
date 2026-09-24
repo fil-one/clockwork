@@ -201,7 +201,10 @@ describe("the demo dashboard in every interface language", () => {
     });
     expect(partner.boundary).toEqual([
       { label: "Einkaufspreis", value: "Nur für Ember Peak Systems sichtbar" },
-      { label: "Partnerpreis", value: "Festgelegt von Ember Peak Systems" },
+      {
+        label: "Wiederverkaufspreis",
+        value: "Festgelegt von Ember Peak Systems",
+      },
       {
         label: "Merchant of Record",
         value: "Ember Peak Systems im Vertriebsweg Wiederverkauf",

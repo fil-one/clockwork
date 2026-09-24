@@ -270,7 +270,7 @@ describe("the gate register in the reader's language", () => {
     ).toBeVisible();
     expect(within(row).getByText(/^Aprovado · /)).toBeVisible();
     expect(
-      within(row).getByText("Bloqueios: Data de revisão ausente ou vencida"),
+      within(row).getByText("Bloqueios: data de revisão ausente ou vencida"),
     ).toBeVisible();
     expect(within(row).getByText("Ativação negada")).toBeVisible();
     expect(
@@ -323,7 +323,7 @@ describe("the gate register in the reader's language", () => {
     expect(screen.getByText("ホスト環境のアカウントと認証情報")).toBeVisible();
     expect(
       screen.getAllByText(
-        "フォールバック記録：要件レジストリからは読み込んでいません",
+        "フォールバックのレコード：ゲートレジストリからは読み込んでいません",
       ),
     ).toHaveLength(fallbackGates.length);
     expect(screen.queryByText(fallbackGateFreshness)).not.toBeInTheDocument();

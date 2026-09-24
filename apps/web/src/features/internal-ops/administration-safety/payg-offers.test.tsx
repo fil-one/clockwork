@@ -288,7 +288,7 @@ describe("PAYG and trial policies in the reader's language", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "Políticas de pagamento conforme o uso e de período de teste",
+        name: "Políticas de pagamento por uso e de período de teste",
       }),
     ).toBeVisible();
     await user.click(
@@ -335,7 +335,7 @@ describe("PAYG and trial policies in the reader's language", () => {
     expect(
       (
         await screen.findAllByText(
-          "Entscheiden muss eine genehmigende Person (Finanzen), die diese Version weder erstellt noch bearbeitet noch eingereicht hat.",
+          "Entscheiden muss eine genehmigende Person aus der Finanzabteilung, die diese Version weder erstellt noch bearbeitet noch beantragt hat.",
         )
       ).length,
     ).toBeGreaterThan(0);

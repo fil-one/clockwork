@@ -89,7 +89,7 @@ describe("experience pages in Portuguese", () => {
       }),
     );
 
-    expect(screen.getByText("Espaço de trabalho do operador")).toBeVisible();
+    expect(screen.getByText("Espaço do operador")).toBeVisible();
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Os dados operacionais precisam ser atualizados.",
     );
@@ -124,7 +124,7 @@ describe("experience pages in Portuguese", () => {
       }),
     );
 
-    expect(screen.getByText("Espaço de trabalho do operador")).toBeVisible();
+    expect(screen.getByText("Espaço do operador")).toBeVisible();
     expect(screen.getByRole("alert")).toHaveTextContent(
       /^Alguns registros precisam ser atualizados · em /u,
     );

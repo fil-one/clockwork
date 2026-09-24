@@ -21,7 +21,7 @@ describe("commercial records rendered from facts", () => {
     expect(display("Q-2026-0184-v3", "de")).toMatchObject({
       statusLabel: "Offen",
       value: "184.800,00 $",
-      valueLabel: "Geschätzte jährliche Ausgaben",
+      valueLabel: "Geschätzte Jahresausgaben",
       timing: "Läuft am 04.08.2026 ab",
       nextAction: "Vor Ablauf annehmen oder stornieren",
     });
