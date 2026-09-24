@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 
-import { Button } from "@clockwork/ui";
+import { Button, buttonClassName } from "@clockwork/ui";
 
 import type { MessageId, Translator } from "@/src/i18n";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
@@ -22,6 +22,7 @@ import type {
   EvidenceUploadState,
 } from "./model";
 import { problemFacts, problemText } from "./problem-text";
+import styles from "./evidence-upload-control.module.css";
 
 const storagePrefix = "clockwork:evidence:";
 
@@ -153,6 +154,7 @@ export function EvidenceUploadControl({
   const [pending, setPending] = useState(false);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [tooLarge, setTooLarge] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
   const message = progress ? progressText(progress, t, size) : "";
   const error = tooLarge ? t("experience.evidence.tooLarge", { size }) : "";
 
@@ -232,18 +234,41 @@ export function EvidenceUploadControl({
       </Heading>
       <p id={`${inputId}-hint`}>{t("experience.evidence.hint", { size })}</p>
       <label htmlFor={inputId}>{t("experience.evidence.fileLabel")}</label>
-      <input
-        id={inputId}
-        type="file"
-        accept="application/pdf,image/png,image/jpeg,text/plain"
-        disabled={pending}
-        aria-describedby={`${inputId}-hint${error ? ` ${inputId}-error` : ""}`}
-        aria-invalid={error ? true : undefined}
-        onChange={(event) => {
-          const file = event.currentTarget.files?.[0];
-          if (file) void submit(file);
-        }}
-      />
+      {/*
+        The browser draws a file input's own button and "no file" text in the
+        browser's language, not the page's. The input stays the focusable,
+        labelled control; what the reader sees beside it is ours.
+      */}
+      <div className={styles.picker}>
+        <input
+          id={inputId}
+          className={styles.input}
+          type="file"
+          accept="application/pdf,image/png,image/jpeg,text/plain"
+          disabled={pending}
+          aria-describedby={`${inputId}-hint${error ? ` ${inputId}-error` : ""}`}
+          aria-invalid={error ? true : undefined}
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            setFileName(file?.name ?? null);
+            if (file) void submit(file);
+          }}
+        />
+        <label
+          htmlFor={inputId}
+          aria-hidden="true"
+          className={buttonClassName({
+            variant: "secondary",
+            size: "small",
+            className: styles.choose ?? "",
+          })}
+        >
+          {t("experience.evidence.choose")}
+        </label>
+        <span className={styles.fileName} aria-hidden="true">
+          {fileName ?? t("experience.evidence.noFile")}
+        </span>
+      </div>
       {error ? (
         <p id={`${inputId}-error`} role="alert">
           {error}

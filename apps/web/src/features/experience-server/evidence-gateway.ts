@@ -1,4 +1,4 @@
-// i18n-exempt-file: HTTP API problem+json titles are the integrator contract (stable English, logged, never rendered); interface boundaries choose the reader's sentence from `code`/`status` in problem-text.ts; provider-response checks and the Bearer header are protocol, not copy.
+// i18n-exempt-file: HTTP API problem+json titles are the integrator contract (stable English, logged); an interface shows the reader a sentence chosen from `code`/`status` (problem-text.ts), never this title; provider-response checks and the Bearer header are protocol, not copy.
 import { createHash } from "node:crypto";
 
 import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
