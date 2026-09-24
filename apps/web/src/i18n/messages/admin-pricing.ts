@@ -2782,6 +2782,16 @@ export const adminPricingMessages = defineMessages({
     zh: "所选币种的金额，使用小数点，例如 {example}。",
     ar: "المبلغ بالعملة المحددة مع استخدام النقطة العشرية، مثل {example}.",
   },
+  "adminPricing.payg.form.storagePriceAmountHint": {
+    en: "Amount in the selected currency, with up to two decimal places, such as {example}.",
+    es: "Importe en la moneda seleccionada, con dos decimales como máximo; por ejemplo, {example}.",
+    fr: "Montant dans la devise sélectionnée, avec deux décimales au maximum, par exemple {example}.",
+    de: "Betrag in der ausgewählten Währung mit höchstens zwei Nachkommastellen, z. B. {example}.",
+    ja: "選択した通貨での金額です。小数点以下は2桁まで入力できます（例：{example}）。",
+    pt: "Valor na moeda selecionada, com no máximo duas casas decimais, por exemplo {example}.",
+    zh: "所选币种的金额，最多保留两位小数，例如 {example}。",
+    ar: "المبلغ بالعملة المحددة بمنزلتين عشريتين كحد أقصى، مثل {example}.",
+  },
   "adminPricing.payg.form.minimum": {
     en: "Monthly minimum charge",
     es: "Importe mínimo mensual",

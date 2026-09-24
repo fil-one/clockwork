@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({ refresh: vi.fn(), fetch: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh }),
 }));
-import { PaygOfferAdministration } from "./payg-offers";
+import { exampleAmount, minor, PaygOfferAdministration } from "./payg-offers";
 
 const creator = "20000000-0000-4000-8000-000000000001";
 const offer: PaygOfferRecord = {
@@ -342,5 +342,27 @@ describe("PAYG and trial policies in the reader's language", () => {
     expect(document.body.textContent).not.toMatch(
       /PAYG_OFFER|finance approver/u,
     );
+  });
+});
+
+describe("the storage price input", () => {
+  /**
+   * The hint told a Spanish reader to use a decimal point, and the input
+   * refused "4,99": the example and the parser now follow the separator the
+   * reader writes, and either separator is accepted.
+   */
+  it("gives an example in the reader's own decimal notation", () => {
+    expect(exampleAmount("es-ES")).toBe("4,99");
+    expect(exampleAmount("de-DE")).toBe("4,99");
+    expect(exampleAmount("pt-BR")).toBe("4,99");
+    expect(exampleAmount("en-US")).toBe("4.99");
+    expect(exampleAmount("ja-JP")).toBe("4.99");
+  });
+
+  it("accepts the example it gives, with either separator", () => {
+    expect(minor("4,99")).toBe("499");
+    expect(minor("4.99")).toBe("499");
+    expect(minor(" 150,5 ")).toBe("15050");
+    expect(() => minor("1.500,00")).toThrow();
   });
 });
