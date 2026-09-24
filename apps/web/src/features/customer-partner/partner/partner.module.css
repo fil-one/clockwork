@@ -2,17 +2,15 @@
   display: grid;
   gap: 1.5rem;
   min-width: 0;
-  padding: clamp(1.25rem, 4vw, 3.25rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
 }
 
 /* Partner home: authority clock plus a named-account ledger. */
 .taskHeader {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  align-items: start;
   gap: 1rem 2rem;
-  padding-block-end: 1.2rem;
-  border-bottom: 2px solid var(--web-accent);
 }
 
 .taskHeader h1 {
@@ -20,27 +18,31 @@
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.035em;
   line-height: var(--cw-leading-tight);
+  text-wrap: balance;
 }
 
 .taskHeader p {
   max-width: 62ch;
-  margin: 0.45rem 0 0;
+  margin: 0.25rem 0 0;
   color: var(--web-muted);
+  font-size: var(--cw-text-md);
 }
 
 .taskHeader .projectionFreshness {
-  font-family: var(--cw-font-mono);
   font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
 }
 
+/* The agreement clock is a console card: hairline, 0.5rem corners, shadow-xs. */
 .authority {
   display: grid;
   gap: 1rem;
-  padding: 1.1rem 0 1.3rem;
-  border-bottom: 1px solid var(--web-line);
+  padding: 1.25rem;
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .authorityHeading,
@@ -55,32 +57,33 @@
 .ledgerHeading h2,
 .boundary h2 {
   margin: 0;
-  font-size: var(--cw-text-xl);
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 
 .classifier {
   margin: 0 0 0.25rem;
-  color: var(--web-accent);
+  color: var(--web-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .authorityState,
 .count {
   margin: 0;
-  font-family: var(--cw-font-mono);
+  color: var(--web-muted);
   font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
 }
+
 .ruleFooter {
-  border-top: 1px solid var(--web-line);
   color: var(--web-muted);
   font-size: var(--cw-text-sm);
-  line-height: 1.55;
+  line-height: var(--cw-leading-body);
   margin: 0;
   max-width: 78ch;
-  padding-top: 0.9rem;
 }
 
 .authorityFacts {
@@ -91,22 +94,22 @@
 }
 
 .authorityFacts div {
-  border-left: 2px solid var(--cw-border-strong);
-  padding-left: 0.75rem;
+  border-inline-start: 1px solid var(--web-line);
+  padding-inline-start: 0.75rem;
 }
 
 .authorityFacts dt,
 .boundary dt {
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .authorityFacts dd,
 .boundary dd {
   margin: 0.2rem 0 0;
   font-size: var(--cw-text-sm);
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -120,13 +123,17 @@
   grid-template-columns: minmax(16rem, 1fr) minmax(16rem, 0.8fr) auto;
   align-items: end;
   gap: 1rem 2rem;
-  padding-block: 1rem;
-  border-block: 1px solid var(--web-line);
+  padding: 1.25rem;
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .commissionPosition h2 {
   margin: 0;
-  font-size: var(--cw-text-xl);
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 
 .commissionPosition p:not(.classifier) {
@@ -144,30 +151,38 @@
 }
 
 .commissionPosition dl div {
-  border-left: 2px solid var(--cw-border-strong);
-  padding-left: 0.75rem;
+  border-inline-start: 1px solid var(--web-line);
+  padding-inline-start: 0.75rem;
 }
 
 .commissionPosition dt {
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .commissionPosition dd {
   margin: 0.2rem 0 0;
   font-size: var(--cw-text-sm);
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .commissionPosition a {
   display: inline-flex;
-  min-height: 2.75rem;
+  min-height: var(--cw-control-height);
   align-items: center;
-  color: var(--web-accent);
-  font-weight: 800;
-  white-space: nowrap;
+  color: var(--cw-action);
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.commissionPosition a:hover,
+.ledger a:hover {
+  color: var(--cw-action-strong);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .ledgerHeading p {
@@ -176,54 +191,71 @@
   font-size: var(--cw-text-sm);
 }
 
+/* The work ledger sits in a console card with compact rows and a faint
+   header band. */
 .ledgerScroll {
   max-width: 100%;
   overflow-x: auto;
-  border-block: 1px solid var(--web-line);
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .ledgerScroll:focus-visible {
-  outline: 3px solid var(--cw-focus);
-  outline-offset: 3px;
+  outline: 2px solid var(--cw-focus);
+  outline-offset: 2px;
 }
 
 .ledger {
   width: 100%;
   min-width: 58rem;
   border-collapse: collapse;
-  text-align: left;
+  text-align: start;
 }
 
 .ledger th,
 .ledger td {
-  padding: 0.75rem 0.65rem;
+  padding: 0.625rem 1rem;
   border-bottom: 1px solid var(--web-line);
   font-size: var(--cw-text-sm);
+  text-align: start;
   vertical-align: top;
 }
 
+.ledger tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
 .ledger td {
+  color: var(--cw-ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
 .ledger thead th {
+  padding-block: 0.5rem;
+  background: var(--cw-canvas);
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
-  letter-spacing: 0.03em;
+  font-weight: 500;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .ledger tbody th {
   max-width: 14rem;
-  font-weight: 700;
+  font-weight: 500;
 }
 
+/* A 24px target that still sits on the first text line of its row. */
 .ledger a {
   display: inline-flex;
-  min-height: 2.75rem;
+  min-height: 1.5rem;
+  margin-block: -0.15rem;
   align-items: center;
-  color: var(--web-accent);
-  font-weight: 800;
-  white-space: nowrap;
+  color: var(--cw-action);
+  font-weight: 500;
+  text-decoration: none;
 }
 
 .boundary {
@@ -249,8 +281,8 @@
 }
 
 .boundary dl div {
-  border-left: 2px solid var(--web-line);
-  padding-left: 0.65rem;
+  border-inline-start: 1px solid var(--web-line);
+  padding-inline-start: 0.75rem;
 }
 
 .boundary dt {
@@ -315,11 +347,19 @@
 }
 
 .routeConsequence {
-  border-block: 1px solid var(--web-line);
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
   display: grid;
   gap: 0.75rem 1.5rem;
   grid-template-columns: minmax(12rem, 0.55fr) repeat(2, minmax(0, 1fr));
-  padding-block: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.routeConsequence h2 {
+  font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 
 .routeConsequence h2,
@@ -338,19 +378,23 @@
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.035em;
   line-height: var(--cw-leading-tight);
+  text-wrap: balance;
 }
+.pageHeader h1 + p,
 .pageHeader p:last-child {
   max-width: 47rem;
-  margin: 1rem 0 0;
+  margin: 0.25rem 0 0.5rem;
   color: var(--web-muted);
+  font-size: var(--cw-text-md);
 }
 .eyebrow {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.25rem;
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 .section,
 .term,
@@ -362,12 +406,13 @@
 .urgentCard {
   min-width: 0;
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-xs);
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
 }
 .sectionHeader,
 .termHeader {
-  padding: 1rem 1.2rem;
+  padding: 0.875rem 1rem;
   border-bottom: 1px solid var(--web-line);
 }
 .sectionHeader h2,
@@ -377,7 +422,8 @@
 .detailCard h2,
 .workflow h2 {
   margin: 0;
-  font-size: var(--cw-text-xl);
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 .muted {
   color: var(--web-muted);
@@ -386,6 +432,7 @@
   margin: 0;
   color: var(--web-muted);
   font-size: var(--cw-text-sm);
+  font-variant-numeric: tabular-nums;
 }
 .filters {
   display: grid;
@@ -395,24 +442,32 @@
 }
 .field {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.375rem;
   min-width: 0;
-  color: var(--web-muted);
-  font-size: var(--cw-text-xs);
-  font-weight: 700;
+  color: var(--web-ink);
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 .field input,
 .field select {
   width: 100%;
   min-width: 0;
-  height: 2.55rem;
-  border: 1px solid var(--web-line);
+  min-height: var(--cw-control-height);
+  border: 1px solid var(--cw-border-strong);
   border-radius: var(--cw-radius-sm);
   background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
   color: var(--web-ink);
-  padding: 0 0.65rem;
+  padding: 0.375rem 0.75rem;
   font: inherit;
-  font-size: var(--cw-text-sm);
+  font-size: var(--cw-text-md);
+  font-weight: 400;
+}
+.field input:focus-visible,
+.field select:focus-visible {
+  border-color: var(--cw-action);
+  outline: 2px solid color-mix(in srgb, var(--cw-action) 35%, transparent);
+  outline-offset: 0;
 }
 .searchControl {
   display: grid;
@@ -423,23 +478,37 @@
   width: 100%;
   overflow-x: auto;
 }
+/* Inside a section card the design-system table sits flush: the card already
+   draws the edge, so the table drops its own border, corners, and shadow. */
+.section .tableWrap {
+  border: 0;
+  border-top: 1px solid var(--web-line);
+  border-radius: 0;
+  box-shadow: none;
+}
 .table {
   width: 100%;
   border-collapse: collapse;
 }
 .table th {
+  background: var(--cw-canvas);
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  letter-spacing: 0.04em;
-  text-align: left;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: var(--cw-label-tracking);
+  text-align: start;
+  text-transform: var(--cw-label-transform);
 }
 .table th,
 .table td {
   border-bottom: 1px solid var(--web-line);
-  padding: 0.85rem 1.1rem;
+  padding: 0.625rem 1rem;
   vertical-align: top;
+}
+.table td {
+  color: var(--cw-ink-soft);
+  font-size: var(--cw-text-sm);
 }
 .table td {
   font-variant-numeric: tabular-nums;
@@ -454,7 +523,7 @@
     color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 .table tbody tr:hover {
-  background: color-mix(in srgb, var(--web-canvas) 65%, transparent);
+  background: var(--cw-canvas);
 }
 /*
  * A sortable ledger column header. The indicator is selected from `aria-sort`
@@ -470,15 +539,17 @@
   display: inline-flex;
   font: inherit;
   gap: 0.375rem;
+  letter-spacing: inherit;
   padding: 0;
   text-align: inherit;
+  text-transform: inherit;
 }
 .sortButton:hover {
-  color: var(--web-accent);
+  color: var(--web-ink);
   text-decoration: underline;
 }
 .sortButton:focus-visible {
-  outline: 3px solid var(--cw-focus);
+  outline: 2px solid var(--cw-focus);
   outline-offset: 2px;
 }
 .sortButton::after {
@@ -498,8 +569,9 @@ th[aria-sort="descending"] .sortButton::after {
 .recordLink {
   color: var(--web-ink);
   font-size: var(--cw-text-md);
-  font-weight: 800;
-  text-decoration-color: color-mix(in srgb, var(--web-accent) 45%, transparent);
+  font-weight: 500;
+  text-decoration: none;
+  text-decoration-thickness: 1px;
   text-underline-offset: 0.2rem;
   transition:
     background-color var(--cw-motion-fast) var(--cw-motion-ease),
@@ -507,62 +579,91 @@ th[aria-sort="descending"] .sortButton::after {
     color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 .recordLink:hover {
-  color: var(--web-accent);
+  color: var(--cw-action);
+  text-decoration: underline;
 }
 .meta,
 .id {
   display: block;
-  margin-top: 0.25rem;
+  margin-top: 0.125rem;
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
 }
 .id {
   font-variant-numeric: tabular-nums;
 }
-/* Pill text sits at the 12px floor, so the padding carries the width instead. */
+/*
+ * Status pills match the design-system badge: 12px medium, a tinted wash and
+ * a matching hairline. The record status arrives as a lowercase value, so the
+ * first letter is raised (sentence case) rather than every word (title case),
+ * which would be wrong in French, Spanish, and Portuguese. A long translated
+ * state wraps inside the pill instead of being clipped.
+ */
 .pill {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  width: fit-content;
+  display: inline-block;
+  max-width: 100%;
   border: 1px solid var(--web-line);
   border-radius: 999px;
-  padding: 0.2rem 0.42rem;
+  background: var(--cw-canvas-deep);
+  color: var(--cw-ink-soft);
+  padding: 0.125rem 0.5rem;
   font-size: var(--cw-text-xs);
-  font-weight: 800;
-  text-transform: capitalize;
-  white-space: nowrap;
+  font-weight: 500;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
 }
 .pill[data-tone="attention"],
 .pill[data-tone="pending"],
 .pill[data-tone="open"] {
-  border-color: var(--web-warm);
-  color: var(--cw-warning);
+  border-color: var(--cw-warning-border);
+  background: var(--cw-warning-soft);
+  color: var(--cw-warning-ink);
 }
 .pill[data-tone="blocked"],
 .pill[data-risk="high"] {
-  border-color: var(--web-danger);
-  color: var(--web-danger);
+  border-color: var(--cw-danger-border);
+  background: var(--cw-danger-soft);
+  color: var(--cw-danger-strong);
 }
 .pill[data-tone="active"],
 .pill[data-tone="accepted"],
 .pill[data-tone="paid"],
-.pill[data-tone="complete"],
+.pill[data-tone="complete"] {
+  border-color: var(--cw-success-border);
+  background: var(--cw-success-soft);
+  color: var(--cw-success);
+}
 .pill[data-risk="low"] {
-  border-color: var(--web-accent);
-  color: var(--web-accent);
+  border-color: var(--cw-info-border);
+  background: var(--cw-info-soft);
+  color: var(--cw-info);
 }
 .mobileCards {
   display: none;
   gap: 0.75rem;
-  padding: 0.8rem;
+  padding: 0.75rem;
 }
 .mobileCard {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.625rem;
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-sm);
-  padding: 0.9rem;
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
+  padding: 1rem;
+}
+/* Inside a section card the record cards become list rows, so the page does
+   not nest rounded containers. */
+.section .mobileCards {
+  gap: 0;
+  padding: 0;
+}
+.section .mobileCard {
+  border: 0;
+  border-radius: 0;
+}
+.section .mobileCard + .mobileCard {
+  border-top: 1px solid var(--web-line);
 }
 .cardTop {
   display: flex;
@@ -581,7 +682,8 @@ th[aria-sort="descending"] .sortButton::after {
   font-size: var(--cw-text-xs);
 }
 .cardValues strong {
-  font-size: var(--cw-text-xs);
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .cardsOnly .tableWrap {
@@ -593,7 +695,7 @@ th[aria-sort="descending"] .sortButton::after {
 .pagination {
   align-items: center;
   border-top: 1px solid var(--web-line);
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 1rem;
 }
 .pagination p {
   margin: 0;
@@ -608,54 +710,93 @@ th[aria-sort="descending"] .sortButton::after {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.55rem;
+  min-height: var(--cw-control-height);
+  border: 1px solid var(--cw-action);
   border-radius: var(--cw-radius-sm);
-  background: var(--web-accent);
+  background: var(--cw-action);
+  box-shadow: var(--cw-shadow-xs);
   color: white;
-  padding: 0.65rem 0.9rem;
-  font-size: var(--cw-text-sm);
-  font-weight: 800;
+  padding: 0.375rem 0.875rem;
+  font: inherit;
+  font-size: var(--cw-text-md);
+  font-weight: 500;
+  text-align: center;
   text-decoration: none;
+  cursor: pointer;
+}
+.buttonLink:hover {
+  border-color: var(--cw-action-strong);
+  background: var(--cw-action-strong);
+}
+.buttonLink:focus-visible {
+  outline: 2px solid var(--cw-focus);
+  outline-offset: 2px;
 }
 .buttonSecondary {
-  border: 1px solid var(--web-line);
+  border: 1px solid rgb(9 9 11 / 0.15);
   background: var(--web-paper);
   color: var(--web-ink);
 }
+.buttonSecondary:hover {
+  border-color: rgb(9 9 11 / 0.2);
+  background: var(--cw-canvas-deep);
+}
 .buttonDisabled {
-  opacity: 0.45;
+  border-color: var(--web-line);
+  background: var(--cw-canvas);
+  box-shadow: none;
+  color: var(--cw-faint);
   pointer-events: none;
 }
 .state {
   padding: 1rem;
 }
+/*
+ * A three-cell boundary card: hairline dividers between cells, no gray
+ * gutter. The partner desk reuses the class for a heading beside a fact list
+ * (a div and a dl), which keeps its two-column layout.
+ */
 .boundary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
+  gap: 0;
   overflow: hidden;
-  background: var(--web-line);
+  padding: 0;
+  background: var(--web-paper);
 }
 .boundary > div {
   background: var(--web-paper);
-  padding: 1rem;
+  padding: 1rem 1.25rem;
+}
+.boundary > div + div {
+  border-inline-start: 1px solid var(--web-line);
+}
+.boundary:has(> dl) {
+  grid-template-columns: minmax(16rem, 0.7fr) minmax(0, 1.3fr);
+  gap: 1rem 2rem;
+  padding: 1.25rem;
+}
+.boundary:has(> dl) > div {
+  padding: 0;
 }
 .boundary p {
-  margin: 0.35rem 0 0;
+  margin: 0.25rem 0 0;
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
 }
 .boundary strong {
   display: block;
-  margin-top: 0.45rem;
+  margin-top: 0.375rem;
   font-size: var(--cw-text-md);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .term {
-  padding: 1rem 1.2rem;
+  padding: 1rem 1.25rem;
 }
 .termHeader {
-  margin: -1rem -1.2rem 1rem;
+  margin: -1rem -1.25rem 1rem;
+  padding-inline: 1.25rem;
 }
 .clockMeta {
   display: grid;
@@ -664,8 +805,8 @@ th[aria-sort="descending"] .sortButton::after {
   margin-top: 0.9rem;
 }
 .clockMeta div {
-  border-left: 2px solid var(--web-line);
-  padding-left: 0.7rem;
+  border-inline-start: 1px solid var(--web-line);
+  padding-inline-start: 0.75rem;
 }
 .clockMeta span {
   display: block;
@@ -674,28 +815,32 @@ th[aria-sort="descending"] .sortButton::after {
 }
 .clockMeta strong {
   font-size: var(--cw-text-sm);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+/* A gate is a warning notice: amber wash with a matching hairline. */
 .gate {
   margin: 0;
-  border-left: 3px solid var(--web-warm);
-  background: color-mix(in srgb, var(--web-warm) 8%, var(--web-paper));
+  border: 1px solid var(--cw-warning-border);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-warning-soft);
   padding: 0.75rem 1rem;
-  color: var(--web-muted);
+  color: var(--cw-warning-ink);
   font-size: var(--cw-text-sm);
 }
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-xs);
+  border-radius: var(--cw-radius-lg);
   overflow: hidden;
   background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
 }
 .stat {
-  min-height: 7.5rem;
-  border-right: 1px solid var(--web-line);
-  padding: 1rem;
+  min-height: 7rem;
+  border-inline-end: 1px solid var(--web-line);
+  padding: 1rem 1.25rem;
 }
 .stat:last-child {
   border: 0;
@@ -704,11 +849,16 @@ th[aria-sort="descending"] .sortButton::after {
   display: block;
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 .stat strong {
   display: block;
-  margin-top: 1.25rem;
-  font-size: var(--cw-text-3xl);
+  margin-top: 0.75rem;
+  font-size: var(--cw-text-display);
+  font-weight: 600;
+  line-height: var(--cw-leading-tight);
   font-variant-numeric: tabular-nums;
 }
 .urgentGrid {
@@ -728,11 +878,20 @@ th[aria-sort="descending"] .sortButton::after {
     color var(--cw-motion-fast) var(--cw-motion-ease);
 }
 .urgentCard:hover {
-  border-color: var(--web-accent);
+  border-color: rgb(9 9 11 / 0.2);
+  box-shadow: var(--cw-shadow-popover);
+}
+.urgentCard:focus-visible {
+  outline: 2px solid var(--cw-focus);
+  outline-offset: 2px;
 }
 .urgentCard h3,
 .urgentCard p {
   margin: 0;
+}
+.urgentCard h3 {
+  font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 .urgentCard p {
   color: var(--web-muted);
@@ -744,7 +903,7 @@ th[aria-sort="descending"] .sortButton::after {
   gap: 0.5rem;
   margin-top: auto;
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .dashboardGrid {
@@ -754,7 +913,7 @@ th[aria-sort="descending"] .sortButton::after {
 }
 .chart {
   min-height: 15rem;
-  padding: 1rem;
+  padding: 1.25rem;
 }
 .chartBars {
   display: flex;
@@ -767,8 +926,8 @@ th[aria-sort="descending"] .sortButton::after {
 .chartBars span {
   flex: 1;
   min-width: 0.8rem;
-  background: var(--web-accent);
-  opacity: 0.7;
+  border-radius: var(--cw-radius-xs) var(--cw-radius-xs) 0 0;
+  background: var(--cw-brand);
 }
 .chart p {
   color: var(--web-muted);
@@ -777,7 +936,7 @@ th[aria-sort="descending"] .sortButton::after {
 .summary,
 .detailCard,
 .workflow {
-  padding: 1.1rem;
+  padding: 1.25rem;
 }
 .summaryList {
   display: grid;
@@ -787,8 +946,8 @@ th[aria-sort="descending"] .sortButton::after {
   list-style: none;
 }
 .summaryList li {
-  border-left: 2px solid var(--web-line);
-  padding-left: 0.7rem;
+  border-inline-start: 1px solid var(--web-line);
+  padding-inline-start: 0.75rem;
   font-size: var(--cw-text-sm);
   font-variant-numeric: tabular-nums;
 }
@@ -816,7 +975,7 @@ th[aria-sort="descending"] .sortButton::after {
 .detailCard dd {
   margin: 0;
   font-size: var(--cw-text-sm);
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .technical {
@@ -825,8 +984,9 @@ th[aria-sort="descending"] .sortButton::after {
 }
 .technical summary {
   cursor: pointer;
-  color: var(--web-accent);
-  font-weight: 700;
+  color: var(--cw-action);
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 .technical code {
   overflow-wrap: anywhere;
@@ -846,15 +1006,15 @@ th[aria-sort="descending"] .sortButton::after {
   list-style: none;
 }
 .stage {
-  border-top: 3px solid var(--web-line);
+  border-top: 2px solid var(--cw-canvas-deep);
   padding-top: 0.5rem;
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
 }
 .stage[data-active="true"] {
-  border-color: var(--web-accent);
+  border-color: var(--cw-action);
   color: var(--web-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .formGrid {
   display: grid;
@@ -865,9 +1025,9 @@ th[aria-sort="descending"] .sortButton::after {
   grid-column: 1 / -1;
 }
 .error {
-  color: var(--web-danger);
-  font-size: var(--cw-text-xs);
-  font-weight: 700;
+  color: var(--cw-danger-strong);
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 .sticky {
   position: sticky;
@@ -876,23 +1036,26 @@ th[aria-sort="descending"] .sortButton::after {
 .confirm {
   display: flex;
   align-items: flex-start;
-  gap: 0.55rem;
-  font-size: var(--cw-text-xs);
-  font-weight: 700;
+  gap: 0.5rem;
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 .success {
-  border-left: 3px solid var(--web-accent);
-  background: var(--web-soft);
-  padding: 0.75rem;
+  border: 1px solid var(--cw-success-border);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-success-soft);
+  padding: 0.75rem 1rem;
+  color: var(--cw-success);
   font-size: var(--cw-text-sm);
 }
 .failure {
-  border-left: 3px solid var(--web-danger);
-  background: color-mix(in srgb, var(--web-danger) 8%, var(--web-paper));
-  padding: 0.75rem;
-  color: var(--web-ink);
+  border: 1px solid var(--cw-danger-border);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-danger-soft);
+  padding: 0.75rem 1rem;
+  color: var(--cw-danger-strong);
   font-size: var(--cw-text-sm);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 @media (max-width: 74rem) {
@@ -913,7 +1076,7 @@ th[aria-sort="descending"] .sortButton::after {
 
 @media (max-width: 52rem) {
   .main {
-    padding: 1.4rem 1rem 2.5rem;
+    padding: 1.25rem 1rem 2.5rem;
   }
   .pageHeader {
     align-items: flex-start;
@@ -937,11 +1100,18 @@ th[aria-sort="descending"] .sortButton::after {
   .boundary {
     grid-template-columns: 1fr;
   }
+  .boundary > div + div {
+    border-inline-start: 0;
+    border-top: 1px solid var(--web-line);
+  }
+  .boundary:has(> dl) {
+    grid-template-columns: 1fr;
+  }
   .stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .stat:nth-child(2) {
-    border-right: 0;
+    border-inline-end: 0;
   }
   .stat:nth-child(-n + 2) {
     border-bottom: 1px solid var(--web-line);
@@ -966,7 +1136,7 @@ th[aria-sort="descending"] .sortButton::after {
     grid-column: 1;
   }
   .pageHeader h1 {
-    font-size: 2rem;
+    font-size: var(--cw-text-display);
   }
   .sectionHeader,
   .pagination {
@@ -984,7 +1154,7 @@ th[aria-sort="descending"] .sortButton::after {
     grid-template-columns: 1fr;
   }
   .stat {
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--web-line);
   }
   .stat:last-child {

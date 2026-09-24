@@ -6,20 +6,14 @@
   display: grid;
   gap: var(--cw-space-6);
   min-width: 0;
-  padding: clamp(
-    var(--cw-space-5),
-    4vw,
-    calc(var(--cw-space-12) + var(--cw-space-1))
-  );
+  padding: clamp(var(--cw-space-5), 3vw, var(--cw-space-10));
 }
 
 .header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  align-items: start;
   gap: var(--cw-space-4) var(--cw-space-8);
-  padding-block-end: calc(var(--cw-space-5) - var(--cw-space-1));
-  border-bottom: 2px solid var(--cw-border-strong);
 }
 
 .headerCopy {
@@ -30,8 +24,11 @@
 .clock {
   display: grid;
   gap: var(--cw-space-4);
-  padding-block: var(--cw-space-4) var(--cw-space-5);
-  border-bottom: 1px solid var(--cw-border);
+  padding: var(--cw-space-5);
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-surface);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .bandHeading {
@@ -56,8 +53,8 @@
 .fact {
   display: grid;
   gap: var(--cw-space-1);
-  border-left: 2px solid var(--cw-border-strong);
-  padding-left: var(--cw-space-3);
+  border-inline-start: 1px solid var(--cw-border);
+  padding-inline-start: var(--cw-space-3);
 }
 
 .ledger {
@@ -68,11 +65,15 @@
 .rows {
   display: grid;
   gap: 0;
-  border-block: 1px solid var(--cw-border);
+  overflow: hidden;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-surface);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .row {
-  padding-block: var(--cw-space-3);
+  padding: var(--cw-space-3) var(--cw-space-5);
   border-bottom: 1px solid var(--cw-border);
 }
 

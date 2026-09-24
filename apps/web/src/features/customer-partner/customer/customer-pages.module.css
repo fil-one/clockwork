@@ -2,7 +2,7 @@
   display: grid;
   min-width: 0;
   gap: 1.5rem;
-  padding: clamp(1.25rem, 4vw, 3.25rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
 }
 
 .header {
@@ -17,10 +17,12 @@
 }
 
 .eyebrow {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.25rem;
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .header h1 {
@@ -28,29 +30,30 @@
   margin: 0;
   font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.052em;
-  line-height: 0.98;
+  line-height: var(--cw-leading-tight);
   text-wrap: balance;
 }
 
 .description {
   max-width: 47rem;
-  margin: 1rem 0 0;
+  margin: 0.25rem 0 0;
   color: var(--web-muted);
-  font-size: var(--cw-text-lg);
+  font-size: var(--cw-text-md);
 }
 
 .primaryLink,
 .secondaryLink {
   display: inline-flex;
-  min-height: 2.6rem;
+  min-height: var(--cw-control-height);
   align-items: center;
   justify-content: center;
   border: 1px solid var(--web-accent);
   border-radius: var(--cw-radius-sm);
-  padding: 0.55rem 0.9rem;
-  font-size: var(--cw-text-sm);
-  font-weight: 800;
+  padding: 0.375rem 0.875rem;
+  box-shadow: var(--cw-shadow-xs);
+  font-size: var(--cw-text-md);
+  font-weight: 500;
+  text-align: center;
   text-decoration: none;
 }
 
@@ -59,16 +62,26 @@
   color: white;
 }
 
+.primaryLink:hover {
+  border-color: var(--cw-action-strong);
+  background: var(--cw-action-strong);
+}
+
 .secondaryLink {
-  background: transparent;
-  color: var(--web-accent);
+  border-color: rgb(9 9 11 / 0.15);
+  background: var(--web-paper);
+  color: var(--web-ink);
+}
+
+.secondaryLink:hover {
+  background: var(--cw-canvas-deep);
 }
 
 .primaryLink:focus-visible,
 .secondaryLink:focus-visible,
 .attentionLink:focus-visible,
 .accountCard:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--web-accent) 36%, transparent);
+  outline: 2px solid var(--cw-focus);
   outline-offset: 2px;
 }
 
@@ -87,7 +100,8 @@
 .sectionHeading h2,
 .panel h2 {
   margin: 0;
-  font-size: var(--cw-text-xl);
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 
 .sectionHeading p,
@@ -101,8 +115,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-xs);
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
   overflow: hidden;
 }
 
@@ -110,7 +125,7 @@
   display: grid;
   min-width: 0;
   gap: 0.8rem;
-  border-right: 1px solid var(--web-line);
+  border-inline-end: 1px solid var(--web-line);
   color: inherit;
   padding: 1rem;
   text-decoration: none;
@@ -121,11 +136,11 @@
 }
 
 .attentionLink:last-child {
-  border-right: 0;
+  border-inline-end: 0;
 }
 
 .attentionLink:hover {
-  background: color-mix(in srgb, var(--web-soft) 52%, transparent);
+  background: var(--cw-canvas);
 }
 
 .attentionTop {
@@ -139,9 +154,9 @@
   color: var(--web-muted);
   font-family: var(--cw-font-accent);
   font-size: var(--cw-text-xs);
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 
 .attentionLink h3 {
@@ -160,8 +175,8 @@
 .attentionAction {
   align-self: end;
   color: var(--web-accent);
-  font-size: var(--cw-text-xs);
-  font-weight: 800;
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 
 .commercialGrid {
@@ -177,14 +192,15 @@
 .activity,
 .accountCard {
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-xs);
+  border-radius: var(--cw-radius-lg);
   background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .termCard {
   display: grid;
   gap: 1rem;
-  padding: 1.15rem;
+  padding: 1.25rem;
 }
 
 .termTop {
@@ -196,14 +212,14 @@
 
 .termCard h2 {
   margin: 0;
-  font-size: var(--cw-text-xl);
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 
 .termRange {
-  margin: 0.35rem 0 0;
-  font-size: clamp(1.2rem, 2vw, 1.55rem);
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  margin: 0.25rem 0 0;
+  font-size: var(--cw-text-xl);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -233,23 +249,23 @@
 .termMilestones div,
 .accountFacts div {
   min-width: 0;
-  border-left: 2px solid var(--web-line);
-  padding-left: 0.65rem;
+  border-inline-start: 1px solid var(--web-line);
+  padding-inline-start: 0.75rem;
 }
 
 .termMilestones dt,
 .accountFacts dt {
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .termMilestones dd,
 .accountFacts dd {
-  margin: 0.22rem 0 0;
+  margin: 0.2rem 0 0;
   overflow-wrap: anywhere;
   font-size: var(--cw-text-sm);
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -263,9 +279,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   font-size: var(--cw-text-md);
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -296,6 +312,7 @@
 
 .serviceList strong {
   font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 
 .serviceList span {
@@ -324,7 +341,7 @@
 .chart,
 .activity,
 .panel {
-  padding: 1.1rem;
+  padding: 1.25rem;
 }
 
 .chartHeader {
@@ -338,6 +355,7 @@
 .activity h2 {
   margin: 0;
   font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 
 .freshness,
@@ -350,8 +368,8 @@
 
 .comparison {
   color: var(--web-accent);
-  font-weight: 700;
-  text-align: right;
+  font-weight: 500;
+  text-align: end;
 }
 
 .bars {
@@ -374,7 +392,7 @@
 }
 
 .barRow strong {
-  text-align: right;
+  text-align: end;
 }
 
 .barTrack {
@@ -395,7 +413,7 @@
 }
 
 .activity {
-  opacity: 0.9;
+  color: var(--web-ink);
 }
 
 .activityList {
@@ -409,12 +427,13 @@
 .activityList li {
   display: grid;
   gap: 0.2rem;
-  border-left: 2px solid var(--web-line);
-  padding-left: 0.7rem;
+  border-inline-start: 1px solid var(--web-line);
+  padding-inline-start: 0.75rem;
 }
 
 .activityList strong {
   font-size: var(--cw-text-sm);
+  font-weight: 500;
 }
 
 .activityList span,
@@ -449,13 +468,14 @@
 }
 
 .accountCard:hover {
-  border-color: color-mix(in srgb, var(--web-accent) 48%, var(--web-line));
-  background: color-mix(in srgb, var(--web-soft) 42%, var(--web-paper));
+  border-color: rgb(9 9 11 / 0.2);
+  box-shadow: var(--cw-shadow-popover);
 }
 
 .accountCard h2 {
   margin: 0;
-  font-size: var(--cw-text-lg);
+  font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 
 .accountCard p {
@@ -467,15 +487,17 @@
 .accountCard span {
   align-self: end;
   color: var(--web-accent);
-  font-size: var(--cw-text-xs);
-  font-weight: 800;
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .permissionNote {
   max-width: 36rem;
   margin: 0;
-  border-left: 3px solid var(--web-line);
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-canvas-deep);
   padding: 0.75rem 1rem;
   color: var(--web-muted);
   font-size: var(--cw-text-sm);
@@ -498,7 +520,7 @@
   }
 
   .attentionLink:nth-child(2) {
-    border-right: 0;
+    border-inline-end: 0;
   }
 
   .attentionLink:nth-child(-n + 2) {
@@ -533,7 +555,7 @@
   }
 
   .comparison {
-    text-align: left;
+    text-align: start;
   }
 
   .accountGrid,
@@ -552,7 +574,7 @@
 
   .attentionLink,
   .attentionLink:nth-child(2) {
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--web-line);
   }
 
@@ -579,25 +601,22 @@
 .taskHeader {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  align-items: start;
   gap: 1rem 2rem;
-  padding-block-end: 1.25rem;
-  border-bottom: 2px solid var(--web-ink);
 }
 
 .taskHeader h1 {
-  max-width: 24ch;
+  max-width: 32ch;
   margin: 0;
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-display);
   font-weight: 600;
-  letter-spacing: -0.035em;
   line-height: var(--cw-leading-tight);
 }
 
 .taskHeader p {
   max-width: 58ch;
-  margin: 0.45rem 0 0;
+  margin: 0.25rem 0 0;
   color: var(--web-muted);
 }
 
@@ -615,7 +634,8 @@
 
 .obligationHeading h2 {
   margin: 0;
-  font-size: var(--cw-text-xl);
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 
 .obligationHeading p {
@@ -626,24 +646,30 @@
 
 .asOf {
   flex: 0 0 auto;
-  font-family: var(--cw-font-mono);
+  color: var(--web-muted);
+  font-size: var(--cw-text-xs);
   font-variant-numeric: tabular-nums;
 }
 
+/* The obligation list is a console card: hairline, 0.5rem corners, rows
+   divided by hairlines, a numbered marker, and a text-link action. */
 .obligationList {
   margin: 0;
   padding: 0;
-  border-block: 1px solid var(--web-line);
+  overflow: hidden;
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
   list-style: none;
 }
 
 .obligationList > li {
   display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 1rem;
-  min-height: 5.75rem;
-  padding: 0.9rem 0;
+  padding: 1rem 1.25rem;
 }
 
 .obligationList > li + li {
@@ -651,11 +677,16 @@
 }
 
 .obligationPriority {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
   align-self: start;
-  padding-top: 0.15rem;
-  color: var(--web-accent);
-  font-family: var(--cw-font-display);
-  font-size: var(--cw-text-3xl);
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cw-canvas-deep);
+  color: var(--web-ink);
+  font-size: var(--cw-text-sm);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -675,12 +706,13 @@
 }
 
 .obligationCopy h3 {
-  margin-top: 0.3rem;
-  font-size: var(--cw-text-lg);
+  margin-top: 0.375rem;
+  font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 
 .obligationCopy p {
-  margin-top: 0.2rem;
+  margin-top: 0.125rem;
   color: var(--web-muted);
   font-size: var(--cw-text-sm);
   font-variant-numeric: tabular-nums;
@@ -688,11 +720,29 @@
 
 .obligationAction {
   display: inline-flex;
-  min-height: 2.75rem;
+  min-height: var(--cw-control-height);
   align-items: center;
-  color: var(--web-accent);
+  color: var(--cw-action);
   font-size: var(--cw-text-sm);
-  font-weight: 800;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.obligationAction:hover {
+  color: var(--cw-action-strong);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* The trailing arrow points along the reading direction. */
+.obligationAction > span[aria-hidden="true"] {
+  display: inline-block;
+  margin-inline-start: 0.25rem;
+}
+
+:global(html[dir="rtl"]) .obligationAction > span[aria-hidden="true"] {
+  transform: scaleX(-1);
 }
 
 .supportingContext {
@@ -700,11 +750,11 @@
 }
 
 .supportingContext > summary {
-  min-height: 3.25rem;
-  padding-block: 0.85rem;
+  min-height: 2.75rem;
+  padding-block: 0.65rem;
   color: var(--web-accent);
   font-size: var(--cw-text-md);
-  font-weight: 800;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -717,7 +767,8 @@
 
 .contextColumns h2 {
   margin: 0 0 0.75rem;
-  font-size: var(--cw-text-lg);
+  font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 
 .capacityFacts {
@@ -739,8 +790,8 @@
 }
 
 .capacityFacts dd {
-  font-weight: 700;
-  text-align: right;
+  font-weight: 500;
+  text-align: end;
   font-variant-numeric: tabular-nums;
 }
 
@@ -759,7 +810,8 @@
   }
 
   .obligationList > li {
-    grid-template-columns: 1.5rem minmax(0, 1fr);
+    grid-template-columns: 1.75rem minmax(0, 1fr);
+    padding-inline: 1rem;
   }
 
   .obligationAction {
@@ -788,6 +840,6 @@
   }
 
   .capacityFacts dd {
-    text-align: left;
+    text-align: start;
   }
 }
