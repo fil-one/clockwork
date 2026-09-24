@@ -190,6 +190,69 @@
   align-items: center;
 }
 
+/*
+ * Where the closed pill sits, so it never rests on page content.
+ *
+ * A fixed pill in the bottom corner of the page covered whatever reached the
+ * bottom of the window -- an export button, a migration checkbox, the last
+ * table row. On a desktop shell it becomes the navigation rail's footer
+ * instead: a strip across the bottom of the rail, below the rail's own scroll
+ * area, so neither the page nor a navigation link can ever sit under it. The
+ * open panel is wider than the rail and is an overlay the reader asked for, so
+ * it floats from the rail's corner and may extend over the page.
+ */
+@media (min-width: 64rem) {
+  :global(body):has(:global(.cw-shell__rail)) .panel {
+    display: flex;
+    justify-content: flex-end;
+    inset-inline: 0 auto;
+    bottom: 0;
+    width: var(--cw-rail-width);
+    max-width: none;
+    border-block-start: 1px solid var(--cw-border);
+    border-inline-end: 1px solid var(--cw-border);
+    background: var(--cw-surface);
+    padding: var(--cw-space-3);
+  }
+
+  :global(body):has(:global(.cw-shell__rail)) .panel .launcher {
+    max-width: 100%;
+    box-shadow: var(--cw-shadow-xs);
+  }
+
+  :global(body):has(:global(.cw-shell__rail)) .panel:has(.body) {
+    display: block;
+    inset-inline-start: var(--cw-space-3);
+    bottom: var(--cw-space-3);
+    width: auto;
+    max-width: min(21rem, calc(100% - 2 * var(--cw-space-3)));
+    border: 0;
+    background: none;
+    padding: 0;
+  }
+
+  /* The rail's scroll area ends where the strip begins. */
+  :global(body):has(.panel) :global(.cw-shell__rail) {
+    height: calc(
+      100dvh - var(--cw-header-height) - var(--cw-control-height) - 2 *
+        var(--cw-space-3) - 1px
+    );
+  }
+}
+
+/*
+ * Without the full rail (a compact rail, a phone, a page outside the shell)
+ * the pill stays in the page's bottom corner, and the page ends with room for
+ * it: scrolled to the end, the last content and the footer text sit above it.
+ */
+@media (max-width: 63.999rem) {
+  :global(body):has(.panel) :global(.cw-shell__footer) {
+    padding-block-end: calc(
+      var(--cw-control-height) + 2 * clamp(0.75rem, 2vw, 1.5rem)
+    );
+  }
+}
+
 @media print {
   .panel {
     display: none;
