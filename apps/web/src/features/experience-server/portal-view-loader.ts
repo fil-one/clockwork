@@ -43,7 +43,7 @@ import type {
   BuyQuoteProjectionLookup,
   PreparedQuoteArtifactLookup,
 } from "@/src/features/customer-partner/commercial/prepared-quote-artifact";
-import type { CustomerCollectionRecord } from "@/src/features/customer-partner/customer/collection-state";
+import { customerCollectionRecord } from "@/src/features/customer-partner/customer/collection-record";
 import type { CustomerCollectionKey } from "@/src/features/customer-partner/customer/customer-data";
 import type {
   PartnerRecord,
@@ -84,13 +84,6 @@ export interface PortalRecords<T> {
 function text(data: Readonly<Record<string, unknown>>, key: string): string {
   const value = data[key];
   if (typeof value !== "string" || !value.trim())
-    throw new Error(`Projection record omitted ${key}`);
-  return value;
-}
-
-function number(data: Readonly<Record<string, unknown>>, key: string): number {
-  const value = data[key];
-  if (typeof value !== "number" || !Number.isFinite(value))
     throw new Error(`Projection record omitted ${key}`);
   return value;
 }
@@ -854,37 +847,12 @@ export async function loadPartnerRecords(surface: PartnerSurfaceKey) {
   };
 }
 
-function customerRecord(record: ProjectionRecord): CustomerCollectionRecord {
-  const data = record.data;
-  return {
-    id: text(data, "id"),
-    title: text(data, "title"),
-    description: text(data, "description"),
-    status: oneOf(
-      text(data, "status"),
-      ["active", "pending", "review", "complete", "blocked"],
-      "status",
-    ),
-    statusLabel: text(data, "statusLabel"),
-    risk: oneOf(text(data, "risk"), ["low", "medium", "high"], "risk"),
-    owner: text(data, "owner"),
-    value: text(data, "value"),
-    valueSort: number(data, "valueSort"),
-    updatedAt: record.sourceUpdatedAt,
-    updatedLabel: text(data, "updatedLabel"),
-    context: contextEntries(data),
-    recordVersion: record.version,
-    projectionId: record.id,
-    aggregateId: record.aggregateId,
-  };
-}
-
 export async function loadCustomerCollectionRecords(
   key: CustomerCollectionKey,
 ) {
   const page = await loadPortalRecords("customer", key);
   return {
     ...page,
-    records: page.records.map(customerRecord),
+    records: page.records.map(customerCollectionRecord),
   };
 }

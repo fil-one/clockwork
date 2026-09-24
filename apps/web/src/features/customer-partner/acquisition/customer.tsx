@@ -9,24 +9,80 @@ import type {
   CustomerAcquisitionRequest,
   CustomerAcquisitionView,
 } from "@clockwork/domain/core";
+import type { MessageId, Translator } from "@/src/i18n";
+import {
+  formatMoney,
+  type SupportedCurrency,
+} from "@/src/features/shared/format";
 import { submitCustomerAcquisition } from "./actions";
 import styles from "./customer.module.css";
-function money(currency: string, minor: string) {
-  const n = BigInt(minor);
-  return `${currency} ${n / 100n}.${(n % 100n).toString().padStart(2, "0")}`;
+
+/** An offer's amount in its own currency, with the reader's digits. */
+function money(currency: string, minor: string, locale: string): string {
+  return formatMoney(minor, currency as SupportedCurrency, locale);
 }
-function bytes(value: string, locale: string) {
+
+/** Decimal terabytes when the value is whole terabytes, bytes otherwise. */
+function bytes(value: string, locale: string): string {
   const n = BigInt(value);
   return n % 1_000_000_000_000n === 0n
-    ? `${n / 1_000_000_000_000n} TB`
-    : `${n.toLocaleString(locale)} bytes`;
+    ? new Intl.NumberFormat(locale, {
+        style: "unit",
+        unit: "terabyte",
+      }).format(n / 1_000_000_000_000n)
+    : new Intl.NumberFormat(locale, {
+        style: "unit",
+        unit: "byte",
+        unitDisplay: "long",
+      }).format(n);
 }
-const kindName = {
-  payg: "PAYG activation",
-  trial: "Trial",
-  convert_to_payg: "Trial conversion",
-  cancel_payg: "Cancellation",
+
+/** A calendar date from an ISO timestamp, as the UTC day it names. */
+function day(value: string, locale: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(parsed);
+}
+
+/** A timestamp in UTC, labelled as UTC, because the terms are UTC-based. */
+function utcTime(value: string, locale: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(parsed);
+}
+
+export const requestKindLabels: Readonly<
+  Record<CustomerAcquisitionRequest["kind"], MessageId>
+> = {
+  payg: "customer.payg.kind.payg",
+  trial: "customer.payg.kind.trial",
+  convert_to_payg: "customer.payg.kind.conversion",
+  cancel_payg: "customer.payg.kind.cancellation",
 };
+
+/**
+ * Who bills an enrollment. The codes name systems, so two of them are proper
+ * names; the demo's code is a description and is worded for the reader.
+ */
+function billingAuthority(value: string | null, t: Translator): string {
+  if (value === "fil_one") return "Fil One";
+  if (value === "clockwork") return "Clockwork"; // i18n-exempt: the billing system's product name
+  if (value === "fictional_demo")
+    return t("customer.payg.billingAuthority.fictionalDemo");
+  return value ?? t("common.notRecorded");
+}
+
 export function CustomerAcquisition({
   view,
   accountId,
@@ -83,9 +139,7 @@ export function CustomerAcquisition({
         router.refresh();
       }
     } catch {
-      setMessage(
-        "The request did not complete. Refresh to check its status before retrying.",
-      );
+      setMessage(t("customer.payg.error.didNotComplete"));
     } finally {
       setBusy(false);
     }
@@ -101,44 +155,33 @@ export function CustomerAcquisition({
     <main id="main-content" className={styles.main}>
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Storage on your terms</p>
-          <h1>{t("nav.internal.paygOffers")}</h1>
-          <p>
-            Review no-term usage pricing, request a trial, and follow your
-            service handoff.
-          </p>
+          <p className={styles.eyebrow}>{t("customer.payg.eyebrow")}</p>
+          <h1>{t("customer.payg.title")}</h1>
+          <p>{t("customer.payg.description")}</p>
         </div>
-        <Link href="/buy">Need a committed term? Build a quote</Link>
+        <Link href="/buy">{t("customer.payg.buildQuote")}</Link>
       </header>
       {demo ? (
-        <p className={styles.notice}>
-          Fictional demo. Requests and handoffs stay in resettable demo state.
-          No provider tenant is provisioned and no payment is collected.
-        </p>
+        <p className={styles.notice}>{t("customer.payg.demoNotice")}</p>
       ) : null}
       {!available ? (
         <p role="status" className={styles.notice}>
-          The service request workspace is unavailable. No changes have been
-          made. Try again later.
+          {t("customer.payg.unavailable")}
         </p>
       ) : null}
       <section className={styles.panel} id="acquisition-offer">
         <h2 id="acquisition-offer-heading" tabIndex={-1}>
           {mode === "convert_to_payg"
-            ? "Review paid conversion"
-            : "Choose your offer"}
+            ? t("customer.payg.reviewConversion")
+            : t("customer.payg.chooseOffer")}
         </h2>
         {!view.offers.length ? (
-          <p>
-            No approved, effective offer with customer terms is accepting
-            requests right now. Your account team can help you with the next
-            available offer.
-          </p>
+          <p>{t("customer.payg.noOffers")}</p>
         ) : (
           <>
             <div className={styles.fields}>
               <label>
-                Offer
+                {t("customer.payg.offer")}
                 <select
                   value={offerId}
                   disabled={busy}
@@ -149,7 +192,11 @@ export function CustomerAcquisition({
                 >
                   {view.offers.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.name} · {item.region} · v{item.version}
+                      {t("customer.payg.offerOption", {
+                        name: item.name,
+                        region: item.region,
+                        version: item.version,
+                      })}
                     </option>
                   ))}
                 </select>
@@ -165,7 +212,7 @@ export function CustomerAcquisition({
                   }}
                 >
                   <option value="" disabled>
-                    Select your organization
+                    {t("customer.payg.selectOrganization")}
                   </option>
                   {view.organizations.map((item) => (
                     <option
@@ -173,8 +220,11 @@ export function CustomerAcquisition({
                       value={item.id}
                       disabled={!item.canRequest}
                     >
-                      {item.name}
-                      {item.canRequest ? "" : " · owner/admin required"}
+                      {item.canRequest
+                        ? item.name
+                        : t("customer.payg.organizationNeedsOwner", {
+                            organization: item.name,
+                          })}
                     </option>
                   ))}
                 </select>
@@ -184,54 +234,75 @@ export function CustomerAcquisition({
               <>
                 <div className={styles.pricing}>
                   <article>
-                    <h3>Pay as you go</h3>
+                    <h3>{t("customer.payg.paygHeading")}</h3>
                     <strong>
-                      {money(offer.currency, offer.storageTbMonthMinor)}
-                      <small> / TB-month</small>
-                    </strong>
+                      {money(
+                        offer.currency,
+                        offer.storageTbMonthMinor,
+                        formattingLocale,
+                      )}
+                    </strong>{" "}
+                    <small>{t("customer.payg.perTbMonth")}</small>
                     <p>
-                      {money(offer.currency, offer.monthlyMinimumMinor)} monthly
-                      minimum.{" "}
-                      {offer.partialMonthMinimum === "full"
-                        ? "Full minimum in partial months."
-                        : "Minimum prorated by service hours in partial months."}
+                      {t("common.join.sentences", {
+                        first: t("customer.payg.monthlyMinimum", {
+                          amount: money(
+                            offer.currency,
+                            offer.monthlyMinimumMinor,
+                            formattingLocale,
+                          ),
+                        }),
+                        second: t(
+                          offer.partialMonthMinimum === "full"
+                            ? "customer.payg.partialMonth.full"
+                            : "customer.payg.partialMonth.prorated",
+                        ),
+                      })}
                     </p>
-                    <p>
-                      Hourly storage measurements averaged by UTC day. Decimal
-                      TB. Egress and API operations have no usage charge in this
-                      offer.
-                    </p>
+                    <p>{t("customer.payg.metering")}</p>
                   </article>
                   <article>
-                    <h3>Trial</h3>
-                    <strong>{offer.trial.durationDays} days</strong>
+                    <h3>{t("customer.payg.trialHeading")}</h3>
+                    <strong>
+                      {t("customer.payg.trialDays", {
+                        count: offer.trial.durationDays,
+                      })}
+                    </strong>
                     <p>
-                      {bytes(offer.trial.storageLimitBytes, formattingLocale)}{" "}
-                      storage ·{" "}
-                      {bytes(
-                        offer.trial.cumulativeEgressLimitBytes,
-                        formattingLocale,
-                      )}{" "}
-                      lifetime trial egress.
+                      {t("customer.payg.trialLimits", {
+                        storage: bytes(
+                          offer.trial.storageLimitBytes,
+                          formattingLocale,
+                        ),
+                        egress: bytes(
+                          offer.trial.cumulativeEgressLimitBytes,
+                          formattingLocale,
+                        ),
+                      })}
                     </p>
                     <p>
-                      {offer.trial.gracePeriodDays} days of read-only grace
-                      after expiry. Paid conversion requires a separate
-                      acceptance and confirmed service record.
+                      {t("common.join.sentences", {
+                        first: t("customer.payg.trialGrace", {
+                          count: offer.trial.gracePeriodDays,
+                        }),
+                        second: t("customer.payg.conversionSeparate"),
+                      })}
                     </p>
                   </article>
                 </div>
                 <div className={styles.notices}>
-                  <p>{offer.notices.serviceNotice}</p>
-                  <p>
+                  {/* Policy wording is typed by a pricing administrator in one
+                      language; `dir="auto"` lays it out by its own script. */}
+                  <p dir="auto">{offer.notices.serviceNotice}</p>
+                  <p dir="auto">
                     {mode === "trial"
                       ? offer.notices.trialNotice
                       : offer.notices.cancellationNotice}
                   </p>
                   <p>
                     {org?.providerMapped
-                      ? "An organization mapping is on file. Activation still requires verified provider and billing handoff."
-                      : "Provider setup has not been confirmed. You can submit a request and track the handoff here."}
+                      ? t("customer.payg.providerMapped")
+                      : t("customer.payg.providerNotConfirmed")}
                   </p>
                 </div>
                 <form
@@ -266,8 +337,8 @@ export function CustomerAcquisition({
                   >
                     <legend>
                       {mode === "convert_to_payg"
-                        ? "Paid conversion request"
-                        : "Request type"}
+                        ? t("customer.payg.conversionRequest")
+                        : t("customer.payg.requestType")}
                     </legend>
                     {mode !== "convert_to_payg" ? (
                       <div className={styles.choices}>
@@ -283,7 +354,7 @@ export function CustomerAcquisition({
                               setAccepted(false);
                             }}
                           />{" "}
-                          PAYG activation
+                          {t("customer.payg.kind.payg")}
                         </label>
                         <label>
                           <input
@@ -297,7 +368,7 @@ export function CustomerAcquisition({
                               setAccepted(false);
                             }}
                           />{" "}
-                          Trial request
+                          {t("customer.payg.trialRequest")}
                         </label>
                       </div>
                     ) : (
@@ -309,18 +380,11 @@ export function CustomerAcquisition({
                           setAccepted(false);
                         }}
                       >
-                        Cancel conversion review
+                        {t("customer.payg.cancelConversionReview")}
                       </button>
                     )}
                     <DocumentLinks offer={offer} demo={demo} />
-                    {demo ? (
-                      <p>
-                        This fictional acceptance is only a product
-                        demonstration: no service contract, charge, provider
-                        access, or retention commitment is created. The
-                        references below are fictional evidence fixtures.
-                      </p>
-                    ) : null}
+                    {demo ? <p>{t("customer.payg.demoAcceptance")}</p> : null}
                     <label className={styles.acceptance}>
                       <input
                         type="checkbox"
@@ -328,13 +392,19 @@ export function CustomerAcquisition({
                         onChange={(event) => setAccepted(event.target.checked)}
                         required
                       />{" "}
-                      <span>{`I have read and agree to the ${demo ? "fictional displayed" : "linked"} terms (version ${offer.notices.terms.version}) and retention policy (version ${offer.notices.retention.version}), and authorize this request for my organization.`}</span>
+                      <span>
+                        {t(
+                          demo
+                            ? "customer.payg.consent.demo"
+                            : "customer.payg.consent",
+                          {
+                            terms: offer.notices.terms.version,
+                            retention: offer.notices.retention.version,
+                          },
+                        )}
+                      </span>
                     </label>
-                    <p>
-                      Submitting records your acceptance and starts a handoff
-                      request. It does not create provider credentials, start
-                      billing, or confirm access.
-                    </p>
+                    <p>{t("customer.payg.submitEffect")}</p>
                     <button
                       className={styles.primary}
                       disabled={
@@ -345,20 +415,17 @@ export function CustomerAcquisition({
                       }
                     >
                       {busy
-                        ? "Submitting…"
+                        ? t("customer.payg.submitting")
                         : mode === "trial"
-                          ? "Accept terms and request trial"
+                          ? t("customer.payg.submit.trial")
                           : mode === "convert_to_payg"
-                            ? "Accept paid terms and request conversion"
-                            : "Accept terms and request PAYG"}
+                            ? t("customer.payg.submit.conversion")
+                            : t("customer.payg.submit.payg")}
                     </button>
                   </fieldset>
                 </form>
                 {pending ? (
-                  <p role="status">
-                    An activation or trial request is already pending for this
-                    organization. Its status appears below.
-                  </p>
+                  <p role="status">{t("customer.payg.alreadyPending")}</p>
                 ) : null}
               </>
             ) : null}
@@ -378,68 +445,93 @@ export function CustomerAcquisition({
                 router.refresh();
               }}
             >
-              {refreshingOffers ? "Refreshing offers…" : "Refresh offers"}
+              {refreshingOffers
+                ? t("customer.payg.refreshingOffers")
+                : t("customer.payg.refreshOffers")}
             </button>
           ) : null}
         </div>
       ) : null}
       <section className={styles.panel}>
-        <h2>Your service requests</h2>
+        <h2>{t("customer.payg.requests.title")}</h2>
         {!view.requests.length ? (
-          <p>
-            No service requests yet. Submitted terms and handoff updates will be
-            retained here.
-          </p>
+          <p>{t("customer.payg.requests.empty")}</p>
         ) : (
           view.requests.map((request) => (
             <article className={styles.request} key={request.id}>
               <div className={styles.requestHeading}>
                 <h3>
-                  {kindName[request.kind]} · {request.organizationName}
+                  {t("common.join.labels", {
+                    first: t(requestKindLabels[request.kind]),
+                    second: request.organizationName,
+                  })}
                 </h3>
                 <span className={styles.status}>
                   {request.status === "pending"
-                    ? "Pending verified handoff"
+                    ? t("customer.payg.status.pendingHandoff")
                     : request.status === "declined"
-                      ? "Declined"
-                      : "Service record linked"}
+                      ? t("customer.payg.status.declined")
+                      : t("customer.payg.status.linked")}
                 </span>
               </div>
               <p>
-                {request.offer.name} v{request.offer.version} ·{" "}
-                {request.offer.region} · Requested{" "}
-                {new Date(request.acceptedAt).toLocaleString(formattingLocale, {
-                  timeZone: "UTC",
-                })}{" "}
-                UTC
+                {t("customer.payg.request.summary", {
+                  offer: request.offer.name,
+                  version: request.offer.version,
+                  region: request.offer.region,
+                  time: utcTime(request.acceptedAt, formattingLocale),
+                })}
               </p>
               {request.resolutionReason ? (
-                <p>{request.resolutionReason}</p>
+                <p dir="auto">{request.resolutionReason}</p>
               ) : null}
               {request.status === "pending" ? (
-                <p>
-                  Finance is reviewing eligibility, provider mapping and the
-                  applicable billing handoff. No activation is implied by this
-                  request.
-                </p>
+                <p>{t("customer.payg.request.financeReviewing")}</p>
               ) : null}
               {request.result ? (
                 <>
                   <p>
-                    {request.result.kind === "trial"
-                      ? `Trial recorded from ${request.result.startsAt.slice(0, 10)} to ${request.result.endsAt?.slice(0, 10)}.`
-                      : `PAYG enrollment recorded from ${request.result.startsAt.slice(0, 10)}. Billing authority: ${request.result.billingAuthority}.`}
-                    {request.result.convertedAt
-                      ? " Trial conversion confirmed."
-                      : ""}
-                    {request.result.kind === "payg" && request.result.endsAt
-                      ? ` Service end confirmed: ${request.result.endsAt}.`
-                      : ""}
+                    {[
+                      request.result.kind === "trial"
+                        ? t("customer.payg.result.trial", {
+                            start: day(
+                              request.result.startsAt,
+                              formattingLocale,
+                            ),
+                            end: request.result.endsAt
+                              ? day(request.result.endsAt, formattingLocale)
+                              : t("common.notRecorded"),
+                          })
+                        : t("customer.payg.result.payg", {
+                            start: day(
+                              request.result.startsAt,
+                              formattingLocale,
+                            ),
+                            authority: billingAuthority(
+                              request.result.billingAuthority,
+                              t,
+                            ),
+                          }),
+                      request.result.convertedAt
+                        ? t("customer.payg.result.converted")
+                        : null,
+                      request.result.kind === "payg" && request.result.endsAt
+                        ? t("customer.payg.result.serviceEnded", {
+                            end: utcTime(
+                              request.result.endsAt,
+                              formattingLocale,
+                            ),
+                          })
+                        : null,
+                    ]
+                      .filter((sentence): sentence is string =>
+                        Boolean(sentence),
+                      )
+                      .reduce((first, second) =>
+                        t("common.join.sentences", { first, second }),
+                      )}
                   </p>
-                  <p>
-                    Provider access and credentials are managed by the verified
-                    provider handoff, separately from this record.
-                  </p>
+                  <p>{t("customer.payg.result.providerAccess")}</p>
                   {request.result.kind === "trial" &&
                   !request.result.convertedAt ? (
                     <button
@@ -457,7 +549,7 @@ export function CustomerAcquisition({
                       }
                       onClick={() => convert(request)}
                     >
-                      Review PAYG conversion
+                      {t("customer.payg.reviewPaygConversion")}
                     </button>
                   ) : null}
                   {request.result.kind === "payg" && !request.result.endsAt ? (
@@ -479,7 +571,7 @@ export function CustomerAcquisition({
                       }}
                     >
                       <label>
-                        Cancellation reason
+                        {t("customer.payg.cancellationReason")}
                         <textarea
                           name="reason"
                           minLength={8}
@@ -488,7 +580,9 @@ export function CustomerAcquisition({
                           disabled={busy}
                         />
                       </label>
-                      <p>{request.offer.notices.cancellationNotice}</p>
+                      <p dir="auto">
+                        {request.offer.notices.cancellationNotice}
+                      </p>
                       <button
                         disabled={
                           busy ||
@@ -500,7 +594,7 @@ export function CustomerAcquisition({
                           )
                         }
                       >
-                        Request cancellation
+                        {t("customer.payg.requestCancellation")}
                       </button>
                     </form>
                   ) : null}
@@ -509,12 +603,18 @@ export function CustomerAcquisition({
               <details>
                 <summary>
                   {request.kind === "cancel_payg"
-                    ? "Retained policy and request reference"
-                    : "Accepted terms and request reference"}
+                    ? t("customer.payg.request.retainedReference")
+                    : t("customer.payg.request.acceptedReference")}
                 </summary>
                 <DocumentLinks offer={request.offer} demo={demo} />
-                <p>Request {request.id}</p>
-                <p>Offer evidence fingerprint {request.offer.fingerprint}</p>
+                <p>
+                  {t("customer.payg.request.reference", { id: request.id })}
+                </p>
+                <p>
+                  {t("customer.payg.request.fingerprint", {
+                    fingerprint: request.offer.fingerprint,
+                  })}
+                </p>
               </details>
             </article>
           ))
@@ -530,26 +630,37 @@ function DocumentLinks({
   offer: CustomerAcquisitionOffer;
   demo?: boolean;
 }) {
+  const t = useTranslations();
   return (
     <div className={styles.documents}>
       {(
         [
-          ["Terms", offer.notices.terms],
-          ["Retention policy", offer.notices.retention],
+          ["terms", "customer.payg.document.terms", offer.notices.terms],
+          [
+            "retention",
+            "customer.payg.document.retention",
+            offer.notices.retention,
+          ],
         ] as const
-      ).map(([label, reference]) => (
-        <div key={label}>
+      ).map(([key, label, reference]) => (
+        <div key={key}>
           {demo ? (
             <span>
-              {label} · fictional version {reference.version}
+              {t("customer.payg.document.fictionalVersion", {
+                document: t(label),
+                version: reference.version,
+              })}
             </span>
           ) : (
             <a href={reference.uri} target="_blank" rel="noreferrer">
-              {label} · version {reference.version}
+              {t("customer.payg.document.version", {
+                document: t(label),
+                version: reference.version,
+              })}
             </a>
           )}
           <details>
-            <summary>Document evidence</summary>
+            <summary>{t("customer.payg.document.evidence")}</summary>
             <p>{reference.documentId}</p>
             <p>{reference.uri}</p>
             <code>{reference.sha256}</code>

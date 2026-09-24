@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { CustomerCollectionRecord } from "./collection-state";
 import { CustomerCollection } from "./customer-collection";
 import { customerCollections } from "./customer-data";
+import { translatorFor } from "@/src/i18n/catalogs";
+
+const t = translatorFor("en");
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
@@ -65,13 +68,13 @@ describe("customer collection sortable columns", () => {
       />,
     );
 
-    expect(headerCell(config.valueLabel)).toHaveAttribute(
+    expect(headerCell(t(config.valueLabel))).toHaveAttribute(
       "aria-sort",
       "descending",
     );
     expect(headerCell("Updated")).toHaveAttribute("aria-sort", "none");
     // Owner is a filter on this surface, with no ordering behind it.
-    expect(headerCell(config.ownerLabel)).not.toHaveAttribute("aria-sort");
+    expect(headerCell(t(config.ownerLabel))).not.toHaveAttribute("aria-sort");
   });
 
   it("orders every record read, not the page on screen", () => {
@@ -108,7 +111,7 @@ describe("customer collection sortable columns", () => {
     );
 
     const control = screen.getByRole("link", {
-      name: `${config.recordLabel}, sorted ascending. Sort descending`,
+      name: `${t(config.recordLabel)}, sorted ascending. Sort descending`,
     });
     expect(control).toHaveAttribute(
       "href",

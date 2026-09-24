@@ -11,6 +11,9 @@ import {
   Table,
 } from "@clockwork/ui";
 
+import type { MessageId, Translator } from "@/src/i18n";
+import { richText } from "@/src/i18n/rich";
+
 import type { SurfaceFormatting } from "../formatting";
 import {
   ProjectionFreshnessNotice,
@@ -31,11 +34,14 @@ import {
   paginateRecords,
   parseCollectionState,
   serializeCollectionState,
+  type CollectionRisk,
   type CollectionSort,
+  type CollectionStatus,
   type CollectionUrlState,
-  type CustomerCollectionRecord,
+  type CustomerCollectionRow,
   type RawCollectionSearchParams,
 } from "./collection-state";
+import { presentCustomerRecord } from "./collection-record";
 import type { CustomerCollectionConfig } from "./customer-data";
 import styles from "./customer-collection.module.css";
 import { EvidenceUploadControl } from "@/src/features/experience-server/evidence-upload-control";
@@ -44,18 +50,37 @@ function asRoute(path: string): Route {
   return path as Route;
 }
 
-function optionLabel(value: string): string {
-  if (value === "all") return "All";
-  if (value === "updated-desc") return "Newest update";
-  if (value === "updated-asc") return "Oldest update";
-  if (value === "title-asc") return "Title A–Z";
-  if (value === "title-desc") return "Title Z–A";
-  if (value === "value-desc") return "Highest value";
-  if (value === "value-asc") return "Lowest value";
-  return value.charAt(0).toLocaleUpperCase() + value.slice(1);
+const statusOptions: Readonly<Record<CollectionStatus, MessageId>> = {
+  all: "common.allStatuses",
+  active: "status.active",
+  pending: "status.pending",
+  review: "status.review",
+  complete: "status.complete",
+  blocked: "status.blocked",
+};
+
+/** "All risk levels" in the filter; the levels themselves are "Low", "High". */
+const riskOptions: Readonly<Record<CollectionRisk, MessageId>> = {
+  all: "common.allRiskLevels",
+  low: "risk.level.low",
+  medium: "risk.level.medium",
+  high: "risk.level.high",
+};
+
+const sortOptions: Readonly<Record<CollectionSort, MessageId>> = {
+  "updated-desc": "common.sort.newest",
+  "updated-asc": "common.sort.oldest",
+  "title-asc": "customer.collection.sort.titleAsc",
+  "title-desc": "customer.collection.sort.titleDesc",
+  "value-desc": "common.sort.valueDesc",
+  "value-asc": "common.sort.valueAsc",
+};
+
+function riskLevel(record: CustomerCollectionRow, t: Translator): string {
+  return t(riskOptions[record.risk]);
 }
 
-function tone(record: CustomerCollectionRecord) {
+function tone(record: CustomerCollectionRow) {
   if (record.status === "active" || record.status === "complete")
     return "success" as const;
   if (record.status === "blocked") return "danger" as const;
@@ -69,7 +94,7 @@ function stateHref(path: string, params: URLSearchParams, hash = ""): Route {
 
 function recordHref(
   config: CustomerCollectionConfig,
-  record: CustomerCollectionRecord,
+  record: CustomerCollectionRow,
   params: URLSearchParams,
 ): Route {
   if (record.href) return asRoute(record.href);
@@ -104,21 +129,23 @@ function CollectionTable({
   state,
 }: {
   config: CustomerCollectionConfig;
-  records: readonly CustomerCollectionRecord[];
+  records: readonly CustomerCollectionRow[];
   params: URLSearchParams;
   state: CollectionUrlState;
 }) {
   const t = use(getTranslations());
   const headers = [
-    config.recordLabel,
+    t(config.recordLabel),
     t("common.status"),
-    config.ownerLabel,
-    config.valueLabel,
-    "Updated",
+    t(config.ownerLabel),
+    t(config.valueLabel),
+    t("customer.collection.column.updated"),
   ];
   return (
     <Table
-      caption={`${config.title} results`}
+      caption={t("customer.collection.resultsCaption", {
+        collection: t(config.title),
+      })}
       captionHidden
       className={styles.tableWrap ?? ""}
       columnSort={headers.map((header, index) => {
@@ -165,7 +192,9 @@ function CollectionTable({
         <>
           {record.updatedLabel}
           <span className={styles.updated}>
-            Risk: {optionLabel(record.risk)}
+            {t("customer.collection.riskLine", {
+              level: riskLevel(record, t),
+            })}
           </span>
         </>,
       ])}
@@ -179,12 +208,17 @@ function CollectionCards({
   params,
 }: {
   config: CustomerCollectionConfig;
-  records: readonly CustomerCollectionRecord[];
+  records: readonly CustomerCollectionRow[];
   params: URLSearchParams;
 }) {
   const t = use(getTranslations());
   return (
-    <div className={styles.cards} aria-label={`${config.title} compact cards`}>
+    <div
+      className={styles.cards}
+      aria-label={t("customer.collection.cardsLabel", {
+        collection: t(config.title),
+      })}
+    >
       {records.map((record) => (
         <Link
           className={styles.cardLink}
@@ -204,19 +238,19 @@ function CollectionCards({
             <p>{record.description}</p>
             <dl className={styles.cardMeta}>
               <div>
-                <dt>{config.ownerLabel}</dt>
+                <dt>{t(config.ownerLabel)}</dt>
                 <dd>{record.owner}</dd>
               </div>
               <div>
-                <dt>{config.valueLabel}</dt>
+                <dt>{t(config.valueLabel)}</dt>
                 <dd>{record.value}</dd>
               </div>
               <div>
                 <dt>{t("common.risk")}</dt>
-                <dd>{optionLabel(record.risk)}</dd>
+                <dd>{riskLevel(record, t)}</dd>
               </div>
               <div>
-                <dt>{t("ui.9")}</dt>
+                <dt>{t("customer.collection.column.updated")}</dt>
                 <dd>{record.updatedLabel}</dd>
               </div>
             </dl>
@@ -232,7 +266,7 @@ function SelectedRecord({
   closeHref,
   config,
 }: {
-  record: CustomerCollectionRecord;
+  record: CustomerCollectionRow;
   closeHref: Route;
   config: CustomerCollectionConfig;
 }) {
@@ -249,7 +283,7 @@ function SelectedRecord({
           <p>{record.description}</p>
         </div>
         <Link className={styles.clearLink} href={closeHref}>
-          Close details
+          {t("customer.collection.closeDetails")}
         </Link>
       </div>
       <dl className={styles.selectedDetails}>
@@ -262,7 +296,7 @@ function SelectedRecord({
           <dd>{record.owner}</dd>
         </div>
         <div>
-          <dt>Commercial context</dt>
+          <dt>{t(config.valueLabel)}</dt>
           <dd>{record.value}</dd>
         </div>
         {record.context.map((item) => (
@@ -274,14 +308,14 @@ function SelectedRecord({
       </dl>
       <details className={styles.technical}>
         <summary>{t("common.technicalDetails")}</summary>
-        <p>Record reference: {record.id}</p>
+        <p>{t("common.reference", { reference: record.id })}</p>
       </details>
       {config.key === "procurement" && record.aggregateId ? (
         <EvidenceUploadControl
           journey="procurement"
           targetId={record.aggregateId}
           kind="approval"
-          label="Attach procurement evidence"
+          label={t("customer.collection.procurement.attachEvidence")}
         />
       ) : null}
     </section>
@@ -319,18 +353,24 @@ export function CustomerCollection({
 }) {
   const t = use(getTranslations());
   const state = parseCollectionState(searchParams);
-  const filtered = filterAndSortRecords(config.records, state);
+  // Facts become the reader's text first, so search, filters and sorting run
+  // on what the reader sees rather than on the fixture's English.
+  const rows = config.records.map((record) =>
+    presentCustomerRecord(record, t, formatting),
+  );
+  const filtered = filterAndSortRecords(rows, state);
   const page = paginateRecords(filtered, state);
   const activeParams = serializeCollectionState(state, { page: page.page });
-  const owners = [
-    ...new Set(config.records.map((record) => record.owner)),
-  ].toSorted();
+  const owners = [...new Set(rows.map((record) => record.owner))].toSorted(
+    (left, right) => left.localeCompare(right, formatting.locale),
+  );
   const selectedId = Array.isArray(searchParams.record)
     ? searchParams.record[0]
     : searchParams.record;
-  const selected = config.records.find((record) => record.id === selectedId);
+  const selected = rows.find((record) => record.id === selectedId);
   const noResults = filtered.length === 0;
   const clearHref = asRoute(config.path);
+  const count = new Intl.NumberFormat(formatting.locale);
   const tableHref = stateHref(
     config.path,
     serializeCollectionState(state, { view: "table", page: 1 }),
@@ -344,9 +384,9 @@ export function CustomerCollection({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div className={styles.headerCopy}>
-          <p className={styles.eyebrow}>{config.eyebrow}</p>
-          <h1>{config.title}</h1>
-          <p className={styles.description}>{config.description}</p>
+          <p className={styles.eyebrow}>{t(config.eyebrow)}</p>
+          <h1>{t(config.title)}</h1>
+          <p className={styles.description}>{t(config.description)}</p>
         </div>
         <ProjectionFreshnessNotice
           formatting={formatting}
@@ -356,8 +396,8 @@ export function CustomerCollection({
 
       {config.providerNote ? (
         <aside className={styles.providerNote}>
-          <strong>External source</strong>
-          <span>{config.providerNote}</span>
+          <strong>{t("customer.collection.externalSource")}</strong>
+          <span>{t(config.providerNote)}</span>
         </aside>
       ) : null}
 
@@ -370,7 +410,7 @@ export function CustomerCollection({
             type="search"
             name="q"
             defaultValue={state.q}
-            placeholder={config.searchPlaceholder}
+            placeholder={t(config.searchPlaceholder)}
             maxLength={120}
           />
         </label>
@@ -379,7 +419,7 @@ export function CustomerCollection({
           <select name="status" defaultValue={state.status}>
             {collectionStatuses.map((status) => (
               <option value={status} key={status}>
-                {optionLabel(status)}
+                {t(statusOptions[status])}
               </option>
             ))}
           </select>
@@ -389,7 +429,7 @@ export function CustomerCollection({
           <select name="risk" defaultValue={state.risk}>
             {collectionRisks.map((risk) => (
               <option value={risk} key={risk}>
-                {optionLabel(risk)}
+                {t(riskOptions[risk])}
               </option>
             ))}
           </select>
@@ -397,7 +437,7 @@ export function CustomerCollection({
         <label className={styles.field}>
           <span>{t("common.owner")}</span>
           <select name="owner" defaultValue={state.owner}>
-            <option value="all">All owners</option>
+            <option value="all">{t("common.allOwners")}</option>
             {owners.map((owner) => (
               <option value={owner} key={owner}>
                 {owner}
@@ -410,7 +450,7 @@ export function CustomerCollection({
           <select name="sort" defaultValue={state.sort}>
             {collectionSorts.map((sort) => (
               <option value={sort} key={sort}>
-                {optionLabel(sort)}
+                {t(sortOptions[sort])}
               </option>
             ))}
           </select>
@@ -420,7 +460,7 @@ export function CustomerCollection({
           <select name="pageSize" defaultValue={state.pageSize}>
             {collectionPageSizes.map((pageSize) => (
               <option value={pageSize} key={pageSize}>
-                {pageSize}
+                {count.format(pageSize)}
               </option>
             ))}
           </select>
@@ -429,10 +469,10 @@ export function CustomerCollection({
         <input type="hidden" name="page" value="1" />
         <div className={styles.filterActions}>
           <Link className={styles.clearLink} href={clearHref}>
-            Clear filters
+            {t("common.clearFilters")}
           </Link>
           <button className={buttonClassName()} type="submit">
-            Apply filters
+            {t("customer.collection.applyFilters")}
           </button>
         </div>
       </form>
@@ -447,11 +487,21 @@ export function CustomerCollection({
             id="results-title"
             aria-live="polite"
           >
-            <strong>{filtered.length}</strong>{" "}
-            {filtered.length === 1 ? "result" : "results"}
-            {filtered.length > 0
-              ? ` · showing ${page.firstResult}–${page.lastResult}`
-              : ""}
+            {filtered.length > 0 ? (
+              richText(t, "common.join.labels", {
+                first: (
+                  <strong>
+                    {t("common.results", { count: filtered.length })}
+                  </strong>
+                ),
+                second: t("customer.collection.showing", {
+                  first: count.format(page.firstResult),
+                  last: count.format(page.lastResult),
+                }),
+              })
+            ) : (
+              <strong>{t("common.results", { count: 0 })}</strong>
+            )}
           </p>
           <div className={styles.viewControls} aria-label={t("common.view")}>
             <span className={styles.viewLabel}>{t("common.view")}</span>
@@ -460,14 +510,14 @@ export function CustomerCollection({
               href={tableHref}
               aria-current={state.view === "table" ? "true" : undefined}
             >
-              Table
+              {t("common.view.table")}
             </Link>
             <Link
               className={styles.viewLink}
               href={cardsHref}
               aria-current={state.view === "cards" ? "true" : undefined}
             >
-              Cards
+              {t("common.view.cards")}
             </Link>
           </div>
         </div>
@@ -490,7 +540,7 @@ export function CustomerCollection({
               ? {
                   action: (
                     <Link className={styles.clearLink} href={clearHref}>
-                      Clear filters
+                      {t("common.clearFilters")}
                     </Link>
                   ),
                 }
@@ -513,7 +563,7 @@ export function CustomerCollection({
         )}
       </section>
 
-      <p className={styles.ruleFooter}>{config.rule}</p>
+      <p className={styles.ruleFooter}>{t(config.rule)}</p>
 
       {selected ? (
         <SelectedRecord
@@ -525,10 +575,15 @@ export function CustomerCollection({
 
       <nav
         className={styles.pagination}
-        aria-label={`${config.title} pagination`}
+        aria-label={t("customer.collection.paginationLabel", {
+          collection: t(config.title),
+        })}
       >
         <p>
-          Page {page.page} of {page.pageCount}
+          {t("common.pagination.pageOf", {
+            page: count.format(page.page),
+            pages: count.format(page.pageCount),
+          })}
         </p>
         <div className={styles.pageActions}>
           {page.page > 1 ? (

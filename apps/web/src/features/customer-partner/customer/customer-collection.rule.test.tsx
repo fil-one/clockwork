@@ -19,7 +19,7 @@ describe("customer collection truth copy", () => {
   it("renders its configured purpose and rule after the results", () => {
     render(
       <CustomerCollection
-        config={customerCollections.procurement}
+        config={{ ...customerCollections.procurement, records: [] }}
         formatting={formatting}
         freshness={fresh}
         searchParams={{}}

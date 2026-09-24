@@ -20,7 +20,7 @@ describe("customer collection freshness disclosure", () => {
   it("raises the stale read to the reader with a way to resolve it", () => {
     render(
       <CustomerCollection
-        config={customerCollections.amendments}
+        config={{ ...customerCollections.amendments, records: [] }}
         formatting={formatting}
         freshness={{
           generatedAt: "2026-08-14T13:04:00Z",
@@ -42,7 +42,7 @@ describe("customer collection freshness disclosure", () => {
   it("states the read is current, and when it was taken, when it is", () => {
     render(
       <CustomerCollection
-        config={customerCollections.amendments}
+        config={{ ...customerCollections.amendments, records: [] }}
         formatting={formatting}
         freshness={{
           generatedAt: "2026-08-14T13:04:00Z",

@@ -15,12 +15,26 @@ import { notificationChannel } from "./notification-preference-model";
  * `@/src/features/contracts/commerce-client`; see the cross-lane note in the
  * handoff for folding the two notification calls into that module.
  */
+/**
+ * Why a preference was not stored, as a closed set the page words in the
+ * reader's language. The server's own problem detail is English API text for
+ * integrators, so it is kept on the error for diagnosis and not shown.
+ */
+export type NotificationPreferenceFailure =
+  | "secureTokenMissing"
+  | "unreachable"
+  | "notOptional"
+  | "forbidden"
+  | "unavailable"
+  | "notSaved";
+
 export class NotificationPreferenceRequestError extends Error {
   public constructor(
     public readonly status: number,
-    message: string,
+    public readonly reason: NotificationPreferenceFailure,
+    detail?: string,
   ) {
-    super(message);
+    super(detail ?? reason);
     this.name = "NotificationPreferenceRequestError";
   }
 }
@@ -68,10 +82,7 @@ export async function storeNotificationPreference(
 ): Promise<StoredPreferenceResult> {
   const csrfToken = options.csrfToken ?? cookieValue("clockwork-csrf");
   if (!csrfToken || csrfToken.length < 32)
-    throw new NotificationPreferenceRequestError(
-      403,
-      "The secure form token is unavailable. Refresh the page and try again.",
-    );
+    throw new NotificationPreferenceRequestError(403, "secureTokenMissing");
   const baseUrl =
     options.baseUrl ??
     (typeof window === "undefined" ? "/api" : `${window.location.origin}/api`);
@@ -96,23 +107,20 @@ export async function storeNotificationPreference(
       },
     });
   } catch {
-    throw new NotificationPreferenceRequestError(
-      503,
-      "The commerce service could not be reached. Nothing was changed.",
-    );
+    throw new NotificationPreferenceRequestError(503, "unreachable");
   }
   if (result.error !== undefined || result.data === undefined) {
     const status = result.response.status;
     throw new NotificationPreferenceRequestError(
       status,
       status === 422
-        ? (problemDetail(result.error) ??
-            "This alert is not optional and cannot be switched off.")
+        ? "notOptional"
         : status === 403
-          ? "Your role or current session cannot change notification preferences."
+          ? "forbidden"
           : status === 503
-            ? "Notification preferences are unavailable. Nothing was changed."
-            : "The preference could not be saved. Nothing was changed.",
+            ? "unavailable"
+            : "notSaved",
+      problemDetail(result.error),
     );
   }
   return {
