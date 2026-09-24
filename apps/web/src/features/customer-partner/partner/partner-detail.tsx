@@ -1,5 +1,5 @@
 import { PartnerQuoteControls } from "./partner-quote-controls";
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -231,6 +231,7 @@ export async function PartnerPortfolioDetail({
 
 export async function PartnerQuoteDetail({ id }: { id: string }) {
   const t = await getTranslations();
+  const formattingLocale = await getFormattingLocale();
   const [record, roles] = await Promise.all([
     partnerRecordFor("quotes", id),
     getRouteRoles("partner"),
@@ -301,7 +302,9 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
           </p>
           <p>
             {record.clientResponse.name} ·{" "}
-            {new Date(record.clientResponse.at).toLocaleString("en-GB")}
+            {new Date(record.clientResponse.at).toLocaleString(
+              formattingLocale,
+            )}
           </p>
           <p>{record.clientResponse.note}</p>
         </section>

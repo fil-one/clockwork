@@ -2,7 +2,10 @@ import {
   exitAssistedSession,
   exitProviderAssistedSession,
 } from "@/src/auth/actions";
+import { use } from "react";
+
 import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
+import { getFormattingLocale } from "@/src/i18n/server";
 
 import type { AssistedSessionView } from "./repository";
 import styles from "./assisted-session-banner.module.css";
@@ -15,6 +18,7 @@ export function AssistedSessionBanner({
   providerManaged?: boolean;
 }) {
   const expiresAt = session.expiresAt.toISOString();
+  const formattingLocale = use(getFormattingLocale());
   return (
     <aside className={styles.banner} aria-label="Assisted mode active">
       <div className={styles.title}>
@@ -40,7 +44,7 @@ export function AssistedSessionBanner({
           <dd>
             {session.reason} · expires{" "}
             <time dateTime={expiresAt}>
-              {formatOperationalTimestamp(expiresAt)}
+              {formatOperationalTimestamp(expiresAt, formattingLocale)}
             </time>
           </dd>
         </div>

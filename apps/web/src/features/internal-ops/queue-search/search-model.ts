@@ -89,6 +89,8 @@ function destination(
 export function searchRecordFromProjection(
   record: ProjectionRecord,
   group: SearchGroup,
+  /** The reader's formatting locale, for the update time. */
+  locale: string,
   accountRecordKey?: string,
 ): SearchRecord {
   const data = record.data;
@@ -100,7 +102,7 @@ export function searchRecordFromProjection(
       text(data, "description") ??
       contextLine(data) ??
       text(data, "nextAction") ??
-      `Updated ${formatOperationalTimestamp(record.sourceUpdatedAt)}`,
+      `Updated ${formatOperationalTimestamp(record.sourceUpdatedAt, locale)}`,
     href: destination(record, group, accountRecordKey),
     status: text(data, "statusLabel") ?? text(data, "status") ?? "Available",
   };

@@ -1,4 +1,4 @@
-import { localeCookie, resolveLocale, formattingLocales } from "@/src/i18n";
+import { formattingLocaleFor, localeCookie, resolveLocale } from "@/src/i18n";
 import { redirect } from "next/navigation";
 import "server-only";
 
@@ -153,10 +153,12 @@ export async function getRouteSession(
   audience: ExperienceAudience,
 ): Promise<RouteSession> {
   await connection();
-  const language = (await cookies()).get(localeCookie)?.value;
+  // The interface language decides how numbers and dates are written; a
+  // persona's regional variant of the same language (en-GB) is kept.
+  const language = resolveLocale((await cookies()).get(localeCookie)?.value);
   const formatting = {
     ...defaultRouteFormatting,
-    ...(language ? { locale: formattingLocales[resolveLocale(language)] } : {}),
+    locale: formattingLocaleFor(language),
   };
   if (!providerAuthenticationConfigured()) {
     if (!explicitDemoIdentityEnabled())
@@ -178,10 +180,10 @@ export async function getRouteSession(
         profile: { name: membership.userName, email: membership.userEmail },
         // The catalog has carried a locale and a zone per persona all along --
         // `en-GB`/`Europe/London` for the reseller and the distributor,
-        // `America/Los_Angeles` for the end client. Nothing read them.
-        locale: language
-          ? formattingLocales[resolveLocale(language)]
-          : persona.locale,
+        // `America/Los_Angeles` for the end client. The zone is the persona's;
+        // the formatting locale follows the interface language, keeping the
+        // persona's regional variant only when it is the same language.
+        locale: formattingLocaleFor(language, persona.locale),
         timeZone: persona.timeZone,
         memberships: [membership],
         selectedAccountId: membership.accountId,

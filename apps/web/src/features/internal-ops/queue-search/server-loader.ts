@@ -1,6 +1,7 @@
 import "server-only";
 
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
+import { getFormattingLocale } from "@/src/i18n/server";
 
 import type { QueueItem } from "./model";
 import { queueItemFromProjection } from "./queue-projection";
@@ -36,6 +37,7 @@ export async function loadSearchRecords(): Promise<readonly SearchRecord[]> {
   const pages = await Promise.all(
     channels.map((channel) => loadPortalRecords("internal", channel)),
   );
+  const formattingLocale = await getFormattingLocale();
   const dashboard = pages[channels.indexOf("dashboard")]?.records ?? [];
   const accountKeysByIdentity = new Map<string, string>();
   for (const record of dashboard) {
@@ -85,7 +87,12 @@ export async function loadSearchRecords(): Promise<readonly SearchRecord[]> {
   return pages.flatMap((page, index) => {
     const group = SEARCHABLE_CHANNELS[channels[index] as SearchableChannel];
     return page.records.map((record) =>
-      searchRecordFromProjection(record, group, relatedAccountKey(record)),
+      searchRecordFromProjection(
+        record,
+        group,
+        formattingLocale,
+        relatedAccountKey(record),
+      ),
     );
   });
 }

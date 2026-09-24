@@ -6,6 +6,7 @@ import type { ProjectionChannel, ProjectionRecord } from "./model";
 import { EvidenceUploadControl } from "./evidence-upload-control";
 import { getRouteRoles } from "@/src/features/shell/route-session";
 import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
+import { getFormattingLocale } from "@/src/i18n/server";
 import styles from "./internal-projection-page.module.css";
 
 function value(
@@ -36,9 +37,10 @@ export async function InternalProjectionPage({
   title: string;
   description: string;
 }) {
-  const [projection, roles] = await Promise.all([
+  const [projection, roles, formattingLocale] = await Promise.all([
     loadPortalRecords("internal", channel),
     getRouteRoles("internal"),
+    getFormattingLocale(),
   ]);
   return (
     <main className={styles.main} id="main-content">
@@ -53,7 +55,10 @@ export async function InternalProjectionPage({
           {projection.stale ? "Some records need a refresh" : "Up to date"} ·
           Updated{" "}
           <time dateTime={projection.generatedAt}>
-            {formatOperationalTimestamp(projection.generatedAt)}
+            {formatOperationalTimestamp(
+              projection.generatedAt,
+              formattingLocale,
+            )}
           </time>
         </p>
       </header>

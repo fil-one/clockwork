@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { localizeCopy } from "@/src/i18n/copy";
 
 import type { Route } from "next";
@@ -32,11 +32,6 @@ import {
 import { QueueDetail } from "./queue-detail";
 
 const NOT_RECORDED = "Not recorded";
-const DUE_DATE = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC",
-});
 
 /**
  * How long typing has to settle before the filter reaches the URL. Short
@@ -100,6 +95,7 @@ function QueueState({
 }
 
 function SlaCell({ item, now }: { item: QueueItem; now: Date }) {
+  const formattingLocale = useFormattingLocale();
   const sla = slaFor(item, now);
   if (!sla || !item.dueAt) return <span>{NOT_RECORDED}</span>;
   return (
@@ -111,7 +107,13 @@ function SlaCell({ item, now }: { item: QueueItem; now: Date }) {
             ? "Due soon"
             : "Healthy"}
       </span>
-      <time dateTime={item.dueAt}>{DUE_DATE.format(new Date(item.dueAt))}</time>
+      <time dateTime={item.dueAt}>
+        {new Intl.DateTimeFormat(formattingLocale, {
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        }).format(new Date(item.dueAt))}
+      </time>
     </>
   );
 }
@@ -237,6 +239,7 @@ export function QueueWorkspace({
   demoRefreshEnabled?: boolean;
 }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const localizedQUEUE_COPY = localizeCopy(QUEUE_COPY, t);
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -427,7 +430,7 @@ export function QueueWorkspace({
           <span aria-hidden="true" />
           {localizedQUEUE_COPY.freshness}{" "}
           <time dateTime={generatedAt}>
-            {formatOperationalTimestamp(generatedAt)}
+            {formatOperationalTimestamp(generatedAt, formattingLocale)}
           </time>
         </p>
       </header>

@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -15,11 +15,11 @@ function money(currency: string, minor: string) {
   const n = BigInt(minor);
   return `${currency} ${n / 100n}.${(n % 100n).toString().padStart(2, "0")}`;
 }
-function bytes(value: string) {
+function bytes(value: string, locale: string) {
   const n = BigInt(value);
   return n % 1_000_000_000_000n === 0n
     ? `${n / 1_000_000_000_000n} TB`
-    : `${n.toLocaleString()} bytes`;
+    : `${n.toLocaleString(locale)} bytes`;
 }
 const kindName = {
   payg: "PAYG activation",
@@ -39,6 +39,7 @@ export function CustomerAcquisition({
   available: boolean;
 }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const router = useRouter();
   const [offerId, setOfferId] = useState(view.offers[0]?.id ?? "");
   const [organizationId, setOrganizationId] = useState(
@@ -205,9 +206,13 @@ export function CustomerAcquisition({
                     <h3>Trial</h3>
                     <strong>{offer.trial.durationDays} days</strong>
                     <p>
-                      {bytes(offer.trial.storageLimitBytes)} storage ·{" "}
-                      {bytes(offer.trial.cumulativeEgressLimitBytes)} lifetime
-                      trial egress.
+                      {bytes(offer.trial.storageLimitBytes, formattingLocale)}{" "}
+                      storage ·{" "}
+                      {bytes(
+                        offer.trial.cumulativeEgressLimitBytes,
+                        formattingLocale,
+                      )}{" "}
+                      lifetime trial egress.
                     </p>
                     <p>
                       {offer.trial.gracePeriodDays} days of read-only grace
@@ -403,7 +408,7 @@ export function CustomerAcquisition({
               <p>
                 {request.offer.name} v{request.offer.version} ·{" "}
                 {request.offer.region} · Requested{" "}
-                {new Date(request.acceptedAt).toLocaleString("en-US", {
+                {new Date(request.acceptedAt).toLocaleString(formattingLocale, {
                   timeZone: "UTC",
                 })}{" "}
                 UTC

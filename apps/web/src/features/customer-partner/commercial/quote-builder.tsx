@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
@@ -77,12 +77,12 @@ function regionLabel(value: string) {
   );
 }
 
-function expiryLabel(value: string) {
+function expiryLabel(value: string, locale: string) {
   if (!value) return "Not set";
   const parsed = new Date(value);
   return Number.isNaN(parsed.valueOf())
     ? value
-    : new Intl.DateTimeFormat("en-US", {
+    : new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
       }).format(parsed);
@@ -98,6 +98,7 @@ function Summary({
   offers: readonly QuoteOfferOption[];
 }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   return (
     <aside
       className={`${styles.summary} ${styles.commitmentSummary}`}
@@ -133,7 +134,7 @@ function Summary({
         </div>
         <div>
           <dt>Expiry</dt>
-          <dd>{expiryLabel(draft.expiresAt)}</dd>
+          <dd>{expiryLabel(draft.expiresAt, formattingLocale)}</dd>
         </div>
       </dl>
       {lines.length ? (
@@ -200,6 +201,7 @@ export function QuoteBuilder({
   origin?: QuoteOrigin;
 }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const stages = [
     t("cp.commercial.quoteStages.0"),
     t("quotes.form.stageTerms"),
@@ -662,7 +664,9 @@ export function QuoteBuilder({
                 </li>
                 <li>
                   <span>Route and expiry</span>
-                  <strong>Direct · {expiryLabel(draft.expiresAt)}</strong>
+                  <strong>
+                    Direct · {expiryLabel(draft.expiresAt, formattingLocale)}
+                  </strong>
                 </li>
               </ul>
             </section>

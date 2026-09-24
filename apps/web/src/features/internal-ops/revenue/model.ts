@@ -73,11 +73,11 @@ export function businessLabel(value: string): string {
   return version ? `${label} · ${version}` : label;
 }
 
-export function monthLabel(value: string): string {
+export function monthLabel(value: string, locale: string): string {
   const date = new Date(`${value.slice(0, 7)}-01T00:00:00.000Z`);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat("en-US", {
+    : new Intl.DateTimeFormat(locale, {
         month: "short",
         year: "numeric",
         timeZone: "UTC",

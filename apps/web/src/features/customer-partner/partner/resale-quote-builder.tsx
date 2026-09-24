@@ -1,7 +1,7 @@
 "use client";
 import { localQuoteExpiry } from "./resale-quote-model";
 
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -124,6 +124,7 @@ export function ResaleQuoteBuilder({
 
 function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const [stage, setStage] = useState<1 | 2 | 3>(1);
   // Derived from the clock this form was opened against, never from a calendar
   // date compiled into the bundle. One clock read seeds both the editable draft
@@ -661,7 +662,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
               {!partnerPriced
                 ? "Not set on a referral"
                 : draft.resalePrice
-                  ? `${offer?.currency ?? ""} ${Number(draft.resalePrice).toLocaleString("en-US")}`.trim()
+                  ? `${offer?.currency ?? ""} ${Number(draft.resalePrice).toLocaleString(formattingLocale)}`.trim()
                   : "Not set"}
             </li>
             <li>

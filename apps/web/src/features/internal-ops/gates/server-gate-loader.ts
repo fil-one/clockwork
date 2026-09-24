@@ -9,6 +9,7 @@ import {
   type GateRecord,
 } from "@/src/features/internal-ops/administration-safety/data";
 import { presentGeneratedGate } from "@/src/features/internal-ops/administration-safety/gates";
+import { getFormattingLocale } from "@/src/i18n/server";
 import { readDemoExternalGates } from "./demo-gate-state";
 
 export type GateRecordSource =
@@ -52,6 +53,7 @@ export async function loadConfiguredGateRecords(
   service: Pick<DatabaseExternalGateService, "list"> | undefined,
   input: { requestId?: string; now?: Date; runtimeEnvironment?: string } = {},
 ): Promise<GateRecordResult> {
+  const formattingLocale = await getFormattingLocale();
   const runtimeEnvironment =
     input.runtimeEnvironment ??
     process.env.NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV ??
@@ -63,7 +65,7 @@ export async function loadConfiguredGateRecords(
           await readDemoExternalGates({
             ...(input.now ? { now: input.now } : {}),
           })
-        ).map((gate) => presentGeneratedGate(gate)),
+        ).map((gate) => presentGeneratedGate(gate, formattingLocale)),
         source: "Demonstration gate registry",
       };
     } catch {
@@ -78,15 +80,18 @@ export async function loadConfiguredGateRecords(
           now: input.now ?? new Date(),
         })
       ).map((gate) =>
-        presentGeneratedGate({
-          ...gate,
-          blockedReasons: [...gate.blockedReasons],
-          emergencyDisabledAt: gate.emergencyDisabledAt ?? null,
-          emergencyDisabledBy: gate.emergencyDisabledBy ?? null,
-          emergencyDisableReason: gate.emergencyDisableReason ?? null,
-          emergencyDisableEvidenceReference:
-            gate.emergencyDisableEvidenceReference ?? null,
-        }),
+        presentGeneratedGate(
+          {
+            ...gate,
+            blockedReasons: [...gate.blockedReasons],
+            emergencyDisabledAt: gate.emergencyDisabledAt ?? null,
+            emergencyDisabledBy: gate.emergencyDisabledBy ?? null,
+            emergencyDisableReason: gate.emergencyDisableReason ?? null,
+            emergencyDisableEvidenceReference:
+              gate.emergencyDisableEvidenceReference ?? null,
+          },
+          formattingLocale,
+        ),
       ),
       source: "System gate registry",
     };

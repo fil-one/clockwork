@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { localizeCopy } from "@/src/i18n/copy";
 
 import { useEffect, useState } from "react";
@@ -58,6 +58,7 @@ function tone(status: LaneStatus["status"]) {
 
 export function StatusPanel() {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const localizedintegrationStatusCopy = localizeCopy(integrationStatusCopy, t);
   const [results, setResults] = useState<Readonly<Record<Lane, LaneResult>>>(
     () => ({
@@ -123,7 +124,10 @@ export function StatusPanel() {
                     </p>
                     <p>
                       {localizedintegrationStatusCopy.lanes.readAt(
-                        formatOperationalTimestamp(result.readAt),
+                        formatOperationalTimestamp(
+                          result.readAt,
+                          formattingLocale,
+                        ),
                       )}
                     </p>
                   </>
@@ -144,7 +148,10 @@ export function StatusPanel() {
                     </dl>
                     <p>
                       {localizedintegrationStatusCopy.lanes.readAt(
-                        formatOperationalTimestamp(result.readAt),
+                        formatOperationalTimestamp(
+                          result.readAt,
+                          formattingLocale,
+                        ),
                       )}
                     </p>
                   </>

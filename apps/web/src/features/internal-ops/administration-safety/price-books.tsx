@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { localizeCopy } from "@/src/i18n/copy";
 
 import Link from "next/link";
@@ -28,7 +28,7 @@ import type {
   PriceBookSource,
 } from "@/src/features/internal-ops/price-books/server-price-book-loader";
 
-import { adminSafetyCopy } from "./copy";
+import { priceBooksCopy } from "./price-books-copy";
 import { buildReviewSummary, canDecide, type ReviewSummary } from "./policy";
 import {
   AdministrationPage,
@@ -47,7 +47,7 @@ type Decision =
   | "schedule_activation"
   | "cancel_schedule";
 
-const activationCopy = adminSafetyCopy.priceBookActivation;
+const activationCopy = priceBooksCopy.priceBookActivation;
 
 const stateLabel = {
   draft: "Draft",
@@ -152,7 +152,7 @@ export function PriceBookAdministration({
 }) {
   const t = useTranslations();
   const localizedactivationCopy = localizeCopy(activationCopy, t);
-  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
+  const localizedpriceBooksCopy = localizeCopy(priceBooksCopy, t);
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [currency, setCurrency] = useState("All");
@@ -223,7 +223,8 @@ export function PriceBookAdministration({
     permitted && availability !== "unavailable" && !refreshPending && !pending;
   const sourceLabel =
     source === "Deterministic demo fixture" ? "Guided demo data" : source;
-  const updatedLabel = new Intl.DateTimeFormat("en-US", {
+  const formattingLocale = useFormattingLocale();
+  const updatedLabel = new Intl.DateTimeFormat(formattingLocale, {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "UTC",
@@ -344,7 +345,7 @@ export function PriceBookAdministration({
   }
 
   return (
-    <AdministrationPage {...localizedadminSafetyCopy.priceBooks}>
+    <AdministrationPage {...localizedpriceBooksCopy.priceBooks}>
       <section className={styles.notice} role="note">
         <strong>Only activated versions set price.</strong>
         {localizedactivationCopy.authorities}

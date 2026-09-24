@@ -9,10 +9,11 @@ import type * as AuthSession from "@/src/auth/session";
 import type * as DemoPersona from "@/src/auth/demo-persona";
 
 const requestHeaders = new Map<string, string>();
+const requestCookies = new Map<string, { value: string }>();
 
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(requestHeaders),
-  cookies: () => Promise.resolve(new Map()),
+  cookies: () => Promise.resolve(requestCookies),
 }));
 vi.mock("next/server", () => ({ connection: () => Promise.resolve() }));
 vi.mock("@workos-inc/authkit-nextjs", () => ({ withAuth: vi.fn() }));
@@ -34,6 +35,7 @@ const { getRouteSession } = await import("./route-session");
 
 beforeEach(() => {
   requestHeaders.clear();
+  requestCookies.clear();
   delete process.env.WORKOS_API_KEY;
   delete process.env.WORKOS_CLIENT_ID;
   delete process.env.WORKOS_COOKIE_PASSWORD;
@@ -53,6 +55,24 @@ describe("route session formatting", () => {
 
     expect(session.locale).toBe("en-GB");
     expect(session.timeZone).toBe("Europe/London");
+  });
+
+  it("formats in the interface language while keeping the persona's zone", async () => {
+    requestHeaders.set(DEMO_PERSONA_HEADER, "reseller");
+    requestCookies.set("clockwork-language", { value: "pt" });
+
+    const session = await getRouteSession("partner");
+
+    // A Portuguese page must not show "Sep 23, 2026" or "$8,400.00".
+    expect(session.locale).toBe("pt-BR");
+    expect(session.timeZone).toBe("Europe/London");
+  });
+
+  it("keeps the persona's regional English when the interface is English", async () => {
+    requestHeaders.set(DEMO_PERSONA_HEADER, "reseller");
+    requestCookies.set("clockwork-language", { value: "en" });
+
+    expect((await getRouteSession("partner")).locale).toBe("en-GB");
   });
 
   it("distinguishes personas rather than collapsing them onto one zone", async () => {

@@ -1,4 +1,5 @@
 "use client";
+import { useFormattingLocale } from "@/src/i18n/client";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./finance-lifecycle.module.css";
@@ -14,6 +15,7 @@ export function DemoOrderHandoff({
   }[];
 }) {
   const router = useRouter();
+  const formattingLocale = useFormattingLocale();
   const busy = useRef(false);
   const [pending, setPending] = useState("");
   const [message, setMessage] = useState("");
@@ -66,7 +68,7 @@ export function DemoOrderHandoff({
               <strong>{order.reference}</strong> · Service starts{" "}
               {order.startsOn} ·{" "}
               {order.submittedAt ? (
-                `Request submitted ${new Date(order.submittedAt).toLocaleString()}`
+                `Request submitted ${new Date(order.submittedAt).toLocaleString(formattingLocale)}`
               ) : order.ready ? (
                 <button
                   disabled={Boolean(pending)}

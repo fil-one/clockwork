@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import { localizeCopy } from "@/src/i18n/copy";
 import type { Route } from "next";
@@ -14,21 +14,24 @@ import {
   type QueueItem,
 } from "./model";
 
-const DATE_TIME = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "UTC",
-  timeZoneName: "short",
-});
-
 const NOT_RECORDED = "Not recorded";
 
 function Moment({ value }: { value: string | null }) {
+  const formattingLocale = useFormattingLocale();
   if (!value) return <>{NOT_RECORDED}</>;
-  return <time dateTime={value}>{DATE_TIME.format(new Date(value))}</time>;
+  return (
+    <time dateTime={value}>
+      {new Intl.DateTimeFormat(formattingLocale, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "UTC",
+        timeZoneName: "short",
+      }).format(new Date(value))}
+    </time>
+  );
 }
 
 export function QueueDetail({

@@ -26,6 +26,6 @@ describe("revenue presentation", () => {
       "Merchant of record · v1",
     );
     expect(businessLabel("resale")).toBe("Resale");
-    expect(monthLabel("2026-08-01")).toBe("Aug 2026");
+    expect(monthLabel("2026-08-01", "en-US")).toBe("Aug 2026");
   });
 });

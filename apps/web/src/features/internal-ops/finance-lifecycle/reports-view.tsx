@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { localizeCopy } from "@/src/i18n/copy";
 
 import { useState } from "react";
@@ -52,6 +52,7 @@ export function ReportsView({
   provenance: SurfaceProvenance;
 }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const localizedcopy = localizeCopy(copy, t);
   const [selectedReport, setSelectedReport] = useState("");
   const [accountId, setAccountId] = useState("");
@@ -175,7 +176,7 @@ export function ReportsView({
                 localizedcopy.documentPending
               ),
               <time dateTime={record.updatedAt}>
-                {formatOperationalTimestamp(record.updatedAt)}
+                {formatOperationalTimestamp(record.updatedAt, formattingLocale)}
               </time>,
             ])}
           />

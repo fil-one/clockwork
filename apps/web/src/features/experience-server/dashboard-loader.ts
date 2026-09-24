@@ -7,6 +7,7 @@ import { findDemoProductionMarker } from "@clockwork/testing/demo-state";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
 import { getCommerceSession } from "@/src/auth/session";
+import { getFormattingLocale } from "@/src/i18n/server";
 import type { CollectionKind } from "@/src/features/customer-partner/commercial/model";
 import type { CustomerDashboardProjection } from "@/src/features/customer-partner/customer/customer-dashboard";
 import type { PartnerDashboardProjection } from "@/src/features/customer-partner/partner/partner-dashboard";
@@ -225,15 +226,17 @@ const demoPartner: PartnerDashboardProjection = {
 
 const DAY_IN_MS = 86_400_000;
 
-const dayFormat = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeZone: "UTC",
-});
-const momentFormat = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "UTC",
-});
+/**
+ * Dates are formatted with the reader's formatting locale (the interface
+ * language), passed in from the loader; there is no default.
+ */
+function formatMoment(time: number, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(time));
+}
 
 function parseTime(value: string | null): number | null {
   if (!value) return null;
@@ -241,8 +244,13 @@ function parseTime(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function formatDay(time: number | null): string | null {
-  return time === null ? null : dayFormat.format(new Date(time));
+function formatDay(time: number | null, locale: string): string | null {
+  return time === null
+    ? null
+    : new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeZone: "UTC",
+      }).format(new Date(time));
 }
 
 function titleCase(value: string): string {
@@ -517,10 +525,11 @@ function noticeLabel(
   noticeAt: number | null,
   noticeDays: number | null,
   now: number,
+  locale: string,
 ): string {
   if (noticeAt !== null) {
     const days = Math.round((noticeAt - now) / DAY_IN_MS);
-    const formatted = formatDay(noticeAt);
+    const formatted = formatDay(noticeAt, locale);
     if (days > 0) return `Opens ${formatted} · ${days} days`;
     if (days === 0) return `Opens ${formatted} · today`;
     return `Opened ${formatted}`;
@@ -532,6 +541,7 @@ function noticeLabel(
 function customerTerm(
   records: ChannelRecords,
   now: number,
+  locale: string,
 ): CustomerDashboardProjection["term"] {
   const agreement = channelRecords(records, "agreements")[0] ?? null;
   const order = governingOrder(records);
@@ -561,8 +571,9 @@ function customerTerm(
       order ? authoritativeTime(order, "noticeOn") : null,
       agreement ? authoritativeNumber(agreement, "noticeDays") : null,
       now,
+      locale,
     ),
-    renewalLabel: formatDay(end) ?? NOT_RECORDED,
+    renewalLabel: formatDay(end, locale) ?? NOT_RECORDED,
     agreementLabel: agreement?.title ?? "No agreement recorded",
   };
 }
@@ -577,6 +588,7 @@ const activityNouns: Readonly<Partial<Record<ProjectionChannel, string>>> = {
 
 function recentActivity(
   records: ChannelRecords,
+  locale: string,
 ): CustomerDashboardProjection["activity"] {
   return [...records.values()]
     .flat()
@@ -595,7 +607,7 @@ function recentActivity(
         occurredLabel:
           occurredAt === null
             ? record.updatedAt
-            : momentFormat.format(new Date(occurredAt)),
+            : formatMoment(occurredAt, locale),
       };
     });
 }
@@ -616,6 +628,7 @@ export async function loadCustomerDashboardProjection(
   accountName?: string,
 ): Promise<CustomerDashboardProjection> {
   const session = await getCommerceSession();
+  const locale = await getFormattingLocale();
   if (explicitDashboardDemoEnabled()) {
     const loaded = await loadDashboardChannels(
       "customer",
@@ -657,7 +670,7 @@ export async function loadCustomerDashboardProjection(
         title: `${accountName ?? "Northstar"} annual term`,
         progressPercent,
         progressLabel: `${progressPercent} percent of the current commercial term elapsed`,
-        noticeLabel: noticeLabel(demoNoticeAt, null, loaded.now),
+        noticeLabel: noticeLabel(demoNoticeAt, null, loaded.now, locale),
       },
       services: demoCustomer.services.map((service) => ({
         ...service,
@@ -677,7 +690,7 @@ export async function loadCustomerDashboardProjection(
     generatedAt: loaded.generatedAt,
     stale: loaded.stale,
     obligations: customerObligations(loaded.records),
-    term: customerTerm(loaded.records, loaded.now),
+    term: customerTerm(loaded.records, loaded.now, locale),
     services: channelRecords(loaded.records, "orders").map((record) => ({
       id: record.recordKey,
       name: record.title,
@@ -687,7 +700,7 @@ export async function loadCustomerDashboardProjection(
     // back to its empty state rather than deriving a number from commercial
     // records that do not measure use.
     capacity: null,
-    activity: recentActivity(loaded.records),
+    activity: recentActivity(loaded.records, locale),
   };
 }
 
@@ -763,6 +776,7 @@ function endClientReference(record: DashboardRecord): string | null {
 
 function partnerWork(
   records: ChannelRecords,
+  locale: string,
 ): PartnerDashboardProjection["work"] {
   return [...channelRecords(records, "quotes")]
     .filter((record) => record.status === "open" || record.tone === "danger")
@@ -784,7 +798,7 @@ function partnerWork(
       task: item.record.nextAction ?? "Review quote",
       // No projection carries the evidence a partner task requires yet.
       evidence: NOT_RECORDED,
-      due: item.record.term ?? formatDay(item.due) ?? NOT_RECORDED,
+      due: item.record.term ?? formatDay(item.due, locale) ?? NOT_RECORDED,
       href: route(
         `/partner/quotes/${encodeURIComponent(item.record.recordKey)}`,
         "work.href",
@@ -799,6 +813,7 @@ function partnerAgreement(
   records: ChannelRecords,
   work: PartnerDashboardProjection["work"],
   now: number,
+  locale: string,
 ): PartnerDashboardProjection["agreement"] {
   const account = channelRecords(records, "portfolio")[0] ?? null;
   const agreement = channelRecords(records, "agreements")[0] ?? null;
@@ -846,12 +861,12 @@ function partnerAgreement(
     renewalState,
     authorityState:
       renewalState === "expired"
-        ? `Term ended ${formatDay(window.end)}`
+        ? `Term ended ${formatDay(window.end, locale)}`
         : renewalState === "notice-open"
           ? "Notice window open"
           : window.notice === null
             ? "Active"
-            : `Active · notice opens ${formatDay(window.notice)}`,
+            : `Active · notice opens ${formatDay(window.notice, locale)}`,
   };
 }
 
@@ -878,6 +893,7 @@ export async function loadPartnerDashboardProjection(identity?: {
   accountId: string;
   accountName: string;
 }): Promise<PartnerDashboardProjection> {
+  const locale = await getFormattingLocale();
   if (explicitDashboardDemoEnabled()) {
     const name = identity?.accountName ?? "Your organization";
     const referral = identity?.accountId === demoAccountIds.referral;
@@ -921,7 +937,7 @@ export async function loadPartnerDashboardProjection(identity?: {
         )
       : Promise.resolve(null),
   ]);
-  const work = partnerWork(loaded.records);
+  const work = partnerWork(loaded.records, locale);
   const account = channelRecords(loaded.records, "portfolio")[0] ?? null;
   const commission = partnerCommission(commissions?.records[0]);
   return {
@@ -933,7 +949,7 @@ export async function loadPartnerDashboardProjection(identity?: {
     // stale merely because older statements exist; only the selected record's
     // own projection freshness does.
     stale: loaded.stale || Boolean(commissions?.records[0]?.stale),
-    agreement: partnerAgreement(loaded.records, work, loaded.now),
+    agreement: partnerAgreement(loaded.records, work, loaded.now, locale),
     work,
     ...(commission ? { commission } : {}),
     boundary: account ? account.context : [],
