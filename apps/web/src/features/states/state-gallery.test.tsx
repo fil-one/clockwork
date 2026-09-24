@@ -1,9 +1,11 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { t } from "@/src/i18n/en";
+import { translatorFor } from "@/src/i18n/catalogs";
 
 import { StateGallery, stateGalleryStateKeys } from "./state-gallery";
+
+const t = translatorFor("en");
 
 const headings = [
   "state.loading.title",

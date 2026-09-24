@@ -7,7 +7,7 @@ import {
   type Role,
 } from "@clockwork/contracts";
 
-import type { MessageId } from "@/src/i18n/en";
+import type { MessageId } from "@/src/i18n";
 
 export type ExperienceAudience = "customer" | "partner" | "internal";
 

@@ -58,7 +58,7 @@ import {
 
 import { switchCommerceAccount } from "@/src/auth/actions";
 import { signOutCommerceSession } from "@/src/auth/sign-out";
-import { type MessageId } from "@/src/i18n/en";
+import type { MessageId } from "@/src/i18n";
 
 import { brandAsset } from "./brand-assets";
 import { getCommandItems } from "./command-items";

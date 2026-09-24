@@ -6,8 +6,6 @@ import Link from "next/link";
 
 import { StatusBadge, Table } from "@clockwork/ui";
 
-import { plural } from "@/src/i18n/en";
-
 import { lifecycleCopy } from "./copy";
 import {
   summarizeProvisioningWork,
@@ -88,7 +86,7 @@ export function ProvisioningView({
             <p>{localizedcopy.description}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {plural(work.length, "{count} record", "{count} records")}
+            {t("operations.records", { count: work.length })}
           </span>
         </header>
         {work.length === 0 ? (

@@ -1,5 +1,7 @@
 import { merchantOfRecord } from "@clockwork/domain/core";
 
+import type { MessageId } from "@/src/i18n";
+
 import type { PartnerRole, PartnerStatus } from "./partner-data";
 
 export type AttributionRoute = Parameters<typeof merchantOfRecord>[0];
@@ -33,10 +35,12 @@ export function attributionStatement(
  * outcome. Only that outcome can state sourced credit: the repository derives
  * approved => sourced and every other persisted status => none.
  */
-export function registrationCreditLabel(status: PartnerStatus): string {
-  if (status === "accepted") return "Attribution: sourced";
-  if (status === "pending") return "Attribution: decision pending";
-  return "Attribution: no sourced credit recorded";
+export function registrationCreditLabel(status: PartnerStatus): MessageId {
+  if (status === "accepted")
+    return "partner.collection.registrationCredit.sourced";
+  if (status === "pending")
+    return "partner.collection.registrationCredit.pending";
+  return "partner.collection.registrationCredit.none";
 }
 
 export type PartnerQuoteAction =

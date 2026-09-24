@@ -1,4 +1,5 @@
 "use client";
+import { useFormattingLocale } from "@/src/i18n/client";
 
 import { Table } from "@clockwork/ui";
 import { useState } from "react";
@@ -33,6 +34,7 @@ export function PriceBookImport({
   onBusy: (busy: boolean) => void;
   onImported: (id: string) => void;
 }) {
+  const formattingLocale = useFormattingLocale();
   const [document, setDocument] = useState<PriceBookExchange | null>(null);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
@@ -90,8 +92,10 @@ export function PriceBookImport({
           Validate import preview
         </button>
         <p className={styles.resultMeta}>
-          {new TextEncoder().encode(json).length.toLocaleString()} /{" "}
-          {PRICE_BOOK_IMPORT_MAX_BYTES.toLocaleString()} bytes
+          {new TextEncoder()
+            .encode(json)
+            .length.toLocaleString(formattingLocale)}{" "}
+          / {PRICE_BOOK_IMPORT_MAX_BYTES.toLocaleString(formattingLocale)} bytes
         </p>
         {message ? <p role="status">{message}</p> : null}
         {document ? (

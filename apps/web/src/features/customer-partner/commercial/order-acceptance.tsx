@@ -1,5 +1,4 @@
 "use client";
-import { localizeCopy } from "@/src/i18n/copy";
 
 import { useTranslations } from "@/src/i18n/client";
 
@@ -11,7 +10,6 @@ import { uuidV7 } from "@clockwork/contracts";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 
-import { customerPartnerCopy } from "../copy";
 import { anyEntered } from "../draft-state";
 import {
   LeaveDraftControl,
@@ -256,7 +254,6 @@ export function OrderAcceptance({
   audience?: "customer" | "partner";
 }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
   const [poNumber, setPoNumber] = useState("");
   const [serviceStart, setServiceStart] = useState("");
   /**
@@ -679,7 +676,7 @@ export function OrderAcceptance({
           <p className={styles.taskContext}>
             Binding acceptance · creates a commitment
           </p>
-          <h1>{localizedcustomerPartnerCopy.commercial.orderReview}</h1>
+          <h1>{t("cp.commercial.orderReview")}</h1>
           <p className={styles.description}>
             This legal and financial confirmation creates the resulting service
             commitment from an issued quote.
@@ -788,17 +785,13 @@ export function OrderAcceptance({
                       value={poNumber}
                     />
                     <p className={styles.description} id="po-terms-note">
-                      {localizedcustomerPartnerCopy.commercial.orderTermsHelp
-                        .replace("{quoteReference}", quote.reference)
-                        .replace("{quoteVersion}", quote.version)
-                        .replace(
-                          "{agreementTitle}",
+                      {t("cp.commercial.orderTermsHelp", {
+                        quoteReference: quote.reference,
+                        quoteVersion: quote.version,
+                        agreementTitle:
                           agreement?.title ?? "unrecorded governing agreement",
-                        )
-                        .replace(
-                          "{agreementVersion}",
-                          agreement?.version ?? "not recorded",
-                        )}
+                        agreementVersion: agreement?.version ?? "not recorded",
+                      })}
                     </p>
                   </div>
                   <div className={styles.field}>
@@ -913,10 +906,9 @@ export function OrderAcceptance({
                 ))}
               </ul>
               <p className={styles.description}>
-                {localizedcustomerPartnerCopy.commercial.orderArtifactRetention.replace(
-                  "{years}",
-                  String(ARTIFACT_RETENTION_YEARS),
-                )}
+                {t("cp.commercial.orderArtifactRetention", {
+                  years: ARTIFACT_RETENTION_YEARS,
+                })}
               </p>
               <label className={styles.check} htmlFor="order-confirmation">
                 <input
@@ -937,9 +929,7 @@ export function OrderAcceptance({
                   required
                   type="checkbox"
                 />
-                <span>
-                  {localizedcustomerPartnerCopy.commercial.orderConfirmation}
-                </span>
+                <span>{t("cp.commercial.orderConfirmation")}</span>
               </label>
               {statusMessage ? (
                 <p className={styles.successMessage} role="status">

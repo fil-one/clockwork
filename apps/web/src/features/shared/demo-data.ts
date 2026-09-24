@@ -1,4 +1,4 @@
-import type { MessageId } from "@/src/i18n/en";
+import type { MessageId } from "@/src/i18n";
 
 export const DEMO_NOW = new Date("2026-07-31T16:00:00Z");
 

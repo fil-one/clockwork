@@ -4,6 +4,10 @@ import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { FinancePageFrame } from "../finance-lifecycle/page-frame";
+import { use } from "react";
+
+import { getFormattingLocale } from "@/src/i18n/server";
+
 import { formatOperationalTimestamp } from "../presentation";
 import { reconciliationCopy } from "./copy";
 import {
@@ -25,6 +29,7 @@ export function ReconciliationView({
   now?: Date;
 }) {
   const { readable, source } = workspace;
+  const formattingLocale = use(getFormattingLocale());
   const untied = untiedPeriods(workspace.periods);
   const blocking = blockingVariances(workspace.variances);
 
@@ -161,10 +166,16 @@ export function ReconciliationView({
               </div>,
               variance.ownerEmail ?? variance.ownerUserId.slice(0, 8),
               <time dateTime={variance.openedAt}>
-                {formatOperationalTimestamp(variance.openedAt)}
+                {formatOperationalTimestamp(
+                  variance.openedAt,
+                  formattingLocale,
+                )}
               </time>,
               <time dateTime={variance.targetAt}>
-                {formatOperationalTimestamp(variance.targetAt)}
+                {formatOperationalTimestamp(
+                  variance.targetAt,
+                  formattingLocale,
+                )}
               </time>,
               variance.latestClassification ? (
                 <div className={styles.primaryCell}>

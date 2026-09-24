@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import { localizeCopy } from "@/src/i18n/copy";
 import type { ReactNode } from "react";
@@ -13,6 +13,7 @@ export type { SurfaceProvenance };
 
 function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const localizedlifecycleCopy = localizeCopy(lifecycleCopy, t);
   if (provenance.kind === "projection")
     return (
@@ -29,7 +30,10 @@ function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
         <span>
           {t("ui.9")}{" "}
           <time dateTime={provenance.generatedAt}>
-            {formatOperationalTimestamp(provenance.generatedAt)}
+            {formatOperationalTimestamp(
+              provenance.generatedAt,
+              formattingLocale,
+            )}
           </time>
         </span>
       </div>
@@ -44,7 +48,7 @@ function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
         <span>
           {t("ui.9")}{" "}
           <time dateTime={provenance.readAt}>
-            {formatOperationalTimestamp(provenance.readAt)}
+            {formatOperationalTimestamp(provenance.readAt, formattingLocale)}
           </time>
         </span>
       </div>

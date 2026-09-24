@@ -1,7 +1,6 @@
 "use client";
-import { localizeCopy } from "@/src/i18n/copy";
 
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
@@ -10,9 +9,8 @@ import { uuidV7 } from "@clockwork/contracts";
 
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
 
-import { t as englishTranslator } from "@/src/i18n/en";
+import type { Translator } from "@/src/i18n";
 
-import { customerPartnerCopy } from "../copy";
 import { draftIsDirty } from "../draft-state";
 import {
   LeaveDraftControl,
@@ -58,7 +56,7 @@ export interface QuoteOrigin {
   };
 }
 
-function originLabel(origin: QuoteOrigin, t = englishTranslator): string {
+function originLabel(origin: QuoteOrigin, t: Translator): string {
   if (!origin.resolved) return t("quotes.builder.origin.unavailable");
   return origin.kind === "revision"
     ? t("quotes.builder.origin.revision", { reference: origin.reference })
@@ -79,12 +77,12 @@ function regionLabel(value: string) {
   );
 }
 
-function expiryLabel(value: string) {
+function expiryLabel(value: string, locale: string) {
   if (!value) return "Not set";
   const parsed = new Date(value);
   return Number.isNaN(parsed.valueOf())
     ? value
-    : new Intl.DateTimeFormat("en-US", {
+    : new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
       }).format(parsed);
@@ -100,7 +98,7 @@ function Summary({
   offers: readonly QuoteOfferOption[];
 }) {
   const t = useTranslations();
-  const localizedcustomerPartnerCopy = localizeCopy(customerPartnerCopy, t);
+  const formattingLocale = useFormattingLocale();
   return (
     <aside
       className={`${styles.summary} ${styles.commitmentSummary}`}
@@ -108,9 +106,7 @@ function Summary({
     >
       <div>
         <p className={styles.taskContext}>Draft facts</p>
-        <h2 id="quote-summary-title">
-          {localizedcustomerPartnerCopy.commercial.quoteSummary}
-        </h2>
+        <h2 id="quote-summary-title">{t("cp.commercial.quoteSummary")}</h2>
       </div>
       <dl>
         <div>
@@ -138,7 +134,7 @@ function Summary({
         </div>
         <div>
           <dt>Expiry</dt>
-          <dd>{expiryLabel(draft.expiresAt)}</dd>
+          <dd>{expiryLabel(draft.expiresAt, formattingLocale)}</dd>
         </div>
       </dl>
       {lines.length ? (
@@ -205,6 +201,7 @@ export function QuoteBuilder({
   origin?: QuoteOrigin;
 }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const stages = [
     t("cp.commercial.quoteStages.0"),
     t("quotes.form.stageTerms"),
@@ -667,7 +664,9 @@ export function QuoteBuilder({
                 </li>
                 <li>
                   <span>Route and expiry</span>
-                  <strong>Direct · {expiryLabel(draft.expiresAt)}</strong>
+                  <strong>
+                    Direct · {expiryLabel(draft.expiresAt, formattingLocale)}
+                  </strong>
                 </li>
               </ul>
             </section>

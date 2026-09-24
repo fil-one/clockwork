@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { localizeCopy } from "@/src/i18n/copy";
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
@@ -70,15 +70,19 @@ function stateLabel(
   return "Blocked";
 }
 
-export function presentGeneratedGate(gate: GeneratedExternalGate): GateRecord {
+export function presentGeneratedGate(
+  gate: GeneratedExternalGate,
+  /** The reader's formatting locale. */
+  locale: string,
+): GateRecord {
   const tested = gate.lastActivationTestAt
-    ? new Intl.DateTimeFormat("en-US", {
+    ? new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
         timeZone: "America/New_York",
       }).format(new Date(gate.lastActivationTestAt))
     : "never";
-  const updated = new Intl.DateTimeFormat("en-US", {
+  const updated = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "America/New_York",
@@ -298,6 +302,7 @@ export function GateRegister({
   source: GateRecordSource;
 }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
   const mayOperate = canDecide(roles, "assisted");
   const [displayGates, setDisplayGates] = useState(gates);
@@ -305,7 +310,9 @@ export function GateRegister({
   const updateGate = (updated: GeneratedExternalGate) =>
     setDisplayGates((current) =>
       current.map((gate) =>
-        gate.id === updated.gateKey ? presentGeneratedGate(updated) : gate,
+        gate.id === updated.gateKey
+          ? presentGeneratedGate(updated, formattingLocale)
+          : gate,
       ),
     );
   return (

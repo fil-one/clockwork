@@ -6,9 +6,13 @@ import { configuredDemoStateStore } from "@/src/features/experience-server/demo-
 import type { DemoOrderAcceptanceState } from "@/src/features/experience-server/demo-order-acceptance";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
+import { formatMoney } from "@/src/features/shared/format";
+import { getFormattingLocale } from "@/src/i18n/server";
+
 import styles from "./partner.module.css";
 
 export async function PartnerOrders({ id }: { id?: string }) {
+  const formattingLocale = await getFormattingLocale();
   const identity = await getRouteIdentity("partner");
   if (!demoDeployIdentityEnabled(process.env))
     return <ProjectedPartnerOrders {...(id ? { id } : {})} />;
@@ -49,10 +53,11 @@ export async function PartnerOrders({ id }: { id?: string }) {
               <div>
                 <dt>Transfer commitment</dt>
                 <dd>
-                  {new Intl.NumberFormat("en-GB", {
-                    style: "currency",
-                    currency: order.currency,
-                  }).format(Number(order.totalMinor) / 100)}
+                  {formatMoney(
+                    order.totalMinor,
+                    order.currency,
+                    formattingLocale,
+                  )}
                 </dd>
               </div>
               <div>

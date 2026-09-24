@@ -1,4 +1,4 @@
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { EmptyState } from "@clockwork/ui";
 
 import { ProjectionActionButtons } from "./projection-action-buttons";
@@ -153,6 +153,7 @@ export async function ProjectionDetailPage({
   supporting?: ReactNode;
 }) {
   const t = await getTranslations();
+  const formattingLocale = await getFormattingLocale();
   const [projection, roles] = await Promise.all([
     loadPortalRecords(audience, channel),
     getRouteRoles(audience),
@@ -189,7 +190,10 @@ export async function ProjectionDetailPage({
             ? "Operational data needs a refresh"
             : "Operational data is current"}
           <time className="sr-only" dateTime={projection.generatedAt}>
-            {formatOperationalTimestamp(projection.generatedAt)}
+            {formatOperationalTimestamp(
+              projection.generatedAt,
+              formattingLocale,
+            )}
           </time>
         </p>
       </header>
@@ -360,7 +364,10 @@ export async function ProjectionDetailPage({
                   <p>System record {record.recordKey}</p>
                   <p>
                     {t("ui.9")}
-                    {formatOperationalTimestamp(record.sourceUpdatedAt)}
+                    {formatOperationalTimestamp(
+                      record.sourceUpdatedAt,
+                      formattingLocale,
+                    )}
                   </p>
                 </details>
               </article>

@@ -1,4 +1,3 @@
-import { localizeCopy } from "@/src/i18n/copy";
 import { getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import Link from "next/link";
@@ -6,13 +5,10 @@ import type { Route } from "next";
 
 import { ApplicationStatePanel, StatusBadge } from "@clockwork/ui";
 
-import { plural } from "@/src/i18n/en";
+import type { Translator } from "@/src/i18n";
 
-import { customerPartnerCopy } from "../copy";
 import { formatSurfaceTimestamp, type SurfaceFormatting } from "../formatting";
 import styles from "./customer-pages.module.css";
-
-const copy = customerPartnerCopy.customer;
 
 /**
  * Counted from the list it introduces.
@@ -21,18 +17,9 @@ const copy = customerPartnerCopy.customer;
  * a decision or follow-up." A reader with two obligations was told there were
  * four, and had nowhere to look for the missing two.
  */
-function attentionDescription(
-  count: number,
-  locale: string,
-  localized: typeof copy,
-): string {
-  if (count === 0) return localized.attentionDescriptionNone;
-  return plural(
-    count,
-    localized.attentionDescriptionOne,
-    localized.attentionDescriptionOther,
-    locale,
-  );
+function attentionDescription(count: number, t: Translator): string {
+  if (count === 0) return t("cp.customer.attentionDescriptionNone");
+  return t("customer.attention.description", { count });
 }
 
 /**
@@ -110,15 +97,14 @@ export function CustomerDashboard({
   canCreateQuote?: boolean;
 }) {
   const t = use(getTranslations());
-  const localizedcopy = localizeCopy(copy, t);
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.taskHeader}>
         <div>
           <h1>
-            {localizedcopy.dashboardGreeting}, {greetingName}
+            {t("cp.customer.dashboardGreeting")}, {greetingName}
           </h1>
-          <p>{localizedcopy.dashboardDescription}</p>
+          <p>{t("cp.customer.dashboardDescription")}</p>
         </div>
         {canCreateQuote ? (
           <Link className={styles.primaryLink} href="/quotes/new">
@@ -126,7 +112,7 @@ export function CustomerDashboard({
           </Link>
         ) : (
           <p className={styles.permissionNote}>
-            {localizedcopy.quotePermissionNote}
+            {t("cp.customer.quotePermissionNote")}
           </p>
         )}
       </header>
@@ -134,14 +120,8 @@ export function CustomerDashboard({
       <section className={styles.obligations} aria-labelledby="attention-title">
         <div className={styles.obligationHeading}>
           <div>
-            <h2 id="attention-title">{localizedcopy.attentionTitle}</h2>
-            <p>
-              {attentionDescription(
-                projection.obligations.length,
-                formatting.locale,
-                localizedcopy,
-              )}
-            </p>
+            <h2 id="attention-title">{t("cp.customer.attentionTitle")}</h2>
+            <p>{attentionDescription(projection.obligations.length, t)}</p>
           </div>
           <p className={styles.asOf}>
             {projection.stale
@@ -227,13 +207,11 @@ export function CustomerDashboard({
 
         <details className={styles.rollup}>
           <summary>
-            <span>{localizedcopy.serviceRollup}</span>
+            <span>{t("cp.customer.serviceRollup")}</span>
             <span className={styles.rollupCount}>
-              {plural(
-                projection.services.length,
-                "{count} service",
-                "{count} services",
-              )}
+              {t("customer.services.count", {
+                count: projection.services.length,
+              })}
             </span>
           </summary>
           {projection.services.length === 0 ? (
@@ -291,7 +269,7 @@ export function CustomerDashboard({
             )}
           </section>
           <section aria-labelledby="activity-title">
-            <h2 id="activity-title">{localizedcopy.activityTitle}</h2>
+            <h2 id="activity-title">{t("cp.customer.activityTitle")}</h2>
             {projection.activity.length === 0 ? (
               <ApplicationStatePanel
                 state="empty"

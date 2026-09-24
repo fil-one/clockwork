@@ -519,6 +519,7 @@ describe("grouped global search", () => {
           statusLabel: "Active",
         }),
         group,
+        "en-US",
       ),
     );
   }
@@ -548,6 +549,7 @@ describe("grouped global search", () => {
         ],
       }),
       "Queues",
+      "en-US",
     );
     expect(record.subtitle).toBe("Queue Pricing · Target Aug 3, 2026");
     expect(record.status).toBe("Available");
@@ -557,6 +559,7 @@ describe("grouped global search", () => {
     const record = searchRecordFromProjection(
       projection("orders", "ORD-1", { title: "Archive renewal" }),
       "Orders",
+      "en-US",
     );
     expect(record.subtitle).toBe("Updated Jul 31, 2026, 3:42 PM UTC");
     expect(record.subtitle).not.toContain("2026-07-31T");
@@ -588,12 +591,14 @@ describe("grouped global search", () => {
           "10000000-0000-4000-8000-000000000001",
         ),
         "Quotes",
+        "en-US",
       ).href,
     ).toBe("/internal/accounts/10000000-0000-4000-8000-000000000001");
     expect(
       searchRecordFromProjection(
         projection("quotes", "quote-9f2", { title: "Committed capacity" }),
         "Quotes",
+        "en-US",
         "meridian-archive",
       ).href,
     ).toBe("/internal/accounts/meridian-archive");

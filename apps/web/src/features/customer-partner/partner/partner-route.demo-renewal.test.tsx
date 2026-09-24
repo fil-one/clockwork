@@ -29,7 +29,9 @@ vi.mock("./partner-membership", () => ({
 }));
 
 import { PartnerCollection } from "./partner-collection";
-import { partnerSurfaces } from "./partner-data";
+import { translatorFor } from "@/src/i18n/catalogs";
+
+import { presentedPartnerSurface } from "./partner-surface.test-fixture";
 import { PartnerCollectionRoute } from "./partner-route";
 
 describe("guided partner renewal route", () => {
@@ -44,7 +46,11 @@ describe("guided partner renewal route", () => {
       accountName: "Aurora Systems",
     });
     mocks.loadPartnerRecords.mockResolvedValue({
-      records: partnerSurfaces.renewals.records.slice(0, 1),
+      records: presentedPartnerSurface(
+        "renewals",
+        translatorFor("en"),
+        "en",
+      ).records.slice(0, 1),
       generatedAt: "2026-08-18T12:00:00.000Z",
       truncated: false,
       stale: false,

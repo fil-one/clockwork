@@ -7,7 +7,7 @@ import { loadAccountOverviewAccount } from "@/src/features/customer-partner/cust
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
-import { plural, t as englishTranslator } from "@/src/i18n/en";
+import type { Translator } from "@/src/i18n";
 import {
   SurfaceActionGate,
   SurfacePermissionGate,
@@ -29,7 +29,7 @@ function text(
 function personNamed(
   records: readonly ProjectionRecord[],
   pattern: RegExp,
-  t = englishTranslator,
+  t: Translator,
 ): string {
   const match = records.find((record) =>
     pattern.test(text(record.data, "value") ?? ""),
@@ -92,16 +92,12 @@ async function AccountWorkspace() {
       { label: t("account.invitations"), value: String(invitations) },
     ],
     areaMeta: {
-      users: plural(
-        users.records.length,
-        t("account.areas.users.meta.one"),
-        t("account.areas.users.meta.other"),
-      ),
-      procurement: plural(
-        procurement.records.length,
-        t("account.areas.procurement.meta.one"),
-        t("account.areas.procurement.meta.other"),
-      ),
+      users: t("customer.account.usersMeta", {
+        count: users.records.length,
+      }),
+      procurement: t("customer.account.procurementMeta", {
+        count: procurement.records.length,
+      }),
     },
   };
   return (

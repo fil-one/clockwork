@@ -1,4 +1,4 @@
-import { t } from "@/src/i18n/en";
+import type { Translator } from "@/src/i18n";
 
 export type SupportedLocale =
   | "en-US"
@@ -13,10 +13,20 @@ export type SupportedLocale =
   | "ar-AE";
 export type SupportedCurrency = "USD" | "EUR" | "GBP";
 
+/**
+ * Formats integer minor units in the record's currency with the reader's
+ * formatting locale.
+ *
+ * `locale` is required and has no default: it is the interface language's
+ * formatting tag (`formattingLocales[locale]`, or the route session's
+ * `locale`), never the account's. The account decides the currency; the reader
+ * decides how the digits are grouped. A default here is how a Portuguese page
+ * came to show `$8,400.00`.
+ */
 export function formatMoney(
   minorUnits: string | number | bigint,
   currency: SupportedCurrency,
-  locale: SupportedLocale = "en-US",
+  locale: SupportedLocale | (string & {}),
 ): string {
   const amount = BigInt(minorUnits);
   const negative = amount < 0n;
@@ -41,9 +51,10 @@ export function formatMoney(
   return negative ? `-${formatted}` : formatted;
 }
 
+/** A calendar date (no time of day) in the reader's formatting locale. */
 export function formatDate(
   value: string | Date,
-  locale: SupportedLocale = "en-US",
+  locale: SupportedLocale | (string & {}),
   style: "short" | "medium" | "long" = "medium",
 ): string {
   const date =
@@ -73,7 +84,7 @@ export function formatAddress(
     .join(" · ");
 }
 
-export function taxLabel(country: "US" | "ES" | "GB"): string {
+export function taxLabel(country: "US" | "ES" | "GB", t: Translator): string {
   if (country === "US") return t("format.tax.us");
   if (country === "ES") return t("format.tax.eu");
   return t("format.tax.uk");

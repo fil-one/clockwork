@@ -3,8 +3,6 @@ import { use } from "react";
 import { localizeCopy } from "@/src/i18n/copy";
 import { StatusBadge, Table } from "@clockwork/ui";
 
-import { plural } from "@/src/i18n/en";
-
 import { lifecycleCopy } from "./copy";
 import { FinancePageFrame } from "./page-frame";
 import type { SurfaceProvenance } from "./provenance";
@@ -75,8 +73,8 @@ export function RenewalsView({
                   <p>{renewalWindowDescriptions[window]}</p>
                 </div>
                 <span className={styles.sectionMeta}>
-                  {plural(orders.length, "{count} order", "{count} orders")} ·
-                  ordered by notice date
+                  {t("operations.orders", { count: orders.length })} · ordered
+                  by notice date
                 </span>
               </header>
               <Table
@@ -128,11 +126,9 @@ export function RenewalsView({
                     </strong>
                     {order.invoiceCount > 0 ? (
                       <span>
-                        {plural(
-                          order.invoiceCount,
-                          "{count} invoice",
-                          "{count} invoices",
-                        )}{" "}
+                        {t("operations.invoices", {
+                          count: order.invoiceCount,
+                        })}{" "}
                         · invoice truth, not a forecast
                       </span>
                     ) : null}

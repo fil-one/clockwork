@@ -4,6 +4,10 @@ import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { FinancePageFrame } from "../finance-lifecycle/page-frame";
+import { use } from "react";
+
+import { getFormattingLocale } from "@/src/i18n/server";
+
 import { formatOperationalTimestamp } from "../presentation";
 import { unhandledErrorsCopy } from "./copy";
 import { IncidentDecisionControl } from "./incident-decision";
@@ -95,6 +99,7 @@ export function UnhandledErrorsView({
   now?: Date;
 }) {
   const { incidents, readable, source, state } = result;
+  const formattingLocale = use(getFormattingLocale());
   const signatures = groupIncidents(incidents);
   const withCause = diagnosableCount(signatures);
   const failureNotice = readable ? null : unreadable[state];
@@ -177,13 +182,19 @@ export function UnhandledErrorsView({
               <div className={styles.primaryCell}>
                 <strong>
                   <time dateTime={signature.lastSeenAt}>
-                    {formatOperationalTimestamp(signature.lastSeenAt)}
+                    {formatOperationalTimestamp(
+                      signature.lastSeenAt,
+                      formattingLocale,
+                    )}
                   </time>
                 </strong>
                 <span className={styles.secondary}>
                   first{" "}
                   <time dateTime={signature.firstSeenAt}>
-                    {formatOperationalTimestamp(signature.firstSeenAt)}
+                    {formatOperationalTimestamp(
+                      signature.firstSeenAt,
+                      formattingLocale,
+                    )}
                   </time>
                 </span>
               </div>,

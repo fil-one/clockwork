@@ -16,8 +16,6 @@ import {
 
 import { Button, EmptyState } from "@clockwork/ui";
 
-import { plural } from "@/src/i18n/en";
-
 import styles from "./queue-search.module.css";
 import { SEARCH_COPY } from "./copy";
 import {
@@ -213,9 +211,7 @@ export function GlobalSearch({
           aria-label={localizedSEARCH_COPY.resultsLabel}
         >
           <div className={styles.searchResultCount} aria-live="polite">
-            <strong>
-              {plural(results.length, "{count} result", "{count} results")}
-            </strong>
+            <strong>{t("common.results", { count: results.length })}</strong>
             <span>{localizedSEARCH_COPY.grouped}</span>
           </div>
           {groups.map((entry) => (
@@ -230,11 +226,7 @@ export function GlobalSearch({
                   {entry.results.length}
                 </span>
                 <span className="sr-only">
-                  {plural(
-                    entry.results.length,
-                    "{count} result",
-                    "{count} results",
-                  )}
+                  {t("common.results", { count: entry.results.length })}
                 </span>
               </h2>
               <ul>

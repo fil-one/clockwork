@@ -64,34 +64,37 @@ describe("truthful external-gate administration", () => {
   });
 
   it("never presents configured active as effective active without eligibility", () => {
-    const gate = presentGeneratedGate({
-      id: "90000000-0000-4000-8000-000000000001",
-      gateKey: "EXT-LEGAL-01",
-      title: "Counsel-approved legal policy",
-      owner: "General counsel",
-      inputRequired: "Approved hashes",
-      affectedFeature: "Agreement publication",
-      severity: "launch_blocker",
-      configuredStatus: "active",
-      effectiveStatus: "blocked",
-      simulatorState: "ready",
-      simulatorDetails: "Hash simulator ready",
-      inputProvenance: "live_signed",
-      lastActivationTestStatus: "passed",
-      lastActivationTestAt: "2026-07-31T15:00:00Z",
-      lastActivationTestedBy: "operator",
-      activationEvidenceReference: null,
-      reviewOn: null,
-      statusReason: "Evidence missing",
-      emergencyDisabledAt: null,
-      emergencyDisabledBy: null,
-      emergencyDisableReason: null,
-      emergencyDisableEvidenceReference: null,
-      activationAllowed: false,
-      blockedReasons: ["evidence_missing"],
-      rowVersion: 4,
-      updatedAt: "2026-07-31T15:01:00Z",
-    } satisfies GeneratedExternalGate);
+    const gate = presentGeneratedGate(
+      {
+        id: "90000000-0000-4000-8000-000000000001",
+        gateKey: "EXT-LEGAL-01",
+        title: "Counsel-approved legal policy",
+        owner: "General counsel",
+        inputRequired: "Approved hashes",
+        affectedFeature: "Agreement publication",
+        severity: "launch_blocker",
+        configuredStatus: "active",
+        effectiveStatus: "blocked",
+        simulatorState: "ready",
+        simulatorDetails: "Hash simulator ready",
+        inputProvenance: "live_signed",
+        lastActivationTestStatus: "passed",
+        lastActivationTestAt: "2026-07-31T15:00:00Z",
+        lastActivationTestedBy: "operator",
+        activationEvidenceReference: null,
+        reviewOn: null,
+        statusReason: "Evidence missing",
+        emergencyDisabledAt: null,
+        emergencyDisabledBy: null,
+        emergencyDisableReason: null,
+        emergencyDisableEvidenceReference: null,
+        activationAllowed: false,
+        blockedReasons: ["evidence_missing"],
+        rowVersion: 4,
+        updatedAt: "2026-07-31T15:01:00Z",
+      } satisfies GeneratedExternalGate,
+      "en-US",
+    );
 
     render(
       <GateRegister
@@ -141,9 +144,9 @@ describe("truthful external-gate administration", () => {
 
   it("groups legal, domain, and brand truth and exposes persisted controls", () => {
     const records = [
-      presentGeneratedGate(generated("EXT-LEGAL-01")),
-      presentGeneratedGate(generated("EXT-DOMAIN-01")),
-      presentGeneratedGate(generated("EXT-BRAND-01")),
+      presentGeneratedGate(generated("EXT-LEGAL-01"), "en-US"),
+      presentGeneratedGate(generated("EXT-DOMAIN-01"), "en-US"),
+      presentGeneratedGate(generated("EXT-BRAND-01"), "en-US"),
     ];
     render(
       <GateRegister
@@ -164,7 +167,7 @@ describe("truthful external-gate administration", () => {
     render(
       <GateRegister
         roles={["internal_operator"]}
-        gates={[presentGeneratedGate(generated("EXT-PROVIDER-01"))]}
+        gates={[presentGeneratedGate(generated("EXT-PROVIDER-01"), "en-US")]}
         source="Demonstration gate registry"
       />,
     );
@@ -181,6 +184,7 @@ describe("truthful external-gate administration", () => {
         activationAllowed: false,
         blockedReasons: ["activation_test_not_passed"],
       }),
+      "en-US",
     );
     render(
       <GateRegister

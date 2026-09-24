@@ -3,7 +3,6 @@ import { use } from "react";
 import { localizeCopy } from "@/src/i18n/copy";
 import { StatusBadge, Table } from "@clockwork/ui";
 
-import { plural } from "@/src/i18n/en";
 import { ProjectionActionButtons } from "@/src/features/experience-server/projection-action-buttons";
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
@@ -82,22 +81,14 @@ export function CollectionsView({
           <p>{localizedcopy.openTotal}</p>
           <strong>{summary.openTotal ?? localizedcopy.unrecorded}</strong>
           <span>
-            {plural(
-              summary.openCount,
-              "{count} open invoice",
-              "{count} open invoices",
-            )}
+            {t("operations.openInvoices", { count: summary.openCount })}
           </span>
         </article>
         <article className={styles.summaryCard}>
           <p>{localizedcopy.overdueTotal}</p>
           <strong>{summary.overdueTotal ?? localizedcopy.unrecorded}</strong>
           <span>
-            {plural(
-              summary.overdueCount,
-              "{count} invoice past due",
-              "{count} invoices past due",
-            )}
+            {t("operations.pastDueInvoices", { count: summary.overdueCount })}
           </span>
         </article>
         <article className={styles.summaryCard}>
@@ -126,7 +117,7 @@ export function CollectionsView({
             <p>{localizedcopy.tableSubheading}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {plural(cases.length, "{count} result", "{count} results")} ·{" "}
+            {t("common.results", { count: cases.length })} ·{" "}
             {localizedcopy.priorityTitle.toLocaleLowerCase()}
           </span>
         </header>

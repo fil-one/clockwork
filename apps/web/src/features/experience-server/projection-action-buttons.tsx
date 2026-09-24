@@ -10,7 +10,7 @@ import {
   readProjectionAction,
   sendProjectionAction,
 } from "@/src/features/contracts/experience-client";
-import { t as englishTranslator, type MessageId } from "@/src/i18n/en";
+import type { MessageId, Translator } from "@/src/i18n";
 
 import type { ExperienceAudience, ProjectionChannel } from "./model";
 import { canRunProjectionAction } from "./projection-authorization";
@@ -58,7 +58,7 @@ const irreversibleActions = new Set([
   "void",
 ]);
 
-export function actionLabel(action: string, t = englishTranslator): string {
+export function actionLabel(action: string, t: Translator): string {
   const id = actionLabels[action];
   return id ? t(id) : action.replaceAll("_", " ");
 }

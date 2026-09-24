@@ -1,4 +1,4 @@
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import { localizeCopy } from "@/src/i18n/copy";
 import { Table } from "@clockwork/ui";
@@ -23,6 +23,7 @@ export function RevenueView({
   now?: Date;
 }) {
   const t = use(getTranslations());
+  const formattingLocale = use(getFormattingLocale());
   const localizedrevenueCopy = localizeCopy(revenueCopy, t);
   return (
     <FinancePageFrame
@@ -161,7 +162,7 @@ export function RevenueView({
               (row) => `${row.month}-${row.currency}-${row.revenueBasis}`,
             )}
             rows={workspace.months.map((row) => [
-              monthLabel(row.month),
+              monthLabel(row.month, formattingLocale),
               row.currency,
               basisLabel(row.revenueBasis),
               formatMinor(row.revenueMinor, row.currency),

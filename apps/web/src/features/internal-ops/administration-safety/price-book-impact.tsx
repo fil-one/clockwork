@@ -1,3 +1,4 @@
+import { useFormattingLocale } from "@/src/i18n/client";
 import { Table } from "@clockwork/ui";
 import type {
   PriceBookAdministrationRecord,
@@ -52,6 +53,7 @@ export function PriceBookImpactPanel({
   incumbent?: PriceBookAdministrationRecord | undefined;
   impact?: PriceBookImpactResult | undefined;
 }) {
+  const formattingLocale = useFormattingLocale();
   const books = incumbent ? [incumbent, candidate] : [candidate];
   const records = books.map((book) =>
     impact?.availability === "available"
@@ -89,7 +91,9 @@ export function PriceBookImpactPanel({
         <>
           <p className={styles.resultMeta}>
             {impact.source} · checked{" "}
-            {new Date(impact.asOf).toLocaleString("en-GB", { timeZone: "UTC" })}{" "}
+            {new Date(impact.asOf).toLocaleString(formattingLocale, {
+              timeZone: "UTC",
+            })}{" "}
             UTC.
             {impact.source === "Illustrative demo scenario"
               ? " These examples demonstrate the review; they are not live customer or demo-action totals."
@@ -110,7 +114,8 @@ export function PriceBookImpactPanel({
               label,
               ...records.map(
                 (record) =>
-                  record?.[key].toLocaleString("en-GB") ?? "Unavailable",
+                  record?.[key].toLocaleString(formattingLocale) ??
+                  "Unavailable",
               ),
             ])}
           />

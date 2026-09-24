@@ -1,3 +1,5 @@
+import type { Translator } from "@/src/i18n";
+
 /**
  * The arithmetic behind a sortable column header, kept away from the three
  * surfaces that need it so they cannot drift.
@@ -73,17 +75,22 @@ export function nextColumnSort<Token extends string>(
  * this string is the only thing naming the column to a reader tabbing through
  * the header row -- and so does what activating it will do, because
  * `aria-sort` says what the state *is* and never what the control does.
+ *
+ * `name` is the column's rendered label; each sentence is one message so the
+ * word order is the translator's.
  */
 export function columnSortLabel<Token extends string>(
   column: SortableColumn<Token>,
   active: Token,
   name: string,
+  t: Translator,
 ): string {
-  const next = columnSortDirection(column, active);
-  if (next === "ascending") return `${name}, sorted ascending. Sort descending`;
-  if (next === "descending")
-    return `${name}, sorted descending. Sort ascending`;
-  return `${name}. Sort ${
-    (column.first ?? "ascending") === "descending" ? "descending" : "ascending"
-  }`;
+  const current = columnSortDirection(column, active);
+  if (current === "ascending")
+    return t("common.sort.column.sortedAscending", { column: name });
+  if (current === "descending")
+    return t("common.sort.column.sortedDescending", { column: name });
+  return (column.first ?? "ascending") === "descending"
+    ? t("common.sort.column.sortDescending", { column: name })
+    : t("common.sort.column.sortAscending", { column: name });
 }

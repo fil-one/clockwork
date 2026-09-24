@@ -1,6 +1,5 @@
 import { PartnerQuoteControls } from "./partner-quote-controls";
-import { localizeCopy } from "@/src/i18n/copy";
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -12,7 +11,6 @@ import {
   buttonClassName,
 } from "@clockwork/ui";
 
-import { customerPartnerCopy } from "@/src/features/customer-partner/copy";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
 import { loadPartnerRecords } from "@/src/features/experience-server/portal-view-loader";
@@ -26,9 +24,6 @@ import { currentPartnerRole, validPartnerQuoteActions } from "./partner-rules";
 import { PartnerQuoteIssue } from "./partner-quote-issue";
 import { demoPartnerQuoteRecord } from "./demo-partner-quote";
 import styles from "./partner.module.css";
-
-const common = customerPartnerCopy.common;
-const partnerCopy = customerPartnerCopy.partner;
 
 function MissingRecord({ backHref }: { backHref: Route }) {
   const t = use(getTranslations());
@@ -83,24 +78,23 @@ function PriceBoundary({
   pricing?: PartnerRecord["quotePricing"];
 }) {
   const t = use(getTranslations());
-  const localizedpartnerCopy = localizeCopy(partnerCopy, t);
   return (
     <section
       className={styles.boundary}
       aria-label={t("partner.detail.quote.boundary")}
     >
       <div>
-        <h2>{localizedpartnerCopy.transferPrice}</h2>
+        <h2>{t("cp.partner.transferPrice")}</h2>
         {pricing ? <strong>{pricing.transferPrice}</strong> : null}
         <p>{t("partner.detail.transfer.description")}</p>
       </div>
       <div>
-        <h2>{localizedpartnerCopy.partnerPrice}</h2>
+        <h2>{t("cp.partner.partnerPrice")}</h2>
         {pricing ? <strong>{pricing.resalePrice}</strong> : null}
         <p>{t("partner.detail.resale.description")}</p>
       </div>
       <div>
-        <h2>{localizedpartnerCopy.merchantOfRecord}</h2>
+        <h2>{t("cp.partner.merchantOfRecord")}</h2>
         <p>{t("partner.detail.merchant.description")}</p>
       </div>
     </section>
@@ -109,11 +103,9 @@ function PriceBoundary({
 
 function CommercialSummary({ record }: { record: PartnerRecord }) {
   const t = use(getTranslations());
-  const localizedcommon = localizeCopy(common, t);
-  const localizedpartnerCopy = localizeCopy(partnerCopy, t);
   return (
     <section className={styles.detailCard}>
-      <h2>{localizedcommon.commercialSummary}</h2>
+      <h2>{t("common.commercialSummary")}</h2>
       <dl>
         <div>
           <dt>{t("partner.detail.position")}</dt>
@@ -132,7 +124,7 @@ function CommercialSummary({ record }: { record: PartnerRecord }) {
           <dd>{record.risk}</dd>
         </div>
       </dl>
-      <p className={styles.gate}>{localizedpartnerCopy.boundary}</p>
+      <p className={styles.gate}>{t("cp.partner.boundary")}</p>
       <ProjectionEvidence record={record} />
     </section>
   );
@@ -140,10 +132,9 @@ function CommercialSummary({ record }: { record: PartnerRecord }) {
 
 function ProjectionEvidence({ record }: { record: PartnerRecord }) {
   const t = use(getTranslations());
-  const localizedcommon = localizeCopy(common, t);
   return (
     <details className={styles.technical}>
-      <summary>{localizedcommon.technicalDetails}</summary>
+      <summary>{t("common.technicalDetails")}</summary>
       <p>
         {t("partner.detail.reference")}: <code>{record.id}</code>
       </p>
@@ -176,7 +167,6 @@ export async function PartnerPortfolioDetail({
   actions?: ReactNode;
 }) {
   const t = await getTranslations();
-  const localizedcommon = localizeCopy(common, t);
   const record = await partnerRecordFor("portfolio", id);
   if (!record) return <MissingRecord backHref="/partner/portfolio" />;
   return (
@@ -204,7 +194,7 @@ export async function PartnerPortfolioDetail({
       <section className={styles.term} aria-labelledby="client-term-title">
         <div className={styles.termHeader}>
           <div>
-            <p className={styles.eyebrow}>{localizedcommon.termState}</p>
+            <p className={styles.eyebrow}>{t("common.termState")}</p>
             <h2 id="client-term-title">{t("partner.detail.portfolio.term")}</h2>
           </div>
           <strong>{record.secondary}</strong>
@@ -220,7 +210,7 @@ export async function PartnerPortfolioDetail({
 
       <div className={styles.detailsGrid}>
         <section className={styles.detailCard}>
-          <h2>{localizedcommon.nextAction}</h2>
+          <h2>{t("common.nextAction")}</h2>
           <dl>
             <div>
               <dt>{t("partner.detail.milestone")}</dt>
@@ -241,7 +231,7 @@ export async function PartnerPortfolioDetail({
 
 export async function PartnerQuoteDetail({ id }: { id: string }) {
   const t = await getTranslations();
-  const localizedcommon = localizeCopy(common, t);
+  const formattingLocale = await getFormattingLocale();
   const [record, roles] = await Promise.all([
     partnerRecordFor("quotes", id),
     getRouteRoles("partner"),
@@ -312,7 +302,9 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
           </p>
           <p>
             {record.clientResponse.name} ·{" "}
-            {new Date(record.clientResponse.at).toLocaleString("en-GB")}
+            {new Date(record.clientResponse.at).toLocaleString(
+              formattingLocale,
+            )}
           </p>
           <p>{record.clientResponse.note}</p>
         </section>
@@ -357,7 +349,7 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
       <section className={styles.summary} aria-labelledby="valid-actions-title">
         <div className={styles.sectionHeader}>
           <div>
-            <p className={styles.eyebrow}>{localizedcommon.nextAction}</p>
+            <p className={styles.eyebrow}>{t("common.nextAction")}</p>
             <h2 id="valid-actions-title">
               {t("partner.detail.quote.actions")}
             </h2>

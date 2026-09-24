@@ -6,6 +6,8 @@ import type { QuoteSnapshot } from "@clockwork/domain/core";
 import { OrderAcceptance } from "@/src/features/customer-partner/commercial/order-acceptance";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
+import { formatMoney } from "@/src/features/shared/format";
+import { getFormattingLocale } from "@/src/i18n/server";
 export const dynamic = "force-dynamic";
 export default async function Page({
   params,
@@ -15,6 +17,7 @@ export default async function Page({
   if (!demoDeployIdentityEnabled(process.env)) notFound();
   const { id } = await params;
   const identity = await getRouteIdentity("partner");
+  const formattingLocale = await getFormattingLocale();
   const state = await configuredDemoStateStore().read();
   const stored =
     state.projectionOverrides[
@@ -43,10 +46,11 @@ export default async function Page({
                 `${line.quantity} TB · ${line.region} · ${line.termMonths} months`,
             )
             .join("; "),
-          spend: new Intl.NumberFormat("en-GB", {
-            style: "currency",
-            currency: quote.total.currency,
-          }).format(Number(quote.total.minor) / 100),
+          spend: formatMoney(
+            quote.total.minor,
+            quote.total.currency,
+            formattingLocale,
+          ),
           acceptedLabel: "Issued transfer quote",
         }}
         agreement={{

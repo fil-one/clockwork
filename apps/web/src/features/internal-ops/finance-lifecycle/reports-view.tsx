@@ -1,5 +1,5 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { localizeCopy } from "@/src/i18n/copy";
 
 import { useState } from "react";
@@ -11,7 +11,6 @@ import {
   reportNames,
   type ReportName,
 } from "@/src/features/contracts/commerce-client";
-import { plural } from "@/src/i18n/en";
 import { formatOperationalTimestamp } from "../presentation";
 
 import { lifecycleCopy } from "./copy";
@@ -53,6 +52,7 @@ export function ReportsView({
   provenance: SurfaceProvenance;
 }) {
   const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
   const localizedcopy = localizeCopy(copy, t);
   const [selectedReport, setSelectedReport] = useState("");
   const [accountId, setAccountId] = useState("");
@@ -137,7 +137,7 @@ export function ReportsView({
             <p>{localizedcopy.exportsCaption}</p>
           </div>
           <span className={styles.sectionMeta}>
-            {plural(visibleExports.length, "{count} export", "{count} exports")}
+            {t("operations.exports", { count: visibleExports.length })}
           </span>
         </header>
         {exportRecords.length === 0 ? (
@@ -176,7 +176,7 @@ export function ReportsView({
                 localizedcopy.documentPending
               ),
               <time dateTime={record.updatedAt}>
-                {formatOperationalTimestamp(record.updatedAt)}
+                {formatOperationalTimestamp(record.updatedAt, formattingLocale)}
               </time>,
             ])}
           />

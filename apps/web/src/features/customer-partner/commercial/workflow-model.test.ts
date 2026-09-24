@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import {
   emptyQuoteDraft,
   firstQuoteError,
@@ -38,7 +40,8 @@ const validDraft: QuoteDraft = {
 
 describe("quote workflow model", () => {
   it("exposes exactly three ordered creation stages", () => {
-    expect(quoteStageLabels).toEqual([
+    const t = translatorFor("en");
+    expect(quoteStageLabels.map((id) => t(id))).toEqual([
       "Offer and region",
       "Capacity, term, direct route, and expiry",
       "Review and issue",

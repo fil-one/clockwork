@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./demo-handlers": "./src/demo/handlers.ts",
     "./demo-journeys": "./src/demo/journeys.ts",
+    "./demo-localized-text": "./src/demo/localized-text.ts",
     "./demo-reset": "./src/demo/reset.ts",
     "./demo-seed": "./src/demo/seed.ts",
     "./demo-state": "./src/demo/state.ts",
