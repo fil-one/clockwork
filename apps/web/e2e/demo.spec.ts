@@ -62,11 +62,13 @@ test("finance approves and cancels a future price schedule without retiring curr
       .getByRole("button", { name: "Approve scheduled activation" })
       .click();
     await expect(
-      page.getByText("Activation schedule · approved", { exact: true }),
+      page.getByText("Activation schedule · Approved", { exact: true }),
     ).toBeVisible();
     await expect(incumbent).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Edit LOCKED-STORAGE-TB us-east-2" }),
+      page.getByRole("button", {
+        name: "Edit rate LOCKED-STORAGE-TB in us-east-2",
+      }),
     ).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Review price-book approval" }),
@@ -81,11 +83,13 @@ test("finance approves and cancels a future price schedule without retiring curr
       .getByRole("button", { name: "Cancel approved schedule" })
       .click();
     await expect(
-      page.getByText("Activation schedule · cancelled", { exact: true }),
+      page.getByText("Activation schedule · Cancelled", { exact: true }),
     ).toBeVisible();
     await expect(incumbent).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Edit LOCKED-STORAGE-TB us-east-2" }),
+      page.getByRole("button", {
+        name: "Edit rate LOCKED-STORAGE-TB in us-east-2",
+      }),
     ).toBeVisible();
   } finally {
     if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
@@ -633,14 +637,16 @@ test.describe("playable product-demo workflows", () => {
       ).toBeVisible();
       await expect(source).toBeVisible();
       await page
-        .getByRole("button", { name: "Edit LOCKED-STORAGE-TB us-east-2" })
+        .getByRole("button", {
+          name: "Edit rate LOCKED-STORAGE-TB in us-east-2",
+        })
         .click();
-      await page.getByLabel("Unit price · USD").fill("159.00");
+      await page.getByLabel("Unit price (USD)").fill("159.00");
       await page.getByRole("button", { name: "Save rate card" }).click();
       await expect(
         page
           .getByRole("table", { name: "Rate card economics" })
-          .getByText("USD 159.00", { exact: true }),
+          .getByText("$159.00", { exact: true }),
       ).toBeVisible();
       await page
         .getByLabel("Finance decision reason")
@@ -685,7 +691,7 @@ test.describe("playable product-demo workflows", () => {
       ).toBeVisible();
 
       const authoring = page.getByRole("region", {
-        name: "Author a priced draft",
+        name: "Create a priced draft",
       });
       await authoring.getByLabel("Price-book name").fill("Browser proof USD");
       await authoring.getByLabel("Currency").selectOption("USD");
@@ -702,17 +708,17 @@ test.describe("playable product-demo workflows", () => {
 
       await authoring.getByLabel("SKU").fill("BROWSER-PROOF-TB");
       await authoring.getByLabel("Region").fill("us-east-2");
-      await authoring.getByLabel("Unit price · USD").fill("150.00");
-      await authoring.getByLabel("Floor price · USD").fill("100.00");
-      await authoring.getByLabel("Overage rate · USD").fill("180.00");
+      await authoring.getByLabel("Unit price (USD)").fill("150.00");
+      await authoring.getByLabel("Floor price (USD)").fill("100.00");
+      await authoring.getByLabel("Overage rate (USD)").fill("180.00");
       await authoring.getByLabel("Stripe tax code").fill("txcd_10103000");
       await authoring
-        .getByLabel("Approved commercial claim")
+        .getByLabel("Approved commercial description")
         .fill("Browser proof of the guided finance authoring workflow.");
       await authoring.getByRole("button", { name: "Add rate card" }).click();
       await expect(
         page.getByText(
-          "Rate card saved. Reopen this draft to add or edit more rates, then review before proposing activation.",
+          "Rate card saved. Reopen this draft to add or edit more rates, then review it before proposing activation.",
         ),
       ).toBeVisible();
       await expect(
@@ -779,7 +785,7 @@ test.describe("playable product-demo workflows", () => {
         .getByRole("button", { name: "Calculate monthly estimate" })
         .click();
       await expect(
-        page.getByText(/Estimated monthly total: USD 4.99/),
+        page.getByText(/Estimated monthly total: \$4\.99/),
       ).toBeVisible();
       await page.getByLabel("Average daily storage (TB)").fill("10");
       await page.getByLabel("Total monthly egress (TB)").fill("100");
@@ -787,7 +793,7 @@ test.describe("playable product-demo workflows", () => {
         .getByRole("button", { name: "Calculate monthly estimate" })
         .click();
       await expect(
-        page.getByText(/Estimated monthly total: USD 49.90/),
+        page.getByText(/Estimated monthly total: \$49\.90/),
       ).toBeVisible();
       await page
         .getByLabel("Decision reason")
@@ -809,7 +815,7 @@ test.describe("playable product-demo workflows", () => {
         .click();
       await expect(
         page.getByRole("heading", {
-          name: /Fictional PAYG review scenario · approved/,
+          name: /Fictional PAYG review scenario · Approved/,
         }),
       ).toBeVisible();
       await expect(
@@ -844,9 +850,9 @@ test.describe("playable product-demo workflows", () => {
         .getByLabel("Approval evidence reference")
         .fill("demo-browser-channel-review");
       await approval.getByRole("button", { name: "Approve policy" }).click();
-      await expect(page.getByText(/Approved policy v1/)).toBeVisible();
+      await expect(page.getByText(/approved policy v1/)).toBeVisible();
       await page.reload();
-      await expect(page.getByText(/Approved policy v1/)).toBeVisible();
+      await expect(page.getByText(/approved policy v1/)).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Approve policy" }),
       ).toHaveCount(0);
@@ -1200,7 +1206,10 @@ test("customer trial, paid conversion and cancellation retain verified handoff s
     await expectAxeClean(page);
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(
-      page.getByRole("heading", { name: "PAYG and trials", exact: true }),
+      page.getByRole("heading", {
+        name: "Pay as you go and trials",
+        exact: true,
+      }),
     ).toBeVisible();
     await page.getByRole("radio", { name: "Trial request" }).check();
     await expect(
