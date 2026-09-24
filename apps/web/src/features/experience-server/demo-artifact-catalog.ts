@@ -1,3 +1,4 @@
+// i18n-exempt-file: generated PDF document content (translation policy rule 5: a document's language belongs to the account, not to the reader's interface language). The one UI-facing field, each artifact's `label`, is a message reference rendered for the reader at the demo read boundary.
 import { createHash } from "node:crypto";
 
 import {
@@ -20,6 +21,7 @@ import {
   taxNotes,
   withTaxLabels,
 } from "./demo-tax";
+import { demoMessage, type DemoMessage } from "./demo-message";
 import type { ArtifactKind, ExperienceAudience } from "./model";
 
 /**
@@ -61,7 +63,12 @@ export interface DemoArtifactFixture {
   readonly kind: ArtifactKind;
   /** The `/api/experience/artifacts/{kind}/{id}` segment. */
   readonly id: string;
-  readonly label: string;
+  /**
+   * What the delivery list calls the document. The document itself is not
+   * translated (rule 5); its name in the interface is, so this is a message
+   * the demo read boundary renders in the reader's language.
+   */
+  readonly label: DemoMessage;
   readonly subjectType: string;
   readonly subjectId: string;
   readonly sourceVersion: string;
@@ -1088,7 +1095,9 @@ function reportExport(): DemoDocumentBody {
 export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   fixture({
     kind: "direct_quote",
-    label: "Quote Q-2026-0184-v3",
+    label: demoMessage("experience.data.artifact.quote", {
+      reference: "Q-2026-0184-v3",
+    }),
     subjectType: "quote",
     subjectId: subject("quote", "Q-2026-0184-v3"),
     sourceVersion: "3",
@@ -1100,7 +1109,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "direct_quote",
-    label: "Renewal quote QT-RENEWAL-0002",
+    label: demoMessage("experience.data.artifact.renewalQuote", {
+      reference: "QT-RENEWAL-0002",
+    }),
     subjectType: "quote",
     subjectId: subject("quote", "quote-direct-renewal-v2"),
     sourceVersion: "2",
@@ -1112,7 +1123,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "order_form",
-    label: "Order form ORD-2026-0098",
+    label: demoMessage("experience.data.artifact.orderForm", {
+      reference: "ORD-2026-0098",
+    }),
     subjectType: "order",
     subjectId: subject("order", "ORD-2026-0098"),
     sourceVersion: "4",
@@ -1123,7 +1136,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "amendment",
-    label: "Amendment AMD-2026-0028",
+    label: demoMessage("experience.data.artifact.amendment", {
+      reference: "AMD-2026-0028",
+    }),
     subjectType: "amendment",
     subjectId: subject("amendment", "AMD-2026-0028"),
     sourceVersion: "2",
@@ -1137,7 +1152,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "invoice_companion",
-    label: "Invoice INV-2026-0781",
+    label: demoMessage("experience.data.artifact.invoice", {
+      reference: "INV-2026-0781",
+    }),
     subjectType: "invoice",
     subjectId: subject("invoice", "INV-2026-0781"),
     sourceVersion: "3",
@@ -1151,7 +1168,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "invoice_companion",
-    label: "Invoice INV-MER-0042 (overdue)",
+    label: demoMessage("experience.data.artifact.invoiceOverdue", {
+      reference: "INV-MER-0042",
+    }),
     subjectType: "invoice",
     subjectId: subject("invoice", "invoice-meridian-overdue"),
     sourceVersion: "3",
@@ -1165,7 +1184,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "receipt",
-    label: "Receipt RCT-2026-0712",
+    label: demoMessage("experience.data.artifact.receipt", {
+      reference: "RCT-2026-0712",
+    }),
     subjectType: "invoice",
     subjectId: subject("invoice", "INV-2026-0712"),
     sourceVersion: "3",
@@ -1182,7 +1203,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "receipt",
-    label: "Receipt RCT-MER-0038",
+    label: demoMessage("experience.data.artifact.receipt", {
+      reference: "RCT-MER-0038",
+    }),
     subjectType: "invoice",
     subjectId: subject("invoice", "invoice-meridian-paid"),
     sourceVersion: "3",
@@ -1199,7 +1222,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "poc_summary",
-    label: "POC summary POC-2026-0031",
+    label: demoMessage("experience.data.artifact.pocSummary", {
+      reference: "POC-2026-0031",
+    }),
     subjectType: "poc",
     subjectId: subject("poc", "POC-2026-0031"),
     sourceVersion: "2",
@@ -1211,7 +1236,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "poc_final_report",
-    label: "POC final report POC-2026-0024",
+    label: demoMessage("experience.data.artifact.pocFinalReport", {
+      reference: "POC-2026-0024",
+    }),
     subjectType: "poc",
     subjectId: subject("poc", "POC-2026-0024"),
     sourceVersion: "4",
@@ -1225,7 +1252,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "renewal_confirmation",
-    label: "Renewal confirmation REN-2026-0098",
+    label: demoMessage("experience.data.artifact.renewalConfirmation", {
+      reference: "REN-2026-0098",
+    }),
     subjectType: "renewal_action",
     subjectId: subject("renewal_action", "REN-2026-0098"),
     sourceVersion: "1",
@@ -1239,7 +1268,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "decline_confirmation",
-    label: "Non-renewal notice DEC-2026-0112",
+    label: demoMessage("experience.data.artifact.nonRenewalNotice", {
+      reference: "DEC-2026-0112",
+    }),
     subjectType: "renewal_action",
     subjectId: subject("renewal_action", "DEC-2026-0112"),
     sourceVersion: "1",
@@ -1250,7 +1281,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "deletion_certificate",
-    label: "Deletion certificate DEL-2026-0008",
+    label: demoMessage("experience.data.artifact.deletionCertificate", {
+      reference: "DEL-2026-0008",
+    }),
     subjectType: "deletion_certificate",
     subjectId: subject("deletion_certificate", "DEL-2026-0008"),
     sourceVersion: "1",
@@ -1261,7 +1294,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "partner_transfer_quote",
-    label: "Transfer quote PQ-2026-0184-v3",
+    label: demoMessage("experience.data.artifact.transferQuote", {
+      reference: "PQ-2026-0184-v3",
+    }),
     subjectType: "quote",
     subjectId: subject("quote", "PQ-2026-0184-v3"),
     sourceVersion: "3",
@@ -1272,7 +1307,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "partner_resale_quote",
-    label: "Customer quotation EP-QT-9007",
+    label: demoMessage("experience.data.artifact.customerQuotation", {
+      reference: "EP-QT-9007",
+    }),
     subjectType: "quote",
     subjectId: subject("quote", "quote-resale-customer-v4"),
     sourceVersion: "4",
@@ -1286,7 +1323,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "partner_transfer_quote",
-    label: "Two-tier quote PQ-2026-0152-v2",
+    label: demoMessage("experience.data.artifact.twoTierQuote", {
+      reference: "PQ-2026-0152-v2",
+    }),
     subjectType: "quote",
     subjectId: subject("quote", "quote-distributor-exception-v1"),
     sourceVersion: "2",
@@ -1300,7 +1339,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "commission_statement",
-    label: "Commission statement STM-2026-Q3",
+    label: demoMessage("experience.data.artifact.commissionStatement", {
+      reference: "STM-2026-Q3",
+    }),
     subjectType: "commission_statement",
     subjectId: subject("commission_statement", "STM-2026-Q3"),
     sourceVersion: "1",
@@ -1311,7 +1352,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "reconciliation_report",
-    label: "Reconciliation REC-2026-07",
+    label: demoMessage("experience.data.artifact.reconciliation", {
+      reference: "REC-2026-07",
+    }),
     subjectType: "marketplace_reconciliation",
     subjectId: subject("marketplace_reconciliation", "REC-2026-07"),
     sourceVersion: "1",
@@ -1325,7 +1368,9 @@ export const demoArtifactCatalog: readonly DemoArtifactFixture[] = [
   }),
   fixture({
     kind: "report_export",
-    label: "Renewal exposure export RPT-2026-07",
+    label: demoMessage("experience.data.artifact.renewalExposureExport", {
+      reference: "RPT-2026-07",
+    }),
     subjectType: "report_export",
     subjectId: subject("report_export", "RPT-2026-07"),
     sourceVersion: "1",
@@ -1428,7 +1473,7 @@ export function demoRecordArtifacts(
 ): readonly {
   kind: ArtifactKind;
   id: string;
-  label: string;
+  label: DemoMessage;
   state: "stored";
 }[] {
   return (byAttachment.get(`${audience}:${channel}:${recordKey}`) ?? []).map(

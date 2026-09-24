@@ -281,7 +281,7 @@ describe("dashboard demo boundary", () => {
 
     expect(customer.capacity?.committed).toBe("620 TB");
     expect(partner.agreement.label).toBe(
-      "Your organization Partner Agreement - v4.1",
+      "Your organization partner agreement · v4.1",
     );
     expect(mocks.loadPortalRecords).toHaveBeenCalledTimes(2);
     expect(mocks.loadTopPortalRecords).not.toHaveBeenCalled();
@@ -308,7 +308,7 @@ describe("dashboard demo boundary", () => {
   });
 
   it.each([
-    ["2026-09-06T00:00:00.000Z", "Opens Nov 1, 2026 · 56 days", 68],
+    ["2026-09-06T00:00:00.000Z", "Opens Nov 1, 2026 · in 56 days", 68],
     ["2026-11-02T00:00:00.000Z", "Opened Nov 1, 2026", 84],
     ["2027-02-01T00:00:00.000Z", "Opened Nov 1, 2026", 100],
   ])(
@@ -325,7 +325,8 @@ describe("dashboard demo boundary", () => {
       expect(result.generatedAt).toBe(asOf);
       expect(result.term.noticeLabel).toBe(notice);
       expect(result.term.progressPercent).toBe(progress);
-      expect(result.term.rangeLabel).toBe("Jan 1 - Dec 31, 2026");
+      // Intl's range: thin spaces around an en dash.
+      expect(result.term.rangeLabel).toBe("Jan 1\u2009–\u2009Dec 31, 2026");
       expect(result.term.renewalLabel).toBe("Jan 1, 2027");
       expect(
         result.obligations.find((item) => item.type === "Notice and renewal")
@@ -346,7 +347,7 @@ describe("dashboard demo boundary", () => {
       accountName: "Ember Peak Systems",
     });
     expect(reseller.agreement.label).toBe(
-      "Ember Peak Systems Partner Agreement - v4.1",
+      "Ember Peak Systems partner agreement · v4.1",
     );
     expect(reseller.agreement.merchantBoundary).toContain(
       "Ember Peak Systems is merchant of record",
@@ -417,11 +418,12 @@ describe("customer dashboard composition", () => {
       title: "ORD-7E6F5A4B",
       rangeLabel: "Jan 1, 2026 – Dec 31, 2026",
       progressPercent: 58,
-      progressLabel: "58 percent of the current commercial term elapsed",
+      progressLabel: "58% of the current commercial term has elapsed",
       renewalState: "Not recorded",
-      noticeLabel: "Opens Aug 15, 2026 · 14 days",
+      noticeLabel: "Opens Aug 15, 2026 · in 14 days",
       renewalLabel: "Dec 31, 2026",
       agreementLabel: "No agreement recorded",
+      renewalTone: "neutral",
     });
     expect(projectionResult.services).toEqual([
       {
