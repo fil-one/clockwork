@@ -23,7 +23,7 @@ it("never queries production references through demo or unauthorized identity", 
     }),
   ).toMatchObject({
     availability: "available",
-    source: "Illustrative demo scenario",
+    source: "demoScenario",
   });
   expect(
     await loadPriceBookImpact({
@@ -48,7 +48,7 @@ it("uses trusted book IDs and retains unavailable rather than invented zero coun
     .mockResolvedValue({ asOf: defaults.readAt, records: [] });
   expect(await loadPriceBookImpact({ ...defaults, reader: { read } })).toEqual({
     availability: "available",
-    source: "Retained commerce records",
+    source: "retainedRecords",
     asOf: defaults.readAt,
     records: [],
   });

@@ -7,6 +7,16 @@ import { createPristineDemoAdapterState } from "@clockwork/testing/demo-state";
 import { demoPersonas } from "@clockwork/testing/personas";
 
 vi.mock("server-only", () => ({}));
+// The handler words its refusals in the request's language through
+// getTranslations(), the same path every page takes; this stands in for the
+// reader's language cookie.
+const language = vi.hoisted(() => ({ value: undefined as string | undefined }));
+vi.mock("@/src/i18n/server", async () => {
+  const { translatorFor } = await import("@/src/i18n/catalogs");
+  return {
+    getTranslations: () => Promise.resolve(translatorFor(language.value ?? "")),
+  };
+});
 
 import { handleDemoPriceBookCommand } from "./demo-price-book-command";
 import { currentDemoPriceBooks, storeDemoPriceBooks } from "./demo-price-books";
@@ -52,6 +62,7 @@ const createBody = {
 } as const;
 
 beforeEach(async () => {
+  language.value = undefined;
   await store.replace(createPristineDemoAdapterState());
 });
 
@@ -561,4 +572,63 @@ it("imports validated economics into an independent draft and rejects injected a
     { store },
   );
   expect(activate.status).toBe(422);
+});
+
+describe("problem details in the reader's language", () => {
+  function retire(key: string): Promise<Response> {
+    return handleDemoPriceBookCommand(
+      request(key, {
+        id: "66000000-0000-4000-8000-000000000003",
+        action: "retire",
+        expectedVersion: 2,
+        payload: { reason: "Retire the proposed draft directly" },
+      }),
+      finance,
+      { store },
+    );
+  }
+
+  it("words a refusal in the reader's language and keeps the code", async () => {
+    language.value = "de";
+    const german = await retire("problem-language-de-0001");
+    expect(german.status).toBe(422);
+    const body = (await german.json()) as { code: string; detail: string };
+    expect(body.code).toBe("INVALID_STATE");
+    expect(body.detail).toBe(
+      "Nur eine aktive Preisliste kann außer Kraft gesetzt werden.",
+    );
+    expect(body.detail).not.toMatch(/Only an active price book/u);
+  });
+
+  it("stays in English without a language cookie", async () => {
+    const english = await retire("problem-language-en-0001");
+    await expect(english.json()).resolves.toMatchObject({
+      code: "INVALID_STATE",
+      detail: "Only an active price book can be retired.",
+    });
+  });
+
+  it("quotes a domain rule inside a translated sentence", async () => {
+    language.value = "ja";
+    const response = await handleDemoPriceBookCommand(
+      request("problem-language-ja-0001", {
+        id: "66000000-0000-4000-8000-000000000095",
+        action: "import",
+        payload: {
+          name: "Imported JPY",
+          version: 77,
+          effectiveFrom: "2026-09-06",
+          reason: "Import a malformed export",
+          document: { format: "not-a-price-book" },
+        },
+      }),
+      finance,
+      { store },
+    );
+    expect(response.status).toBe(422);
+    const body = (await response.json()) as { detail: string };
+    expect(body.detail.startsWith("価格表のインポート内容が無効です：")).toBe(
+      true,
+    );
+  });
 });

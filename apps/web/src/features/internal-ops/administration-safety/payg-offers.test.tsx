@@ -1,7 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PaygOfferRecord } from "@clockwork/domain/core";
+
+import { catalogs } from "@/src/i18n/catalogs";
+import { setHarnessLanguage } from "@/src/i18n/client";
 
 const mocks = vi.hoisted(() => ({ refresh: vi.fn(), fetch: vi.fn() }));
 vi.mock("next/navigation", () => ({
@@ -124,7 +127,9 @@ describe("operable PAYG and trial policy administration", () => {
       "x-csrf-token": expect.any(String) as unknown,
       "idempotency-key": expect.any(String) as unknown,
     });
-    expect(await screen.findByText(/Policy version 1 is draft/)).toBeVisible();
+    expect(
+      await screen.findByText(/Policy version 1 is a draft/),
+    ).toBeVisible();
   });
   it("records a verified enrollment with the selected policy and no implicit billing cutover", async () => {
     const user = userEvent.setup();
@@ -261,7 +266,81 @@ describe("operable PAYG and trial policy administration", () => {
       apiOperations: "1000000",
     });
     expect(
-      await screen.findByText("Estimated monthly total: USD 4.99"),
+      await screen.findByText("Estimated monthly total: $4.99"),
     ).toBeVisible();
+  });
+});
+
+describe("PAYG and trial policies in the reader's language", () => {
+  afterEach(() => setHarnessLanguage("en", catalogs.en));
+
+  it("renders the page, the policy summary and its amounts in Portuguese", async () => {
+    setHarnessLanguage("pt", catalogs.pt);
+    const user = userEvent.setup();
+    render(
+      <PaygOfferAdministration
+        offers={[{ ...offer, status: "approved" }]}
+        available
+        roles={["finance_approver"]}
+        userId={creator}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Políticas de pagamento conforme o uso e de período de teste",
+      }),
+    ).toBeVisible();
+    await user.click(
+      screen.getByRole("button", {
+        name: /Direct PAYG · france · v1 · Aprovada/,
+      }),
+    );
+    expect(
+      screen.getByText(
+        "US$ 4,99 por TB-mês; mínimo mensal de US$ 4,99. Mínimo em meses parciais: Mínimo mensal integral.",
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/Período de teste: 30 dias e, depois, 7 dias/),
+    ).toBeVisible();
+    expect(screen.getByText(/Limite de armazenamento: 1 TB/)).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Descontinuar para novas adesões" }),
+    ).toBeVisible();
+    expect(document.body.textContent).not.toMatch(
+      /Policy versions|Retire for future enrollments|per TB-month|Storage cap/u,
+    );
+  });
+
+  it("shows an API refusal in the reader's language, not the server code", async () => {
+    setHarnessLanguage("de", catalogs.de);
+    const user = userEvent.setup();
+    mocks.fetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({ code: "PAYG_OFFER_DISTINCT_APPROVER_REQUIRED" }),
+        { status: 409 },
+      ),
+    );
+    render(
+      <PaygOfferAdministration
+        offers={[offer]}
+        available
+        roles={["finance_approver"]}
+        userId={creator}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Direct PAYG/ }));
+    await user.click(screen.getByRole("button", { name: "Entwurf speichern" }));
+    expect(
+      (
+        await screen.findAllByText(
+          "Entscheiden muss eine genehmigende Person (Finanzen), die diese Version weder erstellt noch bearbeitet noch eingereicht hat.",
+        )
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(document.body.textContent).not.toMatch(
+      /PAYG_OFFER|finance approver/u,
+    );
   });
 });

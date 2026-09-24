@@ -1,5 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { afterEach, expect, it } from "vitest";
+
+import { catalogs } from "@/src/i18n/catalogs";
+import { setHarnessLanguage } from "@/src/i18n/client";
 
 import { canonicalDemoPriceBooks } from "../price-books/demo-price-books";
 import { demoPriceBookImpact } from "../price-books/server-price-book-impact-loader";
@@ -13,6 +16,8 @@ const impact = demoPriceBookImpact(
   canonicalDemoPriceBooks,
   "2026-09-06T12:00:00.000Z",
 );
+
+afterEach(() => setHarnessLanguage("en", catalogs.en));
 
 it("shows retained reference comparisons and explains draft workflow changes without a revenue forecast", () => {
   render(
@@ -71,4 +76,32 @@ it("hides stale reference counts after either book changes and recovers on a fre
     />,
   );
   expect(screen.queryByRole("table")).toBeNull();
+});
+
+it("reads entirely in Portuguese, with counts and the check time in the reader's format", () => {
+  setHarnessLanguage("pt", catalogs.pt);
+  const { container } = render(
+    <PriceBookImpactPanel
+      candidate={candidate}
+      incumbent={incumbent}
+      impact={impact}
+    />,
+  );
+  const table = screen.getByRole("table", {
+    name: "Referências retidas em cada tabela de preços",
+  });
+  expect(
+    within(table).getByRole("row", { name: "Cotações em rascunho 2 0" }),
+  ).toBeVisible();
+  expect(
+    within(table).getByRole("columnheader", {
+      name: `Vigente: ${incumbent.name} v${incumbent.version}`,
+    }),
+  ).toBeVisible();
+  expect(
+    screen.getByText(/não são totais reais de clientes nem de ações/u),
+  ).toHaveTextContent("6 de set. de 2026");
+  expect(container.textContent).not.toMatch(
+    /Draft quotes|Existing business impact|Retained records|checked|Unavailable/u,
+  );
 });

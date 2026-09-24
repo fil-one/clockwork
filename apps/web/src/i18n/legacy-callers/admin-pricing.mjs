@@ -9,9 +9,7 @@
  */
 export default {
   /** Still import `localizeCopy` / `translateInterfaceText`. */
-  localizeCopy: [
-    "apps/web/src/features/internal-ops/administration-safety/price-books.tsx",
-  ],
+  localizeCopy: [],
   /** Still format with a literal locale or the runtime's default locale. */
   literalLocales: [],
 };

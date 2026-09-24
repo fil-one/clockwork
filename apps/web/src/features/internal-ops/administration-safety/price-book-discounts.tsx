@@ -9,6 +9,10 @@ import {
   type QuoteRoute,
 } from "@clockwork/domain/core";
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
+import type { MessageId, Translator } from "@/src/i18n";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { basisPointsText } from "./price-book-diff";
+import { bookMoney, commerceErrorText } from "./price-book-presentation";
 import { styles } from "./ui";
 
 function formString(values: FormData, name: string): string {
@@ -24,6 +28,22 @@ const routes = [
   "marketplace",
 ] as const;
 
+const routeLabels: Readonly<Record<(typeof routes)[number], MessageId>> = {
+  direct: "adminPricing.route.direct",
+  referral: "adminPricing.route.referral",
+  resale: "adminPricing.route.resale",
+  distributor: "adminPricing.route.distributor",
+  marketplace: "adminPricing.route.marketplace",
+};
+
+const marginResultLabels: Readonly<
+  Record<"not_configured" | "pass" | "exception_required", MessageId>
+> = {
+  not_configured: "adminPricing.simulation.guardrail.notConfigured",
+  pass: "adminPricing.simulation.guardrail.pass",
+  exception_required: "adminPricing.simulation.guardrail.exceptionRequired",
+};
+
 /** Edits the signed authority matrix; saving never publishes it. */
 export function DiscountMatrixEditor({
   book,
@@ -34,6 +54,7 @@ export function DiscountMatrixEditor({
   permitted: boolean;
   onSaved: () => void;
 }) {
+  const t = useTranslations();
   const [rules, setRules] = useState<DiscountMatrixRule[]>([
     ...(book.discountMatrix?.rules ?? []),
   ]);
@@ -43,12 +64,8 @@ export function DiscountMatrixEditor({
     permitted && book.status === "draft" && !book.activationRequestedBy;
   return (
     <div className={styles.panelBody}>
-      <h3>Discount authority</h3>
-      <p className={styles.resultMeta}>
-        Ceilings are basis points: 100 = 1%. A matching rule can raise the
-        default ceiling; the greatest matching grant wins. Regional floors still
-        apply. Changes require a fresh two-person activation.
-      </p>
+      <h3>{t("adminPricing.discounts.title")}</h3>
+      <p className={styles.resultMeta}>{t("adminPricing.discounts.intro")}</p>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -71,24 +88,22 @@ export function DiscountMatrixEditor({
             },
           })
             .then(() => {
-              setMessage("Discount authority saved to the draft.");
+              setMessage(t("adminPricing.discounts.saved"));
               onSaved();
             })
             .catch((error: unknown) =>
               setMessage(
-                error instanceof Error
-                  ? error.message
-                  : "Discount authority was not saved.",
+                commerceErrorText(error, t, "adminPricing.discounts.failed"),
               ),
             )
             .finally(() => setPending(false));
         }}
       >
         <fieldset disabled={!editable || pending}>
-          <legend>Versioned discount matrix</legend>
+          <legend>{t("adminPricing.discounts.matrixLegend")}</legend>
           <div className={styles.metaGrid}>
             <label className={styles.field}>
-              Policy identifier
+              {t("adminPricing.discounts.policyId")}
               <input
                 name="matrixId"
                 defaultValue={book.discountMatrix?.id ?? `discount-${book.id}`}
@@ -97,7 +112,7 @@ export function DiscountMatrixEditor({
               />
             </label>
             <label className={styles.field}>
-              Policy version
+              {t("adminPricing.discounts.policyVersion")}
               <input
                 name="matrixVersion"
                 type="number"
@@ -108,7 +123,7 @@ export function DiscountMatrixEditor({
               />
             </label>
             <label className={styles.field}>
-              Default discount ceiling (bps)
+              {t("adminPricing.discounts.defaultCeiling")}
               <input
                 name="defaultMaxDiscountBps"
                 type="number"
@@ -138,10 +153,12 @@ export function DiscountMatrixEditor({
               );
             return (
               <fieldset key={rule.id}>
-                <legend>Rule {index + 1}</legend>
+                <legend>
+                  {t("adminPricing.discounts.rule", { number: index + 1 })}
+                </legend>
                 <div className={styles.metaGrid}>
                   <label className={styles.field}>
-                    SKU (blank = any)
+                    {t("adminPricing.discounts.skuAny")}
                     <input
                       value={rule.sku ?? ""}
                       maxLength={80}
@@ -151,7 +168,7 @@ export function DiscountMatrixEditor({
                     />
                   </label>
                   <label className={styles.field}>
-                    Region (blank = any)
+                    {t("adminPricing.discounts.regionAny")}
                     <input
                       value={rule.region ?? ""}
                       maxLength={80}
@@ -163,7 +180,7 @@ export function DiscountMatrixEditor({
                     />
                   </label>
                   <label className={styles.field}>
-                    Route
+                    {t("adminPricing.route.label")}
                     <select
                       value={rule.route ?? ""}
                       onChange={(event) =>
@@ -174,14 +191,16 @@ export function DiscountMatrixEditor({
                         })
                       }
                     >
-                      <option value="">Any route</option>
+                      <option value="">{t("adminPricing.route.any")}</option>
                       {routes.map((route) => (
-                        <option key={route}>{route}</option>
+                        <option key={route} value={route}>
+                          {t(routeLabels[route])}
+                        </option>
                       ))}
                     </select>
                   </label>
                   <label className={styles.field}>
-                    Partner tier (blank = any)
+                    {t("adminPricing.discounts.partnerTierAny")}
                     <input
                       value={rule.partnerTier ?? ""}
                       maxLength={80}
@@ -193,7 +212,7 @@ export function DiscountMatrixEditor({
                     />
                   </label>
                   <label className={styles.field}>
-                    Minimum term (months)
+                    {t("adminPricing.discounts.minTerm")}
                     <input
                       type="number"
                       min={1}
@@ -209,7 +228,7 @@ export function DiscountMatrixEditor({
                     />
                   </label>
                   <label className={styles.field}>
-                    Minimum quantity
+                    {t("adminPricing.rate.minimumQuantity")}
                     <input
                       inputMode="decimal"
                       pattern="[0-9]+(?:\.[0-9]{1,18})?"
@@ -222,7 +241,7 @@ export function DiscountMatrixEditor({
                     />
                   </label>
                   <label className={styles.field}>
-                    Discount ceiling (bps)
+                    {t("adminPricing.discounts.ruleCeiling")}
                     <input
                       type="number"
                       min={0}
@@ -247,7 +266,9 @@ export function DiscountMatrixEditor({
                     )
                   }
                 >
-                  Remove rule {index + 1}
+                  {t("adminPricing.discounts.removeRule", {
+                    number: index + 1,
+                  })}
                 </button>
               </fieldset>
             );
@@ -263,21 +284,20 @@ export function DiscountMatrixEditor({
                 ])
               }
             >
-              Add discount rule
+              {t("adminPricing.discounts.addRule")}
             </button>
             <button
               type="submit"
               className={styles.button}
               disabled={!book.rateCardCount}
             >
-              {pending ? "Saving…" : "Save discount authority"}
+              {pending ? t("common.saving") : t("adminPricing.discounts.save")}
             </button>
           </div>
         </fieldset>
         {!editable ? (
           <p className={styles.resultMeta}>
-            Published and proposed policy is read only. A rejected draft can be
-            edited and proposed again.
+            {t("adminPricing.discounts.readOnly")}
           </p>
         ) : null}
         {message ? <p role="status">{message}</p> : null}
@@ -287,12 +307,44 @@ export function DiscountMatrixEditor({
   );
 }
 
+/** The simulation outcome, worded from the priced result's facts. */
+function simulationOutcome(
+  priced: ReturnType<typeof priceQuote>,
+  t: Translator,
+  locale: string,
+): string[] {
+  return [
+    t("adminPricing.simulation.total", {
+      total: bookMoney(priced.total, locale),
+    }),
+    t(marginResultLabels[priced.marginResult]),
+    ...priced.guardrailBreaches.map((breach) => {
+      const rate = `${breach.sku} / ${breach.region}`;
+      if (breach.guardrail === "floor")
+        return t("adminPricing.simulation.breach.floor", {
+          rate,
+          quoted: bookMoney(breach.quotedUnitPrice, locale),
+          floor: bookMoney(breach.guardrailUnitPrice, locale),
+        });
+      const line = priced.lines.find((entry) => entry.id === breach.lineId);
+      return t("adminPricing.simulation.breach.discount", {
+        rate,
+        discount: basisPointsText(line?.discountBps ?? 0, t, locale),
+        ceiling: basisPointsText(line?.discountCeilingBps ?? 0, t, locale),
+        price: bookMoney(breach.guardrailUnitPrice, locale),
+      });
+    }),
+  ];
+}
+
 function PriceBookSimulation({
   book,
 }: {
   book: PriceBookAdministrationRecord;
 }) {
-  const [result, setResult] = useState("");
+  const t = useTranslations();
+  const formattingLocale = useFormattingLocale();
+  const [result, setResult] = useState<readonly string[]>([]);
   return (
     <form
       onSubmit={(event) => {
@@ -302,7 +354,7 @@ function PriceBookSimulation({
           (entry) => entry.id === values.get("rate"),
         );
         if (!rate) {
-          setResult("Select a persisted rate card.");
+          setResult([t("adminPricing.simulation.selectRate")]);
           return;
         }
         try {
@@ -334,28 +386,23 @@ function PriceBookSimulation({
               : {}),
             quotedAt: `${book.effectiveFrom}T00:00:00.000Z`,
           });
-          const minor = BigInt(priced.total.minor);
-          setResult(
-            `${book.currency} ${minor / 100n}.${(minor % 100n).toString().padStart(2, "0")} tax-exclusive term total. Guardrails: ${priced.marginResult.replaceAll("_", " ")}.${priced.exceptionReasons.length ? ` ${priced.exceptionReasons.join("; ")}` : ""}`,
-          );
+          setResult(simulationOutcome(priced, t, formattingLocale));
         } catch (error) {
-          setResult(
+          // The pricing engine explains its refusals in English; the reason is
+          // quoted inside the reader's own sentence.
+          setResult([
             error instanceof Error
-              ? error.message
-              : "Simulation could not run.",
-          );
+              ? t("adminPricing.simulation.failed", { detail: error.message })
+              : t("adminPricing.simulation.failedGeneric"),
+          ]);
         }
       }}
     >
-      <h3>Term quote simulation</h3>
-      <p className={styles.resultMeta}>
-        Preview saved rates and discount authority at the effective date. This
-        does not activate a book or create a quote. PAYG usage rating and
-        monthly minimums are a separate billing policy.
-      </p>
+      <h3>{t("adminPricing.simulation.title")}</h3>
+      <p className={styles.resultMeta}>{t("adminPricing.simulation.intro")}</p>
       <div className={styles.metaGrid}>
         <label className={styles.field}>
-          Simulation rate
+          {t("adminPricing.simulation.rate")}
           <select name="rate" required>
             {book.rateCards?.map((rate) => (
               <option key={rate.id} value={rate.id}>
@@ -365,7 +412,7 @@ function PriceBookSimulation({
           </select>
         </label>
         <label className={styles.field}>
-          Simulation quantity
+          {t("adminPricing.simulation.quantity")}
           <input
             name="quantity"
             defaultValue="1"
@@ -374,7 +421,7 @@ function PriceBookSimulation({
           />
         </label>
         <label className={styles.field}>
-          Simulation term (months)
+          {t("adminPricing.simulation.term")}
           <input
             name="termMonths"
             type="number"
@@ -385,7 +432,7 @@ function PriceBookSimulation({
           />
         </label>
         <label className={styles.field}>
-          Simulation discount (bps)
+          {t("adminPricing.simulation.discount")}
           <input
             name="discountBps"
             type="number"
@@ -397,15 +444,17 @@ function PriceBookSimulation({
           />
         </label>
         <label className={styles.field}>
-          Simulation route
+          {t("adminPricing.simulation.route")}
           <select name="route">
             {routes.map((route) => (
-              <option key={route}>{route}</option>
+              <option key={route} value={route}>
+                {t(routeLabels[route])}
+              </option>
             ))}
           </select>
         </label>
         <label className={styles.field}>
-          Simulation partner tier
+          {t("adminPricing.simulation.partnerTier")}
           <input name="partnerTier" />
         </label>
       </div>
@@ -414,9 +463,15 @@ function PriceBookSimulation({
         className={styles.button}
         disabled={!book.rateCards?.length}
       >
-        Simulate saved pricing
+        {t("adminPricing.simulation.run")}
       </button>
-      {result ? <p role="status">{result}</p> : null}
+      {result.length ? (
+        <div role="status">
+          {result.map((line, index) => (
+            <p key={index}>{line}</p>
+          ))}
+        </div>
+      ) : null}
     </form>
   );
 }

@@ -2,20 +2,40 @@
 
 import { useActionState } from "react";
 import type { DatabaseCatalogAdmin } from "@clockwork/db";
-import { saveCatalogMapping } from "./actions";
+import type { MessageId } from "@/src/i18n";
+import { useTranslations } from "@/src/i18n/client";
+import { saveCatalogMapping, type CatalogMappingResult } from "./actions";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
 
 type CatalogRow = Awaited<ReturnType<DatabaseCatalogAdmin["list"]>>[number];
+
+const resultMessages: Readonly<
+  Record<Exclude<CatalogMappingResult, "">, MessageId>
+> = {
+  forbidden: "adminPricing.catalog.result.forbidden",
+  invalid: "adminPricing.catalog.result.invalid",
+  saved: "adminPricing.catalog.result.saved",
+  conflict: "adminPricing.catalog.result.conflict",
+  frozen: "adminPricing.catalog.result.frozen",
+  failed: "adminPricing.catalog.result.failed",
+};
+
+const initialResult: CatalogMappingResult = "";
+
 export function CatalogMappingControls({ row }: { row: CatalogRow }) {
-  const [message, action, pending] = useActionState(saveCatalogMapping, "");
+  const t = useTranslations();
+  const [result, action, pending] = useActionState(
+    saveCatalogMapping,
+    initialResult,
+  );
   return (
     <form action={action} className={styles.panelBody}>
       <input type="hidden" name="rateCardId" value={row.rateCardId} />
       <input type="hidden" name="expectedRowVersion" value={row.rowVersion} />
       <fieldset disabled={pending}>
-        <legend>Draft provider mapping</legend>
+        <legend>{t("adminPricing.catalog.form.legend")}</legend>
         <label className={styles.field}>
-          Provider SKU
+          {t("adminPricing.catalog.form.providerSku")}
           <input
             name="providerSku"
             required
@@ -24,7 +44,7 @@ export function CatalogMappingControls({ row }: { row: CatalogRow }) {
           />
         </label>
         <label className={styles.field}>
-          Provider region
+          {t("adminPricing.catalog.form.providerRegion")}
           <input
             name="providerRegion"
             required
@@ -33,7 +53,7 @@ export function CatalogMappingControls({ row }: { row: CatalogRow }) {
           />
         </label>
         <label className={styles.field}>
-          Source meter identifier
+          {t("adminPricing.catalog.form.meterId")}
           <input
             name="meterId"
             required
@@ -42,7 +62,7 @@ export function CatalogMappingControls({ row }: { row: CatalogRow }) {
           />
         </label>
         <label className={styles.field}>
-          Source evidence reference
+          {t("adminPricing.catalog.form.sourceEvidence")}
           <input
             name="sourceEvidence"
             required
@@ -51,14 +71,14 @@ export function CatalogMappingControls({ row }: { row: CatalogRow }) {
           />
         </label>
         <label className={styles.field}>
-          Reason for change
+          {t("adminPricing.catalog.form.reason")}
           <textarea name="reason" required minLength={8} maxLength={2000} />
         </label>
         <button className={styles.button} type="submit">
-          {pending ? "Saving…" : "Save draft mapping"}
+          {pending ? t("common.saving") : t("adminPricing.catalog.form.submit")}
         </button>
       </fieldset>
-      {message ? <p role="status">{message}</p> : null}
+      {result ? <p role="status">{t(resultMessages[result])}</p> : null}
     </form>
   );
 }

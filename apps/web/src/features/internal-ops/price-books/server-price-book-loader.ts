@@ -11,10 +11,8 @@ import { configuredDemoStateStore } from "@/src/features/experience-server/demo-
 
 import { readDemoPriceBookRecords } from "./demo-price-books";
 
-export type PriceBookSource =
-  | "Pricing service"
-  | "Deterministic demo fixture"
-  | "Pricing service unavailable";
+/** Where the books came from. A key; the page words it for the reader. */
+export type PriceBookSource = "service" | "demo" | "unavailable";
 export type PriceBookAvailability = "available" | "empty" | "unavailable";
 
 export interface PriceBookResult {
@@ -27,11 +25,12 @@ export interface PriceBookResult {
 async function demoResult(
   store: DemoAdapterStateStore,
   readAt: string,
+  locale: string,
 ): Promise<PriceBookResult> {
-  const books = await readDemoPriceBookRecords(store);
+  const books = await readDemoPriceBookRecords(store, locale);
   return {
     books,
-    source: "Deterministic demo fixture",
+    source: "demo",
     availability: books.length ? "available" : "empty",
     readAt,
   };
@@ -46,11 +45,17 @@ async function demoResult(
 export async function loadPriceBookRecords(
   reader: Pick<DatabasePriceBookAdministrationReader, "list"> | undefined,
   input: {
+    /**
+     * The reader's interface language. Only the demo fixture uses it, to show
+     * its authored book names and reasons in that language; production books
+     * are returned exactly as stored.
+     */
+    locale: string;
     requestId?: string;
     now?: Date;
     demoEnabled?: boolean;
     demoStore?: DemoAdapterStateStore;
-  } = {},
+  },
 ): Promise<PriceBookResult> {
   const readAt = (input.now ?? new Date()).toISOString();
   if (reader)
@@ -60,7 +65,7 @@ export async function loadPriceBookRecords(
       });
       return {
         books,
-        source: "Pricing service",
+        source: "service",
         availability: books.length ? "available" : "empty",
         readAt,
       };
@@ -75,13 +80,14 @@ export async function loadPriceBookRecords(
       return await demoResult(
         input.demoStore ?? configuredDemoStateStore(),
         readAt,
+        input.locale,
       );
     } catch {
       // Corrupt or unreachable demo state is unavailable, never pristine.
     }
   return {
     books: [],
-    source: "Pricing service unavailable",
+    source: "unavailable",
     availability: "unavailable",
     readAt,
   };
