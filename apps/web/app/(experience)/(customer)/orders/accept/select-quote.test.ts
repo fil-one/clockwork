@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
+import { translatorFor } from "@/src/i18n/catalogs";
 
 import { selectAcceptanceQuote, toAcceptableQuote } from "./select-quote";
 
@@ -61,6 +62,8 @@ describe("selectAcceptanceQuote", () => {
   });
 });
 
+const en = translatorFor("en");
+
 describe("toAcceptableQuote", () => {
   it("uses the commercial reference and authoritative quote revision", () => {
     const record = quote("quote-issued", "open", {
@@ -71,7 +74,7 @@ describe("toAcceptableQuote", () => {
       },
     });
 
-    expect(toAcceptableQuote(record)).toMatchObject({
+    expect(toAcceptableQuote(record, en, "en-US")).toMatchObject({
       id: record.aggregateId,
       reference: "Q-2026-0312",
       version: "2",
@@ -81,7 +84,7 @@ describe("toAcceptableQuote", () => {
   it("falls back to the record key and presentation version", () => {
     const record = quote("quote-legacy", "open", { data: { version: "7" } });
 
-    expect(toAcceptableQuote(record)).toMatchObject({
+    expect(toAcceptableQuote(record, en, "en-US")).toMatchObject({
       reference: "quote-legacy",
       version: "7",
     });
@@ -90,7 +93,7 @@ describe("toAcceptableQuote", () => {
   it("falls back to the projection row version when no quote revision exists", () => {
     const record = quote("quote-minimal", "open", { version: 9 });
 
-    expect(toAcceptableQuote(record)).toMatchObject({
+    expect(toAcceptableQuote(record, en, "en-US")).toMatchObject({
       reference: "quote-minimal",
       version: "9",
     });

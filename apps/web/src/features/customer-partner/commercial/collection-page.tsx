@@ -1,5 +1,6 @@
 "use client";
 import { useTranslations } from "@/src/i18n/client";
+import type { MessageId, Translator } from "@/src/i18n";
 
 import type { Route } from "next";
 import Link from "next/link";
@@ -25,6 +26,10 @@ import {
 } from "./model";
 import styles from "./commercial.module.css";
 import {
+  commercialDisplay,
+  commercialStatusLabel,
+} from "./record-presentation";
+import {
   collectionUrl,
   filterAndSortRecords,
   parseCollectionState,
@@ -36,10 +41,51 @@ function unique(records: readonly CommercialRecord[], key: "status" | "owner") {
   return Array.from(new Set(records.map((record) => record[key]))).sort();
 }
 
-function titleCase(value: string) {
-  return value
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+const riskLevels = {
+  low: "risk.level.low",
+  medium: "risk.level.medium",
+  high: "risk.level.high",
+} as const satisfies Record<CommercialRecord["risk"], MessageId>;
+
+/**
+ * Each record as this reader sees it: every display string rendered from the
+ * record's facts in the reader's language, and a numeric sort key for the
+ * value column. Filtering, sorting and search all run on this, so a reader
+ * searching in Portuguese matches the Portuguese status they see.
+ */
+function displayed(
+  records: readonly CommercialRecord[],
+  t: Translator,
+  locale: string,
+): CommercialRecord[] {
+  return records.map((record) => {
+    const display = commercialDisplay(record, t, locale);
+    return {
+      ...record,
+      description: display.description,
+      statusLabel: display.statusLabel,
+      value: display.value,
+      valueLabel: display.valueLabel,
+      dateLabel: display.timing,
+      term: display.term,
+      nextAction: display.nextAction,
+      ...(display.valueSort === null ? {} : { valueSort: display.valueSort }),
+    };
+  });
+}
+
+/** The status filter's option for a status no displayed record is in. */
+function statusOption(
+  kind: CollectionKind,
+  status: string,
+  records: readonly CommercialRecord[],
+  t: Translator,
+): string {
+  return (
+    commercialStatusLabel(kind, status, t) ??
+    records.find((record) => record.status === status)?.statusLabel ??
+    status
+  );
 }
 
 /**
@@ -66,15 +112,15 @@ const numericValueKinds: readonly CollectionKind[] = [
 const sortableColumns: Readonly<
   Record<
     number,
-    { name: string; column: SortableColumn<CollectionState["sort"]> }
+    { name: MessageId; column: SortableColumn<CollectionState["sort"]> }
   >
 > = {
   0: {
-    name: "Record",
+    name: "customer.commercial.column.record",
     column: { ascending: "title_asc", descending: "title_desc" },
   },
   4: {
-    name: "Commercial context",
+    name: "customer.commercial.column.context",
     column: {
       ascending: "value_asc",
       descending: "value_desc",
@@ -82,7 +128,7 @@ const sortableColumns: Readonly<
     },
   },
   5: {
-    name: "Timing",
+    name: "customer.commercial.column.timing",
     column: {
       ascending: "updated_asc",
       descending: "updated_desc",
@@ -104,16 +150,16 @@ function RecordTable({
 }) {
   const t = useTranslations();
   const headers = [
-    "Record",
+    t("customer.commercial.column.record"),
     t("common.status"),
     t("common.risk"),
     t("common.owner"),
-    "Commercial context",
-    "Timing",
+    t("customer.commercial.column.context"),
+    t("customer.commercial.column.timing"),
   ];
   return (
     <Table
-      caption={`${definition.title} results`}
+      caption={t(definition.title)}
       captionHidden
       className={styles.tableWrap ?? ""}
       columnSort={headers.map((header, index) => {
@@ -126,7 +172,7 @@ function RecordTable({
               aria-label={columnSortLabel(
                 sortable.column,
                 state.sort,
-                sortable.name,
+                t(sortable.name),
                 t,
               )}
               className={styles.sortLink}
@@ -152,13 +198,16 @@ function RecordTable({
             {record.title}
           </Link>
           <div className={styles.recordMeta}>
-            {record.description} · {record.id}
+            {t("common.join.labels", {
+              first: record.description,
+              second: record.id,
+            })}
           </div>
         </>,
         <span className={`${styles.badge} ${styles[record.tone]}`}>
           {record.statusLabel}
         </span>,
-        <span className={styles.risk}>{record.risk}</span>,
+        <span className={styles.risk}>{t(riskLevels[record.risk])}</span>,
         record.owner,
         <>
           <strong>{record.value}</strong>
@@ -199,22 +248,22 @@ function RecordCards({
               <dd>{record.value}</dd>
             </div>
             <div>
-              <dt>{t("partner.detail.owner")}</dt>
+              <dt>{t("common.owner")}</dt>
               <dd>{record.owner}</dd>
             </div>
             <div>
-              <dt>{t("ui.89")}</dt>
-              <dd className={styles.risk}>{record.risk}</dd>
+              <dt>{t("common.risk")}</dt>
+              <dd className={styles.risk}>{t(riskLevels[record.risk])}</dd>
             </div>
             <div>
-              <dt>Timing</dt>
+              <dt>{t("customer.commercial.column.timing")}</dt>
               <dd>{record.dateLabel}</dd>
             </div>
           </dl>
           <div className={styles.cardBottom}>
             <span className={styles.muted}>{record.id}</span>
             <Link className={styles.textButton} href={record.href as Route}>
-              {t("action.open")}
+              {t("customer.commercial.openRecord")}
             </Link>
           </div>
         </li>
@@ -228,8 +277,8 @@ export function CommercialLoadingState() {
   return (
     <main className={styles.main} id="main-content">
       <section className={styles.state} role="status">
-        <h1>{t("cp.common.loadingTitle")}</h1>
-        <p>{t("cp.common.loadingBody")}</p>
+        <h1>{t("customer.commercial.state.loadingTitle")}</h1>
+        <p>{t("customer.commercial.state.loadingBody")}</p>
       </section>
     </main>
   );
@@ -240,15 +289,15 @@ export function CommercialErrorState({ retry }: { retry?: () => void }) {
   return (
     <main className={styles.main} id="main-content">
       <section className={styles.state} role="alert">
-        <h1>{t("cp.common.errorTitle")}</h1>
-        <p>{t("cp.common.errorBody")}</p>
+        <h1>{t("customer.commercial.state.errorTitle")}</h1>
+        <p>{t("customer.commercial.state.errorBody")}</p>
         {retry ? (
           <button
             className={buttonClassName({ variant: "secondary" })}
             onClick={retry}
             type="button"
           >
-            {t("action.retry")}
+            {t("customer.commercial.buy.tryAgain")}
           </button>
         ) : null}
       </section>
@@ -259,7 +308,7 @@ export function CommercialErrorState({ retry }: { retry?: () => void }) {
 export function CommercialCollectionPage({
   kind,
   searchParams,
-  records: allRecords,
+  records: projectedRecords,
   freshness,
   formatting,
   canUsePrimaryAction = true,
@@ -276,6 +325,7 @@ export function CommercialCollectionPage({
   const t = useTranslations();
   const definition = collectionDefinitions[kind];
   const state = parseCollectionState(searchParams);
+  const allRecords = displayed(projectedRecords, t, formatting.locale);
   const filtered = filterAndSortRecords(allRecords, state);
   const totalPages = Math.max(1, Math.ceil(filtered.length / state.pageSize));
   const page = Math.min(state.page, totalPages);
@@ -292,9 +342,9 @@ export function CommercialCollectionPage({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>{definition.eyebrow}</p>
-          <h1>{definition.title}</h1>
-          <p className={styles.description}>{definition.description}</p>
+          <p className={styles.eyebrow}>{t(definition.eyebrow)}</p>
+          <h1>{t(definition.title)}</h1>
+          <p className={styles.description}>{t(definition.description)}</p>
           <ProjectionFreshnessNotice
             formatting={formatting}
             freshness={freshness}
@@ -305,11 +355,11 @@ export function CommercialCollectionPage({
             className={buttonClassName()}
             href={definition.primaryAction.href}
           >
-            {definition.primaryAction.label}
+            {t(definition.primaryAction.label)}
           </Link>
         ) : definition.primaryAction ? (
           <p className={styles.muted}>
-            An account owner or administrator can take this action.
+            {t("customer.commercial.collection.restricted")}
           </p>
         ) : null}
       </header>
@@ -321,7 +371,7 @@ export function CommercialCollectionPage({
             defaultValue={state.q}
             id={`${kind}-search`}
             name="q"
-            placeholder={`Search ${definition.title.toLocaleLowerCase()}`}
+            placeholder={t(definition.searchPlaceholder)}
             type="search"
           />
         </div>
@@ -332,10 +382,10 @@ export function CommercialCollectionPage({
             id={`${kind}-status`}
             name="status"
           >
-            <option value="">All statuses</option>
+            <option value="">{t("common.allStatuses")}</option>
             {statusValues.map((status) => (
               <option key={status} value={status}>
-                {titleCase(status)}
+                {statusOption(kind, status, allRecords, t)}
               </option>
             ))}
           </select>
@@ -343,16 +393,16 @@ export function CommercialCollectionPage({
         <div className={styles.field}>
           <label htmlFor={`${kind}-risk`}>{t("common.risk")}</label>
           <select defaultValue={state.risk} id={`${kind}-risk`} name="risk">
-            <option value="">All risk levels</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
+            <option value="">{t("common.allRiskLevels")}</option>
+            <option value="high">{t("risk.level.high")}</option>
+            <option value="medium">{t("risk.level.medium")}</option>
+            <option value="low">{t("risk.level.low")}</option>
           </select>
         </div>
         <div className={styles.field}>
           <label htmlFor={`${kind}-owner`}>{t("common.owner")}</label>
           <select defaultValue={state.owner} id={`${kind}-owner`} name="owner">
-            <option value="">All owners</option>
+            <option value="">{t("common.allOwners")}</option>
             {ownerValues.map((owner) => (
               <option key={owner} value={owner}>
                 {owner}
@@ -369,12 +419,24 @@ export function CommercialCollectionPage({
               would leave the control showing no selection at all, which is
               the same page silently disagreeing with itself.
             */}
-            <option value="updated_desc">Recently updated</option>
-            <option value="updated_asc">Oldest updated</option>
-            <option value="title_asc">Title A–Z</option>
-            <option value="title_desc">Title Z–A</option>
-            <option value="value_desc">Highest value</option>
-            <option value="value_asc">Lowest value</option>
+            <option value="updated_desc">
+              {t("customer.commercial.sort.updatedDesc")}
+            </option>
+            <option value="updated_asc">
+              {t("customer.commercial.sort.updatedAsc")}
+            </option>
+            <option value="title_asc">
+              {t("customer.commercial.sort.titleAsc")}
+            </option>
+            <option value="title_desc">
+              {t("customer.commercial.sort.titleDesc")}
+            </option>
+            <option value="value_desc">
+              {t("customer.commercial.sort.valueDesc")}
+            </option>
+            <option value="value_asc">
+              {t("customer.commercial.sort.valueAsc")}
+            </option>
           </select>
         </div>
         <div className={styles.field}>
@@ -395,7 +457,7 @@ export function CommercialCollectionPage({
           className={buttonClassName({ className: styles.filterSubmit ?? "" })}
           type="submit"
         >
-          Apply
+          {t("common.apply")}
         </button>
       </form>
 
@@ -403,10 +465,13 @@ export function CommercialCollectionPage({
         <div className={styles.resultHeader}>
           <div>
             <h2 id={`${kind}-results`}>
-              {filtered.length} {filtered.length === 1 ? "result" : "results"}
+              {t("common.results", { count: filtered.length })}
             </h2>
             <p>
-              Page {page} of {totalPages} · filters stay in the URL
+              {t("customer.commercial.collection.pageStatus", {
+                page,
+                pages: totalPages,
+              })}
             </p>
           </div>
           <div className={styles.resultActions}>
@@ -420,7 +485,7 @@ export function CommercialCollectionPage({
                 })}
                 aria-current={state.view === "table" ? "true" : undefined}
               >
-                Table
+                {t("common.view.table")}
               </Link>
               <Link
                 className={styles.viewLink}
@@ -430,7 +495,7 @@ export function CommercialCollectionPage({
                 })}
                 aria-current={state.view === "compact" ? "true" : undefined}
               >
-                Cards
+                {t("common.view.cards")}
               </Link>
             </div>
             {hasFilters ? (
@@ -438,7 +503,7 @@ export function CommercialCollectionPage({
                 className={buttonClassName({ variant: "secondary" })}
                 href={pathname}
               >
-                Clear filters
+                {t("common.clearFilters")}
               </Link>
             ) : null}
           </div>
@@ -454,7 +519,10 @@ export function CommercialCollectionPage({
               />
             ) : null}
             <RecordCards forced={state.view === "compact"} records={records} />
-            <nav className={styles.pagination} aria-label="Result pages">
+            <nav
+              className={styles.pagination}
+              aria-label={t("common.pagination")}
+            >
               {page <= 1 ? (
                 <span aria-disabled="true" className={styles.pageLink}>
                   {t("common.pagination.previous")}
@@ -488,26 +556,26 @@ export function CommercialCollectionPage({
           <div className={styles.state}>
             <h3>
               {hasFilters
-                ? t("cp.common.noMatchTitle")
-                : t("cp.common.emptyTitle")}
+                ? t("customer.commercial.state.noMatchTitle")
+                : t("customer.commercial.state.emptyTitle")}
             </h3>
             <p>
               {hasFilters
-                ? t("cp.common.noMatchBody")
-                : t("cp.common.emptyBody")}
+                ? t("customer.commercial.state.noMatchBody")
+                : t("customer.commercial.state.emptyBody")}
             </p>
             {hasFilters ? (
               <Link
                 className={buttonClassName({ variant: "secondary" })}
                 href={pathname}
               >
-                Clear filters
+                {t("common.clearFilters")}
               </Link>
             ) : null}
           </div>
         )}
       </section>
-      <p className={styles.ruleFooter}>{definition.rule}</p>
+      <p className={styles.ruleFooter}>{t(definition.rule)}</p>
     </main>
   );
 }

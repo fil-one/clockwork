@@ -12,7 +12,8 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh }),
 }));
 
-vi.mock("@/src/features/contracts/commerce-client", () => ({
+vi.mock("@/src/features/contracts/commerce-client", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   sendCoreCommand: mocks.sendCoreCommand,
 }));
 
@@ -760,7 +761,9 @@ describe("order acceptance two-pass bridge", () => {
 
     await submitFirstPass();
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Quote is expired");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The order could not be accepted. Nothing was changed.",
+    );
     expect(screen.getByRole("button", { name: acceptLabel })).toBeEnabled();
   });
 
@@ -994,8 +997,9 @@ describe("order acceptance review panel", () => {
       .getByRole("heading", { name: "Review before accepting" })
       .closest("aside");
     expect(summary).not.toBeNull();
-    expect(summary).toHaveTextContent("Service start2026-08-15");
-    expect(summary).toHaveTextContent("Service end2027-08-14");
+    // Both dates are formatted for the reader, not echoed as ISO input values.
+    expect(summary).toHaveTextContent("Service startAug 15, 2026");
+    expect(summary).toHaveTextContent("Service endAug 14, 2027");
     expect(
       screen.getByRole("checkbox", {
         name: /service start, service end, and resulting commitment/u,

@@ -11,11 +11,13 @@ import {
   CommerceApiError,
   sendCoreCommand,
 } from "@/src/features/contracts/commerce-client";
+import { formatMoney } from "@/src/features/shared/format";
 
 import { commercialArtifactRetainUntil } from "./artifact-retention";
 import {
   buildBuyQuoteCommand,
   buyCapacity,
+  createdRowVersion,
   initialBuyDraft,
   needsFullQuote,
   quoteHandoff,
@@ -27,6 +29,7 @@ import {
   type ServerPrice,
 } from "./buy-model";
 import styles from "./buy.module.css";
+import { CommercialStop, commercialFailureText } from "./failure-message";
 import {
   preparedArtifactRequestId,
   readPreparedQuoteArtifact,
@@ -43,6 +46,15 @@ const defaultPollIntervalMs = 1_000;
 
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+/** "100 TB" (fr "100 To", ar "100 تيرابايت"), as Intl writes it. */
+function terabytes(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
+    style: "unit",
+    unit: "terabyte",
+    maximumFractionDigits: 3,
+  }).format(value);
 }
 
 function pricingException(error: unknown): boolean {
@@ -120,16 +132,16 @@ export function SelfServeBuy({
       }
       if (result.status === "stored") return result;
       if (result.status === "forbidden")
-        throw new Error("Your session can no longer prepare this quote.");
+        throw new CommercialStop(
+          "customer.commercial.buy.error.sessionCannotPrepare",
+        );
       if (result.status === "unavailable")
-        throw new Error(
-          "This workspace cannot confirm that the quote document was stored.",
+        throw new CommercialStop(
+          "customer.commercial.buy.error.documentUnconfirmed",
         );
       if (attempt + 1 < pollAttempts) await delay(pollIntervalMs);
     }
-    throw new Error(
-      "The quote document is still rendering. Try again to continue this same draft.",
-    );
+    throw new CommercialStop("customer.commercial.buy.error.stillRendering");
   };
 
   const waitForIssuedProjection = async (quoteIdValue: string) => {
@@ -145,16 +157,16 @@ export function SelfServeBuy({
       if (result.status === "found" && result.quoteStatus === "issued")
         return result;
       if (result.status === "forbidden")
-        throw new Error("Your session can no longer read this quote.");
+        throw new CommercialStop(
+          "customer.commercial.buy.error.sessionCannotRead",
+        );
       if (result.status === "unavailable")
-        throw new Error(
-          "This workspace cannot confirm the new quote in the customer ledger.",
+        throw new CommercialStop(
+          "customer.commercial.buy.error.ledgerUnconfirmed",
         );
       if (attempt + 1 < pollAttempts) await delay(pollIntervalMs);
     }
-    throw new Error(
-      "The quote was issued, but it is not in the customer ledger yet. Try again before continuing to acceptance.",
-    );
+    throw new CommercialStop("customer.commercial.buy.error.notInLedgerYet");
   };
 
   const run = async () => {
@@ -174,17 +186,11 @@ export function SelfServeBuy({
       const created = await sendCoreCommand(commandRef.current, {
         idempotencyKey: createKeyRef.current,
       });
-      setPrice(serverPrice(created, formattingLocale));
-      const rowVersion = Number(
-        (created as { record?: { rowVersion?: unknown } }).record?.rowVersion,
-      );
-      if (!Number.isInteger(rowVersion) || rowVersion < 1)
-        throw new Error("The priced draft response omitted its version.");
+      setPrice(serverPrice(created));
+      const rowVersion = createdRowVersion(created);
       if (requiresPricingReview(created)) {
         setPhase("pricing_review");
-        setMessage(
-          "The server saved this priced draft, and it needs pricing review before issuance.",
-        );
+        setMessage(t("customer.commercial.buy.pricingReview"));
         return;
       }
       issuedAtRef.current ??= new Date().toISOString();
@@ -206,8 +212,8 @@ export function SelfServeBuy({
       );
       const artifactRequestId = preparedArtifactRequestId(prepared);
       if (!artifactRequestId)
-        throw new Error(
-          "The quote document request could not be verified. Nothing was issued.",
+        throw new CommercialStop(
+          "customer.commercial.buy.error.requestUnverified",
         );
       const artifact = await waitForArtifact(
         quoteIdRef.current,
@@ -232,24 +238,18 @@ export function SelfServeBuy({
       } catch (error) {
         if (pricingException(error)) {
           setPhase("pricing_review");
-          setMessage(
-            "The server saved this priced draft, and it needs pricing review before issuance.",
-          );
+          setMessage(t("customer.commercial.buy.pricingReview"));
           return;
         }
         throw error;
       }
       await waitForIssuedProjection(quoteIdRef.current);
       setPhase("ready");
-      setMessage(
-        "The issued quote is now recorded in the customer ledger and ready for acceptance.",
-      );
+      setMessage(t("customer.commercial.buy.ready"));
     } catch (error) {
       setPhase("error");
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "The quote could not be completed. Nothing further was changed.",
+        commercialFailureText(error, t, "customer.commercial.buy.error.failed"),
       );
     }
   };
@@ -257,38 +257,43 @@ export function SelfServeBuy({
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
-        <p className={styles.context}>Customer workspace · Direct purchase</p>
-        <h1>Buy storage</h1>
+        <p className={styles.context}>{t("customer.commercial.buy.context")}</p>
+        <h1>{t("customer.commercial.buy.title")}</h1>
         <p>
-          Configure one direct 12-month quote. The server prices the draft and
-          issues it only after its customer document is stored and bound.
+          {t("customer.commercial.buy.description", {
+            count: SELF_SERVE_TERM_MONTHS,
+          })}
         </p>
         <p>
           <Link className={styles.alternateOffer} href="/buy/payg">
-            Looking for no-term PAYG or a trial? Review offers and service
-            requests
+            {t("customer.commercial.buy.paygLink")}
           </Link>
         </p>
       </header>
 
-      <ol aria-label="Purchase path" className={styles.steps}>
+      <ol
+        aria-label={t("customer.commercial.buy.stepsLabel")}
+        className={styles.steps}
+      >
         <li aria-current={phase === "configure" ? "step" : undefined}>
-          Configure
+          {t("customer.commercial.buy.step.configure")}
         </li>
         <li aria-current={phase === "working" ? "step" : undefined}>
-          Server price and document
+          {t("customer.commercial.buy.step.price")}
         </li>
         <li aria-current={phase === "ready" ? "step" : undefined}>
-          Accept order
+          {t("customer.commercial.buy.step.accept")}
         </li>
       </ol>
 
       <div className={styles.layout}>
         <section aria-labelledby="buy-configure" className={styles.panel}>
-          <h2 id="buy-configure">Configure the quote</h2>
+          <h2 id="buy-configure">
+            {t("customer.commercial.buy.configureTitle")}
+          </h2>
           <div className={styles.fields}>
             <label>
-              Offer
+              {t("customer.commercial.builder.offer")}
               <select
                 disabled={phase === "working"}
                 onChange={(event) => update("offerId", event.target.value)}
@@ -302,7 +307,7 @@ export function SelfServeBuy({
               </select>
             </label>
             <label>
-              Committed capacity (TB)
+              {t("customer.commercial.builder.label.capacity")}
               <input
                 disabled={phase === "working"}
                 inputMode="decimal"
@@ -315,40 +320,56 @@ export function SelfServeBuy({
           </div>
           {offers.length === 0 ? (
             <p className={styles.error} role="alert">
-              No active offer catalogue is available for this account. No quote
-              command can be sent.
+              {t("customer.commercial.builder.noOffers")}
             </p>
           ) : null}
           <CapacityMeter
-            label="Capacity routing"
+            label={t("customer.commercial.buy.meterLabel")}
             max={150}
             threshold={thresholdTb}
-            thresholdLabel="100 TB routes to the full quote workspace"
+            thresholdLabel={t("customer.commercial.buy.meterThreshold", {
+              threshold: terabytes(thresholdTb, formattingLocale),
+            })}
             value={capacity ?? 0}
-            valueLabel={capacity === null ? "Not set" : `${capacity} TB`}
+            valueLabel={
+              capacity === null
+                ? t("customer.commercial.builder.notSet")
+                : terabytes(capacity, formattingLocale)
+            }
           />
           <p className={styles.rule}>
-            Self-serve is below 100 TB. The 100 TB line is this page&apos;s
-            routing choice, not a pricing rule. Every quote is priced by the
-            server.
+            {t("customer.commercial.buy.routingRule", {
+              threshold: terabytes(thresholdTb, formattingLocale),
+            })}
           </p>
           <dl className={styles.terms}>
             <div>
-              <dt>Commercial route</dt>
-              <dd>
-                Direct · Fil One contracts with and invoices this customer
-              </dd>
+              <dt>{t("customer.commercial.builder.legend.route")}</dt>
+              <dd>{t("customer.commercial.buy.routeValue")}</dd>
             </div>
             <div>
-              <dt>{t("common.term")}</dt>
-              <dd>{SELF_SERVE_TERM_MONTHS} months · fixed on this page</dd>
+              <dt>{t("customer.commercial.buy.term")}</dt>
+              <dd>
+                {t("customer.commercial.buy.termValue", {
+                  count: SELF_SERVE_TERM_MONTHS,
+                })}
+              </dd>
             </div>
           </dl>
 
           {price ? (
             <p className={styles.price}>
-              <span>Server-priced amount</span>
-              <strong>{price.display}</strong>
+              <span>{t("customer.commercial.buy.priceLabel")}</span>
+              <strong>
+                {t("customer.commercial.buy.priceValue", {
+                  amount: formatMoney(
+                    price.totalMinor,
+                    price.currency,
+                    formattingLocale,
+                  ),
+                  count: SELF_SERVE_TERM_MONTHS,
+                })}
+              </strong>
             </p>
           ) : null}
 
@@ -364,21 +385,21 @@ export function SelfServeBuy({
           <div className={styles.actions}>
             {fullQuote ? (
               <Link className={styles.primary} href={quoteHandoff(draft)}>
-                Continue in a quote
+                {t("customer.commercial.buy.continueInQuote")}
               </Link>
             ) : phase === "ready" && quoteId ? (
               <Link
                 className={styles.primary}
                 href={`/orders/accept?quote=quote-${quoteId}`}
               >
-                Review and accept order
+                {t("customer.commercial.detail.step.acceptOrder")}
               </Link>
             ) : phase === "pricing_review" && quoteId ? (
               <Link
                 className={styles.primary}
                 href={`/quotes/quote-${quoteId}`}
               >
-                Open priced draft
+                {t("customer.commercial.buy.openDraft")}
               </Link>
             ) : (
               <button
@@ -391,27 +412,22 @@ export function SelfServeBuy({
                 onClick={() => void run()}
                 type="button"
               >
-                {phase === "working"
-                  ? "Pricing and preparing…"
-                  : phase === "error"
-                    ? "Try again"
-                    : "Price and prepare quote"}
+                {t(
+                  phase === "working"
+                    ? "customer.commercial.buy.working"
+                    : phase === "error"
+                      ? "customer.commercial.buy.tryAgain"
+                      : "customer.commercial.buy.submit",
+                )}
               </button>
             )}
           </div>
         </section>
 
         <aside aria-labelledby="buy-boundary" className={styles.boundary}>
-          <h2 id="buy-boundary">What happens next</h2>
-          <p>
-            A priced draft is not an order. In authoritative mode the quote must
-            be issued, projected to this account, and then explicitly accepted
-            with authority and service dates.
-          </p>
-          <p>
-            If a pricing guardrail requires review, the draft remains saved and
-            no issued quote or acceptance handoff is claimed.
-          </p>
+          <h2 id="buy-boundary">{t("customer.commercial.buy.nextTitle")}</h2>
+          <p>{t("customer.commercial.buy.nextOrder")}</p>
+          <p>{t("customer.commercial.buy.nextReview")}</p>
         </aside>
       </div>
     </main>

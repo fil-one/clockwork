@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslations } from "@/src/i18n/client";
+import type { MessageId, Translator } from "@/src/i18n";
+
 import styles from "./commercial.module.css";
 
 export interface EditableQuoteLine {
@@ -15,25 +18,56 @@ export interface LineOffer {
   region: string;
 }
 
-export function validateAdditionalLines(
+/** Why an additional line cannot be sent, and which line (numbered from 2). */
+export interface QuoteLineProblem {
+  readonly message: MessageId;
+  readonly line: number;
+}
+
+/**
+ * The first additional line that the server would refuse, as facts. The first
+ * line of a quote is the main offer, so additional lines are numbered from 2.
+ */
+export function additionalLineProblem(
   lines: readonly EditableQuoteLine[],
   offers: readonly LineOffer[],
   priceBookId?: string,
-): string | undefined {
+): QuoteLineProblem | undefined {
   for (const [index, line] of lines.entries()) {
+    const number = index + 2;
     const offer = offers.find((item) => item.id === line.offerId);
     if (!offer || offer.priceBookId !== priceBookId)
-      return `Line ${index + 2}: select an offer from the same price book as the first line.`;
+      return {
+        message: "customer.commercial.lines.problem.offer",
+        line: number,
+      };
     if (!Number.isFinite(Number(line.capacity)) || Number(line.capacity) < 10)
-      return `Line ${index + 2}: enter at least 10 TB.`;
+      return {
+        message: "customer.commercial.lines.problem.capacity",
+        line: number,
+      };
     if (
       !Number.isInteger(Number(line.termMonths)) ||
       Number(line.termMonths) < 1 ||
       Number(line.termMonths) > 60
     )
-      return `Line ${index + 2}: enter a term between 1 and 60 months.`;
+      return {
+        message: "customer.commercial.lines.problem.term",
+        line: number,
+      };
   }
   return undefined;
+}
+
+/** The same check, as the sentence the reader is shown. */
+export function validateAdditionalLines(
+  lines: readonly EditableQuoteLine[],
+  offers: readonly LineOffer[],
+  priceBookId: string | undefined,
+  t: Translator,
+): string | undefined {
+  const problem = additionalLineProblem(lines, offers, priceBookId);
+  return problem ? t(problem.message, { line: problem.line }) : undefined;
 }
 
 export function QuoteLines({
@@ -47,20 +81,23 @@ export function QuoteLines({
   priceBookId?: string;
   onChange: (lines: EditableQuoteLine[]) => void;
 }) {
+  const t = useTranslations();
   const available = offers.filter((offer) => offer.priceBookId === priceBookId);
   return (
-    <section className={styles.section} aria-label="Additional quote lines">
-      <h3>Additional capacity</h3>
-      <p>
-        Add another offer or region to the same quote. Each line is priced
-        separately.
-      </p>
+    <section
+      className={styles.section}
+      aria-label={t("customer.commercial.lines.label")}
+    >
+      <h3>{t("customer.commercial.lines.title")}</h3>
+      <p>{t("customer.commercial.lines.description")}</p>
       {lines.map((line, index) => (
         <fieldset key={index} className={styles.stageFields}>
-          <legend>Line {index + 2}</legend>
+          <legend>
+            {t("customer.commercial.builder.line", { line: index + 2 })}
+          </legend>
           <div className={styles.formGrid}>
             <label>
-              Offer for line {index + 2}
+              {t("customer.commercial.lines.offerFor", { line: index + 2 })}
               <select
                 value={line.offerId}
                 onChange={(event) =>
@@ -73,7 +110,9 @@ export function QuoteLines({
                   )
                 }
               >
-                <option value="">Choose an offer</option>
+                <option value="">
+                  {t("customer.commercial.builder.chooseOffer")}
+                </option>
                 {available.map((offer) => (
                   <option key={offer.id} value={offer.id}>
                     {offer.label}
@@ -82,7 +121,7 @@ export function QuoteLines({
               </select>
             </label>
             <label>
-              Capacity (TB) for line {index + 2}
+              {t("customer.commercial.lines.capacityFor", { line: index + 2 })}
               <input
                 type="number"
                 min="10"
@@ -99,7 +138,7 @@ export function QuoteLines({
               />
             </label>
             <label>
-              Term (months) for line {index + 2}
+              {t("customer.commercial.lines.termFor", { line: index + 2 })}
               <input
                 type="number"
                 min="1"
@@ -122,7 +161,7 @@ export function QuoteLines({
             className={styles.secondary}
             onClick={() => onChange(lines.filter((_, i) => i !== index))}
           >
-            Remove line {index + 2}
+            {t("customer.commercial.lines.remove", { line: index + 2 })}
           </button>
         </fieldset>
       ))}
@@ -134,7 +173,7 @@ export function QuoteLines({
           onChange([...lines, { offerId: "", capacity: "", termMonths: "12" }])
         }
       >
-        Add capacity line
+        {t("customer.commercial.lines.add")}
       </button>
     </section>
   );

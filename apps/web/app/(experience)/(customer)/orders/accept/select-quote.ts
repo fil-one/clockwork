@@ -1,5 +1,7 @@
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
 import type { AcceptableQuote } from "@/src/features/customer-partner/commercial/order-acceptance";
+import { projectionDisplay } from "@/src/features/customer-partner/commercial/record-presentation";
+import type { Translator } from "@/src/i18n";
 
 type Data = Readonly<Record<string, unknown>>;
 
@@ -23,17 +25,36 @@ function quoteRevision(record: ProjectionRecord): string {
   return text(record.data, "version") ?? String(record.version);
 }
 
-/** Maps projection identity to the commercial identity shown to the signer. */
-export function toAcceptableQuote(record: ProjectionRecord): AcceptableQuote {
+/**
+ * Maps projection identity to the commercial identity shown to the signer,
+ * in the signer's language: a quote carrying facts is rendered from them, and
+ * one carrying only display strings shows them as written.
+ */
+export function toAcceptableQuote(
+  record: ProjectionRecord,
+  t: Translator,
+  locale: string,
+): AcceptableQuote {
   const data = record.data;
+  const display = projectionDisplay(
+    data,
+    "quotes",
+    record.sourceUpdatedAt,
+    t,
+    locale,
+  );
   return {
     id: record.aggregateId,
     reference: text(data, "reference") ?? record.recordKey,
     title: text(data, "title") ?? record.recordKey,
     version: quoteRevision(record),
-    scope: text(data, "description") ?? "Scope not recorded",
-    spend: text(data, "value") ?? "Not priced",
-    acceptedLabel: text(data, "dateLabel") ?? "Acceptance date not recorded",
+    scope:
+      display.description.trim() ||
+      t("customer.commercial.review.scopeNotRecorded"),
+    spend: display.value.trim() || t("customer.commercial.review.notPriced"),
+    acceptedLabel:
+      display.timing.trim() ||
+      t("customer.commercial.review.acceptanceNotRecorded"),
   };
 }
 

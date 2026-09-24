@@ -1,3 +1,4 @@
+import { translatorFor } from "@/src/i18n/catalogs";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -50,6 +51,7 @@ describe("multiple-line quoting", () => {
         ],
         authoritativeQuoteOffers,
         "another-book",
+        translatorFor("en"),
       ),
     ).toContain("same price book");
     expect(
@@ -63,6 +65,7 @@ describe("multiple-line quoting", () => {
         ],
         authoritativeQuoteOffers,
         authoritativeQuoteOffer.priceBookId,
+        translatorFor("en"),
       ),
     ).toContain("at least 10");
   });

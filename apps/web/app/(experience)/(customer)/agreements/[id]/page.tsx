@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
+import { getTranslations } from "@/src/i18n/server";
 import { CommercialRecordDetail } from "@/src/features/customer-partner/commercial/record-detail";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { loadCommercialRecord } from "@/src/features/experience-server/portal-view-loader";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("customer.commercial.detail.eyebrow.agreements") };
+}
 
 export default async function Page({
   params,

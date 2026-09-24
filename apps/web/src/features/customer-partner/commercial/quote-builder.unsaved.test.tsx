@@ -9,7 +9,8 @@ import {
 } from "./quote-offer.test-fixture";
 
 const sendCoreCommand = vi.fn<(input: unknown) => Promise<unknown>>();
-vi.mock("@/src/features/contracts/commerce-client", () => ({
+vi.mock("@/src/features/contracts/commerce-client", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   sendCoreCommand: (input: unknown) => sendCoreCommand(input),
 }));
 
@@ -142,7 +143,11 @@ describe("quote builder unsaved-work protection", () => {
     await user.click(
       screen.getByRole("button", { name: "Create priced draft" }),
     );
-    await screen.findByText("Rate card is not activated");
+    // A thrown error's own text is not shown: the reader gets the surface's
+    // sentence saying what did and did not happen.
+    await screen.findByText(
+      "The priced draft could not be created. Nothing was changed.",
+    );
 
     // Nothing was recorded, so everything on the form is still unsaved.
     expect(unloadWouldWarn()).toBe(true);

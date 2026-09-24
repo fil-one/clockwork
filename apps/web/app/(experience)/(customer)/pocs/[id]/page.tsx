@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { getTranslations } from "@/src/i18n/server";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { CommercialRecordDetail } from "@/src/features/customer-partner/commercial/record-detail";
 import { ProjectionActionButtons } from "@/src/features/experience-server/projection-action-buttons";
@@ -11,6 +13,11 @@ import {
   getRouteRoles,
 } from "@/src/features/shell/route-session";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("customer.commercial.detail.eyebrow.pocs") };
+}
 
 export default async function Page({
   params,

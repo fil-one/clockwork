@@ -219,6 +219,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
       lines,
       lineOffers,
       resolveOption(draft.offerName, context.offers)?.priceBookId,
+      t,
     );
     setLineError(problem);
     return problem;
