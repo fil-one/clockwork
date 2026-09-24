@@ -1,15 +1,24 @@
 "use client";
 import { useActionState } from "react";
 import type { ProviderReferenceRow } from "@clockwork/db";
-import { saveProviderReference } from "./actions";
+import { saveProviderReference, type ProviderReferenceResult } from "./actions";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
+import { useTranslations } from "@/src/i18n/client";
+
+/** Format examples: identifiers and ISO syntax, the same in every language. */
+const secretReferenceExample = "vault:commerce/provider/credential";
+const rotationTimestampExample = "2026-09-06T12:00:00.000Z";
 
 export function ProviderReferenceControls({
   row,
 }: {
   row: ProviderReferenceRow;
 }) {
-  const [message, action, pending] = useActionState(saveProviderReference, "");
+  const t = useTranslations();
+  const [message, action, pending] = useActionState<
+    ProviderReferenceResult,
+    FormData
+  >(saveProviderReference, "");
   const current = row.configuration;
   return (
     <form action={action} className={styles.panelBody}>
@@ -17,26 +26,27 @@ export function ProviderReferenceControls({
       <input type="hidden" name="expectedRowVersion" value={row.rowVersion} />
       <fieldset disabled={pending}>
         <legend>
-          {current ? "Update operating reference" : "Add operating reference"}
+          {t(
+            current
+              ? "adminGovernance.providers.form.update"
+              : "adminGovernance.providers.form.add",
+          )}
         </legend>
         <label className={styles.field}>
-          Secret-manager reference
+          {t("adminGovernance.providers.secretReference")}
           <input
             name="secretReference"
             required
             maxLength={1000}
-            placeholder="vault:commerce/provider/credential"
+            placeholder={secretReferenceExample}
             defaultValue={current?.secretReference ?? ""}
             autoComplete="off"
             spellCheck={false}
           />
         </label>
-        <p>
-          Enter the path only. Never paste a token, password, private key, or
-          connection URL.
-        </p>
+        <p>{t("adminGovernance.providers.form.pathOnly")}</p>
         <label className={styles.field}>
-          Secret version
+          {t("adminGovernance.providers.secretVersion")}
           <input
             name="secretVersion"
             required
@@ -46,17 +56,17 @@ export function ProviderReferenceControls({
           />
         </label>
         <label className={styles.field}>
-          Actual rotation timestamp (UTC)
+          {t("adminGovernance.providers.form.rotatedAt")}
           <input
             name="rotatedAt"
             required
-            placeholder="2026-09-06T12:00:00.000Z"
+            placeholder={rotationTimestampExample}
             defaultValue={current?.rotatedAt ?? ""}
             spellCheck={false}
           />
         </label>
         <label className={styles.field}>
-          Operating owner
+          {t("adminGovernance.providers.owner")}
           <input
             name="owner"
             required
@@ -67,7 +77,7 @@ export function ProviderReferenceControls({
           />
         </label>
         <label className={styles.field}>
-          Rotation review interval (days)
+          {t("adminGovernance.providers.form.reviewInterval")}
           <input
             name="reviewIntervalDays"
             type="number"
@@ -77,12 +87,9 @@ export function ProviderReferenceControls({
             defaultValue={current?.reviewIntervalDays ?? 90}
           />
         </label>
-        <p>
-          This sets the review due date shown here. It does not rotate
-          credentials or send a reminder.
-        </p>
+        <p>{t("adminGovernance.providers.form.reviewIntervalHint")}</p>
         <label className={styles.field}>
-          Rotation evidence reference
+          {t("adminGovernance.providers.form.rotationEvidence")}
           <input
             name="sourceEvidence"
             required
@@ -91,14 +98,14 @@ export function ProviderReferenceControls({
           />
         </label>
         <label className={styles.field}>
-          Reason for change
+          {t("adminGovernance.providers.form.reason")}
           <textarea name="reason" minLength={8} maxLength={2000} required />
         </label>
         <button className={styles.button} type="submit">
-          {pending ? "Saving…" : "Save provider reference"}
+          {pending ? t("common.saving") : t("adminGovernance.providers.save")}
         </button>
       </fieldset>
-      {message ? <p role="status">{message}</p> : null}
+      {message ? <p role="status">{t(message)}</p> : null}
     </form>
   );
 }

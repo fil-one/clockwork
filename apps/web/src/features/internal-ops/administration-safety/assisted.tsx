@@ -1,6 +1,6 @@
 "use client";
 import { useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
+import type { MessageId } from "@/src/i18n";
 
 import { useState } from "react";
 
@@ -27,29 +27,24 @@ import {
 
 const assistedActions = {
   quote_adjustment: {
-    label: "Prepare commercial quote adjustment",
-    impact: "Stages a commercial adjustment for the effective account.",
-    policy: "Assisted action policy AS-3 and commercial approval policy CP-4.",
-    downstream:
-      "Creates a reviewed draft only. Pricing floors and finance approval remain server-enforced.",
+    label: "adminGovernance.assisted.action.quoteAdjustment.label",
+    impact: "adminGovernance.assisted.action.quoteAdjustment.impact",
+    policy: "adminGovernance.assisted.action.quoteAdjustment.policy",
+    downstream: "adminGovernance.assisted.action.quoteAdjustment.downstream",
   },
   invoice_dispute: {
-    label: "Review invoice dispute",
-    impact: "Stages an invoice-dispute note for finance review.",
-    policy: "Assisted action policy AS-3 and collections policy CL-5.",
-    downstream:
-      "No credit, refund, or invoice mutation occurs until finance authority validates the request.",
+    label: "adminGovernance.assisted.action.invoiceDispute.label",
+    impact: "adminGovernance.assisted.action.invoiceDispute.impact",
+    policy: "adminGovernance.assisted.action.invoiceDispute.policy",
+    downstream: "adminGovernance.assisted.action.invoiceDispute.downstream",
   },
   offboarding_request: {
-    label: "Request controlled offboarding",
-    impact:
-      "Stages a retention-aware offboarding request for the effective account.",
-    policy:
-      "Assisted action policy AS-3 and retention and teardown policy RT-9.",
-    downstream:
-      "Starts no teardown. Retrieval, credit, retention, recent-authentication, and dual-control gates remain required.",
+    label: "adminGovernance.assisted.action.offboarding.label",
+    impact: "adminGovernance.assisted.action.offboarding.impact",
+    policy: "adminGovernance.assisted.action.offboarding.policy",
+    downstream: "adminGovernance.assisted.action.offboarding.downstream",
   },
-} as const;
+} as const satisfies Record<string, Record<string, MessageId>>;
 
 type AssistedActionKey = keyof typeof assistedActions;
 
@@ -67,7 +62,15 @@ export function AssistedMode({
   guidedDemo?: boolean;
 }) {
   const t = useTranslations();
-  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
+  const heading = adminSafetyCopy.assisted;
+  const headingText = {
+    eyebrow: t(heading.eyebrow),
+    title: t(heading.title),
+    description: t(heading.description),
+  };
+  const accountIdentifiers = (id: string) => [
+    { label: t("adminGovernance.identifier.effectiveAccount"), value: id },
+  ];
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [reason, setReason] = useState("");
   const [actionKey, setActionKey] =
@@ -86,69 +89,66 @@ export function AssistedMode({
 
   if (!account)
     return (
-      <AdministrationPage {...localizedadminSafetyCopy.assisted}>
+      <AdministrationPage {...headingText}>
         <section className={styles.roleNotice} role="note">
-          <strong>Assisted authority is required.</strong>
-          This session cannot load or select customer accounts for assisted
-          action.
+          <strong>{t("adminGovernance.assisted.authorityRequired")}</strong>
+          {t("adminGovernance.assisted.noAccountsDetail")}
         </section>
       </AdministrationPage>
     );
 
   if (sessionActive)
     return (
-      <AdministrationPage {...localizedadminSafetyCopy.assisted}>
+      <AdministrationPage {...headingText}>
         <section className={styles.notice} role="note">
-          <strong>An assisted session is already active.</strong>
-          The effective account remains locked to {account.label}. Use the
-          active-session banner to exit before starting a different assisted
-          session.
+          <strong>{t("adminGovernance.assisted.sessionActive")}</strong>
+          {t("adminGovernance.assisted.sessionActiveDetail", {
+            account: account.label,
+          })}
         </section>
       </AdministrationPage>
     );
 
   if (guidedDemo)
     return (
-      <AdministrationPage {...localizedadminSafetyCopy.assisted}>
+      <AdministrationPage {...headingText}>
         <section className={styles.panel} aria-labelledby="assisted-demo-title">
           <div className={styles.panelHeading}>
             <div>
-              <h2 id="assisted-demo-title">Assisted identity boundary</h2>
-              <p>
-                Review the actor and effective-account separation used by the
-                production workflow.
-              </p>
+              <h2 id="assisted-demo-title">
+                {t("adminGovernance.assisted.demo.heading")}
+              </h2>
+              <p>{t("adminGovernance.assisted.demo.intro")}</p>
             </div>
-            <StatusPill state="Read only" />
+            <StatusPill state={t("adminGovernance.readOnly")} tone="warning" />
           </div>
           <div className={styles.panelBody}>
             <dl className={styles.metaGrid}>
               <div>
-                <dt>Effective account example</dt>
+                <dt>{t("adminGovernance.assisted.demo.accountExample")}</dt>
                 <dd>{account.label}</dd>
               </div>
               <div>
-                <dt>Authenticated staff actor</dt>
+                <dt>{t("adminGovernance.assisted.authenticatedActor")}</dt>
                 <dd>{actor}</dd>
               </div>
               <div>
-                <dt>Session requirement</dt>
-                <dd>Provider-backed identity and service database</dd>
+                <dt>{t("adminGovernance.assisted.demo.sessionRequirement")}</dt>
+                <dd>
+                  {t("adminGovernance.assisted.demo.sessionRequirementDetail")}
+                </dd>
               </div>
               <div>
-                <dt>Audit boundary</dt>
-                <dd>Immutable actor, effective account, reason, and expiry</dd>
+                <dt>{t("adminGovernance.assisted.demo.auditBoundary")}</dt>
+                <dd>
+                  {t("adminGovernance.assisted.demo.auditBoundaryDetail")}
+                </dd>
               </div>
             </dl>
-            <TechnicalEvidence
-              identifiers={[
-                { label: "Effective account ID", value: account.id },
-              ]}
-            />
+            <TechnicalEvidence identifiers={accountIdentifiers(account.id)} />
             <div className={styles.roleNotice} role="note">
-              <strong>No assisted session is created in this demo.</strong>
-              The production action is unavailable until the identity provider
-              can bind the staff actor to a time-limited server session.
+              <strong>{t("adminGovernance.assisted.demo.noSession")}</strong>
+              {t("adminGovernance.assisted.demo.noSessionDetail")}
             </div>
           </div>
         </section>
@@ -160,23 +160,28 @@ export function AssistedMode({
   };
 
   return (
-    <AdministrationPage {...localizedadminSafetyCopy.assisted}>
+    <AdministrationPage {...headingText}>
       <section className={styles.notice} role="note">
-        <strong>The staff actor never changes.</strong>
-        The effective account scopes the customer record. The authenticated
-        staff actor, role, and authorization come from the server session and
-        cannot be edited here.
+        <strong>{t("adminGovernance.assisted.actorFixed")}</strong>
+        {t("adminGovernance.assisted.actorFixedDetail")}
       </section>
 
       <section className={styles.panel} aria-labelledby="assisted-action-title">
         <div className={styles.panelHeading}>
           <div>
-            <h2 id="assisted-action-title">Assisted commercial action</h2>
-            <p>
-              Review is mandatory before any secure submission is available.
-            </p>
+            <h2 id="assisted-action-title">
+              {t("adminGovernance.assisted.actionHeading")}
+            </h2>
+            <p>{t("adminGovernance.assisted.actionIntro")}</p>
           </div>
-          <StatusPill state={mayAssume ? "Assume authority" : "Read only"} />
+          <StatusPill
+            state={t(
+              mayAssume
+                ? "adminGovernance.assisted.mayAct"
+                : "adminGovernance.readOnly",
+            )}
+            tone="warning"
+          />
         </div>
         <form
           className={styles.panelBody}
@@ -184,22 +189,24 @@ export function AssistedMode({
             event.preventDefault();
             setSummary(
               buildReviewSummary({
-                entity: `${account.label} · effective assisted account`,
-                impact: action.impact,
+                entity: t("adminGovernance.assisted.review.entity", {
+                  account: account.label,
+                }),
+                impact: t(action.impact),
                 evidence: [
-                  `Authenticated staff actor: ${actor}`,
-                  "Assisted-mode reason captured",
-                  "Screening, credit, provider, and role gates shown for review",
+                  t("adminGovernance.assisted.review.actor", { actor }),
+                  t("adminGovernance.assisted.review.reasonCaptured"),
+                  t("adminGovernance.assisted.review.gatesShown"),
                 ],
-                policyBasis: action.policy,
-                downstreamEffect: action.downstream,
+                policyBasis: t(action.policy),
+                downstreamEffect: t(action.downstream),
                 reason,
               }),
             );
           }}
         >
           <HumanSelector
-            label="Effective account"
+            label={t("adminGovernance.assisted.effectiveAccount")}
             name="effectiveAccountId"
             options={accounts}
             value={accountId}
@@ -209,7 +216,7 @@ export function AssistedMode({
             }}
           />
           <Select
-            label="Assisted action"
+            label={t("adminGovernance.assisted.actionLabel")}
             name="action"
             value={actionKey}
             onChange={(event) => {
@@ -218,59 +225,49 @@ export function AssistedMode({
             }}
             options={Object.entries(assistedActions).map(([key, value]) => ({
               value: key,
-              label: value.label,
+              label: t(value.label),
             }))}
           />
           <label className={styles.field}>
-            Assisted-mode reason
+            {t("adminGovernance.assisted.reason")}
             <textarea
               name="reason"
               value={reason}
               required
               minLength={8}
-              placeholder="State who requested help and why staff access is necessary."
+              placeholder={t("adminGovernance.assisted.reasonPlaceholder")}
               onChange={(event) => {
                 setReason(event.currentTarget.value);
                 resetReview();
               }}
             />
             <span className={styles.fieldHint}>
-              Required, attributed to the staff actor, and retained with the
-              action.
+              {t("adminGovernance.assisted.reasonHint")}
             </span>
           </label>
           <dl className={styles.metaGrid}>
             <div>
-              <dt>Effective account</dt>
+              <dt>{t("adminGovernance.assisted.effectiveAccount")}</dt>
               <dd>{account.label}</dd>
             </div>
             <div>
-              <dt>Staff actor</dt>
+              <dt>{t("adminGovernance.assisted.staffActor")}</dt>
               <dd>{actor}</dd>
             </div>
             <div>
-              <dt>Commercial gates</dt>
-              <dd>
-                Pricing floors · finance approval · credit state · screening
-                state
-              </dd>
+              <dt>{t("adminGovernance.assisted.commercialGates")}</dt>
+              <dd>{t("adminGovernance.assisted.commercialGatesDetail")}</dd>
             </div>
             <div>
-              <dt>Operational gates</dt>
-              <dd>
-                Provider readiness · retention · dual control · actor
-                attribution
-              </dd>
+              <dt>{t("adminGovernance.assisted.operationalGates")}</dt>
+              <dd>{t("adminGovernance.assisted.operationalGatesDetail")}</dd>
             </div>
           </dl>
-          <TechnicalEvidence
-            identifiers={[{ label: "Effective account ID", value: account.id }]}
-          />
+          <TechnicalEvidence identifiers={accountIdentifiers(account.id)} />
           {!mayAssume ? (
             <div className={styles.roleNotice} role="note">
-              <strong>Assisted authority is required.</strong>
-              This role may inspect the review model but cannot act for an
-              effective account.
+              <strong>{t("adminGovernance.assisted.authorityRequired")}</strong>
+              {t("adminGovernance.assisted.roleCannotActDetail")}
             </div>
           ) : null}
           <div className={styles.actions}>
@@ -279,7 +276,7 @@ export function AssistedMode({
               type="submit"
               disabled={!mayAssume}
             >
-              Review assisted action
+              {t("adminGovernance.assisted.reviewAction")}
             </button>
           </div>
         </form>
@@ -289,21 +286,25 @@ export function AssistedMode({
         <>
           <ReviewSummaryCard
             summary={summary}
-            title="Assisted action review"
-            identifiers={[{ label: "Effective account ID", value: account.id }]}
+            title={t("adminGovernance.assisted.summaryTitle")}
+            identifiers={accountIdentifiers(account.id)}
           />
           <section className={styles.handoff} role="note">
             <strong>
-              {ready && guidedDemo
-                ? "Assisted review complete"
-                : ready
-                  ? "Assisted action not submitted"
-                  : "Assisted action remains blocked"}
+              {t(
+                ready && guidedDemo
+                  ? "adminGovernance.assisted.handoff.reviewComplete"
+                  : ready
+                    ? "adminGovernance.assisted.handoff.notSubmitted"
+                    : "adminGovernance.assisted.handoff.blocked",
+              )}
             </strong>
             <p>
-              {guidedDemo
-                ? "The guided demo records no effective-account session. A provider-backed identity and service database are required before staff can act for a customer."
-                : "Start the time-limited server session to preserve the staff actor and re-evaluate account, role, commercial, screening, credit, retention, and provider gates before every mutation."}
+              {t(
+                guidedDemo
+                  ? "adminGovernance.assisted.handoff.demoDetail"
+                  : "adminGovernance.assisted.handoff.startDetail",
+              )}
             </p>
             {ready && !guidedDemo ? (
               <form action={startAssistedSession}>
@@ -314,7 +315,7 @@ export function AssistedMode({
                 />
                 <input type="hidden" name="reason" value={reason} />
                 <button className={styles.button} type="submit">
-                  Start 15-minute assisted session
+                  {t("adminGovernance.assisted.startSession")}
                 </button>
               </form>
             ) : null}

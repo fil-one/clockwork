@@ -6,14 +6,22 @@ import { ChannelPolicyCommandSchema } from "@clockwork/domain/core";
 import { DatabaseChannelPolicyRepository } from "@clockwork/db";
 import { requireRecentAuthentication } from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
+import type { MessageId } from "@/src/i18n";
+
+/**
+ * The outcome as a message ID; the form renders it in the reader's language.
+ * An empty string is the form's initial state.
+ */
+export type ChannelPolicyResult = MessageId | "";
+
 function field(data: FormData, key: string) {
   const value = data.get(key);
   return typeof value === "string" ? value : "";
 }
 export async function changeChannelPolicy(
-  _previous: string,
+  _previous: ChannelPolicyResult,
   data: FormData,
-): Promise<string> {
+): Promise<ChannelPolicyResult> {
   const session = await requireRecentAuthentication();
   if (
     (!session.providerBacked && !demoDeployIdentityEnabled(process.env)) ||
@@ -24,7 +32,7 @@ export async function changeChannelPolicy(
     session.assistedSession ||
     session.authenticationProviderImpersonator
   )
-    return "Use a directly authenticated finance session with current MFA to change policy.";
+    return "adminGovernance.channelPolicy.result.financeSessionRequired";
   const action = field(data, "action");
   const terms = {
     version: Number(field(data, "version")),
@@ -56,8 +64,7 @@ export async function changeChannelPolicy(
               : {}),
           },
   );
-  if (!parsed.success)
-    return "Check the dates, whole-day limits, version, and evidence. Default protection must fit the maximum window.";
+  if (!parsed.success) return "adminGovernance.channelPolicy.result.invalid";
   try {
     const input = {
       command: parsed.data,
@@ -78,28 +85,28 @@ export async function changeChannelPolicy(
     revalidatePath("/buy");
     revalidatePath("/partner/registrations");
     return action === "approve"
-      ? "Policy approved. New requests use it from its effective date; existing registrations retain their snapshot."
+      ? "adminGovernance.channelPolicy.result.approved"
       : action === "reject"
-        ? "Returned to draft with the decision reason."
+        ? "adminGovernance.channelPolicy.result.returned"
         : action === "propose"
-          ? "Proposed for a different finance approver. Content is frozen during review."
-          : "Draft saved.";
+          ? "adminGovernance.channelPolicy.result.proposed"
+          : "adminGovernance.channelPolicy.result.saved";
   } catch (error) {
-    const messages: Record<string, string> = {
+    const messages: Readonly<Record<string, MessageId>> = {
       CHANNEL_POLICY_DISTINCT_APPROVER_REQUIRED:
-        "A finance approver who neither created, edited, nor proposed this version must decide it.",
+        "adminGovernance.channelPolicy.error.distinctApprover",
       CHANNEL_POLICY_VERSION_CONFLICT:
-        "This version changed. Refresh before retrying.",
+        "adminGovernance.channelPolicy.error.versionConflict",
       CHANNEL_POLICY_BACKDATED_APPROVAL:
-        "The effective date is now in the past. Return the draft for a current or future date.",
-      CHANNEL_POLICY_IMMUTABLE:
-        "Approved policies are immutable. Create a new version.",
+        "adminGovernance.channelPolicy.error.backdated",
+      CHANNEL_POLICY_IMMUTABLE: "adminGovernance.channelPolicy.error.immutable",
       CHANNEL_POLICY_FINANCE_REQUIRED:
-        "Your persisted finance role or MFA enrollment does not permit this action.",
+        "adminGovernance.channelPolicy.error.financeRequired",
     };
     return (
-      (error instanceof Error ? messages[error.message] : undefined) ??
-      "The policy could not be saved. Refresh and check that its version and approved effective date are unique."
+      (error instanceof Error && Object.hasOwn(messages, error.message)
+        ? messages[error.message]
+        : undefined) ?? "adminGovernance.channelPolicy.error.generic"
     );
   }
 }

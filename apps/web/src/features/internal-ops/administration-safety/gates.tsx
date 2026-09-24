@@ -1,8 +1,14 @@
 "use client";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
-import { localizeCopy } from "@/src/i18n/copy";
+import type { MessageId, Translator } from "@/src/i18n";
 
-import { useEffect, useState, useTransition, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react";
 
 import { Select, Table } from "@clockwork/ui";
 
@@ -12,15 +18,26 @@ import {
   updateGeneratedExternalGate,
   type GeneratedExternalGate,
 } from "@/src/features/contracts/external-gates-client";
+import { formatSurfaceTimestamp } from "@/src/features/customer-partner/formatting";
 import {
   runDemoExternalGateActivationTest,
   updateDemoExternalGate,
 } from "@/src/features/internal-ops/gates/demo-gate-actions";
 import type { GateRecordSource } from "@/src/features/internal-ops/gates/server-gate-loader";
 
-import { adminSafetyCopy } from "./copy";
-import type { GateGroup, GateRecord } from "./data";
-import { canDecide } from "./policy";
+import {
+  adminSafetyCopy,
+  gateBlockedReasonLabels,
+  gateGroupCaptions,
+  gateGroupLabels,
+  gateSeverityLabels,
+  gateStateLabels,
+  gateStateTones,
+  gateStatusLabels,
+  gateTestStatusLabels,
+} from "./copy";
+import type { DemoGateText, GateGroup, GateRecord } from "./data";
+import { canDecide, gateGroups, gateSeverities, gateStates } from "./policy";
 import {
   AdministrationPage,
   StatusPill,
@@ -28,17 +45,29 @@ import {
   styles,
 } from "./ui";
 
+/** Registry timestamps are shown on the operations desk's clock, labelled. */
+const operationsTimeZone = "America/New_York";
+
 const groupOrder: readonly GateGroup[] = [
-  "Provider",
-  "Legal",
-  "Brand",
-  "Operations",
+  gateGroups.provider,
+  gateGroups.legal,
+  gateGroups.brand,
+  gateGroups.operations,
 ];
 
+const sourceLabels: Readonly<Record<GateRecordSource, MessageId>> = {
+  "System gate registry": "adminGovernance.gates.source.system",
+  "Demonstration gate registry": "adminGovernance.gates.source.demo",
+  "Fail-closed operational fallback": "adminGovernance.gates.source.fallback",
+};
+
+/** The loader's stand-in row when the registry cannot be read at all. */
+const unavailableRegistryId = "SYSTEM-GATE-REGISTRY-UNAVAILABLE";
+
 function gateGroup(key: GeneratedExternalGate["gateKey"]): GateGroup {
-  if (["EXT-LEGAL-01", "EXT-TAX-01"].includes(key)) return "Legal";
+  if (["EXT-LEGAL-01", "EXT-TAX-01"].includes(key)) return gateGroups.legal;
   if (["EXT-BRAND-01", "EXT-DOMAIN-01", "EXT-MARKETPLACE-01"].includes(key))
-    return "Brand";
+    return gateGroups.brand;
   if (
     [
       "EXT-COMMERCIAL-01",
@@ -47,56 +76,55 @@ function gateGroup(key: GeneratedExternalGate["gateKey"]): GateGroup {
       "EXT-MIGRATION-01",
     ].includes(key)
   )
-    return "Operations";
-  return "Provider";
+    return gateGroups.operations;
+  return gateGroups.provider;
 }
 
 function severityLabel(value: string): GateRecord["severity"] {
   const normalized = value.toLowerCase();
   if (normalized.includes("launch") || normalized.includes("country"))
-    return "Launch blocker";
+    return gateSeverities.launchBlocker;
   if (normalized.includes("path") || normalized.includes("block"))
-    return "Path blocker";
-  if (normalized.includes("medium")) return "Medium";
-  return "High";
+    return gateSeverities.pathBlocker;
+  if (normalized.includes("medium")) return gateSeverities.medium;
+  return gateSeverities.high;
 }
 
 function stateLabel(
   state: GeneratedExternalGate["effectiveStatus"],
 ): GateRecord["state"] {
-  if (state === "active" || state === "not_required") return "Active";
-  if (state === "review") return "Review";
-  if (state === "pending") return "Pending";
-  return "Blocked";
+  if (state === "active" || state === "not_required") return gateStates.active;
+  if (state === "review") return gateStates.review;
+  if (state === "pending") return gateStates.pending;
+  return gateStates.blocked;
 }
 
+/**
+ * A registry row as the register shows it. Timestamps and the test result
+ * stay facts (`updatedAt`, `activationTestStatus`, `activationTestedAt`); the
+ * register words them in the reader's language.
+ */
 export function presentGeneratedGate(
   gate: GeneratedExternalGate,
   /** The reader's formatting locale. */
   locale: string,
 ): GateRecord {
-  const tested = gate.lastActivationTestAt
-    ? new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "America/New_York",
-      }).format(new Date(gate.lastActivationTestAt))
-    : "never";
-  const updated = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "America/New_York",
-  }).format(new Date(gate.updatedAt));
   return {
     id: gate.gateKey,
     group: gateGroup(gate.gateKey),
     title: gate.title,
     owner: gate.owner,
     capability: gate.affectedFeature,
-    activationTest: `${gate.lastActivationTestStatus} · ${tested} · ${gate.simulatorDetails}`,
+    activationTest: gate.simulatorDetails,
+    activationTestStatus: gate.lastActivationTestStatus,
+    activationTestedAt: gate.lastActivationTestAt,
     severity: severityLabel(gate.severity),
     state: stateLabel(gate.effectiveStatus),
-    freshness: `Updated ${updated}`,
+    freshness: formatSurfaceTimestamp(gate.updatedAt, {
+      locale,
+      timeZone: operationsTimeZone,
+    }),
+    updatedAt: gate.updatedAt,
     reason: gate.statusReason,
     configuredState: gate.configuredStatus,
     effectiveState: gate.effectiveStatus,
@@ -111,6 +139,54 @@ export function presentGeneratedGate(
   };
 }
 
+/**
+ * Puts a register row into the reader's language where the text is the
+ * product's or the demo's own: the loader's unavailable-registry row, and
+ * demo fields an operator has not overwritten (see `DemoGateText`).
+ */
+function localizeGate(
+  gate: GateRecord,
+  demoText: DemoGateText | undefined,
+  t: Translator,
+): GateRecord {
+  if (gate.id === unavailableRegistryId)
+    return {
+      ...gate,
+      title: t("adminGovernance.gates.unavailable.title"),
+      owner: t("adminGovernance.gates.unavailable.owner"),
+      capability: t("adminGovernance.gates.unavailable.capability"),
+      activationTest: t("adminGovernance.gates.unavailable.activationTest"),
+      freshness: t("adminGovernance.gates.unavailable.freshness"),
+      reason: t("adminGovernance.gates.unavailable.reason"),
+    };
+  const fields = demoText?.[gate.id];
+  if (!fields) return gate;
+  const pick = (
+    value: string,
+    [english, localized]: readonly [string, string],
+  ) => (value === english ? localized : value);
+  return {
+    ...gate,
+    title: pick(gate.title, fields.title),
+    owner: pick(gate.owner, fields.owner),
+    capability: pick(gate.capability, fields.capability),
+    activationTest: pick(gate.activationTest, fields.activationTest),
+    reason: pick(gate.reason, fields.reason),
+    ...(gate.inputRequired === undefined
+      ? {}
+      : { inputRequired: pick(gate.inputRequired, fields.reason) }),
+    ...(gate.updatedAt
+      ? {}
+      : { freshness: t("adminGovernance.gates.freshness.fallback") }),
+  };
+}
+
+function statusText(value: string | undefined, t: Translator): string {
+  if (!value) return t("adminGovernance.gates.status.unknown");
+  const id = gateStatusLabels[value];
+  return id ? t(id) : value;
+}
+
 function GateControls({
   gate,
   onUpdated,
@@ -121,7 +197,6 @@ function GateControls({
   demo: boolean;
 }) {
   const t = useTranslations();
-  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
   const [owner, setOwner] = useState(gate.owner);
   const [inputRequired, setInputRequired] = useState(gate.inputRequired ?? "");
   const [configuredStatus, setConfiguredStatus] = useState(
@@ -129,8 +204,8 @@ function GateControls({
   );
   const [reviewOn, setReviewOn] = useState(gate.reviewOn ?? "");
   const [reason, setReason] = useState(gate.reason);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState<MessageId | "">("");
+  const [error, setError] = useState<MessageId | "">("");
   const [pending, startTransition] = useTransition();
 
   const operate = (operation: () => Promise<GeneratedExternalGate>) => {
@@ -142,14 +217,20 @@ function GateControls({
         onUpdated(updated);
         setMessage(
           updated.activationAllowed
-            ? "Server policy allows activation."
-            : "Saved. Activation remains denied by server policy.",
+            ? "adminGovernance.gates.result.allowed"
+            : "adminGovernance.gates.result.denied",
         );
       } catch (caught) {
         setError(
-          caught instanceof ExternalGateClientError
-            ? caught.message
-            : "The gate operation is unavailable. Nothing was changed.",
+          !(caught instanceof ExternalGateClientError)
+            ? "adminGovernance.gates.error.unavailable"
+            : caught.status === 409
+              ? "adminGovernance.gates.error.conflict"
+              : caught.status === 403
+                ? "adminGovernance.gates.error.authority"
+                : caught.status === 422
+                  ? "adminGovernance.gates.error.policyDenied"
+                  : "adminGovernance.gates.error.unavailable",
         );
       }
     });
@@ -159,7 +240,7 @@ function GateControls({
   const requireRowVersion = () => {
     if (gate.rowVersion) return true;
     setMessage("");
-    setError(localizedadminSafetyCopy.gateVersionUnavailable);
+    setError(adminSafetyCopy.gateVersionUnavailable);
     return false;
   };
 
@@ -194,15 +275,13 @@ function GateControls({
 
   return (
     <details>
-      <summary>Update or test gate</summary>
+      <summary>{t("adminGovernance.gates.controls.summary")}</summary>
       <form className={styles.panelBody} onSubmit={save}>
         <p className={styles.fieldHint}>
-          Both operations require recent authentication. A configured active
-          value never bypasses the server&apos;s test, evidence, owner, and
-          review checks.
+          {t("adminGovernance.gates.controls.hint")}
         </p>
         <label className={styles.field}>
-          {t("partner.detail.owner")}
+          {t("common.owner")}
           <input
             value={owner}
             minLength={2}
@@ -212,7 +291,7 @@ function GateControls({
           />
         </label>
         <label className={styles.field}>
-          Required activation input or evidence
+          {t("adminGovernance.gates.controls.inputRequired")}
           <textarea
             value={inputRequired}
             minLength={8}
@@ -222,19 +301,25 @@ function GateControls({
           />
         </label>
         <Select
-          label="Configured state"
+          label={t("adminGovernance.gates.controls.configuredState")}
           value={configuredStatus}
           onChange={(event) => setConfiguredStatus(event.target.value)}
           options={[
-            { value: "blocked", label: "Blocked" },
-            { value: "review", label: "Review" },
-            { value: "pending", label: "Pending" },
-            { value: "active", label: "Active (still policy checked)" },
-            { value: "not_required", label: "Not required" },
+            { value: "blocked", label: t("status.blocked") },
+            { value: "review", label: t("status.inReview") },
+            { value: "pending", label: t("status.pending") },
+            {
+              value: "active",
+              label: t("adminGovernance.gates.controls.activeStillChecked"),
+            },
+            {
+              value: "not_required",
+              label: t("adminGovernance.gates.status.notRequired"),
+            },
           ]}
         />
         <label className={styles.field}>
-          Review date
+          {t("adminGovernance.gates.controls.reviewDate")}
           <input
             type="date"
             value={reviewOn}
@@ -242,7 +327,7 @@ function GateControls({
           />
         </label>
         <label className={styles.field}>
-          Decision reason
+          {t("adminGovernance.decisionReason")}
           <textarea
             value={reason}
             minLength={8}
@@ -253,7 +338,9 @@ function GateControls({
         </label>
         <div className={styles.inlineActions}>
           <button className={styles.buttonSecondary} disabled={pending}>
-            {pending ? "Saving…" : "Save configured state"}
+            {pending
+              ? t("common.saving")
+              : t("adminGovernance.gates.controls.save")}
           </button>
           <button
             className={styles.button}
@@ -274,17 +361,19 @@ function GateControls({
               );
             }}
           >
-            {pending ? "Testing…" : "Run server activation test"}
+            {pending
+              ? t("adminGovernance.gates.controls.testing")
+              : t("adminGovernance.gates.controls.runTest")}
           </button>
         </div>
         {message ? (
           <p className={styles.success} role="status">
-            {message}
+            {t(message)}
           </p>
         ) : null}
         {error ? (
           <p className={styles.danger} role="alert">
-            {error}
+            {t(error)}
           </p>
         ) : null}
       </form>
@@ -296,14 +385,19 @@ export function GateRegister({
   roles,
   gates,
   source,
+  demoText,
 }: {
   roles: readonly string[];
   gates: readonly GateRecord[];
   source: GateRecordSource;
+  /**
+   * The demo fixtures' text in the reader's language. Only a page reading a
+   * demo or fallback register passes it; system registry rows never get one.
+   */
+  demoText?: DemoGateText;
 }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
-  const localizedadminSafetyCopy = localizeCopy(adminSafetyCopy, t);
   const mayOperate = canDecide(roles, "assisted");
   const [displayGates, setDisplayGates] = useState(gates);
   useEffect(() => setDisplayGates(gates), [gates]);
@@ -315,29 +409,43 @@ export function GateRegister({
           : gate,
       ),
     );
+  const localized = useMemo(
+    () => displayGates.map((gate) => localizeGate(gate, demoText, t)),
+    [demoText, displayGates, t],
+  );
+  const heading = adminSafetyCopy.gates;
+  const reasons = new Intl.ListFormat(formattingLocale, {
+    type: "conjunction",
+  });
+  const timestamp = (value: string) =>
+    formatSurfaceTimestamp(value, {
+      locale: formattingLocale,
+      timeZone: operationsTimeZone,
+    });
+
   return (
-    <AdministrationPage {...localizedadminSafetyCopy.gates}>
+    <AdministrationPage
+      eyebrow={t(heading.eyebrow)}
+      title={t(heading.title)}
+      description={t(heading.description)}
+    >
       <section className={styles.notice} role="note">
-        <strong>{source}</strong>
-        Activation is fail-closed. A configured “active” state is insufficient
-        without a current passing test, evidence, owner, and review date.
+        <strong>{t(sourceLabels[source])}</strong>
+        {t("adminGovernance.gates.failClosedNotice")}
       </section>
 
       {!mayOperate ? (
         <section className={styles.roleNotice} role="note">
-          <strong>Read-only gate register.</strong>
-          Only an internal operator with recent authentication may update a gate
-          or run an activation test.
+          <strong>{t("adminGovernance.gates.readOnlyTitle")}</strong>
+          {t("adminGovernance.gates.readOnlyDetail")}
         </section>
       ) : null}
 
       <div className={styles.gateGroups}>
         {groupOrder.map((group) => {
-          const groupGates = displayGates.filter(
-            (gate) => gate.group === group,
-          );
+          const groupGates = localized.filter((gate) => gate.group === group);
           const blockers = groupGates.filter(
-            (gate) => gate.state === "Blocked",
+            (gate) => gate.state === gateStates.blocked,
           ).length;
           return (
             <section
@@ -347,41 +455,68 @@ export function GateRegister({
             >
               <div className={styles.panelHeading}>
                 <div>
-                  <h2 id={`gate-group-${group.toLowerCase()}`}>{group}</h2>
+                  <h2 id={`gate-group-${group.toLowerCase()}`}>
+                    {t(gateGroupLabels[group])}
+                  </h2>
                   <p>
-                    {groupGates.length} gates · {blockers} blocked
+                    {t("common.join.labels", {
+                      first: t("adminGovernance.gates.count", {
+                        count: groupGates.length,
+                      }),
+                      second: t("adminGovernance.gates.blockedCount", {
+                        count: blockers,
+                      }),
+                    })}
                   </p>
                 </div>
                 <StatusPill
-                  state={blockers ? `${blockers} blockers` : "No blockers"}
+                  state={
+                    blockers
+                      ? t("adminGovernance.gates.blockers", {
+                          count: blockers,
+                        })
+                      : t("adminGovernance.gates.noBlockers")
+                  }
+                  tone="warning"
                 />
               </div>
               <Table
                 className={styles.scanTable ?? ""}
-                caption={`${group} external activation gates`}
+                caption={t(gateGroupCaptions[group])}
                 captionHidden
                 density="compact"
                 headers={[
-                  "Gate",
-                  "Owner",
-                  "Affected capability",
-                  "Activation test",
-                  "Severity",
-                  "Configured / effective",
+                  t("adminGovernance.gates.column.gate"),
+                  t("common.owner"),
+                  t("adminGovernance.gates.column.capability"),
+                  t("adminGovernance.gates.column.activationTest"),
+                  t("adminGovernance.gates.column.severity"),
+                  t("adminGovernance.gates.column.configuredEffective"),
                 ]}
                 rowKeys={groupGates.map((gate) => gate.id)}
                 rows={groupGates.map((gate) => [
                   <div className={styles.stackCell}>
                     <strong>{gate.title}</strong>
                     <small>{gate.reason}</small>
-                    <small>{gate.freshness}</small>
+                    <small>
+                      {gate.updatedAt
+                        ? t("common.updatedAt", {
+                            time: timestamp(gate.updatedAt),
+                          })
+                        : gate.freshness}
+                    </small>
                     <TechnicalEvidence
                       identifiers={[
-                        { label: "Gate key", value: gate.id },
+                        {
+                          label: t("adminGovernance.identifier.gateKey"),
+                          value: gate.id,
+                        },
                         ...(gate.technicalEvidence
                           ? [
                               {
-                                label: "Activation evidence",
+                                label: t(
+                                  "adminGovernance.identifier.activationEvidence",
+                                ),
                                 value: gate.technicalEvidence,
                               },
                             ]
@@ -401,27 +536,67 @@ export function GateRegister({
                   </div>,
                   gate.owner,
                   gate.capability,
-                  gate.activationTest,
-                  <StatusPill state={gate.severity} />,
+                  gate.activationTestStatus ? (
+                    <span className={styles.stackCell}>
+                      <span>
+                        {gate.activationTestStatus !== "never" &&
+                        gate.activationTestedAt
+                          ? t("common.join.labels", {
+                              first: t(
+                                gateTestStatusLabels[gate.activationTestStatus],
+                              ),
+                              second: timestamp(gate.activationTestedAt),
+                            })
+                          : t(gateTestStatusLabels[gate.activationTestStatus])}
+                      </span>
+                      <small>{gate.activationTest}</small>
+                    </span>
+                  ) : (
+                    gate.activationTest
+                  ),
+                  <StatusPill
+                    state={t(gateSeverityLabels[gate.severity])}
+                    tone="warning"
+                  />,
                   <div className={styles.stackCell}>
                     <small>
-                      Configured: {gate.configuredState ?? "unknown"}
+                      {t("adminGovernance.gates.configured", {
+                        state: statusText(gate.configuredState, t),
+                      })}
                     </small>
-                    <StatusPill state={gate.state} />
+                    <StatusPill
+                      state={t(gateStateLabels[gate.state])}
+                      tone={gateStateTones[gate.state]}
+                    />
                     <small>
-                      Effective: {gate.effectiveState ?? gate.state}
+                      {t("adminGovernance.gates.effective", {
+                        state: gate.effectiveState
+                          ? statusText(gate.effectiveState, t)
+                          : t(gateStateLabels[gate.state]),
+                      })}
                     </small>
                     <strong>
-                      {gate.activationAllowed
-                        ? "Activation allowed"
-                        : "Activation denied"}
+                      {t(
+                        gate.activationAllowed
+                          ? "adminGovernance.gates.activationAllowed"
+                          : "adminGovernance.gates.activationDenied",
+                      )}
                     </strong>
                     {gate.blockedReasons?.length ? (
-                      <small>Blockers: {gate.blockedReasons.join(", ")}</small>
+                      <small>
+                        {t("adminGovernance.gates.blockedReasons", {
+                          reasons: reasons.format(
+                            gate.blockedReasons.map((code) => {
+                              const id = gateBlockedReasonLabels[code];
+                              return id ? t(id) : code;
+                            }),
+                          ),
+                        })}
+                      </small>
                     ) : null}
                   </div>,
                 ])}
-                emptyState={`No ${group.toLowerCase()} gates are registered.`}
+                emptyState={t("adminGovernance.gates.empty")}
               />
             </section>
           );

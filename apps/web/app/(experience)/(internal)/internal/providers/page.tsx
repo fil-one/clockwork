@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   DatabaseProviderReferenceAdmin,
@@ -6,25 +7,35 @@ import {
 } from "@clockwork/db";
 import { getCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
+import { formatSurfaceTimestamp } from "@/src/features/customer-partner/formatting";
 import { AdministrationPage } from "@/src/features/internal-ops/administration-safety/ui";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
+import type { MessageId } from "@/src/i18n";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
+import { richText } from "@/src/i18n/rich";
 import { ProviderReferenceControls } from "./controls";
 
 export const dynamic = "force-dynamic";
-const labels: Record<(typeof managedProviders)[number], string> = {
-  billing: "Billing",
-  accounting: "Accounting",
-  notifications: "Notifications",
-  usage: "Usage metering",
-  workos: "Identity (WorkOS)",
-  evidence: "Evidence storage",
-  provisioning: "Storage provisioning",
-  screening: "Screening",
-  signature: "Signatures",
-  tax: "Tax",
-  crm: "CRM",
-  document_renderer: "Document rendering",
+const labels: Record<(typeof managedProviders)[number], MessageId> = {
+  billing: "adminGovernance.providers.name.billing",
+  accounting: "adminGovernance.providers.name.accounting",
+  notifications: "adminGovernance.providers.name.notifications",
+  usage: "adminGovernance.providers.name.usage",
+  workos: "adminGovernance.providers.name.workos",
+  evidence: "adminGovernance.providers.name.evidence",
+  provisioning: "adminGovernance.providers.name.provisioning",
+  screening: "adminGovernance.providers.name.screening",
+  signature: "adminGovernance.providers.name.signature",
+  tax: "adminGovernance.providers.name.tax",
+  crm: "adminGovernance.providers.name.crm",
+  document_renderer: "adminGovernance.providers.name.documentRenderer",
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("adminGovernance.providers.title") };
+}
+
 export default async function Page() {
   const session = await getCommerceSession();
   if (
@@ -33,7 +44,12 @@ export default async function Page() {
       (role) => role === "internal_operator" || role === "finance_approver",
     )
   )
+    // i18n-exempt: thrown to the route's error boundary, which shows its own copy
     throw new Error("Operator or finance authority is required");
+  const [t, formattingLocale] = await Promise.all([
+    getTranslations(),
+    getFormattingLocale(),
+  ]);
   let rows: ProviderReferenceRow[] | null = null;
   try {
     const db = getOptionalServiceDatabase();
@@ -46,36 +62,50 @@ export default async function Page() {
     rows = null;
   }
   const now = Date.now();
+  /** Stored timestamps are UTC; show them in the reader's format, labelled. */
+  const timestamp = (value: string) =>
+    formatSurfaceTimestamp(value, {
+      locale: formattingLocale,
+      timeZone: "UTC",
+    });
   return (
     <AdministrationPage
-      title="Provider operating references"
-      eyebrow="Commercial administration"
-      description="Maintain ownership, secret-manager references and rotation review dates for commerce providers."
+      title={t("adminGovernance.providers.title")}
+      eyebrow={t("adminGovernance.providers.eyebrow")}
+      description={t("adminGovernance.providers.description")}
     >
       <p className={styles.guidance}>
-        Rotate credentials in your secret manager and deployment first, then
-        record the evidence here. These records are operator attestations; they
-        do not connect a provider or prove its credentials work.{" "}
-        <Link className={styles.proseLink} href="/internal/gates">
-          Review integration qualification gates
-        </Link>{" "}
-        and{" "}
-        <Link className={styles.proseLink} href="/internal/capabilities">
-          capability controls
-        </Link>
-        .
+        {richText(t, "adminGovernance.providers.guidance", {
+          gates: (
+            <Link className={styles.proseLink} href="/internal/gates">
+              {t("adminGovernance.providers.guidance.gatesLink")}
+            </Link>
+          ),
+          capabilities: (
+            <Link className={styles.proseLink} href="/internal/capabilities">
+              {t("adminGovernance.providers.guidance.capabilitiesLink")}
+            </Link>
+          ),
+        })}
       </p>
       {rows === null ? (
         <section className={styles.panel}>
           <div className={styles.panelBody}>
             <p role="status">
-              {session.providerBacked
-                ? "Provider reference registry unavailable. Check the control database connection and your current authority, then refresh."
-                : "Live provider references are not connected in this demo. Reference administration requires a verified staff session and the control database."}
+              {t(
+                session.providerBacked
+                  ? "adminGovernance.providers.registryUnavailable"
+                  : "adminGovernance.providers.demoUnavailable",
+              )}
             </p>
             <p>
-              Providers covered:{" "}
-              {managedProviders.map((provider) => labels[provider]).join(", ")}.
+              {t("adminGovernance.providers.covered", {
+                providers: new Intl.ListFormat(formattingLocale, {
+                  type: "conjunction",
+                }).format(
+                  managedProviders.map((provider) => t(labels[provider])),
+                ),
+              })}
             </p>
           </div>
         </section>
@@ -83,55 +113,58 @@ export default async function Page() {
         rows.map((row) => (
           <section className={styles.panel} key={row.provider}>
             <div className={styles.panelHeading}>
-              <h2>{labels[row.provider]}</h2>
+              <h2>{t(labels[row.provider])}</h2>
               <span>
-                {!row.configuration
-                  ? "Not configured"
-                  : row.source === "bootstrap"
-                    ? "Bootstrap reference · owner review needed"
-                    : row.reviewDueAt && Date.parse(row.reviewDueAt) <= now
-                      ? "Rotation review overdue"
-                      : "Reference retained"}
+                {t(
+                  !row.configuration
+                    ? "adminGovernance.providers.state.notConfigured"
+                    : row.source === "bootstrap"
+                      ? "adminGovernance.providers.state.bootstrap"
+                      : row.reviewDueAt && Date.parse(row.reviewDueAt) <= now
+                        ? "adminGovernance.providers.state.reviewOverdue"
+                        : "adminGovernance.providers.state.retained",
+                )}
               </span>
             </div>
             <div className={styles.panelBody}>
               {row.configuration ? (
                 <>
                   <dl>
-                    <dt>Operating owner</dt>
+                    <dt>{t("adminGovernance.providers.owner")}</dt>
                     <dd>{row.configuration.owner}</dd>
-                    <dt>Secret-manager reference</dt>
+                    <dt>{t("adminGovernance.providers.secretReference")}</dt>
                     <dd>{row.configuration.secretReference}</dd>
-                    <dt>Secret version</dt>
+                    <dt>{t("adminGovernance.providers.secretVersion")}</dt>
                     <dd>{row.configuration.secretVersion}</dd>
-                    <dt>Last recorded rotation</dt>
-                    <dd>{row.configuration.rotatedAt}</dd>
-                    <dt>Rotation review due</dt>
+                    <dt>{t("adminGovernance.providers.lastRotation")}</dt>
+                    <dd>{timestamp(row.configuration.rotatedAt)}</dd>
+                    <dt>{t("adminGovernance.providers.reviewDue")}</dt>
                     <dd>
-                      {row.reviewDueAt} ({row.configuration.reviewIntervalDays}{" "}
-                      days)
+                      {t("adminGovernance.providers.reviewDueValue", {
+                        date: row.reviewDueAt
+                          ? timestamp(row.reviewDueAt)
+                          : t("common.notRecorded"),
+                        count: row.configuration.reviewIntervalDays,
+                      })}
                     </dd>
-                    <dt>Evidence reference</dt>
+                    <dt>{t("adminGovernance.providers.evidenceReference")}</dt>
                     <dd>{row.configuration.sourceEvidence}</dd>
                   </dl>
                   {row.source === "bootstrap" ? (
-                    <p>
-                      Imported from the immutable bootstrap manifest. The 90-day
-                      review interval is a suggested default until an owner
-                      saves the operating policy.
-                    </p>
+                    <p>{t("adminGovernance.providers.bootstrapNote")}</p>
                   ) : (
                     <p>
-                      Registry version {row.rowVersion} · last updated{" "}
-                      {row.updatedAt}.
+                      {t("adminGovernance.providers.registryVersion", {
+                        version: row.rowVersion,
+                        time: row.updatedAt
+                          ? timestamp(row.updatedAt)
+                          : t("common.notRecorded"),
+                      })}
                     </p>
                   )}
                 </>
               ) : (
-                <p>
-                  No credential reference is retained for this provider. Record
-                  a reference after its deployment and evidence are available.
-                </p>
+                <p>{t("adminGovernance.providers.noReference")}</p>
               )}
             </div>
             <ProviderReferenceControls

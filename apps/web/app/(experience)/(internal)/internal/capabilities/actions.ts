@@ -9,6 +9,13 @@ import {
 } from "@clockwork/db";
 import { requireRecentAuthentication } from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
+import type { MessageId } from "@/src/i18n";
+
+/**
+ * The outcome as a message ID; the form renders it in the reader's language.
+ * An empty string is the form's initial state.
+ */
+export type CapabilityActionResult = MessageId | "";
 
 const ControlSchema = z.object({
   capabilityKey: z.enum(systemCapabilityKeys),
@@ -21,9 +28,9 @@ const ControlSchema = z.object({
 });
 
 export async function changeCapability(
-  _previous: string,
+  _previous: CapabilityActionResult,
   data: FormData,
-): Promise<string> {
+): Promise<CapabilityActionResult> {
   const session = await requireRecentAuthentication();
   if (
     !session.providerBacked ||
@@ -33,10 +40,9 @@ export async function changeCapability(
     session.assistedSession ||
     session.authenticationProviderImpersonator
   )
-    return "Capability changes require a directly authenticated staff session with MFA.";
+    return "adminGovernance.capabilities.result.directSessionRequired";
   const parsed = ControlSchema.safeParse(Object.fromEntries(data));
-  if (!parsed.success)
-    return "Check the decision reason, evidence, and current version, then try again.";
+  if (!parsed.success) return "adminGovernance.capabilities.result.invalid";
   const value = parsed.data;
   const base = {
     capabilityKey: value.capabilityKey,
@@ -65,33 +71,34 @@ export async function changeCapability(
         proposalId: value.proposalId,
         approve: value.action === "approve",
       });
-    else return "Select a pending activation request.";
+    else return "adminGovernance.capabilities.result.selectPending";
     revalidatePath("/internal/capabilities");
     return value.action === "propose"
-      ? "Activation requested. A distinct approver must review it within 24 hours."
+      ? "adminGovernance.capabilities.result.proposed"
       : value.action === "disable"
-        ? "Capability disabled. Earlier pending activation requests were canceled."
-        : "Decision recorded.";
+        ? "adminGovernance.capabilities.result.disabled"
+        : "adminGovernance.capabilities.result.decided";
   } catch (error) {
-    const messages: Record<string, string> = {
+    const messages: Readonly<Record<string, MessageId>> = {
       CAPABILITY_AUTHORITY_REQUIRED:
-        "Your current staff role cannot perform this action.",
+        "adminGovernance.capabilities.error.authority",
       CAPABILITY_DISTINCT_APPROVER_REQUIRED:
-        "A different authorized staff member must approve this request.",
+        "adminGovernance.capabilities.error.distinctApprover",
       CAPABILITY_VERSION_CONFLICT:
-        "The capability changed. Refresh and review its latest state before trying again.",
-      CAPABILITY_REQUEST_EXPIRED:
-        "This request expired. Reject it and request activation again with current evidence.",
-      CAPABILITY_REQUEST_PENDING:
-        "An activation request is already awaiting review.",
+        "adminGovernance.capabilities.error.versionConflict",
+      CAPABILITY_REQUEST_EXPIRED: "adminGovernance.capabilities.error.expired",
+      CAPABILITY_REQUEST_PENDING: "adminGovernance.capabilities.error.pending",
       CAPABILITY_REQUEST_NOT_PENDING:
-        "This request has already been decided or canceled. Refresh to see the latest state.",
-      CAPABILITY_ALREADY_ENABLED: "This capability is already enabled.",
+        "adminGovernance.capabilities.error.notPending",
+      CAPABILITY_ALREADY_ENABLED:
+        "adminGovernance.capabilities.error.alreadyEnabled",
       CAPABILITY_REASON_REQUIRED:
-        "Provide a decision reason of at least eight characters.",
+        "adminGovernance.capabilities.error.reasonRequired",
     };
-    return error instanceof Error && messages[error.message]
-      ? (messages[error.message] ?? "The change could not be recorded.")
-      : "The change could not be recorded. Check the evidence reference and refresh before retrying.";
+    return (
+      (error instanceof Error && Object.hasOwn(messages, error.message)
+        ? messages[error.message]
+        : undefined) ?? "adminGovernance.capabilities.error.generic"
+    );
   }
 }
