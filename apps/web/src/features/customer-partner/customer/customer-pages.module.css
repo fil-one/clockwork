@@ -735,14 +735,14 @@
   text-underline-offset: 0.2em;
 }
 
-/* The trailing arrow points along the reading direction. */
+/*
+ * The trailing arrow. It already points along the reading direction: the
+ * message `customer.link.arrow` is "←" in Arabic. Mirroring it here as well
+ * turned it back to "→" in RTL, pointing away from the reading direction.
+ */
 .obligationAction > span[aria-hidden="true"] {
   display: inline-block;
   margin-inline-start: 0.25rem;
-}
-
-:global(html[dir="rtl"]) .obligationAction > span[aria-hidden="true"] {
-  transform: scaleX(-1);
 }
 
 .supportingContext {

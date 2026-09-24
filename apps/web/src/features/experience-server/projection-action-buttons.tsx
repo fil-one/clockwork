@@ -12,7 +12,7 @@ import {
 } from "@/src/features/contracts/experience-client";
 import type { ExperienceAudience, ProjectionChannel } from "./model";
 import { actionLabel, isDestructiveAction } from "./projection-action-labels";
-import { problemText } from "./problem-text";
+import { problemText } from "@/src/features/contracts/error-text";
 import { canRunProjectionAction } from "./projection-authorization";
 
 type ActionFeedback = {

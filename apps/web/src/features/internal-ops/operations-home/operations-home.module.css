@@ -107,14 +107,14 @@
   background: var(--cw-action-strong);
 }
 
-/* The trailing arrow points along the reading direction. */
+/*
+ * The trailing arrow. The component already picks "←" for an RTL language;
+ * mirroring it here as well turned it back to "→", pointing away from the
+ * reading direction.
+ */
 .signalTable a > span[aria-hidden="true"] {
   display: inline-block;
   margin-inline-start: 0.25rem;
-}
-
-:global(html[dir="rtl"]) .signalTable a > span[aria-hidden="true"] {
-  transform: scaleX(-1);
 }
 
 .recommendations {

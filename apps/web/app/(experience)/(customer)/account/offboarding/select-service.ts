@@ -1,4 +1,7 @@
+import type { OffboardableService } from "@/src/features/customer-partner/commercial/offboarding";
+import { projectionDisplay } from "@/src/features/customer-partner/commercial/record-presentation";
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
+import type { Translator } from "@/src/i18n";
 
 type Data = Readonly<Record<string, unknown>>;
 
@@ -84,4 +87,36 @@ export function requestedOrderAggregateId(
   const orderKey = orderKeyFromRoute(text(service.data, "href"));
   if (!orderKey) return undefined;
   return openOrders.find((order) => order.recordKey === orderKey)?.aggregateId;
+}
+
+/**
+ * An open order as a choice in the service picker: its name and its term.
+ *
+ * A demo order carries facts beside the English display strings kept for
+ * older consumers; the term is rendered from the facts for the reader, as the
+ * order pages do. Reading the stored string put "Jan 1 – Dec 31, 2026 ·
+ * auto-renews" in front of every reader. An order without facts keeps its
+ * term as written.
+ */
+export function offboardableService(
+  record: ProjectionRecord,
+  t: Translator,
+  formattingLocale: string,
+): OffboardableService {
+  const name = text(record.data, "title") ?? record.recordKey;
+  const term = record.data.facts
+    ? projectionDisplay(
+        record.data,
+        "orders",
+        record.sourceUpdatedAt,
+        t,
+        formattingLocale,
+      ).term || undefined
+    : text(record.data, "term");
+  return {
+    id: record.aggregateId,
+    reference: record.recordKey,
+    name,
+    label: term ? t("common.join.labels", { first: name, second: term }) : name,
+  };
 }

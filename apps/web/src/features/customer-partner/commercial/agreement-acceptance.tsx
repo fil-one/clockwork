@@ -1,13 +1,18 @@
 "use client";
 
-import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import {
+  useFormattingLocale,
+  useLocale,
+  useTranslations,
+} from "@/src/i18n/client";
 import type { MessageId } from "@/src/i18n";
+import { documentLanguages } from "@/src/i18n/locales";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import {
-  executeClickAgreement,
+  executeClickAgreementAs,
   getActiveAgreementTemplate,
   type ActiveAgreementTemplate,
 } from "@/src/features/contracts/commerce-client";
@@ -55,6 +60,7 @@ export function AgreementAcceptance({
 }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
+  const interfaceLanguage = documentLanguages[useLocale()];
   const jurisdiction = agreement?.jurisdiction ?? "US";
   const type = agreement?.type ?? "csa";
   const [template, setTemplate] = useState<ActiveAgreementTemplate | undefined>(
@@ -156,7 +162,9 @@ export function AgreementAcceptance({
           { idempotencyKey: idempotencyKeyRef.current },
         );
       else
-        await executeClickAgreement(
+        // The acceptance evidence records the words on the control the signer
+        // pressed and the language the page was in, not a fixed English label.
+        await executeClickAgreementAs(
           {
             accountId: account.id,
             templateId: template.id,
@@ -164,6 +172,10 @@ export function AgreementAcceptance({
             exactText: template.exactText,
             exactTextHash: template.exactTextHash,
             authorityTitle,
+          },
+          {
+            actionLabel: t("customer.commercial.agreement.submit"),
+            locale: interfaceLanguage,
           },
           { idempotencyKey: idempotencyKeyRef.current },
         );

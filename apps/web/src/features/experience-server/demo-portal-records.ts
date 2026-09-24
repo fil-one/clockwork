@@ -274,16 +274,14 @@ const team = {
 } as const;
 
 /** The agreement title the Lumen record, the Meridian record and the dashboard show. */
-export const demoCloudServiceAgreementTitle = demoText({
-  en: "Cloud Service Agreement",
-  es: "Acuerdo de servicios en la nube",
-  fr: "Accord de services cloud",
-  de: "Cloud-Servicevereinbarung",
-  ja: "クラウドサービス契約",
-  pt: "Acordo de serviços em nuvem",
-  zh: "云服务协议",
-  ar: "اتفاقية الخدمات السحابية",
-});
+/**
+ * The executed agreement's title. Executed legal documents keep the title
+ * they were signed under, in English, on every surface and in every language
+ * (like "Data Processing Addendum" on the agreements list); only the words
+ * around the title are translated.
+ */
+// i18n-exempt: the title of an executed legal document is not translated
+export const demoCloudServiceAgreementTitle = "Cloud Service Agreement";
 
 const lumenFieldArchive = demoText({
   en: "Lumen field archive",

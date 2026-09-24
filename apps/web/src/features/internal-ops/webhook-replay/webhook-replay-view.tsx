@@ -5,6 +5,7 @@ import { Table } from "@clockwork/ui";
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
+import { MachineCode } from "../machine-code";
 import { formatOperationalTimestamp } from "../presentation";
 import { callbackStateLabels, replaySourceLabels } from "./copy";
 import { ReplayDecision } from "./replay-decision";
@@ -60,7 +61,7 @@ export function WebhookReplayView({ queue }: { queue: WebhookReplayQueue }) {
           <p className={styles.empty}>{t("operations.webhookReplay.empty")}</p>
         ) : (
           <Table
-            className={styles.dsTable ?? ""}
+            className={`${styles.dsTable ?? ""} ${styles.denseTable ?? ""}`}
             caption={t("operations.webhookReplay.caption")}
             captionHidden
             density="compact"
@@ -79,9 +80,14 @@ export function WebhookReplayView({ queue }: { queue: WebhookReplayQueue }) {
             rows={queue.events.map((event) => [
               event.provider,
               <div className={styles.primaryCell}>
-                <strong>{event.providerEventId}</strong>
+                <strong>
+                  <MachineCode
+                    className={styles.code}
+                    value={event.providerEventId}
+                  />
+                </strong>
               </div>,
-              event.eventType,
+              <MachineCode className={styles.code} value={event.eventType} />,
               t(callbackStateLabels[event.state]),
               // Minute precision in UTC, so two operators reading the same row
               // agree, worded in the reader's locale.
@@ -89,7 +95,14 @@ export function WebhookReplayView({ queue }: { queue: WebhookReplayQueue }) {
                 {formatOperationalTimestamp(event.occurredAt, formattingLocale)}
               </time>,
               <strong>{event.attemptCount}</strong>,
-              event.processingError ?? t("common.notRecorded"),
+              event.processingError ? (
+                <MachineCode
+                  className={styles.code}
+                  value={event.processingError}
+                />
+              ) : (
+                t("common.notRecorded")
+              ),
               <div className={styles.actionStack}>
                 <SurfaceActionGate
                   audience="internal"

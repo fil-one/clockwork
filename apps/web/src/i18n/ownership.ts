@@ -44,6 +44,9 @@ const foundationFiles = new Set([
   "apps/web/src/features/customer-partner/projection-freshness.tsx",
   "apps/web/src/features/customer-partner/sortable-column.ts",
   "apps/web/src/features/customer-partner/formatting.ts",
+  // The one module that words API failures for every surface (platform and
+  // experience wording together); it replaced a second, experience-only one.
+  "apps/web/src/features/contracts/error-text.ts",
   "packages/testing/src/demo/localized-text.ts",
 ]);
 

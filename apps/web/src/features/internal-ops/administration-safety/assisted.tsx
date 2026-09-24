@@ -180,7 +180,7 @@ export function AssistedMode({
                 ? "adminGovernance.assisted.mayAct"
                 : "adminGovernance.readOnly",
             )}
-            tone="warning"
+            tone={mayAssume ? "success" : "warning"}
           />
         </div>
         <form

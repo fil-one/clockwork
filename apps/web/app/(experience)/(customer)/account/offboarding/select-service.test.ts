@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import type { ProjectionRecord } from "@/src/features/experience-server/model";
 
-import { requestedOrderAggregateId } from "./select-service";
+import { recordById } from "@/src/features/customer-partner/commercial/model";
+import { translatorFor } from "@/src/i18n/catalogs";
+
+import {
+  offboardableService,
+  requestedOrderAggregateId,
+} from "./select-service";
 
 function record(
   channel: ProjectionRecord["channel"],
@@ -139,5 +145,39 @@ describe("requestedOrderAggregateId", () => {
         [],
       ),
     ).toBeUndefined();
+  });
+});
+
+describe("the service picker's labels", () => {
+  /**
+   * The picker read the order's English display term, so a Spanish customer
+   * chose "Archivo principal de Northstar · Jan 1–Dec 31, 2026 · auto-renews".
+   */
+  it("states an order's term in the reader's language", () => {
+    const fixture = recordById("ORD-2026-0098", "en");
+    if (!fixture?.facts) throw new Error("the demo order carries facts");
+    const order = record("orders", "ORD-2026-0098", "order-0098", {
+      title: "Archivo principal de Northstar",
+      status: fixture.status,
+      term: "Jan 1 – Dec 31, 2026 · auto-renews",
+      facts: fixture.facts,
+    });
+    const { label } = offboardableService(order, translatorFor("es"), "es-ES");
+    expect(label).toMatch(/^Archivo principal de Northstar · /u);
+    expect(label).not.toMatch(/Jan|Dec|auto-renews/u);
+    expect(label).toMatch(/2026/u);
+  });
+
+  it("keeps the term as written when the order has no facts", () => {
+    const order = record("orders", "ORD-X", "order-x", {
+      title: "Archive",
+      term: "Written term",
+    });
+    expect(offboardableService(order, translatorFor("es"), "es-ES").label).toBe(
+      translatorFor("es")("common.join.labels", {
+        first: "Archive",
+        second: "Written term",
+      }),
+    );
   });
 });

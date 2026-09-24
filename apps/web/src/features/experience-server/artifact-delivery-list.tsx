@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { artifactRepresentation } from "@/src/features/contracts/experience-client";
 
 import type { ArtifactKind, ArtifactRepresentation } from "./model";
-import { problemText } from "./problem-text";
+import { problemText } from "@/src/features/contracts/error-text";
 
 export interface ProjectedArtifact {
   id: string;

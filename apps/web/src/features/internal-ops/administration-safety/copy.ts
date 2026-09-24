@@ -112,6 +112,16 @@ export const gateSeverityLabels: Readonly<
   Medium: "risk.level.medium",
 };
 
+/** Severity colours: what blocks launch or is high risk reads as danger. */
+export const gateSeverityTones: Readonly<
+  Record<GateRecord["severity"], StatusTone>
+> = {
+  "Launch blocker": "danger",
+  "Path blocker": "warning",
+  High: "danger",
+  Medium: "warning",
+};
+
 export const gateStateLabels: Readonly<Record<GateRecord["state"], MessageId>> =
   {
     Active: "status.active",
