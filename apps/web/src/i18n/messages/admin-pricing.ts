@@ -406,7 +406,6 @@ export const adminPricingMessages = defineMessages({
     ar: "لم يُقبل التغيير: {detail}",
   },
 
-  // ── Sections below are filled per surface ──────────────────────────────
   // ── Price books page ────────────────────────────────────────────────────
   "adminPricing.priceBooks.eyebrow": {
     en: "Administration · Commercial controls",
@@ -2156,7 +2155,6 @@ export const adminPricingMessages = defineMessages({
     zh: "已驳回启用申请。草稿可编辑后重新申请。",
     ar: "رُدّ طلب التفعيل. يمكن تعديل المسودة واقتراحها من جديد.",
   },
-  // @@PRICE_BOOKS@@
   // ── PAYG and trial policies (payg-offers.tsx, demo PAYG pages) ─────────
   "adminPricing.payg.eyebrow": {
     en: "Commercial administration",
@@ -4226,7 +4224,6 @@ export const adminPricingMessages = defineMessages({
     zh: "策略更改失败。",
     ar: "فشل تغيير السياسة.",
   },
-  // @@PAYG@@
   // ── Price-book parts: discount authority, simulation, impact, import, diff ─
   "adminPricing.route.label": {
     en: "Route",
@@ -5371,7 +5368,6 @@ export const adminPricingMessages = defineMessages({
     zh: "保留的已暂停写入权益",
     ar: "الاستحقاقات المحفوظة المعلّق فيها الكتابة",
   },
-  // @@PRICE_BOOK_PARTS@@
   // ── Catalog and provider mappings (/internal/catalog) ───────────────────
   "adminPricing.catalog.title": {
     en: "Catalog and provider mappings",
@@ -5965,5 +5961,4 @@ export const adminPricingMessages = defineMessages({
     zh: "演示环境无法记录此价目表更改。",
     ar: "تعذّر على العرض التوضيحي تسجيل هذا التغيير في قائمة الأسعار.",
   },
-  // @@CATALOG_AND_COMMAND@@
 });
