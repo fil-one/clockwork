@@ -78,7 +78,7 @@ export const correctionCopy = {
   refusalsSummary: "operations.finance.corrections.refusalsSummary",
   submitting: "operations.finance.corrections.submitting",
   recorded: "operations.finance.corrections.recorded",
-  serverDetail: "operations.finance.corrections.serverDetail",
+  serverCode: "operations.finance.corrections.serverCode",
   refusals: {
     ACCOUNT_UNRESOLVED: "operations.finance.corrections.refusal.account",
     AMOUNT_INVALID: "operations.finance.corrections.refusal.amount",

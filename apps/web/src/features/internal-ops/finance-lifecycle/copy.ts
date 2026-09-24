@@ -121,6 +121,7 @@ export const lifecycleCopy = {
     empty: "operations.finance.handoff.empty",
     received: "operations.finance.handoff.received",
     forbidden: "operations.finance.handoff.forbidden",
+    refused: "operations.finance.handoff.refused",
     failed: "operations.finance.handoff.failed",
   },
   migrations: {

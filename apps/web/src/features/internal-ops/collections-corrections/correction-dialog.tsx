@@ -46,14 +46,15 @@ function emptyInput(kind: CorrectionKind): CorrectionInput {
 }
 
 /**
- * What the operator is told when the server refuses or cannot be reached. A
- * validation refusal also carries the server's own detail, which is shown
- * verbatim beneath the sentence as the server's answer, not translated.
+ * What the operator is told when the server refuses or cannot be reached,
+ * worded from the failure class in the reader's language. The server's English
+ * `detail` is never quoted to the reader; when the server sent a problem code,
+ * that identifier is shown so the refusal can still be traced.
  */
 function failureMessage(
   error: unknown,
   t: Translator,
-): { text: string; detail?: string } {
+): { text: string; code?: string } {
   if (!(error instanceof CommerceApiError))
     return { text: t(correctionCopy.failures.unknown) };
   if (error.code === "forbidden")
@@ -65,7 +66,7 @@ function failureMessage(
   if (error.code === "validation")
     return {
       text: t(correctionCopy.failures.validation),
-      detail: error.message,
+      ...(error.problemCode ? { code: error.problemCode } : {}),
     };
   return { text: t(correctionCopy.failures.unknown) };
 }
@@ -90,7 +91,7 @@ export function CorrectionDialog({
   const formattingLocale = useFormattingLocale();
   const [input, setInput] = useState<CorrectionInput>(() => emptyInput(kind));
   const [refusals, setRefusals] = useState<readonly CorrectionRefusal[]>([]);
-  const [message, setMessage] = useState<{ text: string; detail?: string }>();
+  const [message, setMessage] = useState<{ text: string; code?: string }>();
   const [recorded, setRecorded] = useState("");
   const [pending, startTransition] = useTransition();
   const labels = correctionCopy.kinds[kind];
@@ -282,8 +283,8 @@ export function CorrectionDialog({
       {message ? (
         <div className={styles.blocked} role="alert">
           <p>{message.text}</p>
-          {message.detail ? (
-            <p>{t(correctionCopy.serverDetail, { detail: message.detail })}</p>
+          {message.code ? (
+            <p>{t(correctionCopy.serverCode, { code: message.code })}</p>
           ) : null}
         </div>
       ) : null}

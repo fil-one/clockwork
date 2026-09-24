@@ -136,12 +136,18 @@ describe("collections corrections", () => {
     expect(screen.queryByLabelText(/Internal reason code/u)).toBeNull();
   });
 
-  it("reports a server refusal without claiming anything was written", async () => {
+  /**
+   * The server's English `detail` is for logs and API callers. The reader is
+   * told in their language that nothing was written, with the server's problem
+   * code (an identifier) so the refusal can still be traced.
+   */
+  it("reports a server refusal in the reader's words without quoting the server", async () => {
     send.mockRejectedValue(
       new CommerceApiError(
         422,
         "validation",
         "Credit exceeds the remaining invoice amount or currency",
+        "CREDIT_EXCEEDS_REMAINING",
       ),
     );
     const user = userEvent.setup();
@@ -160,6 +166,9 @@ describe("collections corrections", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Nothing was written");
     expect(alert.textContent).toContain(
+      "Server code: CREDIT_EXCEEDS_REMAINING",
+    );
+    expect(alert.textContent).not.toContain(
       "Credit exceeds the remaining invoice amount or currency",
     );
   });

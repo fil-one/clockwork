@@ -48,9 +48,19 @@ export function DemoOrderHandoff({
         body: JSON.stringify({ orderId: id }),
       });
       if (!response.ok) {
-        // The route answers in English problem details; the reader is told
-        // what happened in their language, keyed on the status alone.
-        setMessage(t(response.status === 403 ? copy.forbidden : copy.failed));
+        // The route answers in English problem details for API callers; the
+        // reader is told what happened in their language, keyed on the status:
+        // 403 is the authority check, 422 the provisioner refusing the order
+        // (`DEMO_PROVISIONING_REFUSED`), anything else a failed submission.
+        setMessage(
+          t(
+            response.status === 403
+              ? copy.forbidden
+              : response.status === 422
+                ? copy.refused
+                : copy.failed,
+          ),
+        );
         return;
       }
       setMessage(t(copy.received));
