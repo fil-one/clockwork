@@ -38,11 +38,11 @@ export const operationsFinanceMessages = defineMessages({
   },
   "operations.finance.frame.current": {
     en: "Up to date",
-    es: "Actualizado",
+    es: "Al día",
     fr: "À jour",
     de: "Aktuell",
     ja: "最新",
-    pt: "Atualizado",
+    pt: "Em dia",
     zh: "最新",
     ar: "محدّث",
   },

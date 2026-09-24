@@ -176,7 +176,15 @@ export function ReportsView({
             rowKeys={visibleExports.map((record) => record.id)}
             rows={visibleExports.map((record) => [
               <div className={styles.primaryCell}>
-                <strong>{record.title}</strong>
+                {/*
+                 * The materializer titles an export with its registry name
+                 * title-cased in English, so a known registry name is worded
+                 * here; only an export that names no report shows the
+                 * projection's own title.
+                 */}
+                <strong>
+                  {record.report ? label(t, record.report) : record.title}
+                </strong>
                 <details className={styles.disclosure}>
                   <summary>{t(lifecycleCopy.evidence.technical)}</summary>
                   <IdentifierLine

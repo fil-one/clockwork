@@ -26,12 +26,23 @@ import { VarianceDisposition } from "./variance-disposition";
 
 const { page, summary, unreadable, periods, variances } = reconciliationCopy;
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
+/**
+ * A UUID is shortened to its first block, as the operator surfaces do
+ * elsewhere; a human reference such as `INV-2026-0781` is shown whole, since
+ * cutting it to eight characters names a different record.
+ */
+function shortId(id: string): string {
+  return UUID.test(id) ? id.slice(0, 8) : id;
+}
+
 /** "Invoice 5f0c21ab": the case's object, named in the reader's language. */
 function subjectText(t: Translator, variance: ReconciliationVariance): string {
   const kind = reconciliationCopy.objectTypes[variance.objectType];
   return t(variances.subject, {
     kind: kind ? t(kind) : variance.objectType,
-    id: variance.objectId.slice(0, 8),
+    id: shortId(variance.objectId),
   });
 }
 
@@ -195,10 +206,10 @@ export function ReconciliationView({
               <div className={styles.primaryCell}>
                 <strong>{subjectText(t, variance)}</strong>
                 <span className={styles.secondary}>
-                  {t(variances.caseId, { id: variance.caseId.slice(0, 8) })}
+                  {t(variances.caseId, { id: shortId(variance.caseId) })}
                 </span>
               </div>,
-              variance.ownerEmail ?? variance.ownerUserId.slice(0, 8),
+              variance.ownerEmail ?? shortId(variance.ownerUserId),
               <time dateTime={variance.openedAt}>
                 {formatOperationalTimestamp(
                   variance.openedAt,

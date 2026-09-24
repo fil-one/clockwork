@@ -55,9 +55,9 @@ function reportFilter() {
   return screen.getByRole("combobox", { name: /^Report/u });
 }
 
-function recordedExports() {
+function recordedExports(heading = "Recorded report exports") {
   const section = screen
-    .getByRole("heading", { name: "Recorded report exports" })
+    .getByRole("heading", { name: heading })
     .closest("section");
   if (!section) throw new Error("Recorded exports section was not rendered.");
   return section;
@@ -108,10 +108,41 @@ describe("ReportsView report filter", () => {
     await user.selectOptions(reportFilter(), "revenue_forecast");
 
     expect(within(recorded).getByText("2 exports")).toBeVisible();
-    expect(within(recorded).getByText("RPT-01 export")).toBeVisible();
-    expect(within(recorded).getByText("RPT-03 export")).toBeVisible();
-    expect(within(recorded).queryByText("RPT-02 export")).toBeNull();
+    // A recorded export is titled by its registry name, worded for the
+    // reader; RPT-01 and RPT-03 both ran the revenue forecast.
+    expect(within(recorded).getAllByText("Revenue forecast")).toHaveLength(2);
+    expect(within(recorded).queryByText("Weekly scorecard")).toBeNull();
     expect(within(recorded).queryByText("RPT-04 export")).toBeNull();
+  });
+
+  /**
+   * The materializer titles an export "Renewal Churn Exposure" (its registry
+   * name title-cased in English). The row says what the report is in the
+   * reader's language instead, and keeps the projection title only for an
+   * export that names no report.
+   */
+  it("titles a recorded export by its report, not the projection's English title", () => {
+    render(
+      <LanguageProvider locale="de" catalog={catalogs.de}>
+        <ReportsView
+          accounts={[]}
+          exports={[
+            exportRecord({
+              id: "RPT-05",
+              report: "renewal_churn_exposure",
+              title: "Renewal Churn Exposure",
+            }),
+          ]}
+          provenance={provenance}
+        />
+      </LanguageProvider>,
+    );
+
+    const recorded = recordedExports("Erfasste Berichtsexporte");
+    expect(
+      within(recorded).getByText("Verlängerungs- und Abwanderungsrisiko"),
+    ).toBeVisible();
+    expect(within(recorded).queryByText("Renewal Churn Exposure")).toBeNull();
   });
 
   it("narrows the offered exports to the selected report", async () => {
