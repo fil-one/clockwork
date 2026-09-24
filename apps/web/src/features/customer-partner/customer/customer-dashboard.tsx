@@ -178,8 +178,8 @@ export function CustomerDashboard({
                 href={item.href}
                 data-record-version={item.recordVersion}
               >
-                {item.actionLabel}{" "}
-                <span aria-hidden="true">{t("customer.link.arrow")}</span>
+                {item.actionLabel}
+                <span aria-hidden="true"> {t("customer.link.arrow")}</span>
               </Link>
             </li>
           ))}

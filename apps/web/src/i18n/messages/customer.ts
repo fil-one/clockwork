@@ -1102,10 +1102,10 @@ export const customerMessages = defineMessages({
     es: "Gestionado por",
     fr: "Géré par",
     de: "Verwaltet von",
-    ja: "管理者",
+    ja: "管理担当者",
     pt: "Gerenciado por",
     zh: "管理人",
-    ar: "يديره",
+    ar: "المدير",
   },
 
   "customer.collection.procurement.eyebrow": {

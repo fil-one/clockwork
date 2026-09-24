@@ -291,8 +291,10 @@ export function CustomerAcquisition({
                   </article>
                 </div>
                 <div className={styles.notices}>
-                  <p>{offer.notices.serviceNotice}</p>
-                  <p>
+                  {/* Policy wording is typed by a pricing administrator in one
+                      language; `dir="auto"` lays it out by its own script. */}
+                  <p dir="auto">{offer.notices.serviceNotice}</p>
+                  <p dir="auto">
                     {mode === "trial"
                       ? offer.notices.trialNotice
                       : offer.notices.cancellationNotice}
@@ -481,7 +483,7 @@ export function CustomerAcquisition({
                 })}
               </p>
               {request.resolutionReason ? (
-                <p>{request.resolutionReason}</p>
+                <p dir="auto">{request.resolutionReason}</p>
               ) : null}
               {request.status === "pending" ? (
                 <p>{t("customer.payg.request.financeReviewing")}</p>
@@ -578,7 +580,9 @@ export function CustomerAcquisition({
                           disabled={busy}
                         />
                       </label>
-                      <p>{request.offer.notices.cancellationNotice}</p>
+                      <p dir="auto">
+                        {request.offer.notices.cancellationNotice}
+                      </p>
                       <button
                         disabled={
                           busy ||

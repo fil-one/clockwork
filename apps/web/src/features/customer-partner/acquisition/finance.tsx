@@ -106,7 +106,7 @@ export function AcquisitionFinance({
                 <dt>{t("customer.paygFinance.request")}</dt>
                 <dd>{request.id}</dd>
               </dl>
-              <p>{request.offer.notices.serviceNotice}</p>
+              <p dir="auto">{request.offer.notices.serviceNotice}</p>
               {request.reason ? (
                 <p>
                   {t("customer.paygFinance.customerReason", {
