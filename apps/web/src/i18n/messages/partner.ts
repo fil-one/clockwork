@@ -3977,12 +3977,12 @@ export const partnerMessages = defineMessages({
   "partner.quote.summary.notSelected": {
     en: "Not selected",
     es: "Sin seleccionar",
-    fr: "Non sélectionné",
+    fr: "Aucune sélection",
     de: "Nicht ausgewählt",
     ja: "未選択",
-    pt: "Não selecionado",
+    pt: "Sem seleção",
     zh: "未选择",
-    ar: "لم يُحدَّد",
+    ar: "لا يوجد اختيار",
   },
   "partner.quote.summary.setByOffer": {
     en: "Set by the offer",
