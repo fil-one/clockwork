@@ -5,6 +5,8 @@ import {
   verifyDemoAccessCookie,
 } from "@/src/auth/demo-access";
 import { recordClientReview } from "@/src/features/customer-partner/partner/demo-client-review";
+
+import { clientReviewFailure } from "../response-failure";
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ token: string }> },
@@ -40,13 +42,10 @@ export async function POST(
       headers: { "cache-control": "private, no-store" },
     });
   } catch (error) {
+    // A code, not a sentence: the review page words it in the client's
+    // language, and the refusal's English text never reaches the reader.
     return Response.json(
-      {
-        detail:
-          error instanceof Error && !error.message.startsWith("[")
-            ? error.message
-            : "Check your name, response, and confirmation.",
-      },
+      { code: clientReviewFailure(error) },
       { status: 422, headers: { "cache-control": "private, no-store" } },
     );
   }

@@ -142,6 +142,7 @@ export function DemoPersonaSwitcher({
         response.headers.get("content-type")?.split(";")[0]?.trim() !==
           "application/json"
       )
+        // i18n-exempt: control flow only; caught below and never shown
         throw new Error("reset rejected");
       demoResetReceipt.parse(await response.json());
       clearLocalDemoState();
@@ -163,7 +164,7 @@ export function DemoPersonaSwitcher({
               className={styles.toggle}
               onClick={() => setOpen(false)}
             >
-              {t("demo.panel.close")}
+              {t("common.close")}
             </button>
           </div>
           <Select
@@ -181,9 +182,9 @@ export function DemoPersonaSwitcher({
           ) : null}
           <div className={styles.actions}>
             <Dialog
-              title={t("app.demo.reset.confirm.title")}
-              description={t("app.demo.reset.confirm.description")}
-              closeLabel={t("app.demo.reset.confirm.cancel")}
+              title={t("demo.reset.confirm.title")}
+              description={t("demo.reset.confirm.description")}
+              closeLabel={t("demo.reset.confirm.cancel")}
               trigger={
                 <Button variant="secondary" size="small" disabled={resetting}>
                   {resetting
@@ -198,11 +199,11 @@ export function DemoPersonaSwitcher({
                   disabled={resetting}
                   onClick={() => void reset()}
                 >
-                  {t("app.demo.reset.confirm.action")}
+                  {t("demo.reset.confirm.action")}
                 </Button>
               }
             >
-              <p>{t("app.demo.reset.confirm.detail")}</p>
+              <p>{t("demo.reset.confirm.detail")}</p>
               {failed ? (
                 <p className={styles.error} role="alert">
                   {t("demo.panel.reset.failed")}
