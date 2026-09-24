@@ -17,7 +17,7 @@ import {
   canDecide,
   disclosedIdentifiers,
 } from "./policy";
-import { HumanSelector, TechnicalEvidence } from "./ui";
+import { HumanSelector, StatusPill, TechnicalEvidence, styles } from "./ui";
 
 describe("administration and safety policy", () => {
   it("keeps finance, legal, destructive, and assisted authorities segregated", () => {
@@ -165,5 +165,46 @@ describe("agreement version filters", () => {
     await userEvent.selectOptions(jurisdiction, "Reino Unido");
     expect(rows()).toHaveLength(1);
     expect(rows()[0]).toHaveTextContent("1.4.0");
+  });
+});
+
+describe("status chip colour", () => {
+  it("comes from the caller's tone, never from English words in the label", () => {
+    render(
+      <>
+        <StatusPill state="Active" />
+        <StatusPill state="Blocked" />
+        <StatusPill state="Vigente" tone="success" />
+        <StatusPill state="Bloqueado" tone="danger" />
+      </>,
+    );
+    // A label alone is neutral, even when it is an English status word.
+    expect(screen.getByText("Active")).toHaveClass(styles.pill ?? "");
+    expect(screen.getByText("Active")).not.toHaveClass(styles.success ?? "");
+    expect(screen.getByText("Blocked")).not.toHaveClass(styles.danger ?? "");
+    expect(screen.getByText("Vigente")).toHaveClass(styles.success ?? "");
+    expect(screen.getByText("Bloqueado")).toHaveClass(styles.danger ?? "");
+  });
+
+  it("colours translated agreement states from the state itself", () => {
+    render(
+      <LanguageProvider locale="pt" catalog={catalogs.pt}>
+        <AgreementAdministration
+          roles={["legal_approver"]}
+          versions={resolveDemoText(agreementVersions, "pt")}
+          scannedAt={agreementScanAt}
+          readOnly
+        />
+      </LanguageProvider>,
+    );
+    const table = screen.getByRole("table");
+    for (const chip of within(table).getAllByText("Vigente"))
+      expect(chip).toHaveClass(styles.success ?? "");
+    expect(within(table).getByText("Aprovada")).toHaveClass(
+      styles.success ?? "",
+    );
+    expect(within(table).getByText("Rascunho")).toHaveClass(
+      styles.warning ?? "",
+    );
   });
 });

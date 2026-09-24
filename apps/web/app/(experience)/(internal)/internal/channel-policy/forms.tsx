@@ -195,17 +195,20 @@ export function ChannelDecisionForm({
             />
           </label>
         ) : null}
-        <Button type="submit" disabled={pending || !allowed}>
-          {t(
-            pending
-              ? "adminGovernance.channelPolicy.decision.recording"
-              : decision === "propose"
-                ? "adminGovernance.channelPolicy.decision.propose"
-                : decision === "approve"
-                  ? "adminGovernance.channelPolicy.decision.approve"
-                  : "adminGovernance.channelPolicy.decision.return",
-          )}
-        </Button>
+        {/* A wrapper, so the grid stretches it rather than the button. */}
+        <div>
+          <Button type="submit" disabled={pending || !allowed}>
+            {t(
+              pending
+                ? "adminGovernance.channelPolicy.decision.recording"
+                : decision === "propose"
+                  ? "adminGovernance.channelPolicy.decision.propose"
+                  : decision === "approve"
+                    ? "adminGovernance.channelPolicy.decision.approve"
+                    : "adminGovernance.channelPolicy.decision.return",
+            )}
+          </Button>
+        </div>
       </fieldset>
       {!allowed ? (
         <p>{t("adminGovernance.channelPolicy.decision.otherApprover")}</p>

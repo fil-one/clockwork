@@ -197,30 +197,24 @@ export function ReviewSummaryCard({
 export type { StatusTone };
 
 /**
- * A status chip. Pass `tone` with translated text: the fallback reads English
- * keywords in `state`, so it cannot colour a label in another language and
- * shows the neutral warning tone instead.
+ * A status chip. Its colour comes from `tone`, which the caller derives from
+ * the record's state, never from the label: the label is translated, so no
+ * word in it can be trusted to mean anything. Without `tone` the chip is
+ * neutral (no colour).
  */
 export function StatusPill({
   state,
   tone,
 }: {
+  /** The chip's label, already in the reader's language. */
   state: string;
   tone?: StatusTone;
 }) {
-  const normalized = state.toLowerCase();
-  const resolved: StatusTone =
-    tone ??
-    (["active", "complete", "approved", "passed"].some((part) =>
-      normalized.includes(part),
-    )
-      ? "success"
-      : ["blocked", "retired", "failed"].some((part) =>
-            normalized.includes(part),
-          )
-        ? "danger"
-        : "warning");
-  return <span className={`${styles.pill} ${styles[resolved]}`}>{state}</span>;
+  return (
+    <span className={tone ? `${styles.pill} ${styles[tone]}` : styles.pill}>
+      {state}
+    </span>
+  );
 }
 
 export function ExitLink({

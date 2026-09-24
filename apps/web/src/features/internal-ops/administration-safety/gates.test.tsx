@@ -273,6 +273,9 @@ describe("the gate register in the reader's language", () => {
       within(row).getByText("Bloqueios: Data de revisão ausente ou vencida"),
     ).toBeVisible();
     expect(within(row).getByText("Ativação negada")).toBeVisible();
+    expect(
+      within(row).getByText("Atualizar ou testar o pré-requisito"),
+    ).toBeInTheDocument();
   });
 
   it("shows what an operator typed over a demo field as written", () => {
