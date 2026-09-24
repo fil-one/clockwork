@@ -1,4 +1,5 @@
 import "server-only";
+// i18n-exempt-file: demo mirror of the experience repository: API problem titles (integrator contract; the interface maps `code`, see problem-text.ts) and the bytes of a fixture PDF (rule 5).
 
 import { createHash, randomBytes } from "node:crypto";
 

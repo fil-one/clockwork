@@ -172,7 +172,7 @@ it("shows retained PAYG charges and correction identity without a priced quote",
     />,
   );
   expect(
-    screen.getByText("PAYG 2026-08 · revision 2 · correction"),
+    screen.getByText("PAYG August 2026 · revision 2 · correction"),
   ).toBeInTheDocument();
   expect(screen.getByText("Correction adjustment")).toBeInTheDocument();
   expect(screen.getByText("Supplier → Buyer")).toBeInTheDocument();

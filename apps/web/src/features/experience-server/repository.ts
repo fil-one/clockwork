@@ -1,3 +1,4 @@
+// i18n-exempt-file: HTTP API problem+json titles are the integrator contract (stable English, logged, never rendered); interface boundaries choose the reader's sentence from `code`/`status` in problem-text.ts; row-shape assertions are server-log diagnostics.
 import { createHash, randomBytes } from "node:crypto";
 
 import { sql } from "drizzle-orm";

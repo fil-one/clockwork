@@ -8,6 +8,7 @@ import { demoAccountIds, demoPersonas } from "@clockwork/testing/personas";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { formatMoney } from "@/src/features/shared/format";
+import { translatorFor } from "@/src/i18n/catalogs";
 
 import { commercialArtifactSource } from "./artifact-sources";
 import { demoPlatformIssuer } from "./demo-artifact-catalog";
@@ -21,6 +22,7 @@ import {
   demoCreatedOrderRecord,
 } from "./demo-portal-records";
 import { ExperienceProblem } from "./model";
+import { localizedAcceptedOrderRecord } from "./projection-display";
 import {
   demoProjectionRecordId,
   ExplicitDemoProjectionSource,
@@ -487,11 +489,23 @@ describe("the created order", () => {
     expect(accepted.version).toBe(initial.version + 1);
     expect(accepted.data).toMatchObject({
       status: "accepted",
-      statusLabel: "Accepted · order created",
       tone: "success",
-      nextAction: `Track your order · ${created.poNumber}`,
+      acceptedOrder: { orderId: created.id, reference: created.poNumber },
       nextActionHref: `/orders/order-${created.id}`,
       allowedActions: [],
+    });
+    // The reader's language renders the status and next step from the facts.
+    expect(
+      localizedAcceptedOrderRecord(accepted, translatorFor("en")).data,
+    ).toMatchObject({
+      statusLabel: "Accepted · order created",
+      nextAction: `Track your order · ${created.poNumber}`,
+    });
+    expect(
+      localizedAcceptedOrderRecord(accepted, translatorFor("pt")).data,
+    ).toMatchObject({
+      statusLabel: "Aceita · pedido criado",
+      nextAction: `Acompanhar seu pedido · ${created.poNumber}`,
     });
     await expect(
       source.action({
@@ -573,4 +587,56 @@ it("dispatches the accepted order once to the demo provisioner without claiming 
   expect(record.data.authoritative).toEqual({ status: "provisioning" });
   expect(record.data.statusLabel).toBe("Provisioning · demo request submitted");
   expect(record.data.status).toBe("provisioning");
+});
+
+/**
+ * Demo state is shared by every reader of the deployment and outlives the
+ * request that wrote it, so it holds facts. The acceptance used to write
+ * "Accepted · order created" and "Track your order · PO-…" into the quote
+ * override, which put English into a Portuguese reader's quotes list.
+ */
+it("persists the acceptance as facts, with no sentence in any language", async () => {
+  const { created } = await walk();
+  const state = await store.read();
+  const quoteId =
+    demoProjectionRecordId("customer", "quotes", renewalQuoteKey()) ?? "";
+  const override = state.projectionOverrides[quoteId]?.data ?? {};
+
+  expect(override).toMatchObject({
+    status: "accepted",
+    acceptedOrder: { orderId: created.id, reference: "PO-DEMO-4417" },
+    nextActionHref: `/orders/order-${created.id}`,
+  });
+  expect(override).not.toHaveProperty("statusLabel");
+  expect(override).not.toHaveProperty("nextAction");
+  expect(JSON.stringify(override)).not.toMatch(/Accepted|Track your order/u);
+});
+
+it("renders an override written before the facts existed in the reader's language", () => {
+  const legacy = {
+    id: "projection-legacy",
+    recordKey: "quote-direct-renewal-v2",
+    aggregateType: "quote",
+    aggregateId: "aggregate-legacy",
+    accountId: demoAccountIds.direct,
+    audience: "customer" as const,
+    channel: "quotes" as const,
+    version: 3,
+    sourceUpdatedAt: now.toISOString(),
+    projectedAt: now.toISOString(),
+    stale: false,
+    data: {
+      status: "accepted",
+      statusLabel: "Accepted · order created",
+      nextAction: "Track your order · PO-DEMO-4417",
+      nextActionHref: `/orders/order-${orderId("0001")}`,
+    },
+  };
+
+  expect(
+    localizedAcceptedOrderRecord(legacy, translatorFor("de")).data,
+  ).toMatchObject({
+    statusLabel: "Angenommen · Auftrag erstellt",
+    nextAction: "Auftrag verfolgen",
+  });
 });

@@ -1,4 +1,5 @@
 import "server-only";
+// i18n-exempt-file: demo mirror of /v1/core/commands/quotes: problem+json titles are the API contract; the interface maps `code`.
 
 import { createHash } from "node:crypto";
 

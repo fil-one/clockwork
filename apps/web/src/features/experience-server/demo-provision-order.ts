@@ -1,4 +1,5 @@
 import "server-only";
+// i18n-exempt-file: demo provisioning refusals travel as the API's `detail`; each carries a stable code for the interface to map (the handoff surface and demo-app route are other lanes' files).
 import type { SessionClaims } from "@clockwork/api";
 import { hasPermission } from "@clockwork/contracts";
 import { provisioningRequest } from "@clockwork/domain/core";
@@ -7,6 +8,25 @@ import { z } from "zod";
 import type { DemoAdapterStateStore } from "@clockwork/testing/demo-state";
 import type { DemoOrderAcceptanceState } from "./demo-order-acceptance";
 import { configuredDemoStateStore } from "./demo-state-store";
+
+/**
+ * A refusal the operator reads. The English `message` is what the demo route
+ * returns as `detail` today; `code` is the stable key an interface maps to the
+ * reader's language.
+ */
+export class DemoProvisioningRefusal extends Error {
+  public constructor(
+    public readonly code:
+      | "PROVISIONING_FORBIDDEN"
+      | "DEMO_PROVISIONING_REQUEST_MISSING"
+      | "DEMO_PROVISIONER_REFUSED"
+      | "DEMO_ORDER_CHANGED",
+    message: string,
+  ) {
+    super(message);
+    this.name = "DemoProvisioningRefusal";
+  }
+}
 
 /** A demo port invocation records dispatch only; it never fabricates completion. */
 export async function submitDemoProvisioning(
@@ -18,12 +38,16 @@ export async function submitDemoProvisioning(
     !session.isInternalStaff ||
     !session.roles.some((role) => hasPermission(role, "system:operate"))
   )
-    throw new Error("Internal operations authority is required.");
+    throw new DemoProvisioningRefusal(
+      "PROVISIONING_FORBIDDEN",
+      "Internal operations authority is required.",
+    );
   const { orderId } = z.object({ orderId: z.uuid() }).strict().parse(body);
   const state = (await store.read()) as DemoOrderAcceptanceState;
   const order = state.createdOrders?.[orderId];
   if (!order?.domainOrder || !order.organizationId)
-    throw new Error(
+    throw new DemoProvisioningRefusal(
+      "DEMO_PROVISIONING_REQUEST_MISSING",
       "This historical order has no saved provisioning request. Use a newly accepted demo order.",
     );
   if (order.provisioning) return order.provisioning;
@@ -31,7 +55,8 @@ export async function submitDemoProvisioning(
   const response =
     await createFakeProviderPorts().provisioning.provision(request);
   if (!response.ok)
-    throw new Error(
+    throw new DemoProvisioningRefusal(
+      "DEMO_PROVISIONER_REFUSED",
       "Demo provisioner refused the request. Retry from the order queue.",
     );
   let result = {
@@ -47,7 +72,10 @@ export async function submitDemoProvisioning(
       JSON.stringify(currentOrder.domainOrder) !==
         JSON.stringify(order.domainOrder)
     )
-      throw new Error("The order changed. Reload its handoff.");
+      throw new DemoProvisioningRefusal(
+        "DEMO_ORDER_CHANGED",
+        "The order changed. Reload its handoff.",
+      );
     if (currentOrder.provisioning) {
       result = currentOrder.provisioning;
       return current;

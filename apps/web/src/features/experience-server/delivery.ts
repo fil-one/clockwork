@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getCommerceSession } from "@/src/auth/session";
+import { getLocale } from "@/src/i18n/server";
 
 import type { ProjectedArtifact } from "./artifact-delivery-list";
 import {
@@ -79,6 +80,9 @@ export async function loadRecordArtifacts(
             null),
       recordKey,
       now: new Date(),
+      // The demo source resolves demo-authored text (artifact labels among
+      // it) for the reader; without the language it resolves to English.
+      locale: await getLocale(),
     });
     return projectedArtifacts(record.data.artifacts);
   } catch (error) {

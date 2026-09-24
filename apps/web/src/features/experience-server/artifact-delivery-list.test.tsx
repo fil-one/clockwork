@@ -112,8 +112,10 @@ describe("artifact delivery states", () => {
       />,
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Artifact not found",
+      "This document is unavailable.",
     );
+    // The API's English problem title never reaches the reader.
+    expect(screen.queryByText(/Artifact not found/)).toBeNull();
     expect(
       screen.queryByRole("link", { name: "Download verified PDF" }),
     ).not.toBeInTheDocument();

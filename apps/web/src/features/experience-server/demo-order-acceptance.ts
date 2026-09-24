@@ -1,4 +1,5 @@
 import "server-only";
+// i18n-exempt-file: demo order-acceptance API: problem+json titles are the API contract (the interface maps `code`); line details, payment terms and the authority attestation are the order-form PDF's document wording (rule 5). The quote override it writes holds facts only.
 import { isStoredQuote } from "@/src/features/customer-partner/partner/demo-partner-quote";
 
 import { createHash } from "node:crypto";
@@ -906,7 +907,10 @@ function createInState(
     audienceAccountId: order.invoicingAccountId,
     orderFormDocumentId: documentId,
     artifactRequestId: request.id,
-    poNumber: order.poNumber ?? "Not recorded",
+    // The order-acceptance form requires a PO number, so this sentinel is
+    // reached only by a hand-built API call. `acceptedOrder.reference` above
+    // is the fact the interface reads; this field feeds the demo order record.
+    poNumber: order.poNumber ?? "Not recorded", // i18n-exempt: stored sentinel for a PO the acceptance form always collects; unreachable from the interface
     authorityTitle: order.authorityTitle,
     signerName: signerNameFor(session),
     serviceStartsOn: order.serviceStartsOn,
@@ -951,6 +955,19 @@ function createInState(
       : undefined);
   if (sourceVersion === undefined)
     throw new Error(`DEMO_ACCEPTANCE_QUOTE_NOT_PROJECTED:${quote.recordKey}`);
+  // Demo state holds facts, never prose: the reader's language renders the
+  // status and the next step at read time (`localizedAcceptedOrderRecord`).
+  // An earlier write may have left English sentences on the quote override;
+  // they are dropped here rather than carried forward.
+  const carried = Object.fromEntries(
+    Object.entries(currentOverride?.data ?? {}).filter(
+      ([key]) => key !== "statusLabel" && key !== "nextAction",
+    ),
+  );
+  const acceptedOrder = {
+    orderId: stored.id,
+    reference: order.poNumber?.trim() || null,
+  };
   return {
     state: {
       ...state,
@@ -971,12 +988,18 @@ function createInState(
                   record: {
                     ...partnerStored.record,
                     status: "accepted",
-                    secondary: `Supply order accepted · ${stored.poNumber}`,
+                    // Only the purchase-order number, an identifier that reads
+                    // the same in every language. "Supply order accepted" is
+                    // for the partner surface to render from `status` and
+                    // `acceptedOrder`; stored here it would fix one language
+                    // into state every reader shares.
+                    secondary: acceptedOrder.reference ?? "",
                     recordVersion:
                       (partnerStored.record.recordVersion ?? 1) + 1,
                     allowedActions: ["download"],
                   },
                   orderId: stored.id,
+                  acceptedOrder,
                 },
               },
             }
@@ -985,11 +1008,10 @@ function createInState(
           version: (currentOverride?.version ?? sourceVersion) + 1,
           updatedAt: now.toISOString(),
           data: {
-            ...(currentOverride?.data ?? {}),
+            ...carried,
             status: "accepted",
-            statusLabel: "Accepted · order created",
             tone: "success",
-            nextAction: `Track your order · ${stored.poNumber}`,
+            acceptedOrder,
             nextActionHref: `/orders/order-${stored.id}`,
             allowedActions: [],
           },

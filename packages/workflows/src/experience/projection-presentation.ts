@@ -1,3 +1,4 @@
+// i18n-exempt-file: persisted production projection payload. These English strings are stored with every row and kept unchanged so no stored format moves; the web app re-renders every one of them from the row's `authoritative` facts in the reader's language (apps/web/src/features/experience-server/projection-display.ts) and shows these only for a row without facts.
 import type { AuthoritativeProjectionState } from "./projection-materializer";
 
 /**
