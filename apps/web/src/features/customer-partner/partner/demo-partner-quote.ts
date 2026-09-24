@@ -1,6 +1,16 @@
-import { isStoredQuote, type StoredQuote } from "./demo-partner-quote-state";
-export { isStoredQuote, type StoredQuote } from "./demo-partner-quote-state";
+import {
+  isStoredQuote,
+  storedQuoteFacts,
+  type StoredQuote,
+  type StoredQuoteRecord,
+} from "./demo-partner-quote-state";
+export {
+  isStoredQuote,
+  type StoredQuote,
+  type StoredQuoteRecord,
+} from "./demo-partner-quote-state";
 import type { DemoQuoteState } from "@/src/features/experience-server/demo-quote-flow";
+import type { DemoOrderAcceptanceState } from "@/src/features/experience-server/demo-order-acceptance";
 import "server-only";
 
 import { createHash } from "node:crypto";
@@ -19,6 +29,10 @@ import {
   reviseQuote,
   type QuoteSnapshot,
 } from "@clockwork/domain/core";
+import {
+  demoText,
+  resolveDemoText,
+} from "@clockwork/testing/demo-localized-text";
 import { demoAccountIds } from "@clockwork/testing/personas";
 import type {
   DemoAdapterState,
@@ -32,9 +46,22 @@ import {
   domainPriceBook,
 } from "@/src/features/internal-ops/price-books/demo-price-books";
 
-import type { PartnerRecord } from "./partner-data";
+import { formatMoney } from "@/src/features/shared/format";
+
+import type { PartnerMilestone, PartnerRecord } from "./partner-data";
+import {
+  partnerMilestoneText,
+  partnerPositionText,
+  partnerQuoteContextText,
+  type PartnerReader,
+} from "./partner-presentation";
 import type { PartnerQuoteContext, QuoteRoute } from "./resale-quote-model";
 
+/*
+ * Problem `title` and `detail` strings in this file are English API text for
+ * logs and API clients. Partner pages never show them; they word the outcome
+ * from the problem `code` (partner-command-errors.ts).
+ */
 const quotePrefix = "demo-partner-quote:";
 const receiptPrefix = "demo-partner-quote-receipt:";
 
@@ -151,26 +178,160 @@ function createdQuotes(state: DemoAdapterState): StoredQuote[] {
     .filter(isStoredQuote);
 }
 
-function projectedPartnerQuote(quote: StoredQuote): PartnerRecord {
-  const transfer = moneySchema.safeParse(quote.snapshot.total);
-  const resale = moneySchema.safeParse(quote.snapshot.partnerResaleTotal);
-  return {
-    ...quote.record,
+/** Who works a demo partner quote; stands in for the partner's own team name. */
+const quoteOwner = demoText({
+  en: "Partner commercial team",
+  es: "Equipo comercial del socio",
+  fr: "Équipe commerciale du partenaire",
+  de: "Vertriebsteam des Partners",
+  ja: "パートナー営業チーム",
+  pt: "Equipe comercial do parceiro",
+  zh: "合作伙伴商务团队",
+  ar: "الفريق التجاري للشريك",
+});
+
+const snapshotSchema = z.object({
+  status: z.string(),
+  revision: z.number().int().positive(),
+  route: z.string(),
+  expiresAt: z.string().regex(/^\d{4}-\d{2}-\d{2}/u),
+  total: moneySchema,
+  partnerResaleTotal: moneySchema.optional(),
+  lines: z
+    .array(
+      z.object({
+        sku: z.string(),
+        region: z.string(),
+        quantity: z.string(),
+        termMonths: z.number(),
+      }),
+    )
+    .min(1),
+});
+
+/**
+ * Prose a writer before the facts-only shape left in a stored record. Read
+ * only where no fact can replace it: a withdrawal reason or a superseding
+ * revision recorded before those facts had fields of their own.
+ */
+function legacyProse(
+  record: StoredQuoteRecord,
+  key: string,
+): string | undefined {
+  const value = (record as unknown as Readonly<Record<string, unknown>>)[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+/**
+ * The quote's next milestone, from what happened to it. The ledger line an
+ * English-only writer used to store is derived here instead, so a quote reads
+ * in the language of whoever opens it.
+ */
+function quoteMilestone(
+  quote: StoredQuote,
+  snapshot: z.infer<typeof snapshotSchema>,
+  state: DemoAdapterState,
+): PartnerMilestone {
+  if (quote.orderId) {
+    const purchaseOrder = (state as DemoOrderAcceptanceState).createdOrders?.[
+      quote.orderId
+    ]?.poNumber;
+    return purchaseOrder
+      ? { kind: "supplyOrderAccepted", purchaseOrder }
+      : { kind: "supplyOrderAccepted" };
+  }
+  const record = quote.record;
+  if (record.status === "canceled") {
+    const legacy = legacyProse(record, "secondary");
+    const legacyRevision = /^Superseded by revision (\d+)$/u.exec(
+      legacy ?? "",
+    )?.[1];
+    const superseded =
+      record.supersededByRevision ??
+      (legacyRevision ? Number(legacyRevision) : undefined);
+    if (superseded) return { kind: "supersededBy", revision: superseded };
+    if (snapshot.status === "superseded")
+      return { kind: "supersededBy", revision: snapshot.revision + 1 };
+    const reason =
+      record.withdrawalReason ?? /^Withdrawn: (.+)$/su.exec(legacy ?? "")?.[1];
+    if (reason) return { kind: "withdrawn", reason };
+  }
+  const decision = quote.clientResponse?.decision;
+  if (decision === "request_order") return { kind: "clientRequestedOrder" };
+  if (decision === "request_changes") return { kind: "clientRequestedChanges" };
+  if (decision === "decline") return { kind: "clientDeclined" };
+  const on = snapshot.expiresAt.slice(0, 10);
+  return snapshot.status === "draft"
+    ? { kind: "draftExpires", on }
+    : { kind: "issuedExpires", on };
+}
+
+/**
+ * A stored demo quote as one reader sees it. Everything shown is derived from
+ * the snapshot's facts and the record's state here, at read time, so the same
+ * stored quote renders in Portuguese for one reader and German for the next,
+ * and state written by an earlier release reads the same way.
+ */
+function projectedPartnerQuote(
+  quote: StoredQuote,
+  state: DemoAdapterState,
+  reader: PartnerReader,
+): PartnerRecord {
+  const { t, locale, formatting } = reader;
+  const record = storedQuoteFacts(quote.record);
+  const parsed = snapshotSchema.safeParse(quote.snapshot);
+  const base: PartnerRecord = {
+    ...record,
+    owner: resolveDemoText(quoteOwner, locale),
+    context: "",
+    value: "",
+    secondary: "",
     ...(quote.orderId ? { orderId: quote.orderId } : {}),
     ...(quote.clientResponse ? { clientResponse: quote.clientResponse } : {}),
     quoteCommand: {
       quoteId: quote.aggregateId,
       accountId: String(quote.snapshot.accountId),
-      version: quote.record.recordVersion ?? 1,
+      version: record.recordVersion ?? 1,
     },
-    ...(transfer.success && resale.success
+  };
+  if (!parsed.success) return base;
+  const snapshot = parsed.data;
+  const resale = snapshot.partnerResaleTotal;
+  return {
+    ...base,
+    context: partnerQuoteContextText(
+      snapshot.route === "distributor" ? "distributor" : "resale",
+      snapshot.lines,
+      t,
+      formatting,
+    ),
+    value:
+      resale && resale.currency === snapshot.total.currency
+        ? partnerPositionText(
+            {
+              kind: "transferAndResale",
+              currency: snapshot.total.currency,
+              transferMinor: snapshot.total.minor,
+              resaleMinor: resale.minor,
+            },
+            t,
+            formatting,
+          )
+        : "",
+    secondary: partnerMilestoneText(
+      quoteMilestone(quote, snapshot, state),
+      t,
+      formatting,
+    ),
+    ...(resale
       ? {
           quotePricing: {
-            transferPrice: displayMoney(
-              transfer.data.currency,
-              transfer.data.minor,
+            transferPrice: formatMoney(
+              snapshot.total.minor,
+              snapshot.total.currency,
+              formatting,
             ),
-            resalePrice: displayMoney(resale.data.currency, resale.data.minor),
+            resalePrice: formatMoney(resale.minor, resale.currency, formatting),
           },
         }
       : {}),
@@ -180,6 +341,7 @@ function projectedPartnerQuote(quote: StoredQuote): PartnerRecord {
 export function demoCreatedPartnerQuotes(
   state: DemoAdapterState,
   partnerAccountId: string,
+  reader: PartnerReader,
 ): readonly PartnerRecord[] {
   return createdQuotes(state)
     .filter((quote) => quote.partnerAccountId === partnerAccountId)
@@ -190,13 +352,14 @@ export function demoCreatedPartnerQuotes(
           ? -1
           : 0,
     )
-    .map(projectedPartnerQuote);
+    .map((quote) => projectedPartnerQuote(quote, state, reader));
 }
 
 export function demoPartnerQuoteRecord(
   state: DemoAdapterState,
   partnerAccountId: string,
   recordKey: string,
+  reader: PartnerReader,
 ): PartnerRecord | undefined {
   const found = createdQuotes(state).find(
     (quote) =>
@@ -205,7 +368,7 @@ export function demoPartnerQuoteRecord(
         quote.aggregateId === recordKey ||
         `quote-${quote.aggregateId}` === recordKey),
   );
-  return found ? projectedPartnerQuote(found) : undefined;
+  return found ? projectedPartnerQuote(found, state, reader) : undefined;
 }
 
 export function demoPartnerQuoteContext(
@@ -286,7 +449,7 @@ export function demoPartnerQuoteContext(
         ),
       },
       lines: mapped.slice(1).map(({ line, offer }) => {
-        if (!offer) throw new Error("The original offer is unavailable.");
+        if (!offer) throw new Error("The original offer is unavailable."); // i18n-exempt: internal invariant, not rendered
         return {
           offerId: offer.id,
           capacity: line.quantity,
@@ -307,13 +470,6 @@ export function demoPartnerQuoteContext(
   };
 }
 
-function displayMoney(currency: string, minor: string): string {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-  }).format(Number(BigInt(minor)) / 100);
-}
-
 function problem(requestId: string, error: unknown): Response {
   const known = error instanceof PartnerQuoteProblem;
   const validation =
@@ -327,14 +483,14 @@ function problem(requestId: string, error: unknown): Response {
   return Response.json(
     {
       type: `https://clockwork.test/problems/${code.toLowerCase().replaceAll("_", "-")}`,
-      title: "Partner quote refused",
+      title: "Partner quote refused", // i18n-exempt: API problem detail, not rendered
       status,
       detail:
         known || validation
           ? error instanceof Error
             ? error.message
-            : "The quote is invalid"
-          : "The demo could not record the partner quote.",
+            : "The quote is invalid" // i18n-exempt: API problem detail, not rendered
+          : "The demo could not record the partner quote.", // i18n-exempt: API problem detail, not rendered
       code,
       requestId,
       retryable: status >= 500,
@@ -368,7 +524,7 @@ export async function handleDemoPartnerQuoteCommand(
       throw new PartnerQuoteProblem(
         403,
         "PARTNER_QUOTE_AUTHORITY_FORBIDDEN",
-        "Partner quote authority is required",
+        "Partner quote authority is required", // i18n-exempt: API problem detail, not rendered
       );
     const idempotencyKey = request.headers.get("idempotency-key")?.trim();
     if (
@@ -379,7 +535,7 @@ export async function handleDemoPartnerQuoteCommand(
       throw new PartnerQuoteProblem(
         422,
         "IDEMPOTENCY_KEY_REQUIRED",
-        "A valid idempotency-key header is required",
+        "A valid idempotency-key header is required", // i18n-exempt: API problem detail, not rendered
       );
     const bytes = new Uint8Array(await request.arrayBuffer());
     const requestHash = createHash("sha256")
@@ -421,7 +577,7 @@ export async function handleDemoPartnerQuoteCommand(
       throw new PartnerQuoteProblem(
         403,
         "PARTNER_QUOTE_SCOPE_FORBIDDEN",
-        "The quote does not match the acting partner relationship",
+        "The quote does not match the acting partner relationship", // i18n-exempt: API problem detail, not rendered
       );
     const store = input.store ?? configuredDemoStateStore();
     const now = input.now ?? new Date().toISOString();
@@ -435,7 +591,7 @@ export async function handleDemoPartnerQuoteCommand(
           throw new PartnerQuoteProblem(
             409,
             "IDEMPOTENCY_CONFLICT",
-            "The idempotency key is already bound to another partner quote",
+            "The idempotency key is already bound to another partner quote", // i18n-exempt: API problem detail, not rendered
           );
         replayed = true;
         result = prior.response;
@@ -450,7 +606,7 @@ export async function handleDemoPartnerQuoteCommand(
         throw new PartnerQuoteProblem(
           422,
           "REVISION_REQUIRED",
-          "A revision identity is required.",
+          "A revision identity is required.", // i18n-exempt: API problem detail, not rendered
         );
       if (command.action !== "create") {
         if (
@@ -461,19 +617,19 @@ export async function handleDemoPartnerQuoteCommand(
           throw new PartnerQuoteProblem(
             403,
             "PARTNER_QUOTE_SCOPE_FORBIDDEN",
-            "This quote is outside your account.",
+            "This quote is outside your account.", // i18n-exempt: API problem detail, not rendered
           );
         if (previous.orderId)
           throw new PartnerQuoteProblem(
             422,
             "QUOTE_ACCEPTED",
-            "An ordered quote cannot be edited or revised.",
+            "An ordered quote cannot be edited or revised.", // i18n-exempt: API problem detail, not rendered
           );
         if (previous.record.recordVersion !== command.expectedVersion)
           throw new PartnerQuoteProblem(
             409,
             "VERSION_CONFLICT",
-            "The quote changed. Reload before editing.",
+            "The quote changed. Reload before editing.", // i18n-exempt: API problem detail, not rendered
           );
         if (
           previous.snapshot.seriesId !== command.payload.seriesId ||
@@ -483,13 +639,13 @@ export async function handleDemoPartnerQuoteCommand(
           throw new PartnerQuoteProblem(
             422,
             "REVISION_CONTEXT_CHANGED",
-            "Keep this revision on its original series and price book.",
+            "Keep this revision on its original series and price book.", // i18n-exempt: API problem detail, not rendered
           );
         if (command.action === "edit" && previous.snapshot.status !== "draft")
           throw new PartnerQuoteProblem(
             422,
             "QUOTE_IMMUTABLE",
-            "Only a draft can be edited. Create a revision of an issued quote.",
+            "Only a draft can be edited. Create a revision of an issued quote.", // i18n-exempt: API problem detail, not rendered
           );
       }
       if (
@@ -499,7 +655,7 @@ export async function handleDemoPartnerQuoteCommand(
         throw new PartnerQuoteProblem(
           409,
           "PARTNER_QUOTE_EXISTS",
-          "This partner quote already exists",
+          "This partner quote already exists", // i18n-exempt: API problem detail, not rendered
         );
       const book = currentDemoPriceBooks(state).find(
         (candidate) => candidate.id === command.payload.priceBookId,
@@ -508,7 +664,7 @@ export async function handleDemoPartnerQuoteCommand(
         throw new PartnerQuoteProblem(
           422,
           "PRICE_BOOK_NOT_FOUND",
-          "The selected price book is unavailable",
+          "The selected price book is unavailable", // i18n-exempt: API problem detail, not rendered
         );
       let priced: ReturnType<typeof priceQuote>;
       try {
@@ -528,7 +684,7 @@ export async function handleDemoPartnerQuoteCommand(
           "PRICING_REFUSED",
           error instanceof Error
             ? error.message
-            : "The quote could not be priced",
+            : "The quote could not be priced", // i18n-exempt: API problem detail, not rendered
         );
       }
       let snapshot = createQuoteDraft({
@@ -564,7 +720,7 @@ export async function handleDemoPartnerQuoteCommand(
             "REVISION_REFUSED",
             error instanceof Error
               ? error.message
-              : "This quote cannot be revised.",
+              : "This quote cannot be revised.", // i18n-exempt: API problem detail, not rendered
           );
         }
         snapshot = revised.revision;
@@ -572,9 +728,9 @@ export async function handleDemoPartnerQuoteCommand(
           ...previous,
           snapshot: revised.prior as unknown as Record<string, unknown>,
           record: {
-            ...previous.record,
+            ...storedQuoteFacts(previous.record),
             status: "canceled",
-            secondary: `Superseded by revision ${snapshot.revision}`,
+            supersededByRevision: snapshot.revision,
             allowedActions: ["download"],
             recordVersion: (previous.record.recordVersion ?? 1) + 1,
           },
@@ -594,26 +750,15 @@ export async function handleDemoPartnerQuoteCommand(
           : 1;
       const reference = `quote-${targetId}`;
       const line = command.payload.lines[0];
-      if (!line) throw new Error("Partner quote line disappeared");
-      const record: PartnerRecord = {
+      if (!line) throw new Error("Partner quote line disappeared"); // i18n-exempt: internal invariant, not rendered
+      // Facts only. The ledger line, amounts and dates are derived from the
+      // snapshot for each reader (`projectedPartnerQuote`); nothing rendered
+      // in one reader's language is stored for the next.
+      const record: StoredQuoteRecord = {
         id: reference,
         name: `${relationship.endClient.name} · ${line.sku}`,
-        context: `${command.payload.route === "distributor" ? "Two-tier distributor" : "Resale"} · ${command.payload.lines.map((line) => `${line.region} · ${line.quantity} TB · ${line.termMonths} months`).join("; ")}`,
         status: "draft",
-        quotePricing: {
-          transferPrice: displayMoney(
-            priced.total.currency,
-            priced.total.minor,
-          ),
-          resalePrice: displayMoney(
-            command.payload.partnerResaleTotal.currency,
-            command.payload.partnerResaleTotal.minor,
-          ),
-        },
         risk: priced.marginResult === "exception_required" ? "high" : "low",
-        owner: "Partner commercial team",
-        value: `${displayMoney(priced.total.currency, priced.total.minor)} transfer / ${displayMoney(command.payload.partnerResaleTotal.currency, command.payload.partnerResaleTotal.minor)} resale`,
-        secondary: `Draft · expires ${new Date(command.payload.expiresAt).toLocaleDateString("en-GB", { timeZone: "UTC" })}`,
         href: `/partner/quotes/${reference}` as Route,
         recordVersion: version,
         recordKey: reference,
@@ -685,7 +830,7 @@ export async function handleDemoPartnerQuoteCommand(
         },
       };
     });
-    if (!result) throw new Error("Demo partner quote produced no result");
+    if (!result) throw new Error("Demo partner quote produced no result"); // i18n-exempt: internal invariant, not rendered
     return Response.json(result, {
       headers: {
         "cache-control": "private, no-store",

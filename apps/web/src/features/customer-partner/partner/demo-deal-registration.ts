@@ -5,6 +5,10 @@ import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
 import { hasPermission, QuantitySchema, uuidV7 } from "@clockwork/contracts";
+import {
+  demoText,
+  resolveDemoText,
+} from "@clockwork/testing/demo-localized-text";
 import { demoAccountIds } from "@clockwork/testing/personas";
 import type {
   DemoAdapterState,
@@ -15,7 +19,19 @@ import { z } from "zod";
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
 
 import type { RegistrableEndClient } from "./deal-registration-model";
-import type { PartnerRecord } from "./partner-data";
+import type { PartnerRecord, PartnerRisk, PartnerStatus } from "./partner-data";
+import {
+  formatTerabytes,
+  partnerMilestoneText,
+  partnerPositionText,
+  type PartnerReader,
+} from "./partner-presentation";
+
+/*
+ * Problem `title` and `detail` strings in this file are English API text for
+ * logs and API clients. Partner pages never show them; they word the outcome
+ * from the problem `code` (partner-command-errors.ts).
+ */
 
 const registrationPrefix = "demo-partner-registration:";
 const receiptPrefix = "demo-partner-registration-receipt:";
@@ -51,13 +67,89 @@ const commandSchema = z
   })
   .strict();
 
+/**
+ * A registration as the demo state store keeps it: facts only. The ledger
+ * line, the volume and the protection window are worded when a reader opens
+ * the page, in that reader's language.
+ *
+ * State written before this shape stored `record.context`, `owner`, `value`
+ * and `secondary` rendered once in English, and no `expectedVolume` or
+ * `protectionDays`. Such a record still reads: its volume is recovered from
+ * the old value line and its protection window from the channel policy
+ * snapshot it has always carried.
+ */
 interface StoredRegistration {
   readonly kind: "demo_partner_registration";
   readonly aggregateId: string;
   readonly partnerAccountId: string;
   readonly endClientAccountId: string;
-  readonly record: PartnerRecord;
+  readonly record: {
+    readonly id: string;
+    /** "{end client} · {workload}": a name and what the seller typed. */
+    readonly name: string;
+    readonly status: PartnerStatus;
+    readonly risk: PartnerRisk;
+  };
+  /** Decimal terabytes, as the quantity schema stores them. */
+  readonly expectedVolume?: string;
+  readonly protectionDays?: number;
+  readonly channelPolicySnapshot?: { readonly initialProtectionDays?: number };
   readonly createdAt: string;
+}
+
+/** Who decides a registration; stands in for the operator queue's own name. */
+const registrationOwner = demoText({
+  en: "Fil One channel operations",
+  es: "Operaciones de canal de Fil One",
+  fr: "Opérations de canal de Fil One",
+  de: "Kanalteam von Fil One",
+  ja: "Fil One チャネル運用チーム",
+  pt: "Operações de canal da Fil One",
+  zh: "Fil One 渠道运营团队",
+  ar: "فريق عمليات القنوات في Fil One",
+});
+
+function presentRegistration(
+  registration: StoredRegistration,
+  { t, locale, formatting }: PartnerReader,
+): PartnerRecord {
+  const { id, name, status, risk } = registration.record;
+  const legacyValue = (registration.record as Readonly<Record<string, unknown>>)
+    .value;
+  const volume =
+    registration.expectedVolume ??
+    (typeof legacyValue === "string"
+      ? /^(\d+(?:\.\d+)?) TB\b/u.exec(legacyValue)?.[1]
+      : undefined);
+  const days =
+    registration.protectionDays ??
+    registration.channelPolicySnapshot?.initialProtectionDays;
+  return {
+    id,
+    name,
+    status,
+    risk,
+    owner: resolveDemoText(registrationOwner, locale),
+    context:
+      volume && days
+        ? t("partner.registration.created.context", {
+            volume: formatTerabytes(volume, formatting),
+            count: days,
+          })
+        : "",
+    value: volume
+      ? partnerPositionText(
+          { kind: "potentialWorkload", terabytes: volume },
+          t,
+          formatting,
+        )
+      : "",
+    secondary: partnerMilestoneText(
+      { kind: "awaitingChannelDecision" },
+      t,
+      formatting,
+    ),
+  };
 }
 
 interface StoredReceipt {
@@ -115,6 +207,7 @@ export function demoRegistrableEndClients(
 export function demoCreatedRegistrations(
   state: DemoAdapterState,
   partnerAccountId: string,
+  reader: PartnerReader,
 ): readonly PartnerRecord[] {
   return Object.entries(state.projectionOverrides)
     .filter(([key]) => key.startsWith(registrationPrefix))
@@ -130,7 +223,7 @@ export function demoCreatedRegistrations(
           ? -1
           : 0,
     )
-    .map((registration) => registration.record);
+    .map((registration) => presentRegistration(registration, reader));
 }
 
 function problem(requestId: string, error: unknown): Response {
@@ -146,14 +239,14 @@ function problem(requestId: string, error: unknown): Response {
   return Response.json(
     {
       type: `https://clockwork.test/problems/${code.toLowerCase().replaceAll("_", "-")}`,
-      title: "Deal registration refused",
+      title: "Deal registration refused", // i18n-exempt: API problem title, not rendered
       status,
       detail:
         known || validation
           ? error instanceof Error
             ? error.message
-            : "The registration is invalid"
-          : "The demo could not record the deal registration.",
+            : "The registration is invalid" // i18n-exempt: API problem detail, not rendered
+          : "The demo could not record the deal registration.", // i18n-exempt: API problem detail, not rendered
       code,
       requestId,
       retryable: status >= 500,
@@ -183,7 +276,7 @@ export async function handleDemoDealRegistrationCommand(
       throw new RegistrationProblem(
         403,
         "REGISTRATION_AUTHORITY_FORBIDDEN",
-        "Partner quote authority is required",
+        "Partner quote authority is required", // i18n-exempt: API problem detail, not rendered
       );
     const idempotencyKey = request.headers.get("idempotency-key")?.trim();
     if (
@@ -194,7 +287,7 @@ export async function handleDemoDealRegistrationCommand(
       throw new RegistrationProblem(
         422,
         "IDEMPOTENCY_KEY_REQUIRED",
-        "A valid idempotency-key header is required",
+        "A valid idempotency-key header is required", // i18n-exempt: API problem detail, not rendered
       );
     const bytes = new Uint8Array(await request.arrayBuffer());
     const requestHash = createHash("sha256")
@@ -215,7 +308,7 @@ export async function handleDemoDealRegistrationCommand(
       throw new RegistrationProblem(
         403,
         "PARTNER_SCOPE_FORBIDDEN",
-        "The registration must belong to the acting partner account",
+        "The registration must belong to the acting partner account", // i18n-exempt: API problem detail, not rendered
       );
     const endClient = demoRegistrableEndClients(partnerAccountId).find(
       (candidate) => candidate.id === command.payload.endClientAccountId,
@@ -224,19 +317,16 @@ export async function handleDemoDealRegistrationCommand(
       throw new RegistrationProblem(
         403,
         "END_CLIENT_SCOPE_FORBIDDEN",
-        "The named end client is outside this partner relationship",
+        "The named end client is outside this partner relationship", // i18n-exempt: API problem detail, not rendered
       );
     const now = input.now ?? new Date().toISOString();
     const reference = `REG-DEMO-${command.id.toUpperCase()}`;
-    const record: PartnerRecord = {
+    // Facts only; `presentRegistration` words them for each reader.
+    const record: StoredRegistration["record"] = {
       id: reference,
       name: `${endClient.name} · ${command.payload.workload}`,
-      context: `${command.payload.expectedVolume} TB · ${command.payload.protectionDays}-day protection requested`,
       status: "pending",
       risk: "medium",
-      owner: "Fil One channel operations",
-      value: `${command.payload.expectedVolume} TB potential workload`,
-      secondary: "Awaiting channel-operations decision",
     };
     const response = {
       record: {
@@ -267,7 +357,7 @@ export async function handleDemoDealRegistrationCommand(
           throw new RegistrationProblem(
             409,
             "IDEMPOTENCY_CONFLICT",
-            "The idempotency key is already bound to another registration",
+            "The idempotency key is already bound to another registration", // i18n-exempt: API problem detail, not rendered
           );
         replayed = true;
         result = prior.response;
@@ -281,13 +371,13 @@ export async function handleDemoDealRegistrationCommand(
         throw new RegistrationProblem(
           422,
           "REGISTRATION_PROTECTION_POLICY_EXCEEDED",
-          "Requested protection exceeds the current channel policy maximum",
+          "Requested protection exceeds the current channel policy maximum", // i18n-exempt: API problem detail, not rendered
         );
       if (state.projectionOverrides[`${registrationPrefix}${command.id}`])
         throw new RegistrationProblem(
           409,
           "REGISTRATION_EXISTS",
-          "This deal registration already exists",
+          "This deal registration already exists", // i18n-exempt: API problem detail, not rendered
         );
       return {
         ...state,
@@ -307,6 +397,8 @@ export async function handleDemoDealRegistrationCommand(
               partnerAccountId,
               endClientAccountId: endClient.id,
               record,
+              expectedVolume: command.payload.expectedVolume,
+              protectionDays: command.payload.protectionDays,
               createdAt: now,
             },
           },

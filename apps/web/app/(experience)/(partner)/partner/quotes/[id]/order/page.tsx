@@ -7,7 +7,12 @@ import { OrderAcceptance } from "@/src/features/customer-partner/commercial/orde
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 import { formatMoney } from "@/src/features/shared/format";
-import { getFormattingLocale } from "@/src/i18n/server";
+import { partnerQuoteLinesText } from "@/src/features/customer-partner/partner/partner-presentation";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
+import { partnerPageMetadata } from "@/src/features/customer-partner/partner/partner-route";
+
+export const generateMetadata = () =>
+  partnerPageMetadata("partner.orders.supplyOrder");
 export const dynamic = "force-dynamic";
 export default async function Page({
   params,
@@ -17,6 +22,7 @@ export default async function Page({
   if (!demoDeployIdentityEnabled(process.env)) notFound();
   const { id } = await params;
   const identity = await getRouteIdentity("partner");
+  const t = await getTranslations();
   const formattingLocale = await getFormattingLocale();
   const state = await configuredDemoStateStore().read();
   const stored =
@@ -40,21 +46,18 @@ export default async function Page({
           reference: `PQ-${quote.id.slice(-12).toUpperCase()}`,
           title: stored.record.name,
           version: String(quote.revision),
-          scope: quote.lines
-            .map(
-              (line) =>
-                `${line.quantity} TB · ${line.region} · ${line.termMonths} months`,
-            )
-            .join("; "),
+          scope: partnerQuoteLinesText(quote.lines, t, formattingLocale),
           spend: formatMoney(
             quote.total.minor,
             quote.total.currency,
             formattingLocale,
           ),
-          acceptedLabel: "Issued transfer quote",
+          acceptedLabel: t("partner.order.issuedTransferQuote"),
         }}
         agreement={{
-          title: `${identity.accountName} demonstration partner agreement`,
+          title: t("partner.order.demoAgreement", {
+            partner: identity.accountName,
+          }),
           version: "1",
         }}
       />

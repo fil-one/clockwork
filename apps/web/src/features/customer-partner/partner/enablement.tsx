@@ -1,4 +1,8 @@
+import { use } from "react";
 import Link from "next/link";
+
+import type { Translator } from "@/src/i18n";
+import { getTranslations } from "@/src/i18n/server";
 
 import {
   clientSafeEnablementItems,
@@ -10,19 +14,21 @@ import styles from "./enablement.module.css";
 function EnablementLedger({
   items,
   label,
+  t,
 }: {
   items: readonly EnablementItem[];
   label: string;
+  t: Translator;
 }) {
   return (
     <ul className={styles.ledger} aria-label={label}>
       {items.map((item) => (
         <li key={item.id}>
           <div>
-            <h3>{item.title}</h3>
-            <p>{item.description}</p>
+            <h3>{t(item.title)}</h3>
+            <p>{t(item.description)}</p>
           </div>
-          <Link href={item.href}>Open</Link>
+          <Link href={item.href}>{t("common.open")}</Link>
         </li>
       ))}
     </ul>
@@ -36,56 +42,65 @@ export function PartnerEnablement({
   roles: readonly string[];
   partnerName: string;
 }) {
+  const t = use(getTranslations());
   const clientSafe = clientSafeEnablementItems();
   const internal = internalEnablementItems(roles);
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
-        <h1>Partner enablement</h1>
-        <p>
-          Reach approved product destinations from {partnerName}, with the
-          client-sharing boundary kept separate from partner-account work.
-        </p>
+        <h1>{t("partner.enablement.title")}</h1>
+        <p>{t("partner.enablement.description", { partner: partnerName })}</p>
       </header>
 
       <section className={styles.section} aria-labelledby="share-with-clients">
         <div className={styles.sectionHeading}>
           <div>
-            <h2 id="share-with-clients">Share with clients</h2>
-            <p>
-              Public destinations a client can open outside the partner desk.
-            </p>
+            <h2 id="share-with-clients">
+              {t("partner.enablement.clientSafe.title")}
+            </h2>
+            <p>{t("partner.enablement.clientSafe.description")}</p>
           </div>
-          <span>{clientSafe.length} destinations</span>
+          <span>
+            {t("partner.enablement.clientSafe.count", {
+              count: clientSafe.length,
+            })}
+          </span>
         </div>
         <p className={styles.boundary}>
-          Nothing in this section exposes transfer pricing, commissions, deal
-          registrations, or other partner-account records.
+          {t("partner.enablement.clientSafe.boundary")}
         </p>
-        <EnablementLedger items={clientSafe} label="Client-safe destinations" />
+        <EnablementLedger
+          items={clientSafe}
+          label={t("partner.enablement.clientSafe.label")}
+          t={t}
+        />
       </section>
 
       <aside className={styles.salesKit} aria-labelledby="sales-kit-v1">
-        <p>Not published</p>
-        <h2 id="sales-kit-v1">Sales Kit v1</h2>
-        <p>
-          Approved client decks, email templates, and objection guides have not
-          been published. Nothing on this page is a placeholder for that
-          content.
-        </p>
+        <p>{t("partner.enablement.salesKit.status")}</p>
+        <h2 id="sales-kit-v1">{t("partner.enablement.salesKit.title")}</h2>
+        <p>{t("partner.enablement.salesKit.description")}</p>
       </aside>
 
       <section className={styles.section} aria-labelledby="internal-to-desk">
         <div className={styles.sectionHeading}>
           <div>
-            <h2 id="internal-to-desk">Internal to your desk</h2>
-            <p>
-              Account-scoped partner motions available to your current role.
-            </p>
+            <h2 id="internal-to-desk">
+              {t("partner.enablement.internal.title")}
+            </h2>
+            <p>{t("partner.enablement.internal.description")}</p>
           </div>
-          <span>{internal.length} motions</span>
+          <span>
+            {t("partner.enablement.internal.count", {
+              count: internal.length,
+            })}
+          </span>
         </div>
-        <EnablementLedger items={internal} label="Partner desk motions" />
+        <EnablementLedger
+          items={internal}
+          label={t("partner.enablement.internal.label")}
+          t={t}
+        />
       </section>
     </main>
   );

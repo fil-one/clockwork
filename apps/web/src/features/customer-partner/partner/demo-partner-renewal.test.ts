@@ -111,7 +111,7 @@ describe("durable partner portfolio renewal", () => {
       version: 2,
       data: {
         status: "pending",
-        secondary: "Renewal request submitted · awaiting Fil One confirmation",
+        milestone: { kind: "renewalRequested" },
       },
     });
     expect(
@@ -119,6 +119,7 @@ describe("durable partner portfolio renewal", () => {
         await store.read(),
         demoAccountIds.reseller,
         presentedPartnerSurface("renewals", translatorFor("en"), "en").records,
+        { t: translatorFor("en"), formatting: "en-US" },
       ).find((record) => record.id === "REN-EC-0038"),
     ).toMatchObject({
       status: "pending",

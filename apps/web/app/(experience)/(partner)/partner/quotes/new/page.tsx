@@ -28,6 +28,10 @@ import {
   getRouteIdentity,
   getRouteSession,
 } from "@/src/features/shell/route-session";
+import { partnerPageMetadata } from "@/src/features/customer-partner/partner/partner-route";
+
+export const generateMetadata = () =>
+  partnerPageMetadata("partner.quote.new.title.create");
 
 // The session, the partner agreement, the registrations and the price book are
 // all request-scoped reads.
@@ -38,7 +42,7 @@ type Row = Readonly<Record<string, unknown>>;
 function text(row: Row, key: string): string {
   const value = row[key];
   if (typeof value !== "string" || !value.trim())
-    throw new Error(`Expected text column ${key}`);
+    throw new Error(`Expected text column ${key}`); // i18n-exempt: server invariant; the error boundary shows its own message
   return value.trim();
 }
 
@@ -55,7 +59,7 @@ function authorizationSecret(): string {
   const secret = process.env.AUTHORIZATION_CONTEXT_SECRET?.trim();
   if (!secret || secret.length < 32)
     throw new Error(
-      "AUTHORIZATION_CONTEXT_SECRET is required to read the partner portfolio",
+      "AUTHORIZATION_CONTEXT_SECRET is required to read the partner portfolio", // i18n-exempt: deployment configuration error, not rendered
     );
   return secret;
 }

@@ -2,8 +2,18 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { sendCoreCommand } from "@/src/features/contracts/commerce-client";
+import type { MessageId } from "@/src/i18n";
+import { useTranslations } from "@/src/i18n/client";
+import { partnerCommandFailure } from "./partner-command-errors";
 import type { PartnerRecord } from "./partner-data";
 import styles from "./partner.module.css";
+
+/** The server returned no review path; nothing a reader can act on changed. */
+class MissingReviewLink extends Error {}
+
+/** The shortest withdrawal reason the command accepts. */
+const minimumReasonLength = 8;
+
 export function PartnerQuoteControls({
   command,
   canShare,
@@ -13,11 +23,12 @@ export function PartnerQuoteControls({
   canShare: boolean;
   canCancel: boolean;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const busy = useRef(false);
   const [pending, setPending] = useState(false);
   const [path, setPath] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<MessageId | null>(null);
   const [reason, setReason] = useState("");
   const attempt = useRef<
     { action: string; reason: string; key: string } | undefined
@@ -26,7 +37,7 @@ export function PartnerQuoteControls({
     if (busy.current) return;
     busy.current = true;
     setPending(true);
-    setMessage("");
+    setMessage(null);
     if (
       !attempt.current ||
       attempt.current.action !== action ||
@@ -50,48 +61,53 @@ export function PartnerQuoteControls({
       };
       if (action === "share") {
         const value = response.record?.data?.reviewPath;
-        if (!value?.startsWith("/demo/quote/"))
-          throw new Error("No review link returned. Retry to continue.");
+        if (!value?.startsWith("/demo/quote/")) throw new MissingReviewLink();
         setPath(value);
       } else {
-        setMessage("Quote withdrawn. Existing review links no longer work.");
+        setMessage("partner.quote.share.withdrawn");
         router.refresh();
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Please retry.");
+      setMessage(
+        error instanceof MissingReviewLink
+          ? "partner.quote.share.noLink"
+          : partnerCommandFailure(
+              error,
+              action === "share"
+                ? "partner.quote.share.failed"
+                : "partner.quote.withdraw.failed",
+            ),
+      );
     } finally {
       busy.current = false;
       setPending(false);
     }
   }
+  const reasonTooShort = reason.trim().length < minimumReasonLength;
   return (
     <section
       className={styles.detailCard}
-      aria-label="Quote sharing and withdrawal"
+      aria-label={t("partner.quote.share.regionLabel")}
     >
       {canShare ? (
         <>
-          <h2>Client review</h2>
-          <p>
-            Create a private demo review link showing only your resale price.
-            The client can request an order, request changes, or decline.
-            Responses appear on this quote.
-          </p>
+          <h2>{t("partner.quote.share.title")}</h2>
+          <p>{t("partner.quote.share.description")}</p>
           <button
             className={styles.buttonLink}
             disabled={pending}
             onClick={() => void act("share")}
           >
-            Create client review link
+            {t("partner.quote.share.create")}
           </button>
           {path ? (
             <div>
               <a href={path} target="_blank" rel="noreferrer">
-                Open client review
+                {t("partner.quote.share.open")}
               </a>
               <p>
                 <input
-                  aria-label="Client review link"
+                  aria-label={t("partner.quote.share.linkLabel")}
                   readOnly
                   value={
                     typeof window !== "undefined"
@@ -106,43 +122,45 @@ export function PartnerQuoteControls({
                   void navigator.clipboard
                     .writeText(new URL(path, window.location.origin).href)
                     .then(
-                      () => setMessage("Review link copied."),
-                      () =>
-                        setMessage("Select and copy the review link above."),
+                      () => setMessage("partner.quote.share.copied"),
+                      () => setMessage("partner.quote.share.copyManually"),
                     );
                 }}
               >
-                Copy review link
+                {t("partner.quote.share.copy")}
               </button>
-              <p>
-                The demo password is required. This link expires with the quote
-                and stops working when the quote is revised or withdrawn.
-              </p>
+              <p>{t("partner.quote.share.expiry")}</p>
             </div>
           ) : null}
         </>
       ) : null}
       {canCancel ? (
         <details>
-          <summary>Withdraw quote</summary>
+          <summary>{t("partner.quote.withdraw.summary")}</summary>
           <label>
-            Reason for withdrawal
+            {t("partner.quote.withdraw.reason")}
             <textarea
               value={reason}
               maxLength={2000}
+              aria-describedby="withdraw-reason-hint"
               onChange={(event) => setReason(event.target.value)}
             />
           </label>
+          <p className={styles.muted} id="withdraw-reason-hint">
+            {t("partner.quote.withdraw.reasonHint", {
+              count: minimumReasonLength,
+            })}
+          </p>
           <button
             className={styles.buttonLink}
-            disabled={pending || reason.trim().length < 8}
+            disabled={pending || reasonTooShort}
             onClick={() => void act("cancel")}
           >
-            Withdraw this quote
+            {t("partner.quote.withdraw.submit")}
           </button>
         </details>
       ) : null}
-      <p role="status">{message}</p>
+      <p role="status">{message ? t(message) : null}</p>
     </section>
   );
 }

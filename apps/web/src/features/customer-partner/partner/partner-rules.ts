@@ -1,6 +1,6 @@
 import { merchantOfRecord } from "@clockwork/domain/core";
 
-import type { MessageId } from "@/src/i18n";
+import type { MessageId, Translator } from "@/src/i18n";
 
 import type { PartnerRole, PartnerStatus } from "./partner-data";
 
@@ -15,19 +15,23 @@ export type AttributionRoute = Parameters<typeof merchantOfRecord>[0];
 export function attributionStatement(
   route: AttributionRoute,
   partner: string,
+  t: Translator,
 ): string {
   const merchant = merchantOfRecord(route);
-  const merchantName =
-    merchant === "fil_one"
-      ? "Fil One"
-      : merchant === "partner"
-        ? partner
-        : "The marketplace";
   const attribution =
     route === "direct" || route === "marketplace"
-      ? "No partner attribution applies to this route."
-      : `${partner} is the sourced partner because this route binds an approved deal registration.`;
-  return `${attribution} Merchant of record: ${merchantName}.`;
+      ? t("partner.attribution.none")
+      : t("partner.attribution.sourced", { partner });
+  const merchantStatement =
+    merchant === "fil_one"
+      ? t("partner.attribution.merchantFilOne")
+      : merchant === "partner"
+        ? t("partner.attribution.merchantPartner", { partner })
+        : t("partner.attribution.merchantMarketplace");
+  return t("common.join.sentences", {
+    first: attribution,
+    second: merchantStatement,
+  });
 }
 
 /**
@@ -83,34 +87,44 @@ export interface RenewalReviewInput {
   merchantOfRecord: string;
 }
 
+const renewalActions = {
+  renew: "partner.renewal.review.renew",
+  change_term: "partner.renewal.review.changeTerm",
+  request_change: "partner.renewal.review.requestChange",
+} as const satisfies Record<RenewalReviewInput["action"], MessageId>;
+
 export function renewalReviewSummary(
   input: RenewalReviewInput,
+  t: Translator,
 ): readonly string[] {
   const action =
-    input.action === "renew"
-      ? "Renew on the current commercial structure"
-      : input.action === "change_term"
-        ? `Change the term to ${input.requestedMonths ?? "an unselected number of"} months`
-        : "Request a commercial change without committing it";
+    input.action === "change_term" && input.requestedMonths === null
+      ? t("partner.renewal.review.changeTermUnselected")
+      : t(renewalActions[input.action], {
+          count: input.requestedMonths ?? 0,
+        });
   return [
-    `${input.client}: ${action}`,
-    `Current service term ends ${input.currentEnd}`,
-    `Fil One transfer price: ${input.transferPrice}`,
-    `Partner resale price: ${input.resalePrice}`,
-    `Merchant of record: ${input.merchantOfRecord}`,
+    t("partner.renewal.review.clientAction", { client: input.client, action }),
+    t("partner.renewal.review.currentEnd", { date: input.currentEnd }),
+    t("partner.renewal.review.transferPrice", { amount: input.transferPrice }),
+    t("partner.renewal.review.resalePrice", { amount: input.resalePrice }),
+    t("partner.renewal.review.merchant", { merchant: input.merchantOfRecord }),
   ];
 }
 
-export function partnerRoleSummary(role: PartnerRole): readonly string[] {
+export function partnerRoleSummary(
+  role: PartnerRole,
+  t: Translator,
+): readonly string[] {
   return role === "partner_admin"
     ? [
-        "Can manage billing, renewal requests, POCs, and brand settings.",
-        "Can create and issue partner quotes.",
-        "Cannot make Fil One operations or provider decisions.",
+        t("partner.role.admin.manage"),
+        t("partner.role.admin.quotes"),
+        t("partner.role.admin.limit"),
       ]
     : [
-        "Can view the portfolio, register opportunities, and create partner quotes.",
-        "Cannot view partner billing or commissions.",
-        "Cannot submit renewal, POC, or brand changes.",
+        t("partner.role.seller.work"),
+        t("partner.role.seller.noBilling"),
+        t("partner.role.seller.noChanges"),
       ];
 }

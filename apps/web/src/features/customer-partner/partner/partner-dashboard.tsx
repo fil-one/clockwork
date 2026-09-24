@@ -10,6 +10,8 @@ import {
   type SurfaceFormatting,
 } from "@/src/features/customer-partner/formatting";
 
+import { richText } from "@/src/i18n/rich";
+
 import { currentPartnerRole } from "./partner-rules";
 import styles from "./partner.module.css";
 
@@ -70,16 +72,23 @@ export function PartnerDashboard({
           <h1>{t("partner.title")}</h1>
           <p>{t("cp.partner.deskDescription")}</p>
           <p className={styles.projectionFreshness}>
-            {projection.stale
-              ? "Stale projection from "
-              : "Projection refreshed "}
-            <time dateTime={projection.generatedAt}>
-              {formatSurfaceTimestamp(projection.generatedAt, formatting)}
-            </time>
+            {richText(
+              t,
+              projection.stale
+                ? "partner.desk.freshness.stale"
+                : "partner.desk.freshness.current",
+              {
+                time: (
+                  <time dateTime={projection.generatedAt}>
+                    {formatSurfaceTimestamp(projection.generatedAt, formatting)}
+                  </time>
+                ),
+              },
+            )}
           </p>
         </div>
         <Link className={styles.buttonLink} href="/partner/quotes/new">
-          Create resale quote
+          {t("partner.surface.quotes.primaryAction")}
         </Link>
       </header>
 
@@ -89,7 +98,9 @@ export function PartnerDashboard({
       >
         <div className={styles.authorityHeading}>
           <div>
-            <p className={styles.classifier}>Commercial authority</p>
+            <p className={styles.classifier}>
+              {t("partner.desk.authority.eyebrow")}
+            </p>
             <h2 id="agreement-clock-title">{t("cp.partner.agreementClock")}</h2>
           </div>
           <p className={styles.authorityState}>
@@ -111,15 +122,15 @@ export function PartnerDashboard({
         />
         <dl className={styles.authorityFacts}>
           <div>
-            <dt>Next decision</dt>
+            <dt>{t("partner.desk.agreement.nextDecision")}</dt>
             <dd>{projection.agreement.nextDecision}</dd>
           </div>
           <div>
-            <dt>Commercial route</dt>
+            <dt>{t("partner.desk.agreement.route")}</dt>
             <dd>{projection.agreement.commercialRoute}</dd>
           </div>
           <div>
-            <dt>Merchant boundary</dt>
+            <dt>{t("cp.partner.merchantOfRecord")}</dt>
             <dd>{projection.agreement.merchantBoundary}</dd>
           </div>
         </dl>
@@ -131,22 +142,28 @@ export function PartnerDashboard({
           aria-labelledby="commission-position-title"
         >
           <div>
-            <p className={styles.classifier}>Collected-revenue position</p>
-            <h2 id="commission-position-title">Commission position</h2>
-            <p>{t("partner.commissions.description")}</p>
+            <p className={styles.classifier}>
+              {t("partner.desk.commission.eyebrow")}
+            </p>
+            <h2 id="commission-position-title">
+              {t("partner.desk.commission.title")}
+            </h2>
+            <p>{t("partner.surface.commissions.rule")}</p>
           </div>
           <dl>
             <div>
-              <dt>Accrued amount</dt>
+              <dt>{t("partner.desk.commission.accrued")}</dt>
               <dd>{projection.commission.accruedAmount}</dd>
             </div>
             <div>
-              <dt>Statement</dt>
+              <dt>{t("partner.desk.commission.statement")}</dt>
               <dd>{projection.commission.statement}</dd>
             </div>
           </dl>
           <Link href={projection.commission.href}>
-            Open {projection.commission.statement}
+            {t("partner.desk.commission.open", {
+              statement: projection.commission.statement,
+            })}
           </Link>
         </section>
       ) : null}
@@ -158,25 +175,27 @@ export function PartnerDashboard({
         <div className={styles.ledgerHeading}>
           <div>
             <h2 id="urgent-partner-title">{t("cp.partner.urgentTitle")}</h2>
-            <p>Named work ordered by protection deadline and consequence.</p>
+            <p>{t("partner.desk.work.description")}</p>
           </div>
-          <p className={styles.count}>{visibleWork.length} actions</p>
+          <p className={styles.count}>
+            {t("partner.desk.work.count", { count: visibleWork.length })}
+          </p>
         </div>
         <div
           className={styles.ledgerScroll}
           tabIndex={0}
           role="region"
-          aria-label="Urgent partner work table"
+          aria-label={t("partner.desk.work.tableLabel")}
         >
           <table className={styles.ledger}>
             <thead>
               <tr>
-                <th scope="col">End client or account</th>
-                <th scope="col">Next task</th>
-                <th scope="col">Required evidence</th>
-                <th scope="col">Due / exposure</th>
+                <th scope="col">{t("partner.desk.work.account")}</th>
+                <th scope="col">{t("partner.desk.work.task")}</th>
+                <th scope="col">{t("partner.desk.work.evidence")}</th>
+                <th scope="col">{t("partner.desk.work.due")}</th>
                 <th scope="col">
-                  <span className="sr-only">{t("ui.10")}</span>
+                  <span className="sr-only">{t("common.actions")}</span>
                 </th>
               </tr>
             </thead>
@@ -209,7 +228,9 @@ export function PartnerDashboard({
         aria-labelledby="commercial-boundary-title"
       >
         <div>
-          <h2 id="commercial-boundary-title">Commercial boundary</h2>
+          <h2 id="commercial-boundary-title">
+            {t("partner.desk.boundary.title")}
+          </h2>
           <p>{t("cp.partner.boundary")}</p>
         </div>
         <dl>

@@ -1,5 +1,7 @@
 "use client";
-import { useTranslations } from "@/src/i18n/client";
+import type { MessageId } from "@/src/i18n";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,6 +29,7 @@ import {
   type DealRegistrationDraft,
   type DealRegistrationValidation,
 } from "./deal-registration-model";
+import { partnerCommandFailure } from "./partner-command-errors";
 import styles from "./partner.module.css";
 
 /**
@@ -45,14 +48,14 @@ function NothingToRegister() {
       <div className={styles.state}>
         <ApplicationStatePanel
           state="empty"
-          title="No end client is available to register"
-          description="A deal registration names an end client that already exists as a Fil One account, and the accounts your partner account can name are the ones an approved registration or an existing partner quote already reaches. Yours returned none, so Fil One channel operations has to open the end client before it can be registered here."
+          title={t("partner.registration.none.title")}
+          description={t("partner.registration.none.description")}
           action={
             <Link
               className={buttonClassName({ variant: "secondary" })}
               href="/partner/support"
             >
-              Ask channel operations
+              {t("partner.registration.askChannel")}
             </Link>
           }
         />
@@ -79,14 +82,14 @@ export function RegistrationDirectoryUnavailable() {
       <div className={styles.state}>
         <ApplicationStatePanel
           state="empty"
-          title="Registration is unavailable on this deployment"
-          description="Naming an end client needs a scoped read of the account directory, and this deployment returned no database connection or no authorization context to read it under. Nothing is missing from your account; the surface simply cannot bind a registration here."
+          title={t("partner.registration.unavailable.title")}
+          description={t("partner.registration.unavailable.description")}
           action={
             <Link
               className={buttonClassName({ variant: "secondary" })}
               href="/partner/support"
             >
-              Ask channel operations
+              {t("partner.registration.askChannel")}
             </Link>
           }
         />
@@ -112,14 +115,15 @@ export function DealRegistration({
 
 function RegistrationForm({ context }: { context: DealRegistrationContext }) {
   const t = useTranslations();
+  const formatting = useFormattingLocale();
   const router = useRouter();
   const [draft, setDraft] = useState<DealRegistrationDraft>(() =>
     emptyDealRegistrationDraft(context.channelPolicy?.defaultProtectionDays),
   );
   const [errors, setErrors] = useState<DealRegistrationValidation>({});
   const [pending, setPending] = useState(false);
-  const [registered, setRegistered] = useState("");
-  const [failure, setFailure] = useState("");
+  const [registered, setRegistered] = useState<MessageId | null>(null);
+  const [failure, setFailure] = useState<MessageId | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   /**
    * Held so a retry after a network failure replays the same registration
@@ -154,8 +158,8 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
     setDraft((current) => ({ ...current, [key]: next }));
     setErrors((current) => ({ ...current, [key]: undefined }));
     submissionRef.current = null;
-    setRegistered("");
-    setFailure("");
+    setRegistered(null);
+    setFailure(null);
   }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -176,7 +180,7 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
       return;
     }
     setPending(true);
-    setFailure("");
+    setFailure(null);
     try {
       submissionRef.current ??= {
         idempotencyKey: crypto.randomUUID(),
@@ -195,37 +199,33 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
         },
         { idempotencyKey: submission.idempotencyKey },
       );
-      setRegistered(
-        "Registration submitted and added to the decision queue below. Fil One channel operations decides it; house-account and prior-deal exclusions are resolved against the unified account records, not against anything stated here.",
-      );
+      setRegistered("partner.registration.submitted");
       router.refresh();
     } catch (error) {
-      setFailure(
-        error instanceof Error
-          ? error.message
-          : "The registration failed. Nothing was recorded.",
-      );
+      setFailure(partnerCommandFailure(error, "partner.registration.failed"));
     } finally {
       setPending(false);
     }
   }
 
   const endClient = resolveRegistrationEndClient(draft, context.endClients);
-  const summary = dealRegistrationSummary(draft, context);
+  const summary = dealRegistrationSummary(draft, context, t, formatting);
+  const technical = (label: MessageId, value: string) =>
+    richText(t, "partner.labelled", {
+      label: t(label),
+      value: <code>{value}</code>,
+    });
 
   return (
     <section className={styles.workflow} aria-labelledby="deal-registration">
       <h2 id="deal-registration">{t("action.register")}</h2>
-      <p className={styles.muted}>
-        Name an opportunity and request its protection window. Fil One submits
-        the existing account identifiers; the decision, the protection clock,
-        and any exclusion are recorded on the registration record itself.
-      </p>
+      <p className={styles.muted}>{t("partner.registration.intro")}</p>
       {context.channelPolicy?.source === "approved_policy" ? (
         <p className={styles.muted}>
-          Policy v{context.channelPolicy.version}: request up to{" "}
-          {context.channelPolicy.maximumProtectionDays} days. Registration
-          remains subject to channel operations approval.
+          {t("partner.registration.policy", {
+            version: context.channelPolicy.version,
+            count: context.channelPolicy.maximumProtectionDays,
+          })}
         </p>
       ) : null}
       <form
@@ -238,7 +238,7 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
       >
         <div className={styles.full} data-field="endClientName">
           <EntityCombobox
-            label="End client"
+            label={t("partner.registration.field.endClient")}
             value={
               resolveRegistrationEndClient(draft, context.endClients)?.id ?? ""
             }
@@ -257,12 +257,19 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
               update("endClientName", option.label);
               setDraft((current) => ({ ...current, endClientId: id }));
             }}
-            placeholder="Search end clients"
-            error={errors.endClientName}
+            placeholder={t("partner.surface.portfolio.search")}
+            {...(errors.endClientName
+              ? {
+                  error: t(
+                    errors.endClientName.id,
+                    errors.endClientName.values,
+                  ),
+                }
+              : {})}
           />
         </div>
         <label className={`${styles.field} ${styles.full}`}>
-          Workload
+          {t("partner.registration.field.workload")}
           <input
             name="workload"
             value={draft.workload}
@@ -271,12 +278,12 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
           />
           {errors.workload ? (
             <span className={styles.error} role="alert">
-              {errors.workload}
+              {t(errors.workload.id, errors.workload.values)}
             </span>
           ) : null}
         </label>
         <label className={styles.field}>
-          Expected volume (TB)
+          {t("partner.registration.field.volume")}
           <input
             name="expectedVolume"
             inputMode="decimal"
@@ -286,12 +293,12 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
           />
           {errors.expectedVolume ? (
             <span className={styles.error} role="alert">
-              {errors.expectedVolume}
+              {t(errors.expectedVolume.id, errors.expectedVolume.values)}
             </span>
           ) : null}
         </label>
         <label className={styles.field}>
-          Protection requested (days)
+          {t("partner.registration.field.protection")}
           <input
             name="protectionDays"
             max={context.channelPolicy?.maximumProtectionDays ?? undefined}
@@ -304,7 +311,7 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
           />
           {errors.protectionDays ? (
             <span className={styles.error} role="alert">
-              {errors.protectionDays}
+              {t(errors.protectionDays.id, errors.protectionDays.values)}
             </span>
           ) : null}
         </label>
@@ -314,11 +321,7 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
               <li key={item}>{item}</li>
             ))}
           </ul>
-          <p className={styles.gate}>
-            Registration decisions are made by Fil One channel operations.
-            Submitting opens the decision clock; it does not approve the deal or
-            grant protection.
-          </p>
+          <p className={styles.gate}>{t("partner.registration.gate")}</p>
         </div>
         <div className={`${styles.actions} ${styles.full}`}>
           <Button
@@ -326,27 +329,33 @@ function RegistrationForm({ context }: { context: DealRegistrationContext }) {
             disabled={Boolean(registered)}
             loading={pending}
           >
-            Register the deal
+            {t("partner.registration.submit")}
           </Button>
         </div>
         {registered ? (
           <p className={`${styles.success} ${styles.full}`} role="status">
-            {registered}
+            {t(registered)}
           </p>
         ) : null}
         {failure ? (
           <p className={`${styles.failure} ${styles.full}`} role="alert">
-            {failure}
+            {t(failure)}
           </p>
         ) : null}
       </form>
       <details className={styles.technical}>
-        <summary>{t("ui.96")}</summary>
+        <summary>{t("common.technicalDetails")}</summary>
         <p>
-          Partner account ID: <code>{context.partnerAccountId}</code>
+          {technical(
+            "partner.technical.partnerAccountId",
+            context.partnerAccountId,
+          )}
         </p>
         <p>
-          End-client account ID: <code>{endClient?.id ?? "Unresolved"}</code>
+          {technical(
+            "partner.technical.endClientAccountId",
+            endClient?.id ?? t("partner.technical.unresolved"),
+          )}
         </p>
       </details>
     </section>

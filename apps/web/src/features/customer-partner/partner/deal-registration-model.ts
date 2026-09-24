@@ -1,6 +1,8 @@
 import type { ChannelPolicySnapshot } from "@clockwork/domain/core";
 import { QuantitySchema } from "@clockwork/contracts";
 
+import type { MessageId, MessageValues, Translator } from "@/src/i18n";
+
 /**
  * An end client the acting partner may name on a deal registration.
  *
@@ -49,8 +51,13 @@ export interface DealRegistrationDraft {
 }
 
 export type DealRegistrationField = keyof DealRegistrationDraft;
+/** A validation failure as a message the form renders in the reader's language. */
+export interface DealRegistrationProblem {
+  readonly id: MessageId;
+  readonly values?: MessageValues;
+}
 export type DealRegistrationValidation = Partial<
-  Record<DealRegistrationField, string>
+  Record<DealRegistrationField, DealRegistrationProblem>
 >;
 
 /** The protection window the program guide asks for when none is stated. */
@@ -122,24 +129,24 @@ export function validateDealRegistration(
   const errors: DealRegistrationValidation = {};
   const endClient = resolveRegistrationEndClient(draft, context.endClients);
   if (!endClient)
-    errors.endClientName = "Select one of your named end clients by name.";
+    errors.endClientName = { id: "partner.registration.error.endClient" };
   else if (endClient.id === context.partnerAccountId)
-    errors.endClientName =
-      "A partner cannot register itself as its own end client.";
+    errors.endClientName = { id: "partner.registration.error.self" };
   if (!draft.workload.trim())
-    errors.workload = "Describe the workload this opportunity covers.";
+    errors.workload = { id: "partner.registration.error.workload" };
   if (!QuantitySchema.safeParse(draft.expectedVolume.trim()).success)
-    errors.expectedVolume =
-      "Enter the expected volume as a plain number of TB, with no unit.";
+    errors.expectedVolume = { id: "partner.registration.error.volume" };
   const protectionDays = Number(draft.protectionDays);
   if (!Number.isInteger(protectionDays) || protectionDays < 1)
-    errors.protectionDays =
-      "Enter a protection window of at least one whole day.";
+    errors.protectionDays = { id: "partner.registration.error.protection" };
   if (
     context.channelPolicy?.maximumProtectionDays != null &&
     protectionDays > context.channelPolicy.maximumProtectionDays
   )
-    errors.protectionDays = `This policy permits requests of at most ${context.channelPolicy.maximumProtectionDays} days.`;
+    errors.protectionDays = {
+      id: "partner.registration.error.protectionMax",
+      values: { count: context.channelPolicy.maximumProtectionDays },
+    };
   return errors;
 }
 
@@ -162,8 +169,9 @@ export function dealRegistrationPayload(
   protectionDays: number;
 } {
   const endClient = resolveRegistrationEndClient(draft, context.endClients);
+  // Validation already refused an unresolved client; never shown to a reader.
   if (!endClient)
-    throw new Error("The named end client is not one this partner may name.");
+    throw new Error("The named end client is not one this partner may name."); // i18n-exempt: internal invariant, not rendered
   return {
     partnerAccountId: context.partnerAccountId,
     endClientAccountId: endClient.id,
@@ -173,16 +181,46 @@ export function dealRegistrationPayload(
   };
 }
 
+/**
+ * The review list under the form, one "label: value" line per fact, in the
+ * reader's language. The expected volume is formatted as a storage quantity.
+ */
 export function dealRegistrationSummary(
   draft: DealRegistrationDraft,
   context: DealRegistrationContext,
+  t: Translator,
+  formatting: string,
 ): readonly string[] {
   const endClient = resolveRegistrationEndClient(draft, context.endClients);
+  const volume = draft.expectedVolume.trim();
+  const days = Number(draft.protectionDays);
+  const line = (label: MessageId, value: string) =>
+    t("partner.labelled", { label: t(label), value });
   return [
-    `Registering partner: ${context.partnerAccountName}`,
-    `End client: ${endClient?.name ?? "Not selected"}`,
-    `Workload: ${draft.workload.trim() || "Not described"}`,
-    `Expected volume: ${draft.expectedVolume.trim() ? `${draft.expectedVolume.trim()} TB` : "Not stated"}`,
-    `Protection requested: ${draft.protectionDays || "0"} days from registration, subject to approval`,
+    line("partner.registration.summary.partner", context.partnerAccountName),
+    line(
+      "partner.registration.field.endClient",
+      endClient?.name ?? t("partner.quote.summary.notSelected"),
+    ),
+    line(
+      "partner.registration.field.workload",
+      draft.workload.trim() || t("partner.registration.summary.notDescribed"),
+    ),
+    line(
+      "partner.registration.summary.volume",
+      volume && QuantitySchema.safeParse(volume).success
+        ? new Intl.NumberFormat(formatting, {
+            style: "unit",
+            unit: "terabyte",
+            maximumFractionDigits: 3,
+          }).format(Number(volume))
+        : t("partner.registration.summary.notStated"),
+    ),
+    line(
+      "partner.registration.summary.protection",
+      t("partner.registration.summary.protectionValue", {
+        count: Number.isInteger(days) && days > 0 ? days : 0,
+      }),
+    ),
   ];
 }

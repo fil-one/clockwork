@@ -150,8 +150,10 @@ describe("deal registration", () => {
     await fillValidRegistration(user);
     await user.click(screen.getByRole("button", { name: "Register the deal" }));
 
+    // The server's own English is not shown; the reader gets the outcome in
+    // their language, including that nothing was recorded.
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "decision context is unavailable",
+      "The registration failed. Nothing was recorded.",
     );
     expect(
       screen.getByRole("button", { name: "Register the deal" }),
