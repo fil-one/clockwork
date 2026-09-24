@@ -7,13 +7,15 @@
   gap: 1rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-sm);
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
 }
 .fields legend {
-  padding: 0 0.4rem;
-  font-weight: 700;
+  padding: 0 0.375rem;
+  font-size: var(--cw-text-md);
+  font-weight: 600;
 }
 @media (max-width: 700px) {
   .fields {
@@ -30,9 +32,8 @@
 }
 .workspace h2 {
   margin: 0;
-  font-size: 1.3rem;
-  font-weight: 650;
-  letter-spacing: -0.025em;
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
 }
 .cardHeading {
   display: flex;
@@ -47,34 +48,38 @@
   gap: 1rem;
   margin: 1.25rem 0;
 }
+/* Metric cards are the console's stat cards: an uppercase label, a 24px
+   figure, a muted footnote. */
 .metrics > div {
-  padding: 1.25rem;
+  padding: 1rem 1.25rem;
   background: var(--web-paper);
   border: 1px solid var(--web-line);
-  border-radius: var(--cw-radius-sm);
+  border-radius: var(--cw-radius-lg);
 }
 .metrics span {
   display: block;
   color: var(--web-muted);
-  font-size: 0.85rem;
+  font-size: var(--cw-text-xs);
   font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
 }
 .metrics strong {
   display: block;
-  margin: 0.3rem 0;
-  font-size: 2rem;
-  font-weight: 650;
-  letter-spacing: -0.035em;
-  line-height: 1.2;
+  margin: 0.5rem 0 0.25rem;
+  font-size: var(--cw-text-display);
+  font-weight: 600;
+  line-height: var(--cw-leading-tight);
+  font-variant-numeric: tabular-nums;
 }
 .metrics small {
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: var(--cw-text-md);
+  font-weight: 400;
   color: var(--web-muted);
 }
 .metrics p {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--cw-text-sm);
   color: var(--web-muted);
 }
 .facts {
@@ -92,27 +97,30 @@
 }
 .facts dt {
   color: var(--web-muted);
-  font-size: 0.88rem;
-  padding-right: 1rem;
+  font-size: var(--cw-text-sm);
+  padding-inline-end: 1rem;
 }
 .facts dd {
   font-weight: 500;
 }
 .decisionNote {
-  background: var(--web-paper);
-  border-left: 3px solid var(--web-line);
-  padding: 0.8rem 1rem;
-  font-size: 0.9rem;
+  background: var(--cw-canvas);
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  padding: 0.75rem 1rem;
+  font-size: var(--cw-text-sm);
   overflow-wrap: anywhere;
 }
 .decisionNote strong {
   display: block;
   margin-bottom: 0.25rem;
+  font-weight: 600;
 }
 .disclosure summary {
-  padding: 0.9rem 0;
+  padding: 0.75rem 0;
+  color: var(--cw-action);
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
 }
 .decisions {
   display: grid;

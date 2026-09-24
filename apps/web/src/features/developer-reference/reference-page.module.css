@@ -10,7 +10,7 @@
 .column {
   display: grid;
   gap: var(--cw-space-10, 3rem);
-  width: min(var(--cw-content-max, 72rem), 100%);
+  width: min(72rem, 100%);
   margin: 0 auto;
 }
 
@@ -46,7 +46,7 @@
 }
 
 .method {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .detail {

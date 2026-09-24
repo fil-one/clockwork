@@ -226,14 +226,14 @@ export function TermBar({
           <div
             className="cw-term__notice"
             style={{
-              left: `${progress.noticeStartPercent}%`,
+              insetInlineStart: `${progress.noticeStartPercent}%`,
               width: `${noticeWidth}%`,
             }}
           />
         )}
         <span
           className="cw-term__today"
-          style={{ left: `${progress.elapsedPercent}%` }}
+          style={{ insetInlineStart: `${progress.elapsedPercent}%` }}
         />
       </div>
       <div className="cw-term__meta" aria-hidden="true">

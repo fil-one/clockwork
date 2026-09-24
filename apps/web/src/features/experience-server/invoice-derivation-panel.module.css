@@ -7,23 +7,21 @@
 
 .heading {
   display: grid;
-  gap: 0.35rem;
-  padding-bottom: 0.85rem;
-  border-bottom: 2px solid var(--web-ink);
+  gap: 0.25rem;
 }
 
 .heading h2 {
   margin: 0;
   font-family: var(--cw-font-display);
-  font-size: clamp(var(--cw-text-2xl), 2vw, var(--cw-text-3xl));
+  font-size: var(--cw-text-lg);
   font-weight: 600;
-  letter-spacing: -0.025em;
 }
 
 .heading p {
   margin: 0;
   max-width: 62ch;
   color: var(--web-muted);
+  font-size: var(--cw-text-md);
 }
 
 .empty {
@@ -39,12 +37,16 @@
   list-style: none;
 }
 
+/* --web-rule was never defined, so the card border fell back to currentColor
+   and drew in full ink. The card takes the product hairline instead. */
 .invoice {
   display: grid;
-  gap: 0.85rem;
-  padding: 1rem;
-  border: 1px solid var(--web-rule, currentColor);
-  border-radius: var(--cw-radius-sm);
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--web-line);
+  border-radius: var(--cw-radius-lg);
+  background: var(--web-paper);
+  box-shadow: var(--cw-shadow-xs);
 }
 
 .invoiceHeader {
@@ -57,7 +59,7 @@
 
 .invoiceHeader h3 {
   margin: 0;
-  font-size: var(--cw-text-xl);
+  font-size: var(--cw-text-md);
   font-weight: 600;
 }
 
@@ -66,7 +68,6 @@
   flex-wrap: wrap;
   gap: 0.35rem 1.25rem;
   margin: 0;
-  font-family: var(--cw-font-mono);
   font-size: var(--cw-text-sm);
   font-variant-numeric: tabular-nums;
 }
@@ -82,11 +83,11 @@
 
 .totals dd {
   margin: 0;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .variance {
-  color: var(--web-danger, currentColor);
+  color: var(--cw-danger-strong);
 }
 
 .notes {
@@ -107,8 +108,7 @@
 .noteCode {
   font-family: var(--cw-font-mono);
   font-size: var(--cw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 500;
   color: var(--web-muted);
 }
 
@@ -122,9 +122,9 @@
 
 .line {
   display: grid;
-  gap: 0.55rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--web-rule, currentColor);
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--web-line);
 }
 
 .lineHeader {
@@ -137,12 +137,11 @@
 
 .lineHeader h4 {
   margin: 0;
-  font-size: var(--cw-text-lg);
+  font-size: var(--cw-text-md);
   font-weight: 600;
 }
 
 .lineAmount {
-  font-family: var(--cw-font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
@@ -151,7 +150,8 @@
   display: grid;
   gap: 0.6rem;
   margin: 0;
-  padding: 0 0 0 1.15rem;
+  padding: 0;
+  padding-inline-start: 1.15rem;
 }
 
 .step {
@@ -179,6 +179,7 @@
 .stepSummary {
   margin: 0;
   color: var(--web-muted);
+  font-size: var(--cw-text-sm);
 }
 
 .facts {
@@ -203,6 +204,5 @@
 .facts dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-family: var(--cw-font-mono);
   font-variant-numeric: tabular-nums;
 }
