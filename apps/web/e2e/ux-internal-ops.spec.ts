@@ -4,6 +4,7 @@ import { resetDemoExperience } from "@clockwork/testing/demo-reset";
 import { FileDemoAdapterStateStore } from "@clockwork/testing/demo-state";
 
 import { gotoHydrated } from "./shell-hydration";
+import { expectTargetSize } from "./target-size";
 
 /**
  * Queue actions write to the durable demo adapter state, so the record would
@@ -33,7 +34,7 @@ const INTERNAL_DESTINATIONS = [
   "Operations",
   "Global search",
   "Queues & approvals",
-  "Renewal command",
+  "Renewals desk",
   "Provisioning",
   "Recovery",
   "Migrations",
@@ -69,14 +70,6 @@ async function expectAxeClean(page: Page) {
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
   expect(result.violations).toEqual([]);
-}
-
-async function expectTouchTarget(locator: Locator, minimum = 42) {
-  await expect(locator).toBeVisible();
-  const box = await locator.boundingBox();
-  expect(box).not.toBeNull();
-  expect(box?.width).toBeGreaterThanOrEqual(minimum);
-  expect(box?.height).toBeGreaterThanOrEqual(minimum);
 }
 
 async function expectVisibleFocus(locator: Locator) {
@@ -125,12 +118,15 @@ test.describe("internal operator operations journey", () => {
       page.getByRole("heading", { level: 1, name: "Queue record" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "review exception" }).click();
-    // The receipt poll replaces the queued line with the authoritative result,
-    // so either terminal wording proves the version-bound submission landed.
+    // The receipt poll replaces the queued line with the authoritative result.
+    // Applying the action spends the record's last permitted action, so the
+    // refreshed record has no button left; the receipt has to outlive that.
     // The window covers the action route's first compile on a cold dev server
     // followed by the fifteen one-second receipt polls.
     await expect(
-      page.getByText(/review exception (is queued|applied)/),
+      page.getByText(
+        /^“review exception” was applied at authoritative version \d+\.$/i,
+      ),
     ).toBeVisible({ timeout: 60_000 });
     await page.reload();
     await expect(page.getByText("EXC-COL-008").first()).toBeVisible();
@@ -206,7 +202,9 @@ test.describe("internal operator operations journey", () => {
         page.getByRole("heading", { level: 2, name: group }),
       ).toBeVisible();
     }
-    await expect(page.getByText(/Activation is fail-closed/)).toBeVisible();
+    await expect(
+      page.getByText(/Activation is denied by default\./),
+    ).toBeVisible();
     await expectAxeClean(page);
 
     await gotoHydrated(page, "/internal/assisted");
@@ -239,12 +237,12 @@ test.describe("internal operator operations journey", () => {
     await page.setViewportSize({ width: 320, height: 800 });
     await gotoHydrated(page, "/internal");
     const trigger = page.getByRole("button", { name: "Open navigation" });
-    await expectTouchTarget(trigger);
+    await expectTargetSize(trigger);
     await trigger.click();
     const drawer = page.getByRole("dialog", { name: "Navigation" });
     await expect(drawer).toBeVisible();
     for (const destination of INTERNAL_DESTINATIONS) {
-      await expectTouchTarget(
+      await expectTargetSize(
         drawer.getByRole("link", { name: destination, exact: true }),
       );
     }
@@ -269,7 +267,10 @@ test.describe("internal operator operations journey", () => {
         page.getByRole("heading", { level: 3, name: lane }),
       ).toBeVisible();
     }
-    await expect(page.getByText(/^Updated /)).toHaveCount(3);
+    // Each lane states when it was read ("Read Sep 24, 2026, 11:31 AM UTC").
+    await expect(
+      page.getByText(/^Read \w{3} \d{1,2}, \d{4}, \d{1,2}:\d{2} [AP]M UTC$/),
+    ).toHaveCount(3);
     await expect(
       page.getByText("This status endpoint did not return a readable result."),
     ).toHaveCount(0);
@@ -463,7 +464,7 @@ test.describe("internal responsive and accessibility coverage", () => {
     await page.setViewportSize({ width: 320, height: 800 });
     await page.goto("/internal/queues");
     const search = page.getByRole("button", { name: "Open command menu" });
-    await expectTouchTarget(search);
+    await expectTargetSize(search);
     await expectVisibleFocus(search);
     // Below the split-panel breakpoint the row opens the full-page detail, so
     // the primary target in the table is the record link rather than the
@@ -471,7 +472,7 @@ test.describe("internal responsive and accessibility coverage", () => {
     const record = page
       .getByRole("link", { name: /Collections aging decision/ })
       .first();
-    await expectTouchTarget(record);
+    await expectTargetSize(record);
     await expectVisibleFocus(record);
   });
 

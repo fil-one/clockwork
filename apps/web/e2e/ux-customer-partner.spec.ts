@@ -56,7 +56,9 @@ test("owner dashboard leads with decisions and one commercial term", async ({
   await expect(
     page.getByRole("heading", { name: "Northstar Archive Labs annual term" }),
   ).toHaveCount(1);
-  await expect(page.getByText("Service term rollup")).toBeVisible();
+  await expect(
+    page.getByText("Services and terms", { exact: true }),
+  ).toBeVisible();
   const supportingContext = page.getByText(
     "Usage and recent account activity",
     { exact: true },
@@ -447,7 +449,7 @@ test("partner seller can search the named portfolio but cannot open partner bill
   await usePersona(page, "partner_seller");
   await page.goto("/partner");
   const desk = page.locator("#main-content");
-  await expect(desk.getByText("1 actions", { exact: true })).toBeVisible();
+  await expect(desk.getByText("1 action", { exact: true })).toBeVisible();
   await expect(desk.getByRole("link", { name: "Credit exposure" })).toHaveCount(
     0,
   );
@@ -600,19 +602,23 @@ test("partner admin reviews financial boundaries before any renewal request", as
     name: "Review renewal before confirming",
   });
   await expect(
-    renewalReview.getByText("$91,200 transfer / $112,000 resale", {
+    renewalReview.getByText("$91,200.00 transfer / $112,000.00 resale", {
       exact: true,
     }),
   ).toBeVisible();
   await expect(
-    page.getByText(/Redwood Channel Group on resale routes/),
+    page.getByText(
+      /Redwood Channel Group is the merchant of record on resale routes\./,
+    ),
   ).toBeVisible();
   const confirm = page.getByRole("button", { name: "Confirm renewal request" });
   await expect(confirm).toBeDisabled();
   await page.getByRole("checkbox").check();
   await expect(confirm).toBeDisabled();
   await expect(
-    renewalReview.getByText(/merchant-of-record boundary/i),
+    renewalReview.getByText(
+      /transfer price, resale price and merchant of record\.$/,
+    ),
   ).toBeVisible();
 });
 

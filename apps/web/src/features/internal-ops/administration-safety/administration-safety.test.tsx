@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/src/auth/actions", () => ({ startAssistedSession: vi.fn() }));
 
 import { resolveDemoText } from "@clockwork/testing/demo-localized-text";
 
@@ -10,6 +12,7 @@ import { LanguageProvider } from "@/src/i18n/client";
 import { AgreementAdministration } from "./agreements";
 
 import { ApprovalWorkspace } from "./approvals";
+import { AssistedMode } from "./assisted";
 import { accounts, agreementScanAt, agreementVersions } from "./data";
 import {
   assistedCommercialActionReady,
@@ -168,6 +171,25 @@ describe("agreement version filters", () => {
   });
 });
 
+describe("agreement registry scan time", () => {
+  /**
+   * The scan time was formatted in a fixed New York zone ("11:44 GMT-4")
+   * while every other operator page states UTC.
+   */
+  it("states the scan time in UTC like the other operator pages", () => {
+    render(
+      <AgreementAdministration
+        roles={["legal_approver"]}
+        versions={resolveDemoText(agreementVersions, "en")}
+        scannedAt="2026-07-31T15:44:00Z"
+        readOnly
+      />,
+    );
+    expect(screen.getByText(/Jul 31, 2026, 3:44\sPM UTC/u)).toBeVisible();
+    expect(screen.queryByText(/GMT-4|EDT/u)).toBeNull();
+  });
+});
+
 describe("status chip colour", () => {
   it("comes from the caller's tone, never from English words in the label", () => {
     render(
@@ -184,6 +206,44 @@ describe("status chip colour", () => {
     expect(screen.getByText("Blocked")).not.toHaveClass(styles.danger ?? "");
     expect(screen.getByText("Vigente")).toHaveClass(styles.success ?? "");
     expect(screen.getByText("Bloqueado")).toHaveClass(styles.danger ?? "");
+  });
+
+  /**
+   * These chips were all amber whatever they said, so "Up to date" and an
+   * authority the reader holds looked like warnings.
+   */
+  it("colours a current registry and a held authority as success", () => {
+    const { unmount } = render(
+      <AgreementAdministration
+        roles={["legal_approver"]}
+        versions={resolveDemoText(agreementVersions, "en")}
+        scannedAt={agreementScanAt}
+        readOnly
+      />,
+    );
+    expect(screen.getByText("Up to date")).toHaveClass(styles.success ?? "");
+    expect(screen.getByText("Legal authority")).toHaveClass(
+      styles.success ?? "",
+    );
+    unmount();
+    const { rerender } = render(
+      <ApprovalWorkspace roles={["finance_approver"]} />,
+    );
+    expect(screen.getByText("Authorized role")).toHaveClass(
+      styles.success ?? "",
+    );
+    rerender(<ApprovalWorkspace roles={["legal_approver"]} />);
+    expect(screen.getByText("Read only")).toHaveClass(styles.warning ?? "");
+    rerender(
+      <AssistedMode
+        roles={["internal_operator"]}
+        accounts={resolveDemoText(accounts, "en")}
+        actor="Ada Mercer"
+      />,
+    );
+    expect(screen.getByText("Can act for accounts")).toHaveClass(
+      styles.success ?? "",
+    );
   });
 
   it("colours translated agreement states from the state itself", () => {

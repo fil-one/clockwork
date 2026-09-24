@@ -114,7 +114,7 @@ describe("demo messages at the read boundary", () => {
       title: "Vertraglich zugesagte Kapazität · überfällig",
       dateLabel: "Fällig am 15. Juli · 16 Tage überfällig",
       value: "15.400,00\u00a0$",
-      context: [{ label: "Dienst", value: "eu-west-2" }],
+      context: [{ label: "Service", value: "eu-west-2" }],
       authoritative: {
         dueAt: "2026-07-15T23:59:59.000Z",
         amountMinor: "1540000",

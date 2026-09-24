@@ -362,6 +362,18 @@
   hyphens: manual;
 }
 
+/*
+ * Identifiers are not words. A code, reference, event name, SKU, e-mail
+ * address or ID keeps every character as written, so automatic hyphenation
+ * never inserts a hyphen into one: "PROCESSING_ATTEM-PTS_EXHAUSTED" reads as
+ * a different code. Mark such text with <code>, <bdi>, translate="no" or
+ * data-identifier; a long value still wraps where it must, without a hyphen.
+ */
+:root:is(:lang(de), :lang(fr), :lang(pt), :lang(es))
+  :is(code, kbd, samp, pre, bdi, [translate="no"], [data-identifier]) {
+  hyphens: manual;
+}
+
 *,
 *::before,
 *::after {

@@ -77,7 +77,7 @@ describe("shell chrome in the reader's language", () => {
     ).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/Comércio/u);
     expect(
-      screen.getByRole("region", { name: "Status do aplicativo" }),
+      screen.getByRole("region", { name: "Status da aplicação" }),
     ).toBeInTheDocument();
     // The company takes the feminine article in Portuguese.
     expect(
@@ -95,7 +95,7 @@ describe("shell chrome in the reader's language", () => {
     const palette = await screen.findByRole("dialog");
     expect(
       within(palette).getByRole("button", {
-        name: "Fechar a paleta de comandos",
+        name: "Fechar menu de comandos",
       }),
     ).toBeInTheDocument();
     expect(within(palette).getByText("Navegar")).toBeInTheDocument();

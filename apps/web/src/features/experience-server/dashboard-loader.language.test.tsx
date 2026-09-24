@@ -129,7 +129,8 @@ describe("the demo dashboard in every interface language", () => {
     expect(dashboard.term).toMatchObject({
       title: "Meridian Archive Labs の年間契約期間",
       renewalState: "自動更新",
-      agreementLabel: "クラウドサービス契約（バージョン 3.2）",
+      // An executed agreement keeps the English title it was signed under.
+      agreementLabel: "Cloud Service Agreement（バージョン 3.2）",
       renewalTone: "success",
     });
     expect(dashboard.capacity?.freshnessLabel).toMatch(/^使用状況データを/u);
@@ -168,6 +169,36 @@ describe("the demo dashboard in every interface language", () => {
     );
   });
 
+  /**
+   * The commercial fixtures carry facts beside English display strings kept
+   * for older consumers. The dashboard read the strings, so a Spanish reader
+   * saw "Open", "$184,800.00" and "Invoice for Northstar primary archive".
+   */
+  it("renders the commercial obligations from their facts", async () => {
+    const dashboard = await dashboardIn("es");
+    const commercial = dashboard.obligations.filter((item) =>
+      ["Q-2026-0184-v3", "INV-2026-0781"].includes(item.id),
+    );
+    expect(commercial).toHaveLength(2);
+    for (const item of commercial)
+      expect(JSON.stringify([item.title, item.detail, item.state])).not.toMatch(
+        /\bOpen\b|\$\d|Invoice for|annual|direct\b|US East/u,
+      );
+    expect(commercial[0]?.title).toMatch(/184\.800,00\sUS\$/u);
+  });
+
+  /**
+   * Executed agreements keep their English titles on the agreements list; the
+   * dashboard translated the same title, so one document had two names.
+   */
+  it("names the executed agreement by its English title", async () => {
+    for (const language of languages)
+      expect(
+        (await dashboardIn(language)).term.agreementLabel,
+        language,
+      ).toMatch(/^\u2068?Cloud Service Agreement\b/u);
+  });
+
   it("colours the renewal badge from facts, not from the words on it", async () => {
     for (const language of languages) {
       request.language = language;
@@ -201,7 +232,10 @@ describe("the demo dashboard in every interface language", () => {
     });
     expect(partner.boundary).toEqual([
       { label: "Einkaufspreis", value: "Nur für Ember Peak Systems sichtbar" },
-      { label: "Partnerpreis", value: "Festgelegt von Ember Peak Systems" },
+      {
+        label: "Wiederverkaufspreis",
+        value: "Festgelegt von Ember Peak Systems",
+      },
       {
         label: "Merchant of Record",
         value: "Ember Peak Systems im Vertriebsweg Wiederverkauf",

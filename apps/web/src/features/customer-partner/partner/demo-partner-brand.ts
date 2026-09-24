@@ -37,7 +37,7 @@ const brandOwner = demoText({
   ja: "パートナー管理者",
   pt: "Administrador do parceiro",
   zh: "合作伙伴管理员",
-  ar: "مسؤول الشريك",
+  ar: "مشرف الشريك",
 });
 
 const brandPrefix = "demo-partner-brand:";

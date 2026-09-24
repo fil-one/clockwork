@@ -190,7 +190,7 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
                   ? "adminGovernance.approvals.authorizedRole"
                   : "adminGovernance.readOnly",
               )}
-              tone="warning"
+              tone={permitted ? "success" : "warning"}
             />
           </div>
           <form

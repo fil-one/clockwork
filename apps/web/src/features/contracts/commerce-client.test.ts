@@ -143,6 +143,61 @@ describe("commerce command error mapping", () => {
     } satisfies Partial<CommerceApiError>);
   });
 
+  /**
+   * A refusal keeps the server's problem code whatever its class.
+   *
+   * 409 used to be answered with a fixed sentence and no code, so the price
+   * book surfaces' `problemCode === "DUPLICATE"` branches -- "that version
+   * already exists" rather than "someone else changed this" -- could never run.
+   */
+  it.each([
+    [409, "conflict", "DUPLICATE"],
+    [409, "conflict", "VERSION_CONFLICT"],
+    [422, "validation", "INVALID_STATE"],
+    [403, "forbidden", "PRICE_BOOK_AUTHORITY_FORBIDDEN"],
+  ] as const)(
+    "keeps the problem code of a %i refusal",
+    async (status, code, problemCode) => {
+      const fetchImplementation = vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          Response.json(
+            {
+              type: "https://clockwork.test/problems/refused",
+              title: "Price-book command refused",
+              status,
+              detail: "A price book with this currency and version exists.",
+              code: problemCode,
+              requestId: "request-problem-code",
+              retryable: false,
+            },
+            { status },
+          ),
+        ),
+      );
+
+      await expect(
+        sendCoreCommand(
+          {
+            resource: "price_books",
+            id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            action: "import",
+            payload: {},
+          },
+          {
+            baseUrl: "https://clockwork.test/api",
+            csrfToken: "c".repeat(32),
+            idempotencyKey: `problem-code-${status}-${problemCode}`,
+            fetchImplementation,
+          },
+        ),
+      ).rejects.toMatchObject({
+        status,
+        code,
+        problemCode,
+      } satisfies Partial<CommerceApiError>);
+    },
+  );
+
   /** A 503 that says nothing still gets the generic sentence. */
   it("falls back to the generic sentence when a 503 explains nothing", async () => {
     const fetchImplementation = vi.fn<typeof fetch>(() =>

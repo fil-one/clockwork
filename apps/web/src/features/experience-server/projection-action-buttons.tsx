@@ -12,7 +12,7 @@ import {
 } from "@/src/features/contracts/experience-client";
 import type { ExperienceAudience, ProjectionChannel } from "./model";
 import { actionLabel, isDestructiveAction } from "./projection-action-labels";
-import { problemText } from "./problem-text";
+import { problemText } from "@/src/features/contracts/error-text";
 import { canRunProjectionAction } from "./projection-authorization";
 
 type ActionFeedback = {
@@ -60,7 +60,13 @@ export function ProjectionActionButtons({
   const authorizedActions = actions.filter((action) =>
     canRunProjectionAction(roles, audience, channel, action),
   );
-  if (authorizedActions.length === 0)
+  /**
+   * A command that lands usually spends the record's last permitted action, so
+   * the refresh that follows it leaves nothing to press. The receipt stays: an
+   * early return here used to drop "was applied" the moment it was reported.
+   */
+  const readOnly = authorizedActions.length === 0;
+  if (readOnly && Object.keys(feedback).length === 0)
     return <span>{t("projection.action.readOnly")}</span>;
 
   const messageId = (action: string) => `${region}-${action}`;
@@ -195,6 +201,7 @@ export function ProjectionActionButtons({
 
   return (
     <div>
+      {readOnly ? <span>{t("projection.action.readOnly")}</span> : null}
       {authorizedActions.map((action) => {
         const running = pending.includes(action);
         const destructive = isDestructiveAction(action);

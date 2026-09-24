@@ -1,20 +1,18 @@
-import {
-  OffboardingWorkflow,
-  type OffboardableService,
-} from "@/src/features/customer-partner/commercial/offboarding";
+import { OffboardingWorkflow } from "@/src/features/customer-partner/commercial/offboarding";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import {
   firstSearchParam,
   type RawSearchParams,
 } from "@/src/features/customer-partner/commercial/url-state";
-import type { ProjectionRecord } from "@/src/features/experience-server/model";
-import type { Translator } from "@/src/i18n";
-import { getTranslations } from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 
-import { requestedOrderAggregateId } from "./select-service";
+import {
+  offboardableService,
+  requestedOrderAggregateId,
+} from "./select-service";
 
 const closedStatuses = ["completed", "cancelled", "canceled", "terminated"];
 
@@ -26,20 +24,6 @@ function text(
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
-function offboardableService(
-  record: ProjectionRecord,
-  t: Translator,
-): OffboardableService {
-  const name = text(record.data, "title") ?? record.recordKey;
-  const term = text(record.data, "term");
-  return {
-    id: record.aggregateId,
-    reference: record.recordKey,
-    name,
-    label: term ? t("common.join.labels", { first: name, second: term }) : name,
-  };
-}
-
 /**
  * The list is the customer's open orders, which is what the offboarding
  * command is scoped to. The second read is the `services` channel and happens
@@ -48,8 +32,9 @@ function offboardableService(
  */
 async function OffboardingSurface({ params }: { params: RawSearchParams }) {
   const requested = firstSearchParam(params, "service");
-  const [t, identity, orders, services] = await Promise.all([
+  const [t, formattingLocale, identity, orders, services] = await Promise.all([
     getTranslations(),
+    getFormattingLocale(),
     getRouteIdentity("customer"),
     loadPortalRecords("customer", "orders"),
     requested
@@ -71,7 +56,9 @@ async function OffboardingSurface({ params }: { params: RawSearchParams }) {
   return (
     <OffboardingWorkflow
       account={{ id: identity.accountId, name: identity.accountName }}
-      services={open.map((record) => offboardableService(record, t))}
+      services={open.map((record) =>
+        offboardableService(record, t, formattingLocale),
+      )}
       {...(selectedOrderId ? { selectedServiceId: selectedOrderId } : {})}
       {...(demoDeployIdentityEnabled(process.env) && selectedRecord
         ? {

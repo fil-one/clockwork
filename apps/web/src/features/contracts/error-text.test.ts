@@ -12,6 +12,7 @@ import {
   commerceErrorText,
   experienceErrorText,
   externalGateErrorText,
+  problemText,
 } from "./error-text";
 import { ExperienceClientError } from "./experience-client";
 import { ExternalGateClientError } from "./external-gates-client";
@@ -131,5 +132,46 @@ describe("click-through acceptance evidence", () => {
       actionLabel: "Aceitar e firmar",
       locale: "pt-BR",
     });
+  });
+});
+
+/**
+ * The experience surfaces' problem wording lives with the platform helpers:
+ * there used to be a second helper (`experience-server/problem-text.ts`) that
+ * made the same decisions with its own rules.
+ */
+describe("problem+json failures", () => {
+  const es = translatorFor("es");
+  const fallback = "fallback sentence";
+
+  it("words a known code, whatever its English detail says", () => {
+    const error = Object.assign(new Error("Evidence was quarantined"), {
+      code: "EVIDENCE_QUARANTINED",
+      status: 422,
+    });
+    expect(problemText(error, es, { fallback })).toBe(
+      es("experience.evidence.quarantined"),
+    );
+  });
+
+  it("falls back on the status, then on the caller's own sentence", () => {
+    const withStatus = (status: number) =>
+      Object.assign(new Error("English detail"), { status });
+    expect(problemText(withStatus(409), es, { fallback })).toBe(
+      es("projection.action.conflict"),
+    );
+    expect(problemText(withStatus(503), es, { fallback })).toBe(
+      es("experience.problem.unavailable"),
+    );
+    expect(
+      problemText(withStatus(403), es, { fallback, forbidden: "no" }),
+    ).toBe("no");
+    expect(problemText(withStatus(422), es, { fallback })).toBe(fallback);
+    expect(problemText(new TypeError("fetch failed"), es, { fallback })).toBe(
+      es("experience.problem.unavailable"),
+    );
+    expect(problemText(new Error("English detail"), es, { fallback })).toBe(
+      fallback,
+    );
   });
 });

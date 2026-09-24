@@ -251,7 +251,18 @@ describe("typography", () => {
     for (const locale of locales)
       for (const [id, entry] of Object.entries(catalogs[locale]))
         for (const [category, form] of forms(entry)) {
-          const text = form.replace(/\{[^{}]*\}/gu, "");
+          // zh: a placeholder stands for a value (a date such as "2026年9月24日",
+          // an amount), not for nothing, so removing it would make "已于 {date}到期"
+          // look like "已于 到期" (two Han characters around a space).
+          const text = form.replace(/\{[^{}]*\}/gu, locale === "zh" ? "￼" : "");
+          // zh dates end in 日, so no space after a date placeholder before Han.
+          if (
+            locale === "zh" &&
+            /\{(?:date|start|end|from|to)\} \p{Script=Han}/u.test(form)
+          )
+            failures.push(
+              `zh ${id}${category}: no space between a date and Han text — ${JSON.stringify(form)}`,
+            );
           for (const [pattern, rule] of [
             ...(rules.all ?? []),
             ...(rules[locale] ?? []),

@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
 import layout from "./channel-policy.module.css";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
-import { DemoCommercialPolicyRepository } from "@/src/features/internal-ops/commercial-policies/demo-policies";
+import {
+  DemoCommercialPolicyRepository,
+  localizeDemoChannelPolicy,
+} from "@/src/features/internal-ops/commercial-policies/demo-policies";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DatabaseChannelPolicyRepository } from "@clockwork/db";
@@ -11,7 +14,6 @@ import {
   type ChannelPolicyRecord,
   type ChannelPolicySnapshot,
 } from "@clockwork/domain/core";
-import { resolveDemoText } from "@clockwork/testing/demo-localized-text";
 import { getCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import {
@@ -105,9 +107,13 @@ export default async function Page() {
       repo.listChannel(),
       repo.active(),
     ]);
-    // Demo read boundary: fixture text authored in every language, if any,
-    // is resolved for this reader. Plain strings pass through unchanged.
-    records = resolveDemoText(demoRecords, locale);
+    // Demo read boundary: the fixture's decision reason and source evidence
+    // stand in for text a finance user would type, so they are shown in the
+    // reader's language while they still hold the fixture's words. A policy
+    // someone edited keeps their text.
+    records = demoRecords.map((record) =>
+      localizeDemoChannelPolicy(record, locale),
+    );
     active = demoActive;
     available = true;
   }

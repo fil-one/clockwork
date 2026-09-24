@@ -180,7 +180,7 @@ it("shows demo-authored policy text in the reader's language and leaves stored a
 
   const pt = localizeDemoPaygPolicy(proposal, "pt");
   expect(pt.terms.name).toBe(
-    "Cenário fictício de revisão de pagamento conforme o uso",
+    "Cenário fictício de revisão de pagamento por uso",
   );
   expect(pt.terms.owner).toBe("Equipe comercial da demonstração");
   expect(pt.decisionReason).toBe(
@@ -212,7 +212,7 @@ it("shows demo-authored policy text in the reader's language and leaves stored a
     localizeDemoChannelPolicy(channel, "ja"),
   );
   expect(ja.terms.sourceEvidence).toBe(
-    "デモ用の架空のチャネルプログラムです。承認済みの実際の商用ポリシーではありません。",
+    "デモ用の架空のチャネルプログラムです。承認済みの実際の商取引ポリシーではありません。",
   );
 });
 
@@ -236,7 +236,7 @@ it("returns demo policies in the language of the request's cookie", async () => 
   );
   const body = (await response.json()) as { offers: PaygOfferRecord[] };
   expect(body.offers.map((offer) => offer.terms.name)).toEqual([
-    "Scénario fictif de revue du paiement à l’usage",
+    "Scénario fictif d’examen du paiement à l’usage",
     "Stockage fictif sans engagement de durée",
   ]);
 });

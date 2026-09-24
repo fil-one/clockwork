@@ -62,15 +62,32 @@ navigation, and 600 for headings and key figures. 12 px is the floor.
 
 ## Grid and spacing
 
-The base spacing unit is 4 CSS px. Controls are 36 CSS px high with a mouse, as
-in the console; under `@media (pointer: coarse)` every control, navigation row,
-command result, and combobox option returns to at least 44 CSS px, so touch
-targets meet the 44 px target this document has always promised. Compact
-dense-table actions retain a 24-by-24 CSS px target with the WCAG 2.5.8 spacing
-exception satisfied. Page padding is 16 px at 320, 24 px at 768, and 40 px
-at 1440. Content follows a 12-column grid on wide screens, 8 columns at 768, and
-one reading column at 320. Cards group content; lines inside a card divide it;
-cards do not nest.
+The base spacing unit is 4 CSS px. Controls are 32 to 36 CSS px high with a
+mouse, as in the console; under `@media (pointer: coarse)` every control,
+navigation row, command result, and combobox option returns to at least 44 CSS
+px, so touch targets meet the 44 px target this document has always promised.
+Compact dense-table actions retain a 24-by-24 CSS px target with the WCAG 2.5.8
+spacing exception satisfied. Page padding is 16 px at 320, 24 px at 768, and 40
+px at 1440. Content follows a 12-column grid on wide screens, 8 columns at 768,
+and one reading column at 320. Cards group content; lines inside a card divide
+it; cards do not nest.
+
+The target-size rule, as the browser suites enforce it:
+
+- **Fine pointer (mouse, trackpad), at every viewport width:** every interactive
+  target is at least 24 by 24 CSS px, the WCAG 2.2 AA floor (2.5.8 Target Size,
+  Minimum), or meets that criterion's spacing exception. The console density
+  above is deliberate; a narrow desktop window is still a mouse.
+- **Coarse pointer (touch):** every interactive target is at least 44 by 44 CSS
+  px. The measured element is the one a tap lands on, not a frame drawn around
+  it: the organization select, for example, carries the full 44 px itself.
+
+`apps/web/e2e/target-size.ts` holds both floors. Its check first confirms that
+the browser context reports the pointer the test claims, so a touch assertion
+cannot silently run against the mouse layout. `ux-shell.spec.ts` "coarse
+pointer" emulates a phone (touch plus mobile viewport, which makes Chromium
+report `(pointer: coarse)`) and measures the header controls, every drawer
+destination, and every command result.
 
 ## Color
 

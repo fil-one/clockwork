@@ -42,6 +42,18 @@ function value(data: FormData, name: string): string {
   return typeof field === "string" ? field.trim() : "";
 }
 
+/**
+ * The hint's example amount, written with the reader's decimal separator
+ * where the input accepts it: "4,99" for a comma locale, otherwise "4.99".
+ * Always ASCII digits, which is what the input parses.
+ */
+export function exampleAmount(formattingLocale: string): string {
+  const separator = new Intl.NumberFormat(formattingLocale)
+    .formatToParts(4.99)
+    .find((part) => part.type === "decimal")?.value;
+  return separator === "," ? "4,99" : "4.99";
+}
+
 /** Minor units as the plain decimal an input accepts ("4.99"). */
 function moneyInput(minor?: string): string {
   if (minor === undefined) return "";
@@ -107,8 +119,13 @@ function serviceMonth(value: string, locale: string): string {
   }).format(parsed);
 }
 
-function minor(value: string): string {
-  const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(value);
+/**
+ * A typed amount in minor units. Either decimal separator is accepted, so a
+ * reader who writes "4,99" is not refused; at most two decimals and never a
+ * grouping separator, so "1.500" cannot be read as fifteen hundred.
+ */
+export function minor(value: string): string {
+  const match = /^(\d+)(?:[.,](\d{1,2}))?$/u.exec(value.trim());
   if (!match?.[1]) throw new PaygError("adminPricing.payg.error.moneyFormat");
   return (
     BigInt(match[1]) * 100n +
@@ -545,7 +562,9 @@ function OfferForm({
             "adminPricing.payg.form.storagePrice",
             moneyInput(terms?.payg.storageTbMonthMinor),
             "text",
-            t("adminPricing.payg.form.storagePriceHint", { example: "4.99" }),
+            t("adminPricing.payg.form.storagePriceAmountHint", {
+              example: exampleAmount(locale),
+            }),
           )}
           {field(
             "minimum",

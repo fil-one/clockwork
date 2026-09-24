@@ -121,9 +121,11 @@ const decisionSchema = z
   .strict();
 
 /**
- * A refusal the finance user reads: the client shows a 422 `detail` verbatim.
- * It carries a message ID, not a sentence, so `problem()` can word it in the
- * language of the request that caused it.
+ * A refusal, carried as a message ID rather than a sentence so `problem()` can
+ * word its `detail` in the language of the request that caused it. The price
+ * book surfaces do not show that detail: like the core API's English one, it
+ * is for API callers, and the surfaces word a refusal from its status class
+ * and problem code (`price-book-presentation.tsx`).
  */
 class DemoPriceBookProblem extends Error {
   public constructor(

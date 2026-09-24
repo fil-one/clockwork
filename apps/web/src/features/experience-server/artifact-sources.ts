@@ -1,4 +1,4 @@
-// i18n-exempt-file: builds generated PDF document inputs (translation policy rule 5) and API problem titles (integrator contract; the interface maps `code`, see problem-text.ts).
+// i18n-exempt-file: builds generated PDF document inputs (translation policy rule 5) and API problem titles (integrator contract; the interface maps `code`, see contracts/error-text.ts).
 import { createHash } from "node:crypto";
 
 import { sql } from "drizzle-orm";

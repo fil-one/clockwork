@@ -44,6 +44,7 @@ import { configuredDemoStateStore } from "@/src/features/experience-server/demo-
 import {
   currentDemoPriceBooks,
   domainPriceBook,
+  localizeDemoPriceBook,
 } from "@/src/features/internal-ops/price-books/demo-price-books";
 
 import { formatMoney } from "@/src/features/shared/format";
@@ -375,6 +376,8 @@ export function demoPartnerQuoteContext(
   state: DemoAdapterState,
   partnerAccountId: string,
   partnerAccountName: string,
+  /** The reader's interface language, for the price book's fixture name. */
+  locale: string,
   reference?: string,
 ): PartnerQuoteContext | undefined {
   const relationship = relationships[partnerAccountId];
@@ -384,6 +387,10 @@ export function demoPartnerQuoteContext(
       (book) =>
         book.status === "active" && book.currency === relationship.currency,
     )
+    // Demo read boundary: a book still named by the fixture is named in the
+    // reader's language; one a finance user renamed keeps their name. Only the
+    // label changes -- the offer is identified by book ID, SKU and region.
+    .map((book) => localizeDemoPriceBook(book, locale))
     .flatMap((book) =>
       book.rateCards
         .filter(

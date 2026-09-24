@@ -17,6 +17,7 @@ import {
   incidentSourceLabels,
   provenanceLabels,
 } from "./copy";
+import { MachineCode } from "../machine-code";
 import { IncidentDecisionControl } from "./incident-decision";
 import {
   diagnosableCount,
@@ -72,10 +73,20 @@ function Where({
   const { boundary, taskIdentifier } = signature.latest;
   return (
     <div className={styles.primaryCell}>
-      <strong>{boundary ?? t("operations.incidents.row.noBoundary")}</strong>
+      <strong>
+        {boundary ? (
+          <MachineCode className={styles.code} value={boundary} />
+        ) : (
+          t("operations.incidents.row.noBoundary")
+        )}
+      </strong>
       <span className={styles.secondary}>
         {taskIdentifier
-          ? t("operations.incidents.row.task", { id: taskIdentifier })
+          ? richText(t, "operations.incidents.row.task", {
+              id: (
+                <MachineCode className={styles.code} value={taskIdentifier} />
+              ),
+            })
           : t("operations.incidents.row.noTask")}
       </span>
     </div>
@@ -100,17 +111,28 @@ function Record({
   return (
     <div className={styles.primaryCell}>
       <strong>
-        {signature.aggregateType} {aggregateId}
+        <MachineCode
+          className={styles.code}
+          value={`${signature.aggregateType} ${aggregateId}`}
+        />
       </strong>
       <span className={styles.secondary}>
-        {t("operations.incidents.row.request", { id: requestId })}
+        {richText(t, "operations.incidents.row.request", {
+          id: <MachineCode className={styles.code} value={requestId} />,
+        })}
       </span>
       <span className={styles.secondary}>
-        {t("operations.incidents.row.auditEvent", { id: auditEventId })}
+        {richText(t, "operations.incidents.row.auditEvent", {
+          id: <MachineCode className={styles.code} value={auditEventId} />,
+        })}
       </span>
       <span className={styles.secondary}>
         {outboxMessageId
-          ? t("operations.incidents.row.outbox", { id: outboxMessageId })
+          ? richText(t, "operations.incidents.row.outbox", {
+              id: (
+                <MachineCode className={styles.code} value={outboxMessageId} />
+              ),
+            })
           : t("operations.incidents.row.noOutbox")}
       </span>
     </div>
@@ -205,7 +227,7 @@ export function UnhandledErrorsView({
           </p>
         ) : (
           <Table
-            className={styles.dsTable ?? ""}
+            className={`${styles.dsTable ?? ""} ${styles.denseTable ?? ""}`}
             caption={t("operations.incidents.signatures.caption")}
             captionHidden
             density="compact"
@@ -226,11 +248,19 @@ export function UnhandledErrorsView({
               return [
                 <div className={styles.primaryCell}>
                   <strong>
-                    {signature.safeCode ?? t("operations.incidents.row.noCode")}
+                    {signature.safeCode ? (
+                      <MachineCode
+                        className={styles.code}
+                        value={signature.safeCode}
+                      />
+                    ) : (
+                      t("operations.incidents.row.noCode")
+                    )}
                   </strong>
-                  <span className={styles.secondary}>
-                    {signature.eventType}
-                  </span>
+                  <MachineCode
+                    className={`${styles.secondary} ${styles.code}`}
+                    value={signature.eventType}
+                  />
                 </div>,
                 <Where signature={signature} t={t} />,
                 <Record signature={signature} t={t} />,

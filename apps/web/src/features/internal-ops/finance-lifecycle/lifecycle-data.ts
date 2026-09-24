@@ -56,7 +56,7 @@ export const illustrativeMigrations: readonly MigrationRecord[] = [
     sourceSystem: demoText({
       en: "Legacy billing (US)",
       es: "Facturación heredada (EE. UU.)",
-      fr: "Ancienne facturation (États-Unis)",
+      fr: "Ancien système de facturation (États-Unis)",
       de: "Altes Abrechnungssystem (USA)",
       ja: "旧請求システム（米国）",
       pt: "Faturamento legado (EUA)",
@@ -85,7 +85,7 @@ export const illustrativeMigrations: readonly MigrationRecord[] = [
     ],
     evidence: demoText({
       en: "The tax name matches the US entity; the legacy email domain is shared by both candidates.",
-      es: "La razón social coincide con la de la entidad de EE. UU.; el dominio de correo heredado es común a ambos candidatos.",
+      es: "El nombre fiscal coincide con el de la entidad de EE. UU.; el dominio de correo heredado es común a ambos candidatos.",
       fr: "La dénomination fiscale correspond à celle de l’entité américaine\u202f; le domaine de messagerie hérité est commun aux deux candidats.",
       de: "Die steuerliche Firmierung stimmt mit der US-Gesellschaft überein; die alte E-Mail-Domain nutzen beide Kandidaten.",
       ja: "税務上の名称は米国法人と一致します。旧メールドメインは両方の候補に共通です。",

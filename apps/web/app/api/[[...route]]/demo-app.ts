@@ -788,7 +788,7 @@ export async function handleDemoProvisionOrder(
         detail:
           error instanceof Error
             ? error.message
-            : "Unable to submit provisioning.", // i18n-exempt: API problem detail; demo-order-handoff (operations lane) still renders it and should word `code` instead (platform lane report)
+            : "Unable to submit provisioning.", // i18n-exempt: API problem detail for logs and API callers; demo-order-handoff words `code`
       },
       { status: 422 },
     );

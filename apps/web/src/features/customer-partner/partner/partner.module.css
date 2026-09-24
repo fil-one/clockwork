@@ -613,6 +613,11 @@ th[aria-sort="descending"] .sortButton::after {
   overflow-wrap: anywhere;
   vertical-align: middle;
 }
+/* In a table the column grows to fit the state, as for the shared badge: a
+   one-word state split over two lines ("Borra/dor") reads as two states. */
+:where(td, th) .pill {
+  white-space: nowrap;
+}
 .pill[data-tone="attention"],
 .pill[data-tone="pending"],
 .pill[data-tone="open"] {
@@ -1160,4 +1165,25 @@ th[aria-sort="descending"] .sortButton::after {
   .stat:last-child {
     border-bottom: 0;
   }
+}
+
+/*
+ * Filter row. Each field is at least as wide as its widest option: a closed
+ * select is as wide as its longest option, and a fixed grid column cut it off
+ * in longer languages ("Todos los es…", "Nombre (A–…" in Spanish). The fields
+ * wrap to another line instead. This comes last so it replaces the grid
+ * columns set above, at every width.
+ */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.filters > * {
+  flex: 1 1 auto;
+  min-width: min(8rem, 100%);
+}
+
+.filters > :first-child {
+  flex: 2 1 16rem;
 }

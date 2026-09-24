@@ -4,6 +4,7 @@ import { applyPersona } from "@clockwork/testing/playwright";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
 import { gotoHydrated } from "./shell-hydration";
+import { expectTargetSize } from "./target-size";
 
 const customerDestinations = [
   "Overview",
@@ -68,14 +69,6 @@ async function expectNoHorizontalOverflow(page: Page) {
     .toEqual({ body: 0, document: 0 });
 }
 
-async function expectMinimumTarget(locator: Locator, minimum = 42) {
-  await expect(locator).toBeVisible();
-  const box = await locator.boundingBox();
-  expect(box, "the target should have a rendered hit area").not.toBeNull();
-  expect(box?.width, "target width").toBeGreaterThanOrEqual(minimum);
-  expect(box?.height, "target height").toBeGreaterThanOrEqual(minimum);
-}
-
 async function openNavigation(page: Page) {
   const trigger = page.getByRole("button", { name: "Open navigation" });
   await trigger.click();
@@ -91,7 +84,7 @@ async function openCommandPalette(page: Page) {
   await expect(palette).toBeVisible();
   await expect(palette).toHaveAttribute("aria-modal", "true");
   const search = palette.getByRole("combobox", {
-    name: "Search navigation, actions, and records",
+    name: "Search pages and actions",
   });
   await expect(search).toBeFocused();
   return { palette, search };
@@ -121,7 +114,7 @@ for (const viewport of viewports) {
     let navigation: Locator;
     if (viewport.mobile) {
       const trigger = page.getByRole("button", { name: "Open navigation" });
-      await expectMinimumTarget(trigger);
+      await expectTargetSize(trigger);
       ({ drawer: navigation } = await openNavigation(page));
     } else {
       navigation = page.getByRole("navigation", {
@@ -139,7 +132,7 @@ for (const viewport of viewports) {
         exact: true,
       });
       await expect(link).toBeVisible();
-      await expectMinimumTarget(link);
+      await expectTargetSize(link);
     }
     await expect(
       navigation.getByRole("link", { name: "Overview", exact: true }),
@@ -161,7 +154,7 @@ for (const viewport of viewports.filter((candidate) => candidate.mobile)) {
     const { drawer, trigger } = await openNavigation(page);
 
     await expect(
-      drawer.getByText("Browse every destination.", { exact: true }),
+      drawer.getByText("Every page available to you.", { exact: true }),
     ).toBeVisible();
     const backgroundIsBlocked = await page
       .locator("#main-content")
@@ -236,7 +229,7 @@ test("partner admin can reach every partner destination from the 320px drawer", 
   const { drawer } = await openNavigation(page);
 
   for (const destination of partnerAdminDestinations) {
-    await expectMinimumTarget(
+    await expectTargetSize(
       drawer.getByRole("link", { name: destination, exact: true }),
     );
   }
@@ -274,9 +267,7 @@ test("partner seller navigation and commands exclude admin-only work", async ({
   await page.keyboard.press("Escape");
   const { palette, search } = await openCommandPalette(page);
   await search.fill("billing");
-  await expect(
-    palette.getByText("No results found", { exact: false }),
-  ).toBeVisible();
+  await expect(palette.getByText("No results", { exact: true })).toBeVisible();
 });
 
 test("command palette supports grouped search, no matches, and focus restoration", async ({
@@ -284,7 +275,7 @@ test("command palette supports grouped search, no matches, and focus restoration
 }) => {
   await openDashboard(page, viewports[0]);
   const trigger = page.getByRole("button", { name: "Open command menu" });
-  await expectMinimumTarget(trigger);
+  await expectTargetSize(trigger);
 
   let { palette, search } = await openCommandPalette(page);
   for (const group of ["Navigation", "Actions"] as const) {
@@ -349,7 +340,7 @@ for (const viewport of viewports.filter((candidate) => candidate.mobile)) {
       name: "Switch organization",
       exact: true,
     });
-    await expectMinimumTarget(organization);
+    await expectTargetSize(organization);
     await expect(organization).toHaveValue(demoAccountIds.direct);
     await expectNoHorizontalOverflow(page);
     await applyPersona(page, "partnerAdmin");
@@ -363,6 +354,64 @@ for (const viewport of viewports.filter((candidate) => candidate.mobile)) {
     expect(box?.height, "mobile header height").toBeLessThanOrEqual(160);
   });
 }
+
+/**
+ * Touch. The mouse journeys above hold the console to the WCAG 2.2 AA 2.5.8
+ * floor of 24 CSS px; a coarse pointer has to get 44 back. The context
+ * emulates a phone (touch plus mobile viewport), which is what makes Chromium
+ * report `(pointer: coarse)`, and `expectTargetSize` refuses to measure if the
+ * page does not agree that the pointer is coarse.
+ */
+test.describe("coarse pointer", () => {
+  test.use({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+
+  test("every shell target grows to 44px for touch", async ({ page }) => {
+    await applyPersona(page, "directOwner");
+    await gotoHydrated(page, "/dashboard");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Welcome back",
+    );
+
+    await expectTargetSize(
+      page.getByRole("combobox", { name: "Switch organization", exact: true }),
+      "coarse",
+    );
+    await expectTargetSize(
+      page.getByRole("button", { name: "Open command menu" }),
+      "coarse",
+    );
+
+    const { drawer } = await openNavigation(page);
+    for (const destination of customerDestinations) {
+      await expectTargetSize(
+        drawer.getByRole("link", { name: destination, exact: true }),
+        "coarse",
+      );
+    }
+    await page.keyboard.press("Escape");
+    await expect(drawer).toBeHidden();
+    await expectTargetSize(
+      page.getByRole("button", { name: "Open navigation" }),
+      "coarse",
+    );
+
+    await page.getByRole("button", { name: "Open command menu" }).click();
+    const palette = page.getByRole("dialog", { name: "Search and commands" });
+    await expect(palette).toBeVisible();
+    const results = palette.getByRole("option");
+    await expect(results.first()).toBeVisible();
+    const count = await results.count();
+    expect(count, "the palette should list commands").toBeGreaterThan(0);
+    for (let index = 0; index < count; index += 1) {
+      await results.nth(index).scrollIntoViewIfNeeded();
+      await expectTargetSize(results.nth(index), "coarse");
+    }
+  });
+});
 
 test("reduced-motion preference removes nonessential shell motion", async ({
   page,

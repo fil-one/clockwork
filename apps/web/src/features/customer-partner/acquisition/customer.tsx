@@ -71,6 +71,15 @@ export const requestKindLabels: Readonly<
   cancel_payg: "customer.payg.kind.cancellation",
 };
 
+/** A request's state, worded the same for the customer and for finance. */
+export const requestStatusLabels: Readonly<
+  Record<CustomerAcquisitionRequest["status"], MessageId>
+> = {
+  pending: "customer.payg.status.pendingHandoff",
+  fulfilled: "customer.payg.status.linked",
+  declined: "customer.payg.status.declined",
+};
+
 /**
  * Who bills an enrollment. The codes name systems, so two of them are proper
  * names; the demo's code is a description and is worded for the reader.
@@ -467,11 +476,7 @@ export function CustomerAcquisition({
                   })}
                 </h3>
                 <span className={styles.status}>
-                  {request.status === "pending"
-                    ? t("customer.payg.status.pendingHandoff")
-                    : request.status === "declined"
-                      ? t("customer.payg.status.declined")
-                      : t("customer.payg.status.linked")}
+                  {t(requestStatusLabels[request.status])}
                 </span>
               </div>
               <p>

@@ -30,7 +30,7 @@ export const globalErrorCopy: Readonly<Record<Locale, GlobalErrorCopy>> = {
     title: "No se ha podido cargar esta página",
     description: "La aplicación no ha podido iniciarse. Inténtelo de nuevo.",
     reference: "Si vuelve a ocurrir, indique esta referencia: {reference}",
-    retry: "Volver a intentarlo",
+    retry: "Reintentar",
   },
   fr: {
     title: "Impossible de charger cette page",
@@ -56,7 +56,7 @@ export const globalErrorCopy: Readonly<Record<Locale, GlobalErrorCopy>> = {
   },
   pt: {
     title: "Não foi possível carregar esta página",
-    description: "O aplicativo não conseguiu iniciar. Tente novamente.",
+    description: "A aplicação não conseguiu iniciar. Tente novamente.",
     reference: "Se continuar acontecendo, informe esta referência: {reference}",
     retry: "Tentar novamente",
   },

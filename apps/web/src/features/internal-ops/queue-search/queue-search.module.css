@@ -173,15 +173,30 @@
   text-decoration: underline;
 }
 
+/*
+ * The filters wrap as a row of fields, each at least as wide as its longest
+ * option. A fixed grid column cut the select off in longer languages ("SLA,
+ * riesgo, antigü…" in Spanish); a closed select's own width is the width of
+ * its widest option, so letting each field grow to it shows every option in
+ * full, and a field that does not fit moves to the next line.
+ */
 .filterGrid {
-  display: grid;
-  grid-template-columns: minmax(12rem, 2fr) repeat(4, minmax(7.25rem, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.filterGrid > .filterField {
+  flex: 1 1 auto;
+  min-width: 8rem;
+}
+
+.filterGrid > .searchField {
+  flex: 2 1 16rem;
 }
 
 .filterField {
   display: grid;
-  min-width: 0;
   align-content: start;
   gap: 0.375rem;
   color: var(--web-ink);
@@ -1007,15 +1022,6 @@
   white-space: nowrap !important;
 }
 
-@media (max-width: 80rem) {
-  .filterGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .searchField {
-    grid-column: span 2;
-  }
-}
-
 @media (max-width: 64rem) {
   .workspace {
     grid-template-columns: minmax(0, 1fr);
@@ -1050,11 +1056,8 @@
   .filters {
     padding: 0.8rem;
   }
-  .filterGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .searchField {
-    grid-column: 1 / -1;
+  .filterGrid > .searchField {
+    flex-basis: 100%;
   }
   .resultSummary {
     align-items: start;

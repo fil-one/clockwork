@@ -188,7 +188,11 @@ function CollectionTable({
         </>,
         <StatusBadge tone={tone(record)}>{record.statusLabel}</StatusBadge>,
         record.owner,
-        <strong className={styles.value}>{record.value}</strong>,
+        // The value is a record fact (an amount, an address, a reference):
+        // <bdi> keeps it whole -- never hyphenated -- and in its own direction.
+        <strong className={styles.value}>
+          <bdi>{record.value}</bdi>
+        </strong>,
         <>
           {record.updatedLabel}
           <span className={styles.updated}>
@@ -243,7 +247,9 @@ function CollectionCards({
               </div>
               <div>
                 <dt>{t(config.valueLabel)}</dt>
-                <dd>{record.value}</dd>
+                <dd>
+                  <bdi>{record.value}</bdi>
+                </dd>
               </div>
               <div>
                 <dt>{t("common.risk")}</dt>
@@ -297,7 +303,9 @@ function SelectedRecord({
         </div>
         <div>
           <dt>{t(config.valueLabel)}</dt>
-          <dd>{record.value}</dd>
+          <dd>
+            <bdi>{record.value}</bdi>
+          </dd>
         </div>
         {record.context.map((item) => (
           <div key={item.label}>

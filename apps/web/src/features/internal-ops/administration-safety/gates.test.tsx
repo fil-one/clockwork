@@ -13,6 +13,7 @@ import type { GeneratedExternalGate } from "@/src/features/contracts/external-ga
 
 import { demoGateText, fallbackGateFreshness, fallbackGates } from "./data";
 import { GateRegister, presentGeneratedGate } from "./gates";
+import { styles } from "./ui";
 
 describe("truthful external-gate administration", () => {
   const generated = (
@@ -169,6 +170,34 @@ describe("truthful external-gate administration", () => {
     expect(screen.getAllByText("Update or test gate")).toHaveLength(3);
   });
 
+  /**
+   * Every severity chip used to be amber, so a launch blocker looked no more
+   * urgent than a medium risk. The colour now follows the severity itself.
+   */
+  it("colours a launch blocker as danger and a path blocker as a warning", () => {
+    render(
+      <GateRegister
+        roles={["internal_operator"]}
+        gates={[
+          presentGeneratedGate(generated("EXT-LEGAL-01"), "en-US"),
+          presentGeneratedGate(
+            generated("EXT-DOMAIN-01", { severity: "path_blocker" }),
+            "en-US",
+          ),
+        ]}
+        source="System gate registry"
+      />,
+    );
+    const table = (name: string) =>
+      within(screen.getByRole("region", { name })).getByRole("table");
+    expect(within(table("Legal")).getByText("Launch blocker")).toHaveClass(
+      styles.danger ?? "",
+    );
+    expect(within(table("Brand")).getByText("Path blocker")).toHaveClass(
+      styles.warning ?? "",
+    );
+  });
+
   it("exposes the same persisted controls for the demonstration registry", () => {
     render(
       <GateRegister
@@ -270,7 +299,7 @@ describe("the gate register in the reader's language", () => {
     ).toBeVisible();
     expect(within(row).getByText(/^Aprovado · /)).toBeVisible();
     expect(
-      within(row).getByText("Bloqueios: Data de revisão ausente ou vencida"),
+      within(row).getByText("Bloqueios: data de revisão ausente ou vencida"),
     ).toBeVisible();
     expect(within(row).getByText("Ativação negada")).toBeVisible();
     expect(
@@ -323,7 +352,7 @@ describe("the gate register in the reader's language", () => {
     expect(screen.getByText("ホスト環境のアカウントと認証情報")).toBeVisible();
     expect(
       screen.getAllByText(
-        "フォールバック記録：要件レジストリからは読み込んでいません",
+        "フォールバックのレコード：ゲートレジストリからは読み込んでいません",
       ),
     ).toHaveLength(fallbackGates.length);
     expect(screen.queryByText(fallbackGateFreshness)).not.toBeInTheDocument();

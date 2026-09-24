@@ -21,7 +21,7 @@ import type {
   EvidenceUploadRecord,
   EvidenceUploadState,
 } from "./model";
-import { problemFacts, problemText } from "./problem-text";
+import { problemFacts, problemText } from "@/src/features/contracts/error-text";
 import styles from "./evidence-upload-control.module.css";
 
 const storagePrefix = "clockwork:evidence:";
