@@ -1,12 +1,40 @@
 "use client";
-import { useLocale, useTranslations } from "@/src/i18n/client";
-import { formattingLocales } from "@/src/i18n";
-import { DemoLanguageSelector } from "../../demo-language-selector";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import styles from "./review.module.css";
+
 import { BrandLogo } from "@clockwork/ui";
+
+import type { MessageId } from "@/src/i18n";
+import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
+import {
+  formatDate,
+  formatMoney,
+  type SupportedCurrency,
+} from "@/src/features/shared/format";
 import { brandAsset } from "@/src/features/shell/brand-assets";
+
+import { DemoLanguageSelector } from "../../demo-language-selector";
+import {
+  clientReviewFailureMessages,
+  isClientReviewFailure,
+  type ClientReviewFailure,
+} from "./response-failure";
+import styles from "./review.module.css";
+
+const receivedMessages: Readonly<Record<string, MessageId>> = {
+  request_order: "demo.clientReview.received.order",
+  request_changes: "demo.clientReview.received.changes",
+  decline: "demo.clientReview.received.decline",
+};
+
+/** Rate-card region slugs. An unknown slug is shown as the identifier it is. */
+const regionMessages: Readonly<Record<string, MessageId>> = {
+  "us-east": "region.usEast",
+  "eu-west": "region.euWest",
+  "uk-south": "region.ukSouth",
+};
+
 export function ClientQuoteReview({
   token,
   quote,
@@ -30,64 +58,91 @@ export function ClientQuoteReview({
 }) {
   const router = useRouter();
   const t = useTranslations();
-  const locale = formattingLocales[useLocale()];
+  const locale = useFormattingLocale();
   const busy = useRef(false);
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState("");
-  const labels: Record<string, string> = {
-    request_order: t("clientReview.receivedOrder"),
-    request_changes: t("clientReview.receivedChanges"),
-    decline: t("clientReview.receivedDecline"),
-  };
+  const [failure, setFailure] = useState<ClientReviewFailure | null>(null);
+  const capacity = new Intl.NumberFormat(locale, {
+    style: "unit",
+    unit: "terabyte",
+    maximumFractionDigits: 3,
+  });
+  // Rendered on the server and again in the browser: a fixed zone, named in
+  // the text, keeps both renders identical.
+  const respondedAt = new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  });
+  const received = quote.response
+    ? receivedMessages[quote.response.decision]
+    : undefined;
   return (
     <main id="main-content" className={styles.main}>
       <header className={styles.header}>
         <DemoLanguageSelector />
         <BrandLogo
           src={brandAsset()}
-          name="Fil One"
+          name={t("app.name")}
           className={styles.logo ?? ""}
         />
         <div>
-          <p>{t("clientReview.eyebrow")}</p>
+          <p>{t("demo.clientReview.eyebrow")}</p>
           <h1>{quote.name}</h1>
           <p>
-            {t("clientReview.valid", {
+            {t("demo.clientReview.validity", {
               revision: quote.version,
-              date: new Date(quote.expiresAt).toLocaleDateString(locale),
+              date: formatDate(new Date(quote.expiresAt), locale),
             })}
           </p>
         </div>
       </header>
       <section className={styles.panel}>
-        <h2>{t("clientReview.title")}</h2>
+        <h2>{t("demo.clientReview.title")}</h2>
         <ul>
-          {quote.lines.map((line, index) => (
-            <li key={index}>
-              {line.quantity} TB · {line.sku} · {line.region} ·{" "}
-              {line.termMonths} months
-            </li>
-          ))}
+          {quote.lines.map((line, index) => {
+            const region = regionMessages[line.region];
+            return (
+              <li key={index}>
+                {t("demo.clientReview.line", {
+                  capacity: capacity.format(Number(line.quantity)),
+                  sku: line.sku,
+                  region: region ? t(region) : line.region,
+                  count: line.termMonths,
+                })}
+              </li>
+            );
+          })}
         </ul>
         <strong>
-          {new Intl.NumberFormat(locale, {
-            style: "currency",
-            currency: quote.total.currency,
-          }).format(Number(quote.total.minor) / 100)}
+          {formatMoney(
+            quote.total.minor,
+            // The resale total is in the partner price book's currency.
+            quote.total.currency as SupportedCurrency,
+            locale,
+          )}
         </strong>
         <p>
-          <strong>{quote.sellerName}</strong> · {t("clientReview.seller")}
+          {richText(t, "demo.clientReview.seller", {
+            seller: <strong>{quote.sellerName}</strong>,
+          })}
         </p>
       </section>
       {quote.response ? (
         <section className={styles.panel}>
-          <h2>{labels[quote.response.decision]}</h2>
+          {received ? <h2>{t(received)}</h2> : null}
           <p>
-            {quote.response.name} ·{" "}
-            {new Date(quote.response.at).toLocaleString(locale)}
+            {t("demo.clientReview.sentBy", {
+              name: quote.response.name,
+              time: respondedAt.format(new Date(quote.response.at)),
+            })}
           </p>
           <p>{quote.response.note}</p>
-          <p>{t("clientReview.visible")}</p>
+          <p>{t("demo.clientReview.visible")}</p>
         </section>
       ) : (
         <form
@@ -99,7 +154,7 @@ export function ClientQuoteReview({
               const data = new FormData(event.currentTarget);
               busy.current = true;
               setPending(true);
-              setMessage("");
+              setFailure(null);
               try {
                 const csrf =
                   document.cookie
@@ -119,16 +174,20 @@ export function ClientQuoteReview({
                     authority: data.get("authority") === "on",
                   }),
                 });
-                const result = (await response.json()) as { detail?: string };
-                if (!response.ok)
-                  throw new Error(
-                    result.detail ?? "Response could not be saved.",
-                  );
+                if (!response.ok) {
+                  const result: unknown = await response
+                    .json()
+                    .catch(() => null);
+                  const code =
+                    result && typeof result === "object" && "code" in result
+                      ? result.code
+                      : undefined;
+                  setFailure(isClientReviewFailure(code) ? code : "unsent");
+                  return;
+                }
                 router.refresh();
-              } catch (error) {
-                setMessage(
-                  error instanceof Error ? error.message : "Please retry.",
-                );
+              } catch {
+                setFailure("unsent");
               } finally {
                 busy.current = false;
                 setPending(false);
@@ -136,37 +195,44 @@ export function ClientQuoteReview({
             })();
           }}
         >
-          <h2>{t("clientReview.respond")}</h2>
+          <h2>{t("demo.clientReview.respond")}</h2>
           <div className={styles.formGrid}>
             <label>
-              {t("clientReview.name")}{" "}
+              {t("demo.clientReview.name")}{" "}
               <input name="name" required minLength={2} maxLength={120} />
             </label>
             <label>
-              {t("clientReview.response")}{" "}
+              {t("demo.clientReview.response")}{" "}
               <select name="decision">
                 <option value="request_order">
-                  {t("clientReview.requestOrder")}
+                  {t("demo.clientReview.requestOrder")}
                 </option>
                 <option value="request_changes">
-                  {t("clientReview.requestChanges")}
+                  {t("demo.clientReview.requestChanges")}
                 </option>
-                <option value="decline">{t("clientReview.decline")}</option>
+                <option value="decline">
+                  {t("demo.clientReview.decline")}
+                </option>
               </select>
             </label>
             <label>
-              {t("clientReview.note")} <textarea name="note" maxLength={2000} />
+              {t("demo.clientReview.note")}{" "}
+              <textarea name="note" maxLength={2000} />
             </label>
           </div>
           <label>
             <input type="checkbox" name="authority" required />
-            {t("clientReview.attest")}{" "}
+            {t("demo.clientReview.attest")}
           </label>
-          <p>{t("clientReview.boundary")} </p>
+          <p>{t("demo.clientReview.boundary")}</p>
           <button className={styles.primary} disabled={pending}>
-            {pending ? t("clientReview.saving") : t("clientReview.submit")}
+            {pending
+              ? t("demo.clientReview.sending")
+              : t("demo.clientReview.submit")}
           </button>
-          <p role="alert">{message}</p>
+          <p role="alert">
+            {failure ? t(clientReviewFailureMessages[failure]) : ""}
+          </p>
         </form>
       )}
     </main>

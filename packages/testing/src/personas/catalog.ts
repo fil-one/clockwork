@@ -26,11 +26,16 @@ export type DemoPersonaKey =
   | "referralPartner"
   | "reseller";
 
+/**
+ * A demo identity. Only facts live here: names, ids, role and regional
+ * settings. A persona's job title and the task it came to do are interface copy
+ * in every language, so the web app maps the persona key to message IDs
+ * (`demoPersonaCopy` in `apps/web/src/auth/demo-persona.ts`).
+ */
 export interface DemoPersona {
   readonly key: DemoPersonaKey;
   readonly kind: DemoPersonaKind;
   readonly displayName: string;
-  readonly jobTitle: string;
   readonly email: `${string}@${string}.test`;
   readonly userId: string;
   readonly organizationId: string;
@@ -44,7 +49,6 @@ export interface DemoPersona {
   readonly mfaVerified: true;
   readonly isInternalStaff: boolean;
   readonly assistedAccountId?: string;
-  readonly journeyIntent: string;
 }
 
 const userIds = {
@@ -83,7 +87,6 @@ export const demoPersonas = {
     key: "directBuyer",
     kind: "direct_buyer",
     displayName: "Mara Voss",
-    jobTitle: "Operations Director",
     email: "mara.voss@meridian-archive.test",
     userId: userIds.directBuyer,
     organizationId: organizationIds.direct,
@@ -96,13 +99,11 @@ export const demoPersonas = {
     currency: "USD",
     mfaVerified: true,
     isInternalStaff: false,
-    journeyIntent: "Accept the renewal quote before its notice window opens.",
   },
   referralPartner: {
     key: "referralPartner",
     kind: "referral_partner",
     displayName: "Jon Bell",
-    jobTitle: "Alliance Manager",
     email: "jon.bell@northstar-advisory.test",
     userId: userIds.referralPartner,
     organizationId: organizationIds.referral,
@@ -115,13 +116,11 @@ export const demoPersonas = {
     currency: "USD",
     mfaVerified: true,
     isInternalStaff: false,
-    journeyIntent: "Resolve a protected-deal dispute and review attribution.",
   },
   reseller: {
     key: "reseller",
     kind: "reseller",
     displayName: "Priya Nair",
-    jobTitle: "Commercial Director",
     email: "priya.nair@ember-peak.test",
     userId: userIds.reseller,
     organizationId: organizationIds.reseller,
@@ -137,14 +136,11 @@ export const demoPersonas = {
     currency: "GBP",
     mfaVerified: true,
     isInternalStaff: false,
-    journeyIntent:
-      "Act on the partner agreement clock, then issue an end-client quote.",
   },
   distributor: {
     key: "distributor",
     kind: "distributor",
     displayName: "Elias Ward",
-    jobTitle: "Channel Operations Lead",
     email: "elias.ward@harborline-distribution.test",
     userId: userIds.distributor,
     organizationId: organizationIds.distributor,
@@ -161,13 +157,11 @@ export const demoPersonas = {
     currency: "GBP",
     mfaVerified: true,
     isInternalStaff: false,
-    journeyIntent: "Review a two-tier quote and consolidated billing exposure.",
   },
   endClient: {
     key: "endClient",
     kind: "end_client",
     displayName: "Nora Chen",
-    jobTitle: "Platform Engineer",
     email: "nora.chen@lumen-field.test",
     userId: userIds.endClient,
     organizationId: organizationIds.endClient,
@@ -180,13 +174,11 @@ export const demoPersonas = {
     currency: "USD",
     mfaVerified: true,
     isInternalStaff: false,
-    journeyIntent: "Review entitlement usage without partner commercial data.",
   },
   billingUser: {
     key: "billingUser",
     kind: "billing_user",
     displayName: "Theo Grant",
-    jobTitle: "Accounts Payable Manager",
     email: "theo.grant@meridian-archive.test",
     userId: userIds.billingUser,
     organizationId: organizationIds.direct,
@@ -199,13 +191,11 @@ export const demoPersonas = {
     currency: "USD",
     mfaVerified: true,
     isInternalStaff: false,
-    journeyIntent: "Resolve an overdue invoice and download its receipt.",
   },
   legalApprover: {
     key: "legalApprover",
     kind: "legal_approver",
     displayName: "Imani Ross",
-    jobTitle: "Commercial Counsel",
     email: "imani.ross@fil-one-internal.test",
     userId: userIds.legalApprover,
     organizationId: organizationIds.internal,
@@ -218,13 +208,11 @@ export const demoPersonas = {
     currency: "USD",
     mfaVerified: true,
     isInternalStaff: true,
-    journeyIntent: "Review customer paper and its material renewal variance.",
   },
   financeApprover: {
     key: "financeApprover",
     kind: "finance_approver",
     displayName: "Mateo Silva",
-    jobTitle: "Finance Controller",
     email: "mateo.silva@fil-one-internal.test",
     userId: userIds.financeApprover,
     organizationId: organizationIds.internal,
@@ -237,13 +225,11 @@ export const demoPersonas = {
     currency: "USD",
     mfaVerified: true,
     isInternalStaff: true,
-    journeyIntent: "Decide a below-floor distributor pricing exception.",
   },
   internalOperator: {
     key: "internalOperator",
     kind: "internal_operator",
     displayName: "Ada Mercer",
-    jobTitle: "Commerce Operations",
     email: "ada.mercer@fil-one-internal.test",
     userId: userIds.internalOperator,
     organizationId: organizationIds.internal,
@@ -257,8 +243,6 @@ export const demoPersonas = {
     mfaVerified: true,
     isInternalStaff: true,
     assistedAccountId: demoAccountIds.reseller,
-    journeyIntent:
-      "Recover a failed provisioning run in a time-limited assisted session.",
   },
 } as const satisfies Record<DemoPersonaKey, DemoPersona>;
 

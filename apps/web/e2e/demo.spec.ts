@@ -309,7 +309,7 @@ test.describe("demo access gate", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Choisissez le profil avec lequel vous connecter",
+        name: "Choisir le profil de connexion",
       }),
     ).toBeVisible();
     await page.reload();

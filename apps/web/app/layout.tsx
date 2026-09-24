@@ -1,6 +1,7 @@
+import { documentLanguages, rtlLocales } from "@/src/i18n";
 import { catalogs } from "@/src/i18n/catalogs";
 import { LanguageProvider } from "@/src/i18n/client";
-import { getLocale } from "@/src/i18n/server";
+import { getLocale, getTranslations } from "@/src/i18n/server";
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import type { ReactNode } from "react";
@@ -9,8 +10,9 @@ import "./globals.css";
 
 import { brandFontVariables } from "./fonts";
 import {
-  demoJourneyForPersona,
+  demoJourneyView,
   demoPersonaCatalog,
+  demoPersonaChoiceLabel,
   demoPersonaCookieName,
   demoPersonaSurfacesEnabled,
   resolveDemoPersona,
@@ -18,24 +20,9 @@ import {
 import { WebVitals } from "@/src/features/performance/web-vitals";
 import { parseTraceparent } from "@/src/features/performance/client-telemetry";
 import { publicMetadataOrigin } from "@/src/features/shell/public-origin";
-import {
-  DemoPersonaSwitcher,
-  type DemoJourneyView,
-} from "@/src/features/shell/demo-persona-switcher";
-import type { DemoPersonaKey } from "@clockwork/testing/personas";
+import { DemoPersonaSwitcher } from "@/src/features/shell/demo-persona-switcher";
 
-function demoJourneyView(persona: DemoPersonaKey): DemoJourneyView | undefined {
-  const journey = demoJourneyForPersona(persona);
-  return journey
-    ? {
-        title: journey.title,
-        steps: journey.steps.map(({ route, intent }) => ({ route, intent })),
-      }
-    : undefined;
-}
-
-const description =
-  "Agreements, services, billing, and partner commerce in one dependable chain.";
+const productName = "Fil One Commerce"; // i18n-exempt: product name, never translated
 
 // Link unfurlers resolve the Open Graph image against the canonical public
 // origin. Ordinary WorkOS deployments can derive the same origin from their
@@ -44,20 +31,26 @@ const description =
 const publicOrigin = publicMetadataOrigin(process.env);
 
 // The icon, apple-icon, and opengraph-image files in this directory supply the
-// link tags and og:image through the Next file convention.
-export const metadata: Metadata = {
-  metadataBase: new URL(publicOrigin),
-  title: { default: "Fil One Commerce", template: "%s · Fil One Commerce" },
-  description,
-  applicationName: "Fil One Commerce",
-  robots: { index: false, follow: false },
-  openGraph: {
-    type: "website",
-    siteName: "Fil One Commerce",
-    title: "Fil One Commerce",
+// link tags and og:image through the Next file convention. The description is
+// in the reader's language; a link unfurler sends no language cookie and gets
+// English.
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  const description = t("demo.meta.description");
+  return {
+    metadataBase: new URL(publicOrigin),
+    title: { default: productName, template: `%s · ${productName}` },
     description,
-  },
-};
+    applicationName: productName,
+    robots: { index: false, follow: false },
+    openGraph: {
+      type: "website",
+      siteName: productName,
+      title: productName,
+      description,
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#0090FF",
@@ -67,6 +60,7 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const locale = await getLocale();
+  const t = await getTranslations();
   const incomingTrace = parseTraceparent(
     (await headers()).get("traceparent") ?? undefined,
   );
@@ -82,16 +76,8 @@ export default async function RootLayout({
     : undefined;
   return (
     <html
-      lang={
-        locale === "zh"
-          ? "zh-Hans"
-          : locale === "ar"
-            ? "ar-AE"
-            : locale === "pt"
-              ? "pt-BR"
-              : locale
-      }
-      dir={locale === "ar" ? "rtl" : "ltr"}
+      lang={documentLanguages[locale]}
+      dir={rtlLocales.has(locale) ? "rtl" : "ltr"}
       data-scroll-behavior="smooth"
       className={brandFontVariables}
     >
@@ -100,15 +86,13 @@ export default async function RootLayout({
           {children}
           {persona ? (
             <DemoPersonaSwitcher
-              personas={demoPersonaCatalog.map(
-                ({ key, displayName, jobTitle }) => ({
-                  value: key,
-                  label: `${displayName} · ${jobTitle}`,
-                }),
-              )}
+              personas={demoPersonaCatalog.map((choice) => ({
+                value: choice.key,
+                label: demoPersonaChoiceLabel(choice, t),
+              }))}
               current={persona.key}
               personaName={persona.displayName}
-              journey={demoJourneyView(persona.key)}
+              journey={demoJourneyView(persona.key, t)}
             />
           ) : null}
           <WebVitals {...(traceparent ? { traceparent } : {})} />

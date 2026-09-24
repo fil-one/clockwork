@@ -1,4 +1,5 @@
 import { getTranslations } from "@/src/i18n/server";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { BrandLogo, Button, Input } from "@clockwork/ui";
@@ -12,7 +13,10 @@ import { brandAsset } from "@/src/features/shell/brand-assets";
 
 import { DemoLanguageSelector } from "../demo-language-selector";
 
-export const metadata = { title: "Demo access" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations();
+  return { title: t("demo.access.eyebrow") };
+}
 
 export default async function Page({
   searchParams,
