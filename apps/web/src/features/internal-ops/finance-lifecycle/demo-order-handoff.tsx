@@ -49,14 +49,22 @@ export function DemoOrderHandoff({
       });
       if (!response.ok) {
         // The route answers in English problem details for API callers; the
-        // reader is told what happened in their language, keyed on the status:
-        // 403 is the authority check, 422 the provisioner refusing the order
-        // (`DEMO_PROVISIONING_REFUSED`), anything else a failed submission.
+        // reader is told what happened in their language, keyed on facts: 403
+        // is the authority check, the `DEMO_PROVISIONING_REFUSED` code is the
+        // provisioner refusing the order, anything else a failed submission.
+        // The code, not the 422 status, decides "refused": the same route
+        // also answers 422 for a malformed idempotency key.
+        const problem: unknown = await response.json().catch(() => null);
+        const refused =
+          typeof problem === "object" &&
+          problem !== null &&
+          "code" in problem &&
+          problem.code === "DEMO_PROVISIONING_REFUSED";
         setMessage(
           t(
             response.status === 403
               ? copy.forbidden
-              : response.status === 422
+              : refused
                 ? copy.refused
                 : copy.failed,
           ),
