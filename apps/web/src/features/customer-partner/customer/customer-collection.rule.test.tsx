@@ -5,6 +5,7 @@ import { CustomerCollection } from "./customer-collection";
 import { resolveDemoText } from "@clockwork/testing/demo-localized-text";
 
 import { customerCollections } from "./customer-data";
+import styles from "./customer-collection.module.css";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
@@ -48,19 +49,17 @@ describe("customer collection values", () => {
    * stylesheet never hyphenates, and which keeps its own direction in Arabic.
    */
   it("sets each record's value apart from the surrounding prose", () => {
-    const config = resolveDemoText(customerCollections.procurement, "en");
-    const [record] = config.records;
-    if (!record) throw new Error("the procurement fixture has records");
-    render(
+    const { container } = render(
       <CustomerCollection
-        config={config}
+        config={resolveDemoText(customerCollections.procurement, "en")}
         formatting={formatting}
         freshness={fresh}
         searchParams={{}}
       />,
     );
-    const values = screen.getAllByText(record.value);
+    const values = container.querySelectorAll(`strong.${styles.value}`);
     expect(values.length).toBeGreaterThan(0);
-    for (const value of values) expect(value.tagName).toBe("BDI");
+    for (const value of values)
+      expect(value.firstElementChild?.tagName).toBe("BDI");
   });
 });
