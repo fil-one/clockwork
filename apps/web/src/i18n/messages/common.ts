@@ -11,7 +11,7 @@ export const commonMessages = defineMessages({
     de: "Kapazität, Laufzeit und Gültigkeit",
     ja: "容量、期間、有効期限",
     pt: "Capacidade, prazo e validade",
-    zh: "容量、期限和到期时间",
+    zh: "容量、期限与有效期",
     ar: "السعة والمدة والانتهاء",
   },
   "quotes.form.stageReview": {
@@ -21,7 +21,7 @@ export const commonMessages = defineMessages({
     de: "Entwurf prüfen",
     ja: "下書きを確認",
     pt: "Revisar rascunho",
-    zh: "审核草稿",
+    zh: "核对草稿",
     ar: "مراجعة المسودة",
   },
   "cp.common.loadingTitle": {
@@ -151,7 +151,7 @@ export const commonMessages = defineMessages({
     de: "Diese Datensätze sind möglicherweise veraltet.",
     ja: "この記録は最新でない可能性があります。",
     pt: "Estes registros podem estar desatualizados.",
-    zh: "这些记录可能已过时。",
+    zh: "这些记录可能不是最新的。",
     ar: "قد تكون هذه السجلات غير محدّثة.",
   },
   "cp.common.freshnessStaleBody": {
@@ -241,7 +241,7 @@ export const commonMessages = defineMessages({
     de: "Tarif und Region",
     ja: "オファーとリージョン",
     pt: "Oferta e região",
-    zh: "产品方案和区域",
+    zh: "方案与区域",
     ar: "العرض والمنطقة",
   },
   "cp.commercial.invoiceTruth": {
@@ -291,7 +291,7 @@ export const commonMessages = defineMessages({
     de: "Bereitstellung",
     ja: "プロビジョニング",
     pt: "Provisionamento",
-    zh: "资源开通",
+    zh: "开通",
     ar: "تهيئة الخدمات",
   },
   "ui.16": {
@@ -301,7 +301,7 @@ export const commonMessages = defineMessages({
     de: "veraltet",
     ja: "更新が必要",
     pt: "desatualizado",
-    zh: "已过时",
+    zh: "非最新",
     ar: "غير محدث",
   },
   "ui.30": {
@@ -461,7 +461,7 @@ export const commonMessages = defineMessages({
     de: "Nächster Schritt",
     ja: "次の操作",
     pt: "Próxima ação",
-    zh: "下一操作",
+    zh: "下一步操作",
     ar: "الإجراء التالي",
   },
   "ui.109": {
@@ -471,7 +471,7 @@ export const commonMessages = defineMessages({
     de: sameAsEnglish("Offboarding"),
     ja: "利用終了",
     pt: "Encerramento",
-    zh: "退出",
+    zh: "服务终止",
     ar: "إنهاء الخدمة",
   },
   "ui.111": {
@@ -662,7 +662,7 @@ export const commonMessages = defineMessages({
     de: "Die Commerce-Datensätze von Fil One werden aus dem Betriebsregister synchronisiert.",
     ja: "Fil One の取引記録は業務台帳と同期されます。",
     pt: "Os registros comerciais da Fil One são sincronizados a partir do registro operacional.",
-    zh: "Fil One 商务记录与运营台账同步。",
+    zh: "Fil One 商务记录同步自运营台账。",
     ar: "تُزامَن سجلات Fil One التجارية مع السجل التشغيلي.",
   },
   "nav.account": {
@@ -752,7 +752,7 @@ export const commonMessages = defineMessages({
     de: "Zurück zum Dashboard",
     ja: "ダッシュボードに戻る",
     pt: "Voltar ao painel",
-    zh: "返回仪表板",
+    zh: "返回概览",
     ar: "العودة إلى لوحة معلوماتك",
   },
   "action.download": {
@@ -782,7 +782,7 @@ export const commonMessages = defineMessages({
     de: "Deal registrieren",
     ja: "案件を登録",
     pt: "Registrar oportunidade",
-    zh: "登记商机",
+    zh: "报备商机",
     ar: "تسجيل فرصة تجارية",
   },
   "common.status": {
@@ -842,7 +842,7 @@ export const commonMessages = defineMessages({
     de: "Referenz",
     ja: "参照",
     pt: "Referência",
-    zh: "引用",
+    zh: "编号",
     ar: "المرجع",
   },
   "partner.detail.owner": {
@@ -862,7 +862,7 @@ export const commonMessages = defineMessages({
     de: "Kontoansicht wird geladen",
     ja: "アカウント画面を準備中",
     pt: "Preparando a visualização da conta",
-    zh: "正在构建账户视图",
+    zh: "正在加载账户视图",
     ar: "جارٍ إعداد عرض الحساب",
   },
   "state.notFound.title": {
@@ -1636,7 +1636,7 @@ export const commonMessages = defineMessages({
     de: "E-Mail",
     ja: "メールアドレス",
     pt: "E-mail",
-    zh: "电子邮件",
+    zh: "邮箱",
     ar: "البريد الإلكتروني",
   },
   "common.actions": {
@@ -1698,7 +1698,7 @@ export const commonMessages = defineMessages({
     de: "Fällig am {date}",
     ja: "期限 {date}",
     pt: "Vence em {date}",
-    zh: "{date} 到期",
+    zh: "{date}到期",
     ar: "تستحق في {date}",
   },
   "common.dueToday": {
@@ -1718,7 +1718,7 @@ export const commonMessages = defineMessages({
     de: "Läuft am {date} ab",
     ja: "有効期限 {date}",
     pt: "Expira em {date}",
-    zh: "{date} 过期",
+    zh: "有效期至 {date}",
     ar: "تنتهي في {date}",
   },
   "common.updatedAt": {

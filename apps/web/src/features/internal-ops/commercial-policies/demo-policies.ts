@@ -86,7 +86,7 @@ const fixtureText = {
     de: "Nur fiktive Demo. Ihre Anfrage aktiviert keinen Mandanten beim Anbieter und startet keine Abrechnung. Vor Beginn des Services ist eine verifizierte Übergabe erforderlich.",
     ja: "架空のデモ専用です。この申請によってプロバイダーのテナントが有効化されたり、請求が開始されたりすることはありません。サービス開始前に、検証済みの引き継ぎが必要です。",
     pt: "Apenas demonstração fictícia. Sua solicitação não ativa um locatário do provedor nem inicia o faturamento. É necessário um encaminhamento verificado antes do início do serviço.",
-    zh: "仅为虚构演示。您的申请不会激活服务商租户，也不会开始计费。服务开始前需要经过验证的交接。",
+    zh: "仅为虚构演示。您的申请不会开通服务商租户，也不会开始计费。服务开始前需要经过验证的交接。",
     ar: "عرض توضيحي افتراضي فقط. لا يؤدي طلبك إلى تفعيل مستأجر لدى المزوّد أو بدء الفوترة. يلزم تسليم موثّق قبل بدء الخدمة.",
   }),
   cancellationNotice: demoText({
@@ -116,7 +116,7 @@ const fixtureText = {
     de: "Fiktives Demo-Partnerprogramm; keine genehmigte, produktive kaufmännische Richtlinie.",
     ja: "デモ用の架空のチャネルプログラムです。承認済みの実際の商用ポリシーではありません。",
     pt: "Programa de canal fictício da demonstração; não é uma política comercial real aprovada.",
-    zh: "虚构的演示渠道计划；并非已批准的真实商务策略。",
+    zh: "虚构的演示渠道计划；并非已批准的真实商务政策。",
     ar: "برنامج قناة افتراضي للعرض التوضيحي، وليس سياسة تجارية فعلية معتمدة.",
   }),
 } as const satisfies Record<string, DemoLocalizedText>;

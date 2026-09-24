@@ -38,7 +38,7 @@ export const experienceDataMessages = defineMessages({
     de: "Offen",
     ja: "未完了",
     pt: "Aberta",
-    zh: "未完成",
+    zh: "未结",
     ar: "مفتوح",
   },
   "experience.data.status.quoteSupersededByRevision": {
@@ -208,7 +208,7 @@ export const experienceDataMessages = defineMessages({
     de: "Blockiert · rechtliche Prüfung",
     ja: "ブロック中・法務確認",
     pt: "Bloqueado · revisão jurídica",
-    zh: "已阻塞 · 法务审核",
+    zh: "受阻 · 法务审核",
     ar: "متوقف · مراجعة قانونية",
   },
   "experience.data.status.awaitingApproval": {
@@ -248,7 +248,7 @@ export const experienceDataMessages = defineMessages({
     de: "Entscheidung der Finanzabteilung ausstehend",
     ja: "財務の判断待ち",
     pt: "Aguardando decisão financeira",
-    zh: "等待财务决策",
+    zh: "等待财务决定",
     ar: "بانتظار القرار المالي",
   },
   "experience.data.status.attentionOverdueInvoice": {
@@ -389,7 +389,7 @@ export const experienceDataMessages = defineMessages({
     de: "Kündigungsfrist beginnt am {date}",
     ja: "契約更新の通知期間は{date}に開始",
     pt: "O aviso prévio de renovação começa em {date}",
-    zh: "续约通知期于{date}开始",
+    zh: "续约通知期于 {date}开始",
     ar: "تبدأ فترة إشعار التجديد في {date}",
   },
   "experience.data.next.reviewConversionQuote": {
@@ -399,7 +399,7 @@ export const experienceDataMessages = defineMessages({
     de: "Umwandlungsangebot prüfen",
     ja: "移行用の見積もりを確認",
     pt: "Revisar a cotação de conversão",
-    zh: "审核转商用报价",
+    zh: "查看转商用报价",
     ar: "مراجعة عرض سعر التحويل",
   },
   "experience.data.next.reviewIssuedConversionQuote": {
@@ -409,7 +409,7 @@ export const experienceDataMessages = defineMessages({
     de: "Ausgestelltes Umwandlungsangebot prüfen",
     ja: "発行済みの移行用見積もりを確認",
     pt: "Revisar a cotação de conversão emitida",
-    zh: "审核已出具的转商用报价",
+    zh: "查看已出具的转商用报价",
     ar: "مراجعة عرض سعر التحويل الصادر",
   },
   "experience.data.next.reviewAndPayBy": {
@@ -419,7 +419,7 @@ export const experienceDataMessages = defineMessages({
     de: "Prüfen und bis spätestens {date} bezahlen",
     ja: "{date}までに確認して支払い",
     pt: "Revisar e pagar até {date}",
-    zh: "在{date}前审核并付款",
+    zh: "{date}前审阅并付款",
     ar: "المراجعة والدفع قبل {date}",
   },
   "experience.data.next.verifyRetentionHold": {
@@ -459,7 +459,7 @@ export const experienceDataMessages = defineMessages({
     de: "Nachweise der Ausnahme mit der Richtlinie vergleichen",
     ja: "例外の証跡をポリシーと照合",
     pt: "Comparar a evidência da exceção com a política",
-    zh: "对照策略核对例外证据",
+    zh: "对照政策核对例外证据",
     ar: "مقارنة دليل الاستثناء بالسياسة",
   },
   "experience.data.next.reconcileProviderEvent": {
@@ -479,7 +479,7 @@ export const experienceDataMessages = defineMessages({
     de: "Ausgestelltes Angebot prüfen und annehmen",
     ja: "発行済みの見積もりを確認して承諾",
     pt: "Revisar e aceitar a cotação emitida",
-    zh: "审核并接受已出具的报价",
+    zh: "审阅并接受已出具的报价",
     ar: "مراجعة عرض السعر الصادر وقبوله",
   },
   "experience.data.next.prepareIssueQuoteDocument": {
@@ -539,7 +539,7 @@ export const experienceDataMessages = defineMessages({
     de: "Abweichung von der Preisuntergrenze mit der Genehmigungsrichtlinie vergleichen",
     ja: "下限価格との差異を承認ポリシーと照合",
     pt: "Comparar a divergência em relação ao preço mínimo com a política de aprovação",
-    zh: "对照审批策略核对与底价的差异",
+    zh: "对照审批政策核对与底价的差异",
     ar: "مقارنة الفرق عن الحد الأدنى للسعر بسياسة الموافقة",
   },
   "experience.data.next.enterAssistedModeRetry": {
@@ -619,7 +619,7 @@ export const experienceDataMessages = defineMessages({
     de: "Der Service beginnt am {date}. Ihr angenommener Auftrag steht in der Warteschlange des Bereitstellungsteams.",
     ja: "サービスは{date}に開始します。承諾済みの注文は、プロビジョニングチームの対応待ちです。",
     pt: "O serviço começa em {date}. Seu pedido aceito está na fila da equipe de provisionamento.",
-    zh: "服务将于{date}开始。您已接受的订单正在等待开通团队处理。",
+    zh: "服务将于 {date}开始。您已接受的订单正在等待开通团队处理。",
     ar: "تبدأ الخدمة في {date}. طلبك المقبول في قائمة انتظار فريق التهيئة.",
   },
   "experience.data.next.continueOrderAcceptance": {
@@ -639,7 +639,7 @@ export const experienceDataMessages = defineMessages({
     de: "Überarbeitetes Angebot erstellen, sobald der Käufer bereit ist",
     ja: "購入者の準備ができたら改訂版の見積もりを作成",
     pt: "Criar uma cotação revisada quando o comprador estiver pronto",
-    zh: "买家准备就绪后创建修订版报价",
+    zh: "买方准备好后创建修订版报价",
     ar: "إنشاء عرض سعر معدَّل عندما يكون المشتري مستعدًا",
   },
   "experience.data.next.reviewPreparedDocument": {
@@ -649,7 +649,7 @@ export const experienceDataMessages = defineMessages({
     de: "Vorbereitetes Geschäftsdokument prüfen",
     ja: "準備済みの商用文書を確認",
     pt: "Revisar o documento comercial preparado",
-    zh: "审核已准备的商务文件",
+    zh: "审阅已准备的商务文件",
     ar: "مراجعة المستند التجاري المُعَدّ",
   },
   "experience.data.next.noFurtherReview": {
@@ -719,7 +719,7 @@ export const experienceDataMessages = defineMessages({
     de: "Verlängerungsangebot nach Ausstellung prüfen",
     ja: "発行後に契約更新の見積もりを確認",
     pt: "Revisar a cotação de renovação quando for emitida",
-    zh: "续约报价出具后进行审核",
+    zh: "续约报价出具后查看",
     ar: "مراجعة عرض سعر التجديد عند إصداره",
   },
   "experience.data.next.awaitTwoPersonRetentionReview": {
@@ -880,7 +880,7 @@ export const experienceDataMessages = defineMessages({
     de: "Rechnungszustellung",
     ja: "請求書の送付方法",
     pt: "Envio de faturas",
-    zh: "发票送达方式",
+    zh: "发票投递",
     ar: "طريقة تسليم الفواتير",
   },
   "experience.data.label.purchaseOrder": {
@@ -1020,7 +1020,7 @@ export const experienceDataMessages = defineMessages({
     de: "Ablaufdatum",
     ja: "有効期限",
     pt: "Validade",
-    zh: "到期时间",
+    zh: "到期日",
     ar: "تاريخ الانتهاء",
   },
   "experience.data.label.organization": {
@@ -1171,7 +1171,7 @@ export const experienceDataMessages = defineMessages({
     de: "Direkt",
     ja: "直接取引",
     pt: "Direto",
-    zh: "直销",
+    zh: "直接客户",
     ar: "مباشرة",
   },
   "experience.data.value.relationshipTwoTierEndClient": {
@@ -1254,7 +1254,7 @@ export const experienceDataMessages = defineMessages({
     de: "Risikobetrag: {amount}",
     ja: "リスクのある金額 {amount}",
     pt: "{amount} em risco",
-    zh: "风险金额 {amount}",
+    zh: "风险敞口 {amount}",
     ar: "{amount} معرّضة للخطر",
   },
   "experience.data.value.disputed": {
@@ -1274,7 +1274,7 @@ export const experienceDataMessages = defineMessages({
     de: "Käuferpreis: {amount}",
     ja: "購入者価格 {amount}",
     pt: "Preço para o comprador: {amount}",
-    zh: "买家价格 {amount}",
+    zh: "买方价格 {amount}",
     ar: "سعر المشتري: {amount}",
   },
   "experience.data.value.invoiced": {
@@ -1341,7 +1341,7 @@ export const experienceDataMessages = defineMessages({
     de: "Vom Anbieter bestätigt am {date}",
     ja: "{date}にプロバイダー確認済み",
     pt: "Confirmado pelo provedor em {date}",
-    zh: "服务商已于{date}确认",
+    zh: "服务商已于 {date}确认",
     ar: "أكّده المزوّد في {date}",
   },
   "experience.data.date.started": {
@@ -1361,7 +1361,7 @@ export const experienceDataMessages = defineMessages({
     de: "Gemessen {relative}",
     ja: "{relative}に計測",
     pt: "Medido {relative}",
-    zh: "计量于{relative}",
+    zh: "计量时间：{relative}",
     ar: "آخر قياس {relative}",
   },
   "experience.data.date.completed": {
@@ -1411,7 +1411,7 @@ export const experienceDataMessages = defineMessages({
     de: "Letzte Aktualisierung durch den Anbieter: {relative}",
     ja: "プロバイダーの更新：{relative}",
     pt: "Atualização do provedor {relative}",
-    zh: "服务商更新于{relative}",
+    zh: "服务商更新：{relative}",
     ar: "آخر تحديث من المزوّد {relative}",
   },
   "experience.data.date.responseDue": {
@@ -1461,7 +1461,7 @@ export const experienceDataMessages = defineMessages({
     de: "Demo-Zahlung am {date} bestätigt (UTC)",
     ja: "デモ支払いを{date}（UTC）に確認",
     pt: "Pagamento de demonstração confirmado em {date} (UTC)",
-    zh: "演示付款已于{date}（UTC）确认",
+    zh: "演示付款已于 {date}（UTC）确认",
     ar: "تأكد الدفع التجريبي في {date} (UTC)",
   },
   "experience.data.date.invitedRecently": {
@@ -1492,7 +1492,7 @@ export const experienceDataMessages = defineMessages({
     de: "{range} · Kündigungsfrist beginnt am {date}",
     ja: "{range}・通知期間は{date}に開始",
     pt: "{range} · o prazo de aviso prévio começa em {date}",
-    zh: "{range} · 通知期于{date}开始",
+    zh: "{range} · 通知期于 {date}开始",
     ar: "{range} · تبدأ فترة الإشعار في {date}",
   },
   "experience.data.term.servicePeriod": {
@@ -1701,7 +1701,7 @@ export const experienceDataMessages = defineMessages({
       many: "{count} de linhas com preço · compra direta",
       other: "{count} linhas com preço · compra direta",
     },
-    zh: { other: "{count} 个已定价明细 · 直接购买" },
+    zh: { other: "{count} 条已定价明细 · 直接购买" },
     ar: {
       zero: "لا توجد بنود مسعّرة · شراء مباشر",
       one: "بند مسعّر واحد · شراء مباشر",
@@ -1758,7 +1758,7 @@ export const experienceDataMessages = defineMessages({
     de: "Direktangebot für Kapazität · {reference}",
     ja: "容量の直接見積もり・{reference}",
     pt: "Cotação de capacidade (venda direta) · {reference}",
-    zh: "容量直销报价 · {reference}",
+    zh: "直销容量报价 · {reference}",
     ar: "عرض سعر مباشر للسعة · {reference}",
   },
   "experience.data.title.createdOrder": {
@@ -1778,7 +1778,7 @@ export const experienceDataMessages = defineMessages({
     de: "Weiterleitung an die Kreditorenbuchhaltung",
     ja: "買掛金担当への送付設定",
     pt: "Encaminhamento para contas a pagar",
-    zh: "应付账款投递设置",
+    zh: "应付账款投递",
     ar: "توجيه الفواتير إلى الحسابات الدائنة",
   },
   "experience.data.title.renewalReport": {
@@ -1798,7 +1798,7 @@ export const experienceDataMessages = defineMessages({
     de: "Arbeitsbereich des Käufers",
     ja: "購入者のワークスペース",
     pt: "Espaço do comprador",
-    zh: "买家工作区",
+    zh: "买方工作区",
     ar: "مساحة عمل المشتري",
   },
   // Partner record lines.
@@ -1809,7 +1809,7 @@ export const experienceDataMessages = defineMessages({
     de: "Kundenpreis von {partner} festgelegt · läuft am {date} ab",
     ja: "顧客価格は {partner} が設定・有効期限 {date}",
     pt: "Preço para o cliente definido por {partner} · expira em {date}",
-    zh: "客户价格由 {partner} 设定 · {date}过期",
+    zh: "客户价格由 {partner} 设定 · 有效期至 {date}",
     ar: "سعر العميل تحدده {partner} · ينتهي في {date}",
   },
   "experience.data.partner.awaitingFinanceApproval": {
@@ -1819,7 +1819,7 @@ export const experienceDataMessages = defineMessages({
     de: "Genehmigung durch die Finanzabteilung ausstehend · läuft am {date} ab",
     ja: "財務承認待ち・有効期限 {date}",
     pt: "Aguardando aprovação financeira · expira em {date}",
-    zh: "等待财务审批 · {date}过期",
+    zh: "等待财务审批 · 有效期至 {date}",
     ar: "بانتظار الموافقة المالية · ينتهي في {date}",
   },
   "experience.data.partner.filOneReviewing": {
@@ -1869,7 +1869,7 @@ export const experienceDataMessages = defineMessages({
     de: "Zweistufig · {capacity} · aktuelle Laufzeit endet am {date}",
     ja: "2 階層販売・{capacity}・現在の契約期間は{date}に終了",
     pt: "Dois níveis · {capacity} · o prazo atual termina em {date}",
-    zh: "两级分销 · {capacity} · 当前期限于{date}结束",
+    zh: "两级分销 · {capacity} · 当前期限于 {date}结束",
     ar: "على مستويين · {capacity} · تنتهي المدة الحالية في {date}",
   },
   // Generated document names in the delivery list. The PDFs are not translated (rule 5); their names in the interface are.
@@ -2010,7 +2010,7 @@ export const experienceDataMessages = defineMessages({
     de: "Einkaufsangebot {reference}",
     ja: "仕切価格の見積書 {reference}",
     pt: "Cotação de repasse {reference}",
-    zh: "供货价报价单 {reference}",
+    zh: "供货报价单 {reference}",
     ar: "عرض سعر التوريد {reference}",
   },
   "experience.data.artifact.customerQuotation": {
@@ -2141,7 +2141,7 @@ export const experienceDataMessages = defineMessages({
     de: "Kündigungsfrist beginnt am {date}",
     ja: "通知期間は{date}に開始",
     pt: "O prazo de aviso prévio começa em {date}",
-    zh: "通知期将于{date}开始",
+    zh: "通知期将于 {date}开始",
     ar: "تبدأ فترة الإشعار في {date}",
   },
   "experience.data.dashboard.noticeWindowOpened": {
@@ -2151,7 +2151,7 @@ export const experienceDataMessages = defineMessages({
     de: "Kündigungsfrist läuft seit {date}",
     ja: "通知期間は{date}に開始済み",
     pt: "O prazo de aviso prévio começou em {date}",
-    zh: "通知期已于{date}开始",
+    zh: "通知期已于 {date}开始",
     ar: "بدأت فترة الإشعار في {date}",
   },
   "experience.data.dashboard.reviewServicePlan": {
@@ -2161,7 +2161,7 @@ export const experienceDataMessages = defineMessages({
     de: "Prüfen Sie den Serviceplan vor dem Kündigungstermin des Kontos.",
     ja: "アカウントの通知日までにサービスプランを確認してください。",
     pt: "Revise o plano de serviço antes da data de aviso prévio da conta.",
-    zh: "请在账户通知日期前审核服务计划。",
+    zh: "请在账户通知日期前核对服务计划。",
     ar: "راجع خطة الخدمة قبل تاريخ الإشعار الخاص بالحساب.",
   },
   "experience.data.dashboard.noticeOpensToday": {
@@ -2181,7 +2181,7 @@ export const experienceDataMessages = defineMessages({
     de: "Läuft seit {date}",
     ja: "{date}から開始",
     pt: "Aberto desde {date}",
-    zh: "自{date}起开始",
+    zh: "自 {date}起开始",
     ar: "بدأت في {date}",
   },
   "experience.data.dashboard.noticeNone": {
@@ -2231,7 +2231,7 @@ export const experienceDataMessages = defineMessages({
     de: "{percent} der aktuellen Vertragslaufzeit sind verstrichen",
     ja: "現在の契約期間の{percent}が経過",
     pt: "{percent} do prazo comercial atual já transcorreu",
-    zh: "当前商业期限已过 {percent}",
+    zh: "当前商务期限已进行 {percent}",
     ar: "انقضى {percent} من المدة التجارية الحالية",
   },
   "experience.data.dashboard.termAnnual": {
@@ -2281,7 +2281,7 @@ export const experienceDataMessages = defineMessages({
     de: "{title}, Version {version}",
     ja: "{title}（バージョン {version}）",
     pt: "{title}, versão {version}",
-    zh: "{title}（版本 {version}）",
+    zh: sameAsEnglish("{title} v{version}"),
     ar: "{title}، الإصدار {version}",
   },
   "experience.data.dashboard.activityRecord": {
@@ -2341,7 +2341,7 @@ export const experienceDataMessages = defineMessages({
     de: "Nutzungsdaten {relative} aktualisiert",
     ja: "使用状況データを{relative}に更新",
     pt: "Dados de uso atualizados {relative}",
-    zh: "用量数据更新于{relative}",
+    zh: "用量数据更新：{relative}",
     ar: "حُدِّثت بيانات الاستخدام {relative}",
   },
   "experience.data.dashboard.activityMarketplaceSynced": {
@@ -2464,7 +2464,7 @@ export const experienceDataMessages = defineMessages({
     de: "In Kraft · Prüfung der Kündigungsfrist bis {date}",
     ja: "有効・通知期間の確認期限 {date}",
     pt: "Vigente · revisão do aviso prévio até {date}",
-    zh: "生效中 · 须于{date}前审核通知期",
+    zh: "生效中 · {date}前核对通知期",
     ar: "سارية · مراجعة الإشعار مستحقة في {date}",
   },
   "experience.data.dashboard.partnerInForceNoticeOpens": {
@@ -2474,7 +2474,7 @@ export const experienceDataMessages = defineMessages({
     de: "In Kraft · Kündigungsfrist ab {date}",
     ja: "有効・通知期間は{date}から",
     pt: "Vigente · aviso prévio a partir de {date}",
-    zh: "生效中 · 通知期自{date}开始",
+    zh: "生效中 · 通知期自 {date}开始",
     ar: "سارية · تبدأ فترة الإشعار في {date}",
   },
   "experience.data.dashboard.partnerReviewAuthorityBy": {
@@ -2484,7 +2484,7 @@ export const experienceDataMessages = defineMessages({
     de: "Befugnisse und Kündigungssituation bis {date} prüfen",
     ja: "{date}までに権限と通知期間の状況を確認",
     pt: "Revisar as alçadas e a situação do aviso prévio até {date}",
-    zh: "在{date}前审核授权及通知期情况",
+    zh: "{date}前核对授权及通知期情况",
     ar: "مراجعة الصلاحيات ووضع الإشعار قبل {date}",
   },
   "experience.data.dashboard.partnerNoDecision": {
@@ -2494,7 +2494,7 @@ export const experienceDataMessages = defineMessages({
     de: "Es steht keine Partnerentscheidung aus.",
     ja: "保留中のパートナーの判断はありません。",
     pt: "Nenhuma decisão do parceiro está pendente.",
-    zh: "暂无待定的合作伙伴决策。",
+    zh: "暂无待定的合作伙伴决定。",
     ar: "لا توجد قرارات معلّقة للشريك.",
   },
   "experience.data.dashboard.partnerNoTerm": {
@@ -2524,7 +2524,7 @@ export const experienceDataMessages = defineMessages({
     de: "Laufzeit endete am {date}",
     ja: "契約期間は{date}に終了",
     pt: "Prazo encerrado em {date}",
-    zh: "期限已于{date}结束",
+    zh: "期限已于 {date}结束",
     ar: "انتهت المدة في {date}",
   },
   "experience.data.dashboard.partnerNoticeOpen": {
@@ -2614,7 +2614,7 @@ export const experienceDataMessages = defineMessages({
     de: "Vertriebsweg und Konditionen der Verlängerung",
     ja: "契約更新の販売形態と採算",
     pt: "Modalidade de venda e condições financeiras da renovação",
-    zh: "续约的销售模式与经济性",
+    zh: "续约销售模式与价格条件",
     ar: "مسار البيع والجدوى الاقتصادية للتجديد",
   },
   "experience.data.dashboard.workTransferFloorResaleTerm": {
@@ -2624,7 +2624,7 @@ export const experienceDataMessages = defineMessages({
     de: "Untergrenze des Einkaufspreises und Laufzeit des Wiederverkaufs",
     ja: "仕切価格の下限と再販期間",
     pt: "Preço mínimo de repasse e prazo da revenda",
-    zh: "供货价底线与转售期限",
+    zh: "供货底价与转售期限",
     ar: "الحد الأدنى لسعر التوريد ومدة إعادة البيع",
   },
   "experience.data.dashboard.workProtectDealRegistration": {
@@ -2644,7 +2644,7 @@ export const experienceDataMessages = defineMessages({
     de: "Kaufmännische Qualifizierung fehlt",
     ja: "商談の評価情報が不足",
     pt: "Falta a qualificação comercial",
-    zh: "缺少商业资格评估",
+    zh: "缺少商务资格审核",
     ar: "التأهيل التجاري غير متوفر",
   },
   "experience.data.dashboard.workToday": {

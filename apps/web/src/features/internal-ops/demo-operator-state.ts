@@ -191,7 +191,7 @@ const incidents: readonly DemoIncident[] = [
         de: "Der Aktivierungsanbieter hat nicht vor Ablauf der Frist geantwortet.",
         ja: "アクティベーションのプロバイダーが期限までに応答しませんでした。",
         pt: "O provedor de ativação não respondeu antes do prazo.",
-        zh: "激活服务商未在截止时间前响应。",
+        zh: "开通服务商未在截止时间前响应。",
         ar: "لم يستجب مزوّد التفعيل قبل انقضاء المهلة.",
       }),
       provenance: "operationAttempt",

@@ -70,7 +70,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Vereinbarung prüfen",
     ja: "契約を確認",
     pt: "Revisar acordo",
-    zh: "审核协议",
+    zh: "审阅协议",
     ar: "مراجعة الاتفاقية",
   },
   "customer.commercial.collection.quotes.eyebrow": {
@@ -100,7 +100,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Vergleichen Sie Entwürfe sowie offene, angenommene und stornierte Angebote, bevor Sie den nächsten zulässigen Schritt ausführen.",
     ja: "下書き・未完了・承諾済み・キャンセル済みの見積もりを比較し、次に実行できる操作を確認します。",
     pt: "Compare cotações em rascunho, abertas, aceitas e canceladas antes de realizar a próxima ação válida.",
-    zh: "比较草稿、未完成、已接受和已取消的报价，然后执行下一步有效操作。",
+    zh: "比较草稿、未结、已接受和已取消的报价，然后执行下一步有效操作。",
     ar: "قارن عروض الأسعار المسودة والمفتوحة والمقبولة والملغاة قبل اتخاذ الإجراء التالي المتاح.",
   },
   "customer.commercial.collection.quotes.rule": {
@@ -270,7 +270,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Prüfen Sie Testumfang, Schutzmaßnahmen, Ablauf, Ergebnisse und die Bereitschaft zur Umwandlung.",
     ja: "テスト範囲、保護措置、有効期限、結果、有償契約への移行準備を確認します。",
     pt: "Revise o escopo dos testes, as salvaguardas, a validade, os resultados e a prontidão para conversão.",
-    zh: "查看测试范围、保障措施、到期时间、结果以及转化准备情况。",
+    zh: "查看测试范围、保障措施、到期时间、结果以及转商用准备情况。",
     ar: "راجع نطاق الاختبار والضمانات وانتهاء الصلاحية والنتائج والجاهزية للتحويل.",
   },
   "customer.commercial.collection.pocs.rule": {
@@ -280,7 +280,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Ein Proof of Concept ist ein begrenztes, befristetes Nutzungsrecht; die Umwandlung erzeugt ein kostenpflichtiges Angebot.",
     ja: "PoC は上限と有効期限のある利用権です。移行すると有償の見積もりが作成されます。",
     pt: "Uma prova de conceito é um direito de uso limitado e com prazo de validade; a conversão cria uma cotação paga.",
-    zh: "概念验证是有上限、有期限的权益；转化后会生成付费报价。",
+    zh: "概念验证是有上限、有期限的权益；转商用后会生成付费报价。",
     ar: "إثبات المفهوم استحقاق محدود السقف ومؤقت، ويُنشئ التحويل عرض سعر مدفوعًا.",
   },
   "customer.commercial.collection.pocs.search": {
@@ -310,7 +310,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Abrechnung und Zahlungen",
     ja: "請求と支払い",
     pt: "Faturamento e pagamentos",
-    zh: "计费与付款",
+    zh: "账单与付款",
     ar: "الفوترة والمدفوعات",
   },
   "customer.commercial.collection.billing.description": {
@@ -556,7 +556,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Offen",
     ja: "未完了",
     pt: "Aberta",
-    zh: "未完成",
+    zh: "未结",
     ar: "مفتوح",
   },
   "customer.commercial.status.quote.canceled": {
@@ -696,7 +696,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Bereit zur Umwandlung",
     ja: "移行可能",
     pt: "Pronta para conversão",
-    zh: "可转化",
+    zh: "可转商用",
     ar: "جاهز للتحويل",
   },
   "customer.commercial.valueLabel.termEnd": {
@@ -706,7 +706,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Laufzeitende",
     ja: "契約期間の終了日",
     pt: "Fim do prazo",
-    zh: "期限结束",
+    zh: "期限结束日期",
     ar: "نهاية المدة",
   },
   "customer.commercial.valueLabel.responseDue": {
@@ -766,7 +766,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Kapazitätsauslastung",
     ja: "容量の使用状況",
     pt: "Uso da capacidade",
-    zh: "容量使用情况",
+    zh: "容量使用率",
     ar: "استخدام السعة",
   },
   "customer.commercial.valueLabel.provisioning": {
@@ -826,7 +826,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Läuft am {date} ab",
     ja: "有効期限 {date}",
     pt: "Expira em {date}",
-    zh: "{date} 到期",
+    zh: "{date}到期",
     ar: "ينتهي في {date}",
   },
   "customer.commercial.timing.accepted": {
@@ -866,7 +866,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Beginnt am {date}",
     ja: "開始予定日 {date}",
     pt: "Começa em {date}",
-    zh: "{date} 开始",
+    zh: "{date}开始",
     ar: "يبدأ في {date}",
   },
   "customer.commercial.timing.metered": {
@@ -896,7 +896,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Fällig am {date}",
     ja: "支払期限 {date}",
     pt: "Vence em {date}",
-    zh: "{date} 到期",
+    zh: "{date}到期",
     ar: "تستحق في {date}",
   },
   "customer.commercial.timing.providerConfirmed": {
@@ -906,7 +906,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Vom Anbieter bestätigt am {date}",
     ja: "プロバイダー確認済み（{date}）",
     pt: "Confirmado pelo provedor em {date}",
-    zh: "服务商已于 {date} 确认",
+    zh: "服务商已于 {date}确认",
     ar: "أكّده المزوّد في {date}",
   },
   "customer.commercial.term.periodNotice": {
@@ -916,7 +916,7 @@ export const customerCommercialMessages = defineMessages({
     de: "{period} · Kündigungsfrist ab {date}",
     ja: "{period}・通知期間は {date} から",
     pt: "{period} · aviso prévio a partir de {date}",
-    zh: "{period} · 通知期自 {date} 起",
+    zh: "{period} · 通知期自 {date}起",
     ar: "{period} · تبدأ فترة الإشعار في {date}",
   },
   "customer.commercial.term.periodAutoRenews": {
@@ -975,7 +975,7 @@ export const customerCommercialMessages = defineMessages({
       many: "{count} de meses · expira em {date}",
       other: "{count} meses · expira em {date}",
     },
-    zh: { other: "{count} 个月 · {date} 到期" },
+    zh: { other: "{count} 个月 · {date}到期" },
     ar: {
       zero: "{count} شهر · ينتهي في {date}",
       one: "شهر واحد · ينتهي في {date}",
@@ -1074,7 +1074,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Endet am {date}",
     ja: "終了日 {date}",
     pt: "Termina em {date}",
-    zh: "{date} 结束",
+    zh: "{date}结束",
     ar: "تنتهي في {date}",
   },
   "customer.commercial.term.startsOn": {
@@ -1084,7 +1084,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Beginnt am {date}",
     ja: "開始予定日 {date}",
     pt: "Começa em {date}",
-    zh: "{date} 开始",
+    zh: "{date}开始",
     ar: "تبدأ في {date}",
   },
   "customer.commercial.term.pocExpires": {
@@ -1094,7 +1094,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Läuft am {date} ab · isolierte Umgebung",
     ja: "有効期限 {date}・分離環境",
     pt: "Expira em {date} · ambiente isolado",
-    zh: "{date} 到期 · 隔离环境",
+    zh: "{date}到期 · 隔离环境",
     ar: "ينتهي في {date} · بيئة معزولة",
   },
   "customer.commercial.term.evaluationComplete": {
@@ -1144,7 +1144,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Verhandelte Bedingungen prüfen",
     ja: "交渉済みの条件を確認",
     pt: "Revisar os termos negociados",
-    zh: "审核协商后的条款",
+    zh: "审阅协商后的条款",
     ar: "مراجعة الشروط المتفاوض عليها",
   },
   "customer.commercial.next.acceptOrCancelBeforeExpiry": {
@@ -1174,7 +1174,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Resultierenden Auftrag prüfen und annehmen",
     ja: "作成される注文を確認して承諾",
     pt: "Revisar e aceitar o pedido resultante",
-    zh: "审核并接受由此产生的订单",
+    zh: "审阅并接受由此产生的订单",
     ar: "مراجعة الطلب الناتج وقبوله",
   },
   "customer.commercial.next.noActionsAvailable": {
@@ -1194,7 +1194,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Kündigungsfrist für die Verlängerung beginnt am {date}",
     ja: "契約更新の通知期間は {date} に開始",
     pt: "O aviso prévio da renovação começa em {date}",
-    zh: "续约通知期自 {date} 开始",
+    zh: "续约通知期自 {date}开始",
     ar: "تبدأ فترة إشعار التجديد في {date}",
   },
   "customer.commercial.next.completeProvisioningChecklist": {
@@ -1234,7 +1234,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Umstellung auf kostenpflichtige Nutzung prüfen",
     ja: "有償への移行を確認",
     pt: "Revisar a conversão para serviço pago",
-    zh: "审核付费转化",
+    zh: "查看转商用",
     ar: "مراجعة التحويل إلى الخدمة المدفوعة",
   },
   "customer.commercial.next.reviewAndPayBy": {
@@ -1244,7 +1244,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Prüfen und bis spätestens {date} bezahlen",
     ja: "{date} までに確認して支払い",
     pt: "Revisar e pagar até {date}",
-    zh: "请在 {date} 前审核并付款",
+    zh: "请在 {date}前审阅并付款",
     ar: "المراجعة والدفع في موعد أقصاه {date}",
   },
   "customer.commercial.next.continueOrderAcceptance": {
@@ -1284,7 +1284,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Ausgestelltes Umwandlungsangebot prüfen",
     ja: "発行された移行用の見積もりを確認",
     pt: "Revisar a cotação de conversão emitida",
-    zh: "审核已出具的转化报价",
+    zh: "查看已出具的转商用报价",
     ar: "مراجعة عرض سعر التحويل الصادر",
   },
   "customer.commercial.next.reviewRenewalQuote": {
@@ -1294,7 +1294,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Verlängerungsangebot nach der Ausstellung prüfen",
     ja: "契約更新の見積もりが発行されたら確認",
     pt: "Revisar a cotação de renovação quando for emitida",
-    zh: "续约报价出具后进行审核",
+    zh: "续约报价出具后查看",
     ar: "مراجعة عرض سعر التجديد عند إصداره",
   },
   "customer.commercial.next.awaitRetentionReview": {
@@ -1487,7 +1487,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Auftrag prüfen und annehmen",
     ja: "注文を確認して承諾",
     pt: "Revisar e aceitar o pedido",
-    zh: "审核并接受订单",
+    zh: "审阅并接受订单",
     ar: "مراجعة الطلب وقبوله",
   },
   "customer.commercial.detail.step.newQuote": {
@@ -1739,7 +1739,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Die Annahme ist erfasst. Festgelegtes Auftragsformular: {form}.",
     ja: "承諾が記録されています。固定された注文書：{form}。",
     pt: "A aceitação está registrada. Formulário de pedido fixado: {form}.",
-    zh: "接受已记录。已锁定的订购单：{form}。",
+    zh: "接受已记录。已锁定的文件：{form}。",
     ar: "تم تسجيل القبول. نموذج الطلب المثبّت: {form}.",
   },
   "customer.commercial.timeline.acceptedNoForm": {
@@ -1923,7 +1923,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Bestätigen Sie die geprüfte Verpflichtung, bevor Sie annehmen.",
     ja: "承諾する前に、確認したコミットメントの内容を確定してください。",
     pt: "Confirme o compromisso revisado antes de aceitar.",
-    zh: "接受前，请确认已审核的承诺。",
+    zh: "接受前，请确认已核对的承诺。",
     ar: "أكّد الالتزام الذي راجعته قبل القبول.",
   },
   "customer.commercial.accept.created": {
@@ -1933,7 +1933,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Auftrag erstellt. Verpflichtung und Bereitstellungsstatus sind jetzt maßgeblich erfasst.",
     ja: "注文を作成しました。コミットメントとプロビジョニングの状態が正式な記録になりました。",
     pt: "Pedido criado. O compromisso e o estado de provisionamento agora constam no registro oficial.",
-    zh: "订单已创建。其承诺和开通状态现已成为正式记录。",
+    zh: "订单已创建。其承诺和开通状态现在以此为准。",
     ar: "تم إنشاء الطلب. أصبح التزامه وحالة تهيئته مسجّلين رسميًا.",
   },
   "customer.commercial.accept.createdTitle": {
@@ -2013,7 +2013,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Resultierende Verpflichtung prüfen",
     ja: "発生するコミットメントの確認",
     pt: "Revisar o compromisso resultante",
-    zh: "审核由此产生的承诺",
+    zh: "核对由此产生的承诺",
     ar: "مراجعة الالتزام الناتج",
   },
   "customer.commercial.accept.description": {
@@ -2183,7 +2183,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Vor der Annahme prüfen",
     ja: "承諾前の確認",
     pt: "Revisar antes de aceitar",
-    zh: "接受前审核",
+    zh: "接受前核对",
     ar: "المراجعة قبل القبول",
   },
   "customer.commercial.accept.retention": {
@@ -2240,7 +2240,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Ich habe das ausgestellte Angebot, die maßgebliche Vereinbarung, die Bestellnummer, Servicebeginn und Serviceende sowie die resultierende Verpflichtung geprüft.",
     ja: "発行済みの見積もり、適用契約、発注書、サービスの開始日と終了日、発生するコミットメントを確認しました。",
     pt: "Revisei a cotação emitida, o acordo aplicável, a ordem de compra, o início e o término do serviço e o compromisso resultante.",
-    zh: "我已审核已出具的报价、适用协议、采购订单、服务开始和结束日期，以及由此产生的承诺。",
+    zh: "我已审阅已出具的报价、适用协议、采购订单、服务开始和结束日期，以及由此产生的承诺。",
     ar: "راجعتُ عرض السعر الصادر والاتفاقية الحاكمة وأمر الشراء وتاريخَي بدء الخدمة وانتهائها والالتزام الناتج.",
   },
   "customer.commercial.accept.formReady": {
@@ -2624,7 +2624,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Umwandlung des Proof of Concept {reference}",
     ja: "PoC {reference} からの移行",
     pt: "Conversão da prova de conceito {reference}",
-    zh: "转化概念验证 {reference}",
+    zh: "由概念验证 {reference} 转商用",
     ar: "تحويل إثبات المفهوم {reference}",
   },
   "customer.commercial.builder.origin.unavailable": {
@@ -2714,7 +2714,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Wählen Sie einen Tarif, legen Sie Kapazität und Laufzeit fest und prüfen Sie anschließend Ihren Angebotsentwurf.",
     ja: "オファーを選択し、容量と契約期間を設定してから、見積もりの下書きを確認します。",
     pt: "Escolha uma oferta, defina a capacidade e o prazo e depois revise o rascunho da cotação.",
-    zh: "选择方案，设置容量和期限，然后审核报价草稿。",
+    zh: "选择方案，设置容量和期限，然后核对报价草稿。",
     ar: "اختر باقة وحدّد السعة والمدة، ثم راجع مسودة عرض السعر.",
   },
   "customer.commercial.builder.cancelAndReturn": {
@@ -2744,7 +2744,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Voraussetzung",
     ja: "前提条件",
     pt: "Pré-requisito",
-    zh: "前置条件",
+    zh: "上游前提",
     ar: "المتطلب السابق",
   },
   "customer.commercial.builder.chain.upstreamValue": {
@@ -2854,7 +2854,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Entwurf prüfen",
     ja: "下書きの確認",
     pt: "Revisar rascunho",
-    zh: "审核草稿",
+    zh: "核对草稿",
     ar: "مراجعة المسودة",
   },
   "customer.commercial.builder.legend.offer": {
@@ -3034,7 +3034,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Beim Erstellen dieses Entwurfs wird Ihr Preis berechnet. Öffnen Sie danach den gespeicherten Entwurf, um sein Dokument vorzubereiten und das Angebot auszustellen. Das ausgestellte Angebot können Sie vor der Annahme eines Auftrags prüfen.",
     ja: "この下書きを作成すると価格が計算されます。次に、保存した下書きを開いて見積書を準備し、見積もりを発行します。注文を承諾する前に、発行された見積もりを確認できます。",
     pt: "Criar este rascunho calcula o seu preço. Depois, abra o rascunho salvo para preparar o documento e emitir a cotação. Você poderá revisar a cotação emitida antes de aceitar um pedido.",
-    zh: "创建此草稿时会计算价格。随后打开已保存的草稿，准备报价单并出具报价。接受订单前，您可以审核已出具的报价。",
+    zh: "创建此草稿时会计算价格。随后打开已保存的草稿，准备报价单并出具报价。接受订单前，您可以查看已出具的报价。",
     ar: "يؤدي إنشاء هذه المسودة إلى حساب السعر. بعد ذلك، افتح المسودة المحفوظة لتجهيز مستندها وإصدار عرض السعر. يمكنك مراجعة عرض السعر الصادر قبل قبول أي طلب.",
   },
   "customer.commercial.builder.review.capacityTerm": {
@@ -3154,7 +3154,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Geben Sie Datum und Uhrzeit ein, zu denen dieses Angebot abläuft.",
     ja: "この見積もりの有効期限となる日時を入力してください。",
     pt: "Informe a data e a hora de validade desta cotação.",
-    zh: "请输入此报价的到期日期和时间。",
+    zh: "请输入此报价有效期的截止日期和时间。",
     ar: "أدخل تاريخ انتهاء صلاحية عرض السعر هذا ووقته.",
   },
   "customer.commercial.quoteError.expiryFuture": {
@@ -3164,7 +3164,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Wählen Sie einen Ablaufzeitpunkt in der Zukunft.",
     ja: "現在より後の有効期限を選択してください。",
     pt: "Escolha uma validade posterior ao horário atual.",
-    zh: "请选择晚于当前时间的到期时间。",
+    zh: "请选择晚于当前时间的有效期。",
     ar: "اختر موعد انتهاء بعد الوقت الحالي.",
   },
 
@@ -3864,7 +3864,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Wenn eine Preisregel eine Prüfung verlangt, bleibt der Entwurf gespeichert, und es wird weder ein ausgestelltes Angebot noch eine Übergabe zur Annahme angezeigt.",
     ja: "価格の保護ルールで審査が必要な場合、下書きは保存されたままとなり、見積もりの発行や承諾への引き継ぎは行われません。",
     pt: "Se uma regra de proteção de preço exigir revisão, o rascunho continua salvo e nenhuma cotação é dada como emitida nem encaminhada para aceitação.",
-    zh: "如果价格护栏要求审核，草稿将保持已保存状态，不会显示已出具报价，也不会转入接受流程。",
+    zh: "如果定价管控规则要求审核，草稿将保持已保存状态，不会显示已出具报价，也不会转入接受流程。",
     ar: "إذا تطلّبت إحدى ضوابط التسعير مراجعة، تظل المسودة محفوظة، ولا يُعلَن عن إصدار عرض سعر أو إحالته إلى القبول.",
   },
   "customer.commercial.buy.policyUnavailable": {
@@ -3874,7 +3874,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Die Kaufrichtlinie ist nicht verfügbar. Versuchen Sie es erneut, bevor Sie ein Angebot beginnen.",
     ja: "購入ポリシーを利用できません。見積もりを始める前に、もう一度お試しください。",
     pt: "A política de aquisição não está disponível. Tente novamente antes de iniciar uma cotação.",
-    zh: "采购策略不可用。请重试后再开始报价。",
+    zh: "采购政策不可用。请重试后再开始报价。",
     ar: "سياسة الاقتناء غير متاحة. أعد المحاولة قبل بدء عرض سعر.",
   },
 
@@ -3918,7 +3918,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Zahlung prüfen",
     ja: "支払いの確認",
     pt: "Revisar o pagamento",
-    zh: "审核付款",
+    zh: "核对付款信息",
     ar: "مراجعة الدفع",
   },
   "customer.commercial.payment.status": {
@@ -4138,7 +4138,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Wird vom Webhook des Zahlungsanbieters gemeldet. Die Rückkehr vom Anbieter markiert die Rechnung nicht als bezahlt.",
     ja: "決済プロバイダーの Webhook によって通知されます。プロバイダーの画面から戻っただけでは、請求書は支払い済みになりません。",
     pt: "Informado pelo webhook do provedor de pagamentos. Voltar do provedor não marca a fatura como paga.",
-    zh: "由支付服务商的 Webhook 通知。从服务商页面返回不会将发票标记为已付款。",
+    zh: "由支付服务商的 Webhook 上报。从服务商页面返回不会将发票标记为已付款。",
     ar: "يُبلَّغ عنه عبر Webhook مزوّد الدفع. لا تؤدي العودة من صفحة المزوّد إلى تعليم الفاتورة على أنها مدفوعة.",
   },
   "customer.commercial.payment.error.csrf": {
@@ -4232,7 +4232,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Service-Offboarding prüfen",
     ja: "サービスの利用終了の確認",
     pt: "Revisar o encerramento do serviço",
-    zh: "审核服务终止",
+    zh: "申请服务终止",
     ar: "مراجعة إنهاء الخدمة",
   },
   "customer.commercial.offboarding.description": {
@@ -4272,7 +4272,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Das Offboarding beginnt bei einem aktiven Auftrag dieses Kontos. Aktive Verpflichtungen finden Sie unter „Aufträge und Services“.",
     ja: "利用終了は、このアカウントの有効な注文から申請します。有効なコミットメントは注文とサービスに表示されます。",
     pt: "O encerramento parte de um pedido ativo desta conta. Compromissos ativos aparecem em pedidos e serviços.",
-    zh: "服务终止须从此账户中的有效订单发起。有效的承诺显示在订单和服务中。",
+    zh: "服务终止须从此账户中运行中的订单开始。运行中的承诺显示在订单与服务中。",
     ar: "يبدأ إنهاء الخدمة من طلب نشط في هذا الحساب. تظهر الالتزامات النشطة في الطلبات والخدمات.",
   },
   "customer.commercial.offboarding.empty.action": {
@@ -4392,7 +4392,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Prüfen und bestätigen",
     ja: "確認して確定",
     pt: "Revisar e confirmar",
-    zh: "审核并确认",
+    zh: "核对并确认",
     ar: "المراجعة والتأكيد",
   },
   "customer.commercial.offboarding.summaryEyebrow": {
@@ -4412,7 +4412,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Auswirkungen prüfen",
     ja: "影響の確認",
     pt: "Revisar o impacto",
-    zh: "审核影响",
+    zh: "查看影响",
     ar: "مراجعة الأثر",
   },
   "customer.commercial.offboarding.approval": {
@@ -4442,7 +4442,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Ich habe Laufzeit, Zeitraum für den Datenabruf, Aufbewahrungsschutz und Genehmigungspflicht geprüft.",
     ja: "契約期間、データ取り出し期間、保持に関する保護措置、承認要件を確認しました。",
     pt: "Revisei o prazo do serviço, o período de recuperação dos dados, as salvaguardas de retenção e a exigência de aprovação.",
-    zh: "我已审核期限、数据取回期、保留保障措施和审批要求。",
+    zh: "我已核对期限、数据取回期、保留保障措施和审批要求。",
     ar: "راجعتُ المدة وفترة استرجاع البيانات وضمانات الاحتفاظ ومتطلب الموافقة.",
   },
   "customer.commercial.offboarding.validation.effectiveAt": {
@@ -4462,7 +4462,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Bestätigen Sie vor dem Senden die geprüften Schutzmaßnahmen für Aufbewahrung und Genehmigung.",
     ja: "送信する前に、確認した保持と承認の保護措置に同意してください。",
     pt: "Confirme as salvaguardas de retenção e aprovação revisadas antes de enviar.",
-    zh: "提交前，请确认已审核的保留和审批保障措施。",
+    zh: "提交前，请确认已核对的保留和审批保障措施。",
     ar: "أكّد ضمانات الاحتفاظ والموافقة التي راجعتها قبل الإرسال.",
   },
   "customer.commercial.offboarding.requested": {
@@ -4536,7 +4536,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Rechtliche Prüfung",
     ja: "法務確認",
     pt: "Revisão jurídica",
-    zh: "法务审核",
+    zh: "法律条款审阅",
     ar: "المراجعة القانونية",
   },
   "customer.commercial.agreement.title": {
@@ -4546,7 +4546,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Vereinbarung prüfen und annehmen",
     ja: "契約の確認と同意",
     pt: "Revisar e aceitar o acordo",
-    zh: "审核并接受协议",
+    zh: "审阅并接受协议",
     ar: "مراجعة الاتفاقية وقبولها",
   },
   "customer.commercial.agreement.binding": {
@@ -4556,7 +4556,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Bestätigen Sie Titel, Version und genau genehmigte Bedingungen der Vereinbarung sowie Ihre Befugnis, bevor Sie {account} verpflichten.",
     ja: "{account} を拘束する前に、契約名、バージョン、承認済みの条項の全文、およびご自身の権限を確認してください。",
     pt: "Confirme o título do acordo, a versão, os termos exatos aprovados e a sua autoridade antes de vincular {account}.",
-    zh: "在让 {account} 受约束之前，请确认协议名称、版本、经批准的确切条款以及您的授权。",
+    zh: "在使 {account} 受本协议约束前，请确认协议名称、版本、已批准的准确条款及您的授权。",
     ar: "أكّد عنوان الاتفاقية وإصدارها وشروطها المعتمدة بنصها الدقيق وصلاحيتك قبل إلزام {account}.",
   },
   "customer.commercial.agreement.return": {
@@ -4576,7 +4576,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Abschluss der Vereinbarung {reference}",
     ja: "契約 {reference} の締結",
     pt: "Formalização do acordo {reference}",
-    zh: "签订协议 {reference}",
+    zh: "依据协议 {reference} 签订",
     ar: "إبرام الاتفاقية {reference}",
   },
   "customer.commercial.agreement.loadingTitle": {
@@ -4606,7 +4606,7 @@ export const customerCommercialMessages = defineMessages({
     de: "{jurisdiction} · gültig ab {date} · {mode}",
     ja: "{jurisdiction}・{date} 発効・{mode}",
     pt: "{jurisdiction} · em vigor desde {date} · {mode}",
-    zh: "{jurisdiction} · {date} 生效 · {mode}",
+    zh: "{jurisdiction} · {date}生效 · {mode}",
     ar: "{jurisdiction} · سارية اعتبارًا من {date} · {mode}",
   },
   "customer.commercial.agreement.mode.clickThrough": {
@@ -4626,7 +4626,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Gegenzeichnung erforderlich",
     ja: "相手方の署名が必要",
     pt: "exige contra-assinatura",
-    zh: "需要对方会签",
+    zh: "需要双方签署",
     ar: "يتطلب توقيعًا مقابلًا",
   },
   "customer.commercial.agreement.textLabel": {
@@ -4696,7 +4696,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Prüfen und bestätigen",
     ja: "確認と確定",
     pt: "Revisar e confirmar",
-    zh: "审核并确认",
+    zh: "核对并确认",
     ar: "المراجعة والتأكيد",
   },
   "customer.commercial.agreement.authority": {
@@ -4756,7 +4756,7 @@ export const customerCommercialMessages = defineMessages({
     de: "Datensatz der abgeschlossenen Vereinbarung öffnen",
     ja: "締結済み契約の記録を開く",
     pt: "Abrir o registro do acordo firmado",
-    zh: "打开已签订协议的记录",
+    zh: "打开已签订的协议记录",
     ar: "فتح سجل الاتفاقية المبرمة",
   },
   "customer.commercial.agreement.submit": {

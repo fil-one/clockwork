@@ -265,7 +265,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierungsnachweis",
     ja: "有効化の証跡",
     pt: "Evidência de ativação",
-    zh: "激活证据",
+    zh: "启用证据",
     ar: "دليل التفعيل",
   },
   "adminGovernance.jurisdiction.us": {
@@ -463,7 +463,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Genehmigungsprüfung",
     ja: "承認の確認",
     pt: "Revisão de aprovação",
-    zh: "批准审核",
+    zh: "审批事项审核",
     ar: "مراجعة الموافقة",
   },
   "adminGovernance.approvals.kindReview.rejection": {
@@ -473,7 +473,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Prüfung der Zurückweisung",
     ja: "却下の確認",
     pt: "Revisão de rejeição",
-    zh: "驳回审核",
+    zh: "驳回事项审核",
     ar: "مراجعة الردّ",
   },
   "adminGovernance.approvals.kindReview.offboarding": {
@@ -503,7 +503,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Berechtigte Rolle",
     ja: "権限のあるロール",
     pt: "Função autorizada",
-    zh: "已授权角色",
+    zh: "授权角色",
     ar: "دور مخوَّل",
   },
   "adminGovernance.approvals.actorFallback": {
@@ -563,7 +563,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Angemeldete handelnde Person",
     ja: "認証済みの操作者",
     pt: "Autor autenticado",
-    zh: "已认证的执行人",
+    zh: "已认证操作人",
     ar: "المنفِّذ المصادَق عليه",
   },
   "adminGovernance.approvals.policyGates": {
@@ -573,7 +573,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Richtlinienprüfungen",
     ja: "ポリシー上のチェック",
     pt: "Controles da política",
-    zh: "政策关卡",
+    zh: "政策前置条件",
     ar: "ضوابط السياسة",
   },
   "adminGovernance.approvals.authority": {
@@ -643,7 +643,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Für Genehmigungen und Zurückweisungen erforderlich; wird mit Zuordnung zur handelnden Person aufbewahrt.",
     ja: "承認と却下のどちらにも必須です。操作者の情報とともに保持されます。",
     pt: "Obrigatório para aprovações e rejeições; mantido com a identificação do autor.",
-    zh: "批准和驳回均须填写；将与执行人信息一并保留。",
+    zh: "批准和驳回均须填写；将与操作人信息一并保留。",
     ar: "مطلوب للموافقة والردّ، ويُحفظ مع نسبته إلى منفِّذه.",
   },
   "adminGovernance.approvals.roleCannotDecide": {
@@ -673,7 +673,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Genehmigung prüfen",
     ja: "承認内容を確認",
     pt: "Revisar aprovação",
-    zh: "审核批准",
+    zh: "审核批准决定",
     ar: "مراجعة الموافقة",
   },
   "adminGovernance.approvals.reviewReject": {
@@ -683,7 +683,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Zurückweisung prüfen",
     ja: "却下内容を確認",
     pt: "Revisar rejeição",
-    zh: "审核驳回",
+    zh: "审核驳回决定",
     ar: "مراجعة الردّ",
   },
   "adminGovernance.approvals.summaryApprove": {
@@ -693,7 +693,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Zusammenfassung der Genehmigungsprüfung",
     ja: "承認内容の確認結果",
     pt: "Resumo da revisão da aprovação",
-    zh: "批准审核摘要",
+    zh: "批准决定审核摘要",
     ar: "ملخص مراجعة الموافقة",
   },
   "adminGovernance.approvals.summaryReject": {
@@ -703,7 +703,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Zusammenfassung der Prüfung der Zurückweisung",
     ja: "却下内容の確認結果",
     pt: "Resumo da revisão da rejeição",
-    zh: "驳回审核摘要",
+    zh: "驳回决定审核摘要",
     ar: "ملخص مراجعة الردّ",
   },
   "adminGovernance.approvals.noDecisionRecorded": {
@@ -723,7 +723,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Fahren Sie im autorisierten Workflow fort. Dort werden Befugnis, Trennung der handelnden Personen, Nachweise, Aufbewahrung und Richtlinienprüfungen erneut validiert.",
     ja: "権限のあるワークフローで続行してください。そこで権限、操作者の分離、証跡、保持、ポリシー上のチェックが再検証されます。",
     pt: "Continue no fluxo autorizado, em que a autoridade, a separação entre os autores, a evidência, a retenção e os controles da política são validados novamente.",
-    zh: "请在授权的工作流中继续，届时将重新验证权限、执行人分离、证据、保留和政策关卡。",
+    zh: "请在授权的工作流中继续，届时将重新验证权限、操作人分离、证据、保留和政策前置条件。",
     ar: "تابع في مسار العمل المصرّح به، حيث يُعاد التحقق من الصلاحية والفصل بين المنفذين والأدلة والاحتفاظ وضوابط السياسة.",
   },
 
@@ -735,7 +735,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Verwaltung · Rechtliche Steuerung",
     ja: "管理・法務管理",
     pt: "Administração · Controles jurídicos",
-    zh: "管理 · 法务控制",
+    zh: "管理 · 法务管控",
     ar: "الإدارة · الضوابط القانونية",
   },
   "adminGovernance.agreements.title": {
@@ -755,7 +755,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Prüfen Sie maßgebliche Vorlagenversionen, Genehmigungsnachweise, Rechtsraum und Abschlussart. Diese Seite ändert keine Regeln für Vereinbarungen.",
     ja: "テンプレートの正本バージョン、承認の証跡、管轄、締結方法を確認します。このページで契約のルールが変わることはありません。",
     pt: "Consulte as versões canônicas dos modelos, a evidência de aprovação, a jurisdição e o modo de formalização. Nada nesta página altera as regras dos acordos.",
-    zh: "查看模板的规范版本、审批证据、司法辖区和签订方式。此页面不会更改任何协议规则。",
+    zh: "查看模板的规范版本、审批证据、司法管辖区和签订方式。此页面不会更改任何协议规则。",
     ar: "راجع الإصدارات المرجعية للقوالب وأدلة الموافقة والولاية القضائية وطريقة الإبرام. لا يغيّر أي شيء في هذه الصفحة قواعد الاتفاقيات.",
   },
   "adminGovernance.agreements.scanHeading": {
@@ -805,7 +805,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Name, Version, Rechtsraum oder Prüfergebnis",
     ja: "名前、バージョン、管轄、チェック結果",
     pt: "Nome, versão, jurisdição ou resultado da verificação",
-    zh: "名称、版本、司法辖区或核查结果",
+    zh: "名称、版本、司法管辖区或核查结果",
     ar: "الاسم أو الإصدار أو الولاية القضائية أو نتيجة الفحص",
   },
   "adminGovernance.agreements.jurisdiction": {
@@ -815,7 +815,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Rechtsraum",
     ja: "管轄",
     pt: "Jurisdição",
-    zh: "司法辖区",
+    zh: "司法管辖区",
     ar: "الولاية القضائية",
   },
   "adminGovernance.agreements.resultCount": {
@@ -844,7 +844,7 @@ export const adminGovernanceMessages = defineMessages({
       many: "{shown} de {count} de versões",
       other: "{shown} de {count} versões",
     },
-    zh: { other: "{count} 个版本中的 {shown} 个" },
+    zh: { other: "共 {count} 个版本，显示 {shown} 个" },
     ar: {
       zero: "{shown} من أصل {count} إصدار",
       one: "{shown} من أصل إصدار واحد",
@@ -951,7 +951,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Gegengezeichnet",
     ja: "相互署名",
     pt: "Contra-assinado",
-    zh: "会签",
+    zh: "双方签署",
     ar: "بتوقيع مقابل",
   },
   "adminGovernance.agreements.state.active": {
@@ -1011,7 +1011,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierungsdatum liegt in der Zukunft",
     ja: "有効化日は将来の日付です",
     pt: "A data de ativação é futura",
-    zh: "激活日期尚未到来",
+    zh: "启用日期尚未到来",
     ar: "تاريخ التفعيل في المستقبل",
   },
   "adminGovernance.agreements.exactTextRetained": {
@@ -1041,7 +1041,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Rechtliche Prüfung der Aktivierung",
     ja: "有効化の法務確認",
     pt: "Revisão jurídica da ativação",
-    zh: "激活的法务审核",
+    zh: "法务启用审核",
     ar: "المراجعة القانونية للتفعيل",
   },
   "adminGovernance.agreements.reviewIntro": {
@@ -1051,7 +1051,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Die Veröffentlichung bewahrt Version, exakten Text, Genehmigungsnachweise und frühere Abschlüsse.",
     ja: "公開しても、バージョン、原文、承認の証跡、過去の締結はそのまま保持されます。",
     pt: "A publicação preserva a versão, o texto exato, a evidência de aprovação e as formalizações anteriores.",
-    zh: "发布会保留版本、精确文本、审批证据和以往的签订记录。",
+    zh: "发布后将保留版本、精确文本、审批证据和以往的签订记录。",
     ar: "يحافظ النشر على الإصدار والنص المطابق وأدلة الموافقة وعمليات الإبرام السابقة.",
   },
   "adminGovernance.agreements.legalAuthority": {
@@ -1071,7 +1071,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Macht diese unveränderliche, von der Rechtsabteilung genehmigte Vorlage zu ihrem Gültigkeitsdatum aktivierbar.",
     ja: "法務承認済みで変更不可のこのテンプレートを、発効日に有効化できる状態にします。",
     pt: "Habilita este modelo, imutável e aprovado pelo jurídico, para ativação na data de vigência.",
-    zh: "使这一经法务批准、不可变更的模板可在其生效日期激活。",
+    zh: "使这一经法务批准、不可变更的模板可在其生效日期启用。",
     ar: "يجعل هذا القالب غير القابل للتغيير والمعتمد من المستشار القانوني مؤهلًا للتفعيل في تاريخ سريانه.",
   },
   "adminGovernance.agreements.review.textHash": {
@@ -1191,7 +1191,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Andere interne Rollen können Versionen und Nachweise einsehen, eine Vorlage aber weder genehmigen noch aktivieren.",
     ja: "その他の社内ロールはバージョンと証跡を確認できますが、テンプレートを承認または有効化することはできません。",
     pt: "Outras funções internas podem consultar versões e evidências, mas não podem aprovar nem ativar um modelo.",
-    zh: "其他内部角色可以查看版本和证据，但不能批准或激活模板。",
+    zh: "其他内部角色可以查看版本和证据，但不能批准或启用模板。",
     ar: "يمكن للأدوار الداخلية الأخرى الاطلاع على الإصدارات والأدلة، لكنها لا تستطيع اعتماد القالب أو تفعيله.",
   },
   "adminGovernance.agreements.reviewAction": {
@@ -1201,7 +1201,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Genehmigung der Vorlage prüfen",
     ja: "テンプレートの承認内容を確認",
     pt: "Revisar aprovação do modelo",
-    zh: "审核模板审批",
+    zh: "审核模板批准决定",
     ar: "مراجعة اعتماد القالب",
   },
   "adminGovernance.agreements.summaryTitle": {
@@ -1335,7 +1335,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Nachweise zur exakten Version",
     ja: "バージョンの証跡",
     pt: "Evidência da versão exata",
-    zh: "确切版本证据",
+    zh: "精确版本证据",
     ar: "أدلة الإصدار المطابق",
   },
   "adminGovernance.agreements.registry.templateId": {
@@ -1407,7 +1407,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Verwaltung · Aktivierung",
     ja: "管理・有効化",
     pt: "Administração · Ativação",
-    zh: "管理 · 激活",
+    zh: "管理 · 启用",
     ar: "الإدارة · التفعيل",
   },
   "adminGovernance.gates.title": {
@@ -1427,7 +1427,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Betriebsbereitschaft, gruppiert nach Anbietern, Recht, Marke und Betrieb, mit Verantwortlichen und Aktivierungsnachweisen.",
     ja: "プロバイダー、法務、ブランド、運用ごとの準備状況を、担当者と有効化の証跡とともに表示します。",
     pt: "Prontidão operacional agrupada por provedores, jurídico, marca e operações, com responsáveis e evidências de ativação.",
-    zh: "按服务商、法务、品牌和运营分组的运营就绪情况，附负责人和激活证据。",
+    zh: "按服务商、法务、品牌和运营分组的运营就绪情况，附负责人和启用证据。",
     ar: "الجاهزية التشغيلية مجمّعة حسب المزوّدين والشؤون القانونية والعلامة التجارية والعمليات، مع المسؤولين وأدلة التفعيل.",
   },
   "adminGovernance.gates.source.system": {
@@ -1467,7 +1467,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Die Aktivierung wird standardmäßig verweigert. Ein konfigurierter Status „Aktiv“ reicht nicht ohne aktuellen bestandenen Test, Nachweis, verantwortliche Person und Prüfdatum.",
     ja: "有効化は既定で拒否されます（フェイルクローズ）。設定上の状態が「有効」でも、最新の合格テスト、証跡、担当者、確認日がそろわなければ有効になりません。",
     pt: "A ativação é negada por padrão. Um status “Ativo” configurado não basta sem um teste aprovado atual, evidência, um responsável e uma data de revisão.",
-    zh: "激活默认被拒绝（故障关闭）。仅配置为“有效”状态还不够，还需要当前通过的测试、证据、负责人和复核日期。",
+    zh: "默认拒绝启用。仅将状态配置为“有效”并不够，还需要当前通过的测试、证据、负责人和复核日期。",
     ar: "يُرفض التفعيل افتراضيًا. لا تكفي حالة «نشط» المُعدّة دون اختبار ناجح حالي ودليل ومسؤول وتاريخ مراجعة.",
   },
   "adminGovernance.gates.readOnlyTitle": {
@@ -1487,7 +1487,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Nur ein interner Operator mit aktueller Authentifizierung darf eine Voraussetzung aktualisieren oder einen Aktivierungstest ausführen.",
     ja: "要件の更新や有効化テストの実行ができるのは、直近に認証した社内オペレーターだけです。",
     pt: "Somente um operador interno com autenticação recente pode atualizar um pré-requisito ou executar um teste de ativação.",
-    zh: "只有近期完成身份验证的内部操作员才能更新前置条件或运行激活测试。",
+    zh: "只有近期完成身份验证的内部操作员才能更新前置条件或运行启用测试。",
     ar: "لا يجوز تحديث المتطلب أو تشغيل اختبار التفعيل إلا لمشغّل داخلي أجرى مصادقة حديثة.",
   },
   "adminGovernance.gates.group.provider": {
@@ -1537,7 +1537,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Externe Aktivierungsvoraussetzungen: Anbieter",
     ja: "外部の有効化要件（プロバイダー）",
     pt: "Pré-requisitos externos de ativação: provedores",
-    zh: "外部激活前置条件：服务商",
+    zh: "外部启用前置条件：服务商",
     ar: "متطلبات التفعيل الخارجية: المزوّدون",
   },
   "adminGovernance.gates.caption.legal": {
@@ -1547,7 +1547,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Externe Aktivierungsvoraussetzungen: Recht",
     ja: "外部の有効化要件（法務）",
     pt: "Pré-requisitos externos de ativação: jurídico",
-    zh: "外部激活前置条件：法务",
+    zh: "外部启用前置条件：法务",
     ar: "متطلبات التفعيل الخارجية: الشؤون القانونية",
   },
   "adminGovernance.gates.caption.brand": {
@@ -1557,7 +1557,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Externe Aktivierungsvoraussetzungen: Marke",
     ja: "外部の有効化要件（ブランド）",
     pt: "Pré-requisitos externos de ativação: marca",
-    zh: "外部激活前置条件：品牌",
+    zh: "外部启用前置条件：品牌",
     ar: "متطلبات التفعيل الخارجية: العلامة التجارية",
   },
   "adminGovernance.gates.caption.operations": {
@@ -1567,7 +1567,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Externe Aktivierungsvoraussetzungen: Betrieb",
     ja: "外部の有効化要件（運用）",
     pt: "Pré-requisitos externos de ativação: operações",
-    zh: "外部激活前置条件：运营",
+    zh: "外部启用前置条件：运营",
     ar: "متطلبات التفعيل الخارجية: العمليات",
   },
   "adminGovernance.gates.count": {
@@ -1697,7 +1697,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierungstest",
     ja: "有効化テスト",
     pt: "Teste de ativação",
-    zh: "激活测试",
+    zh: "启用测试",
     ar: "اختبار التفعيل",
   },
   "adminGovernance.gates.column.severity": {
@@ -1747,7 +1747,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Nicht erforderlich",
     ja: "不要",
     pt: "Não necessário",
-    zh: "无需",
+    zh: "非必需",
     ar: "غير مطلوب",
   },
   "adminGovernance.gates.status.unknown": {
@@ -1787,7 +1787,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierung zulässig",
     ja: "有効化を許可",
     pt: "Ativação permitida",
-    zh: "允许激活",
+    zh: "允许启用",
     ar: "التفعيل مسموح",
   },
   "adminGovernance.gates.activationDenied": {
@@ -1797,7 +1797,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierung verweigert",
     ja: "有効化を拒否",
     pt: "Ativação negada",
-    zh: "拒绝激活",
+    zh: "拒绝启用",
     ar: "التفعيل مرفوض",
   },
   "adminGovernance.gates.blockedReasons": {
@@ -1907,7 +1907,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Keine signierte Live-Eingabe",
     ja: "本番の署名付き入力なし",
     pt: "sem entrada assinada real",
-    zh: "缺少实时签名输入",
+    zh: "缺少生产环境的签名输入",
     ar: "لا توجد مدخلات موقّعة فعلية",
   },
   "adminGovernance.gates.blocked.activationTestNotPassed": {
@@ -1917,7 +1917,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierungstest nicht bestanden",
     ja: "有効化テスト未合格",
     pt: "teste de ativação não aprovado",
-    zh: "激活测试未通过",
+    zh: "启用测试未通过",
     ar: "لم يُجتَز اختبار التفعيل",
   },
   "adminGovernance.gates.blocked.activationTestTimeMissing": {
@@ -1927,7 +1927,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Zeitpunkt des Aktivierungstests fehlt",
     ja: "有効化テストの日時なし",
     pt: "horário do teste de ativação ausente",
-    zh: "缺少激活测试时间",
+    zh: "缺少启用测试时间",
     ar: "وقت اختبار التفعيل غير متوفر",
   },
   "adminGovernance.gates.blocked.activationTestExpired": {
@@ -1937,7 +1937,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierungstest abgelaufen",
     ja: "有効化テストの期限切れ",
     pt: "teste de ativação expirado",
-    zh: "激活测试已过期",
+    zh: "启用测试已过期",
     ar: "انتهت صلاحية اختبار التفعيل",
   },
   "adminGovernance.gates.blocked.activationTesterMissing": {
@@ -1957,7 +1957,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierungsnachweis fehlt",
     ja: "有効化の証跡なし",
     pt: "evidência de ativação ausente",
-    zh: "缺少激活证据",
+    zh: "缺少启用证据",
     ar: "دليل التفعيل غير متوفر",
   },
   "adminGovernance.gates.blocked.reviewMissingOrExpired": {
@@ -1977,7 +1977,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Kein Aktivierungstest",
     ja: "有効化テストなし",
     pt: "sem teste de ativação",
-    zh: "无激活测试",
+    zh: "无启用测试",
     ar: "لا يوجد اختبار تفعيل",
   },
   "adminGovernance.gates.blocked.evidenceMissing": {
@@ -2037,7 +2037,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Nicht verfügbar; die Aktivierung wird verweigert",
     ja: "利用不可のため、有効化は拒否されます",
     pt: "Indisponível; a ativação é negada",
-    zh: "不可用；激活被拒绝",
+    zh: "不可用；已拒绝启用",
     ar: "غير متاح؛ والتفعيل مرفوض",
   },
   "adminGovernance.gates.unavailable.freshness": {
@@ -2087,7 +2087,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Für die Aktivierung erforderliche Angabe oder Nachweis",
     ja: "有効化に必要な入力または証跡",
     pt: "Entrada ou evidência necessária para a ativação",
-    zh: "激活所需的输入或证据",
+    zh: "启用所需的输入或证据",
     ar: "المدخلات أو الأدلة المطلوبة للتفعيل",
   },
   "adminGovernance.gates.controls.configuredState": {
@@ -2107,7 +2107,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktiv (weiterhin von der Richtlinie geprüft)",
     ja: "有効（ポリシーのチェックは継続）",
     pt: "Ativo (ainda sujeito à política)",
-    zh: "有效（仍受政策检查）",
+    zh: "有效（仍受策略检查）",
     ar: "نشط (يظل خاضعًا لفحص السياسة)",
   },
   "adminGovernance.gates.controls.reviewDate": {
@@ -2147,7 +2147,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierungstest auf dem Server ausführen",
     ja: "サーバーで有効化テストを実行",
     pt: "Executar teste de ativação no servidor",
-    zh: "在服务器上运行激活测试",
+    zh: "运行服务器启用测试",
     ar: "تشغيل اختبار التفعيل على الخادم",
   },
   "adminGovernance.gates.result.allowed": {
@@ -2157,7 +2157,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Die Serverrichtlinie lässt die Aktivierung zu.",
     ja: "サーバーのポリシーにより、有効化が許可されています。",
     pt: "A política do servidor permite a ativação.",
-    zh: "服务器策略允许激活。",
+    zh: "服务器策略允许启用。",
     ar: "تسمح سياسة الخادم بالتفعيل.",
   },
   "adminGovernance.gates.result.denied": {
@@ -2167,7 +2167,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Gespeichert. Die Serverrichtlinie verweigert die Aktivierung weiterhin.",
     ja: "保存しました。サーバーのポリシーにより、有効化は引き続き拒否されます。",
     pt: "Salvo. A política do servidor continua negando a ativação.",
-    zh: "已保存。服务器策略仍拒绝激活。",
+    zh: "已保存。服务器策略仍拒绝启用。",
     ar: "تم الحفظ. لا تزال سياسة الخادم ترفض التفعيل.",
   },
   "adminGovernance.gates.error.conflict": {
@@ -2197,7 +2197,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Die Aktivierungsrichtlinie hat diese Änderung verweigert. Eine Konfiguration allein kann keine Voraussetzung aktivieren.",
     ja: "有効化ポリシーにより、この変更は拒否されました。設定だけで要件を有効にすることはできません。",
     pt: "A política de ativação negou esta alteração. A configuração, por si só, não ativa um pré-requisito.",
-    zh: "激活策略拒绝了此更改。仅靠配置无法激活前置条件。",
+    zh: "启用策略拒绝了此更改。仅靠配置无法启用前置条件。",
     ar: "رفضت سياسة التفعيل هذا التغيير. لا يمكن للإعداد وحده تفعيل المتطلب.",
   },
   "adminGovernance.gates.error.unavailable": {
@@ -2249,7 +2249,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Handeln Sie für ein ausdrücklich ausgewähltes Konto. Sie bleiben als handelnde Person erfasst, und der Server prüft Ihre Befugnis weiterhin.",
     ja: "明示的に選択したアカウントの代わりに操作します。記録上の操作者はあなたのままで、権限は引き続きサーバーで確認されます。",
     pt: "Aja em nome de uma conta que você seleciona explicitamente. Você continua registrado como autor da ação, e o servidor continua verificando sua autoridade.",
-    zh: "代表您明确选定的账户执行操作。记录中的执行人仍是您本人，服务器仍会核查您的权限。",
+    zh: "代表您明确选定的账户执行操作。记录中的操作人仍是您本人，服务器仍会核查您的权限。",
     ar: "نفّذ الإجراءات نيابةً عن حساب تختاره صراحةً. تظل أنت المنفِّذ المسجَّل، ويواصل الخادم التحقق من صلاحيتك.",
   },
   "adminGovernance.assisted.authorityRequired": {
@@ -2309,7 +2309,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Prüfen Sie, wie der Produktions-Workflow die handelnde Person vom Zielkonto trennt.",
     ja: "本番のワークフローで、操作者と対象アカウントがどのように分離されるかを確認します。",
     pt: "Veja como o fluxo de produção mantém o autor da ação separado da conta assistida.",
-    zh: "查看生产工作流如何将执行人与目标账户分离。",
+    zh: "查看生产工作流如何将操作人与目标账户分离。",
     ar: "راجع كيف يفصل مسار العمل في الإنتاج بين المنفِّذ والحساب المستهدف.",
   },
   "adminGovernance.assisted.demo.accountExample": {
@@ -2329,7 +2329,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Angemeldete handelnde Person",
     ja: "認証済みの操作者（社内）",
     pt: "Membro da equipe autenticado",
-    zh: "已认证的员工执行人",
+    zh: "已认证的员工操作人",
     ar: "الموظف المنفِّذ المصادَق عليه",
   },
   "adminGovernance.assisted.demo.sessionRequirement": {
@@ -2369,7 +2369,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Unveränderliche handelnde Person, Zielkonto, Begründung und Ablauf",
     ja: "変更不可の操作者、対象アカウント、理由、有効期限",
     pt: "Autor, conta assistida, motivo e expiração imutáveis",
-    zh: "不可更改的执行人、目标账户、理由和到期时间",
+    zh: "不可更改的操作人、目标账户、理由和到期时间",
     ar: "المنفِّذ والحساب المستهدف والسبب وموعد الانتهاء، وكلها غير قابلة للتغيير",
   },
   "adminGovernance.assisted.demo.noSession": {
@@ -2389,7 +2389,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Die Produktionsaktion ist erst verfügbar, wenn der Identitätsanbieter die handelnde Person an eine zeitlich begrenzte Serversitzung binden kann.",
     ja: "ID プロバイダーが操作者を時間制限付きのサーバーセッションに紐付けられるようになるまで、本番の操作は利用できません。",
     pt: "A ação de produção fica indisponível até que o provedor de identidade possa vincular o autor da ação a uma sessão de servidor com tempo limitado.",
-    zh: "在身份提供方能够将员工执行人绑定到有时限的服务器会话之前，生产操作不可用。",
+    zh: "在身份提供商能够将员工操作人绑定到有时限的服务器会话之前，生产操作不可用。",
     ar: "لا يتوفر الإجراء في الإنتاج إلى أن يتمكن مزوّد الهوية من ربط الموظف المنفِّذ بجلسة خادم محدودة المدة.",
   },
   "adminGovernance.assisted.actorFixed": {
@@ -2399,7 +2399,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Die handelnde Person ändert sich nie.",
     ja: "操作者が変わることはありません。",
     pt: "O autor da ação nunca muda.",
-    zh: "员工执行人始终不变。",
+    zh: "员工操作人始终不变。",
     ar: "لا يتغيّر الموظف المنفِّذ أبدًا.",
   },
   "adminGovernance.assisted.actorFixedDetail": {
@@ -2409,7 +2409,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Das Zielkonto grenzt den Kundendatensatz ab. Angemeldete handelnde Person, Rolle und Berechtigung stammen aus der Serversitzung und können hier nicht bearbeitet werden.",
     ja: "対象アカウントによって顧客の記録の範囲が決まります。認証済みの操作者、ロール、認可はサーバーセッションから取得され、ここでは編集できません。",
     pt: "A conta assistida delimita o registro do cliente. O membro da equipe autenticado, a função e a autorização vêm da sessão do servidor e não podem ser editados aqui.",
-    zh: "目标账户限定了客户记录的范围。已认证的员工执行人、角色和授权均来自服务器会话，无法在此编辑。",
+    zh: "目标账户限定了客户记录的范围。已认证的员工操作人、角色和授权均来自服务器会话，无法在此编辑。",
     ar: "يحدد الحساب المستهدف نطاق سجل العميل. أما الموظف المنفِّذ المصادَق عليه ودوره وتفويضه فتأتي من جلسة الخادم ولا يمكن تعديلها هنا.",
   },
   "adminGovernance.assisted.actionHeading": {
@@ -2459,7 +2459,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Angemeldete handelnde Person: {actor}",
     ja: "認証済みの操作者：{actor}",
     pt: "Membro da equipe autenticado: {actor}",
-    zh: "已认证的员工执行人：{actor}",
+    zh: "已认证的员工操作人：{actor}",
     ar: "الموظف المنفِّذ المصادَق عليه: {actor}",
   },
   "adminGovernance.assisted.review.reasonCaptured": {
@@ -2469,7 +2469,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Begründung für den Assistenzmodus erfasst",
     ja: "代理操作モードの理由を記録済み",
     pt: "Motivo do modo assistido registrado",
-    zh: "已记录代操作模式的理由",
+    zh: "已记录代操作理由",
     ar: "تم تسجيل سبب استخدام الوضع المساعد",
   },
   "adminGovernance.assisted.review.gatesShown": {
@@ -2479,7 +2479,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Prüfungen zu Compliance-Screening, Bonität, Anbieter und Rolle zur Kontrolle angezeigt",
     ja: "コンプライアンス審査、与信、プロバイダー、ロールのチェックを確認用に表示",
     pt: "Controles de triagem, crédito, provedor e função exibidos para revisão",
-    zh: "已显示合规筛查、信用、服务商和角色关卡供审核",
+    zh: "已显示合规筛查、信用、服务商和角色前置条件供审核",
     ar: "عُرضت ضوابط فحص الامتثال والائتمان والمزوّد والدور للمراجعة",
   },
   "adminGovernance.assisted.effectiveAccount": {
@@ -2509,7 +2509,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Begründung für den Assistenzmodus",
     ja: "代理操作モードの理由",
     pt: "Motivo do modo assistido",
-    zh: "代操作模式理由",
+    zh: "代操作理由",
     ar: "سبب استخدام الوضع المساعد",
   },
   "adminGovernance.assisted.reasonPlaceholder": {
@@ -2529,7 +2529,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Pflichtangabe; wird der handelnden Person zugeordnet und mit der Aktion aufbewahrt.",
     ja: "必須です。操作者に紐付けられ、操作とともに保持されます。",
     pt: "Obrigatório; atribuído ao autor da ação e mantido com ela.",
-    zh: "必填；将归属于员工执行人，并与该操作一并保留。",
+    zh: "必填；将归属于员工操作人，并与该操作一并保留。",
     ar: "مطلوب، ويُنسب إلى الموظف المنفِّذ ويُحفظ مع الإجراء.",
   },
   "adminGovernance.assisted.staffActor": {
@@ -2539,7 +2539,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Handelnde Person",
     ja: "操作者",
     pt: "Autor da ação",
-    zh: "员工执行人",
+    zh: "员工操作人",
     ar: "الموظف المنفِّذ",
   },
   "adminGovernance.assisted.commercialGates": {
@@ -2549,7 +2549,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Kaufmännische Prüfungen",
     ja: "商用のチェック",
     pt: "Controles comerciais",
-    zh: "商务关卡",
+    zh: "商务前置条件",
     ar: "الضوابط التجارية",
   },
   "adminGovernance.assisted.commercialGatesDetail": {
@@ -2569,7 +2569,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Betriebliche Prüfungen",
     ja: "運用上のチェック",
     pt: "Controles operacionais",
-    zh: "运营关卡",
+    zh: "运营前置条件",
     ar: "الضوابط التشغيلية",
   },
   "adminGovernance.assisted.operationalGatesDetail": {
@@ -2579,7 +2579,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Anbieterbereitschaft · Aufbewahrung · Vier-Augen-Prinzip · Zuordnung der handelnden Person",
     ja: "プロバイダーの準備状況・保持・二重承認・操作者の記録",
     pt: "Prontidão do provedor · retenção · controle duplo · identificação do autor",
-    zh: "服务商就绪 · 保留 · 双人控制 · 执行人归属",
+    zh: "服务商就绪 · 保留 · 双人控制 · 操作人归属",
     ar: "جاهزية المزوّد · الاحتفاظ · الرقابة المزدوجة · نسبة الإجراء إلى منفِّذه",
   },
   "adminGovernance.assisted.roleCannotActDetail": {
@@ -2659,7 +2659,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Starten Sie die zeitlich begrenzte Serversitzung. Sie behält die handelnde Person bei und prüft vor jeder Änderung Konto, Rolle, kaufmännische Vorgaben, Compliance-Screening, Bonität, Aufbewahrung und Anbieter erneut.",
     ja: "時間制限付きのサーバーセッションを開始してください。操作者は維持され、変更のたびにアカウント、ロール、商用、コンプライアンス審査、与信、保持、プロバイダーのチェックが再評価されます。",
     pt: "Inicie a sessão de servidor com tempo limitado. Ela mantém o autor da ação e reavalia os controles de conta, função, comercial, triagem, crédito, retenção e provedor antes de cada alteração.",
-    zh: "请启动有时限的服务器会话。该会话保留员工执行人，并在每次变更前重新评估账户、角色、商务、合规筛查、信用、保留和服务商关卡。",
+    zh: "请启动有时限的服务器会话。该会话保留员工操作人，并在每次变更前重新评估账户、角色、商务、合规筛查、信用、保留和服务商前置条件。",
     ar: "ابدأ جلسة الخادم المحدودة المدة. تحتفظ الجلسة بالموظف المنفِّذ وتعيد تقييم ضوابط الحساب والدور والضوابط التجارية وفحص الامتثال والائتمان والاحتفاظ والمزوّد قبل كل تغيير.",
   },
   "adminGovernance.assisted.startSession": {
@@ -2789,7 +2789,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Startet keinen Rückbau. Die Prüfungen zu Datenabruf, Bonität, Aufbewahrung, aktueller Authentifizierung und Vier-Augen-Prinzip bleiben erforderlich.",
     ja: "撤去は開始されません。取得、与信、保持、直近の認証、二重承認のチェックは引き続き必要です。",
     pt: "Não inicia nenhum desmantelamento. Os controles de recuperação de dados, crédito, retenção, autenticação recente e controle duplo continuam obrigatórios.",
-    zh: "不会启动任何拆除。取回、信用、保留、近期身份验证和双人控制关卡仍为必需。",
+    zh: "不会启动任何拆除。取回、信用、保留、近期身份验证和双人控制前置条件仍为必需。",
     ar: "لا يبدأ أي تفكيك. وتظل ضوابط الاسترجاع والائتمان والاحتفاظ والمصادقة الحديثة والرقابة المزدوجة مطلوبة.",
   },
 
@@ -2801,7 +2801,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Funktionen",
     ja: "機能",
     pt: "Funcionalidades",
-    zh: "功能",
+    zh: "功能开关",
     ar: "الوظائف",
   },
   "adminGovernance.capabilities.eyebrow": {
@@ -2811,7 +2811,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Produktionssteuerung",
     ja: "本番環境の制御",
     pt: "Controles de produção",
-    zh: "生产控制",
+    zh: "生产管控",
     ar: "ضوابط الإنتاج",
   },
   "adminGovernance.capabilities.description": {
@@ -2821,7 +2821,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Beantragen Sie die Aktivierung bei einer anderen genehmigenden Person oder stoppen Sie neue Vorgänge sofort. Wiederherstellungsvorgänge haben einen eigenen Schalter.",
     ja: "別の承認者による有効化を申請するか、新規処理を直ちに停止します。復旧処理には専用の切り替えがあります。",
     pt: "Solicite a ativação com um aprovador distinto ou interrompa imediatamente as novas operações. As operações de recuperação têm um controle próprio.",
-    zh: "向另一位审批人申请激活，或立即停止新处理。恢复处理有单独的开关。",
+    zh: "向另一位审批人申请启用，或立即停止新任务。恢复任务另有单独的开关。",
     ar: "اطلب التفعيل من موافِق مختلف، أو أوقف العمليات الجديدة فورًا. ولعمليات الاستعادة مفتاح مستقل.",
   },
   "adminGovernance.capabilities.guidance": {
@@ -2831,7 +2831,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Die Aktivierung erfordert aktuelle Nachweise und innerhalb von 24 Stunden eine andere genehmigende Person. Externe Voraussetzungen werden bei jeder Ausführung unabhängig durchgesetzt.",
     ja: "有効化には、最新の証跡と、24時間以内の別の承認者による承認が必要です。外部要件は実行のたびに個別に適用されます。",
     pt: "A ativação exige evidência atualizada e um aprovador distinto em até 24 horas. Os pré-requisitos externos são aplicados de forma independente em cada execução.",
-    zh: "激活需要最新证据，并须在 24 小时内由另一位审批人批准。每次执行时都会独立执行外部前置条件检查。",
+    zh: "启用需要最新证据，并须在 24 小时内由另一位审批人批准。每次执行时都会独立检查外部前置条件。",
     ar: "يتطلب التفعيل أدلة حديثة وموافقة موافِق مختلف خلال 24 ساعة. وتُطبَّق المتطلبات الخارجية بشكل مستقل عند كل تنفيذ.",
   },
   "adminGovernance.capabilities.reviewGates": {
@@ -2861,7 +2861,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Verbinden Sie die Steuerungsdatenbank der Produktion und melden Sie sich mit Ihrer Mitarbeiteridentität an, um gespeicherte Funktionen einzusehen oder zu ändern. Daraus folgt keine Aktivierung.",
     ja: "保存された機能を表示または変更するには、本番の制御データベースに接続し、社内 ID でサインインしてください。有効化を意味するものではありません。",
     pt: "Conecte o banco de dados de controle de produção e entre com sua identidade de membro da equipe para ver ou alterar as funcionalidades salvas. Isso não implica nenhuma ativação.",
-    zh: "请连接生产控制数据库并使用员工身份登录，以查看或更改已保存的功能。这并不意味着任何激活。",
+    zh: "请连接生产控制数据库并使用员工身份登录，以查看或更改已保存的功能。此操作本身不会启用任何功能。",
     ar: "اربط قاعدة بيانات التحكم في الإنتاج وسجّل الدخول بهويتك كموظف لعرض الوظائف المحفوظة أو تغييرها. ولا يعني ذلك أي تفعيل.",
   },
   "adminGovernance.capabilities.none": {
@@ -2871,7 +2871,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Es sind keine Funktionen konfiguriert. Alle Vorgänge bleiben deaktiviert, bis das Produktions-Bootstrap abgeschlossen ist.",
     ja: "機能が設定されていません。本番の初期設定が完了するまで、すべての処理は無効のままです。",
     pt: "Nenhuma funcionalidade configurada. Todas as operações continuam desativadas até a conclusão da inicialização de produção.",
-    zh: "未配置任何功能。在生产初始化完成之前，所有处理均保持禁用。",
+    zh: "未配置任何功能。在生产环境初始化完成之前，所有任务均保持禁用。",
     ar: "لم تُهيأ أي وظائف. تظل جميع العمليات معطلة حتى اكتمال تهيئة الإنتاج.",
   },
   "adminGovernance.capabilities.key.newBusiness": {
@@ -2951,7 +2951,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Neue Vorgänge aktiviert",
     ja: "新規処理：有効",
     pt: "Novas operações ativadas",
-    zh: "新处理已启用",
+    zh: "新任务已启用",
     ar: "العمليات الجديدة مفعّلة",
   },
   "adminGovernance.capabilities.newWorkDisabled": {
@@ -2961,7 +2961,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Neue Vorgänge deaktiviert",
     ja: "新規処理：無効",
     pt: "Novas operações desativadas",
-    zh: "新处理已禁用",
+    zh: "新任务已禁用",
     ar: "العمليات الجديدة معطلة",
   },
   "adminGovernance.capabilities.recoveryEnabled": {
@@ -2971,7 +2971,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Wiederherstellungsvorgänge: aktiviert",
     ja: "復旧処理：有効",
     pt: "Operações de recuperação: ativadas",
-    zh: "恢复处理：已启用",
+    zh: "恢复任务：已启用",
     ar: "عمليات الاستعادة: مفعّلة",
   },
   "adminGovernance.capabilities.recoveryDisabled": {
@@ -2981,7 +2981,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Wiederherstellungsvorgänge: deaktiviert",
     ja: "復旧処理：無効",
     pt: "Operações de recuperação: desativadas",
-    zh: "恢复处理：已禁用",
+    zh: "恢复任务：已禁用",
     ar: "عمليات الاستعادة: معطلة",
   },
   "adminGovernance.capabilities.activationAuthority": {
@@ -2991,7 +2991,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierungsbefugnis: {role}",
     ja: "有効化の権限：{role}",
     pt: "Autoridade de ativação: {role}",
-    zh: "激活权限：{role}",
+    zh: "启用权限：{role}",
     ar: "صلاحية التفعيل: {role}",
   },
   "adminGovernance.capabilities.pendingRecovery": {
@@ -3001,7 +3001,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Ausstehende Aktivierung der Wiederherstellung",
     ja: "保留中の復旧処理の有効化",
     pt: "Ativação de recuperação pendente",
-    zh: "待处理的恢复处理激活",
+    zh: "恢复任务启用申请待审批",
     ar: "تفعيل الاستعادة قيد الانتظار",
   },
   "adminGovernance.capabilities.pendingNewWork": {
@@ -3011,7 +3011,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Ausstehende Aktivierung neuer Vorgänge",
     ja: "保留中の新規処理の有効化",
     pt: "Ativação de novas operações pendente",
-    zh: "待处理的新处理激活",
+    zh: "新任务启用申请待审批",
     ar: "تفعيل العمليات الجديدة قيد الانتظار",
   },
   "adminGovernance.capabilities.requestedBy": {
@@ -3051,7 +3051,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Neue Vorgänge",
     ja: "新規処理",
     pt: "Novas operações",
-    zh: "新处理",
+    zh: "新任务",
     ar: "العمليات الجديدة",
   },
   "adminGovernance.capabilities.scope.recoveryWork": {
@@ -3061,7 +3061,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Wiederherstellungsvorgänge",
     ja: "復旧処理",
     pt: "Operações de recuperação",
-    zh: "恢复处理",
+    zh: "恢复任务",
     ar: "عمليات الاستعادة",
   },
   "adminGovernance.capabilities.reasonPlaceholder": {
@@ -3081,7 +3081,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Referenz des Aktivierungsnachweises",
     ja: "有効化の証跡の参照",
     pt: "Referência da evidência de ativação",
-    zh: "激活证据引用",
+    zh: "启用证据编号",
     ar: "مرجع دليل التفعيل",
   },
   "adminGovernance.capabilities.evidenceReferencePlaceholder": {
@@ -3091,7 +3091,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Referenz auf genehmigten Start- oder Wiederherstellungsnachweis",
     ja: "承認済みのリリースまたは復旧の証跡の参照",
     pt: "Referência da evidência aprovada de lançamento ou recuperação",
-    zh: "已批准的上线或恢复证据引用",
+    zh: "已批准的上线或恢复证据编号",
     ar: "مرجع الدليل المعتمد للإطلاق أو الاستعادة",
   },
   "adminGovernance.capabilities.requestActivation": {
@@ -3101,7 +3101,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierung beantragen",
     ja: "有効化を申請",
     pt: "Solicitar ativação",
-    zh: "申请激活",
+    zh: "申请启用",
     ar: "طلب التفعيل",
   },
   "adminGovernance.capabilities.approveActivation": {
@@ -3111,7 +3111,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierung genehmigen",
     ja: "有効化を承認",
     pt: "Aprovar ativação",
-    zh: "批准激活",
+    zh: "批准启用",
     ar: "الموافقة على التفعيل",
   },
   "adminGovernance.capabilities.rejectRequest": {
@@ -3161,7 +3161,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Wählen Sie einen ausstehenden Aktivierungsantrag aus.",
     ja: "保留中の有効化申請を選択してください。",
     pt: "Selecione uma solicitação de ativação pendente.",
-    zh: "请选择一个待处理的激活申请。",
+    zh: "请选择一个待审批的启用申请。",
     ar: "اختر طلب تفعيل قيد الانتظار.",
   },
   "adminGovernance.capabilities.result.proposed": {
@@ -3171,7 +3171,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktivierung beantragt. Eine andere genehmigende Person muss sie innerhalb von 24 Stunden prüfen.",
     ja: "有効化を申請しました。24時間以内に別の承認者が確認する必要があります。",
     pt: "Ativação solicitada. Um aprovador distinto deve revisá-la em até 24 horas.",
-    zh: "已申请激活。必须在 24 小时内由另一位审批人审核。",
+    zh: "已申请启用。必须在 24 小时内由另一位审批人审核。",
     ar: "تم طلب التفعيل. يجب أن يراجعه موافِق مختلف خلال 24 ساعة.",
   },
   "adminGovernance.capabilities.result.disabled": {
@@ -3181,7 +3181,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Funktion deaktiviert. Frühere ausstehende Aktivierungsanträge wurden aufgehoben.",
     ja: "機能を無効にしました。保留中だった以前の有効化申請は取り消されました。",
     pt: "Funcionalidade desativada. As solicitações de ativação pendentes anteriores foram canceladas.",
-    zh: "功能已禁用。之前待处理的激活申请已取消。",
+    zh: "功能已禁用。此前待审批的启用申请已取消。",
     ar: "عُطّلت الوظيفة، وأُلغيت طلبات التفعيل السابقة التي كانت قيد الانتظار.",
   },
   "adminGovernance.capabilities.result.decided": {
@@ -3231,7 +3231,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Dieser Antrag ist abgelaufen. Weisen Sie ihn zurück und beantragen Sie die Aktivierung mit aktuellen Nachweisen erneut.",
     ja: "この申請は期限切れです。却下してから、最新の証跡で有効化を再申請してください。",
     pt: "Esta solicitação expirou. Rejeite-a e solicite a ativação novamente com evidência atualizada.",
-    zh: "此申请已过期。请驳回该申请，并使用最新证据重新申请激活。",
+    zh: "此申请已过期。请驳回该申请，并使用最新证据重新申请启用。",
     ar: "انتهت صلاحية هذا الطلب. ردّه واطلب التفعيل مجددًا بأدلة حديثة.",
   },
   "adminGovernance.capabilities.error.pending": {
@@ -3241,7 +3241,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Ein Aktivierungsantrag wartet bereits auf Prüfung.",
     ja: "有効化申請はすでに確認待ちです。",
     pt: "Já existe uma solicitação de ativação aguardando revisão.",
-    zh: "已有一个激活申请正在等待审核。",
+    zh: "已有一个启用申请正在等待审核。",
     ar: "يوجد بالفعل طلب تفعيل بانتظار المراجعة.",
   },
   "adminGovernance.capabilities.error.notPending": {
@@ -3251,7 +3251,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Über diesen Antrag wurde bereits entschieden, oder er wurde aufgehoben. Aktualisieren Sie die Seite, um den neuesten Stand zu sehen.",
     ja: "この申請はすでに判断済みか、取り消されています。再読み込みして最新の状態を確認してください。",
     pt: "Esta solicitação já foi decidida ou cancelada. Atualize para ver o estado mais recente.",
-    zh: "此申请已被决定或已取消。请刷新以查看最新状态。",
+    zh: "此申请已作出决定或已取消。请刷新以查看最新状态。",
     ar: "بُتّ في هذا الطلب أو أُلغي بالفعل. حدّث الصفحة لعرض أحدث حالة.",
   },
   "adminGovernance.capabilities.error.alreadyEnabled": {
@@ -3281,7 +3281,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Die Änderung konnte nicht erfasst werden. Prüfen Sie die Nachweisreferenz und aktualisieren Sie die Seite, bevor Sie es erneut versuchen.",
     ja: "変更を記録できませんでした。証跡の参照を確認し、再読み込みしてからやり直してください。",
     pt: "Não foi possível registrar a alteração. Verifique a referência da evidência e atualize antes de tentar novamente.",
-    zh: "无法记录此更改。请检查证据引用并刷新后重试。",
+    zh: "无法记录此更改。请检查证据编号并刷新后重试。",
     ar: "تعذّر تسجيل التغيير. تحقق من مرجع الدليل وحدّث الصفحة قبل المحاولة مجددًا.",
   },
 
@@ -3293,7 +3293,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Kaufmännische Steuerung",
     ja: "商用の管理",
     pt: "Controles comerciais",
-    zh: "商务控制",
+    zh: "商务管控",
     ar: "الضوابط التجارية",
   },
   "adminGovernance.channelPolicy.title": {
@@ -3363,7 +3363,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Aktuelle Vorgaben",
     ja: "現在の設定",
     pt: "Controles atuais",
-    zh: "当前控制项",
+    zh: "当前管控项",
     ar: "الضوابط الحالية",
   },
   "adminGovernance.channelPolicy.approvedVersion": {
@@ -3433,7 +3433,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Diese Vorgaben stammen aus der genehmigten Richtlinie v{version}.",
     ja: "この設定は承認済みポリシー v{version} に基づいています。",
     pt: "Estes controles vêm da política aprovada v{version}.",
-    zh: "这些控制项来自已批准的政策 v{version}。",
+    zh: "这些管控项来自已批准的政策 v{version}。",
     ar: "تستند هذه الضوابط إلى السياسة المعتمدة، الإصدار {version}.",
   },
   "adminGovernance.channelPolicy.fromLegacy": {
@@ -3473,7 +3473,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Beantragt",
     ja: "提案済み",
     pt: "Proposta",
-    zh: "已提议",
+    zh: "待审批",
     ar: "مقترحة",
   },
   "adminGovernance.channelPolicy.status.approved": {
@@ -3639,7 +3639,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Vorgaben des Entwurfs bearbeiten",
     ja: "下書きの設定を編集",
     pt: "Editar controles do rascunho",
-    zh: "编辑草稿控制项",
+    zh: "编辑草稿管控项",
     ar: "تعديل ضوابط المسودة",
   },
   "adminGovernance.channelPolicy.form.newDraft": {
@@ -3739,7 +3739,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Quelle der Richtlinie oder Nachweisreferenz",
     ja: "ポリシーの根拠資料または証跡の参照",
     pt: "Fonte da política ou referência da evidência",
-    zh: "政策来源或证据引用",
+    zh: "政策来源或证据编号",
     ar: "مصدر السياسة أو مرجع الدليل",
   },
   "adminGovernance.channelPolicy.decision.proposeLegend": {
@@ -3779,7 +3779,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Referenz des Genehmigungsnachweises",
     ja: "承認の証跡の参照",
     pt: "Referência da evidência de aprovação",
-    zh: "审批证据引用",
+    zh: "审批证据编号",
     ar: "مرجع دليل الموافقة",
   },
   "adminGovernance.channelPolicy.decision.recording": {
@@ -3799,7 +3799,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Genehmigung beantragen",
     ja: "ポリシーを提案",
     pt: "Propor política",
-    zh: "提议政策",
+    zh: "提交审批",
     ar: "اقتراح السياسة",
   },
   "adminGovernance.channelPolicy.decision.approve": {
@@ -3849,7 +3849,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Prüfen Sie Daten, Grenzen in ganzen Tagen, Version und Nachweis. Der Standardschutz darf den Höchstzeitraum nicht überschreiten.",
     ja: "日付、日単位の上限、バージョン、証跡を確認してください。既定の保護期間は最長期間以内にする必要があります。",
     pt: "Verifique as datas, os limites em dias inteiros, a versão e a evidência. A proteção padrão deve caber no período máximo.",
-    zh: "请检查日期、整天限制、版本和证据。默认保护期不得超过最长期限。",
+    zh: "请检查日期、天数限制（须为整数）、版本和证据。默认保护期不得超过最长期限。",
     ar: "تحقق من التواريخ وحدود الأيام الكاملة والإصدار والدليل. يجب ألا تتجاوز الحماية الافتراضية المدة القصوى.",
   },
   "adminGovernance.channelPolicy.result.approved": {
@@ -3879,7 +3879,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Genehmigung bei einer anderen genehmigenden Person aus der Finanzabteilung beantragt. Der Inhalt ist während der Prüfung gesperrt.",
     ja: "別の財務承認者に提案しました。確認中は内容を変更できません。",
     pt: "Proposta para outro aprovador financeiro. O conteúdo fica congelado durante a revisão.",
-    zh: "已提交给另一位财务审批人。审核期间内容冻结。",
+    zh: "已提交，等待另一位财务审批人审批。审核期间内容冻结。",
     ar: "اقتُرحت على موافِق مالي آخر. ويُجمَّد المحتوى أثناء المراجعة.",
   },
   "adminGovernance.channelPolicy.result.saved": {
@@ -3899,7 +3899,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Über diese Version muss eine genehmigende Person aus der Finanzabteilung entscheiden, die sie weder erstellt noch bearbeitet noch beantragt hat.",
     ja: "このバージョンは、作成、編集、提案のいずれにも関わっていない財務承認者が判断する必要があります。",
     pt: "Esta versão deve ser decidida por um aprovador financeiro que não a tenha criado, editado nem proposto.",
-    zh: "必须由未创建、未编辑且未提议此版本的财务审批人作出决定。",
+    zh: "必须由未创建、未编辑且未提交此版本的财务审批人作出决定。",
     ar: "يجب أن يبتّ في هذا الإصدار موافِق مالي لم ينشئه ولم يعدّله ولم يقترحه.",
   },
   "adminGovernance.channelPolicy.error.versionConflict": {
@@ -4011,7 +4011,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "die Funktionssteuerung",
     ja: "機能の制御",
     pt: "os controles de funcionalidades",
-    zh: "功能控制",
+    zh: "功能管控",
     ar: "ضوابط الوظائف",
   },
   "adminGovernance.providers.registryUnavailable": {
@@ -4291,7 +4291,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Nachweisreferenz",
     ja: "証跡の参照",
     pt: "Referência da evidência",
-    zh: "证据引用",
+    zh: "证据编号",
     ar: "مرجع الدليل",
   },
   "adminGovernance.providers.bootstrapNote": {
@@ -4391,7 +4391,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Referenz des Rotationsnachweises",
     ja: "ローテーションの証跡の参照",
     pt: "Referência da evidência de rotação",
-    zh: "轮换证据引用",
+    zh: "轮换证据编号",
     ar: "مرجع دليل التدوير",
   },
   "adminGovernance.providers.form.reason": {
@@ -4431,7 +4431,7 @@ export const adminGovernanceMessages = defineMessages({
     de: "Prüfen Sie alle Felder. Verwenden Sie eine Secret-Manager-Referenz, einen ISO-Rotationszeitpunkt in UTC, ein Prüfintervall von 1 bis 730 Tagen und eine Nachweisreferenz.",
     ja: "すべての項目を確認してください。シークレットマネージャーの参照、UTC の ISO 形式のローテーション日時、1〜730日の確認間隔、証跡の参照を入力してください。",
     pt: "Verifique todos os campos. Use uma referência do gerenciador de segredos, data e hora de rotação ISO em UTC, intervalo de revisão de 1 a 730 dias e uma referência de evidência.",
-    zh: "请检查所有字段。请使用密钥管理器引用、UTC 的 ISO 格式轮换时间、1–730 天的复核间隔和证据引用。",
+    zh: "请检查所有字段。请使用密钥管理器引用、UTC 的 ISO 格式轮换时间、1–730 天的复核间隔和证据编号。",
     ar: "تحقق من جميع الحقول. استخدم مرجعًا من مدير الأسرار ووقت تدوير بصيغة ISO بتوقيت UTC وفاصل مراجعة من 1 إلى 730 يومًا ومرجعًا للدليل.",
   },
   "adminGovernance.providers.result.saved": {

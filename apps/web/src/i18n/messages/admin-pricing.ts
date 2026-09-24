@@ -332,7 +332,7 @@ export const adminPricingMessages = defineMessages({
     de: "TB-Monat",
     ja: "TB-月",
     pt: "TB-mês",
-    zh: "TB-月",
+    zh: "TB·月",
     ar: "تيرابايت/شهر",
   },
   "adminPricing.unit.tbMonthQuantity": {
@@ -342,7 +342,7 @@ export const adminPricingMessages = defineMessages({
     de: "{quantity} TB-Monat",
     ja: "{quantity} TB-月",
     pt: "{quantity} TB-mês",
-    zh: "{quantity} TB-月",
+    zh: "{quantity} TB·月",
     ar: "{quantity} تيرابايت/شهر",
   },
   "adminPricing.unit.quantity": {
@@ -434,7 +434,7 @@ export const adminPricingMessages = defineMessages({
     de: "Prüfen Sie Preisblattversionen, Vertriebswege, Preisuntergrenzen und die Aktivierungsbereitschaft. Über Aktivierungen entscheiden genehmigende Personen aus der Finanzabteilung.",
     ja: "料金表のバージョン、販売形態、下限価格、有効化の準備状況を確認します。有効化の判断は財務承認者が行います。",
     pt: "Revise as versões das tarifas, as modalidades de venda, os preços mínimos e a prontidão para ativação. As decisões de ativação cabem aos aprovadores financeiros.",
-    zh: "查看费率表版本、销售模式、底价和启用准备情况。启用决定由财务审批人作出。",
+    zh: "查看费率表版本、销售模式、底价和启用就绪情况。启用决定由财务审批人作出。",
     ar: "راجع إصدارات جداول الأسعار ومسارات البيع والحدود الدنيا للأسعار ومدى الجاهزية للتفعيل. تعود قرارات التفعيل إلى الموافِقين الماليين.",
   },
   "adminPricing.priceBooks.notice.title": {
@@ -454,7 +454,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinien für nutzungsbasierte Abrechnung und Testphasen konfigurieren",
     ja: "従量課金とトライアルのポリシーを設定",
     pt: "Configurar políticas de pagamento por uso e de período de teste",
-    zh: "配置按量付费和试用策略",
+    zh: "配置按量付费和试用政策",
     ar: "تهيئة سياسات الدفع حسب الاستخدام والفترات التجريبية",
   },
   "adminPricing.priceBooks.link.channel": {
@@ -880,7 +880,7 @@ export const adminPricingMessages = defineMessages({
     de: "Preislistenversionen und Aktivierungsbereitschaft",
     ja: "価格表のバージョンと有効化の準備状況",
     pt: "Versões das tabelas de preços e prontidão para ativação",
-    zh: "价目表版本与启用准备情况",
+    zh: "价目表版本与启用就绪情况",
     ar: "إصدارات قوائم الأسعار ومدى الجاهزية للتفعيل",
   },
   "adminPricing.priceBooks.col.regions": {
@@ -930,7 +930,7 @@ export const adminPricingMessages = defineMessages({
     de: "{from} bis {to}",
     ja: "{from}～{to}",
     pt: "De {from} a {to}",
-    zh: "{from} 至 {to}",
+    zh: "{from}至 {to}",
     ar: "من {from} إلى {to}",
   },
   "adminPricing.priceBooks.effectiveFrom": {
@@ -940,7 +940,7 @@ export const adminPricingMessages = defineMessages({
     de: "Ab {from}",
     ja: "{from}から",
     pt: "A partir de {from}",
-    zh: "{from} 起",
+    zh: "自 {from}起",
     ar: "اعتبارًا من {from}",
   },
   "adminPricing.priceBooks.activation.scheduled": {
@@ -950,7 +950,7 @@ export const adminPricingMessages = defineMessages({
     de: "Geplant zum {date}",
     ja: "{date}に予約済み",
     pt: "Agendada para {date}",
-    zh: "已计划于 {date}",
+    zh: "计划于 {date}启用",
     ar: "مجدولة في {date}",
   },
   "adminPricing.priceBooks.activation.proposedBy": {
@@ -1140,7 +1140,7 @@ export const adminPricingMessages = defineMessages({
     de: "Für diese Version steht Ihnen keine Entscheidung offen.",
     ja: "このバージョンについて実行できる判断はありません。",
     pt: "Não há nenhuma decisão sobre esta versão disponível para você.",
-    zh: "此版本没有可由您作出的决定。",
+    zh: "此版本当前没有需要您作出的决定。",
     ar: "لا يوجد قرار متاح لك بشأن هذا الإصدار.",
   },
   "adminPricing.priceBooks.activation.empty": {
@@ -1180,7 +1180,7 @@ export const adminPricingMessages = defineMessages({
     de: "Prüfung der Zeitplanaufhebung",
     ja: "予約取り消しの確認",
     pt: "Revisão do cancelamento do agendamento",
-    zh: "取消计划审核",
+    zh: "取消启用计划的审核",
     ar: "مراجعة إلغاء الجدولة",
   },
   "adminPricing.priceBooks.review.activationTitle": {
@@ -1190,7 +1190,7 @@ export const adminPricingMessages = defineMessages({
     de: "Finanzprüfung der Aktivierung",
     ja: "有効化の財務確認",
     pt: "Revisão financeira da ativação",
-    zh: "启用财务审核",
+    zh: "财务启用审核",
     ar: "المراجعة المالية للتفعيل",
   },
   "adminPricing.priceBooks.review.summaryTitle": {
@@ -1250,7 +1250,7 @@ export const adminPricingMessages = defineMessages({
       many: "Aprova {count} de tarifas em {regions} a partir de {date}.",
       other: "Aprova {count} tarifas em {regions} a partir de {date}.",
     },
-    zh: { other: "批准 {regions} 的 {count} 个费率表，自 {date} 起生效。" },
+    zh: { other: "批准 {regions} 的 {count} 个费率表，自 {date}起生效。" },
     ar: {
       zero: "لا يعتمد أي جدول أسعار في {regions} اعتبارًا من {date}.",
       one: "يعتمد جدول أسعار واحدًا في {regions} اعتبارًا من {date}.",
@@ -1267,7 +1267,7 @@ export const adminPricingMessages = defineMessages({
     de: "Genehmigt eine Version ohne Preisblätter ab {date}.",
     ja: "料金表のないバージョンを{date}から承認します。",
     pt: "Aprova uma versão sem tarifas a partir de {date}.",
-    zh: "批准一个不含费率表的版本，自 {date} 起生效。",
+    zh: "批准一个不含费率表的版本，自 {date}起生效。",
     ar: "يعتمد إصدارًا بلا جداول أسعار اعتبارًا من {date}.",
   },
   "adminPricing.priceBooks.review.evidence.saved": {
@@ -1313,7 +1313,7 @@ export const adminPricingMessages = defineMessages({
     de: "Genehmigter Zeitplan, gültig ab {date}",
     ja: "承認済みの予約（{date}から適用）",
     pt: "Agendamento aprovado com vigência em {date}",
-    zh: "已批准的计划，自 {date} 起生效",
+    zh: "已批准的计划，自 {date}起生效",
     ar: "جدولة معتمدة تسري اعتبارًا من {date}",
   },
   "adminPricing.priceBooks.review.evidence.notProposed": {
@@ -1383,7 +1383,7 @@ export const adminPricingMessages = defineMessages({
     de: "Suchen Sie nach Name oder Version. Die technische ID wird sicher übermittelt.",
     ja: "名前またはバージョンで検索します。技術 ID は安全に送信されます。",
     pt: "Pesquise por nome ou versão. O ID técnico é enviado com segurança.",
-    zh: "按名称或版本搜索。技术 ID 将安全提交。",
+    zh: "按名称或版本搜索。技术 ID 将以安全方式提交。",
     ar: "ابحث بالاسم أو الإصدار. يُرسَل المعرّف التقني بشكل آمن.",
   },
   "adminPricing.priceBooks.rateCardCount": {
@@ -1713,7 +1713,7 @@ export const adminPricingMessages = defineMessages({
     de: "Gültig vom {from} (UTC) bis {to}.",
     ja: "{from}（UTC）から{to}まで適用されます。",
     pt: "Vigente de {from} (UTC) até {to}.",
-    zh: "自 {from}（UTC）起生效，至 {to} 止。",
+    zh: "自 {from}（UTC）起生效，至 {to}止。",
     ar: "يسري من {from} (UTC) حتى {to}.",
   },
   "adminPricing.priceBooks.schedule.windowOpen": {
@@ -1733,7 +1733,7 @@ export const adminPricingMessages = defineMessages({
     de: "Diese geprüfte Version ist gesperrt.",
     ja: "確認済みのこのバージョンはロックされています。",
     pt: "Esta versão revisada está bloqueada.",
-    zh: "此已审核版本已锁定。",
+    zh: "此版本已审核并锁定。",
     ar: "هذا الإصدار الذي رُوجع مقفل.",
   },
   "adminPricing.priceBooks.schedule.demoNote": {
@@ -1793,7 +1793,7 @@ export const adminPricingMessages = defineMessages({
     de: "Gespeicherte Änderungen an der Preisliste werden vor der Prüfung geladen…",
     ja: "確認の前に、保存済みの価格表の変更を読み込んでいます…",
     pt: "Carregando as alterações salvas da tabela de preços antes da revisão…",
-    zh: "正在加载已保存的价目表更改，然后再进行审核…",
+    zh: "审核前正在加载已保存的价目表更改…",
     ar: "جارٍ تحميل التغييرات المحفوظة على قائمة الأسعار قبل المراجعة…",
   },
   "adminPricing.priceBooks.review.refreshSaved": {
@@ -1823,7 +1823,7 @@ export const adminPricingMessages = defineMessages({
     de: "Genehmigung der Preisliste prüfen",
     ja: "価格表の承認を確認",
     pt: "Revisar a aprovação da tabela de preços",
-    zh: "审核价目表审批",
+    zh: "审核价目表审批决定",
     ar: "مراجعة الموافقة على قائمة الأسعار",
   },
   "adminPricing.priceBooks.clone.summary": {
@@ -1981,7 +1981,7 @@ export const adminPricingMessages = defineMessages({
     de: "Name der duplizierten Preisliste",
     ja: "複製する価格表の名前",
     pt: "Nome da tabela de preços duplicada",
-    zh: "复制后的价目表名称",
+    zh: "副本名称",
     ar: "اسم قائمة الأسعار المنسوخة",
   },
   "adminPricing.priceBooks.clone.version": {
@@ -1991,7 +1991,7 @@ export const adminPricingMessages = defineMessages({
     de: "Version der duplizierten Preisliste",
     ja: "複製する価格表のバージョン",
     pt: "Versão da tabela de preços duplicada",
-    zh: "复制后的价目表版本",
+    zh: "副本版本",
     ar: "إصدار قائمة الأسعار المنسوخة",
   },
   "adminPricing.priceBooks.clone.effective": {
@@ -2172,7 +2172,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinien für nutzungsbasierte Abrechnung und Testphasen",
     ja: "従量課金とトライアルのポリシー",
     pt: "Políticas de pagamento por uso e de período de teste",
-    zh: "按量付费与试用策略",
+    zh: "按量付费与试用政策",
     ar: "سياسات الدفع حسب الاستخدام والفترة التجريبية",
   },
   "adminPricing.payg.requestsPageTitle": {
@@ -2192,7 +2192,7 @@ export const adminPricingMessages = defineMessages({
     de: "Konfigurieren Sie versionierte nutzungsbasierte Preise und Regeln für Testphasen. Entwürfe müssen von einer anderen genehmigenden Person aus der Finanzabteilung genehmigt werden. Die Genehmigung dokumentiert, dass die Richtlinie bereit ist; die Aktivierung hängt weiterhin von Anbieterzuordnungen, externen Voraussetzungen und der Umstellung des Kontos ab.",
     ja: "バージョン管理された従量課金の料金とトライアルのルールを設定します。下書きの承認には、別の財務承認者が必要です。承認はポリシーの準備完了を記録するもので、有効化は引き続きプロバイダーのマッピング、外部ゲート、アカウントの切り替えによって制御されます。",
     pt: "Configure preços por uso e regras de período de teste com controle de versão. Os rascunhos exigem a aprovação de outro aprovador financeiro. A aprovação registra que a política está pronta; mapeamentos do provedor, pré-requisitos externos e a transição da conta continuam controlando a ativação.",
-    zh: "配置带版本的按量计费价格和试用规则。草稿须由另一位财务审批人批准。批准记录策略已就绪；启用仍受服务商映射、外部准入检查和账户切换控制。",
+    zh: "配置带版本的按量付费价格和试用规则。草稿须由另一位财务审批人批准。批准仅记录政策已就绪；启用仍受服务商映射、外部前置条件和账户切换控制。",
     ar: "اضبط أسعار الاستخدام وقواعد الفترة التجريبية بإصدارات مرقّمة. تتطلب المسودات موافقة موافِق مالي آخر. تُثبت الموافقة جاهزية السياسة، ويظل التفعيل خاضعًا لربط المزوّد والضوابط الخارجية ونقل الحساب.",
   },
   "adminPricing.payg.priceBooksLink": {
@@ -2222,7 +2222,7 @@ export const adminPricingMessages = defineMessages({
     de: "Fiktiver Arbeitsbereich für Richtlinien. Änderungen bleiben bis zum Zurücksetzen der Demo erhalten. Prüfen Sie den Antrag, den in der Demo eine andere Person gestellt hat, oder erstellen Sie einen Entwurf. Hier finden keine Anmeldung, keine Anbieterverifizierung, keine Abrechnung und keine echte Genehmigung von Richtlinien statt.",
     ja: "架空のポリシー作業スペースです。変更はデモをリセットするまで保持されます。別のデモ作成者による提案を確認するか、下書きを作成してください。ここでは登録、プロバイダー検証、請求処理、実際のポリシー承認は一切行われません。",
     pt: "Espaço de trabalho fictício. As alterações são mantidas até a demonstração ser redefinida. Revise a proposta de outro autor da demonstração ou crie um rascunho. Nenhuma adesão, verificação de provedor, execução de faturamento ou aprovação real de política acontece aqui.",
-    zh: "虚构的策略工作区。更改将保留到演示重置为止。请审核另一位演示作者提交的提案，或创建草稿。此处不会进行任何开通、服务商验证、计费执行或真实的策略批准。",
+    zh: "虚构的政策工作区。更改将保留到演示重置为止。请审核另一位演示作者提交的提案，或创建草稿。此处不会进行任何开通、服务商验证、计费执行或真实的政策批准。",
     ar: "مساحة عمل افتراضية للسياسات. تبقى التغييرات محفوظة حتى إعادة ضبط العرض التوضيحي. راجع المقترح المقدَّم من مؤلف آخر في العرض التوضيحي أو أنشئ مسودة. لا يجري هنا أي اشتراك أو تحقق من المزوّد أو تنفيذ للفوترة أو موافقة فعلية على السياسات.",
   },
   "adminPricing.payg.unavailable": {
@@ -2232,7 +2232,7 @@ export const adminPricingMessages = defineMessages({
     de: "Die Richtliniendatenbank ist nicht verfügbar. Es werden keine Richtlinienversionen angezeigt, und Änderungen können nicht gespeichert werden.",
     ja: "ポリシーのデータベースを利用できません。ポリシーのバージョンは表示されず、変更も保存できません。",
     pt: "O banco de dados de políticas está indisponível. Nenhuma versão é exibida e as alterações não podem ser salvas.",
-    zh: "策略数据库不可用。不显示任何策略版本，也无法保存更改。",
+    zh: "政策数据库不可用。不显示任何政策版本，也无法保存更改。",
     ar: "قاعدة بيانات السياسات غير متاحة. لا تُعرض أي إصدارات للسياسات ولا يمكن حفظ التغييرات.",
   },
   "adminPricing.payg.financeRequired": {
@@ -2242,7 +2242,7 @@ export const adminPricingMessages = defineMessages({
     de: "Zur Verwaltung dieser Richtlinien ist die Rolle „Genehmigende Person (Finanzen)“ erforderlich.",
     ja: "これらのポリシーを管理するには、財務承認者の権限が必要です。",
     pt: "É necessário o acesso de aprovador financeiro para gerenciar estas políticas.",
-    zh: "管理这些策略需要财务审批人权限。",
+    zh: "管理这些政策需要财务审批人权限。",
     ar: "تتطلب إدارة هذه السياسات صلاحية الموافِق المالي.",
   },
   "adminPricing.payg.status.draft": {
@@ -2292,7 +2292,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinienversion {version} ist ein Entwurf. Die Aktivierung für den Vertrieb bleibt unverändert.",
     ja: "ポリシーのバージョン {version} は下書きです。販売の有効化状態は変わりません。",
     pt: "A versão {version} da política está em rascunho. A ativação para venda não muda.",
-    zh: "策略版本 {version} 为草稿。销售启用状态不变。",
+    zh: "政策版本 {version} 为草稿。销售启用状态不变。",
     ar: "الإصدار {version} من السياسة مسودة. لم يتغير تفعيل البيع.",
   },
   "adminPricing.payg.saved.proposed": {
@@ -2302,7 +2302,7 @@ export const adminPricingMessages = defineMessages({
     de: "Für Richtlinienversion {version} wurde die Genehmigung durch die Finanzabteilung beantragt. Die Aktivierung für den Vertrieb bleibt unverändert.",
     ja: "ポリシーのバージョン {version} を財務承認に申請しました。販売の有効化状態は変わりません。",
     pt: "A versão {version} da política foi proposta para aprovação financeira. A ativação para venda não muda.",
-    zh: "策略版本 {version} 已提交财务审批。销售启用状态不变。",
+    zh: "政策版本 {version} 已提交财务审批。销售启用状态不变。",
     ar: "اقتُرح الإصدار {version} من السياسة للموافقة المالية. لم يتغير تفعيل البيع.",
   },
   "adminPricing.payg.saved.approved": {
@@ -2312,7 +2312,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinienversion {version} ist genehmigt. Die Aktivierung für den Vertrieb bleibt unverändert.",
     ja: "ポリシーのバージョン {version} は承認済みです。販売の有効化状態は変わりません。",
     pt: "A versão {version} da política está aprovada. A ativação para venda não muda.",
-    zh: "策略版本 {version} 已批准。销售启用状态不变。",
+    zh: "政策版本 {version} 已批准。销售启用状态不变。",
     ar: "تمت الموافقة على الإصدار {version} من السياسة. لم يتغير تفعيل البيع.",
   },
   "adminPricing.payg.saved.retired": {
@@ -2322,7 +2322,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinienversion {version} ist für künftige Anmeldungen außer Kraft gesetzt. Die Aktivierung für den Vertrieb bleibt unverändert.",
     ja: "ポリシーのバージョン {version} を今後の登録に対して廃止しました。販売の有効化状態は変わりません。",
     pt: "A versão {version} da política foi descontinuada para novas adesões. A ativação para venda não muda.",
-    zh: "策略版本 {version} 已停用，不再用于新的开通。销售启用状态不变。",
+    zh: "政策版本 {version} 已停用，不再用于新的开通。销售启用状态不变。",
     ar: "أُوقف الإصدار {version} من السياسة للاشتراكات المستقبلية. لم يتغير تفعيل البيع.",
   },
   "adminPricing.payg.versions.title": {
@@ -2332,7 +2332,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinienversionen",
     ja: "ポリシーのバージョン",
     pt: "Versões das políticas",
-    zh: "策略版本",
+    zh: "政策版本",
     ar: "إصدارات السياسات",
   },
   "adminPricing.payg.versions.new": {
@@ -2342,7 +2342,7 @@ export const adminPricingMessages = defineMessages({
     de: "Neuer Richtlinienentwurf",
     ja: "新規ポリシーの下書き",
     pt: "Novo rascunho de política",
-    zh: "新建策略草稿",
+    zh: "新建政策草稿",
     ar: "مسودة سياسة جديدة",
   },
   "adminPricing.payg.versions.option": {
@@ -2362,7 +2362,7 @@ export const adminPricingMessages = defineMessages({
     de: "Es sind keine Versionen von Richtlinien für nutzungsbasierte Abrechnung oder Testphasen gespeichert.",
     ja: "保存済みの従量課金またはトライアルのポリシーバージョンはありません。",
     pt: "Não há versões salvas de políticas de pagamento por uso ou de período de teste.",
-    zh: "没有已保存的按量付费或试用策略版本。",
+    zh: "没有已保存的按量付费或试用政策版本。",
     ar: "لا توجد إصدارات محفوظة لسياسات الدفع حسب الاستخدام أو الفترة التجريبية.",
   },
   "adminPricing.payg.selected.label": {
@@ -2372,7 +2372,7 @@ export const adminPricingMessages = defineMessages({
     de: "Ausgewählte Richtlinie",
     ja: "選択中のポリシー",
     pt: "Política selecionada",
-    zh: "所选策略",
+    zh: "所选政策",
     ar: "السياسة المحددة",
   },
   "adminPricing.payg.selected.pricing": {
@@ -2382,7 +2382,7 @@ export const adminPricingMessages = defineMessages({
     de: "{price} pro TB-Monat; monatlicher Mindestbetrag {minimum}. Mindestbetrag für angebrochene Monate: {partial}.",
     ja: "TB-月あたり {price}、月額最低料金 {minimum}。部分月の最低料金：{partial}。",
     pt: "{price} por TB-mês; mínimo mensal de {minimum}. Mínimo em meses parciais: {partial}.",
-    zh: "每 TB-月 {price}；每月最低消费 {minimum}。不足整月的最低消费：{partial}。",
+    zh: "每 TB·月 {price}；每月最低消费 {minimum}。不足整月的最低消费：{partial}。",
     ar: "{price} لكل تيرابايت/شهر، والحد الأدنى الشهري {minimum}. الحد الأدنى للأشهر الجزئية: {partial}.",
   },
   "adminPricing.payg.selected.trial": {
@@ -2434,7 +2434,7 @@ export const adminPricingMessages = defineMessages({
     de: "Vollständige Richtlinie und Genehmigungsnachweise",
     ja: "ポリシーの全文と承認の証跡",
     pt: "Política completa e evidências de aprovação",
-    zh: "完整策略与审批证据",
+    zh: "完整政策与审批证据",
     ar: "السياسة الكاملة وأدلة الموافقة",
   },
   "adminPricing.payg.decision.reason": {
@@ -2474,7 +2474,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinienversion genehmigen",
     ja: "ポリシーのバージョンを承認",
     pt: "Aprovar versão da política",
-    zh: "批准策略版本",
+    zh: "批准政策版本",
     ar: "الموافقة على إصدار السياسة",
   },
   "adminPricing.payg.decision.reject": {
@@ -2494,7 +2494,7 @@ export const adminPricingMessages = defineMessages({
     de: "Für künftige Anmeldungen außer Kraft setzen",
     ja: "今後の登録に対して廃止",
     pt: "Descontinuar para novas adesões",
-    zh: "停用于新的开通",
+    zh: "不再用于新开通",
     ar: "إيقاف للاشتراكات المستقبلية",
   },
   "adminPricing.payg.decision.distinctRequired": {
@@ -2526,7 +2526,7 @@ export const adminPricingMessages = defineMessages({
     de: "Verwendet die gespeicherte Richtlinie und einen vollständigen Kalendermonat in UTC. Diese Simulation erstellt weder eine Kundenanmeldung noch eine Rechnung. Steuern sind nicht enthalten.",
     ja: "保存済みのポリシーと、UTC 基準の暦月1か月分を使用します。このシミュレーションでは顧客の登録も請求書も作成されません。税金は含まれません。",
     pt: "Usa a política salva e um mês civil completo em UTC. Esta simulação não cria adesão de cliente nem fatura. Os impostos não estão incluídos.",
-    zh: "使用已保存的策略和一个完整的 UTC 自然月。此模拟不会创建任何客户开通或发票。不含税。",
+    zh: "使用已保存的政策和一个完整的 UTC 自然月。此模拟不会创建任何客户开通或发票。不含税。",
     ar: "تستخدم السياسة المحفوظة وشهرًا تقويميًا كاملًا بتوقيت UTC. لا تُنشئ هذه المحاكاة أي اشتراك للعميل أو فاتورة. الضرائب غير مشمولة.",
   },
   "adminPricing.payg.simulator.month": {
@@ -2636,7 +2636,7 @@ export const adminPricingMessages = defineMessages({
     de: "Aufstockung auf den monatlichen Mindestbetrag",
     ja: "月額最低料金の調整",
     pt: "Ajuste ao mínimo mensal",
-    zh: "月度最低消费补差",
+    zh: "每月最低消费补差",
     ar: "تسوية الحد الأدنى الشهري",
   },
 
@@ -2658,7 +2658,7 @@ export const adminPricingMessages = defineMessages({
     de: "Name der Richtlinie",
     ja: "ポリシー名",
     pt: "Nome da política",
-    zh: "策略名称",
+    zh: "政策名称",
     ar: "اسم السياسة",
   },
   "adminPricing.payg.form.sku": {
@@ -2708,7 +2708,7 @@ export const adminPricingMessages = defineMessages({
     de: "Verantwortliche Person für die Richtlinie",
     ja: "ポリシー担当者",
     pt: "Responsável pela política",
-    zh: "策略负责人",
+    zh: "政策负责人",
     ar: "المسؤول عن السياسة",
   },
   "adminPricing.payg.form.sourceUri": {
@@ -2778,7 +2778,7 @@ export const adminPricingMessages = defineMessages({
     de: "Preis pro TB-Monat",
     ja: "TB-月あたりの料金",
     pt: "Preço por TB-mês",
-    zh: "每 TB-月价格",
+    zh: "每 TB·月价格",
     ar: "السعر لكل تيرابايت/شهر",
   },
   "adminPricing.payg.form.storagePriceHint": {
@@ -3018,7 +3018,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinie zur Kundengewinnung einbeziehen",
     ja: "顧客獲得ポリシーを含める",
     pt: "Incluir a política de aquisição de clientes",
-    zh: "包含客户获取策略",
+    zh: "包含获客政策",
     ar: "تضمين سياسة استقطاب العملاء",
   },
   "adminPricing.payg.form.acceptPayg": {
@@ -3128,7 +3128,7 @@ export const adminPricingMessages = defineMessages({
     de: "Aufbewahrungsrichtlinie",
     ja: "保持ポリシー",
     pt: "Política de retenção",
-    zh: "保留策略",
+    zh: "保留政策",
     ar: "سياسة الاحتفاظ",
   },
   "adminPricing.payg.form.retention.documentId": {
@@ -3138,7 +3138,7 @@ export const adminPricingMessages = defineMessages({
     de: "Referenz des Dokuments zur Aufbewahrungsrichtlinie",
     ja: "保持ポリシードキュメントの参照番号",
     pt: "Referência do documento da política de retenção",
-    zh: "保留策略文档编号",
+    zh: "保留政策文档编号",
     ar: "مرجع مستند سياسة الاحتفاظ",
   },
   "adminPricing.payg.form.retention.version": {
@@ -3148,7 +3148,7 @@ export const adminPricingMessages = defineMessages({
     de: "Version des Dokuments zur Aufbewahrungsrichtlinie",
     ja: "保持ポリシードキュメントのバージョン",
     pt: "Versão do documento da política de retenção",
-    zh: "保留策略文档版本",
+    zh: "保留政策文档版本",
     ar: "إصدار مستند سياسة الاحتفاظ",
   },
   "adminPricing.payg.form.retention.uri": {
@@ -3158,7 +3158,7 @@ export const adminPricingMessages = defineMessages({
     de: "URL des Dokuments zur Aufbewahrungsrichtlinie",
     ja: "保持ポリシードキュメントの URL",
     pt: "URL do documento da política de retenção",
-    zh: "保留策略文档 URL",
+    zh: "保留政策文档 URL",
     ar: "عنوان URL لمستند سياسة الاحتفاظ",
   },
   "adminPricing.payg.form.retention.hash": {
@@ -3168,7 +3168,7 @@ export const adminPricingMessages = defineMessages({
     de: "SHA-256 des exakten Dokuments zur Aufbewahrungsrichtlinie",
     ja: "保持ポリシードキュメント（正確な版）の SHA-256",
     pt: "SHA-256 do documento da política de retenção exato",
-    zh: "确切保留策略文档的 SHA-256",
+    zh: "确切保留政策文档的 SHA-256",
     ar: "قيمة SHA-256 لمستند سياسة الاحتفاظ بنسخته الدقيقة",
   },
   "adminPricing.payg.form.saveDraft": {
@@ -3188,7 +3188,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinienentwurf erstellen",
     ja: "ポリシーの下書きを作成",
     pt: "Criar rascunho de política",
-    zh: "创建策略草稿",
+    zh: "创建政策草稿",
     ar: "إنشاء مسودة سياسة",
   },
 
@@ -3240,7 +3240,7 @@ export const adminPricingMessages = defineMessages({
     de: "Einmalige Inanspruchnahme der Testphase {id} gespeichert. Die Durchsetzung beim Anbieter erfordert den verifizierten Autorisierungsadapter.",
     ja: "トライアルの利用登録 {id}（組織につき1回限り）を保存しました。プロバイダー側での適用には、検証済みの認可アダプターが必要です。",
     pt: "Concessão única de período de teste {id} registrada. A aplicação pelo provedor exige o adaptador de autorização verificado.",
-    zh: "已记录试用申领 {id}（每个组织终身一次）。服务商侧执行需要经过验证的授权适配器。",
+    zh: "已记录试用申领 {id}（终身仅限一次）。服务商侧执行需要经过验证的授权适配器。",
     ar: "سُجّلت مطالبة الفترة التجريبية {id}، وهي مرة واحدة لكل مؤسسة. يتطلب التطبيق لدى المزوّد محوّل التفويض الموثّق.",
   },
   "adminPricing.payg.trials.converted": {
@@ -3300,7 +3300,7 @@ export const adminPricingMessages = defineMessages({
     de: "Genehmigte Testphasenrichtlinie",
     ja: "承認済みのトライアルポリシー",
     pt: "Política de período de teste aprovada",
-    zh: "已批准的试用策略",
+    zh: "已批准的试用政策",
     ar: "سياسة الفترة التجريبية المعتمدة",
   },
   "adminPricing.payg.trials.evidence": {
@@ -3330,7 +3330,7 @@ export const adminPricingMessages = defineMessages({
     de: "Inanspruchnahme erfassen",
     ja: "利用登録を記録",
     pt: "Registrar concessão",
-    zh: "记录申领",
+    zh: "记录试用申领",
     ar: "تسجيل المطالبة",
   },
   "adminPricing.payg.trials.confirmConversion": {
@@ -3400,7 +3400,7 @@ export const adminPricingMessages = defineMessages({
     de: "Umstellung der Testphase bestätigen",
     ja: "移行を確認",
     pt: "Confirmar conversão",
-    zh: "确认转换",
+    zh: "确认试用转换",
     ar: "تأكيد التحويل",
   },
 
@@ -3482,7 +3482,7 @@ export const adminPricingMessages = defineMessages({
     de: "Erfassen Sie ein vorhandenes, verifiziertes Nutzungsrecht beim Anbieter und die genehmigte kaufmännische Umstellung. Damit wird festgehalten, wer abrechnet; es wird weder ein Anbieterkonto erstellt noch der Speicherdienst beendet.",
     ja: "検証済みの既存のプロバイダー利用権と、承認済みの商用切り替えを記録します。記録されるのは請求権限であり、プロバイダーのアカウント作成やストレージサービスの停止は行いません。",
     pt: "Registre um direito de uso de provedor existente e verificado e sua transição comercial aprovada. Isso registra quem fatura; não cria uma conta no provedor nem interrompe o serviço de armazenamento.",
-    zh: "记录现有的、已验证的服务商权益及其已批准的商务切换。此操作记录计费主体，不会创建服务商账户，也不会停止存储服务。",
+    zh: "记录现有的、已验证的服务商权益及其已批准的商务切换。此操作记录计费方，不会创建服务商账户，也不会停止存储服务。",
     ar: "سجّل استحقاقًا موجودًا وموثّقًا لدى المزوّد ونقله التجاري المعتمد. يسجّل ذلك الجهة المخوّلة بالفوترة، ولا يُنشئ حسابًا لدى المزوّد ولا يوقف خدمة التخزين.",
   },
   "adminPricing.payg.enrollments.record": {
@@ -3502,7 +3502,7 @@ export const adminPricingMessages = defineMessages({
     de: "Genehmigte Richtlinie",
     ja: "承認済みのポリシー",
     pt: "Política aprovada",
-    zh: "已批准的策略",
+    zh: "已批准的政策",
     ar: "السياسة المعتمدة",
   },
   "adminPricing.payg.enrollments.accountId": {
@@ -3592,7 +3592,7 @@ export const adminPricingMessages = defineMessages({
     de: "Abrechnende Stelle",
     ja: "請求権限",
     pt: "Responsável pelo faturamento",
-    zh: "计费主体",
+    zh: "计费方",
     ar: "الجهة المخوّلة بالفوترة",
   },
   "adminPricing.payg.enrollments.authority.filOne": {
@@ -3642,7 +3642,7 @@ export const adminPricingMessages = defineMessages({
     de: "Anmeldung {id} gespeichert. Die genehmigte Richtlinie und die Anbieteridentität sind jetzt festgeschrieben.",
     ja: "登録 {id} を保存しました。承認済みのポリシーとプロバイダーの識別情報は固定されました。",
     pt: "Adesão {id} registrada. A política aprovada e a identidade do provedor agora estão congeladas.",
-    zh: "已记录开通 {id}。其已批准的策略和服务商身份现已锁定。",
+    zh: "已记录开通 {id}。其已批准的政策和服务商身份现已冻结。",
     ar: "سُجّل الاشتراك {id}. أصبحت سياسته المعتمدة وهوية المزوّد مثبّتتين الآن.",
   },
   "adminPricing.payg.enrollments.cancelSummary": {
@@ -3724,7 +3724,7 @@ export const adminPricingMessages = defineMessages({
     de: "Prüfen Sie abgerechnete Zeiträume und Korrekturen, und erstellen Sie dann die zugehörigen Finanzbelege. Jeder Vorgang kann nur einmal in einen Beleg überführt werden; die Zustellung durch den Anbieter unterliegt weiterhin der Funktionssteuerung. Korrekturen bezahlter Rechnungen erzeugen ein Guthaben auf dem Kundenkonto; eine Rückzahlung erfordert eine separat genehmigte Erstattung.",
     ja: "料金計算済みの期間と修正を確認し、対応する財務書類を作成します。書類を作成できるのは各項目につき1回だけです。プロバイダーからの送付は、引き続き機能ゲートの対象です。支払済みの請求書に対する修正は顧客の残高クレジットになります。現金での返金には、別途承認された返金が必要です。",
     pt: "Revise os períodos tarifados e as correções e, em seguida, crie os documentos financeiros correspondentes. Cada lançamento só pode gerar documento uma vez; o envio pelo provedor continua sujeito aos controles de funcionalidades. Correções de faturas pagas geram crédito no saldo do cliente; reembolsos em dinheiro exigem um reembolso aprovado separadamente.",
-    zh: "审核已计费的期间和更正，然后创建相应的财务单据。每个事项只能生成一次单据；服务商交付仍受功能关卡限制。已付款发票的更正将计入客户余额抵扣；现金退款需另行批准退款。",
+    zh: "审核已计费的期间和更正，然后创建相应的财务单据。每个事项只能生成一次单据；服务商交付仍受功能前置条件限制。已付款发票的更正将计入客户余额抵扣；现金退款需另行批准退款。",
     ar: "راجع الفترات المسعّرة والتصحيحات، ثم أنشئ المستندات المالية المقابلة. لا يمكن إنشاء مستند لكل عملية إلا مرة واحدة، ويظل التسليم عبر المزوّد خاضعًا لضوابط الإمكانات. تُنشئ تصحيحات الفواتير المدفوعة رصيدًا دائنًا للعميل، ويتطلب الاسترداد النقدي استردادًا معتمدًا منفصلًا.",
   },
   "adminPricing.payg.billing.refresh": {
@@ -3850,7 +3850,7 @@ export const adminPricingMessages = defineMessages({
     de: "Die genehmigte Richtlinie muss zu diesem Nutzungsrecht beim Anbieter passen und am Tag des Servicebeginns gültig sein.",
     ja: "承認済みのポリシーは、このプロバイダー利用権と一致し、サービス開始日に適用されている必要があります。",
     pt: "A política aprovada deve corresponder a este direito de uso do provedor e estar vigente na data de início do serviço.",
-    zh: "已批准的策略必须与此服务商权益一致，并在服务开始日期生效。",
+    zh: "已批准的政策必须与此服务商权益一致，并在服务开始日期生效。",
     ar: "يجب أن تطابق السياسة المعتمدة هذا الاستحقاق لدى المزوّد وأن تكون سارية في تاريخ بدء الخدمة.",
   },
   "adminPricing.payg.error.trialAccountNotCleared": {
@@ -3860,7 +3860,7 @@ export const adminPricingMessages = defineMessages({
     de: "Das Kundenkonto muss das Compliance-Screening bestanden haben, bevor eine Testphase in Anspruch genommen wird.",
     ja: "トライアルを利用登録する前に、顧客アカウントが審査を通過している必要があります。",
     pt: "A conta do cliente precisa passar pela triagem antes da concessão de um período de teste.",
-    zh: "申领试用前，客户账户必须通过合规审查。",
+    zh: "申领试用前，客户账户必须通过合规筛查。",
     ar: "يجب أن يجتاز حساب العميل الفحص قبل المطالبة بفترة تجريبية.",
   },
   "adminPricing.payg.error.trialAlreadyUsed": {
@@ -3910,7 +3910,7 @@ export const adminPricingMessages = defineMessages({
     de: "Wählen Sie eine genehmigte Testphasenrichtlinie mit gespeichertem Genehmigungsnachweis.",
     ja: "承認の証跡が保存されている、承認済みのトライアルポリシーを選択してください。",
     pt: "Escolha uma política de período de teste aprovada com evidência de aprovação registrada.",
-    zh: "请选择附有已保留审批证据的已批准试用策略。",
+    zh: "请选择附有已保留审批证据的已批准试用政策。",
     ar: "اختر سياسة فترة تجريبية معتمدة لها دليل موافقة محفوظ.",
   },
   "adminPricing.payg.error.enrollmentAlreadyBound": {
@@ -4020,7 +4020,7 @@ export const adminPricingMessages = defineMessages({
     de: "Zum Ändern von Richtlinien sind Ihre hinterlegte Zugehörigkeit zur Finanzabteilung und Ihre MFA-Registrierung erforderlich.",
     ja: "ポリシーを変更するには、登録済みの財務メンバーシップと MFA の登録が必要です。",
     pt: "Para alterar políticas, são necessários seu vínculo registrado com a área financeira e seu cadastro de MFA.",
-    zh: "更改策略需要您已保存的财务成员身份和 MFA 注册。",
+    zh: "更改政策需要您已保存的财务成员身份和 MFA 注册。",
     ar: "يتطلب تغيير السياسات عضويتك المالية المسجّلة وتسجيلك في MFA.",
   },
   "adminPricing.payg.error.unavailable": {
@@ -4030,7 +4030,7 @@ export const adminPricingMessages = defineMessages({
     de: "Der Richtliniendienst ist nicht verfügbar. Ihre Änderungen wurden nicht gespeichert.",
     ja: "ポリシーサービスを利用できません。変更は保存されていません。",
     pt: "O serviço de políticas está indisponível. Suas alterações não foram salvas.",
-    zh: "策略服务不可用。您的更改未保存。",
+    zh: "政策服务不可用。您的更改未保存。",
     ar: "خدمة السياسات غير متاحة. لم تُحفظ تغييراتك.",
   },
   "adminPricing.payg.error.recentAuthentication": {
@@ -4040,7 +4040,7 @@ export const adminPricingMessages = defineMessages({
     de: "Melden Sie sich erneut an, bevor Sie kaufmännische Richtlinien ändern.",
     ja: "商用ポリシーを変更する前に、もう一度サインインしてください。",
     pt: "Entre novamente antes de alterar a política comercial.",
-    zh: "更改商务策略前，请重新登录。",
+    zh: "更改商务政策前，请重新登录。",
     ar: "سجّل الدخول مرة أخرى قبل تغيير السياسة التجارية.",
   },
   "adminPricing.payg.error.sourceCheckedInFuture": {
@@ -4080,7 +4080,7 @@ export const adminPricingMessages = defineMessages({
     de: "Die Richtlinienänderung wurde nicht gespeichert. Aktualisieren Sie die Seite und prüfen Sie Ihren Finanzzugriff.",
     ja: "ポリシーの変更は保存されていません。ページを再読み込みし、財務のアクセス権を確認してください。",
     pt: "A alteração da política não foi salva. Atualize a página e verifique seu acesso financeiro.",
-    zh: "策略更改未保存。请刷新页面并检查您的财务访问权限。",
+    zh: "政策更改未保存。请刷新页面并检查您的财务访问权限。",
     ar: "لم يُحفظ تغيير السياسة. حدّث الصفحة وتحقق من صلاحية الوصول المالية لديك.",
   },
   "adminPricing.payg.error.csrf": {
@@ -4170,7 +4170,7 @@ export const adminPricingMessages = defineMessages({
     de: "Wählen Sie eine genehmigte Richtlinienversion.",
     ja: "承認済みのポリシーバージョンを選択してください。",
     pt: "Escolha uma versão de política aprovada.",
-    zh: "请选择已批准的策略版本。",
+    zh: "请选择已批准的政策版本。",
     ar: "اختر إصدار سياسة معتمدًا.",
   },
   "adminPricing.payg.error.enrollmentNotSaved": {
@@ -4220,7 +4220,7 @@ export const adminPricingMessages = defineMessages({
     de: "Die Richtlinienänderung ist fehlgeschlagen.",
     ja: "ポリシーの変更に失敗しました。",
     pt: "A alteração da política falhou.",
-    zh: "策略更改失败。",
+    zh: "政策更改失败。",
     ar: "فشل تغيير السياسة.",
   },
   // ── Price-book parts: discount authority, simulation, impact, import, diff ─
@@ -4418,7 +4418,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinien-ID",
     ja: "ポリシー ID",
     pt: "Identificador da política",
-    zh: "策略标识符",
+    zh: "政策标识符",
     ar: "معرّف السياسة",
   },
   "adminPricing.discounts.policyVersion": {
@@ -4428,7 +4428,7 @@ export const adminPricingMessages = defineMessages({
     de: "Richtlinienversion",
     ja: "ポリシーのバージョン",
     pt: "Versão da política",
-    zh: "策略版本",
+    zh: "政策版本",
     ar: "إصدار السياسة",
   },
   "adminPricing.discounts.defaultCeiling": {
@@ -4538,7 +4538,7 @@ export const adminPricingMessages = defineMessages({
     de: "Veröffentlichte und beantragte Richtlinien sind schreibgeschützt. Ein zurückgewiesener Entwurf kann bearbeitet und erneut beantragt werden.",
     ja: "公開済みおよび申請中のポリシーは閲覧のみです。却下された下書きは編集して再申請できます。",
     pt: "Políticas publicadas e propostas são somente leitura. Um rascunho rejeitado pode ser editado e proposto novamente.",
-    zh: "已发布或已提交审批的策略为只读。被驳回的草稿可编辑后重新提交。",
+    zh: "已发布或已提交审批的政策为只读。被驳回的草稿可编辑后重新提交。",
     ar: "السياسات المنشورة والمقترحة للقراءة فقط. يمكن تعديل المسودة المردودة واقتراحها مرة أخرى.",
   },
   "adminPricing.simulation.title": {
@@ -4548,7 +4548,7 @@ export const adminPricingMessages = defineMessages({
     de: "Simulation eines Laufzeitangebots",
     ja: "契約期間付き見積もりのシミュレーション",
     pt: "Simulação de cotação com prazo contratado",
-    zh: "定期报价模拟",
+    zh: "承诺期限报价模拟",
     ar: "محاكاة عرض سعر لمدة محددة",
   },
   "adminPricing.simulation.intro": {
@@ -4558,7 +4558,7 @@ export const adminPricingMessages = defineMessages({
     de: "Zeigt die gespeicherten Preisblätter und die Rabattbefugnis zum Gültigkeitsbeginn. Dabei wird keine Preisliste aktiviert und kein Angebot erstellt. Die Tarifierung der Nutzung bei nutzungsbasierter Abrechnung und die monatlichen Mindestbeträge regelt eine separate Abrechnungsrichtlinie.",
     ja: "保存済みの料金表と値引き権限を適用開始日時点でプレビューします。価格表の有効化や見積もりの作成は行われません。従量課金の利用料計算と月額最低料金は、別の請求ポリシーで管理されます。",
     pt: "Visualize as tarifas salvas e a alçada de desconto na data de vigência. Isso não ativa nenhuma tabela de preços nem cria uma cotação. A tarifação do consumo no pagamento por uso e os mínimos mensais seguem uma política de faturamento separada.",
-    zh: "按生效日期预览已保存的费率和折扣权限。此操作不会启用价目表，也不会创建报价。按量付费的用量计费和每月最低消费由单独的计费策略管理。",
+    zh: "按生效日期预览已保存的费率和折扣权限。此操作不会启用价目表，也不会创建报价。按量付费的用量计费和每月最低消费由单独的计费政策管理。",
     ar: "اعرض الأسعار المحفوظة وصلاحية الخصم كما في تاريخ السريان. لا يؤدي ذلك إلى تفعيل أي قائمة أسعار ولا إلى إنشاء عرض سعر. يخضع احتساب الاستخدام في الدفع حسب الاستخدام والحد الأدنى الشهري لسياسة فوترة منفصلة.",
   },
   "adminPricing.simulation.rate": {
@@ -5425,7 +5425,7 @@ export const adminPricingMessages = defineMessages({
     de: "Der Zuordnungsnachweis erfasst die angegebenen Referenzen; er zertifiziert keinen produktiven Anbieter und ermöglicht keinen Verkauf.",
     ja: "マッピングの証跡は提出された参照情報を記録するものです。稼働中のプロバイダーを認定するものではなく、販売を可能にするものでもありません。",
     pt: "A evidência de mapeamento registra as referências informadas; ela não certifica um provedor em produção nem habilita vendas.",
-    zh: "映射证据记录所提供的引用信息；它不认证在线服务商，也不会开放销售。",
+    zh: "映射证据仅记录所提供的编号信息；不会认证真实服务商，也不会开放销售。",
     ar: "يسجّل دليل الربط المراجع المقدَّمة، ولا يعتمد مزوّدًا فعليًا ولا يتيح البيع.",
   },
   "adminPricing.catalog.gatesSentence": {
@@ -5455,7 +5455,7 @@ export const adminPricingMessages = defineMessages({
     de: "Das Katalogverzeichnis ist nicht verfügbar. Prüfen Sie die Verbindung zur Steuerungsdatenbank und versuchen Sie es erneut.",
     ja: "カタログレジストリを利用できません。コントロールデータベースへの接続を確認し、再度お試しください。",
     pt: "O registro do catálogo está indisponível. Verifique a conexão com o banco de dados de controle e tente novamente.",
-    zh: "目录注册表不可用。请检查与控制数据库的连接后重试。",
+    zh: "目录登记库不可用。请检查与控制数据库的连接后重试。",
     ar: "سجلّ الكتالوج غير متاح. تحقّق من الاتصال بقاعدة بيانات التحكم وحاول مرة أخرى.",
   },
   "adminPricing.catalog.demoUnavailable": {
@@ -5575,7 +5575,7 @@ export const adminPricingMessages = defineMessages({
     de: "Referenz des Quellnachweises",
     ja: "ソースの証跡の参照",
     pt: "Referência da evidência de origem",
-    zh: "来源证据引用",
+    zh: "来源证据编号",
     ar: "مرجع دليل المصدر",
   },
   "adminPricing.catalog.form.reason": {
@@ -5615,7 +5615,7 @@ export const adminPricingMessages = defineMessages({
     de: "Prüfen Sie Anbieter-SKU, Region, Zähler, Nachweisreferenz und Grund.",
     ja: "プロバイダーの SKU、リージョン、メーター、証跡の参照、理由を確認してください。",
     pt: "Verifique o SKU do provedor, a região, o medidor, a referência da evidência e o motivo.",
-    zh: "请检查服务商 SKU、区域、计量项、证据引用和原因。",
+    zh: "请检查服务商 SKU、区域、计量项、证据编号和原因。",
     ar: "تحقّق من رمز SKU لدى المزوّد والمنطقة والعداد ومرجع الدليل والسبب.",
   },
   "adminPricing.catalog.result.saved": {

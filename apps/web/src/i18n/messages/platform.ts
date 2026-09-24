@@ -365,7 +365,7 @@ export const platformMessages = defineMessages({
     de: "Aktivierungsvoraussetzungen, Verantwortliche und Betriebshinweise prüfen",
     ja: "有効化要件、担当者、運用ガイドを確認します",
     pt: "Revise os pré-requisitos de ativação, os responsáveis e as orientações operacionais",
-    zh: "查看启用条件、负责人和操作指南",
+    zh: "查看启用前置条件、负责人和操作指南",
     ar: "راجع متطلبات التفعيل والمسؤولين والإرشادات التشغيلية",
   },
   "app.account.switch": {
@@ -425,7 +425,7 @@ export const platformMessages = defineMessages({
     de: "Diese Identität hat keine aktive Commerce-Mitgliedschaft. Ein Administrator der Organisation kann Zugriff gewähren, oder Sie melden sich ab und verwenden eine andere Identität.",
     ja: "この ID には有効なコマースメンバーシップがありません。組織管理者にアクセス権を依頼するか、別の ID でログインしてください。",
     pt: "Esta identidade não está vinculada a nenhuma organização ativa. Um administrador da organização pode conceder acesso, ou você pode sair e entrar com outra identidade.",
-    zh: "此身份没有有效的商务成员资格。组织管理员可授予访问权限，或您可退出并使用其他身份。",
+    zh: "此身份没有有效的商务成员资格。可由组织管理员授予访问权限，或退出登录后使用其他身份。",
     ar: "لا تملك هذه الهوية عضوية تجارية نشطة. يمكن لمسؤول المؤسسة منح الوصول، أو يمكنك تسجيل الخروج واستخدام هوية أخرى.",
   },
   "app.profile": {
@@ -545,7 +545,7 @@ export const platformMessages = defineMessages({
     de: "Zurück zum Dashboard",
     ja: "ダッシュボードに戻る",
     pt: "Voltar ao painel",
-    zh: "返回仪表板",
+    zh: "返回概览",
     ar: "العودة إلى لوحة المعلومات",
   },
   "nav.dashboard": {
@@ -925,7 +925,7 @@ export const platformMessages = defineMessages({
     de: "Genehmigungsprüfung",
     ja: "承認審査",
     pt: "Revisão de aprovações",
-    zh: "审批审核",
+    zh: "审批事项审核",
     ar: "مراجعة الموافقات",
   },
   "nav.internal.priceBooks": {
@@ -945,7 +945,7 @@ export const platformMessages = defineMessages({
     de: "Serviceanfragen",
     ja: "サービス申請",
     pt: "Solicitações de serviço",
-    zh: "服务请求",
+    zh: "服务申请",
     ar: "طلبات الخدمة",
   },
   "nav.internal.capabilities": {
@@ -1025,7 +1025,7 @@ export const platformMessages = defineMessages({
     de: "Vertragsunterlagen",
     ja: "法務記録",
     pt: "Registro jurídico",
-    zh: "法律记录",
+    zh: "法律文件",
     ar: "السجل القانوني",
   },
   "nav.group.service": {
@@ -1215,7 +1215,7 @@ export const platformMessages = defineMessages({
     de: "Geschäftsdaten sind bis {time} aktuell. Nutzungsdaten werden ergänzt, ohne Summen zu ändern.",
     ja: "取引記録は{time}時点まで最新です。使用量は合計を変えずに後から補完されます。",
     pt: "Os registros comerciais estão atualizados até {time}. Os dados de uso serão completados sem alterar os totais.",
-    zh: "商务记录已更新至 {time}。用量数据将补齐，不改变总计。",
+    zh: "商务记录已更新至 {time}。用量数据将补齐，不改变合计。",
     ar: "السجلات التجارية محدّثة حتى {time}. ستُستكمل بيانات الاستخدام دون تغيير الإجماليات.",
   },
   "state.success.title": {
@@ -1245,7 +1245,7 @@ export const platformMessages = defineMessages({
     de: "Markierten Wert prüfen",
     ja: "強調表示された値を確認",
     pt: "Revise o valor destacado",
-    zh: "检查突出显示的值",
+    zh: "请检查高亮显示的值",
     ar: "راجع القيمة المميزة",
   },
   "state.validation.description": {
@@ -1315,7 +1315,7 @@ export const platformMessages = defineMessages({
     de: "Lehnt der Vertrag sie ab, wird der alte Wert wiederhergestellt und der Fokus zur Erklärung verschoben.",
     ja: "契約条件で拒否された場合、前の値に戻り、説明にフォーカスが移動します。",
     pt: "Se o servidor rejeitar a alteração, o valor anterior será restaurado e o foco irá para a explicação.",
-    zh: "若合同约束拒绝此更改，将恢复原值并将焦点移至说明。",
+    zh: "若服务端校验拒绝此更改，将恢复原值，并将焦点移至说明。",
     ar: "إذا رفضته قواعد العقد، تُستعاد القيمة السابقة وينتقل التركيز إلى التوضيح.",
   },
   "states.offline.title": {
@@ -1379,7 +1379,7 @@ export const platformMessages = defineMessages({
     de: "Die Commerce-Datensätze von Fil One werden aus dem Betriebsregister synchronisiert.",
     ja: "Fil One の取引記録は業務台帳から同期されています。",
     pt: "Os registros comerciais da Fil One são sincronizados a partir do registro operacional.",
-    zh: "Fil One 的商务记录从运营台账同步。",
+    zh: "Fil One 商务记录同步自运营台账。",
     ar: "تُزامَن سجلات Fil One التجارية من السجل التشغيلي.",
   },
   "platform.shell.banner": {
@@ -1519,7 +1519,7 @@ export const platformMessages = defineMessages({
       many: "{percent} do prazo decorrido, {days} de dias desde o início",
       other: "{percent} do prazo decorrido, {days} dias desde o início",
     },
-    zh: { other: "期限已过 {percent}，自开始已 {days} 天" },
+    zh: { other: "期限已进行 {percent}，距开始已 {days} 天" },
     ar: {
       zero: "انقضى {percent} من المدة، ولم يمضِ أي يوم على بدايتها",
       one: "انقضى {percent} من المدة، ومضى يوم واحد على بدايتها",
@@ -1566,7 +1566,7 @@ export const platformMessages = defineMessages({
     de: "Laufzeit endet am {date}",
     ja: "契約期間の終了日は{date}",
     pt: "O prazo termina em {date}",
-    zh: "期限于 {date} 结束",
+    zh: "期限于 {date}结束",
     ar: "تنتهي المدة في {date}",
   },
   "platform.term.endsOn": {
@@ -1576,7 +1576,7 @@ export const platformMessages = defineMessages({
     de: "Endet am {date}",
     ja: "{date}に終了",
     pt: "Termina em {date}",
-    zh: "{date} 结束",
+    zh: "{date}结束",
     ar: "تنتهي في {date}",
   },
   "platform.term.noticeWindow": {
@@ -1586,7 +1586,7 @@ export const platformMessages = defineMessages({
     de: "Kündigungsfrist vom {start} bis {end}",
     ja: "通知期間は{start}～{end}",
     pt: "Aviso prévio de {start} a {end}",
-    zh: "通知期为 {start} 至 {end}",
+    zh: "通知期为 {start}至 {end}",
     ar: "فترة الإشعار من {start} إلى {end}",
   },
   "platform.term.state.autoRenews": {
@@ -1776,7 +1776,7 @@ export const platformMessages = defineMessages({
     de: "Wert prüfen",
     ja: "値を確認",
     pt: "Revisar valor",
-    zh: "检查值",
+    zh: "检查该值",
     ar: "مراجعة القيمة",
   },
   "platform.states.reviewLatest": {
@@ -1946,7 +1946,7 @@ export const platformMessages = defineMessages({
     de: "Prüfen und unterzeichnen",
     ja: "内容の確認と署名",
     pt: "Revisar e assinar",
-    zh: "审核并签署",
+    zh: "审阅并签署",
     ar: "المراجعة والتوقيع",
   },
   "signing.description": {
@@ -2316,7 +2316,7 @@ export const platformMessages = defineMessages({
     de: "Vereinbarungsreferenz: {reference}",
     ja: "契約の参照番号：{reference}",
     pt: "Referência do acordo: {reference}",
-    zh: "协议参考号：{reference}",
+    zh: "协议编号：{reference}",
     ar: "مرجع الاتفاقية: {reference}",
   },
   "platform.signing.returnUnknown": {
@@ -2386,7 +2386,7 @@ export const platformMessages = defineMessages({
     de: "Geben Sie die juristische Person, die Rechnungskontakte und die Unternehmensdomain an. Bevor ein Konto angelegt wird, löst der Server den WorkOS-Einmalcode ein und weist jede geschäftliche E-Mail-Adresse zurück, deren Domain von der Unternehmensdomain abweicht.",
     ja: "法人、請求担当者、会社のドメインを入力してください。アカウントを作成する前に、サーバーが WorkOS のワンタイムコードを引き換え、会社のドメインと異なるドメインの勤務先メールアドレスを拒否します。",
     pt: "Informe a pessoa jurídica, os contatos de faturamento e o domínio da empresa. Antes de criar qualquer conta, o servidor troca o código de uso único do WorkOS e rejeita o e-mail corporativo cujo domínio seja diferente do domínio da empresa.",
-    zh: "请填写法律实体、账单联系人和企业域名。创建任何账户之前，服务器会兑换 WorkOS 一次性代码，并拒绝域名与企业域名不一致的工作邮箱。",
+    zh: "请填写法律实体、账单联系人和企业域名。创建任何账户之前，服务器会先验证 WorkOS 一次性代码，并拒绝域名与企业域名不一致的工作邮箱。",
     ar: "أدخل الكيان القانوني وجهات اتصال الفوترة ونطاق الشركة. قبل إنشاء أي حساب، يستبدل الخادم الرمز الصالح لمرة واحدة من WorkOS ويرفض أي بريد إلكتروني للعمل يختلف نطاقه عن نطاق الشركة.",
   },
   "platform.registration.tokenReceived": {
@@ -2696,7 +2696,7 @@ export const platformMessages = defineMessages({
     de: "Bereits registriert? Anmelden",
     ja: "登録済みの場合はサインイン",
     pt: "Já tem cadastro? Entrar",
-    zh: "已注册？请登录",
+    zh: "已有账户？登录",
     ar: "مسجّل بالفعل؟ سجّل الدخول",
   },
   "platform.registration.accepted.title": {
@@ -2756,7 +2756,7 @@ export const platformMessages = defineMessages({
     de: "Prüfen Sie die Kennungen des Datensatzes, die Begründung und die Nachweisreferenz. Eine Ablehnung, eine Zurückweisung oder eine Rückbauanfrage beendet den laufenden kaufmännischen Vorgang; nur eine neue Entscheidung öffnet ihn wieder.",
     ja: "記録の識別子、理由、証跡の参照を確認してください。辞退、却下、撤去の申請を行うと現在の取引経路は閉じられ、再開するには新たな決定が必要です。",
     pt: "Confira os identificadores do registro, o motivo e a referência da evidência. Uma recusa, uma rejeição ou uma solicitação de desmantelamento encerra o caminho comercial atual; somente uma nova decisão o reabre.",
-    zh: "请检查记录标识符、理由和证据引用。拒绝、驳回或拆除请求会关闭当前商务路径；只有新的决定才能重新开启。",
+    zh: "请核对记录标识符、理由和证据编号。拒绝、驳回或拆除请求会关闭当前商务路径；只有新的决定才能重新开启。",
     ar: "تحقّق من معرّفات السجل والسبب ومرجع الدليل. يؤدي الرفض أو الردّ أو طلب التفكيك إلى إغلاق المسار التجاري الحالي، ولا يُعاد فتحه إلا بقرار جديد.",
   },
   "workflow.confirm.cancel": {
@@ -2798,7 +2798,7 @@ export const platformMessages = defineMessages({
     de: "Proof of Concept anfordern oder umwandeln",
     ja: "PoC（概念実証）の申請または本契約への移行",
     pt: "Solicitar ou converter uma prova de conceito",
-    zh: "申请或转换概念验证 (POC)",
+    zh: "申请或转换概念验证（POC）",
     ar: "طلب إثبات المفهوم (POC) أو تحويله",
   },
   "platform.workflow.title.renewal": {
@@ -3112,7 +3112,7 @@ export const platformMessages = defineMessages({
     de: "POC-ID",
     ja: "PoC ID",
     pt: "ID da POC",
-    zh: "概念验证 ID",
+    zh: sameAsEnglish("POC ID"),
     ar: "معرّف إثبات المفهوم",
   },
   "platform.workflow.poc.buyerUserId": {
@@ -3212,7 +3212,7 @@ export const platformMessages = defineMessages({
     de: "Erfolgskriterium",
     ja: "成功基準",
     pt: "Critério de sucesso",
-    zh: "成功标准",
+    zh: "成功测试",
     ar: "معيار النجاح",
   },
   "platform.workflow.poc.successTest.default": {
@@ -3232,7 +3232,7 @@ export const platformMessages = defineMessages({
     de: "Zielwert",
     ja: "目標値",
     pt: "Meta de sucesso",
-    zh: "目标",
+    zh: "成功目标",
     ar: "الهدف المطلوب",
   },
   "platform.workflow.poc.successTarget.default": {
@@ -3434,7 +3434,7 @@ export const platformMessages = defineMessages({
     de: "Nur bei einer Ablehnung erforderlich. Der Server erfasst dieses Dokument als Nachweis der Befugnis zur Ablehnung.",
     ja: "辞退する場合のみ必須です。サーバーはこのドキュメントを辞退権限の証跡として記録します。",
     pt: "Obrigatório apenas ao recusar. O servidor registra este documento como evidência da autoridade para a recusa.",
-    zh: "仅在拒绝时必填。服务器会将此文件记录为拒绝权限的证据。",
+    zh: "仅在拒绝时必填。服务器会将此文件记录为拒绝决定的授权证据。",
     ar: "مطلوب فقط عند الرفض. يسجّل الخادم هذا المستند دليلاً على صلاحية الرفض.",
   },
   "platform.workflow.renewal.attestation": {
@@ -3764,7 +3764,7 @@ export const platformMessages = defineMessages({
     de: "Gegengezeichnet",
     ja: "双方署名",
     pt: "Com contra-assinatura",
-    zh: "双方会签",
+    zh: "双方签署",
     ar: "بتوقيع مقابل",
   },
   "platform.workflow.agreement.approvalEvidenceDocumentId": {
@@ -3816,7 +3816,7 @@ export const platformMessages = defineMessages({
     de: "Verlängerungs- und Abwanderungsrisiko",
     ja: "契約更新と解約のリスク",
     pt: "Exposição a renovações e cancelamentos",
-    zh: "续约与流失风险",
+    zh: "续约与流失风险敞口",
     ar: "مخاطر التجديد وفقدان العملاء",
   },
   "platform.workflow.report.partnerPerformance": {
@@ -4117,7 +4117,7 @@ export const platformMessages = defineMessages({
     de: "Voraussetzung für die Auswahl",
     ja: "選定要件",
     pt: "Pré-requisito de seleção",
-    zh: "选定条件",
+    zh: "依据的前置条件",
     ar: "متطلب الاختيار",
   },
   "platform.trust.gaps.title": {
@@ -4283,7 +4283,7 @@ export const platformMessages = defineMessages({
     de: "Namentlich festgelegte Geld- und Richtlinienaktionen (eine Rechnung stornieren, eine Preisausnahme genehmigen, eine Preisliste aktivieren, eine Provision abrechnen oder zurückfordern und weitere derselben Art) erfordern zusätzlich eine erneute Authentifizierung in dem Moment, in dem sie versucht werden.",
     ja: "指定された金銭・ポリシー関連の操作（請求書の取り消し、価格例外の承認、価格表の有効化、コミッションの精算または返還、その他同種の操作）では、実行しようとした時点でさらに再認証が必要です。",
     pt: "Um conjunto definido de ações financeiras e de política (anular uma fatura, aprovar uma exceção de preço, ativar uma tabela de preços, liquidar ou estornar uma comissão, entre outras da mesma classe) exige, além disso, uma nova autenticação no momento em que são tentadas.",
-    zh: "特定的资金和策略类操作（作废发票、审批价格例外、启用价目表、结算或追回佣金，以及同类的其他操作）在尝试执行时，还需要重新进行身份验证。",
+    zh: "指定的资金和政策类操作（作废发票、审批价格例外、启用价目表、结算或追回佣金，以及同类的其他操作）在尝试执行时，还需要重新进行身份验证。",
     ar: "تتطلب إجراءات مالية وإجراءات سياسات محددة بالاسم (إلغاء فاتورة، والموافقة على استثناء تسعير، وتفعيل قائمة أسعار، وتسوية عمولة أو استردادها، وغيرها من الفئة نفسها) إعادة مصادقة جديدة إضافية لحظة محاولة تنفيذها.",
   },
   "platform.trust.control.rowLevelSecurity": {
@@ -5030,7 +5030,7 @@ export const platformMessages = defineMessages({
     de: "Keine Sitzung, keine Berechtigung, kein Kontobereich. Die Signatur ist die gesamte Kontrolle: Sie wird gegen den nicht geparsten Anfragetext geprüft, und die Ereignis-ID wird beansprucht, sodass eine erneute Zustellung dedupliziert statt doppelt angewendet wird. Diese Routen sind bewusst von der CSRF-Prüfung und der Pflicht zum Idempotenzschlüssel ausgenommen, und der Browser-Proxy schaltet ihnen keine Anmeldung vor.",
     ja: "セッション、権限、アカウントスコープはいずれもありません。署名がすべての制御です。署名は解析前のボディに対して検証され、イベント ID が記録されるため、再送は二重に適用されず重複として除外されます。これらのルートは意図的に CSRF と idempotency-key のチェックの対象外で、ブラウザープロキシもサインインを要求しません。",
     pt: "Sem sessão, sem permissão e sem escopo de conta. A assinatura é todo o controle: ela é verificada contra o corpo não analisado, e o ID do evento é registrado para que uma reentrega seja desduplicada em vez de aplicada duas vezes. Essas rotas são deliberadamente isentas das verificações de CSRF e de chave de idempotência, e o proxy do navegador não exige login antes delas.",
-    zh: "没有会话、权限和账户范围。签名就是全部控制：它针对未解析的正文进行验证，并登记事件 ID，因此重复投递会被去重，而不会被应用两次。这些路由有意免除 CSRF 和 idempotency-key 检查，浏览器代理也不会在其前面要求登录。",
+    zh: "没有会话、权限和账户范围。签名就是全部控制：它针对未解析的正文进行验证，并登记事件 ID，因此重复投递会被去重，而不会被应用两次。这些路由有意免除 CSRF 和幂等键检查，浏览器代理也不会在其前面要求登录。",
     ar: "لا جلسة ولا صلاحية ولا نطاق حساب. التوقيع هو الضابط الوحيد: يُتحقَّق منه مقابل النص غير المحلَّل، ويُسجَّل معرّف الحدث بحيث يُستبعد التكرار عند إعادة التسليم بدلاً من تطبيقه مرتين. هذه المسارات مستثناة عمداً من فحص CSRF وفحص idempotency-key، ولا يفرض وكيل المتصفح تسجيل الدخول قبلها.",
   },
   "platform.developers.class.bootstrapToken.title": {

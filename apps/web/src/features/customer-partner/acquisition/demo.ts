@@ -69,7 +69,7 @@ const demoOfferWording: Readonly<
       de: "Fiktiver Speicher ohne Laufzeit",
       ja: "架空の期間なしストレージ",
       pt: "Armazenamento fictício sem fidelidade",
-      zh: "虚构的无期限存储",
+      zh: "虚构的无合约期存储",
       ar: "تخزين افتراضي بلا مدة التزام",
     }),
     serviceNotice: demoText({
@@ -79,7 +79,7 @@ const demoOfferWording: Readonly<
       de: "Nur eine fiktive Demo. Ihre Anfrage aktiviert keinen Mandanten beim Anbieter und startet keine Abrechnung. Vor Beginn des Services ist eine verifizierte Übergabe erforderlich.",
       ja: "架空のデモです。この申請によってプロバイダーのテナントが有効化されたり、課金が開始されたりすることはありません。サービス開始前に、確認済みの引き継ぎが必要です。",
       pt: "Apenas uma demonstração fictícia. Sua solicitação não ativa um locatário no provedor nem inicia o faturamento. É necessário um encaminhamento verificado antes do início do serviço.",
-      zh: "仅为虚构演示。您的申请不会在服务商处激活租户，也不会开始计费。服务开始前需要完成经验证的交接。",
+      zh: "仅为虚构演示。您的申请不会在服务商处开通租户，也不会开始计费。服务开始前需要完成经验证的交接。",
       ar: "عرض توضيحي افتراضي فقط. لا يؤدي طلبك إلى تفعيل مستأجر لدى المزوّد ولا إلى بدء الفوترة. يلزم تسليم مُتحقق منه قبل بدء الخدمة.",
     }),
     trialNotice: demoText({

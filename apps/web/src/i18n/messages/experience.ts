@@ -64,7 +64,7 @@ export const experienceMessages = defineMessages({
     de: "Kennungen, maßgebliche Referenzen, Nachweise, Dokumente und die letzten Audit-Ereignisse dieser unveränderlichen Version.",
     ja: "この変更不可のバージョンの識別子、適用される参照、証跡、文書、最新の監査イベントです。",
     pt: "Identificadores, referências aplicáveis, evidências, documentos e os eventos de auditoria mais recentes desta versão imutável.",
-    zh: "此不可变版本的标识符、适用引用、证据、文档和最近的审计事件。",
+    zh: "此不可变版本的标识符、适用依据、证据、文档和最近的审计事件。",
     ar: "المعرّفات والمراجع الحاكمة والأدلة والمستندات وأحدث أحداث التدقيق لهذا الإصدار غير القابل للتغيير.",
   },
   "detail.provenance": {
@@ -124,7 +124,7 @@ export const experienceMessages = defineMessages({
     de: "Audit-Verlauf",
     ja: "監査履歴",
     pt: "Histórico de auditoria",
-    zh: "审计时间线",
+    zh: "审计记录",
     ar: "السجل الزمني للتدقيق",
   },
 
@@ -167,7 +167,7 @@ export const experienceMessages = defineMessages({
     de: "„{action}“ ist eingereiht. Das maßgebliche Ergebnis steht aus.",
     ja: "「{action}」はキューに入りました。正式な結果を待っています。",
     pt: "“{action}” está na fila. Aguardando o resultado oficial.",
-    zh: "“{action}”已排队，正在等待权威结果。",
+    zh: "“{action}”已排队，正在等待正式结果。",
     ar: "أُضيف «{action}» إلى قائمة الانتظار. بانتظار النتيجة المعتمدة.",
   },
   "experience.action.applied": {
@@ -177,7 +177,7 @@ export const experienceMessages = defineMessages({
     de: "„{action}“ wurde angewendet. Maßgebliche Version: {version}.",
     ja: "「{action}」を正式バージョン {version} に適用しました。",
     pt: "“{action}” foi aplicado na versão oficial {version}.",
-    zh: "“{action}”已应用于权威版本 {version}。",
+    zh: "“{action}”已应用于正式版本 {version}。",
     ar: "طُبِّق «{action}» على الإصدار المعتمد {version}.",
   },
   "experience.action.appliedUnknownVersion": {
@@ -187,7 +187,7 @@ export const experienceMessages = defineMessages({
     de: "„{action}“ wurde angewendet. Die maßgebliche Version wurde nicht zurückgegeben.",
     ja: "「{action}」を適用しました。正式バージョンは返されませんでした。",
     pt: "“{action}” foi aplicado. A versão oficial não foi retornada.",
-    zh: "“{action}”已应用，但未返回权威版本。",
+    zh: "“{action}”已应用，但未返回正式版本。",
     ar: "طُبِّق «{action}». لم يُرجَع الإصدار المعتمد.",
   },
   "experience.action.rejected": {
@@ -287,7 +287,7 @@ export const experienceMessages = defineMessages({
     de: "Der Befehl wirkt auf den maßgeblichen Datensatz und wird im Audit-Trail protokolliert. Eine Rücknahme erfordert eine separate autorisierte Aktion.",
     ja: "操作は正式な記録に対して実行され、監査証跡に記録されます。取り消すには、別途承認された操作が必要です。",
     pt: "O comando é executado no registro oficial e fica registrado na trilha de auditoria. Revertê-lo exige outra ação autorizada.",
-    zh: "该命令作用于权威记录，并写入审计跟踪。撤销需要另行执行经授权的操作。",
+    zh: "该命令作用于正式记录，并写入审计跟踪。撤销需要另行执行经授权的操作。",
     ar: "يُنفَّذ الأمر على السجل المعتمد ويُدوَّن في سجل التدقيق. يتطلب التراجع عنه إجراءً منفصلاً مصرَّحاً به.",
   },
   "projection.action.confirm.cancel": {
@@ -457,7 +457,7 @@ export const experienceMessages = defineMessages({
     de: "In kostenpflichtiges Angebot umwandeln",
     ja: "有料の見積もりに移行",
     pt: "Converter em cotação paga",
-    zh: "转换为付费报价",
+    zh: "转为付费报价",
     ar: "التحويل إلى عرض سعر مدفوع",
   },
   "projection.action.price": {
@@ -725,7 +725,7 @@ export const experienceMessages = defineMessages({
     de: "Voraussetzung",
     ja: "前提条件",
     pt: "Pré-requisito",
-    zh: "前置条件",
+    zh: "上游前提",
     ar: "المتطلب المسبق",
   },
   "experience.detail.chain.agreementAuthority": {
@@ -745,7 +745,7 @@ export const experienceMessages = defineMessages({
     de: "Aktuelle Entscheidung",
     ja: "現在の判断",
     pt: "Decisão atual",
-    zh: "当前决策",
+    zh: "当前决定",
     ar: "القرار الحالي",
   },
   "experience.detail.chain.quoteScope": {
@@ -785,7 +785,7 @@ export const experienceMessages = defineMessages({
     de: "Maßgebliche Grundlage",
     ja: "正式な入力",
     pt: "Origem oficial",
-    zh: "权威输入",
+    zh: "正式输入",
     ar: "المُدخل المعتمد",
   },
   "experience.detail.chain.acceptedQuote": {
@@ -815,7 +815,7 @@ export const experienceMessages = defineMessages({
     de: "Maßgebliches Ergebnis",
     ja: "正式な結果",
     pt: "Resultado oficial",
-    zh: "权威结果",
+    zh: "正式结果",
     ar: "النتيجة المعتمدة",
   },
   "experience.detail.chain.serviceState": {
@@ -875,7 +875,7 @@ export const experienceMessages = defineMessages({
     de: "Angebotsentscheidungen",
     ja: "見積もりの判断",
     pt: "Decisões sobre cotações",
-    zh: "报价决策",
+    zh: "报价决定",
     ar: "قرارات عروض الأسعار",
   },
   "experience.detail.ledger.orders": {
@@ -885,7 +885,7 @@ export const experienceMessages = defineMessages({
     de: "Auftragsentscheidungen",
     ja: "注文の判断",
     pt: "Decisões sobre pedidos",
-    zh: "订单决策",
+    zh: "订单决定",
     ar: "قرارات الطلبات",
   },
   "experience.detail.heading.quotes": {
@@ -905,7 +905,7 @@ export const experienceMessages = defineMessages({
     de: "Gespeicherte Verpflichtungen prüfen",
     ja: "登録済みの確約の確認",
     pt: "Revisar os compromissos registrados",
-    zh: "审核已保存的承诺",
+    zh: "查看已保存的承诺",
     ar: "مراجعة الالتزامات المسجَّلة",
   },
   "experience.detail.heading.records": {
@@ -1041,7 +1041,7 @@ export const experienceMessages = defineMessages({
     de: "Nachweise zum Datensatz prüfen",
     ja: "記録の証跡を確認",
     pt: "Revisar as evidências do registro",
-    zh: "审核记录证据",
+    zh: "查看记录证据",
     ar: "مراجعة أدلة السجل",
   },
   "experience.detail.sign": {
@@ -1856,7 +1856,7 @@ export const experienceMessages = defineMessages({
     de: "{sku} · {region} · genehmigte Richtlinienversion {version}",
     ja: "{sku}・{region}・承認済みポリシーのバージョン {version}",
     pt: "{sku} · {region} · versão aprovada da política: {version}",
-    zh: "{sku} · {region} · 已批准的策略版本 {version}",
+    zh: "{sku} · {region} · 已批准的政策版本 {version}",
     ar: "{sku} · {region} · إصدار السياسة المعتمد: {version}",
   },
   "experience.derivation.servicePeriod": {
@@ -1866,7 +1866,7 @@ export const experienceMessages = defineMessages({
     de: "Leistungszeitraum: {start} bis {end} (Ende ausgeschlossen).",
     ja: "サービス期間：{start}〜{end}（終了日時を含まない）。",
     pt: "Período de serviço: de {start} a {end} (fim excluído).",
-    zh: "服务期间：{start} 至 {end}（不含结束时间）。",
+    zh: "服务期间：{start}至 {end}（不含结束日期）。",
     ar: "فترة الخدمة: من {start} إلى {end} (باستثناء النهاية).",
   },
   "experience.derivation.charge.storage": {
@@ -1906,7 +1906,7 @@ export const experienceMessages = defineMessages({
     de: "Anpassung an den Monatsmindestbetrag",
     ja: "月額最低料金の調整",
     pt: "Ajuste de mínimo mensal",
-    zh: "月度最低消费调整",
+    zh: "每月最低消费补差",
     ar: "تسوية الحد الأدنى الشهري",
   },
   "experience.derivation.charge.correction": {
@@ -2006,7 +2006,7 @@ export const experienceMessages = defineMessages({
     de: "Keine steuerliche Registrierung",
     ja: "登録なし",
     pt: "Sem inscrição fiscal",
-    zh: "未登记",
+    zh: "未进行税务登记",
     ar: "لا يوجد تسجيل ضريبي",
   },
 
@@ -2030,7 +2030,7 @@ export const experienceMessages = defineMessages({
     de: "Läuft am {date} ab · {relative}",
     ja: "{date} に失効・{relative}",
     pt: "Expira em {date} · {relative}",
-    zh: "{date} 到期 · {relative}",
+    zh: "{date}到期 · {relative}",
     ar: "ينتهي في {date} · {relative}",
   },
   "experience.display.expires.past": {
@@ -2040,7 +2040,7 @@ export const experienceMessages = defineMessages({
     de: "Am {date} abgelaufen · {relative}",
     ja: "{date} に失効済み・{relative}",
     pt: "Expirou em {date} · {relative}",
-    zh: "已于 {date} 到期 · {relative}",
+    zh: "已于 {date}到期 · {relative}",
     ar: "انتهى في {date} · {relative}",
   },
   "experience.display.expires.none": {
@@ -2060,7 +2060,7 @@ export const experienceMessages = defineMessages({
     de: "Fällig am {date} · {relative}",
     ja: "期限 {date}・{relative}",
     pt: "Vence em {date} · {relative}",
-    zh: "{date} 到期 · {relative}",
+    zh: "{date}到期 · {relative}",
     ar: "تستحق في {date} · {relative}",
   },
   "experience.display.due.none": {
@@ -2080,7 +2080,7 @@ export const experienceMessages = defineMessages({
     de: "Endet am {date} · {relative}",
     ja: "{date} に終了・{relative}",
     pt: "Termina em {date} · {relative}",
-    zh: "{date} 结束 · {relative}",
+    zh: "{date}结束 · {relative}",
     ar: "ينتهي في {date} · {relative}",
   },
   "experience.display.ends.past": {
@@ -2090,7 +2090,7 @@ export const experienceMessages = defineMessages({
     de: "Am {date} beendet · {relative}",
     ja: "{date} に終了済み・{relative}",
     pt: "Terminou em {date} · {relative}",
-    zh: "已于 {date} 结束 · {relative}",
+    zh: "已于 {date}结束 · {relative}",
     ar: "انتهى في {date} · {relative}",
   },
   "experience.display.ends.none": {
@@ -2130,7 +2130,7 @@ export const experienceMessages = defineMessages({
     de: "Angefordert am {date} · {relative}",
     ja: "{date} に申請・{relative}",
     pt: "Solicitado em {date} · {relative}",
-    zh: "{date} 提出申请 · {relative}",
+    zh: "{date}提出申请 · {relative}",
     ar: "طُلب في {date} · {relative}",
   },
   "experience.display.requested.none": {
@@ -2150,7 +2150,7 @@ export const experienceMessages = defineMessages({
     de: "Entschieden am {date}",
     ja: "{date} に決定",
     pt: "Decidido em {date}",
-    zh: "已于 {date} 作出决定",
+    zh: "已于 {date}作出决定",
     ar: "صدر القرار في {date}",
   },
   "experience.display.awaitingDecision": {
@@ -2170,7 +2170,7 @@ export const experienceMessages = defineMessages({
     de: "Bezahlt am {date}",
     ja: "{date} に支払い済み",
     pt: "Paga em {date}",
-    zh: "已于 {date} 付款",
+    zh: "已于 {date}付款",
     ar: "دُفعت في {date}",
   },
   "experience.display.effectiveFrom": {
@@ -2180,7 +2180,7 @@ export const experienceMessages = defineMessages({
     de: "Wirksam ab {date}",
     ja: "{date} 発効",
     pt: "Vigente desde {date}",
-    zh: "自 {date} 起生效",
+    zh: "自 {date}起生效",
     ar: "سارية اعتبارًا من {date}",
   },
   "experience.display.effectiveOnApproval": {
@@ -2200,7 +2200,7 @@ export const experienceMessages = defineMessages({
     de: "Neuer Versuch am {date}",
     ja: "{date} に再試行",
     pt: "Nova tentativa em {date}",
-    zh: "{date} 重试",
+    zh: "{date}重试",
     ar: "إعادة المحاولة في {date}",
   },
   "experience.display.noRetry": {
@@ -2250,7 +2250,7 @@ export const experienceMessages = defineMessages({
     de: "Mindestmargenprüfung: {result}",
     ja: "最低利益率チェック：{result}",
     pt: "Verificação de margem mínima: {result}",
-    zh: "最低利润率检查：{result}",
+    zh: "底价检查：{result}",
     ar: "فحص الحد الأدنى للهامش: {result}",
   },
   "experience.display.revisionNumber": {
@@ -2330,7 +2330,7 @@ export const experienceMessages = defineMessages({
     de: "Mindestmargenprüfung",
     ja: "最低利益率チェック",
     pt: "Verificação de margem mínima",
-    zh: "最低利润率检查",
+    zh: "底价检查",
     ar: "فحص الحد الأدنى للهامش",
   },
   "experience.display.label.expires": {
@@ -2520,7 +2520,7 @@ export const experienceMessages = defineMessages({
     de: "Schlussabrechnung",
     ja: "最終請求",
     pt: "Faturamento final",
-    zh: "最终结算",
+    zh: "最终账单",
     ar: "الفوترة النهائية",
   },
   "experience.display.label.teardown": {
@@ -2800,7 +2800,7 @@ export const experienceMessages = defineMessages({
     de: "Vertragsvorlage von Fil One",
     ja: "Fil One の契約書式",
     pt: "Contrato padrão da Fil One",
-    zh: "Fil One 合同文本",
+    zh: "Fil One 标准合同",
     ar: "نموذج عقد Fil One",
   },
   "experience.display.paper.theirs": {
@@ -2850,7 +2850,7 @@ export const experienceMessages = defineMessages({
     de: "Gegengezeichnet",
     ja: "双方署名",
     pt: "Assinado por ambas as partes",
-    zh: "双方会签",
+    zh: "双方签署",
     ar: "موقَّع من الطرفين",
   },
   "experience.display.amendment.upgrade": {
@@ -2950,7 +2950,7 @@ export const experienceMessages = defineMessages({
     de: "POC-Überführung in den Betrieb",
     ja: "PoC の本番移行",
     pt: "Conversão de POC",
-    zh: "POC 转正式",
+    zh: "POC 转商用",
     ar: "ترقية POC",
   },
   "experience.display.operation.sandbox": {
@@ -3000,7 +3000,7 @@ export const experienceMessages = defineMessages({
     de: "Verlängerungs- und Abwanderungsrisiko",
     ja: "契約更新と解約のリスク",
     pt: "Exposição a renovações e cancelamentos",
-    zh: "续约与流失风险",
+    zh: "续约与流失风险敞口",
     ar: "التعرض للتجديد والتسرب",
   },
   "experience.display.report.partnerPerformance": {
@@ -3040,7 +3040,7 @@ export const experienceMessages = defineMessages({
     de: "Wöchentliche Scorecard",
     ja: "週次スコアカード",
     pt: "Painel semanal de indicadores",
-    zh: "每周计分卡",
+    zh: "每周记分卡",
     ar: "بطاقة الأداء الأسبوعية",
   },
   "experience.display.exportStatus": {
@@ -3060,7 +3060,7 @@ export const experienceMessages = defineMessages({
     de: "Direktkunde",
     ja: "直販顧客",
     pt: "Cliente direto",
-    zh: "直销客户",
+    zh: "直接客户",
     ar: "عميل مباشر",
   },
   "experience.display.role.partner": {
@@ -3260,7 +3260,7 @@ export const experienceMessages = defineMessages({
     de: "Abrechnungsbetrieb",
     ja: "請求業務",
     pt: "Operações de faturamento",
-    zh: "开票运营",
+    zh: "账单运营",
     ar: "عمليات الفوترة",
   },
   "experience.display.queue.commissions": {

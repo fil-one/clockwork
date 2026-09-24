@@ -71,7 +71,7 @@ export const partnerMessages = defineMessages({
     de: "Verlängerung vor der Bestätigung prüfen",
     ja: "確定前の契約更新の確認",
     pt: "Revisar a renovação antes de confirmar",
-    zh: "确认前审核续约",
+    zh: "确认前核对续约",
     ar: "مراجعة التجديد قبل التأكيد",
   },
   "partner.title": {
@@ -151,7 +151,7 @@ export const partnerMessages = defineMessages({
     de: "Die Referenz ist unbekannt oder gehört zu einem Konto, das Sie nicht einsehen dürfen.",
     ja: "この参照は存在しないか、閲覧権限のないアカウントのものです。",
     pt: "A referência é desconhecida ou pertence a uma conta que você não tem autorização para ver.",
-    zh: "该引用不存在，或属于您无权查看的账户。",
+    zh: "该编号不存在，或属于您无权查看的账户。",
     ar: "المرجع غير معروف أو يعود إلى حساب غير مصرّح لك بعرضه.",
   },
   "partner.detail.notFound.action": {
@@ -181,7 +181,7 @@ export const partnerMessages = defineMessages({
     de: "Nächster Meilenstein",
     ja: "次のマイルストーン",
     pt: "Próximo marco",
-    zh: "下一里程碑",
+    zh: "下一个里程碑",
     ar: "المرحلة التالية",
   },
   "partner.detail.risk": {
@@ -231,7 +231,7 @@ export const partnerMessages = defineMessages({
     de: "Verstrichene Laufzeit, Kündigungsfrist und Enddatum erscheinen hier, sobald ein Auftrag oder eine Vereinbarung sie bereitstellt.",
     ja: "注文または契約で公開されると、経過期間、通知期間、終了日がここに表示されます。",
     pt: "O prazo decorrido, o aviso prévio e a data final aparecerão aqui quando um pedido ou acordo os publicar.",
-    zh: "订单或协议发布后，已过期限、通知期和结束日期将显示在此处。",
+    zh: "待订单或协议提供这些信息后，此处将显示已过期限、通知期和结束日期。",
     ar: "تظهر هنا المدة المنقضية وفترة الإشعار وتاريخ الانتهاء بعد أن ينشرها طلب أو اتفاقية.",
   },
   "partner.detail.transfer.description": {
@@ -401,7 +401,7 @@ export const partnerMessages = defineMessages({
     de: "Bestätigen Sie die Prüfung oben, um den bepreisten Entwurf zu erstellen.",
     ja: "価格付きの下書きを作成するには、上の確認内容にチェックを入れてください。",
     pt: "Confirme a revisão acima para criar o rascunho com preço.",
-    zh: "请先勾选上方的核对确认，再创建带价格的草稿。",
+    zh: "请先勾选上方的核对确认，再创建定价草稿。",
     ar: "أكّد المراجعة أعلاه لإنشاء المسودة المسعّرة.",
   },
   "partner.quote.new.disabled.created": {
@@ -411,7 +411,7 @@ export const partnerMessages = defineMessages({
     de: "Der bepreiste Entwurf wurde erstellt. Öffnen Sie ihn in der Angebotsliste, um fortzufahren.",
     ja: "価格付きの下書きを作成しました。続けるには見積もり一覧から開いてください。",
     pt: "O rascunho com preço foi criado. Abra-o na lista de cotações para continuar.",
-    zh: "带价格的草稿已创建。请从报价列表中打开以继续。",
+    zh: "定价草稿已创建。请从报价列表中打开以继续。",
     ar: "أُنشئت المسودة المسعّرة. افتحها من قائمة عروض الأسعار للمتابعة.",
   },
   "partner.quote.new.success": {
@@ -421,7 +421,7 @@ export const partnerMessages = defineMessages({
     de: "Der bepreiste Entwurf wurde erstellt. Öffnen Sie ihn, um die gespeicherten Preise und die nächsten Schritte zu prüfen.",
     ja: "価格付きの下書きを作成しました。開いて、保存された価格と次の手順を確認してください。",
     pt: "O rascunho com preço foi criado. Abra-o para revisar os preços salvos e os próximos passos.",
-    zh: "带价格的草稿已创建。请打开草稿，查看已保存的价格和后续步骤。",
+    zh: "定价草稿已创建。请打开草稿，查看已保存的价格和后续步骤。",
     ar: "أُنشئت المسودة المسعّرة. افتحها لمراجعة الأسعار المحفوظة والخطوات التالية.",
   },
   "partner.quote.new.failure": {
@@ -513,7 +513,7 @@ export const partnerMessages = defineMessages({
     de: "Zuordnung: vom Partner gewonnen",
     ja: "帰属：パートナー発掘",
     pt: "Atribuição: originada pelo parceiro",
-    zh: "归属：合作伙伴获取",
+    zh: "归属：合作伙伴开拓",
     ar: "الإسناد: مصدره الشريك",
   },
   "partner.collection.registrationCredit.pending": {
@@ -533,7 +533,7 @@ export const partnerMessages = defineMessages({
     de: "Zuordnung: keine Anrechnung als vom Partner gewonnen erfasst",
     ja: "帰属：発掘クレジットの記録なし",
     pt: "Atribuição: nenhum crédito de origem registrado",
-    zh: "归属：未记录获取归属",
+    zh: "归属：未记录开拓归属",
     ar: "الإسناد: لم يُسجَّل أي رصيد مصدره الشريك",
   },
 
@@ -545,7 +545,7 @@ export const partnerMessages = defineMessages({
     de: "Eine Verlängerungsanfrage betrifft die nächste finanzielle Verpflichtung und erfordert eine ausdrückliche Prüfung.",
     ja: "契約更新の依頼は次回の財務上の確約に影響するため、明示的な確認が必要です。",
     pt: "Uma solicitação de renovação afeta o próximo compromisso financeiro e exige uma revisão explícita.",
-    zh: "续约申请会影响下一期财务承诺，必须经过明确审核。",
+    zh: "续约申请会影响下一期财务承诺，必须经过明确核对。",
     ar: "يؤثر طلب التجديد في الالتزام المالي التالي ويتطلب مراجعة صريحة.",
   },
   "partner.renewal.reviewRecord": {
@@ -555,7 +555,7 @@ export const partnerMessages = defineMessages({
     de: "{name} prüfen",
     ja: "{name} を確認",
     pt: "Revisar {name}",
-    zh: "审核 {name}",
+    zh: "核对 {name}",
     ar: "مراجعة {name}",
   },
   "partner.renewal.noneSelected": {
@@ -627,7 +627,7 @@ export const partnerMessages = defineMessages({
     de: "Partnerbereich · Stand je Kunde",
     ja: "パートナー画面・顧客別の状況",
     pt: "Espaço do parceiro · Situação por cliente",
-    zh: "合作伙伴工作台 · 按客户查看",
+    zh: "合作伙伴工作台 · 指定客户商务状况",
     ar: "مساحة الشريك · الوضع حسب العميل",
   },
   "partner.surface.portfolio.title": {
@@ -847,7 +847,7 @@ export const partnerMessages = defineMessages({
     de: "Über Registrierungen entscheidet das Partnermanagement von Fil One; Partnerrollen können Nachweise einreichen und die Entscheidung verfolgen. Diese Seite leitet die Anrechnung als vom Partner gewonnen aus einer angenommenen Registrierung ab; eine Anrechnung als beeinflusst und Entscheidungen zu Streitfällen können hier nicht erfasst werden.",
     ja: "登録の判断は Fil One のチャネル運用チームが行います。パートナーのロールは証跡を提出し、判断の状況を確認できます。このページは承認された登録から発掘クレジットを算出しますが、影響クレジットや異議の判断はここでは記録できません。",
     pt: "As decisões sobre registros são tomadas pela equipe de operações de canal da Fil One; os perfis de parceiro podem enviar evidências e acompanhar a decisão. Esta página calcula o crédito de origem a partir de um registro aceito, mas decisões de crédito por influência e de contestações não podem ser registradas aqui.",
-    zh: "报备由 Fil One 渠道运营团队决定；合作伙伴角色可以提交证据并跟踪决定。本页根据已接受的报备计算获取归属，但无法在此记录影响归属和争议的决定。",
+    zh: "报备由 Fil One 渠道运营团队决定；合作伙伴角色可以提交证据并跟踪决定。本页根据已接受的报备计算开拓归属，但影响归属和争议的决定无法在此记录。",
     ar: "يتخذ فريق عمليات القنوات في Fil One قرارات التسجيل، ويمكن لأدوار الشريك تقديم الأدلة ومتابعة القرار. تستمد هذه الصفحة رصيد المصدر من التسجيل المقبول، ولا يمكن تسجيل قرارات الأثر أو النزاعات هنا.",
   },
   "partner.surface.disputes.eyebrow": {
@@ -877,7 +877,7 @@ export const partnerMessages = defineMessages({
     de: "Verfolgen Sie strittige Ansprüche, Fristen für Nachweise und die für die Entscheidung zuständige Stelle.",
     ja: "異議の申し立て、証跡の提出期限、判断の権限者を確認します。",
     pt: "Acompanhe reivindicações contestadas, prazos de evidências e quem tem autoridade para decidir.",
-    zh: "跟踪有争议的主张、证据截止时间和负责决定的一方。",
+    zh: "跟踪争议申诉、证据截止时间和负责决定的一方。",
     ar: "تابع المطالبات المتنازع عليها ومواعيد تقديم الأدلة والجهة المخوّلة باتخاذ القرار.",
   },
   "partner.surface.disputes.rule": {
@@ -947,7 +947,7 @@ export const partnerMessages = defineMessages({
     de: "Risikobetrag",
     ja: "影響額",
     pt: "Exposição",
-    zh: "涉及金额",
+    zh: "风险敞口",
     ar: "المبلغ المعرّض للخطر",
   },
   "partner.surface.disputes.column2": {
@@ -1097,7 +1097,7 @@ export const partnerMessages = defineMessages({
     de: "Partnerbereich · Rechnungen und bestätigte Zahlungen",
     ja: "パートナー画面・請求書と支払いの確定情報",
     pt: "Espaço do parceiro · Faturas e pagamentos confirmados",
-    zh: "合作伙伴工作台 · 发票与付款实况",
+    zh: "合作伙伴工作台 · 发票与已确认付款",
     ar: "مساحة الشريك · الفواتير والمدفوعات المؤكدة",
   },
   "partner.surface.billing.title": {
@@ -1187,7 +1187,7 @@ export const partnerMessages = defineMessages({
     de: "In Rechnung gestellter Betrag",
     ja: "請求額",
     pt: "Valor faturado",
-    zh: "开票金额",
+    zh: "已开票金额",
     ar: "المبلغ المفوتر",
   },
   "partner.surface.billing.column2": {
@@ -1227,7 +1227,7 @@ export const partnerMessages = defineMessages({
     de: "Sehen Sie aufgelaufene Provisionen, Gutschriften, Einbehalte und Auszahlungen, ohne Schätzungen mit vereinnahmten Umsätzen zu verwechseln.",
     ja: "計上額、クレジット、留保額、支払いを、見積額と回収済み収益を混同せずに確認できます。",
     pt: "Veja comissões provisionadas, créditos, valores retidos e repasses sem confundir estimativas com receita recebida.",
-    zh: "查看计提、抵扣、暂扣款和付款，不将预计金额与已收款收入混为一谈。",
+    zh: "查看计提、贷项、暂扣款和付款，不将预计金额与已收款收入混为一谈。",
     ar: "اطّلع على العمولات المستحقة والأرصدة الدائنة والمبالغ المحتجزة والمدفوعات دون الخلط بين التقديرات والإيرادات المحصّلة.",
   },
   "partner.surface.commissions.rule": {
@@ -1237,7 +1237,7 @@ export const partnerMessages = defineMessages({
     de: "Empfehlungsprovisionen laufen auf vereinnahmte Nettoumsätze auf; in den Abrechnungen werden Erstattungen, Gutschriften und Rückbuchungen verrechnet.",
     ja: "紹介報酬は回収済みの純収益に対して計上され、明細書では返金、クレジット、チャージバックが差し引かれます。",
     pt: "As comissões de indicação incidem sobre a receita líquida recebida e os demonstrativos descontam reembolsos, créditos e chargebacks.",
-    zh: "推荐佣金按已收款净收入计提，结算单扣除退款、抵扣和拒付。",
+    zh: "推荐佣金按已收款净收入计提，结算单扣除退款、贷项和拒付。",
     ar: "تُستحق عمولات الإحالة على صافي الإيرادات المحصّلة، وتخصم الكشوف المبالغ المستردة والأرصدة الدائنة والمبالغ المردودة.",
   },
   "partner.surface.commissions.count": {
@@ -1343,7 +1343,7 @@ export const partnerMessages = defineMessages({
     de: "Prüfen Sie die Einkaufs- und Wiederverkaufsverpflichtung, bevor Sie eine Änderung der Verlängerung anfragen.",
     ja: "契約更新の変更を依頼する前に、仕切と再販の確約内容を確認してください。",
     pt: "Revise o compromisso de repasse e de revenda antes de solicitar uma alteração na renovação.",
-    zh: "申请续约变更前，请审核供货和转售承诺。",
+    zh: "申请续约变更前，请核对供货和转售承诺。",
     ar: "راجع التزام التوريد وإعادة البيع قبل طلب تغيير في التجديد.",
   },
   "partner.surface.renewals.rule": {
@@ -1413,7 +1413,7 @@ export const partnerMessages = defineMessages({
     de: "Konditionen der Verlängerung",
     ja: "契約更新の条件",
     pt: "Condições financeiras da renovação",
-    zh: "续约经济条件",
+    zh: "续约价格条件",
     ar: "الشروط المالية للتجديد",
   },
   "partner.surface.renewals.column2": {
@@ -1443,7 +1443,7 @@ export const partnerMessages = defineMessages({
     de: "Testumgebungen und POCs",
     ja: "サンドボックスと PoC",
     pt: "Ambientes de testes e POCs",
-    zh: "沙盒与概念验证 (POC)",
+    zh: "沙盒与概念验证（POC）",
     ar: "بيئات الاختبار وإثباتات المفهوم (POC)",
   },
   "partner.surface.sandboxes.description": {
@@ -1453,7 +1453,7 @@ export const partnerMessages = defineMessages({
     de: "Verfolgen Sie Kapazitätsgrenzen, Erfolgstests, namentliche Zugänge und Ablaufdaten bis zur Umstellung auf kostenpflichtige Nutzung.",
     ja: "商用化の前に、容量上限、成功条件のテスト、指名アクセス、有効期限を確認します。",
     pt: "Acompanhe limites de capacidade, testes de sucesso, acessos nominais e validade antes da conversão comercial.",
-    zh: "在商业转化前，跟踪容量上限、成功测试、指定访问权限和到期时间。",
+    zh: "在转为正式商用前，跟踪容量上限、成功测试、指定访问人员和到期时间。",
     ar: "تابع حدود السعة واختبارات النجاح والوصول المخصص بالاسم وتاريخ الانتهاء قبل التحويل التجاري.",
   },
   "partner.surface.sandboxes.rule": {
@@ -1662,7 +1662,7 @@ export const partnerMessages = defineMessages({
     de: "Angebotsannahme und Auszahlungen erfolgen beim Marketplace-Anbieter; Fil One zeigt die synchronisierten Angaben des Anbieters.",
     ja: "オファーの承諾と支払いの操作はマーケットプレイスのプロバイダーで行います。Fil One は同期されたプロバイダーの情報を表示します。",
     pt: "A aceitação de ofertas e os repasses acontecem no provedor do marketplace; a Fil One exibe os dados sincronizados do provedor.",
-    zh: "报价接受和付款操作在云市场服务商处进行；Fil One 显示同步后的服务商信息。",
+    zh: "报价接受和付款操作在云市场服务商处进行；Fil One 显示的是从服务商同步的数据。",
     ar: "يتم قبول العروض وصرف المستحقات لدى مزوّد السوق الإلكتروني، وتعرض Fil One بيانات المزوّد بعد مزامنتها.",
   },
   "partner.surface.brand.eyebrow": {
@@ -1976,7 +1976,7 @@ export const partnerMessages = defineMessages({
     de: "Risikobetrag: {amount}",
     ja: "リスク対象額 {amount}",
     pt: "Em risco: {amount}",
-    zh: "涉险金额 {amount}",
+    zh: "风险敞口 {amount}",
     ar: "المبلغ المعرّض للخطر: {amount}",
   },
   "partner.position.disputed": {
@@ -2016,7 +2016,7 @@ export const partnerMessages = defineMessages({
     de: "Jährlich vereinnahmt: {amount}",
     ja: "年間回収額 {amount}",
     pt: "Recebido por ano: {amount}",
-    zh: "年度已收款 {amount}",
+    zh: "年收款 {amount}",
     ar: "المبلغ المحصّل سنويًا: {amount}",
   },
   "partner.position.buyerPrice": {
@@ -2132,7 +2132,7 @@ export const partnerMessages = defineMessages({
     de: "Verlängerungsentscheidung fällig am {date}",
     ja: "契約更新の判断期限 {date}",
     pt: "Decisão de renovação até {date}",
-    zh: "续约决定截止日期 {date}",
+    zh: "{date}前决定是否续约",
     ar: "موعد قرار التجديد: {date}",
   },
   "partner.milestone.commissionEligible": {
@@ -2152,7 +2152,7 @@ export const partnerMessages = defineMessages({
     de: "Qualifizierung heute fällig",
     ja: "本日が評価期限",
     pt: "A qualificação vence hoje",
-    zh: "资格评估今天到期",
+    zh: "今天需完成资格审核",
     ar: "موعد التأهيل اليوم",
   },
   "partner.milestone.invoiceDue": {
@@ -2162,7 +2162,7 @@ export const partnerMessages = defineMessages({
     de: "Rechnung {invoice} über {amount} ist am {date} fällig",
     ja: "請求書 {invoice}（{amount}）の支払期日 {date}",
     pt: "A fatura {invoice} de {amount} vence em {date}",
-    zh: "发票 {invoice}（金额 {amount}）将于 {date} 到期",
+    zh: "发票 {invoice}（金额 {amount}）将于 {date}到期",
     ar: "الفاتورة {invoice} بمبلغ {amount} مستحقة في {date}",
   },
   "partner.milestone.paymentConfirmed": {
@@ -2172,7 +2172,7 @@ export const partnerMessages = defineMessages({
     de: "Zahlung am {date} vom Anbieter bestätigt",
     ja: "{date} にプロバイダーが支払いを確認",
     pt: "Pagamento confirmado pelo provedor em {date}",
-    zh: "服务商已于 {date} 确认付款",
+    zh: "服务商已于 {date}确认付款",
     ar: "أكّد المزوّد الدفع في {date}",
   },
   "partner.milestone.responseDue": {
@@ -2182,7 +2182,7 @@ export const partnerMessages = defineMessages({
     de: "Antwort fällig am {date}",
     ja: "回答期限 {date}",
     pt: "Resposta até {date}",
-    zh: "{date} 前答复",
+    zh: "{date}前答复",
     ar: "موعد الرد: {date}",
   },
   "partner.milestone.acceptedOn": {
@@ -2192,7 +2192,7 @@ export const partnerMessages = defineMessages({
     de: "Angenommen am {date}",
     ja: "{date} に承諾済み",
     pt: "Aceita em {date}",
-    zh: "已于 {date} 接受",
+    zh: "已于 {date}接受",
     ar: "قُبل في {date}",
   },
   "partner.milestone.noticeActionDue": {
@@ -2202,7 +2202,7 @@ export const partnerMessages = defineMessages({
     de: "Entscheidung zur Kündigungsfrist fällig am {date}",
     ja: "通知期間の対応期限 {date}",
     pt: "Decisão sobre o aviso prévio até {date}",
-    zh: "{date} 前完成通知期处理",
+    zh: "{date}前完成通知期处理",
     ar: "موعد إجراء الإشعار: {date}",
   },
   "partner.milestone.noActionUntil": {
@@ -2212,7 +2212,7 @@ export const partnerMessages = defineMessages({
     de: "Bis {date} keine Aktion erforderlich",
     ja: "{date} まで対応不要",
     pt: "Nenhuma ação necessária até {date}",
-    zh: "{date} 前无需操作",
+    zh: "{date}前无需操作",
     ar: "لا يلزم أي إجراء قبل {date}",
   },
   "partner.milestone.draftExpires": {
@@ -2222,7 +2222,7 @@ export const partnerMessages = defineMessages({
     de: "Entwurf · läuft am {date} ab",
     ja: "下書き・有効期限 {date}",
     pt: "Rascunho · expira em {date}",
-    zh: "草稿 · {date} 到期",
+    zh: "草稿 · {date}到期",
     ar: "مسودة · تنتهي صلاحيتها في {date}",
   },
   "partner.milestone.issuedExpires": {
@@ -2232,7 +2232,7 @@ export const partnerMessages = defineMessages({
     de: "Ausgestellt · läuft am {date} ab",
     ja: "発行済み・有効期限 {date}",
     pt: "Emitida · expira em {date}",
-    zh: "已出具 · {date} 到期",
+    zh: "已出具 · {date}到期",
     ar: "صادر · تنتهي صلاحيته في {date}",
   },
   "partner.milestone.evidenceDueInDays": {
@@ -2348,7 +2348,7 @@ export const partnerMessages = defineMessages({
     de: "Schutz angerechnet",
     ja: "保護を認定済み",
     pt: "Proteção reconhecida",
-    zh: "保护已认定",
+    zh: "已获得保护",
     ar: "اعتُمدت الحماية",
   },
   "partner.milestone.filOneReviewing": {
@@ -2408,7 +2408,7 @@ export const partnerMessages = defineMessages({
     de: "Fil One bleibt als juristische Person ausgewiesen",
     ja: "Fil One の法人名は引き続き表示されます",
     pt: "A pessoa jurídica da Fil One continua identificada",
-    zh: "Fil One 法律实体仍予披露",
+    zh: "Fil One 法律实体始终披露",
     ar: "يبقى الكيان القانوني لشركة Fil One ظاهرًا",
   },
   "partner.milestone.addTxtRecord": {
@@ -2723,7 +2723,7 @@ export const partnerMessages = defineMessages({
     de: "{partner} ist als gewinnender Partner zugeordnet, weil dieser Vertriebsweg an eine genehmigte Deal-Registrierung gebunden ist.",
     ja: "この販売形態は承認済みの案件登録に紐づくため、{partner} が発掘パートナーです。",
     pt: "{partner} é o parceiro de origem porque esta modalidade está vinculada a um registro de oportunidade aprovado.",
-    zh: "此销售模式绑定了已批准的商机报备，因此 {partner} 为获取归属的合作伙伴。",
+    zh: "此销售模式绑定了已批准的商机报备，因此 {partner} 为开拓归属的合作伙伴。",
     ar: "يُنسب هذا المسار إلى الشريك {partner} لأنه مرتبط بتسجيل فرصة معتمد.",
   },
   "partner.attribution.merchantFilOne": {
@@ -2855,7 +2855,7 @@ export const partnerMessages = defineMessages({
     de: "{statement} öffnen",
     ja: "{statement} を開く",
     pt: "Abrir {statement}",
-    zh: "打开 {statement}",
+    zh: "打开“{statement}”",
     ar: "فتح {statement}",
   },
   "partner.desk.work.description": {
@@ -2945,7 +2945,7 @@ export const partnerMessages = defineMessages({
     de: "Fälligkeit oder Risikobetrag",
     ja: "期限または影響額",
     pt: "Vencimento ou exposição",
-    zh: "到期时间或涉及金额",
+    zh: "到期时间或风险敞口",
     ar: "الاستحقاق أو المبلغ المعرّض للخطر",
   },
   "partner.desk.boundary.title": {
@@ -2987,7 +2987,7 @@ export const partnerMessages = defineMessages({
     de: "Prüfen Sie den Lieferauftrag zu Ihrem vertraulichen Einkaufspreis und nehmen Sie ihn an. Der Vertrag mit Ihrem Kunden und die Abrechnung des Wiederverkaufs bleiben in Ihrer Verantwortung.",
     ja: "非公開の仕切価格で仕入注文を確認して承諾してください。顧客との契約と再販の請求は引き続き貴社の責任です。",
     pt: "Revise e aceite o pedido de fornecimento pelo seu preço de repasse confidencial. O contrato com o seu cliente e o faturamento da revenda continuam sob sua responsabilidade.",
-    zh: "请按您的保密供货价审核并接受供货订单。与客户的合同及转售开票仍由您负责。",
+    zh: "请按您的保密供货价审阅并接受供货订单。与客户的合同及转售开票仍由您负责。",
     ar: "راجع طلب التوريد واقبله بسعر التوريد السري الخاص بك. ويبقى العقد مع عميلك وفوترة إعادة البيع من مسؤوليتك.",
   },
   "partner.detail.quote.reviewOrder": {
@@ -2997,7 +2997,7 @@ export const partnerMessages = defineMessages({
     de: "Lieferauftrag prüfen",
     ja: "仕入注文を確認",
     pt: "Revisar pedido de fornecimento",
-    zh: "审核供货订单",
+    zh: "审阅供货订单",
     ar: "مراجعة طلب التوريد",
   },
   "partner.detail.quote.exampleTitle": {
@@ -3017,7 +3017,7 @@ export const partnerMessages = defineMessages({
     de: "Dieser Beispieldatensatz hat keine bearbeitbare Quelle. Erstellen Sie aus Ihrer aktuellen Preisliste ein bepreistes Angebot, um es zu bearbeiten, Dokumente auszustellen und die Antwort des Kunden einzuholen.",
     ja: "このデモ用の記録には編集可能な元データがありません。現在の価格表から価格付きの見積もりを作成すると、編集、書類の発行、顧客からの回答の受け取りができます。",
     pt: "Este registro de demonstração não tem origem editável. Crie uma cotação com preço a partir da sua tabela de preços atual para editá-la, emitir documentos e receber a resposta do cliente.",
-    zh: "此演示记录没有可编辑的来源。请根据当前价目表创建带价格的报价，即可编辑、出具文件并收集客户回复。",
+    zh: "此示例记录没有可编辑的来源。请根据当前价目表创建已定价的报价，即可编辑、出具文件并收集客户回复。",
     ar: "لا يملك هذا السجل التوضيحي مصدرًا قابلًا للتعديل. أنشئ عرض سعر مسعّرًا من قائمة أسعارك الحالية لتتمكن من تعديله وإصدار المستندات وتلقي رد العميل.",
   },
   "partner.detail.quote.exampleAction": {
@@ -3027,7 +3027,7 @@ export const partnerMessages = defineMessages({
     de: "Bepreistes Angebot erstellen",
     ja: "価格付きの見積もりを作成",
     pt: "Criar cotação com preço",
-    zh: "创建带价格的报价",
+    zh: "创建已定价的报价",
     ar: "إنشاء عرض سعر مسعّر",
   },
   "partner.detail.quote.documentsTitle": {
@@ -3289,7 +3289,7 @@ export const partnerMessages = defineMessages({
     de: "Ihr Auftrag liegt in der internen Übergabe an die Bereitstellung. Er hat keinen Service aktiviert.",
     ja: "注文は社内のプロビジョニング引き継ぎ中です。サービスは有効化されていません。",
     pt: "Seu pedido está no encaminhamento interno para provisionamento. Ele ainda não ativou nenhum serviço.",
-    zh: "您的订单正在内部移交开通，未启用任何服务。",
+    zh: "您的订单已移交内部开通流程，服务尚未启用。",
     ar: "طلبك قيد التسليم الداخلي للتهيئة، ولم يُفعِّل أي خدمة.",
   },
   "partner.orders.empty.title": {
@@ -3309,7 +3309,7 @@ export const partnerMessages = defineMessages({
     de: "Öffnen Sie ein ausgestelltes Partnerangebot, um den zugehörigen Lieferauftrag zu prüfen.",
     ja: "発行済みのパートナー見積もりを開いて、その仕入注文を確認してください。",
     pt: "Abra uma cotação de parceiro emitida para revisar o pedido de fornecimento.",
-    zh: "打开已出具的合作伙伴报价，审核其供货订单。",
+    zh: "打开已出具的合作伙伴报价，审阅其供货订单。",
     ar: "افتح عرض سعر شريك صادرًا لمراجعة طلب التوريد الخاص به.",
   },
   "partner.orders.empty.action": {
@@ -3319,7 +3319,7 @@ export const partnerMessages = defineMessages({
     de: "Partnerangebote prüfen",
     ja: "パートナー見積もりを確認",
     pt: "Revisar cotações de parceiro",
-    zh: "审核合作伙伴报价",
+    zh: "查看合作伙伴报价",
     ar: "مراجعة عروض أسعار الشريك",
   },
   "partner.orders.truncated": {
@@ -3621,7 +3621,7 @@ export const partnerMessages = defineMessages({
     de: "Prüfen Sie beide Preise, bevor Sie den bepreisten Entwurf erstellen.",
     ja: "価格付きの下書きを作成する前に、両方の価格を確認してください。",
     pt: "Revise os dois preços antes de criar o rascunho com preço.",
-    zh: "创建带价格的草稿前，请核对两种价格。",
+    zh: "创建定价草稿前，请核对两种价格。",
     ar: "راجع السعرين قبل إنشاء المسودة المسعّرة.",
   },
   "partner.quote.new.field.offer": {
@@ -3721,7 +3721,7 @@ export const partnerMessages = defineMessages({
     de: "Bepreisten Entwurf erstellen",
     ja: "価格付きの下書きを作成",
     pt: "Criar rascunho com preço",
-    zh: "创建带价格的草稿",
+    zh: "创建定价草稿",
     ar: "إنشاء مسودة مسعّرة",
   },
   "partner.quote.new.error.offer": {
@@ -4261,7 +4261,7 @@ export const partnerMessages = defineMessages({
     de: "Stellen Sie zwei getrennte Dokumente aus: das vertrauliche Einkaufsangebot für Ihr Team und das Angebot für den Endkunden. Mit der Ausstellung wird kein Auftrag erteilt und keine E-Mail versendet.",
     ja: "2 種類の書類を別々に発行します。貴社チーム向けの非公開の仕切価格と、エンド顧客向けの再販見積書です。発行しても注文は作成されず、メールも送信されません。",
     pt: "Emita dois documentos separados: o preço de repasse confidencial para a sua equipe e a sua cotação de revenda para o cliente final. A emissão não cria pedido nem envia e-mail.",
-    zh: "分别出具两份文件：供您团队使用的保密供货价，以及给终端客户的转售报价单。出具不会创建订单，也不会发送电子邮件。",
+    zh: "分别出具两份文件：供您团队内部使用的保密供货报价单，以及提供给终端客户的转售报价单。出具不会创建订单，也不会发送邮件。",
     ar: "أصدر مستندين منفصلين: تسعير التوريد السري لفريقك، وعرض سعر إعادة البيع للعميل النهائي. لا يؤدي الإصدار إلى إنشاء طلب ولا إلى إرسال بريد إلكتروني.",
   },
   "partner.quote.issue.action": {
@@ -4535,7 +4535,7 @@ export const partnerMessages = defineMessages({
     de: "Eine Deal-Registrierung nennt einen Endkunden, der bereits als Konto bei Fil One besteht. Ihr Partnerkonto kann nur Konten nennen, die bereits über eine genehmigte Registrierung oder ein bestehendes Partnerangebot erreichbar sind. Es wurde keines gefunden; das Partnermanagement von Fil One muss den Endkunden daher anlegen, bevor Sie ihn hier registrieren können.",
     ja: "案件登録では、Fil One のアカウントとして既に存在するエンド顧客を指定します。貴社のパートナーアカウントで指定できるのは、承認済みの登録または既存のパートナー見積もりで既に紐づいているアカウントだけです。該当するアカウントがないため、ここで登録する前に Fil One のチャネル運用チームがエンド顧客を開設する必要があります。",
     pt: "Um registro de oportunidade identifica um cliente final que já existe como conta da Fil One, e a sua conta de parceiro só pode identificar contas já alcançadas por um registro aprovado ou por uma cotação de parceiro existente. Nenhuma foi retornada, então a equipe de operações de canal da Fil One precisa abrir o cliente final antes que você possa registrá-lo aqui.",
-    zh: "商机报备须指定已作为 Fil One 账户存在的终端客户，且您的合作伙伴账户只能指定已由已批准报备或现有合作伙伴报价关联的账户。目前没有此类账户，因此须由 Fil One 渠道运营团队先开设该终端客户，您才能在此报备。",
+    zh: "商机报备须指定已作为 Fil One 账户存在的终端客户，且您的合作伙伴账户只能指定已批准的报备或现有合作伙伴报价所关联的账户。目前没有此类账户，因此须由 Fil One 渠道运营团队先开设该终端客户，您才能在此报备。",
     ar: "يحدد تسجيل الفرصة عميلًا نهائيًا موجودًا بالفعل كحساب لدى Fil One، ولا يستطيع حساب الشريك الخاص بك تحديد إلا الحسابات التي يشملها تسجيل معتمد أو عرض سعر شريك قائم. لم يُرجَع أي حساب، لذا يجب أن يفتح فريق عمليات القنوات في Fil One حساب العميل النهائي قبل أن تتمكن من تسجيله هنا.",
   },
   "partner.registration.askChannel": {
@@ -5157,7 +5157,7 @@ export const partnerMessages = defineMessages({
     de: "Teilen Sie die öffentliche API-Referenz und Integrationsspezifikation, wenn ein Kunde technische Details braucht.",
     ja: "顧客が技術的な詳細を必要とするときに、公開 API と連携仕様を共有します。",
     pt: "Compartilhe a API pública e o contrato de integração quando um cliente precisar de detalhes técnicos.",
-    zh: "客户需要技术细节时，分享公开 API 和集成约定。",
+    zh: "客户需要技术细节时，分享公开 API 和集成规范。",
     ar: "شارك واجهة API العامة ومواصفات التكامل عندما يحتاج العميل إلى تفاصيل تقنية.",
   },
   "partner.enablement.item.demo.title": {
@@ -5297,7 +5297,7 @@ export const partnerMessages = defineMessages({
     de: "Öffnen Sie das Streitfallregister des Partners mit dem erfassten Stand.",
     ja: "パートナーの異議一覧と記録された状況を開きます。",
     pt: "Abra o registro de contestações do parceiro e o status registrado.",
-    zh: "打开合作伙伴争议登记簿及其记录状态。",
+    zh: "打开合作伙伴争议记录及其当前状态。",
     ar: "افتح سجل نزاعات الشريك وحالتها المسجلة.",
   },
   "partner.enablement.item.support.title": {
@@ -5505,7 +5505,7 @@ export const partnerMessages = defineMessages({
     de: "Aktuelle Servicelaufzeit endet am {date}",
     ja: "現在のサービス期間の終了日：{date}",
     pt: "O prazo atual do serviço termina em {date}",
-    zh: "当前服务期限于 {date} 结束",
+    zh: "当前服务期限于 {date}结束",
     ar: "تنتهي مدة الخدمة الحالية في {date}",
   },
   "partner.renewal.review.transferPrice": {

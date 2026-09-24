@@ -113,7 +113,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Änderungen lassen sich über die Demo-Steuerung zurücksetzen.",
     ja: "変更は「デモ操作」からリセットできます。",
     pt: "É possível redefinir as alterações nos controles da demonstração.",
-    zh: "可在“演示控件”中重置更改。",
+    zh: "可通过演示控制面板重置更改。",
     ar: "يمكن إعادة ضبط التغييرات من عناصر التحكم بالعرض التجريبي.",
   },
 
@@ -137,7 +137,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Nachweise zum Datensatz",
     ja: "記録の証跡",
     pt: "Evidências do registro",
-    zh: "记录证据",
+    zh: "源记录证据",
     ar: "أدلة السجل",
   },
   "operations.finance.evidence.entry": {
@@ -844,7 +844,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Priorität / Rechnung",
     ja: "優先度／請求書",
     pt: "Prioridade / fatura",
-    zh: "优先级／发票",
+    zh: "优先级 / 发票",
     ar: "الأولوية / الفاتورة",
   },
   "operations.finance.collections.column.age": {
@@ -874,7 +874,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Bezahlt am {date}",
     ja: "支払日 {date}",
     pt: "Paga em {date}",
-    zh: "{date} 已付款",
+    zh: "{date}已付款",
     ar: "دُفعت في {date}",
   },
   "operations.finance.collections.noDueDate": {
@@ -1472,7 +1472,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Anbieteraufrufe, die die Plattform zu Ende führt",
     ja: "プラットフォームが完了まで進めているプロバイダーへの呼び出し",
     pt: "Operações em provedores que a plataforma está conduzindo até a conclusão",
-    zh: "平台正在推进至完成的服务商调用",
+    zh: "平台正在推进完成的服务商调用",
     ar: "طلبات المزوّدين التي تتابعها المنصة حتى اكتمالها",
   },
   "operations.finance.provisioning.terminations": {
@@ -1742,7 +1742,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Service endet am {date}",
     ja: "サービス終了日 {date}",
     pt: "O serviço termina em {date}",
-    zh: "服务于 {date} 结束",
+    zh: "服务于 {date}结束",
     ar: "تنتهي الخدمة في {date}",
   },
 
@@ -2000,7 +2000,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Prüfung eines neuen Kontos, danach Screening und Bonitätsprüfung",
     ja: "新規アカウントの確認後、スクリーニングと与信の審査",
     pt: "Revisão de conta nova e, depois, verificações de triagem e crédito",
-    zh: "先审核新账户，再进行筛查和信用审核",
+    zh: "先审核新账户，再进行合规筛查和信用核查",
     ar: "مراجعة الحساب الجديد، ثم ضوابط الفحص والائتمان",
   },
   "operations.finance.migrations.ambiguityTitle": {
@@ -2040,7 +2040,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Direktkunde",
     ja: "直接購入者",
     pt: "Comprador direto",
-    zh: "直接购买方",
+    zh: "直接买方",
     ar: "مشترٍ مباشر",
   },
   "operations.finance.migrations.relationship.subsidiary": {
@@ -2400,7 +2400,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Screening und Bonitätsprüfung laufen, bevor ein Konto verfügbar wird.",
     ja: "アカウントが利用可能になる前に、スクリーニングと与信の審査が行われます。",
     pt: "As verificações de triagem e de crédito são executadas antes de qualquer conta ficar disponível.",
-    zh: "任何账户可用之前，都会先执行筛查和信用审核。",
+    zh: "任何账户可用之前，都会先执行合规筛查和信用核查。",
     ar: "تُجرى ضوابط الفحص والائتمان قبل إتاحة أي حساب.",
   },
   "operations.finance.migrations.review.technicalId": {
@@ -2614,7 +2614,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Die Befugnis der handelnden Person stammt aus der Serversitzung. Bonitäts-, Screening-, Anbieter-, Aufbewahrungs- und Vier-Augen-Prüfungen laufen, wo zutreffend, erneut.",
     ja: "担当者の権限はサーバーのセッションから取得されます。与信、スクリーニング、プロバイダー、保持、二重承認の各審査は、該当する場合に再実行されます。",
     pt: "A autoridade do autor da ação vem da sessão do servidor. As verificações de crédito, triagem, provedor, retenção e controle duplo são executadas novamente quando se aplicam.",
-    zh: "员工操作权限来自服务器会话。信用、筛查、服务商、保留和双人控制检查将在适用时重新执行。",
+    zh: "员工操作人的权限来自服务器会话。信用、合规筛查、服务商、保留和双人控制检查将在适用时重新执行。",
     ar: "تُستمد صلاحية الموظف المنفّذ من جلسة الخادم. يُعاد تشغيل ضوابط الائتمان والفحص والمزوّد والاحتفاظ والرقابة المزدوجة حيثما تنطبق.",
   },
   "operations.finance.review.handoffTitle": {
@@ -2744,7 +2744,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Migrationsentscheidungen sind außerhalb der geführten Demo nicht verfügbar.",
     ja: "移行の判断は、ガイド付きデモ以外では利用できません。",
     pt: "Decisões de migração não estão disponíveis fora da demonstração guiada.",
-    zh: "在引导式演示之外无法使用迁移决定。",
+    zh: "迁移决定仅在引导式演示中可用。",
     ar: "قرارات الترحيل غير متاحة خارج العرض التجريبي الموجَّه.",
   },
   "operations.finance.review.error.failed": {
@@ -2958,7 +2958,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Alle Konten in Ihrem Bereich",
     ja: "担当範囲のすべてのアカウント",
     pt: "Todas as contas do seu escopo",
-    zh: "您范围内的所有账户",
+    zh: "您权限范围内的所有账户",
     ar: "جميع الحسابات ضمن نطاقك",
   },
   "operations.finance.reports.accountHelp": {
@@ -3008,7 +3008,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Export „{report}“ für alle Konten in Ihrem Bereich heruntergeladen.",
     ja: "担当範囲のすべてのアカウントの「{report}」エクスポートをダウンロードしました。",
     pt: "Exportação “{report}” baixada para todas as contas do seu escopo.",
-    zh: "已下载您范围内所有账户的“{report}”导出。",
+    zh: "已下载您权限范围内所有账户的“{report}”导出。",
     ar: "تم تنزيل تصدير «{report}» لجميع الحسابات ضمن نطاقك.",
   },
   "operations.finance.reports.exportFailed": {
@@ -3172,7 +3172,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Prüfen Sie die Bereitschaft für den Monatsabschluss, vergleichen Sie Abrechnungs- und Hauptbuchsummen und klassifizieren Sie Abweichungen, die nachverfolgt werden müssen.",
     ja: "月次締めの準備状況を確認し、請求と総勘定元帳の合計を比較して、対応が必要な差異を分類します。",
     pt: "Verifique se o fechamento mensal está pronto, compare os totais de faturamento e do razão e classifique as divergências que precisam de acompanhamento.",
-    zh: "检查月结准备情况，比较账单与总账合计，并对需要跟进的差异进行分类。",
+    zh: "检查月结就绪情况，比较账单与总账合计，并对需要跟进的差异进行分类。",
     ar: "راجع جاهزية الإقفال الشهري، وقارن إجماليات الفوترة ودفتر الأستاذ العام، وصنّف الفروق التي تحتاج إلى متابعة.",
   },
   "operations.finance.reconciliation.summaryLabel": {
@@ -3182,7 +3182,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Abschlussbereitschaft",
     ja: "締めの準備状況",
     pt: "Prontidão do fechamento",
-    zh: "结账准备情况",
+    zh: "结账就绪情况",
     ar: "جاهزية الإقفال",
   },
   "operations.finance.reconciliation.periods.heading": {
@@ -3648,7 +3648,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Nachweisreferenz",
     ja: "証跡の参照",
     pt: "Referência da evidência",
-    zh: "证据引用",
+    zh: "证据编号",
     ar: "مرجع الدليل",
   },
   "operations.finance.reconciliation.decision.evidence.help": {
@@ -3738,7 +3738,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Die Nachweisreferenz enthält unzulässige Zeichen.",
     ja: "証跡の参照に使用できない文字が含まれています。",
     pt: "A referência da evidência contém caracteres não permitidos.",
-    zh: "证据引用包含不允许的字符。",
+    zh: "证据编号包含不允许的字符。",
     ar: "يحتوي مرجع الدليل على أحرف غير مسموح بها.",
   },
   "operations.finance.reconciliation.failure.recentAuth": {
@@ -3922,7 +3922,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Vertraglicher Auftragsbestand, Pipeline nicht angenommener Angebote, Auftragsbestand nach Vertriebsweg und wiederkehrende Umsatzrate aus den Berichtsansichten.",
     ja: "レポートビューに基づく、契約済み受注残、未承諾の見積もりのパイプライン、販売形態別の受注残、経常収益のランレートです。",
     pt: "Carteira contratada, pipeline de cotações não aceitas, carteira por modalidade de venda e receita recorrente, a partir das visões de relatórios.",
-    zh: "来自报表视图的已签约积压订单、未接受报价的销售管道、按销售模式划分的积压订单以及经常性收入运行率。",
+    zh: "来自报表视图的已签约在手订单、未接受报价的销售管道、按销售模式划分的在手订单，以及经常性收入运行率。",
     ar: "الأعمال المتعاقد عليها غير المنفّذة، وخط عروض الأسعار غير المقبولة، والأعمال غير المنفّذة حسب مسار البيع، ومعدل الإيرادات المتكررة، من طرق عرض التقارير.",
   },
   "operations.finance.revenue.summaryLabel": {
@@ -3962,7 +3962,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Zeilen mit verbleibendem Auftragsbestand",
     ja: "残りの受注残の行数",
     pt: "Linhas da carteira restante",
-    zh: "剩余积压行数",
+    zh: "剩余在手订单行数",
     ar: "صفوف الأعمال المتبقية",
   },
   "operations.finance.revenue.summary.remaining.detail": {
@@ -4062,7 +4062,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Vertraglicher Auftragsbestand und Pipeline nicht angenommener Angebote. Die Pipeline zeigt den vollen ausgestellten Wert und ist nicht nach Wahrscheinlichkeit gewichtet.",
     ja: "契約済み受注残と、未承諾の見積もりのパイプラインです。パイプラインは発行額の全額を示し、確度による加重はしていません。",
     pt: "Carteira contratada e pipeline de cotações não aceitas. O pipeline mostra o valor emitido integral e não é ponderado por probabilidade.",
-    zh: "已签约积压订单及未接受报价的销售管道。销售管道显示已出具的全额价值，未按概率加权。",
+    zh: "已签约在手订单及未接受报价的销售管道。销售管道显示已出具的全额价值，未按概率加权。",
     ar: "الأعمال المتعاقد عليها غير المنفّذة وخط عروض الأسعار غير المقبولة. يعرض خط المبيعات القيمة الصادرة كاملة دون ترجيح بالاحتمالات.",
   },
   "operations.finance.revenue.stage.caption": {
@@ -4092,7 +4092,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Vertraglicher Auftragsbestand",
     ja: "契約済み受注残",
     pt: "Carteira contratada",
-    zh: "已签约积压订单",
+    zh: "已签约在手订单",
     ar: "الأعمال المتعاقد عليها غير المنفّذة",
   },
   "operations.finance.revenue.stage.pipeline": {
@@ -4200,7 +4200,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Verbleibender Auftragsbestand nach Vertriebsweg",
     ja: "販売形態別の残りの受注残",
     pt: "Carteira restante por modalidade de venda",
-    zh: "按销售模式划分的剩余积压订单",
+    zh: "按销售模式划分的剩余在手订单",
     ar: "الأعمال المتبقية حسب مسار البيع",
   },
   "operations.finance.revenue.route.subheading": {
@@ -4220,7 +4220,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Verbleibender vertraglich gebundener Auftragsbestand nach Vertriebsweg und Umsatzbasis",
     ja: "販売形態と収益基準別の残りの確定済み受注残",
     pt: "Carteira contratada restante por modalidade de venda e base de receita",
-    zh: "按销售模式和收入口径划分的剩余已签约积压订单",
+    zh: "按销售模式和收入口径划分的剩余已签约在手订单",
     ar: "الأعمال الملتزم بها المتبقية حسب مسار البيع وأساس الإيرادات",
   },
   "operations.finance.revenue.route.empty": {
@@ -4230,7 +4230,7 @@ export const operationsFinanceMessages = defineMessages({
     de: "Es wurden keine Zeilen mit verbleibendem vertraglich gebundenem Auftragsbestand zurückgegeben.",
     ja: "残りの確定済み受注残の行は返されませんでした。",
     pt: "Nenhuma linha de carteira contratada restante foi retornada.",
-    zh: "未返回任何剩余已签约积压订单行。",
+    zh: "未返回任何剩余已签约在手订单行。",
     ar: "لم تُرجَع أي صفوف للأعمال الملتزم بها المتبقية.",
   },
   "operations.finance.revenue.monthly.heading": {

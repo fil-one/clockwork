@@ -231,7 +231,7 @@ export const demoMessages = defineMessages({
     de: "Finanzcontroller",
     ja: "財務コントローラー",
     pt: "Controller financeiro",
-    zh: "财务控制经理",
+    zh: "财务总监",
     ar: "المراقب المالي",
   },
   // Ada Mercer, Fil One. A team rather than a rank, as the English is.
@@ -264,7 +264,7 @@ export const demoMessages = defineMessages({
     de: "Einen Streitfall zu einem geschützten Deal klären und die Zuordnung prüfen.",
     ja: "保護対象案件への異議を解決し、案件の帰属を確認します。",
     pt: "Resolver uma contestação de oportunidade protegida e revisar a atribuição.",
-    zh: "解决受保护商机的争议，并审核商机归属。",
+    zh: "解决受保护商机的争议，并核对商机归属。",
     ar: "حلّ نزاع على فرصة محمية ومراجعة إسنادها.",
   },
   "demo.persona.reseller.intent": {
@@ -284,7 +284,7 @@ export const demoMessages = defineMessages({
     de: "Ein zweistufiges Angebot und das Risiko aus der konsolidierten Abrechnung prüfen.",
     ja: "二層流通の見積もりと、統合請求のリスク額を確認します。",
     pt: "Revisar uma cotação de distribuição em dois níveis e a exposição do faturamento consolidado.",
-    zh: "审核两级分销报价及合并开票的风险敞口。",
+    zh: "审阅两级分销报价，并查看合并账单的风险敞口。",
     ar: "مراجعة عرض سعر للتوزيع ثنائي المستوى والتعرض المالي للفوترة الموحدة.",
   },
   "demo.persona.endClient.intent": {
@@ -346,7 +346,7 @@ export const demoMessages = defineMessages({
     de: "Verlängerung prüfen und annehmen",
     ja: "契約更新の確認と承諾",
     pt: "Revisar e aceitar uma renovação",
-    zh: "续约审核与接受",
+    zh: "审阅并接受续约",
     ar: "مراجعة التجديد وقبوله",
   },
   "demo.journey.directBuyerRenewal.openRenewal": {
@@ -366,7 +366,7 @@ export const demoMessages = defineMessages({
     de: "Die ausgestellte Version prüfen und zur Annahme übergehen.",
     ja: "発行済みのバージョンを確認し、承諾に進みます。",
     pt: "Revisar a versão emitida e seguir para o aceite.",
-    zh: "审核已出具的版本，然后进入接受环节。",
+    zh: "审阅已出具的版本，然后进入接受环节。",
     ar: "مراجعة الإصدار الصادر ثم الانتقال إلى قبوله.",
   },
   "demo.journey.referralDispute.title": {
@@ -416,7 +416,7 @@ export const demoMessages = defineMessages({
     de: "Die Partnervereinbarung prüfen, bevor Sie für Endkunden tätig werden.",
     ja: "エンド顧客との取引を始める前に、パートナー契約を確認します。",
     pt: "Revisar o acordo de parceria antes de atuar com clientes finais.",
-    zh: "在开展终端客户业务前，审核合作伙伴协议。",
+    zh: "在开展终端客户业务前，审阅合作伙伴协议。",
     ar: "مراجعة اتفاقية الشراكة قبل أي نشاط مع العملاء النهائيين.",
   },
   "demo.journey.resellerAgreementAndQuote.completeQuote": {
@@ -516,7 +516,7 @@ export const demoMessages = defineMessages({
     de: "Veraltete Prüfung eines Kundenvertrags bearbeiten",
     ja: "最新ではない顧客契約書レビューへの対応",
     pt: "Tratar uma revisão desatualizada do contrato do cliente",
-    zh: "非最新客户合同审核的处理",
+    zh: "处理版本已非最新的客户合同审核",
     ar: "معالجة مراجعة غير محدّثة لعقد العميل",
   },
   "demo.journey.legalCustomerPaper.switchVersion": {
@@ -576,7 +576,7 @@ export const demoMessages = defineMessages({
     de: "Im Kontoverlauf prüfen, wer tatsächlich gehandelt hat und in wessen Namen.",
     ja: "アカウントのタイムラインで、実際の操作者と名義上の操作者を確認します。",
     pt: "Conferir na linha do tempo da conta quem agiu de fato e em nome de quem.",
-    zh: "在账户时间线中核实实际操作人和名义操作人。",
+    zh: "在账户时间线中核实实际操作人与被代理人。",
     ar: "التحقق في السجل الزمني للحساب من المنفّذ الفعلي والجهة التي نُفّذ الإجراء باسمها.",
   },
 
@@ -721,7 +721,7 @@ export const demoMessages = defineMessages({
     de: "Angebot prüfen",
     ja: "お見積もりのご確認",
     pt: "Revisão da cotação",
-    zh: "报价审核",
+    zh: "审阅报价",
     ar: "مراجعة عرض السعر",
   },
   "demo.clientReview.eyebrow": {
@@ -731,7 +731,7 @@ export const demoMessages = defineMessages({
     de: "Prüfung durch den Kunden · Demo",
     ja: "お客様確認・デモ",
     pt: "Revisão pelo cliente · demo",
-    zh: "客户审核 · 演示",
+    zh: "客户审阅 · 演示",
     ar: "مراجعة العميل · عرض تجريبي",
   },
   "demo.clientReview.validity": {
@@ -878,7 +878,7 @@ export const demoMessages = defineMessages({
     de: "Ich prüfe dieses Demo-Angebot im Namen des genannten Kunden.",
     ja: "記載されたお客様に代わり、このデモ見積もりを確認しています。",
     pt: "Estou revisando esta cotação de demonstração em nome do cliente identificado.",
-    zh: "我正在代表指定客户审核此演示报价。",
+    zh: "我正在代表指定客户审阅此演示报价。",
     ar: "أراجع عرض السعر التجريبي هذا نيابةً عن العميل المذكور.",
   },
   "demo.clientReview.boundary": {
@@ -888,7 +888,7 @@ export const demoMessages = defineMessages({
     de: "Ihre Absicht wird zur Prüfung durch Ihren Partner erfasst. Dadurch entsteht kein verbindlicher Vertrag, es wird kein Zahlungsmittel belastet und kein Service aktiviert.",
     ja: "ご意向をパートナーの確認用に記録します。法的拘束力のある契約は成立せず、お支払い方法への請求やサービスの有効化も行われません。",
     pt: "Isso registra sua intenção para análise do parceiro. Não cria um contrato vinculante, não cobra nenhum meio de pagamento nem ativa o serviço.",
-    zh: "此操作会记录您的意向，供合作伙伴审核。不会形成有约束力的合同，不会从支付方式扣款，也不会开通服务。",
+    zh: "此操作会记录您的意向，供合作伙伴查看。不会形成有约束力的合同，不会从支付方式扣款，也不会开通服务。",
     ar: "يُسجّل هذا الإجراء رغبتك لمراجعتها من قِبل الشريك. ولا يُنشئ عقدًا ملزمًا، ولا يخصم أي مبلغ من وسيلة الدفع، ولا يُفعّل الخدمة.",
   },
   "demo.clientReview.submit": {
@@ -978,7 +978,7 @@ export const demoMessages = defineMessages({
     de: "Dieser Prüflink ist abgelaufen oder das Angebot wurde ersetzt. Bitten Sie Ihren Partner um das aktuelle Angebot.",
     ja: "この確認用リンクは有効期限が切れているか、見積もりが差し替えられています。最新の見積もりをパートナーにお問い合わせください。",
     pt: "Este link de revisão expirou ou a cotação foi substituída. Peça ao seu parceiro a cotação atual.",
-    zh: "此审核链接已过期，或报价已被替换。请向合作伙伴索取最新报价。",
+    zh: "此审阅链接已过期，或报价已被替换。请向合作伙伴索取最新报价。",
     ar: "انتهت صلاحية رابط المراجعة هذا أو استُبدل عرض السعر. اطلب من شريكك عرض السعر الحالي.",
   },
   "demo.clientReview.error.invalid": {

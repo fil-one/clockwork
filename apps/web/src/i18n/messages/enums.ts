@@ -31,7 +31,7 @@ export const enumMessages = defineMessages({
     de: "Aktion ausstehend",
     ja: "操作待ち",
     pt: "Aguardando ação",
-    zh: "等待操作",
+    zh: "待操作",
     ar: "بانتظار إجراء",
   },
   "status.review": {
@@ -131,7 +131,7 @@ export const enumMessages = defineMessages({
     de: "Offen",
     ja: "未完了",
     pt: "Aberto",
-    zh: "未完成",
+    zh: "未结",
     ar: "مفتوح",
   },
   "status.accepted": {

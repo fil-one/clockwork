@@ -11,7 +11,7 @@ export const customerMessages = defineMessages({
     de: "Wählen Sie einen Tarif, legen Sie Kapazität und Laufzeit fest und prüfen Sie anschließend Ihren Angebotsentwurf.",
     ja: "オファーを選択し、容量と期間を設定して、見積もりの下書きを確認します。",
     pt: "Escolha uma oferta, defina a capacidade e o prazo e revise o rascunho.",
-    zh: "选择方案，设置容量和期限，然后审核报价草稿。",
+    zh: "选择方案，设置容量和期限，然后核对报价草稿。",
     ar: "اختر عرضًا وحدد السعة والمدة، ثم راجع مسودة عرض السعر.",
   },
   "quotes.form.offerHelp": {
@@ -31,7 +31,7 @@ export const customerMessages = defineMessages({
     de: "Entwurf prüfen",
     ja: "下書きを確認",
     pt: "Revise o rascunho",
-    zh: "审核草稿",
+    zh: "核对草稿",
     ar: "مراجعة المسودة",
   },
   "quotes.form.reviewDescription": {
@@ -41,7 +41,7 @@ export const customerMessages = defineMessages({
     de: "Beim Erstellen dieses Entwurfs wird Ihr Preis berechnet. Öffnen Sie danach den gespeicherten Entwurf, um sein Dokument vorzubereiten und das Angebot auszustellen. Das ausgestellte Angebot können Sie prüfen, bevor Sie einen Auftrag annehmen.",
     ja: "下書きを作成すると価格が計算されます。次に、保存済みの下書きを開いて見積書を作成し、発行します。注文を承諾する前に発行済みの見積もりを確認できます。",
     pt: "A criação do rascunho calcula seu preço. Depois, abra o rascunho salvo para preparar o documento e emitir a cotação. Você poderá revisá-la antes de aceitar um pedido.",
-    zh: "创建草稿时将计算价格。随后打开已保存的草稿，准备文档并发布报价。您可以在接受订单前审核已发布的报价。",
+    zh: "创建草稿时将计算价格。随后打开已保存的草稿，准备文档并出具报价。接受订单前，您可以查看已出具的报价。",
     ar: "يُحسب السعر عند إنشاء المسودة. بعد ذلك، افتح المسودة المحفوظة لتجهيز مستندها وإصدار عرض السعر. يمكنك مراجعة العرض الصادر قبل قبول الطلب.",
   },
   "quotes.form.expiryHelp": {
@@ -61,7 +61,7 @@ export const customerMessages = defineMessages({
     de: "Wählen Sie einen Ablaufzeitpunkt in der Zukunft.",
     ja: "現在より後の有効期限を選択してください。",
     pt: "Escolha uma validade posterior ao horário atual.",
-    zh: "请选择晚于当前时间的到期时间。",
+    zh: "请选择晚于当前时间的有效期。",
     ar: "اختر تاريخ انتهاء لاحقًا للوقت الحالي.",
   },
   "quotes.issue.title": {
@@ -81,7 +81,7 @@ export const customerMessages = defineMessages({
     de: "Bereiten Sie das Angebotsdokument vor und stellen Sie dieses gespeicherte Angebot zur Annahme bereit. Mit der Ausstellung eines Angebots wird kein Auftrag erteilt.",
     ja: "保存済みの見積書を作成し、承諾できる状態にします。見積もりを発行しても注文は確定しません。",
     pt: "Prepare o documento da cotação salva para que ela possa ser aceita. Emitir uma cotação não cria um pedido.",
-    zh: "准备已保存报价的文档，使其可供接受。发布报价不会创建订单。",
+    zh: "准备已保存报价的文档，使其可供接受。出具报价不会创建订单。",
     ar: "جهّز مستند عرض السعر المحفوظ ليصبح متاحًا للقبول. إصدار عرض السعر لا ينشئ طلبًا.",
   },
   "quotes.issue.action": {
@@ -91,7 +91,7 @@ export const customerMessages = defineMessages({
     de: "Angebot vorbereiten und ausstellen",
     ja: "見積書を作成して発行",
     pt: "Preparar e emitir cotação",
-    zh: "准备并发布报价",
+    zh: "准备并出具报价",
     ar: "تجهيز عرض السعر وإصداره",
   },
   "quotes.issue.working": {
@@ -121,7 +121,7 @@ export const customerMessages = defineMessages({
     de: "Auftrag prüfen und annehmen",
     ja: "注文を確認して承諾",
     pt: "Revisar e aceitar pedido",
-    zh: "审核并接受订单",
+    zh: "审阅并接受订单",
     ar: "مراجعة الطلب وقبوله",
   },
   "quotes.issue.refresh": {
@@ -141,7 +141,7 @@ export const customerMessages = defineMessages({
     de: "Vor der Ausstellung muss der Preis dieses Entwurfs geprüft werden. Wenden Sie sich an Ihr Team bei Fil One.",
     ja: "この下書きを発行するには価格の審査が必要です。Fil Oneの担当者にお問い合わせください。",
     pt: "O preço deste rascunho precisa ser revisado antes da emissão. Entre em contato com sua equipe da Fil One.",
-    zh: "此草稿需要完成价格审核后才能发布。请联系您的 Fil One 团队。",
+    zh: "此草稿需完成价格审核后才能出具。请联系您的 Fil One 团队。",
     ar: "تحتاج هذه المسودة إلى مراجعة السعر قبل إصدارها. تواصل مع فريق Fil One.",
   },
   "quotes.issue.documentUnavailable": {
@@ -151,7 +151,7 @@ export const customerMessages = defineMessages({
     de: "Das Angebotsdokument konnte nicht verifiziert werden. Es wurde kein Angebot ausgestellt. Versuchen Sie es erneut.",
     ja: "見積書を確認できませんでした。見積もりは発行されていません。もう一度お試しください。",
     pt: "Não foi possível verificar o documento. Nenhuma cotação foi emitida. Tente novamente.",
-    zh: "无法验证报价文档。尚未发布任何报价。请重试。",
+    zh: "无法验证报价文档。未出具任何内容。请重试。",
     ar: "تعذّر التحقق من مستند عرض السعر. لم يُصدر أي عرض سعر. أعد المحاولة.",
   },
   "quotes.issue.rendering": {
@@ -171,7 +171,7 @@ export const customerMessages = defineMessages({
     de: "Das Angebot wurde ausgestellt. Der Status wird noch aktualisiert; setzen Sie dieses Angebot fort, um erneut zu prüfen.",
     ja: "見積もりは発行されました。ステータスを更新中です。この見積もりを続けて再度確認してください。",
     pt: "A cotação foi emitida. O status ainda está sendo atualizado; continue para verificar novamente.",
-    zh: "报价已发布。状态仍在更新，请继续此报价以再次检查。",
+    zh: "报价已出具。状态仍在更新，请继续此报价以再次检查。",
     ar: "تم إصدار عرض السعر. لا تزال حالته قيد التحديث؛ تابع عرض السعر للتحقق مرة أخرى.",
   },
   "cp.commercial.quoteStages.1": {
@@ -181,7 +181,7 @@ export const customerMessages = defineMessages({
     de: "Kapazität, Laufzeit, Direktvertrieb und Gültigkeit",
     ja: "容量、期間、直接取引、有効期限",
     pt: "Capacidade, prazo, venda direta e validade",
-    zh: "容量、期限、直销渠道和到期时间",
+    zh: "容量、期限、直销模式和有效期",
     ar: "السعة والمدة والمسار المباشر وانتهاء الصلاحية",
   },
   "cp.commercial.quoteStages.2": {
@@ -191,7 +191,7 @@ export const customerMessages = defineMessages({
     de: "Prüfen und ausstellen",
     ja: "確認して発行",
     pt: "Revisar e emitir",
-    zh: "审核并签发",
+    zh: "核对并出具",
     ar: "مراجعة وإصدار",
   },
   "cp.commercial.reviewIssue": {
@@ -201,7 +201,7 @@ export const customerMessages = defineMessages({
     de: "Prüfen und ausstellen",
     ja: "確認して発行",
     pt: "Revisar e emitir",
-    zh: "审核并签发",
+    zh: "核对并出具",
     ar: "مراجعة وإصدار",
   },
   "cp.commercial.agreementAuthority": {
@@ -221,7 +221,7 @@ export const customerMessages = defineMessages({
     de: "Vereinbarung prüfen und annehmen",
     ja: "契約を確認して同意",
     pt: "Revisar e aceitar o acordo",
-    zh: "审核并接受协议",
+    zh: "审阅并接受协议",
     ar: "مراجعة الاتفاقية وقبولها",
   },
   "cp.commercial.orderReview": {
@@ -231,7 +231,7 @@ export const customerMessages = defineMessages({
     de: "Resultierende Verpflichtung prüfen",
     ja: "発生する義務を確認",
     pt: "Revisar o compromisso resultante",
-    zh: "审核由此产生的承诺",
+    zh: "核对由此产生的承诺",
     ar: "مراجعة الالتزام الناتج",
   },
   "cp.commercial.orderConfirmation": {
@@ -261,7 +261,7 @@ export const customerMessages = defineMessages({
     de: "Das erzeugte Auftragsformular und der Annahmenachweis werden ab dem erfassten Annahmezeitpunkt für {years} Jahre aufbewahrt.",
     ja: "生成された注文書と承諾の証拠は、記録された承諾時点から{years}年間保存されます。",
     pt: "O formulário de pedido gerado e a evidência de sua aceitação são mantidos por {years} anos a partir do instante de aceitação registrado.",
-    zh: "生成的订单表单及其接受凭证将从记录的接受时刻起保留 {years} 年。",
+    zh: "生成的订购单及其接受凭证将从记录的接受时刻起保留 {years} 年。",
     ar: "يُحتفظ بنموذج الطلب المُنشأ وأدلة قبوله لمدة {years} سنة من لحظة القبول المسجّلة.",
   },
   "cp.commercial.estimatedSpend": {
@@ -291,7 +291,7 @@ export const customerMessages = defineMessages({
     de: "Vom Webhook des Zahlungsanbieters gemeldet",
     ja: "決済プロバイダーのWebhookによる報告",
     pt: "Informado pelo webhook do provedor de pagamentos",
-    zh: "由支付服务提供商的 webhook 报告",
+    zh: "由支付服务商的 Webhook 上报",
     ar: "وفقًا لإشعار الويب هوك من مزوّد الدفع",
   },
   "cp.commercial.externalPayment": {
@@ -301,7 +301,7 @@ export const customerMessages = defineMessages({
     de: "Sie fahren beim Zahlungsanbieter fort. Die Rechnung wird erst nach dessen Bestätigung als bezahlt markiert.",
     ja: "決済プロバイダーに移動します。プロバイダーの確認後にのみ、請求書は支払い済みと表示されます。",
     pt: "Você continuará com o provedor de pagamentos. A fatura só será marcada como paga após a confirmação do provedor.",
-    zh: "您将转至支付服务提供商继续操作。只有在提供商确认后，发票才会标记为已付款。",
+    zh: "您将转至支付服务商继续操作。只有在服务商确认后，发票才会标记为已付款。",
     ar: "ستتابع لدى مزوّد الدفع. لن تُعلّم الفاتورة كمدفوعة إلا بعد تأكيد المزوّد.",
   },
   "cp.commercial.confirmMutation": {
@@ -311,7 +311,7 @@ export const customerMessages = defineMessages({
     de: "Prüfen und bestätigen",
     ja: "確認して確定",
     pt: "Revisar e confirmar",
-    zh: "审核并确认",
+    zh: "核对并确认",
     ar: "مراجعة وتأكيد",
   },
   "ui.115": {
@@ -341,7 +341,7 @@ export const customerMessages = defineMessages({
     de: "Vertragsunterlagen",
     ja: "法務記録",
     pt: "Registro jurídico",
-    zh: "法律记录",
+    zh: "法律文件",
     ar: "السجل القانوني",
   },
   "agreements.description": {
@@ -361,7 +361,7 @@ export const customerMessages = defineMessages({
     de: "Bestätigen Sie Titel, Version, genau genehmigte Bedingungen und Ihre Befugnis, {account} zu binden.",
     ja: "{account} を拘束する前に、契約名、バージョン、承認済みの正確な条項、締結権限を確認してください。",
     pt: "Confirme título, versão, termos exatos aprovados e sua autoridade para vincular {account}.",
-    zh: "在使 {account} 承担约束前，请确认协议名称、版本、已批准的准确条款及您的授权。",
+    zh: "在使 {account} 受本协议约束前，请确认协议名称、版本、已批准的准确条款及您的授权。",
     ar: "أكد عنوان الاتفاقية وإصدارها وشروطها المعتمدة بدقة وصلاحيتك لإلزام {account}.",
   },
   "agreements.execute.source": {
@@ -411,7 +411,7 @@ export const customerMessages = defineMessages({
     de: "Abgeschlossene Vereinbarung öffnen",
     ja: "締結済み契約を開く",
     pt: "Abrir o acordo firmado",
-    zh: "打开已签订协议",
+    zh: "打开已签订的协议记录",
     ar: "فتح الاتفاقية المبرمة",
   },
   "quotes.eyebrow": {
@@ -431,7 +431,7 @@ export const customerMessages = defineMessages({
     de: "Ausgestellte Versionen sind unveränderlich und bleiben mit Preisliste, Vereinbarung und Auftrag verknüpft.",
     ja: "発行済みの変更不能なバージョンは、価格表、契約、注文との関連を保持します。",
     pt: "As versões emitidas e imutáveis continuam vinculadas à tabela de preços, ao acordo e ao pedido.",
-    zh: "已发出的不可变版本始终关联价目表、协议和订单。",
+    zh: "已出具的不可变版本始终关联其价目表、协议和订单。",
     ar: "تظل الإصدارات الصادرة غير القابلة للتغيير مرتبطة بقائمة الأسعار والاتفاقية والطلب.",
   },
   "quotes.builder.title": {
@@ -461,7 +461,7 @@ export const customerMessages = defineMessages({
     de: "Für diese Sitzung autorisiertes Konto",
     ja: "このセッションで承認されたアカウント",
     pt: "Conta autorizada para esta sessão",
-    zh: "此会话获授权的账户",
+    zh: "本次会话授权的账户",
     ar: "الحساب المصرح به لهذه الجلسة",
   },
   "quotes.builder.origin.revision": {
@@ -481,7 +481,7 @@ export const customerMessages = defineMessages({
     de: "Wandelt Proof of Concept {reference} um",
     ja: "概念実証 {reference} からの移行",
     pt: "Converte a prova de conceito {reference}",
-    zh: "转换概念验证 {reference}",
+    zh: "由概念验证 {reference} 转商用",
     ar: "تحويل إثبات المفهوم {reference}",
   },
   "quotes.builder.origin.unavailable": {
@@ -491,7 +491,7 @@ export const customerMessages = defineMessages({
     de: "Der referenzierte Datensatz liegt außerhalb dieses Kontos. Der Entwurf beginnt ohne Ausgangsdaten.",
     ja: "参照レコードはこのアカウントの範囲外です。下書きは空の状態から開始します。",
     pt: "O registro indicado está fora desta conta. O rascunho começa sem dados de origem.",
-    zh: "引用记录不属于此账户。草稿将从空白范围开始。",
+    zh: "所引用的记录不属于此账户。草稿将从空白范围开始。",
     ar: "السجل المشار إليه خارج هذا الحساب. تبدأ المسودة دون بيانات مصدر.",
   },
   "quotes.builder.created": {
@@ -501,7 +501,7 @@ export const customerMessages = defineMessages({
     de: "Bepreister Entwurf erstellt. Sie können ihn ausstellen, sobald sein Dokument vorbereitet und verknüpft ist.",
     ja: "価格計算済みの下書きを作成しました。文書の準備と紐付け完了後に発行できます。",
     pt: "Rascunho com preço criado. Você poderá emiti-lo quando o documento estiver preparado e vinculado.",
-    zh: "已创建定价草稿。文档准备并绑定后即可发出。",
+    zh: "已创建定价草稿。文档准备并绑定后即可出具。",
     ar: "تم إنشاء مسودة مسعّرة. يمكنك إصدارها بعد إعداد المستند وربطه.",
   },
   "orders.eyebrow": {
@@ -531,7 +531,7 @@ export const customerMessages = defineMessages({
     de: "Bestellungen, Bereitstellung, Nutzungsrechte, Nutzung, Vertragsänderungen und Laufzeitstatus ohne erneute Eingabe.",
     ja: "発注書、プロビジョニング、利用権、使用量、変更、期間の状態を再入力せずに管理します。",
     pt: "Ordens de compra, provisionamento, direitos de uso, consumo, aditivos e situação dos prazos, sem redigitação.",
-    zh: "采购订单、资源开通、权益、用量、修订及期限状态，无需重复录入。",
+    zh: "采购订单、开通、权益、用量、合同变更及期限状态，无需重复录入。",
     ar: "أوامر الشراء والتهيئة والاستحقاقات والاستخدام والتعديلات وحالة المدة دون إعادة إدخال البيانات.",
   },
   "orders.amendment": {
@@ -541,7 +541,7 @@ export const customerMessages = defineMessages({
     de: "Vertragsänderung beantragen",
     ja: "契約変更を申請",
     pt: "Solicitar aditivo",
-    zh: "申请修订",
+    zh: "申请合同变更",
     ar: "طلب تعديل تعاقدي",
   },
   "orders.accept.source": {
@@ -581,7 +581,7 @@ export const customerMessages = defineMessages({
     de: "Die Auftragsannahme beginnt mit einem ausgestellten Angebot dieses Kontos. Wählen Sie eines in der Angebotsliste aus.",
     ja: "注文の受諾は、このアカウントの受諾済み見積もりから開始します。見積もり台帳で選択してください。",
     pt: "A aceitação do pedido começa por uma cotação emitida nesta conta. Escolha uma na lista de cotações.",
-    zh: "订单接受从此账户已接受的报价开始。请从报价台账中选择。",
+    zh: "订单接受须从此账户中已出具的报价开始。请从报价列表中选择。",
     ar: "يبدأ قبول الطلب من عرض سعر مقبول لهذا الحساب. اختر عرضاً من سجل عروض الأسعار.",
   },
   "orders.accept.unavailable.action": {
@@ -591,7 +591,7 @@ export const customerMessages = defineMessages({
     de: "Angebotsliste öffnen",
     ja: "見積もり台帳を開く",
     pt: "Abrir a lista de cotações",
-    zh: "打开报价台账",
+    zh: "打开报价列表",
     ar: "فتح سجل عروض الأسعار",
   },
   "orders.accept.validation.po": {
@@ -631,7 +631,7 @@ export const customerMessages = defineMessages({
     de: "Bestätigen Sie die geprüfte Verpflichtung vor der Annahme.",
     ja: "受諾前に、確認した契約上の義務を承認してください。",
     pt: "Confirme o compromisso revisado antes de aceitar.",
-    zh: "接受前，请确认已审查的承诺。",
+    zh: "接受前，请确认已核对的承诺。",
     ar: "أكد الالتزام الذي راجعته قبل القبول.",
   },
   "orders.accept.created": {
@@ -641,7 +641,7 @@ export const customerMessages = defineMessages({
     de: "Auftrag erstellt. Verpflichtung und Bereitstellungsstatus sind nun maßgeblich erfasst.",
     ja: "注文を作成しました。契約上の義務とプロビジョニング状態が正式に記録されました。",
     pt: "Pedido criado. O compromisso e o estado de provisionamento agora são oficiais.",
-    zh: "订单已创建，其承诺和开通状态现已成为权威记录。",
+    zh: "订单已创建。其承诺和开通状态现在以此为准。",
     ar: "تم إنشاء الطلب. أصبح الالتزام وحالة التهيئة مسجلين رسمياً.",
   },
   "orders.accept.createdLink": {
@@ -661,7 +661,7 @@ export const customerMessages = defineMessages({
     de: "Auftragsformular angefordert. Die Verpflichtung entsteht, sobald das Dokument erstellt und mit dem Angebot verknüpft ist.",
     ja: "注文書の作成を依頼しました。文書の生成と見積もりへの紐付けが完了すると、契約上の義務が作成されます。",
     pt: "Formulário de pedido solicitado. O compromisso será criado quando o documento for gerado e vinculado à cotação.",
-    zh: "已请求订单表单。文档生成并绑定至报价后，才会创建您的承诺。",
+    zh: "已请求订购单。该文件生成并绑定至报价后，才会创建您的承诺。",
     ar: "تم طلب نموذج الطلب. يُنشأ التزامك بعد إنتاج المستند وربطه بعرض السعر.",
   },
   "orders.accept.preparedLink": {
@@ -691,7 +691,7 @@ export const customerMessages = defineMessages({
     de: "Sicher erproben",
     ja: "安全に検証",
     pt: "Comprove com segurança",
-    zh: "安全验证",
+    zh: "安全可控的验证",
     ar: "تحقق بأمان",
   },
   "pocs.title": {
@@ -771,7 +771,7 @@ export const customerMessages = defineMessages({
     de: "Kein Service für das Offboarding verfügbar",
     ja: "利用終了を申請できるサービスがありません",
     pt: "Nenhum serviço disponível para encerramento",
-    zh: "没有可退出的服务",
+    zh: "没有可终止的服务",
     ar: "لا توجد خدمة متاحة للإنهاء",
   },
   "account.offboarding.empty.description": {
@@ -781,7 +781,7 @@ export const customerMessages = defineMessages({
     de: "Das Offboarding beginnt bei einem aktiven Auftrag dieses Kontos. Aktive Verpflichtungen finden Sie unter „Aufträge und Services“.",
     ja: "利用終了はこのアカウントの有効な注文から開始します。継続中の契約は注文とサービスに表示されます。",
     pt: "O encerramento começa em um pedido ativo desta conta. Compromissos ativos aparecem em pedidos e serviços.",
-    zh: "退出流程从此账户的有效订单开始。有效承诺显示在订单与服务中。",
+    zh: "服务终止须从此账户中运行中的订单开始。运行中的承诺显示在订单与服务中。",
     ar: "يبدأ إنهاء الخدمة من طلب نشط في هذا الحساب. تظهر الالتزامات النشطة في الطلبات والخدمات.",
   },
   "account.offboarding.empty.action": {
@@ -811,7 +811,7 @@ export const customerMessages = defineMessages({
     de: "Bestätigen Sie vor dem Senden die geprüften Schutzmaßnahmen für Aufbewahrung und Genehmigung.",
     ja: "送信前に、確認済みの保持条件と承認要件を了承してください。",
     pt: "Confirme as salvaguardas de retenção e aprovação revisadas antes de enviar.",
-    zh: "提交前，请确认已审查的保留和审批保障措施。",
+    zh: "提交前，请确认已核对的保留和审批保障措施。",
     ar: "أكد ضمانات الاحتفاظ والموافقة التي راجعتها قبل الإرسال.",
   },
   "account.offboarding.requested": {
@@ -821,7 +821,7 @@ export const customerMessages = defineMessages({
     de: "Offboarding-Anfrage zur Genehmigung gesendet. Ihr Service läuft weiter.",
     ja: "利用終了申請を承認のために送信しました。サービスは引き続き稼働しています。",
     pt: "Solicitação de encerramento enviada para aprovação. Seu serviço continua funcionando.",
-    zh: "退出请求已提交审批。您的服务仍在运行。",
+    zh: "服务终止申请已提交审批。您的服务仍在运行。",
     ar: "تم إرسال طلب إنهاء الخدمة للموافقة. لا تزال خدمتك تعمل.",
   },
   "account.offboarding.requestedLink": {
@@ -841,7 +841,7 @@ export const customerMessages = defineMessages({
     de: "Die Offboarding-Anfrage konnte nicht gesendet werden.",
     ja: "利用終了申請を送信できませんでした。",
     pt: "Não foi possível enviar a solicitação de encerramento.",
-    zh: "无法提交退出请求。",
+    zh: "无法提交服务终止申请。",
     ar: "تعذّر إرسال طلب إنهاء الخدمة.",
   },
   // ── Customer collections (amendments, users, procurement, marketplace, support)
@@ -1155,7 +1155,7 @@ export const customerMessages = defineMessages({
     de: "Eine Steuerbefreiung verhindert die Besteuerung nur, solange sie im maßgeblichen Rechtsraum gültig ist.",
     ja: "免税は、該当する管轄区域で有効な間のみ課税を免除します。",
     pt: "Uma isenção fiscal só suprime o imposto enquanto for válida na jurisdição aplicável.",
-    zh: "免税仅在适用司法辖区内有效期间免除税款。",
+    zh: "免税资格仅在其对适用司法管辖区有效的期间内免除税款。",
     ar: "لا يُلغي الإعفاء الضريبي الضريبة إلا ما دام ساريًا في الولاية القضائية المعنية.",
   },
   "customer.collection.procurement.recordLabel": {
@@ -1801,7 +1801,7 @@ export const customerMessages = defineMessages({
     de: "Rechtsraum",
     ja: "管轄区域",
     pt: "Jurisdição",
-    zh: "司法辖区",
+    zh: "司法管辖区",
     ar: "الولاية القضائية",
   },
   "customer.collection.field.document": {
@@ -2113,7 +2113,7 @@ export const customerMessages = defineMessages({
     de: "Prüfen Sie Rollen, Genehmigungsbefugnisse, MFA-Status und ausstehende Einladungen.",
     ja: "ロール、承認権限、MFA の状態、保留中の招待を確認します。",
     pt: "Revise funções, alçadas de aprovação, status de MFA e convites pendentes.",
-    zh: "审核角色、审批权限、MFA 状态和待接受的邀请。",
+    zh: "查看角色、审批权限、MFA 状态和待接受的邀请。",
     ar: "راجع الأدوار وصلاحيات الموافقة وحالة MFA والدعوات المعلّقة.",
   },
   "customer.account.areas.users.meta": {
@@ -2215,7 +2215,7 @@ export const customerMessages = defineMessages({
     de: "Prüfen Sie Datenabruf, Schlussabrechnung, Aufbewahrungsausnahmen und die Befugnis zum Rückbau.",
     ja: "データの取得、最終請求、保持の除外、撤去の権限を確認します。",
     pt: "Revise a recuperação de dados, o faturamento final, as exclusões de retenção e a autorização para o desmantelamento.",
-    zh: "审核数据取回、最终账单、保留例外和拆除权限。",
+    zh: "查看数据取回、最终账单、保留例外和拆除权限。",
     ar: "راجع استرجاع البيانات والفوترة النهائية واستثناءات الاحتفاظ وصلاحية التفكيك.",
   },
   "customer.account.areas.offboarding.meta": {
@@ -2781,7 +2781,7 @@ export const customerMessages = defineMessages({
     de: "Fortschrittsmeldungen während eines laufenden Proof of Concept, einschließlich der Ergebnisse der Erfolgstests.",
     ja: "PoC の実施中に、成功基準テストの結果を含む進捗をお知らせします。",
     pt: "Atualizações de andamento durante uma prova de conceito, incluindo os resultados dos testes de sucesso.",
-    zh: "概念验证进行期间的进度更新，包括成功标准测试结果。",
+    zh: "概念验证进行期间的进度更新，包括成功测试结果。",
     ar: "تحديثات التقدم أثناء تشغيل إثبات المفهوم، بما في ذلك نتائج اختبارات النجاح.",
   },
   "customer.notifications.alert.quoteExpiry": {
@@ -3012,7 +3012,7 @@ export const customerMessages = defineMessages({
     de: "Umstellung auf kostenpflichtige Nutzung prüfen",
     ja: "有料への移行を確認",
     pt: "Revisar a conversão para serviço pago",
-    zh: "审核付费转换",
+    zh: "查看付费转换",
     ar: "مراجعة التحويل إلى الاستخدام المدفوع",
   },
   "customer.payg.chooseOffer": {
@@ -3102,7 +3102,7 @@ export const customerMessages = defineMessages({
     de: "Monatlicher Mindestbetrag: {amount}.",
     ja: "月額最低料金：{amount}。",
     pt: "Mínimo mensal: {amount}.",
-    zh: "每月最低费用：{amount}。",
+    zh: "每月最低消费：{amount}。",
     ar: "الحد الأدنى الشهري: {amount}.",
   },
   "customer.payg.partialMonth.full": {
@@ -3112,7 +3112,7 @@ export const customerMessages = defineMessages({
     de: "In angebrochenen Monaten gilt der volle Mindestbetrag.",
     ja: "1か月に満たない月も、最低料金は全額かかります。",
     pt: "Em meses parciais, aplica-se o mínimo integral.",
-    zh: "不足整月时仍按全额最低费用计算。",
+    zh: "不足整月时仍按整月最低消费计算。",
     ar: "يُطبَّق الحد الأدنى كاملًا في الأشهر الجزئية.",
   },
   "customer.payg.partialMonth.prorated": {
@@ -3122,7 +3122,7 @@ export const customerMessages = defineMessages({
     de: "In angebrochenen Monaten wird der Mindestbetrag anteilig nach Servicestunden berechnet.",
     ja: "1か月に満たない月は、最低料金をサービス提供時間で按分します。",
     pt: "Em meses parciais, o mínimo é proporcional às horas de serviço.",
-    zh: "不足整月时，最低费用按服务小时数折算。",
+    zh: "不足整月时，最低消费按服务小时数折算。",
     ar: "في الأشهر الجزئية، يُحتسب الحد الأدنى بالتناسب مع ساعات الخدمة.",
   },
   "customer.payg.metering": {
@@ -3241,7 +3241,7 @@ export const customerMessages = defineMessages({
     de: "Eine Organisationszuordnung liegt vor. Die Aktivierung erfordert weiterhin eine verifizierte Übergabe an Anbieter und Abrechnung.",
     ja: "組織の対応付けは登録済みです。有効化には、引き続きプロバイダーと請求への確認済みの引き継ぎが必要です。",
     pt: "Há um mapeamento da organização registrado. A ativação ainda exige o encaminhamento verificado ao provedor e ao faturamento.",
-    zh: "已存档组织映射。激活仍需完成经验证的服务商与计费交接。",
+    zh: "已存档组织映射。开通仍需完成经验证的服务商与计费交接。",
     ar: "يوجد ربط مسجّل للمؤسسة. لا يزال التفعيل يتطلب تسليمًا مُتحققًا منه إلى المزوّد والفوترة.",
   },
   "customer.payg.providerNotConfirmed": {
@@ -3331,7 +3331,7 @@ export const customerMessages = defineMessages({
     de: "Prüfung der Umstellung abbrechen",
     ja: "移行の確認をキャンセル",
     pt: "Cancelar a revisão da conversão",
-    zh: "取消转换审核",
+    zh: "取消查看转换",
     ar: "إلغاء مراجعة التحويل",
   },
   "customer.payg.demoAcceptance": {
@@ -3521,7 +3521,7 @@ export const customerMessages = defineMessages({
     de: "Testphase erfasst vom {start} bis {end}.",
     ja: "トライアルを {start} から {end} まで記録しました。",
     pt: "Período de teste registrado de {start} a {end}.",
-    zh: "已记录试用期：{start} 至 {end}。",
+    zh: "已记录试用期：{start}至 {end}。",
     ar: "سُجّلت الفترة التجريبية من {start} إلى {end}.",
   },
   "customer.payg.result.payg": {
@@ -3531,7 +3531,7 @@ export const customerMessages = defineMessages({
     de: "Anmeldung zur nutzungsbasierten Abrechnung ab {start} erfasst. Abrechnende Stelle: {authority}.",
     ja: "{start} からの従量課金の登録を記録しました。請求主体：{authority}。",
     pt: "Adesão ao pagamento por uso registrada a partir de {start}. Responsável pelo faturamento: {authority}.",
-    zh: "已记录自 {start} 起的按量付费注册。计费方：{authority}。",
+    zh: "已记录自 {start}起的按量付费开通。计费方：{authority}。",
     ar: "سُجّل الاشتراك في الدفع حسب الاستخدام اعتبارًا من {start}. جهة الفوترة: {authority}.",
   },
   "customer.payg.result.converted": {
@@ -3571,7 +3571,7 @@ export const customerMessages = defineMessages({
     de: "Umstellung auf nutzungsbasierte Abrechnung prüfen",
     ja: "従量課金への移行を確認",
     pt: "Revisar a conversão para pagamento por uso",
-    zh: "审核按量付费转换",
+    zh: "查看按量付费转换",
     ar: "مراجعة التحويل إلى الدفع حسب الاستخدام",
   },
   "customer.payg.cancellationReason": {
@@ -3811,7 +3811,7 @@ export const customerMessages = defineMessages({
     de: "Erfassen und verifizieren Sie zuerst die passende Testphase, Anmeldung zur nutzungsbasierten Abrechnung, Kündigung oder Umstellung. Sie muss zu Konto, Organisation und genehmigtem Tarif der Anfrage passen.",
     ja: "先に、対応するトライアル、従量課金の登録、解約、または移行を記録して確認してください。申請のアカウント、組織、承認済みオファーと一致している必要があります。",
     pt: "Primeiro registre e verifique o período de teste, a adesão ao pagamento por uso, o cancelamento ou a conversão correspondente. O registro precisa corresponder à conta, à organização e à oferta aprovada da solicitação.",
-    zh: "请先记录并验证对应的试用、按量付费注册、取消或转换。其必须与申请的账户、组织和已批准方案一致。",
+    zh: "请先记录并验证对应的试用、按量付费开通、取消或转换。其必须与申请的账户、组织和已批准方案一致。",
     ar: "سجّل أولًا الفترة التجريبية أو اشتراك الدفع حسب الاستخدام أو الإلغاء أو التحويل المطابق وتحقق منه. يجب أن يطابق حساب الطلب ومؤسسته والباقة المعتمدة.",
   },
   "customer.payg.error.replayConflict": {
@@ -3821,7 +3821,7 @@ export const customerMessages = defineMessages({
     de: "Diese Anfrage-ID wurde bereits mit anderen Angaben verwendet. Aktualisieren Sie die Seite, bevor Sie es erneut versuchen.",
     ja: "この申請 ID は別の内容ですでに使用されています。再試行する前に再読み込みしてください。",
     pt: "Este identificador de solicitação já foi usado com outros dados. Atualize antes de tentar novamente.",
-    zh: "此申请标识已用于其他详情。请刷新后重试。",
+    zh: "此申请标识符已被用于其他内容。请刷新后重试。",
     ar: "استُخدم معرّف الطلب هذا بالفعل ببيانات مختلفة. حدّث الصفحة قبل إعادة المحاولة.",
   },
   "customer.payg.error.notSaved": {
@@ -3963,7 +3963,7 @@ export const customerMessages = defineMessages({
     de: "Richtlinien, verifizierte Testphasen und Anmeldungen zur nutzungsbasierten Abrechnung verwalten",
     ja: "ポリシー、確認済みトライアル、従量課金の登録を管理",
     pt: "Gerenciar políticas, períodos de teste verificados e adesões ao pagamento por uso",
-    zh: "管理政策、已验证的试用和按量付费注册",
+    zh: "管理政策、已验证的试用和按量付费开通",
     ar: "إدارة السياسات والفترات التجريبية المُتحقق منها واشتراكات الدفع حسب الاستخدام",
   },
   "customer.paygFinance.demoNotice": {
@@ -4103,7 +4103,7 @@ export const customerMessages = defineMessages({
     de: "ID der verifizierten Anmeldung zur nutzungsbasierten Abrechnung",
     ja: "確認済みの従量課金登録の ID",
     pt: "ID da adesão ao pagamento por uso verificada",
-    zh: "已验证按量付费注册的 ID",
+    zh: "已验证的按量付费开通 ID",
     ar: "معرّف اشتراك الدفع حسب الاستخدام المُتحقق منه",
   },
   "customer.paygFinance.enrollmentPlaceholder": {
@@ -4123,7 +4123,7 @@ export const customerMessages = defineMessages({
     de: "Schließen Sie zuerst den Quellprozess ab. Die Umstellung der Testphase muss bereits auf diese kostenpflichtige Anmeldung verweisen; eine Kündigung erfordert den bestätigten Nachweis des Serviceendes. Konto, Organisation, Mandant und Richtlinie müssen übereinstimmen.",
     ja: "先に元のワークフローを完了してください。トライアルからの移行は、この有料登録をすでに参照している必要があります。解約には、確認済みのサービス終了の証跡が必要です。アカウント、組織、テナント、ポリシーがすべて一致している必要があります。",
     pt: "Conclua primeiro o fluxo de origem. A conversão do período de teste já precisa referenciar esta adesão paga; o cancelamento exige a evidência confirmada do fim do serviço. Conta, organização, locatário e política precisam coincidir.",
-    zh: "请先完成源流程。试用转换必须已引用此付费注册；取消需要已确认的服务终止证据。账户、组织、租户和政策必须全部一致。",
+    zh: "请先完成源流程。试用转换必须已引用此付费开通记录；取消需要已确认的服务终止证据。账户、组织、租户和政策必须全部一致。",
     ar: "أكمل مسار العمل المصدر أولًا. يجب أن يشير تحويل الفترة التجريبية بالفعل إلى هذا الاشتراك المدفوع، ويتطلب الإلغاء دليلًا مؤكدًا على انتهاء الخدمة. يجب أن يتطابق الحساب والمؤسسة والمستأجر والسياسة جميعًا.",
   },
   "customer.paygFinance.resolutionReason": {

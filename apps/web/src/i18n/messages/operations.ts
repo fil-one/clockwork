@@ -247,7 +247,7 @@ export const operationsMessages = defineMessages({
     de: "Aufträge, gruppiert nach der verbleibenden Zeit bis zum vertraglichen Kündigungstermin, mit dem erfassten Vertriebsweg und den bisher gestellten Rechnungen.",
     ja: "契約上の通知日までの残り期間別に、登録済みチャネルと請求情報を含む注文を表示します。",
     pt: "Pedidos agrupados pelo tempo restante até a data de aviso prévio contratual, com a modalidade de venda e o faturamento já registrados.",
-    zh: "按距合同通知日期的剩余时间分组订单，并显示已记录的渠道和开票信息。",
+    zh: "按距合同通知日的剩余时间对订单分组，并显示已记录的销售模式和开票情况。",
     ar: "طلبات مجمعة حسب المدة المتبقية للإشعار التعاقدي، مع المسار والفوترة المسجلين.",
   },
   "ui.38": {
@@ -267,7 +267,7 @@ export const operationsMessages = defineMessages({
     de: "„Bisher in Rechnung gestellt“ zeigt den in Rechnung gestellten Wert je Auftrag. Prognosewerte sind von dieser Verlängerungsliste getrennt.",
     ja: "請求済み額は各注文の請求額を示します。予測額はこの更新作業リストとは別に管理されます。",
     pt: "“Faturado até o momento” mostra o valor faturado de cada pedido. O valor previsto fica separado desta lista de renovações.",
-    zh: "迄今开票显示每个订单的已开票金额。预测价值与此续约工作列表分开。",
+    zh: "“累计已开票”显示每个订单的已开票金额。预测价值与此续约工作列表分开。",
     ar: "يبين المفوتر حتى الآن قيمة كل طلب. وتظل التوقعات منفصلة عن قائمة التجديدات هذه.",
   },
   "ui.40": {
@@ -277,7 +277,7 @@ export const operationsMessages = defineMessages({
     de: "Bisher in Rechnung gestellt",
     ja: "請求済み額",
     pt: "Faturado até o momento",
-    zh: "迄今开票",
+    zh: "累计已开票",
     ar: "المفوتر حتى الآن",
   },
   "ui.41": {
@@ -297,7 +297,7 @@ export const operationsMessages = defineMessages({
     de: "Vertriebsweg nicht erfasst",
     ja: "チャネル未記録",
     pt: "Modalidade de venda não registrada",
-    zh: "未记录渠道",
+    zh: "未记录销售模式",
     ar: "المسار غير مسجل",
   },
   "ui.43": {
@@ -317,7 +317,7 @@ export const operationsMessages = defineMessages({
     de: "Prioritäten im Forderungsmanagement",
     ja: "債権回収の優先順位",
     pt: "Prioridade de cobrança",
-    zh: "催收优先级",
+    zh: "收款优先级",
     ar: "أولوية التحصيل",
   },
   "ui.45": {
@@ -357,7 +357,7 @@ export const operationsMessages = defineMessages({
     de: "Maßnahmen im Forderungsmanagement",
     ja: "債権回収の操作",
     pt: "Ações de cobrança",
-    zh: "催收操作",
+    zh: "收款操作",
     ar: "إجراءات التحصيل",
   },
   "ui.49": {
@@ -367,7 +367,7 @@ export const operationsMessages = defineMessages({
     de: "Öffnen Sie eine Rechnung, um Zahlungsverlauf, Streitfälle und verfügbare Korrekturen zu prüfen.",
     ja: "各請求書を開いて、支払履歴、紛争、可能な修正を確認します。",
     pt: "Abra cada fatura para revisar pagamentos, contestações e correções disponíveis.",
-    zh: "打开每张发票以审查付款历史、争议及可用更正。",
+    zh: "打开每张发票以审核付款历史、争议及可用更正。",
     ar: "افتح كل فاتورة لمراجعة سجل الدفعات والنزاعات والتصحيحات المتاحة.",
   },
   "ui.50": {
@@ -437,7 +437,7 @@ export const operationsMessages = defineMessages({
     de: "Keine offene Rechnung erfordert Maßnahmen im Forderungsmanagement.",
     ja: "回収対応が必要な未払い請求書はありません。",
     pt: "Nenhuma fatura aberta precisa de cobrança.",
-    zh: "没有需要催收处理的未结发票。",
+    zh: "没有需要收款跟进的未结发票。",
     ar: "لا توجد فواتير مفتوحة تتطلب إجراءات تحصيل.",
   },
   "ui.58": {
@@ -447,7 +447,7 @@ export const operationsMessages = defineMessages({
     de: "Bereitstellungsaufgaben",
     ja: "プロビジョニング業務",
     pt: "Tarefas de provisionamento",
-    zh: "资源开通工作",
+    zh: "开通任务",
     ar: "أعمال تهيئة الخدمات",
   },
   "ui.59": {
@@ -527,7 +527,7 @@ export const operationsMessages = defineMessages({
     de: "Bereitstellungsdatensätze",
     ja: "プロビジョニング記録",
     pt: "Registros de provisionamento",
-    zh: "资源开通记录",
+    zh: "开通记录",
     ar: "سجلات تهيئة الخدمات",
   },
   "ui.67": {
@@ -687,7 +687,7 @@ export const operationsMessages = defineMessages({
     de: "Abrechnung und Forderungsmanagement",
     ja: "請求と債権回収",
     pt: "Faturamento e cobrança",
-    zh: "账单与催收",
+    zh: "计费与收款",
     ar: "الفوترة والتحصيل",
   },
   "ui.83": {
@@ -870,7 +870,7 @@ export const operationsMessages = defineMessages({
     de: "Warteschlangenaufgaben",
     ja: "キューの作業",
     pt: "Trabalho na fila",
-    zh: "队列工作",
+    zh: "队列工作项",
     ar: "أعمال قائمة الانتظار",
   },
   "operations.column.attempts": {
@@ -1310,7 +1310,7 @@ export const operationsMessages = defineMessages({
     de: "Priorisierte Aufgaben zu Richtlinien, Anbietern und Lebenszyklus mit klaren Verantwortlichkeiten und Nachweisen.",
     ja: "ポリシー、プロバイダー、ライフサイクルに関する作業を優先度順に表示し、担当者と証跡を明示します。",
     pt: "Trabalho priorizado de políticas, provedores e ciclo de vida, com responsáveis definidos e evidências claras.",
-    zh: "按优先级排列的政策、服务商和生命周期工作，负责人与证据一目了然。",
+    zh: "按优先级排列的政策、服务商和生命周期工作项，负责人与证据一目了然。",
     ar: "أعمال السياسات والمزوّدين ودورة الحياة مرتبة حسب الأولوية، مع تحديد واضح للمسؤولين والأدلة.",
   },
   "operations.queue.stale.title": {
@@ -1400,7 +1400,7 @@ export const operationsMessages = defineMessages({
     de: "Offene Aufgaben, die dem angemeldeten Operator zugewiesen sind",
     ja: "サインイン中のオペレーターに割り当てられた未完了の作業",
     pt: "Trabalho em aberto atribuído ao operador conectado",
-    zh: "分配给当前登录操作员的未完成工作",
+    zh: "分配给当前登录操作员的未完成工作项",
     ar: "الأعمال المفتوحة المسندة إلى المشغّل الذي سجّل الدخول",
   },
   "operations.queue.view.slaBreached": {
@@ -1460,7 +1460,7 @@ export const operationsMessages = defineMessages({
     de: "Alle Aufgaben der Warteschlange",
     ja: "キューのすべての作業",
     pt: "Todo o trabalho da fila",
-    zh: "队列中的全部工作",
+    zh: "队列中的全部工作项",
     ar: "جميع أعمال قائمة الانتظار",
   },
   "operations.queue.filters.title": {
@@ -1500,7 +1500,7 @@ export const operationsMessages = defineMessages({
     de: "Aufgaben durchsuchen",
     ja: "作業を検索",
     pt: "Pesquisar trabalho",
-    zh: "搜索工作",
+    zh: "搜索工作项",
     ar: "البحث في الأعمال",
   },
   "operations.queue.search.placeholder": {
@@ -1770,7 +1770,7 @@ export const operationsMessages = defineMessages({
     de: "Noch keine Aufgaben in der Warteschlange",
     ja: "キューに作業はまだありません",
     pt: "Ainda não há trabalho na fila",
-    zh: "队列中暂无工作",
+    zh: "队列中暂无工作项",
     ar: "لا توجد أعمال في قائمة الانتظار بعد",
   },
   "operations.queue.empty.description": {
@@ -1780,7 +1780,7 @@ export const operationsMessages = defineMessages({
     de: "Neue Betriebsaufgaben erscheinen hier, sobald eine Richtlinie oder ein Anbieter Aufmerksamkeit erfordert.",
     ja: "ポリシーやプロバイダーで対応が必要になると、新しい業務がここに表示されます。",
     pt: "Novos trabalhos operacionais aparecerão aqui quando uma política ou um provedor precisar de atenção.",
-    zh: "当某项政策或某个服务商需要处理时，新的运营工作会显示在这里。",
+    zh: "当某项政策或某个服务商需要处理时，新的运营工作项会显示在这里。",
     ar: "ستظهر هنا الأعمال التشغيلية الجديدة عندما تحتاج سياسة أو مزوّد إلى متابعة.",
   },
   "operations.queue.noMatch.title": {
@@ -1790,7 +1790,7 @@ export const operationsMessages = defineMessages({
     de: "Keine Aufgaben entsprechen diesen Filtern",
     ja: "条件に一致する作業はありません",
     pt: "Nenhum trabalho corresponde a estes filtros",
-    zh: "没有符合这些筛选条件的工作",
+    zh: "没有符合这些筛选条件的工作项",
     ar: "لا توجد أعمال تطابق عوامل التصفية هذه",
   },
   "operations.queue.noMatch.description": {
@@ -2310,7 +2310,7 @@ export const operationsMessages = defineMessages({
     de: "Der Zugriff im Assistenzmodus bleibt auf das gespeicherte Zielkonto beschränkt.",
     ja: "代理操作モードでのアクセスは、保存された対象アカウントに限定されます。",
     pt: "O acesso no modo assistido continua restrito à conta assistida registrada.",
-    zh: "代操作模式下的访问仍仅限于已保存的生效账户。",
+    zh: "代操作模式下的访问仍仅限于已保存的目标账户。",
     ar: "يظل الوصول في الوضع المساعد مقتصرًا على الحساب الفعلي المحفوظ.",
   },
   "operations.account.openReports": {
@@ -2360,7 +2360,7 @@ export const operationsMessages = defineMessages({
     de: "Zum Beispiel Northstar, eine Rechnungsnummer oder eine Richtlinie",
     ja: "例：Northstar、請求書番号、ポリシー",
     pt: "Experimente Northstar, um número de fatura ou uma política",
-    zh: "例如 Northstar、发票编号或政策",
+    zh: "例如 Northstar、发票编号或政策名称",
     ar: "جرّب Northstar أو رقم فاتورة أو سياسة",
   },
   "operations.search.keyboardHelp": {
@@ -3536,7 +3536,7 @@ export const operationsMessages = defineMessages({
     de: "Ausführung der Aktivierungstests",
     ja: "有効化テストの実行環境",
     pt: "Executor de testes de ativação",
-    zh: "激活测试执行器",
+    zh: "启用测试执行器",
     ar: "منفّذ اختبارات التفعيل",
   },
   "operations.status.detail.workosWebhook": {
@@ -4156,7 +4156,7 @@ export const operationsMessages = defineMessages({
     de: "Referenz der Eindämmung",
     ja: "封じ込めの参照先",
     pt: "Referência da contenção",
-    zh: "遏制参考",
+    zh: "遏制参考信息",
     ar: "مرجع الاحتواء",
   },
   "operations.incidents.decision.referenceHelp": {
@@ -4196,7 +4196,7 @@ export const operationsMessages = defineMessages({
     de: "Die Referenz der Eindämmung muss eine Zeile druckbarer Text mit höchstens {limit} Zeichen sein, ohne Anführungszeichen, spitze Klammern, Backticks, Semikolons oder Backslashes.",
     ja: "封じ込めの参照先は、印刷可能な文字の1行で{limit}文字以内とし、引用符、山かっこ、バッククォート、セミコロン、バックスラッシュを含めないでください。",
     pt: "A referência da contenção deve ser uma única linha de texto imprimível, com no máximo {limit} caracteres, sem aspas, sinais de menor e maior, crases, ponto e vírgula ou barras invertidas.",
-    zh: "遏制参考必须为一行可打印文本，最多 {limit} 个字符，且不得包含引号、尖括号、反引号、分号或反斜杠。",
+    zh: "遏制参考信息必须为一行可打印文本，最多 {limit} 个字符，且不得包含引号、尖括号、反引号、分号或反斜杠。",
     ar: "يجب أن يكون مرجع الاحتواء سطرًا واحدًا من نص قابل للطباعة، لا يتجاوز {limit} من الأحرف، دون علامات اقتباس أو أقواس زاوية أو علامات اقتباس مائلة أو فواصل منقوطة أو شرطات مائلة عكسية.",
   },
   "operations.incidents.failure.unavailable": {
@@ -4676,7 +4676,7 @@ export const operationsMessages = defineMessages({
     de: "Zielkonto",
     ja: "対象アカウント",
     pt: "Conta assistida",
-    zh: "生效账户",
+    zh: "目标账户",
     ar: "الحساب الفعلي",
   },
   "operations.assisted.staffActor": {
@@ -4686,7 +4686,7 @@ export const operationsMessages = defineMessages({
     de: "Handelnde Person",
     ja: "操作している社員",
     pt: "Autor da ação",
-    zh: "操作员工",
+    zh: "员工操作人",
     ar: "الموظف المنفّذ",
   },
   "operations.assisted.reasonAndExpiry": {
@@ -4716,7 +4716,7 @@ export const operationsMessages = defineMessages({
     de: "Die Serversitzung {id} bewahrt bei jeder autorisierten Aktion die unveränderliche handelnde Person und das Zielkonto.",
     ja: "サーバーセッション {id} は、承認済みのすべての操作について、変更できない操作者と対象アカウントを保持します。",
     pt: "A sessão do servidor {id} preserva, em cada ação autorizada, o autor da ação, que não pode ser alterado, e a conta assistida.",
-    zh: "服务器会话 {id} 会在每次授权操作中保留不可更改的操作员工和生效账户。",
+    zh: "服务器会话 {id} 会在每次授权操作中保留不可更改的员工操作人和目标账户。",
     ar: "تحتفظ جلسة الخادم {id} بالموظف المنفّذ غير القابل للتغيير وبالحساب الفعلي في كل إجراء مصرّح به.",
   },
   "operations.assisted.exit": {
@@ -4736,7 +4736,7 @@ export const operationsMessages = defineMessages({
     de: "Register der externen Voraussetzungen nicht verfügbar",
     ja: "外部要件の登録簿を利用できません",
     pt: "Registro de pré-requisitos externos indisponível",
-    zh: "外部前置条件登记表不可用",
+    zh: "外部前置条件登记库不可用",
     ar: "سجل المتطلبات الخارجية غير متاح",
   },
   "operations.gates.unavailable.owner": {
@@ -4766,7 +4766,7 @@ export const operationsMessages = defineMessages({
     de: "Nicht verfügbar; die Aktivierung wird verweigert",
     ja: "利用不可。有効化は拒否されます",
     pt: "Indisponível; a ativação é negada",
-    zh: "不可用；拒绝激活",
+    zh: "不可用；已拒绝启用",
     ar: "غير متاح؛ يُرفض التفعيل",
   },
   "operations.gates.unavailable.freshness": {
@@ -4776,7 +4776,7 @@ export const operationsMessages = defineMessages({
     de: "Für diese Anfrage ist kein Lesevorgang des Registers verfügbar",
     ja: "このリクエストでは登録簿の読み取り結果がありません",
     pt: "Nenhuma leitura do registro disponível para esta requisição",
-    zh: "此请求没有可用的登记表读取结果",
+    zh: "此请求没有可用的登记库读取结果",
     ar: "لا تتوفر قراءة للسجل لهذا الطلب",
   },
   "operations.gates.unavailable.reason": {
@@ -4786,7 +4786,7 @@ export const operationsMessages = defineMessages({
     de: "Das dauerhafte Register der Voraussetzungen konnte nicht gelesen werden. Keine Voraussetzung ist aktiv.",
     ja: "永続化された要件の登録簿を読み取れませんでした。有効な要件はありません。",
     pt: "Não foi possível ler o registro persistente de pré-requisitos. Nenhum pré-requisito está ativo.",
-    zh: "无法读取持久化的前置条件登记表。没有任何前置条件处于生效状态。",
+    zh: "无法读取持久化的前置条件登记库。没有任何前置条件处于生效状态。",
     ar: "تعذّرت قراءة سجل المتطلبات الدائم. لا يوجد أي متطلب نشط.",
   },
   "operations.queue.filter.sla": sameInAllLanguages(
