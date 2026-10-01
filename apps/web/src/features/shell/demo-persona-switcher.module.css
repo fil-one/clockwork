@@ -258,3 +258,41 @@
     display: none;
   }
 }
+
+.launcher {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  border-radius: 0.625rem;
+  background: var(--cw-action);
+  color: white;
+  min-height: 3.25rem;
+}
+.launcher::before {
+  display: none;
+}
+.launcher:hover {
+  background: var(--cw-action-strong);
+}
+.launcher small {
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.title {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.875rem;
+  color: var(--web-ink);
+}
+@media (min-width: 64rem) {
+  :global(body):has(.panel) :global(.cw-shell__rail) {
+    height: calc(
+      100dvh - var(--cw-header-height) - 3.25rem - 2 * var(--cw-space-3) - 1px
+    );
+  }
+}
+@media (max-width: 63.999rem) {
+  :global(body):has(.panel) :global(.cw-shell__footer) {
+    padding-block-end: calc(3.25rem + 2 * clamp(0.75rem, 2vw, 1.5rem));
+  }
+}

@@ -164,7 +164,6 @@ export function CustomerAcquisition({
     <main id="main-content" className={styles.main}>
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>{t("customer.payg.eyebrow")}</p>
           <h1>{t("customer.payg.title")}</h1>
           <p>{t("customer.payg.description")}</p>
         </div>

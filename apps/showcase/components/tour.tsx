@@ -165,15 +165,7 @@ export function Tour() {
       )}
       <div className="tour-heading">
         <div>
-          <p className="eyebrow">
-            {t("sales.one.deal.from.quote.to.payment.35c82")}
-          </p>
           <h1>{t("sales.your.front.row.seat.to.a.ef705")}</h1>
-        </div>
-        <div className="tour-disclosure">
-          <span className="sample-badge">
-            {t("sales.interactive.simulation.92de6")}
-          </span>
         </div>
       </div>
       <nav className="tour-progress" aria-label={t("sales.tour.scenes.1292e")}>
@@ -186,7 +178,7 @@ export function Tour() {
           >
             <span>{state.completed > index ? <Check /> : `0${index + 1}`}</span>
             <strong>{stage}</strong>
-            <small>
+            <small className="sr-only">
               {state.completed > index
                 ? t("sales.sample.completed.ac5e3")
                 : step === index
@@ -198,24 +190,11 @@ export function Tour() {
       </nav>
       <div className="tour-grid">
         <aside className="tour-guide">
-          <div className="guide-step">
-            {t("sales.scene.value.of.5.c8887", { step: number(step + 1) })}{" "}
-            <span>
-              {t("sales.about.value.seconds.ccf33", {
-                seconds: number(step === 3 ? 45 : 30),
-              })}
-            </span>
-          </div>
           <h2 tabIndex={-1} ref={heading}>
             {scene.title}
           </h2>
           <p>{scene.intro}</p>
-          <div className="why-panel">
-            <span className="eyebrow">{t("sales.why.it.matters.40107")}</span>
-            <p>{scene.why}</p>
-          </div>
           <div className="mode-selector">
-            <span className="eyebrow">{t("sales.experience.00fa6")}</span>
             <div role="group" aria-label={t("sales.experience.mode.f362c")}>
               <button
                 aria-pressed={!connected}
@@ -276,11 +255,6 @@ export function Tour() {
               <span className="workspace-brand">
                 Fil One <span>Commerce</span>
               </span>
-              <span className="workspace-label">
-                {connected
-                  ? t("sales.planned.connection.simulated.3ec06")
-                  : t("sales.guided.sample.2760c")}
-              </span>
             </div>
             <div className="role-bar">
               <span className="role-avatar">{scene.person.slice(0, 1)}</span>
@@ -288,12 +262,11 @@ export function Tour() {
                 <strong>{scene.role}</strong>
                 <small>{scene.person}</small>
               </span>
-              <span className="role-view">{t("sales.viewing.as.aaf36")}</span>
             </div>
             <div className="workspace-body" key={`${step}-${connected}`}>
               <div className="record-heading">
                 <div>
-                  <p className="eyebrow">{"MERIDIAN ARCHIVE LABS"}</p>
+                  <p className="context-label">Meridian Archive Labs</p>
                   <h3>
                     {
                       [
@@ -679,15 +652,13 @@ export function Tour() {
                       <Check />
                       <div>
                         <strong>{scene.result}</strong>
-                        <span>
-                          {state.seeded
-                            ? t(
-                                "sales.this.scenario.includes.prepared.sample.history.3a222",
-                              )
-                            : t(
-                                "sales.your.sample.transaction.has.been.updated.b2adf",
-                              )}
-                        </span>
+                        {state.seeded && (
+                          <span>
+                            {t(
+                              "sales.this.scenario.includes.prepared.sample.history.3a222",
+                            )}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -725,13 +696,6 @@ export function Tour() {
                 </>
               )}
             </div>
-            <div className="workspace-footer">
-              <span className="linked-dot" />
-              <span>
-                {t("sales.same.customer.same.terms.connected.records.4978e")}
-              </span>
-              <span>{t("sales.demo.4ff00")}</span>
-            </div>
           </section>
           <div className="tour-bottom-bar">
             <span>
@@ -759,9 +723,6 @@ export function Tour() {
               className="tour-recap"
               aria-label={t("sales.tour.takeaway.c633e")}
             >
-              <span className="eyebrow">
-                {t("sales.the.executive.takeaway.1ef11")}
-              </span>
               <h2 tabIndex={-1} ref={recapHeading}>
                 {t("sales.one.deal.a.complete.commercial.story.21776")}
               </h2>
@@ -835,7 +796,6 @@ export function Tour() {
           >
             {t("sales.explore.the.full.operational.sandbox.7e481")}
             <Arrow diagonal />
-            <span>{t("sales.password.required.d89f8")}</span>
           </a>
         </div>
       </div>

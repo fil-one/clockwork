@@ -199,9 +199,6 @@ export function AgreementAcceptance({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>
-            {t("customer.commercial.agreement.eyebrow")}
-          </p>
           <h1>{t("customer.commercial.agreement.title")}</h1>
           <p className={styles.description}>
             {t("customer.commercial.agreement.binding", {

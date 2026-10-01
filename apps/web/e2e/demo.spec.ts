@@ -17,11 +17,17 @@ import {
  */
 function configuredPassword(): string {
   const configured = process.env.CLOCKWORK_DEMO_ACCESS_PASSWORD;
-  if (!configured)
+  if (
+    !configured &&
+    !(
+      process.env.CLOCKWORK_HOSTED_DEMO_URL &&
+      process.env.CLOCKWORK_HOSTED_DEMO_PUBLIC === "1"
+    )
+  )
     throw new Error(
       "The demo suite requires CLOCKWORK_DEMO_ACCESS_PASSWORD. Run it through the demo release shard, or set the variable to drive a demo-configured server.",
     );
-  return configured;
+  return configured ?? "";
 }
 
 const password = configuredPassword();
@@ -155,7 +161,9 @@ async function expectVisualLayoutReady(page: Page, viewportWidth: number) {
               stylesLoaded,
               viewportWidth: document.documentElement.clientWidth,
               documentWidth: document.documentElement.scrollWidth,
-              mainDisplay: main ? getComputedStyle(main).display : "missing",
+              mainPadding: main
+                ? Number.parseFloat(getComputedStyle(main).paddingInlineStart)
+                : 0,
               logoWidth: logo?.getBoundingClientRect().width ?? 0,
             };
           };
@@ -169,7 +177,7 @@ async function expectVisualLayoutReady(page: Page, viewportWidth: number) {
             value.stylesLoaded &&
             value.viewportWidth === expectedWidth &&
             value.documentWidth === expectedWidth &&
-            value.mainDisplay === "grid" &&
+            value.mainPadding > 0 &&
             value.logoWidth > 0 &&
             value.logoWidth <= 120;
           return (
@@ -197,6 +205,11 @@ async function openGate(page: Page, next = "/demo") {
 }
 
 async function passGate(page: Page, next = "/demo") {
+  if (!password) {
+    await page.goto(next);
+    await expect(page).not.toHaveURL(/\/demo\/access/u);
+    return;
+  }
   const field = await openGate(page, next);
   const destination = new URL(next, page.url()).href;
   await field.fill(password);
@@ -263,64 +276,65 @@ async function startAs(page: Page, name: string) {
   await expectShellHydrated(page);
 }
 
-test.describe("demo access gate", () => {
-  test("refuses the wrong password and keeps the return path", async ({
-    page,
-  }) => {
-    const field = await openGate(page, "/dashboard");
-    await field.fill("not-the-password");
-    await page.getByRole("button", { name: "Continue" }).click();
+if (password)
+  test.describe("demo access gate", () => {
+    test("refuses the wrong password and keeps the return path", async ({
+      page,
+    }) => {
+      const field = await openGate(page, "/dashboard");
+      await field.fill("not-the-password");
+      await page.getByRole("button", { name: "Continue" }).click();
 
-    await expect(page).toHaveURL(/error=1/u);
-    await expect(
-      page.getByText("That password does not match. Try again."),
-    ).toBeVisible();
-    // A refused attempt must not carry the visitor past the gate.
-    await expect(page).toHaveURL(/\/demo\/access/u);
-    await expectAxeClean(page);
+      await expect(page).toHaveURL(/error=1/u);
+      await expect(
+        page.getByText("That password does not match. Try again."),
+      ).toBeVisible();
+      // A refused attempt must not carry the visitor past the gate.
+      await expect(page).toHaveURL(/\/demo\/access/u);
+      await expectAxeClean(page);
+    });
+
+    test("opens the landing page on the right password", async ({ page }) => {
+      await passGate(page);
+
+      await expect(page).toHaveURL(/\/demo$/u);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: "Choose your workspace.",
+        }),
+      ).toBeVisible();
+    });
+
+    // A visitor picks a language and goes straight to the password. There is no
+    // separate save step to skip, and the choice must survive the gate even when
+    // the password is submitted before the selector's own save has answered.
+    test("keeps the language chosen at the gate without a save step", async ({
+      page,
+    }) => {
+      // The gate is outside the shell and has no hydration marker. It needs
+      // none: the selector belongs to the password form natively, so the choice
+      // is submitted whether or not its own save has run. Once that save does
+      // run the page re-renders in French, so the button is found by its form,
+      // not by a label that may be in either language.
+      const field = await openGate(page);
+      await page.getByRole("combobox", { name: "Language" }).selectOption("fr");
+      await field.fill(password);
+      await page.locator("#demo-access-form").getByRole("button").click();
+
+      await expect(page).toHaveURL(/\/demo$/u);
+      await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: "Choisissez votre espace de travail.",
+        }),
+      ).toBeVisible();
+      await page.reload();
+      await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+      await page.context().clearCookies({ name: "clockwork-language" });
+    });
   });
-
-  test("opens the landing page on the right password", async ({ page }) => {
-    await passGate(page);
-
-    await expect(page).toHaveURL(/\/demo$/u);
-    await expect(
-      page.getByRole("heading", {
-        level: 1,
-        name: "Choose the person you are signing in as",
-      }),
-    ).toBeVisible();
-  });
-
-  // A visitor picks a language and goes straight to the password. There is no
-  // separate save step to skip, and the choice must survive the gate even when
-  // the password is submitted before the selector's own save has answered.
-  test("keeps the language chosen at the gate without a save step", async ({
-    page,
-  }) => {
-    // The gate is outside the shell and has no hydration marker. It needs
-    // none: the selector belongs to the password form natively, so the choice
-    // is submitted whether or not its own save has run. Once that save does
-    // run the page re-renders in French, so the button is found by its form,
-    // not by a label that may be in either language.
-    const field = await openGate(page);
-    await page.getByRole("combobox", { name: "Language" }).selectOption("fr");
-    await field.fill(password);
-    await page.locator("#demo-access-form").getByRole("button").click();
-
-    await expect(page).toHaveURL(/\/demo$/u);
-    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
-    await expect(
-      page.getByRole("heading", {
-        level: 1,
-        name: "Choisir le profil de connexion",
-      }),
-    ).toBeVisible();
-    await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
-    await page.context().clearCookies({ name: "clockwork-language" });
-  });
-});
 
 test.describe("demo landing", () => {
   test.beforeEach(async ({ page }) => {
@@ -329,10 +343,10 @@ test.describe("demo landing", () => {
 
   test("groups every persona and starts one", async ({ page }) => {
     await expect(
-      page.getByRole("heading", { level: 2, name: "Customers and partners" }),
+      page.getByRole("heading", { level: 2, name: "For customers" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { level: 2, name: "Fil One staff" }),
+      page.getByRole("heading", { level: 2, name: "For Fil One teams" }),
     ).toBeVisible();
     // Nine personas, each its own card with a start link.
     await expect(page.getByRole("link", { name: /^Start as / })).toHaveCount(9);
@@ -1075,18 +1089,19 @@ for (const viewport of [
   { label: "desktop", width: 1440, height: 1000 },
   { label: "320", width: 320, height: 800 },
 ] as const) {
-  test(`visual demo access at ${viewport.label}`, async ({ page }) => {
-    const runtimeReady = nextDevRuntimeReady(page);
-    await page.setViewportSize(viewport);
-    await openGate(page);
-    await runtimeReady;
-    await hideDevOverlay(page);
-    await expectVisualLayoutReady(page, viewport.width);
-    await expect(page).toHaveScreenshot(
-      `demo-access${viewport.label === "320" ? "-320" : ""}.png`,
-      { animations: "disabled", fullPage: true, maxDiffPixelRatio: 0.01 },
-    );
-  });
+  if (password)
+    test(`visual demo access at ${viewport.label}`, async ({ page }) => {
+      const runtimeReady = nextDevRuntimeReady(page);
+      await page.setViewportSize(viewport);
+      await openGate(page);
+      await runtimeReady;
+      await hideDevOverlay(page);
+      await expectVisualLayoutReady(page, viewport.width);
+      await expect(page).toHaveScreenshot(
+        `demo-access${viewport.label === "320" ? "-320" : ""}.png`,
+        { animations: "disabled", fullPage: true, maxDiffPixelRatio: 0.01 },
+      );
+    });
 
   test(`visual demo landing at ${viewport.label}`, async ({ page }) => {
     const runtimeReady = nextDevRuntimeReady(page);
@@ -1266,3 +1281,20 @@ test("customer trial, paid conversion and cancellation retain verified handoff s
     if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
   }
 });
+
+if (!password)
+  test("public demo preserves the language handoff without an access gate", async ({
+    page,
+  }) => {
+    await page.goto("/demo?lang=es");
+    await expect(page).toHaveURL(/\/demo$/u);
+    await expect(page.locator("html")).toHaveAttribute("lang", "es");
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "Elija su espacio de trabajo.",
+      }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("lang", "es");
+  });

@@ -58,9 +58,8 @@ The tuning site is `fil-one-commerce-preview`, ID
 directory, and use `apps/showcase/netlify.toml`. The operational sandbox
 continues to use the root `netlify.toml`; these are separate deployments.
 
-The tuning site uses Netlify’s site-wide password protection, configured outside
-the repository. The operational workspace has its own demo access password. Both
-are set to the owner’s chosen shared password.
+Both tuning sites are public. Keep Netlify site-wide password protection off and
+leave `CLOCKWORK_DEMO_ACCESS_PASSWORD` unset on the operational demo.
 
 No provider keys, database, payment credentials, or environment variables are
 needed for the showcase application. `SHOWCASE_URL` may set the canonical
@@ -92,6 +91,6 @@ actions. Preparing a later step marks its earlier events as prepared sample
 history. Nothing in the tour calls a payment or service provider.
 
 Links to the full workspace demo retain the selected language with `lang`. The
-operational app consumes that preference before its existing password gate; it
-does not grant access. Deploy that app separately using
+operational app consumes that preference before opening the selected workspace.
+Deploy that app separately using
 [the operational demo procedure](demo-deploy.md) when its code changes.

@@ -36,7 +36,6 @@ test("refuses every missing identity and state signal", () => {
     "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV",
     "CLOCKWORK_DEMO_STATE_STORE",
     "CLOCKWORK_CANONICAL_ORIGIN",
-    "CLOCKWORK_DEMO_ACCESS_PASSWORD",
     "NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS",
   ];
   for (const key of required) {
@@ -141,4 +140,13 @@ test("production requires credentials and one distinct HTTPS callback origin", (
         productionEnvironment({ CLOCKWORK_CANONICAL_ORIGIN: origin }),
       ).length > 0,
     );
+});
+
+test("accepts public fixture-only demos without a password", () => {
+  assert.deepEqual(
+    demoDeployEnvironmentIssues(
+      validEnvironment({ CLOCKWORK_DEMO_ACCESS_PASSWORD: undefined }),
+    ),
+    [],
+  );
 });

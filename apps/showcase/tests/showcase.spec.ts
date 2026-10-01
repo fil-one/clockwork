@@ -11,12 +11,22 @@ test("the first visit explains the offer, availability and roadmap without a log
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Connected.",
   );
-  await expect(page.getByText("No sign-up needed")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Live Fil One connection" }),
+    page.getByRole("link", { name: "Open full demo", exact: true }).first(),
+  ).toHaveAttribute(
+    "href",
+    "https://clockwork-commerce-demo.netlify.app/demo?lang=en",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Fil One integration" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Integration planned", { exact: true }).first(),
+    page
+      .getByText(
+        "Integration with Fil One is underway and will be available in November 2026.",
+        { exact: true },
+      )
+      .first(),
   ).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Clockwork");
   expect(
@@ -86,9 +96,7 @@ test("deep links, future mode, browser history, and reset are honest about progr
   page,
 }) => {
   await page.goto("/tour?step=3&mode=connected");
-  await expect(
-    page.getByText("Planned integration preview", { exact: true }),
-  ).toBeVisible();
+  await expect(page.locator(".future-note strong")).toBeVisible();
   await expect(page.getByText("Sample actions completed: 0 / 5")).toBeVisible();
   await page.getByRole("button", { name: "Load sample at this step" }).click();
   await expect(
@@ -192,9 +200,7 @@ test("all languages cover the tour, survive reload, and fit without overflow", a
     );
     await expect(page.locator(".language-selector select")).toHaveValue(locale);
     await expect(page.locator(".future-note")).toBeVisible();
-    await expect(page.locator("body")).not.toContainText(
-      "Planned integration preview",
-    );
+    await expect(page.locator("body")).not.toContainText("Fil One integration");
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

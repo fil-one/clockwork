@@ -16,7 +16,6 @@ export const getCapabilities = (t: Translator) =>
     {
       title: t("sales.quotes.orders.0ef2f"),
       detail: t("sales.carry.agreed.pricing.and.terms.from.23bb8"),
-      status: t("sales.working.demo.fbed4"),
       href: "/tour?step=0",
       label: t("sales.follow.a.deal.707f8"),
     },
@@ -25,21 +24,18 @@ export const getCapabilities = (t: Translator) =>
       detail: t(
         "sales.review.pricing.exceptions.retain.approved.economics.0d65f",
       ),
-      status: t("sales.working.demo.fbed4"),
       href: "/tour?step=1",
       label: t("sales.review.an.approval.26592"),
     },
     {
       title: t("sales.partner.commerce.91650"),
       detail: t("sales.explore.deal.registration.resale.quotes.private.9f266"),
-      status: t("sales.working.demo.fbed4"),
       href: "/#audiences",
       label: t("sales.explore.partner.workflows.e1655"),
     },
     {
       title: t("sales.billing.collections.249f8"),
       detail: t("sales.trace.invoices.payment.evidence.corrections.and.9dbf5"),
-      status: t("sales.working.demo.fbed4"),
       href: "/tour?step=4",
       label: t("sales.see.connected.billing.c8ff3"),
     },
@@ -48,14 +44,12 @@ export const getCapabilities = (t: Translator) =>
       detail: t(
         "sales.explore.versioned.policies.usage.rating.simulations.649ca",
       ),
-      status: t("sales.working.demo.fbed4"),
       href: `${sandboxOrigin}/demo/persona?persona=financeApprover`,
       label: t("sales.open.finance.sandbox.f7625"),
     },
     {
       title: t("sales.live.fil.one.connection.6a81a"),
       detail: t("sales.link.existing.accounts.confirm.real.provisioning.56ddb"),
-      status: t("sales.integration.planned.2b26f"),
       href: "/#connected",
       label: t("sales.see.the.integration.plan.5d46c"),
     },

@@ -169,7 +169,6 @@ export function GlobalSearch({
   return (
     <main className={styles.searchPage} id="main-content">
       <header className={styles.searchHeader}>
-        <p className={styles.eyebrow}>{t("operations.eyebrow")}</p>
         <h1>{t("operations.search.title")}</h1>
         <p>{t("operations.search.description")}</p>
         <form

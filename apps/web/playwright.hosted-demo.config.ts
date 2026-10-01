@@ -19,9 +19,12 @@ if (
   )
 )
   throw new Error("Hosted demo QA requires the Clockwork Netlify demo origin.");
-if (!process.env.CLOCKWORK_DEMO_ACCESS_PASSWORD)
+if (
+  !process.env.CLOCKWORK_DEMO_ACCESS_PASSWORD &&
+  process.env.CLOCKWORK_HOSTED_DEMO_PUBLIC !== "1"
+)
   throw new Error(
-    "CLOCKWORK_DEMO_ACCESS_PASSWORD is required for hosted demo QA.",
+    "Set CLOCKWORK_HOSTED_DEMO_PUBLIC=1 for the public demo or supply its password.",
   );
 
 const artifactRoot = path.resolve(
@@ -33,7 +36,7 @@ export default defineConfig({
   testMatch: "demo.spec.ts",
   // The visual baselines were reviewed on the pinned macOS runner against the
   // release shard's fixture state, and this site serves shared demo state that
-  // anyone with the password can have changed. Hosted qualification therefore
+  // any visitor can have changed. Hosted qualification therefore
   // takes every transaction journey and its a11y checks, and leaves the
   // screenshots to the release shard.
   grepInvert: /visual demo/,

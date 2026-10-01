@@ -23,9 +23,6 @@ export function demoDeployEnvironmentIssues(environment) {
   requireExact("CLOCKWORK_DEMO_STATE_STORE", "netlify-blobs");
   requireExact("CLOCKWORK_CANONICAL_ORIGIN", DEMO_ORIGIN);
 
-  if (!environment.CLOCKWORK_DEMO_ACCESS_PASSWORD?.trim())
-    issues.push("CLOCKWORK_DEMO_ACCESS_PASSWORD must be present and non-blank");
-
   const signingOrigins = (environment.NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS ?? "")
     .split(",")
     .map((value) => value.trim())

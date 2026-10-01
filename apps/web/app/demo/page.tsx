@@ -1,4 +1,4 @@
-import { getTranslations } from "@/src/i18n/server";
+import { getLocale, getTranslations } from "@/src/i18n/server";
 import type { Metadata } from "next";
 import { use } from "react";
 import { notFound } from "next/navigation";
@@ -82,36 +82,60 @@ function PersonaGroup({
 
 export default function Page() {
   const t = use(getTranslations());
+  const locale = use(getLocale());
   if (!demoPersonaSurfacesEnabled(process.env)) notFound();
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
-        <BrandLogo
-          className={styles.wordmark ?? ""}
-          src={brandAsset()}
-          name={t("app.name")}
-        />
-        <DemoLanguageSelector />
-        <p className={styles.eyebrow}>{t("demo.landing.eyebrow")}</p>
+        <div className={styles.topbar}>
+          <BrandLogo
+            className={styles.wordmark ?? ""}
+            src={brandAsset()}
+            name={t("app.name")}
+          />
+          <DemoLanguageSelector />
+        </div>
         <h1 className={styles.title}>{t("demo.landing.title")}</h1>
         <p className={styles.description}>{t("demo.landing.description")}</p>
       </header>
-      <PersonaGroup
-        id="demo-group-customers-and-partners"
-        heading={t("demo.landing.external")}
-        personas={demoPersonaCatalog.filter(
-          (persona) => !persona.isInternalStaff,
-        )}
-      />
-      <PersonaGroup
-        id="demo-group-fil-one-staff"
-        heading={t("demo.landing.internal")}
-        personas={demoPersonaCatalog.filter(
-          (persona) => persona.isInternalStaff,
-        )}
-      />
+      <nav className={styles.navigation}>
+        <a href={`https://fil-one-commerce-preview.netlify.app/${locale}`}>
+          {t("demo.workspace.overview")}
+        </a>
+        <a href={`https://fil-one-commerce-preview.netlify.app/${locale}/tour`}>
+          {t("demo.workspace.tour")}
+        </a>
+      </nav>
+      <div className={styles.groups}>
+        {[
+          {
+            id: "customers",
+            heading: t("demo.workspace.customers"),
+            keys: ["directBuyer", "billingUser", "endClient"],
+          },
+          {
+            id: "partners",
+            heading: t("demo.workspace.partners"),
+            keys: ["reseller", "distributor", "referralPartner"],
+          },
+          {
+            id: "teams",
+            heading: t("demo.workspace.teams"),
+            keys: ["financeApprover", "internalOperator", "legalApprover"],
+          },
+        ].map((group) => (
+          <PersonaGroup
+            key={group.id}
+            id={`demo-group-${group.id}`}
+            heading={group.heading}
+            personas={group.keys.flatMap((key) =>
+              demoPersonaCatalog.filter((persona) => persona.key === key),
+            )}
+          />
+        ))}
+      </div>
       <footer className={styles.footer}>
-        <p>{t("app.footer")}</p>
+        <p>{t("demo.workspace.footer")}</p>
       </footer>
     </main>
   );
