@@ -1,6 +1,6 @@
-# Clockwork
+# Fil One Commerce
 
-Clockwork is an internal quote-to-cash portal for Fil One. Customers, partners
+Fil One Commerce is the quote-to-cash portal for Fil One. Customers, partners
 and staff work from the same commercial records: a quote becomes an accepted
 order with provisioning and payment records. Usage billing also supports a
 separate retained PAYG source, so invoices and corrections retain their actual
@@ -13,10 +13,33 @@ This README does not declare a production launch.
 
 Engineering ownership is a separate decision tracked in
 [RFC #25](https://github.com/fil-one/RFC/pull/25). The implementation and demo
-do not establish an ownership commitment. Clockwork is an internal portal, not a
-separately marketed product; its license remains evaluation-only.
+do not establish an ownership commitment. Fil One Commerce is an internal
+portal, not a separately marketed product; its license remains evaluation-only.
 
-## Try the demo
+Clockwork is the former project codename. Existing repository, package, and
+environment identifiers retain it for compatibility. The public product name is
+**Fil One Commerce**.
+
+## Shareable sales experience
+
+[Open the sales demo](https://fil-one-commerce-preview.netlify.app). Access uses
+the shared demo password.
+
+`apps/showcase` is the executive introduction and isolated interactive sales
+tour, hosted on Netlify while tuning and ready for Vercel, with Next.js 16.3.8
+and React 19.3. It requires no account, database, provider credentials, or
+shared demo state. Run `pnpm --filter @clockwork/showcase dev` and open
+<http://localhost:3100>.
+
+The five-scene simulation connects one fictional quote, approval, order, service
+activation, and payment. It explicitly distinguishes working demo workflows from
+planned Fil One integration and proposed expansion. It is not the operational
+application or a live provider integration. Its links open the existing gated
+sandbox for deeper exploration.
+
+See [hosting and validation](docs/operations/showcase-deploy.md).
+
+## Try the operational sandbox
 
 [Open the hosted demo](https://clockwork-commerce-demo.netlify.app/). It uses a
 shared access password, then a persona picker for customers, partners and
@@ -86,4 +109,4 @@ Before release, review the [launch checklist](docs/launch-checklist.md),
 validation evidence. Repository checks and live-provider qualification are
 separate release requirements.
 
-Clockwork is evaluation-only; see [LICENSE](LICENSE).
+Fil One Commerce is evaluation-only; see [LICENSE](LICENSE).
