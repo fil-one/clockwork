@@ -162,12 +162,10 @@ export function FinancePageFrame({
   provenance: SurfaceProvenance;
   children: ReactNode;
 }) {
-  const t = useTranslations();
   return (
     <main className={styles.page} id="main-content">
       <header className={styles.header}>
         <div className={styles.headerCopy}>
-          <p className={styles.eyebrow}>{t(copy.eyebrow)}</p>
           <h1 className={styles.title}>{title}</h1>
           <p className={styles.description}>{description}</p>
         </div>

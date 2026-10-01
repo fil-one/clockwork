@@ -507,7 +507,6 @@ export function PartnerCollection({
     <main className={styles.main} id="main-content">
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>{t(config.eyebrow)}</p>
           <h1>{t(config.title)}</h1>
           <p>{t(config.description)}</p>
           <ProjectionFreshnessNotice

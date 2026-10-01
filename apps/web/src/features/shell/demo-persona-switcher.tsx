@@ -60,7 +60,6 @@ function JourneySteps({
   journey: DemoJourneyView;
   pathname: string;
 }) {
-  const t = useTranslations();
   // The step whose route the presenter is on, or the first one until they move.
   const activeIndex = Math.max(
     0,
@@ -68,7 +67,6 @@ function JourneySteps({
   );
   return (
     <div className={styles.journey}>
-      <span>{t("demo.panel.journey")}</span>
       <p className={styles.journeyTitle}>{journey.title}</p>
       <ol className={styles.steps}>
         {journey.steps.map((step, index) => (
@@ -224,8 +222,10 @@ export function DemoPersonaSwitcher({
           className={styles.launcher}
           onClick={() => setOpen(true)}
           aria-label={t("demo.panel.open")}
+          aria-expanded={false}
         >
-          {personaName}
+          <span>{t("demo.panel.title")}</span>
+          <small>{personaName}</small>
         </button>
       )}
     </aside>

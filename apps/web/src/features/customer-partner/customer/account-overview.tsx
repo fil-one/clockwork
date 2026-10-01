@@ -65,7 +65,6 @@ export function AccountOverview({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>{t("customer.account.eyebrow")}</p>
           <h1>{t("customer.account.title")}</h1>
           <p className={styles.description}>
             {t("customer.account.description")}

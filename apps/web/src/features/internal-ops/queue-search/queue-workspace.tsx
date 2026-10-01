@@ -524,7 +524,6 @@ export function QueueWorkspace({
     <main className={styles.page} id="main-content">
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>{t("operations.eyebrow")}</p>
           <h1>{t("operations.queue.title")}</h1>
           <p>{t("operations.queue.description")}</p>
         </div>

@@ -179,12 +179,12 @@ html {
 .blue-text {
   color: var(--blue);
 }
-.eyebrow {
+.context-label {
   font-size: 11px;
   font-weight: 650;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   line-height: 1.5;
-  text-transform: uppercase;
+  display: block;
 }
 .hero {
   display: grid;
@@ -193,7 +193,7 @@ html {
   padding-block: 82px 84px;
   align-items: center;
 }
-.hero-copy > .eyebrow {
+.hero-copy > .context-label {
   display: flex;
   gap: 8px;
   align-items: center;
@@ -256,7 +256,7 @@ html {
 .visual-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   margin-bottom: 24px;
   color: #57708c;
@@ -510,7 +510,7 @@ html {
 .value-grid h2 {
   font-size: 18px;
   font-weight: 550;
-  margin: 10px 0 6px;
+  margin: 0 0 6px;
   letter-spacing: -0.025em;
 }
 .value-grid p {
@@ -527,7 +527,7 @@ html {
   letter-spacing: -0.045em;
   font-weight: 550;
 }
-.section .eyebrow {
+.section .context-label {
   color: #617088;
   margin-bottom: 16px;
 }
@@ -543,7 +543,7 @@ html {
 .story-intro > div + div {
   padding-top: 30px;
 }
-.story-intro p:not(.eyebrow) {
+.story-intro p:not(.context-label) {
   color: var(--muted);
   font-size: 15px;
   margin-bottom: 16px;
@@ -634,7 +634,7 @@ html {
   padding-block: 80px;
   overflow: hidden;
 }
-.connected-section .eyebrow {
+.connected-section .context-label {
   color: #9bb8d8;
   margin-bottom: 16px;
 }
@@ -735,7 +735,7 @@ html {
   font-size: 17px;
   line-height: 1.5;
   font-weight: 500;
-  margin: 13px 0 10px;
+  margin: 0 0 10px;
 }
 .phase-grid p {
   font-size: 13px;
@@ -777,7 +777,7 @@ html {
   font-weight: 550;
   margin-bottom: 14px;
 }
-.audience-card > p:not(.eyebrow) {
+.audience-card > p:not(.context-label) {
   font-size: 14px;
   color: var(--muted);
   margin-bottom: 24px;
@@ -804,7 +804,7 @@ html {
   letter-spacing: -0.045em;
   margin: 14px 0 18px;
 }
-.closing p:not(.eyebrow) {
+.closing p:not(.context-label) {
   color: var(--muted);
   font-size: 14px;
 }
@@ -1103,7 +1103,7 @@ html {
   .visual-top {
     padding-inline: 6px;
   }
-  .visual-top .eyebrow {
+  .visual-top .context-label {
     font-size: 9px;
   }
   .sample-label {
@@ -1291,7 +1291,7 @@ body {
   gap: 30px;
   margin-bottom: 36px;
 }
-.tour-heading .eyebrow {
+.tour-heading .context-label {
   color: #557397;
   margin-bottom: 12px;
 }
@@ -1419,7 +1419,7 @@ body {
   margin-top: 26px;
   padding-top: 22px;
 }
-.why-panel .eyebrow {
+.why-panel .context-label {
   font-size: 10px;
   color: #536b89;
 }
@@ -1431,7 +1431,7 @@ body {
 .mode-selector {
   margin-top: 26px;
 }
-.mode-selector > .eyebrow {
+.mode-selector > .context-label {
   font-size: 10px;
   color: #536b89;
 }
@@ -1572,8 +1572,8 @@ body {
   align-items: center;
   gap: 16px;
 }
-.record-heading .eyebrow {
-  font-size: 9px;
+.record-heading .context-label {
+  font-size: 12px;
   color: #607089;
   margin-bottom: 8px;
 }
@@ -2078,7 +2078,7 @@ body {
   margin-bottom: 26px;
   animation: scene-enter 0.25s ease-out;
 }
-.tour-recap > .eyebrow {
+.tour-recap > .context-label {
   color: #31669f;
   font-size: 10px;
 }
@@ -2284,7 +2284,7 @@ body {
   .tour-heading h1 {
     font-size: 32px;
   }
-  .tour-heading .eyebrow {
+  .tour-heading .context-label {
     font-size: 9px;
   }
   .tour-disclosure {
@@ -2536,7 +2536,7 @@ body {
     background: white;
   }
   .connected-section p,
-  .connected-section .eyebrow {
+  .connected-section .context-label {
     color: #58677c;
   }
   .system-card {
@@ -2582,9 +2582,9 @@ body {
   line-break: strict;
   word-break: normal;
 }
-:lang(ja) .eyebrow,
-:lang(zh) .eyebrow,
-:lang(ar) .eyebrow {
+:lang(ja) .context-label,
+:lang(zh) .context-label,
+:lang(ar) .context-label {
   letter-spacing: 0;
   text-transform: none;
 }
@@ -2609,7 +2609,7 @@ body {
 :lang(ar) .hero h1 {
   line-height: 1.22;
 }
-:lang(ar) .eyebrow {
+:lang(ar) .context-label {
   font-size: 12px;
 }
 :lang(ar) .directional-icon {
@@ -2988,4 +2988,32 @@ body {
   .invoice-total strong {
     overflow-wrap: anywhere;
   }
+}
+
+/* Keep essential context quiet and give the core content room to lead. */
+.integration-availability {
+  margin-top: 20px;
+  max-width: 550px;
+}
+.integration-bottom {
+  justify-content: flex-end;
+}
+.tour-guide h2 {
+  margin-top: 0;
+}
+.why-panel p {
+  margin-top: 0;
+}
+.mode-selector > div {
+  margin-top: 0;
+}
+.tour-stage {
+  align-items: center;
+  row-gap: 0;
+}
+.tour-stage > span {
+  grid-row: auto;
+}
+.closing h2 {
+  margin-top: 0;
 }

@@ -15,7 +15,6 @@ import {
 import styles from "./administration-safety.module.css";
 
 export function AdministrationPage({
-  eyebrow,
   title,
   description,
   actions,
@@ -31,7 +30,6 @@ export function AdministrationPage({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div className={styles.headerText}>
-          <p className={styles.eyebrow}>{eyebrow}</p>
           <h1>{title}</h1>
           <p className={styles.description}>{description}</p>
         </div>

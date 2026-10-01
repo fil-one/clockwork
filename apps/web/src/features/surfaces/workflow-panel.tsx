@@ -1098,7 +1098,6 @@ export function WorkflowPanel({
       aria-labelledby={`workflow-title-${surface}`}
     >
       <div>
-        <p className="eyebrow">{t("platform.workflow.eyebrow")}</p>
         <h2 id={`workflow-title-${surface}`}>{t(titles[workflow])}</h2>
       </div>
       <form

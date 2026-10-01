@@ -48,7 +48,6 @@ export async function InternalProjectionPage({
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
-        <p className={styles.eyebrow}>{t("experience.workspace.internal")}</p>
         <h1>{title}</h1>
         <p className={styles.description}>{description}</p>
         <p

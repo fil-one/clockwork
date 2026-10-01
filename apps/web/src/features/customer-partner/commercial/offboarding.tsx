@@ -177,9 +177,6 @@ export function OffboardingWorkflow({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>
-            {t("customer.commercial.offboarding.eyebrow")}
-          </p>
           <h1>{t("customer.commercial.offboarding.title")}</h1>
           <p className={styles.description}>
             {t("customer.commercial.offboarding.description")}

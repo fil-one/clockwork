@@ -62,10 +62,10 @@ All demo configuration lives on the Netlify site (Site configuration →
 Environment variables), scoped to builds, functions, and runtime:
 `CLOCKWORK_DEMO_DEPLOY`, `NEXT_PUBLIC_CLOCKWORK_DEMO_DEPLOY`,
 `CLOCKWORK_EXPERIENCE_ADAPTER`, `CLOCKWORK_EVIDENCE_ADAPTER`,
-`CLOCKWORK_DEMO_ACCESS_PASSWORD`, `CLOCKWORK_DEMO_STATE_STORE`,
-`NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV`, `NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS`,
-`CLOCKWORK_CANONICAL_ORIGIN`, `CLOCKWORK_ENV`, `OTEL_SDK_DISABLED`,
-`TAX_PROVIDER_BASE_URL`, `TAX_PROVIDER_TOKEN`.
+`CLOCKWORK_DEMO_STATE_STORE`, `NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV`,
+`NEXT_PUBLIC_ESIGN_SIGNING_ORIGINS`, `CLOCKWORK_CANONICAL_ORIGIN`,
+`CLOCKWORK_ENV`, `OTEL_SDK_DISABLED`, `TAX_PROVIDER_BASE_URL`,
+`TAX_PROVIDER_TOKEN`.
 
 The last two are `EXT-TAX-01` and are unset on the demo, deliberately. **What
 that now means changed, and the old description is worth stating so nobody
@@ -87,9 +87,9 @@ The demo determines tax in-process, over a seeded rule book, through the
 **same** `determineTax` engine the product runs. The numbers on a demo document
 are computed, not mocked.
 
-None of these belong in a committed file or a local `.env`. The demo access
-password in particular must stay out of `.env`, because `next dev` would load it
-and turn the password gate on for every local Playwright run.
+None of these belong in a committed file or a local `.env`. This demo is public:
+keep `CLOCKWORK_DEMO_ACCESS_PASSWORD` unset and Netlify password protection off.
+The optional password gate remains covered by the local release suite.
 
 ## Deploy a draft first
 
@@ -109,22 +109,21 @@ Run the hosted transaction suite against the draft URL before promotion:
 
 ```sh
 CLOCKWORK_HOSTED_DEMO_URL="https://DEPLOY_ID--clockwork-commerce-demo.netlify.app" \
-  CLOCKWORK_DEMO_ACCESS_PASSWORD="${CLOCKWORK_DEMO_ACCESS_PASSWORD:?set the demo password}" \
+  CLOCKWORK_HOSTED_DEMO_PUBLIC=1 \
   pnpm --filter @clockwork/web exec playwright test --config playwright.hosted-demo.config.ts
 ```
 
-This runs the 17 shared transactional journeys covering password access,
-personas, order/PDF, finance, cloning/import, scheduled pricing, policies,
-customer trial/conversion/cancellation handoff, partners, settings, sandbox
-payments and reset against the packaged deployment. It uses the existing remote
-server and resets shared fictional data. The local demo suite contains 21
-journeys: these 17 transactional cases plus four visual cases. The visual cases
-stay in local qualification: their baselines were reviewed against the release
-shard's fixture state on the pinned macOS runner, and the hosted site serves the
-shared demo state that anyone with the password can have changed. Hosted
-authentication traces are disabled to avoid retaining the real access password.
-The target is restricted to this demo's canonical or deploy-specific Netlify
-origin.
+This runs the shared transactional journeys covering public access, personas,
+order/PDF, finance, cloning/import, scheduled pricing, policies, customer
+trial/conversion/cancellation handoff, partners, settings, sandbox payments and
+reset against the packaged deployment. It uses the existing remote server and
+resets shared fictional data. The local demo suite also covers the optional
+password gate and four visual cases. The visual cases stay in local
+qualification: their baselines were reviewed against the release shard's fixture
+state on the pinned macOS runner, and the hosted site serves the shared demo
+state that any visitor can have changed. Hosted authentication traces are
+disabled to avoid retaining the real access password. The target is restricted
+to this demo's canonical or deploy-specific Netlify origin.
 
 After it passes, publish that same verified deployment with Netlify's
 [`restoreSiteDeploy` operation](https://open-api.netlify.com/#operation/restoreSiteDeploy):
@@ -149,7 +148,8 @@ That check proves the build is current and the shell renders. It does not prove
 the demo still demonstrates anything, so walk these too — each corresponds to
 something that has actually broken here:
 
-1. **Wrong password** is refused, and the return path survives the retry.
+1. **Public access** opens the demo without a password, including language
+   links.
 2. **Every persona** starts and lands on its own surface.
 3. **The guided journey deep links** from the demo panel all resolve. Two of
    them silently stopped resolving once, and the panel is the first thing a

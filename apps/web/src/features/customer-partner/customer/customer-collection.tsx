@@ -392,7 +392,6 @@ export function CustomerCollection({
     <main className={styles.main} id="main-content">
       <header className={styles.header}>
         <div className={styles.headerCopy}>
-          <p className={styles.eyebrow}>{t(config.eyebrow)}</p>
           <h1>{t(config.title)}</h1>
           <p className={styles.description}>{t(config.description)}</p>
         </div>
