@@ -1288,7 +1288,7 @@ if (!password)
   }) => {
     await page.goto("/demo?lang=es");
     await expect(page).toHaveURL(/\/demo$/u);
-    await expect(page.locator("html")).toHaveAttribute("lang", "es");
+    await expect(page.locator("html")).toHaveAttribute("lang", "es-ES");
     await expect(
       page.getByRole("heading", {
         level: 1,
@@ -1296,5 +1296,5 @@ if (!password)
       }),
     ).toBeVisible();
     await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("lang", "es");
+    await expect(page.locator("html")).toHaveAttribute("lang", "es-ES");
   });
