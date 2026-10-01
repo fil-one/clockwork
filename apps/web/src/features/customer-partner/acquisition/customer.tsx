@@ -86,7 +86,7 @@ export const requestStatusLabels: Readonly<
  */
 function billingAuthority(value: string | null, t: Translator): string {
   if (value === "fil_one") return "Fil One";
-  if (value === "clockwork") return "Clockwork"; // i18n-exempt: the billing system's product name
+  if (value === "clockwork") return "Fil One Commerce"; // i18n-exempt: the billing system's product name
   if (value === "fictional_demo")
     return t("customer.payg.billingAuthority.fictionalDemo");
   return value ?? t("common.notRecorded");

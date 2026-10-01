@@ -34,6 +34,10 @@ English, Spanish, French, German, Japanese, Portuguese, Simplified Chinese, and
 Arabic have complete message catalogs. Three translation agents wrote and
 cross-reviewed the launch copy, with a second plain-language editorial pass.
 This is agent-reviewed translation, not a claim of native-speaker certification.
+Spanish uses Spain as its primary locale, with wording that also reads naturally
+in Mexico and Colombia. Preserve the established `presupuesto`, `socio`, and
+formal `usted` terminology. Three independent reviewers completed a final
+Spanish pass across the landing page, tour states, and workspace handoff.
 
 The URL carries the language. The selector preserves the current scene and
 integration mode. A cookie remembers the preference; browser language is used on

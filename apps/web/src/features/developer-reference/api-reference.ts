@@ -75,7 +75,7 @@ export interface CredentialReadiness {
 
 const documentInfo = {
   openapi: "3.1.0",
-  info: { title: "Clockwork Commerce API", version: "1.0.0" },
+  info: { title: "Fil One Commerce API", version: "1.0.0" },
 } as const;
 
 type OpenApiDocument = Record<string, unknown>;
