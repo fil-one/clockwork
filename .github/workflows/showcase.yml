@@ -1,0 +1,48 @@
+name: Sales showcase
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      ["apps/showcase/**", "pnpm-lock.yaml", ".github/workflows/showcase.yml"]
+  push:
+    branches: [main]
+    paths:
+      ["apps/showcase/**", "pnpm-lock.yaml", ".github/workflows/showcase.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: showcase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  showcase:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @clockwork/showcase test:unit
+      - run: pnpm --filter @clockwork/showcase build
+      - run: pnpm exec eslint apps/showcase --max-warnings=0
+      - run:
+          pnpm --filter @clockwork/showcase exec playwright install --with-deps
+          chromium
+      - run: pnpm --filter @clockwork/showcase test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: showcase-browser-report
+          path: apps/showcase/playwright-report/
+          retention-days: 7

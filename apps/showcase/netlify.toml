@@ -1,0 +1,12 @@
+# Select apps/showcase as the package directory; keep the repository root as base.
+# This config intentionally does not replace the operational sandbox's root config.
+[build]
+  command = "pnpm --filter @clockwork/showcase build"
+  publish = "apps/showcase/.next"
+
+[build.environment]
+  NODE_VERSION = "24.18.1"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
