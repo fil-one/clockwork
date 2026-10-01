@@ -22,8 +22,8 @@ environment identifiers retain it for compatibility. The public product name is
 
 ## Shareable sales experience
 
-[Open the sales demo](https://fil-one-commerce-preview.netlify.app). Access uses
-the shared demo password.
+[Open the sales demo](https://fil-one-commerce-preview.netlify.app). No password
+or account is required.
 
 `apps/showcase` is the executive introduction and isolated interactive sales
 tour, hosted on Netlify while tuning and ready for Vercel, with Next.js 16.3.8
@@ -32,18 +32,17 @@ shared demo state. Run `pnpm --filter @clockwork/showcase dev` and open
 <http://localhost:3100>.
 
 The five-scene simulation connects one fictional quote, approval, order, service
-activation, and payment. It explicitly distinguishes working demo workflows from
-planned Fil One integration and proposed expansion. It is not the operational
-application or a live provider integration. Its links open the existing gated
-sandbox for deeper exploration.
+activation, and payment. Fil One integration is underway and will be available
+in November 2026. The tour also introduces proposed channel expansion, and its
+links open the full workspace demo for deeper exploration.
 
 See [hosting and validation](docs/operations/showcase-deploy.md).
 
 ## Try the operational sandbox
 
-[Open the hosted demo](https://clockwork-commerce-demo.netlify.app/). It uses a
-shared access password, then a persona picker for customers, partners and
-internal staff. Request the password from the project owner.
+[Open the full demo](https://clockwork-commerce-demo.netlify.app/). Choose a
+customer, partner, or Fil One team workspace. All nine roles are available
+without a password.
 
 Demo transactions use fictional data and deterministic provider adapters. They
 do not charge a card, provision a Fil One organization or prove that a live
