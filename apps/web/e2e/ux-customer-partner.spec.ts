@@ -105,6 +105,8 @@ test("member keeps read access without owner-only customer actions", async ({
 test("owner creates a priced draft from the session account", async ({
   page,
 }) => {
+  // Keep the fixed quote expiry in the future as the calendar advances.
+  await page.clock.setFixedTime(new Date("2026-08-01T12:00:00Z"));
   await usePersona(page, "owner");
   const commands: Array<Record<string, unknown>> = [];
   await page.route("**/api/v1/core/commands/quotes", async (route) => {

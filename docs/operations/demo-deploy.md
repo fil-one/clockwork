@@ -213,9 +213,10 @@ something that has actually broken here:
     correcting it requires a rebuild, not just an environment change.
 12. **The devtools console** carries at most the Zod `eval` line, which is
     cosmetic and documented in `apps/web/proxy.ts`. Anything mentioning
-    `script-src-elem` means the vendored Next patch in `patches/` was dropped —
-    see `patches/README.md`. Repeated `/api/telemetry` 403s mean no ingest
-    secret is set; harmless, fail-closed, but noisy for a technical prospect.
+    `script-src-elem` warrants checking Next.js nonce propagation — the former
+    vendored fix is included in Next.js 16.3.8; see `patches/README.md`.
+    Repeated `/api/telemetry` 403s mean no ingest secret is set; harmless,
+    fail-closed, but noisy for a technical prospect.
 
 13. **Customer requests retain their handoff state.** As Mara Voss, open
     `/buy/payg`, review the fictional notices and document references, and
