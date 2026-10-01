@@ -121,18 +121,17 @@
 .start {
   grid-column: 1 / -1;
   justify-self: start;
-  color: var(--cw-action-strong);
   font-weight: 600;
   font-size: 0.875rem;
-  text-underline-offset: 0.25em;
-}
-.row:first-child .start {
   display: inline-flex;
   padding: 0.625rem 1rem;
   border-radius: 0.5rem;
   background: var(--cw-action);
   color: white;
   text-decoration: none;
+}
+.start:hover {
+  background: var(--cw-action-strong);
 }
 .start:focus-visible,
 .navigation a:focus-visible {

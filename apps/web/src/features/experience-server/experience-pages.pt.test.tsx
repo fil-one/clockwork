@@ -124,7 +124,9 @@ describe("experience pages in Portuguese", () => {
       }),
     );
 
-    expect(screen.getByText("Espaço do operador")).toBeVisible();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Decisões de aprovação" }),
+    ).toBeVisible();
     expect(screen.getByRole("alert")).toHaveTextContent(
       /^Alguns registros precisam ser atualizados · em /u,
     );
