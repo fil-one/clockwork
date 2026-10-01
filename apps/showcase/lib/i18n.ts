@@ -1,5 +1,9 @@
 import type en from "./locales/en.json";
 import type { Route } from "next";
+// Each Next app generates its own Route type. These dynamic-link casts are
+// required by standalone showcase builds; the combined workspace lint program
+// can instead resolve the other app's permissive Route type.
+/* eslint @typescript-eslint/no-unnecessary-type-assertion: "off" */
 export const locales = [
   "en",
   "es",
@@ -63,7 +67,9 @@ export function localizedHref(path: string, locale: Locale): Route {
     url.searchParams.set("lang", locale);
     return url.href as Route;
   }
-  if (!path.startsWith("/") || path.startsWith("//")) return path as Route;
+  if (!path.startsWith("/") || path.startsWith("//")) {
+    return path as Route;
+  }
   return `/${locale}${path === "/" ? "" : path.startsWith("/#") ? path.slice(1) : path}` as Route;
 }
 export function preferredLocale(

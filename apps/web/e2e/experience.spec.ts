@@ -133,6 +133,8 @@ test("new buyer registers a verified legal entity through the bootstrap contract
 test("direct buyer sends a protected priced-draft command and receives its receipt", async ({
   page,
 }) => {
+  // Keep the fixed quote expiry in the future as the calendar advances.
+  await page.clock.setFixedTime(new Date("2026-08-01T12:00:00Z"));
   await page.setExtraHTTPHeaders({ "x-clockwork-persona": "owner" });
   let requestBody: Record<string, unknown> | undefined;
   await page.route("**/api/v1/core/commands/quotes", async (route) => {

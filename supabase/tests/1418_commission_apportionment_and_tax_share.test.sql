@@ -158,12 +158,12 @@ select is(
 -- is what makes a full refund leave nothing behind whatever the rounding did.
 insert into refunds (
   id, payment_id, order_id, stripe_refund_id, currency,
-  amount_minor, reason_code, status
+  amount_minor, reason_code, status, created_at
 ) values (
   '94000000-0000-4000-8000-000000001420',
   '91000000-0000-4000-8000-000000001420',
   '80000000-0000-4000-8000-000000000002',
-  're_fixture_1418', 'USD', 36003, 'duplicate', 'succeeded'
+  're_fixture_1418', 'USD', 36003, 'duplicate', 'succeeded', '2026-08-03T16:00:00Z'
 );
 
 select throws_ok(
