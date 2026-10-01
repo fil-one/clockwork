@@ -30,7 +30,7 @@ describe("customer collection truth copy", () => {
     );
 
     expect(
-      screen.getByText("Customer workspace · Purchasing readiness"),
+      screen.getByRole("heading", { level: 1, name: "Procurement" }),
     ).toBeVisible();
     const results = screen.getByRole("region", { name: /results/i });
     const rule = screen.getByText(

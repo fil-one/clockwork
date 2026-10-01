@@ -23,7 +23,7 @@ describe("commercial collection truth copy", () => {
     );
 
     expect(
-      screen.getByText("Customer workspace · Price and expiry"),
+      screen.getByRole("heading", { level: 1, name: "Quotes" }),
     ).toBeVisible();
     const results = screen.getByRole("region", { name: "0 results" });
     const rule = screen.getByText(

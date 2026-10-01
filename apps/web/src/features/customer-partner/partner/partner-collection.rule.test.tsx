@@ -35,7 +35,10 @@ describe("partner collection truth copy", () => {
     );
 
     expect(
-      screen.getByText("Partner desk · Collected-revenue earnings"),
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Commissions and statements",
+      }),
     ).toBeVisible();
     expect(
       screen.getByText(t("partner.surface.commissions.rule")),
