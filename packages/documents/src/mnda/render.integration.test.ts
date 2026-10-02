@@ -33,7 +33,8 @@ it("preserves every supplied legal paragraph, both signers and all four tags in 
       ["-layout", join(dir, "document.pdf"), "-"],
       { encoding: "utf8" },
     );
-    const normalize = (s: string) => s.replace(/\s+/g, "");
+    const normalize = (s: string) =>
+      s.replace(/^\s*\d+\s*\/\s*\d+\s*$/gm, "").replace(/\s+/g, "");
     for (const paragraph of mndaParagraphs(fixtureInput))
       expect(normalize(text)).toContain(normalize(paragraph));
     for (const tag of [
@@ -68,7 +69,9 @@ it("places every partner-completed blank and preserves all legal clauses", async
     for (const field of mndaRecipientFields)
       expect(text).toContain(`::${field.id}:`);
     for (const paragraph of template.paragraphs.slice(2))
-      expect(text.replace(/\s+/g, "")).toContain(paragraph.replace(/\s+/g, ""));
+      expect(
+        text.replace(/^\s*\d+\s*\/\s*\d+\s*$/gm, "").replace(/\s+/g, ""),
+      ).toContain(paragraph.replace(/\s+/g, ""));
     expect(text).not.toMatch(/\[Counterparty|\[Effective Date|\[jurisdiction/);
     expect(text).toContain(fixtureInput.effectiveDate);
   } finally {
@@ -114,7 +117,9 @@ it.each([
           .map((f) => f.id)
           .sort(),
       );
-      const normalized = text.replace(/\s+/g, "");
+      const normalized = text
+        .replace(/^\s*\d+\s*\/\s*\d+\s*$/gm, "")
+        .replace(/\s+/g, "");
       for (const paragraph of template.paragraphs.slice(2))
         expect(normalized).toContain(paragraph.replace(/\s+/g, ""));
       for (const value of [
@@ -134,3 +139,57 @@ it.each([
   },
   30000,
 );
+
+it("keeps partial-detail previews compact, numbered and aligned without breaking supplied addresses", async () => {
+  const pdf = await renderMnda(
+    {
+      ...fixtureInput,
+      detailsMode: "mixed",
+      streetAddress: "4 Example Street",
+      entityDescription: "",
+      locality: "",
+      noticesEmail: "",
+      noticesContact: "",
+      signerTitle: "",
+    },
+    fixtureSigner,
+  );
+  expect(pdf.pages).toBe(4);
+  const dir = mkdtempSync(join(tmpdir(), "mnda-layout-"));
+  try {
+    const path = join(dir, "document.pdf");
+    writeFileSync(path, pdf.bytes);
+    const text = execFileSync("pdftotext", ["-layout", path, "-"], {
+      encoding: "utf8",
+    });
+    expect(text).toContain("4 Example Street,");
+    for (let page = 1; page <= pdf.pages; page++)
+      expect(text).toMatch(new RegExp(`${page}\\s*/\\s*${pdf.pages}`));
+    const bounds = execFileSync("pdftotext", ["-bbox", path, "-"], {
+      encoding: "utf8",
+    });
+    const signaturePage = bounds.split("<page ").at(-1) ?? "";
+    for (const caption of [
+      "Party",
+      "Signature",
+      "Name",
+      "Title",
+      "Date",
+      "Company",
+      "Attention",
+      "Address",
+      "Email",
+    ]) {
+      const positions = [
+        ...signaturePage.matchAll(
+          new RegExp(`<word[^>]+yMin="([0-9.]+)"[^>]*>${caption}</word>`, "g"),
+        ),
+      ].map((m) => Number(m[1]));
+      expect(positions).toHaveLength(2);
+      expect(positions[0]).toBe(positions[1]);
+      expect(positions[0]).toBeLessThan(720);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}, 30000);
