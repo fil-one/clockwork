@@ -30,7 +30,9 @@ jobs:
     timeout-minutes: 60
     environment:
       name: ${{ inputs.environment }}
-      url: https://${{ vars.CLOCKWORK_HOSTNAME }}
+      url:
+        https://${{ vars.CLOCKWORK_CANONICAL_HOSTNAME || vars.CLOCKWORK_HOSTNAME
+        }}
     concurrency:
       group: deploy-${{ inputs.environment }}
       cancel-in-progress: false
@@ -46,6 +48,7 @@ jobs:
       TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
       TF_STATE_REGION: ${{ vars.TF_STATE_REGION }}
       TF_VAR_hostname: ${{ vars.CLOCKWORK_HOSTNAME }}
+      TF_VAR_canonical_hostname: ${{ vars.CLOCKWORK_CANONICAL_HOSTNAME }}
       TF_VAR_domain_base: ${{ vars.CLOCKWORK_HOSTNAME }}
       TF_VAR_github_environment: ${{ inputs.environment }}
       CLOCKWORK_INTERNAL_EMAIL_DOMAINS:

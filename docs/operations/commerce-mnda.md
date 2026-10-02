@@ -1,13 +1,13 @@
 # Sending MNDAs in Fil One Commerce
 
-Open `/internal/mndas`, choose **New MNDA**, enter the counterparty and notice
-details, and select the Fil One countersigner. Preview and open the PDF, then
-confirm **Send for signature**. The counterparty signs first; Fil One
-countersigns second. James Kurz (`james@fil.one`, CFO/CSO) is the initial
-default. Staff operators, finance and legal approvers can add Marta or another
-authorized countersigner, change the default, and deactivate an old signer.
-Existing drafts retain their original signer snapshot; create a new draft to
-change it.
+Open `https://commerce.fil.one/internal/mndas`, choose **New MNDA**, enter the
+counterparty and notice details, and select the Fil One countersigner. Preview
+and open the PDF, then confirm **Send for signature**. The counterparty signs
+first; Fil One countersigns second. James Kurz (`james@fil.one`, CFO/CSO) is the
+initial default. Staff operators, finance and legal approvers can add Marta or
+another authorized countersigner, change the default, and deactivate an old
+signer. Existing drafts retain their original signer snapshot; create a new
+draft to change it.
 
 The register shows the latest 200 requests. It supports filtering, status
 refresh, reminders, original PDFs and completed PDFs with the provider audit
@@ -83,3 +83,16 @@ Fil One reviews the completed partner details before countersigning. The
 internal reference is not substituted for the partner's legal name in this mode;
 the executed PDF is the authoritative record of partner-entered details. **Our
 team enters the details** retains the fully prepared document workflow.
+
+## Production address
+
+`commerce.fil.one` is the canonical product address. Its DNS and ACM certificate
+are managed in `fil-one/infrastructure`; Commerce attaches the issued
+certificate to its existing production HTTPS listener. Set the production GitHub
+variable `CLOCKWORK_CANONICAL_HOSTNAME=commerce.fil.one` only after the
+certificate is issued and WorkOS permits the new callback and sign-out URL. The
+original `CLOCKWORK_HOSTNAME=clockwork.fil.one` continues to identify the
+existing service and DNS zone. Browser navigation redirects to Commerce;
+provider webhooks and in-flight auth callbacks continue working on the old
+address. Users sign in again on the new hostname because their session cookies
+belong to the old hostname.

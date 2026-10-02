@@ -199,7 +199,7 @@ module "app" {
 }
 
 output "url" {
-  value = "https://${var.hostname}"
+  value = "https://${var.canonical_hostname != "" ? var.canonical_hostname : var.hostname}"
 }
 
 output "database_address" {
