@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import {
-  mndaRecipientFields,
+  mndaSigningFields,
   type MndaRecord,
   type MndaState,
 } from "@clockwork/contracts";
@@ -238,23 +238,19 @@ export function assertSignWellSigningFields(
   )
     throw new Error("SIGNWELL_SIGNING_ORDER_MISMATCH");
   const fields = doc.fields.flat();
+  const detailFields = record ? mndaSigningFields(record.input) : [];
   if (
-    fields.length !==
-      4 +
-        (record?.input.detailsMode === "recipient"
-          ? mndaRecipientFields.length
-          : 0) ||
-    (record?.input.detailsMode === "recipient" &&
-      !mndaRecipientFields.every(
-        ({ id }) =>
-          fields.filter(
-            (f) =>
-              f.api_id === id &&
-              f.recipient_id === "counterparty" &&
-              f.type === "text" &&
-              f.required,
-          ).length === 1,
-      )) ||
+    fields.length !== 4 + detailFields.length ||
+    !detailFields.every(
+      ({ id }) =>
+        fields.filter(
+          (f) =>
+            f.api_id === id &&
+            f.recipient_id === "counterparty" &&
+            f.type === "text" &&
+            f.required,
+        ).length === 1,
+    ) ||
     !["counterparty", "fil-one"].every((id) =>
       ["signature", "autofill_date_signed"].every(
         (type) =>

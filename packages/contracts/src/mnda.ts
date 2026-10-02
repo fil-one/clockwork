@@ -13,6 +13,11 @@ const label = z
   .regex(
     /^[\u0020-\u007e\u00a0-\u00ff\u0152\u0153\u0160\u0161\u0178\u0192\u02c6\u02dc\u2013\u2014\u2018-\u201a\u201c-\u201e\u2020-\u2022\u2026\u2030\u2039\u203a\u20ac]+$/u,
   );
+const optionalLabel = z
+  .string()
+  .trim()
+  .pipe(z.union([label, z.literal("")]))
+  .default("");
 export const MndaSignerSchema = z
   .object({
     id: z.uuid(),
@@ -30,13 +35,13 @@ export type MndaSigner = z.infer<typeof MndaSignerSchema>;
 export const MndaInputSchema = z
   .object({
     id: z.uuid(),
-    detailsMode: z.enum(["team", "recipient"]).optional(),
+    detailsMode: z.enum(["team", "recipient", "mixed"]).optional(),
     company: label,
-    shortName: z.union([label, z.literal("")]).default(""),
-    entityDescription: z.union([label, z.literal("")]).default(""),
-    streetAddress: z.union([label, z.literal("")]).default(""),
-    locality: z.union([label, z.literal("")]).default(""),
-    noticesContact: z.union([label, z.literal("")]).default(""),
+    shortName: optionalLabel,
+    entityDescription: optionalLabel,
+    streetAddress: optionalLabel,
+    locality: optionalLabel,
+    noticesContact: optionalLabel,
     noticesEmail: z
       .union([z.email().max(254), z.literal("")])
       .default("")
@@ -46,13 +51,20 @@ export const MndaInputSchema = z
       .email()
       .max(254)
       .transform((v) => v.toLowerCase()),
-    signerTitle: z.union([label, z.literal("")]).default(""),
+    signerTitle: optionalLabel,
     countersignerId: z.uuid(),
     effectiveDate: z.iso.date(),
   })
   .strict()
+  .transform((input) => ({
+    ...input,
+    shortName:
+      input.detailsMode === "recipient"
+        ? input.shortName
+        : input.shortName || input.company,
+  }))
   .superRefine((input, ctx) => {
-    if (input.detailsMode !== "recipient") {
+    if (!input.detailsMode || input.detailsMode === "team") {
       for (const key of [
         "shortName",
         "entityDescription",
@@ -85,6 +97,57 @@ export const mndaRecipientFields = [
   { id: "email_notice", label: "Notice email", email: true },
 ] as const;
 export type MndaInput = z.infer<typeof MndaInputSchema>;
+
+const mixedAddressFields = [
+  { id: "street_intro", label: "Street address" },
+  { id: "locality_intro", label: "City, region, postal code, country" },
+  { id: "street_notice", label: "Street address" },
+  { id: "locality_notice", label: "City, region, postal code, country" },
+] as const;
+export const mndaDetailFields = [...mndaRecipientFields, ...mixedAddressFields];
+export type MndaDetailFieldId = (typeof mndaDetailFields)[number]["id"];
+
+/** A supplied value is printed in the agreement; only a missing value becomes
+ * a required recipient field. Legacy recipient-only drafts keep their tags. */
+export function mndaDetailValue(
+  input: MndaInput,
+  id: MndaDetailFieldId,
+): string {
+  const values: Record<MndaDetailFieldId, string> = {
+    company_intro: input.company,
+    company_sign: input.company,
+    company_notice: input.company,
+    entity: input.entityDescription,
+    email_intro: input.noticesEmail,
+    email_notice: input.noticesEmail,
+    address_intro: [input.streetAddress, input.locality]
+      .filter(Boolean)
+      .join(", "),
+    address_notice: [input.streetAddress, input.locality]
+      .filter(Boolean)
+      .join(", "),
+    street_intro: input.streetAddress,
+    street_notice: input.streetAddress,
+    locality_intro: input.locality,
+    locality_notice: input.locality,
+    short_name: input.shortName || input.company,
+    signer_name: input.signerName,
+    signer_title: input.signerTitle,
+    notice_contact: input.noticesContact,
+  };
+  return values[id];
+}
+
+export function mndaSigningFields(input: MndaInput) {
+  if (input.detailsMode === "recipient") return [...mndaRecipientFields];
+  if (input.detailsMode !== "mixed") return [];
+  return mndaDetailFields.filter(
+    ({ id }) =>
+      id !== "address_intro" &&
+      id !== "address_notice" &&
+      !mndaDetailValue(input, id),
+  );
+}
 export const mndaStates = [
   "draft",
   "preparing",
