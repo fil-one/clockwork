@@ -39,3 +39,32 @@ it("does not redirect until the canonical origin is enabled", () => {
     ),
   ).toBeUndefined();
 });
+
+it("uses the public Host behind the ALB without leaking the container port", () => {
+  expect(
+    commerceCanonicalRedirect(
+      {
+        url: "http://0.0.0.0:3000/internal/mndas?view=sent",
+        method: "GET",
+        headers: new Headers({ host: "clockwork.fil.one" }),
+      },
+      "https://commerce.fil.one",
+    )?.href,
+  ).toBe("https://commerce.fil.one/internal/mndas?view=sent");
+});
+
+it("does not trust a forwarded host or redirect requests already on Commerce", () => {
+  expect(
+    commerceCanonicalRedirect(
+      {
+        url: "http://0.0.0.0:3000/internal/mndas",
+        method: "GET",
+        headers: new Headers({
+          host: "commerce.fil.one",
+          "x-forwarded-host": "clockwork.fil.one",
+        }),
+      },
+      "https://commerce.fil.one",
+    ),
+  ).toBeUndefined();
+});
