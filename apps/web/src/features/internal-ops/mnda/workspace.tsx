@@ -18,7 +18,10 @@ import {
 import styles from "./workspace.module.css";
 
 type Data = Awaited<ReturnType<typeof loadMndas>>;
-const fields: readonly (keyof Omit<MndaInput, "id" | "countersignerId">)[] = [
+const fields: readonly (keyof Omit<
+  MndaInput,
+  "id" | "countersignerId" | "detailsMode"
+>)[] = [
   "company",
   "shortName",
   "entityDescription",
@@ -77,6 +80,7 @@ export function MndaWorkspace({ initial }: { initial: Data }) {
     record: MndaRecord;
     url: string;
   } | null>(null);
+  const [detailsMode, setDetailsMode] = useState<"team" | "recipient">("team");
   const [signer, setSigner] = useState<MndaSigner | null>(null);
   const requestId = useRef<string | null>(null);
   const blob = useRef<string | null>(null);
@@ -194,34 +198,73 @@ export function MndaWorkspace({ initial }: { initial: Data }) {
           }}
         >
           <h2>{t("operations.mnda.new")}</h2>
-          <p>{t("operations.mnda.latin")}</p>
+          <label>
+            {t("operations.mnda.detailsMode")}
+            <select
+              name="detailsMode"
+              value={detailsMode}
+              onChange={(e) =>
+                setDetailsMode(e.target.value as "team" | "recipient")
+              }
+            >
+              <option value="team">{t("operations.mnda.teamDetails")}</option>
+              <option value="recipient">
+                {t("operations.mnda.recipientDetails")}
+              </option>
+            </select>
+          </label>
+          <p>
+            {t(
+              detailsMode === "recipient"
+                ? "operations.mnda.recipientHint"
+                : "operations.mnda.latin",
+            )}
+          </p>
           <div className={styles.fields}>
-            {fields.map((field) => (
-              <label key={field}>
-                {t(fieldLabels[field])}
-                <input
-                  name={field}
-                  required
-                  maxLength={field.toLowerCase().includes("email") ? 254 : 180}
-                  type={
-                    field === "effectiveDate"
-                      ? "date"
-                      : field.toLowerCase().includes("email")
-                        ? "email"
-                        : "text"
-                  }
-                  defaultValue={
-                    field === "effectiveDate"
-                      ? new Date(
-                          Date.now() - new Date().getTimezoneOffset() * 60_000,
-                        )
-                          .toISOString()
-                          .slice(0, 10)
-                      : undefined
-                  }
-                />
-              </label>
-            ))}
+            {fields
+              .filter(
+                (field) =>
+                  detailsMode === "team" ||
+                  [
+                    "company",
+                    "signerName",
+                    "signerEmail",
+                    "effectiveDate",
+                  ].includes(field),
+              )
+              .map((field) => (
+                <label key={field}>
+                  {t(
+                    detailsMode === "recipient" && field === "company"
+                      ? "operations.mnda.partnerReference"
+                      : fieldLabels[field],
+                  )}
+                  <input
+                    name={field}
+                    required
+                    maxLength={
+                      field.toLowerCase().includes("email") ? 254 : 180
+                    }
+                    type={
+                      field === "effectiveDate"
+                        ? "date"
+                        : field.toLowerCase().includes("email")
+                          ? "email"
+                          : "text"
+                    }
+                    defaultValue={
+                      field === "effectiveDate"
+                        ? new Date(
+                            Date.now() -
+                              new Date().getTimezoneOffset() * 60_000,
+                          )
+                            .toISOString()
+                            .slice(0, 10)
+                        : undefined
+                    }
+                  />
+                </label>
+              ))}
             <label>
               {t("operations.mnda.countersigner")}
               <select

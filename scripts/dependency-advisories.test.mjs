@@ -16,6 +16,10 @@ const workspaceRoot = fileURLToPath(new URL("../", import.meta.url));
 // without recording why fails the suite.
 const acceptedHighAdvisories = new Map([
   [
+    "GHSA-86w9-cpqp-85rv",
+    "node-forge RSA verification: no published fix through 1.4.0. Reached only through netlify-cli > @netlify/dev > @netlify/images > ipx > listhen for local development certificates; it is not Commerce authentication, PDF signing, or the production runtime. No untrusted signatures are verified through that development certificate generator.",
+  ],
+  [
     "GHSA-7pqw-9j4j-h8q3",
     "extract-zip arbitrary writes via symlink entries: no fixed published release (<=2.0.1). Same build-only Netlify emulator dependency as GHSA-jmr9-qjv8-65gv; the deployment builds trusted repository sources and never extracts untrusted function archives.",
   ],
@@ -29,6 +33,7 @@ const acceptedHighAdvisories = new Map([
 // `pnpm.overrides` block. If an override is dropped the resolved version slides
 // back under the advisory's vulnerable range and this catches it.
 const pinnedTransitives = [
+  { name: "fastify", minimum: "5.12.5", override: "fastify@<5.12.5" },
   { name: "js-yaml", minimum: "4.3.2", override: "js-yaml@<4.3.2" },
   { name: "nanoid", minimum: "3.3.18", override: "nanoid@<3.3.18" },
   // image-size fixed its ICNS and JXL/HEIF infinite loops in 2.0.3 (Codeberg,
@@ -44,7 +49,10 @@ const catalogFloors = [{ name: "hono", minimum: "4.13.5" }];
 // release at all. That is a fact about the registry, not about this repository,
 // so it is checked against the registry rather than asserted once and trusted:
 // the day either package publishes anything above this, the acceptance expires.
-const unpatchedPackages = [{ name: "extract-zip", highestPublished: "2.0.1" }];
+const unpatchedPackages = [
+  { name: "extract-zip", highestPublished: "2.0.1" },
+  { name: "node-forge", highestPublished: "1.4.0" },
+];
 
 function compareSemver(left, right) {
   const parse = (value) => value.split(".").map((part) => Number(part));

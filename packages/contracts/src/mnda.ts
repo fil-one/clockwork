@@ -30,26 +30,60 @@ export type MndaSigner = z.infer<typeof MndaSignerSchema>;
 export const MndaInputSchema = z
   .object({
     id: z.uuid(),
+    detailsMode: z.enum(["team", "recipient"]).optional(),
     company: label,
-    shortName: label,
-    entityDescription: label,
-    streetAddress: label,
-    locality: label,
-    noticesContact: label,
+    shortName: z.union([label, z.literal("")]).default(""),
+    entityDescription: z.union([label, z.literal("")]).default(""),
+    streetAddress: z.union([label, z.literal("")]).default(""),
+    locality: z.union([label, z.literal("")]).default(""),
+    noticesContact: z.union([label, z.literal("")]).default(""),
     noticesEmail: z
-      .email()
-      .max(254)
+      .union([z.email().max(254), z.literal("")])
+      .default("")
       .transform((v) => v.toLowerCase()),
     signerName: label,
     signerEmail: z
       .email()
       .max(254)
       .transform((v) => v.toLowerCase()),
-    signerTitle: label,
+    signerTitle: z.union([label, z.literal("")]).default(""),
     countersignerId: z.uuid(),
     effectiveDate: z.iso.date(),
   })
-  .strict();
+  .strict()
+  .superRefine((input, ctx) => {
+    if (input.detailsMode !== "recipient") {
+      for (const key of [
+        "shortName",
+        "entityDescription",
+        "streetAddress",
+        "locality",
+        "noticesContact",
+        "noticesEmail",
+        "signerTitle",
+      ] as const)
+        if (!input[key])
+          ctx.addIssue({
+            code: "custom",
+            path: [key],
+            message: "Required when our team supplies partner details",
+          });
+    }
+  });
+export const mndaRecipientFields = [
+  { id: "company_intro", label: "Legal company name" },
+  { id: "entity", label: "Jurisdiction and entity type" },
+  { id: "email_intro", label: "Notice email", email: true },
+  { id: "address_intro", label: "Full notice address" },
+  { id: "short_name", label: "Company short name" },
+  { id: "company_sign", label: "Legal company name" },
+  { id: "signer_name", label: "Authorized signer full name" },
+  { id: "signer_title", label: "Authorized signer title" },
+  { id: "company_notice", label: "Legal company name" },
+  { id: "notice_contact", label: "Notice contact name" },
+  { id: "address_notice", label: "Full notice address" },
+  { id: "email_notice", label: "Notice email", email: true },
+] as const;
 export type MndaInput = z.infer<typeof MndaInputSchema>;
 export const mndaStates = [
   "draft",

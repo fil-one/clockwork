@@ -74,7 +74,7 @@ export class MndaWorkflow {
       }
       if (signWellState(doc, current) !== "ready")
         return await this.apply(current, token, doc, actor);
-      assertSignWellSigningFields(doc);
+      assertSignWellSigningFields(doc, record);
       await this.repo.update(
         id,
         token,

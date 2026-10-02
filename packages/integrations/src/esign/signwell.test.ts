@@ -136,3 +136,34 @@ describe("SignWell MNDA contract", () => {
     ).rejects.toThrow("INVALID_PDF");
   });
 });
+
+it("blocks sending when any required partner detail is missing or assigned to Fil One", async () => {
+  const { mndaRecipientFields } = await import("../../../contracts/src/mnda");
+  const record = {
+    ...fixtureRecord,
+    input: { ...fixtureRecord.input, detailsMode: "recipient" as const },
+  };
+  const document = doc();
+  const fields = document.fields[0];
+  if (!fields) throw new Error("Expected fields");
+  fields.push(
+    ...mndaRecipientFields.map(({ id }) => ({
+      api_id: id,
+      recipient_id: "counterparty",
+      type: "text",
+      required: true,
+    })),
+  );
+  expect(() => assertSignWellSigningFields(document, record)).not.toThrow();
+  const field = fields.at(-1);
+  if (!field) throw new Error("Expected detail field");
+  field.required = false;
+  expect(() => assertSignWellSigningFields(document, record)).toThrow(
+    "SIGNING_FIELDS",
+  );
+  field.required = true;
+  field.recipient_id = "fil-one";
+  expect(() => assertSignWellSigningFields(document, record)).toThrow(
+    "SIGNING_FIELDS",
+  );
+});

@@ -85,6 +85,13 @@
       "when": 1788915067370,
       "tag": "0011_real_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790947741939,
+      "tag": "0012_steady_chameleon",
+      "breakpoints": true
     }
   ]
 }

@@ -71,3 +71,15 @@ See [ADR 0011](../adr/0011-standalone-commerce-mnda.md) for boundaries and
 storage guarantees. Production acceptance requires a successful deployment plus
 the staff user's own first login; an automated role test cannot complete their
 MFA.
+
+## Partner-completed details
+
+Choose **Partner completes details when signing** to send with an internal
+partner reference and recipient name/email. Commerce still sets the effective
+date and Fil One countersigner. SignWell requires every legal-name,
+entity-description, notice-address/email/contact, and signatory-name/title field
+before the partner can finish. Repeated fields offer the value already entered.
+Fil One reviews the completed partner details before countersigning. The
+internal reference is not substituted for the partner's legal name in this mode;
+the executed PDF is the authoritative record of partner-entered details. **Our
+team enters the details** retains the fully prepared document workflow.

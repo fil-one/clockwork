@@ -49,3 +49,29 @@ it("preserves every supplied legal paragraph, both signers and all four tags in 
     rmSync(dir, { recursive: true, force: true });
   }
 }, 30000);
+
+it("places every partner-completed blank and preserves all legal clauses", async () => {
+  const { mndaRecipientFields } = await import("../../../contracts/src/mnda");
+  const template = (await import("./template.json")).default;
+  const pdf = await renderMnda(
+    { ...fixtureInput, detailsMode: "recipient" },
+    fixtureSigner,
+  );
+  const dir = mkdtempSync(join(tmpdir(), "mnda-fields-"));
+  try {
+    writeFileSync(join(dir, "document.pdf"), pdf.bytes);
+    const text = execFileSync(
+      "pdftotext",
+      ["-layout", join(dir, "document.pdf"), "-"],
+      { encoding: "utf8" },
+    );
+    for (const field of mndaRecipientFields)
+      expect(text).toContain(`::${field.id}:`);
+    for (const paragraph of template.paragraphs.slice(2))
+      expect(text.replace(/\s+/g, "")).toContain(paragraph.replace(/\s+/g, ""));
+    expect(text).not.toMatch(/\[Counterparty|\[Effective Date|\[jurisdiction/);
+    expect(text).toContain(fixtureInput.effectiveDate);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}, 30000);

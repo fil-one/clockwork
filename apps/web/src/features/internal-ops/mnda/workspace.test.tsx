@@ -81,3 +81,34 @@ it("keeps delivery disabled when the provider is not configured", async () => {
   ).toBeDisabled();
   expect(mocks.operate).not.toHaveBeenCalled();
 });
+
+it("lets the partner supply legal details without requiring staff to know them", async () => {
+  const { container } = render(<MndaWorkspace initial={initial} />);
+  fireEvent.click(screen.getByRole("button", { name: "New MNDA" }));
+  fireEvent.change(
+    screen.getByRole("combobox", { name: "Who completes partner details?" }),
+    { target: { value: "recipient" } },
+  );
+  expect(
+    screen.queryByLabelText("Counterparty short name"),
+  ).not.toBeInTheDocument();
+  for (const name of [
+    "company",
+    "signerName",
+    "signerEmail",
+    "effectiveDate",
+  ] as const) {
+    const input = container.querySelector(`input[name="${name}"]`);
+    if (!input) throw new Error("Expected recipient field");
+    fireEvent.change(input, { target: { value: fixtureRecord.input[name] } });
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
+  await screen.findByRole("link", { name: "Open PDF" });
+  expect(mocks.prepare).toHaveBeenCalledWith(
+    expect.objectContaining({
+      detailsMode: "recipient",
+      signerEmail: fixtureRecord.input.signerEmail,
+    }),
+  );
+  expect(mocks.operate).not.toHaveBeenCalled();
+});

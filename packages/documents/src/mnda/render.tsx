@@ -8,7 +8,11 @@ import {
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer";
-import type { MndaInput, MndaSigner } from "@clockwork/contracts";
+import {
+  mndaRecipientFields,
+  type MndaInput,
+  type MndaSigner,
+} from "@clockwork/contracts";
 import { canonicalizeReactPdf } from "../canonicalize";
 import template from "./template.json";
 
@@ -63,9 +67,77 @@ export function mndaParagraphs(input: MndaInput): string[] {
   );
 }
 
+function RecipientField({
+  id,
+  wide = false,
+}: {
+  id: (typeof mndaRecipientFields)[number]["id"];
+  wide?: boolean;
+}) {
+  const field = mndaRecipientFields.find((f) => f.id === id);
+  if (!field) throw new Error("MNDA_FIELD_UNKNOWN");
+  const width = wide ? 680 : 320;
+  const tag = `{{text:1:y:${field.label}::${field.id}:${width}:18:${"email" in field ? "email_address" : ""}:y}}`;
+  return (
+    <View wrap={false} style={{ height: wide ? 47 : 65, marginBottom: 5 }}>
+      <Text style={{ fontSize: 8, color: "#555555" }}>{field.label}</Text>
+      <View
+        style={{
+          height: wide ? 32 : 50,
+          borderBottomWidth: 0.5,
+          borderBottomColor: "#999999",
+        }}
+      >
+        <Text
+          hyphenationCallback={(word) => [word]}
+          style={{ fontSize: 4, color: "#ffffff" }}
+        >
+          {tag}
+        </Text>
+      </View>
+    </View>
+  );
+}
+function RecipientIntroduction({ effectiveDate }: { effectiveDate: string }) {
+  const ids = [
+    "company_intro",
+    "entity",
+    "email_intro",
+    "address_intro",
+    "short_name",
+  ] as const;
+  const introduction = template.paragraphs[1];
+  if (!introduction) throw new Error("MNDA_INTRODUCTION_MISSING");
+  let index = 0;
+  const nextId = () => {
+    const id = ids[index++];
+    if (!id) throw new Error("MNDA_FIELD_UNKNOWN");
+    return id;
+  };
+  return (
+    <View style={style.paragraph}>
+      {introduction
+        .replace("[Effective Date]", effectiveDate)
+        .split(/(\[[^\]]+\])/g)
+        .map((part, i) =>
+          part.startsWith("[") ? (
+            <RecipientField key={i} id={nextId()} wide />
+          ) : (
+            <Text key={i} hyphenationCallback={(word) => [word]}>
+              {part}
+            </Text>
+          ),
+        )}
+    </View>
+  );
+}
+
 /** Exact supplied legal paragraphs; variable values are plain text, never markup. */
 export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
-  const paragraphs = mndaParagraphs(input);
+  const recipientDetails = input.detailsMode === "recipient";
+  const paragraphs = recipientDetails
+    ? template.paragraphs.map((p) => p.replaceAll("\t", " "))
+    : mndaParagraphs(input);
   const pdf = await renderToBuffer(
     <Document
       title="Mutual Non-Disclosure Agreement"
@@ -74,15 +146,22 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
       modificationDate={new Date(`${input.effectiveDate}T00:00:00Z`)}
     >
       <Page size="LETTER" style={style.page}>
-        {paragraphs.map((p, i) => (
-          <Text
-            key={i}
-            hyphenationCallback={(word) => [word]}
-            style={i === 0 ? style.title : style.paragraph}
-          >
-            {p}
-          </Text>
-        ))}
+        {paragraphs.map((p, i) =>
+          recipientDetails && i === 1 ? (
+            <RecipientIntroduction
+              key={i}
+              effectiveDate={input.effectiveDate}
+            />
+          ) : (
+            <Text
+              key={i}
+              hyphenationCallback={(word) => [word]}
+              style={i === 0 ? style.title : style.paragraph}
+            >
+              {p}
+            </Text>
+          ),
+        )}
         <Text
           fixed
           style={style.footer}
@@ -117,25 +196,48 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
             <Text>email: m@fil.org</Text>
           </View>
           <View style={style.party}>
-            <Text style={style.heading}>{input.company}</Text>
+            {recipientDetails ? (
+              <RecipientField id="company_sign" />
+            ) : (
+              <Text style={style.heading}>{input.company}</Text>
+            )}
             <Text>Signature:</Text>
             <View style={style.signature}>
               <Text style={{ color: "#ffffff", fontSize: 23 }}>
                 {"{{signature:1:y}}"}
               </Text>
             </View>
-            <Text style={style.line}>Name: {input.signerName}</Text>
-            <Text style={style.line}>Title: {input.signerTitle}</Text>
+            {recipientDetails ? (
+              <RecipientField id="signer_name" />
+            ) : (
+              <Text style={style.line}>Name: {input.signerName}</Text>
+            )}
+            {recipientDetails ? (
+              <RecipientField id="signer_title" />
+            ) : (
+              <Text style={style.line}>Title: {input.signerTitle}</Text>
+            )}
             <View style={style.line}>
               <Text>Date:</Text>
               <Text style={{ color: "#ffffff" }}>{"{{af_d_s:1:y}}"}</Text>
             </View>
             <Text style={style.heading}>Address for Notices:</Text>
-            <Text>{input.company}</Text>
-            <Text>ATTN: {input.noticesContact}</Text>
-            <Text>{input.streetAddress}</Text>
-            <Text>{input.locality}</Text>
-            <Text>email: {input.noticesEmail}</Text>
+            {recipientDetails ? (
+              <>
+                <RecipientField id="company_notice" />
+                <RecipientField id="notice_contact" />
+                <RecipientField id="address_notice" />
+                <RecipientField id="email_notice" />
+              </>
+            ) : (
+              <>
+                <Text>{input.company}</Text>
+                <Text>ATTN: {input.noticesContact}</Text>
+                <Text>{input.streetAddress}</Text>
+                <Text>{input.locality}</Text>
+                <Text>email: {input.noticesEmail}</Text>
+              </>
+            )}
           </View>
         </View>
         <Text
