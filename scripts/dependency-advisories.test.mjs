@@ -43,7 +43,7 @@ const pinnedTransitives = [
 ];
 
 // Direct catalog dependency, upgraded rather than overridden.
-const catalogFloors = [{ name: "hono", minimum: "4.13.5" }];
+const catalogFloors = [{ name: "hono", minimum: "4.13.7" }];
 
 // The accepted advisories are accepted only because the package has no fixed
 // release at all. That is a fact about the registry, not about this repository,

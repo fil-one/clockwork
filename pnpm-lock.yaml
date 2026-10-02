@@ -49,8 +49,8 @@ catalogs:
       specifier: 4.9.0
       version: 4.9.0
     hono:
-      specifier: 4.13.5
-      version: 4.13.5
+      specifier: 4.13.7
+      version: 4.13.7
     msw:
       specifier: 2.15.0
       version: 2.15.0
@@ -269,7 +269,7 @@ importers:
         version: 0.45.2(@electric-sql/pglite@0.3.16)(@opentelemetry/api@1.9.1)(pg@8.23.0)(postgres@3.4.9)
       hono:
         specifier: 'catalog:'
-        version: 4.13.5
+        version: 4.13.7
       msw:
         specifier: 'catalog:'
         version: 2.15.0(@types/node@24.13.3)(typescript@5.9.3)
@@ -369,10 +369,10 @@ importers:
         version: link:../workflows
       '@hono/zod-openapi':
         specifier: 'catalog:'
-        version: 1.5.1(hono@4.13.5)(zod@4.4.3)
+        version: 1.5.1(hono@4.13.7)(zod@4.4.3)
       hono:
         specifier: 'catalog:'
-        version: 4.13.5
+        version: 4.13.7
       openapi-fetch:
         specifier: 0.17.0
         version: 0.17.0
@@ -5550,8 +5550,8 @@ packages:
   headers-polyfill@5.0.1:
     resolution: {integrity: sha512-1TJ6Fih/b8h5TIcv+1+Hw0PDQWJTKDKzFZzcKOiW1wJza3XoAQlkCuXLbymPYB8+ZQyw8mHvdw560e8zVFIWyA==}
 
-  hono@4.13.5:
-    resolution: {integrity: sha512-O6+/eCYRkzzzy0rPWwKLiGBR1nFuUPZynnwjxN1MBA62NNqbT0wQEzQyK2gSO5yDIDB336sXQleAhOHrzlYyKw==}
+  hono@4.13.7:
+    resolution: {integrity: sha512-c8/gF9ac8Y78/agExVocyLevgR+JlpNB444Py0FSX8pJoPdYUfUzRcXtYEYGwt6l19qIlVZPN5Mfsw9jFShmQQ==}
     engines: {node: '>=16.9.0'}
 
   hosted-git-info@7.0.2:
@@ -9572,17 +9572,17 @@ snapshots:
 
   '@google-cloud/precise-date@4.0.0': {}
 
-  '@hono/zod-openapi@1.5.1(hono@4.13.5)(zod@4.4.3)':
+  '@hono/zod-openapi@1.5.1(hono@4.13.7)(zod@4.4.3)':
     dependencies:
       '@asteasolutions/zod-to-openapi': 8.5.0(zod@4.4.3)
-      '@hono/zod-validator': 0.9.0(hono@4.13.5)(zod@4.4.3)
-      hono: 4.13.5
+      '@hono/zod-validator': 0.9.0(hono@4.13.7)(zod@4.4.3)
+      hono: 4.13.7
       openapi3-ts: 4.6.1
       zod: 4.4.3
 
-  '@hono/zod-validator@0.9.0(hono@4.13.5)(zod@4.4.3)':
+  '@hono/zod-validator@0.9.0(hono@4.13.7)(zod@4.4.3)':
     dependencies:
-      hono: 4.13.5
+      hono: 4.13.7
       zod: 4.4.3
 
   '@humanfs/core@0.19.2':
@@ -14115,7 +14115,7 @@ snapshots:
       '@types/set-cookie-parser': 2.4.10
       set-cookie-parser: 3.1.2
 
-  hono@4.13.5: {}
+  hono@4.13.7: {}
 
   hosted-git-info@7.0.2:
     dependencies:
