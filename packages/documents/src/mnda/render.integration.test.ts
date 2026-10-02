@@ -75,3 +75,62 @@ it("places every partner-completed blank and preserves all legal clauses", async
     rmSync(dir, { recursive: true, force: true });
   }
 }, 30000);
+
+it.each([
+  { entityDescription: "", locality: "" },
+  {
+    entityDescription: "",
+    streetAddress: "",
+    locality: "",
+    noticesContact: "",
+    noticesEmail: "",
+    signerTitle: "",
+  },
+  {},
+])(
+  "preserves supplied mixed-mode data and exposes only missing fields: %j",
+  async (missing) => {
+    const { mndaSigningFields } = await import("../../../contracts/src/mnda");
+    const template = (await import("./template.json")).default;
+    const input = {
+      ...fixtureInput,
+      ...missing,
+      detailsMode: "mixed" as const,
+    };
+    const pdf = await renderMnda(input, fixtureSigner);
+    const dir = mkdtempSync(join(tmpdir(), "mnda-mixed-"));
+    try {
+      writeFileSync(join(dir, "document.pdf"), pdf.bytes);
+      const text = execFileSync(
+        "pdftotext",
+        ["-layout", join(dir, "document.pdf"), "-"],
+        { encoding: "utf8" },
+      );
+      const extractedIds = [...text.matchAll(/::([a-z_]+):/g)]
+        .map((m) => m[1])
+        .sort();
+      expect(extractedIds).toEqual(
+        mndaSigningFields(input)
+          .map((f) => f.id)
+          .sort(),
+      );
+      const normalized = text.replace(/\s+/g, "");
+      for (const paragraph of template.paragraphs.slice(2))
+        expect(normalized).toContain(paragraph.replace(/\s+/g, ""));
+      for (const value of [
+        input.company,
+        input.shortName,
+        input.signerName,
+        input.streetAddress,
+        input.noticesEmail,
+      ].filter(Boolean))
+        expect(normalized).toContain(value.replace(/\s+/g, ""));
+      expect(text).not.toMatch(
+        /\[Counterparty|\[Effective Date|\[jurisdiction/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  },
+  30000,
+);

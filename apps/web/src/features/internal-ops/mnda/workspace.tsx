@@ -80,7 +80,11 @@ export function MndaWorkspace({ initial }: { initial: Data }) {
     record: MndaRecord;
     url: string;
   } | null>(null);
-  const [detailsMode, setDetailsMode] = useState<"team" | "recipient">("team");
+  const [detailsMode, setDetailsMode] = useState<
+    "team" | "recipient" | "mixed"
+  >("mixed");
+  const [companyName, setCompanyName] = useState("");
+  const [shortName, setShortName] = useState<string | null>(null);
   const [signer, setSigner] = useState<MndaSigner | null>(null);
   const requestId = useRef<string | null>(null);
   const blob = useRef<string | null>(null);
@@ -157,6 +161,8 @@ export function MndaWorkspace({ initial }: { initial: Data }) {
           onClick={() => {
             requestId.current = crypto.randomUUID();
             setCreating(true);
+            setCompanyName("");
+            setShortName(null);
             closePreview();
           }}
           disabled={busy}
@@ -204,9 +210,10 @@ export function MndaWorkspace({ initial }: { initial: Data }) {
               name="detailsMode"
               value={detailsMode}
               onChange={(e) =>
-                setDetailsMode(e.target.value as "team" | "recipient")
+                setDetailsMode(e.target.value as "team" | "recipient" | "mixed")
               }
             >
+              <option value="mixed">{t("operations.mnda.mixedDetails")}</option>
               <option value="team">{t("operations.mnda.teamDetails")}</option>
               <option value="recipient">
                 {t("operations.mnda.recipientDetails")}
@@ -217,14 +224,16 @@ export function MndaWorkspace({ initial }: { initial: Data }) {
             {t(
               detailsMode === "recipient"
                 ? "operations.mnda.recipientHint"
-                : "operations.mnda.latin",
+                : detailsMode === "mixed"
+                  ? "operations.mnda.mixedHint"
+                  : "operations.mnda.latin",
             )}
           </p>
           <div className={styles.fields}>
             {fields
               .filter(
                 (field) =>
-                  detailsMode === "team" ||
+                  detailsMode !== "recipient" ||
                   [
                     "company",
                     "signerName",
@@ -241,7 +250,52 @@ export function MndaWorkspace({ initial }: { initial: Data }) {
                   )}
                   <input
                     name={field}
-                    required
+                    required={
+                      field !== "shortName" &&
+                      (detailsMode === "team" ||
+                        [
+                          "company",
+                          "signerName",
+                          "signerEmail",
+                          "effectiveDate",
+                        ].includes(field))
+                    }
+                    placeholder={
+                      detailsMode === "mixed" &&
+                      ![
+                        "company",
+                        "shortName",
+                        "signerName",
+                        "signerEmail",
+                        "effectiveDate",
+                      ].includes(field)
+                        ? t("operations.mnda.partnerCompletesBlank")
+                        : undefined
+                    }
+                    value={
+                      field === "company"
+                        ? companyName
+                        : field === "shortName"
+                          ? (shortName ?? companyName)
+                          : undefined
+                    }
+                    onChange={
+                      field === "company"
+                        ? (e) => setCompanyName(e.target.value)
+                        : field === "shortName"
+                          ? (e) => setShortName(e.target.value)
+                          : undefined
+                    }
+                    onBlur={
+                      field === "shortName"
+                        ? () => {
+                            if (!shortName?.trim()) setShortName(null);
+                          }
+                        : undefined
+                    }
+                    aria-describedby={
+                      field === "shortName" ? "mnda-short-name-hint" : undefined
+                    }
                     maxLength={
                       field.toLowerCase().includes("email") ? 254 : 180
                     }
@@ -263,6 +317,11 @@ export function MndaWorkspace({ initial }: { initial: Data }) {
                         : undefined
                     }
                   />
+                  {field === "shortName" ? (
+                    <small id="mnda-short-name-hint">
+                      {t("operations.mnda.shortNameHint")}
+                    </small>
+                  ) : null}
                 </label>
               ))}
             <label>

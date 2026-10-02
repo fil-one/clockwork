@@ -167,3 +167,32 @@ it("blocks sending when any required partner detail is missing or assigned to Fi
     "SIGNING_FIELDS",
   );
 });
+
+it("requires exactly the missing mixed-mode fields before sending", async () => {
+  const { mndaSigningFields } = await import("../../../contracts/src/mnda");
+  const record = {
+    ...fixtureRecord,
+    input: {
+      ...fixtureRecord.input,
+      detailsMode: "mixed" as const,
+      entityDescription: "",
+      locality: "",
+    },
+  };
+  const document = doc();
+  const fields = document.fields[0];
+  if (!fields) throw new Error("Expected signing fields");
+  fields.push(
+    ...mndaSigningFields(record.input).map(({ id }) => ({
+      api_id: id,
+      recipient_id: "counterparty",
+      type: "text",
+      required: true,
+    })),
+  );
+  expect(() => assertSignWellSigningFields(document, record)).not.toThrow();
+  fields.pop();
+  expect(() => assertSignWellSigningFields(document, record)).toThrow(
+    "SIGNING_FIELDS",
+  );
+});

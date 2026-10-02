@@ -112,3 +112,47 @@ it("lets the partner supply legal details without requiring staff to know them",
   );
   expect(mocks.operate).not.toHaveBeenCalled();
 });
+
+it("defaults to partial completion, auto-fills an editable short name and preserves known address data", async () => {
+  const { container } = render(<MndaWorkspace initial={initial} />);
+  fireEvent.click(screen.getByRole("button", { name: "New MNDA" }));
+  expect(
+    screen.getByRole("combobox", { name: "Who completes partner details?" }),
+  ).toHaveValue("mixed");
+  const company = screen.getByLabelText("Counterparty legal name");
+  const shortName = container.querySelector('input[name="shortName"]');
+  if (!shortName) throw new Error("Expected short name input");
+  fireEvent.change(company, { target: { value: "Example LLC" } });
+  expect(shortName).toHaveValue("Example LLC");
+  expect(shortName).not.toBeRequired();
+  fireEvent.change(shortName, { target: { value: "Example" } });
+  fireEvent.change(company, { target: { value: "Example Holdings LLC" } });
+  expect(shortName).toHaveValue("Example");
+  fireEvent.change(shortName, { target: { value: "" } });
+  fireEvent.blur(shortName);
+  expect(shortName).toHaveValue("Example Holdings LLC");
+  expect(
+    screen.getByLabelText("Jurisdiction and entity type"),
+  ).not.toBeRequired();
+  expect(
+    screen.getByLabelText("City, region, postal code, country"),
+  ).not.toBeRequired();
+  for (const name of ["signerName", "signerEmail", "streetAddress"] as const) {
+    const input = container.querySelector(`input[name="${name}"]`);
+    if (!input) throw new Error("Expected partner input");
+    fireEvent.change(input, { target: { value: fixtureRecord.input[name] } });
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
+  await screen.findByRole("link", { name: "Open PDF" });
+  expect(mocks.prepare).toHaveBeenCalledWith(
+    expect.objectContaining({
+      detailsMode: "mixed",
+      company: "Example Holdings LLC",
+      shortName: "Example Holdings LLC",
+      streetAddress: fixtureRecord.input.streetAddress,
+      locality: "",
+      entityDescription: "",
+    }),
+  );
+  expect(mocks.operate).not.toHaveBeenCalled();
+});

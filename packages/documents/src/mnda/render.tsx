@@ -9,7 +9,10 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import {
-  mndaRecipientFields,
+  mndaDetailFields,
+  mndaDetailValue,
+  mndaSigningFields,
+  type MndaDetailFieldId,
   type MndaInput,
   type MndaSigner,
 } from "@clockwork/contracts";
@@ -49,7 +52,7 @@ const style = StyleSheet.create({
 export function mndaParagraphs(input: MndaInput): string[] {
   const values: Record<string, string> = {
     "[Counterparty Legal Name]": input.company,
-    "[Counterparty Short Name]": input.shortName,
+    "[Counterparty Short Name]": input.shortName || input.company,
     "[jurisdiction / entity type, e.g., Delaware corporation]":
       input.entityDescription,
     "[Counterparty email]": input.noticesEmail,
@@ -70,11 +73,39 @@ export function mndaParagraphs(input: MndaInput): string[] {
 function RecipientField({
   id,
   wide = false,
+  input,
 }: {
-  id: (typeof mndaRecipientFields)[number]["id"];
+  id: MndaDetailFieldId;
   wide?: boolean;
+  input: MndaInput;
 }) {
-  const field = mndaRecipientFields.find((f) => f.id === id);
+  const field = mndaDetailFields.find((f) => f.id === id);
+  if (input.detailsMode !== "recipient" && mndaDetailValue(input, id)) {
+    const prefix =
+      id === "signer_name"
+        ? "Name: "
+        : id === "signer_title"
+          ? "Title: "
+          : id === "notice_contact"
+            ? "ATTN: "
+            : id === "email_notice"
+              ? "email: "
+              : "";
+    return (
+      <Text
+        style={
+          id === "company_sign"
+            ? style.heading
+            : id === "signer_name" || id === "signer_title"
+              ? style.line
+              : undefined
+        }
+      >
+        {prefix}
+        {mndaDetailValue(input, id)}
+      </Text>
+    );
+  }
   if (!field) throw new Error("MNDA_FIELD_UNKNOWN");
   const width = wide ? 680 : 320;
   const tag = `{{text:1:y:${field.label}::${field.id}:${width}:18:${"email" in field ? "email_address" : ""}:y}}`;
@@ -98,43 +129,84 @@ function RecipientField({
     </View>
   );
 }
-function RecipientIntroduction({ effectiveDate }: { effectiveDate: string }) {
-  const ids = [
-    "company_intro",
-    "entity",
-    "email_intro",
-    "address_intro",
-    "short_name",
-  ] as const;
+function RecipientAddress({
+  input,
+  wide = false,
+}: {
+  input: MndaInput;
+  wide?: boolean;
+}) {
+  if (input.detailsMode === "recipient")
+    return (
+      <RecipientField
+        input={input}
+        id={wide ? "address_intro" : "address_notice"}
+        wide={wide}
+      />
+    );
+  return (
+    <View>
+      <RecipientField
+        input={input}
+        id={wide ? "street_intro" : "street_notice"}
+        wide={wide}
+      />
+      <RecipientField
+        input={input}
+        id={wide ? "locality_intro" : "locality_notice"}
+        wide={wide}
+      />
+    </View>
+  );
+}
+function RecipientIntroduction({ input }: { input: MndaInput }) {
+  const ids: Record<string, MndaDetailFieldId> = {
+    "[Counterparty Legal Name]": "company_intro",
+    "[jurisdiction / entity type, e.g., Delaware corporation]": "entity",
+    "[Counterparty email]": "email_intro",
+    "[Counterparty address for notices]": "address_intro",
+    "[Counterparty Short Name]": "short_name",
+  };
   const introduction = template.paragraphs[1];
   if (!introduction) throw new Error("MNDA_INTRODUCTION_MISSING");
-  let index = 0;
-  const nextId = () => {
-    const id = ids[index++];
-    if (!id) throw new Error("MNDA_FIELD_UNKNOWN");
-    return id;
-  };
   return (
     <View style={style.paragraph}>
       {introduction
-        .replace("[Effective Date]", effectiveDate)
+        .replace("[Effective Date]", input.effectiveDate)
+        .replace(/\[[^\]]+\]/g, (token) => {
+          const id = ids[token];
+          if (!id) throw new Error("MNDA_FIELD_UNKNOWN");
+          if (
+            input.detailsMode === "recipient" ||
+            (id === "address_intro" &&
+              (!input.streetAddress || !input.locality))
+          )
+            return token;
+          return mndaDetailValue(input, id) || token;
+        })
         .split(/(\[[^\]]+\])/g)
-        .map((part, i) =>
-          part.startsWith("[") ? (
-            <RecipientField key={i} id={nextId()} wide />
+        .map((part, i) => {
+          if (!part.startsWith("["))
+            return (
+              <Text key={i} hyphenationCallback={(word) => [word]}>
+                {part}
+              </Text>
+            );
+          const id = ids[part];
+          if (!id) throw new Error("MNDA_FIELD_UNKNOWN");
+          return id === "address_intro" ? (
+            <RecipientAddress key={i} input={input} wide />
           ) : (
-            <Text key={i} hyphenationCallback={(word) => [word]}>
-              {part}
-            </Text>
-          ),
-        )}
+            <RecipientField key={i} input={input} id={id} wide />
+          );
+        })}
     </View>
   );
 }
 
 /** Exact supplied legal paragraphs; variable values are plain text, never markup. */
 export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
-  const recipientDetails = input.detailsMode === "recipient";
+  const recipientDetails = mndaSigningFields(input).length > 0;
   const paragraphs = recipientDetails
     ? template.paragraphs.map((p) => p.replaceAll("\t", " "))
     : mndaParagraphs(input);
@@ -148,10 +220,7 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
       <Page size="LETTER" style={style.page}>
         {paragraphs.map((p, i) =>
           recipientDetails && i === 1 ? (
-            <RecipientIntroduction
-              key={i}
-              effectiveDate={input.effectiveDate}
-            />
+            <RecipientIntroduction key={i} input={input} />
           ) : (
             <Text
               key={i}
@@ -197,7 +266,7 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
           </View>
           <View style={style.party}>
             {recipientDetails ? (
-              <RecipientField id="company_sign" />
+              <RecipientField input={input} id="company_sign" />
             ) : (
               <Text style={style.heading}>{input.company}</Text>
             )}
@@ -208,12 +277,12 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
               </Text>
             </View>
             {recipientDetails ? (
-              <RecipientField id="signer_name" />
+              <RecipientField input={input} id="signer_name" />
             ) : (
               <Text style={style.line}>Name: {input.signerName}</Text>
             )}
             {recipientDetails ? (
-              <RecipientField id="signer_title" />
+              <RecipientField input={input} id="signer_title" />
             ) : (
               <Text style={style.line}>Title: {input.signerTitle}</Text>
             )}
@@ -224,10 +293,10 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
             <Text style={style.heading}>Address for Notices:</Text>
             {recipientDetails ? (
               <>
-                <RecipientField id="company_notice" />
-                <RecipientField id="notice_contact" />
-                <RecipientField id="address_notice" />
-                <RecipientField id="email_notice" />
+                <RecipientField input={input} id="company_notice" />
+                <RecipientField input={input} id="notice_contact" />
+                <RecipientAddress input={input} />
+                <RecipientField input={input} id="email_notice" />
               </>
             ) : (
               <>

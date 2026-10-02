@@ -74,6 +74,16 @@ MFA.
 
 ## Partner-completed details
 
+The default **Our team starts; partner completes missing details** lets staff
+enter the legal company name, recipient name/email and any known information.
+Unknown jurisdiction, address, notice contact/email or signer title may be left
+blank. Only missing details become required signing fields. Known street and
+city/region/postal/country values are preserved independently, including when
+only half the address is known. Supplied values are printed in the agreement.
+The short name defaults to the legal name and remains editable; clearing it
+restores that default. Preview the agreement before sending, and review the
+partner's completed information before countersigning.
+
 Choose **Partner completes details when signing** to send with an internal
 partner reference and recipient name/email. Commerce still sets the effective
 date and Fil One countersigner. SignWell requires every legal-name,
