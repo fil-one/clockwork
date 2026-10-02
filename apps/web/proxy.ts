@@ -1,4 +1,5 @@
 import { demoLanguageHandoff } from "@/src/auth/demo-language-handoff";
+import { commerceCanonicalRedirect } from "@/src/auth/commerce-canonical-redirect";
 import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
 import type { NextFetchEvent } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
@@ -302,6 +303,17 @@ export default async function proxy(
       });
       finish(503, "error");
       return unavailable;
+    }
+    const canonicalRedirect = commerceCanonicalRedirect(
+      request,
+      process.env.CLOCKWORK_CANONICAL_ORIGIN,
+    );
+    if (canonicalRedirect) {
+      finish(307, "ok");
+      return NextResponse.redirect(canonicalRedirect, {
+        status: 307,
+        headers: { traceparent, "x-request-id": requestId },
+      });
     }
     const languageHandoff = demoLanguageHandoff(request, demoDeployIdentity);
     if (languageHandoff) {

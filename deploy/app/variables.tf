@@ -35,6 +35,12 @@ variable "hostname" {
   type        = string
 }
 
+variable "canonical_hostname" {
+  description = "Optional public product hostname. Its issued ACM certificate and DNS are managed by fil-one/infrastructure; the original hostname remains available."
+  type        = string
+  default     = ""
+}
+
 variable "network" {
   description = "The network to use (defaults to the default 'hot' network)"
   type        = string

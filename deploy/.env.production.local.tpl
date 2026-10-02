@@ -7,14 +7,15 @@
 #
 # The production preflight in scripts/check-demo-deploy-environment.mjs
 # requires the three origins and the WorkOS redirect to agree; they are all
-# derived from TF_VAR_hostname so they cannot drift.
+# derived from the public product hostname so they cannot drift. The original
+# TF_VAR_hostname still identifies the existing DNS zone and load balancer.
 CLOCKWORK_ENV=production
 CLOCKWORK_EXPERIENCE_ADAPTER=database
 NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV=production
-NEXT_PUBLIC_APP_URL=https://<%= ${TF_VAR_hostname:?} %>
-APP_ORIGIN=https://<%= ${TF_VAR_hostname:?} %>
-CLOCKWORK_CANONICAL_ORIGIN=https://<%= ${TF_VAR_hostname:?} %>
-WORKOS_REDIRECT_URI=https://<%= ${TF_VAR_hostname:?} %>/auth/callback
+NEXT_PUBLIC_APP_URL=https://<%= ${TF_VAR_canonical_hostname:-${TF_VAR_hostname:?}} %>
+APP_ORIGIN=https://<%= ${TF_VAR_canonical_hostname:-${TF_VAR_hostname:?}} %>
+CLOCKWORK_CANONICAL_ORIGIN=https://<%= ${TF_VAR_canonical_hostname:-${TF_VAR_hostname:?}} %>
+WORKOS_REDIRECT_URI=https://<%= ${TF_VAR_canonical_hostname:-${TF_VAR_hostname:?}} %>/auth/callback
 
 # one hop: the application load balancer
 CLOCKWORK_TRUSTED_PROXY_HOPS=1

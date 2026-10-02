@@ -205,7 +205,7 @@ wait-deploy:
 
 .PHONY: smoke
 smoke:
-	./smoke.sh https://$(TF_VAR_hostname)
+	./smoke.sh https://$(if $(strip $(TF_VAR_canonical_hostname)),$(TF_VAR_canonical_hostname),$(TF_VAR_hostname))
 
 .PHONY: console-shared
 console-shared: shared/.terraform
