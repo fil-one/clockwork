@@ -76,6 +76,8 @@ locals {
     STRIPE_SECRET_KEY      = var.stripe_secret_key
     STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
     TRIGGER_SECRET_KEY     = var.trigger_secret_key
+    SIGNWELL_API_KEY       = var.signwell_api_key
+    SIGNWELL_WEBHOOK_ID    = var.signwell_webhook_id
   }
 }
 
@@ -135,6 +137,8 @@ module "app" {
     { name = "AWS_REGION", value = var.region },
     { name = "AUTHORIZATION_CONTEXT_SECRET_ID", value = local.authorization_context_secret_id },
     { name = "CLOCKWORK_TASK_RUNTIME", value = var.task_runtime },
+    { name = "COMMERCE_MNDA_ENABLED", value = tostring(var.commerce_mnda_enabled) },
+    { name = "COMMERCE_MNDA_TEST_MODE", value = tostring(!local.is_production) },
     # The poller sets a visibility timeout on every receive, and a per-message
     # value wins over the queue's own. Both come from here so the lease the
     # queue is built with is the lease a message actually gets.

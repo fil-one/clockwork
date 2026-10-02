@@ -62,7 +62,7 @@ module "bootstrap_manifest" {
   app         = var.app
   environment = terraform.workspace
   kms         = module.app.kms
-  secrets     = local.has_bootstrap_manifest ? { BOOTSTRAP_MANIFEST = var.bootstrap_manifest } : {}
+  secrets     = merge(local.has_bootstrap_manifest ? { BOOTSTRAP_MANIFEST = var.bootstrap_manifest } : {}, nonsensitive(var.staff_provisioning != "") ? { STAFF_PROVISIONING = var.staff_provisioning } : {})
 }
 
 locals {
@@ -121,6 +121,7 @@ resource "aws_ecs_task_definition" "migrate" {
         { name = "PGSSLMODE", value = "require" },
         { name = "AUTHORIZATION_CONTEXT_SECRET_ID", value = local.authorization_context_secret_id },
         { name = "DEPLOY_STAGE", value = terraform.workspace },
+        { name = "INTERNAL_EMAIL_DOMAINS", value = "fil.org,fil.one" },
       ]
       secrets = local.migrate_secrets
       logConfiguration = {

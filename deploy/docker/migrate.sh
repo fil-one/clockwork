@@ -112,4 +112,9 @@ fi
 echo "migrate: applying production roles"
 psql "$DIRECT_DATABASE_URL" -v ON_ERROR_STOP=1 -f /app/supabase/production-roles.sql
 
+if [ -n "${STAFF_PROVISIONING:-}" ]; then
+  echo "migrate: provisioning approved staff access"
+  node /app/bootstrap/provision-staff.mjs
+fi
+
 echo "migrate: done"

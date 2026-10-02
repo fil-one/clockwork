@@ -71,6 +71,7 @@
     "eslint-plugin-import": "2.32.0",
     "lefthook": "2.1.10",
     "netlify-cli": "27.1.1",
+    "postgres": "catalog:",
     "prettier": "3.9.6",
     "prettier-plugin-tailwindcss": "0.8.1",
     "secretlint": "13.0.4",
@@ -84,7 +85,8 @@
     "auditConfig": {
       "ignoreGhsas": [
         "GHSA-jmr9-qjv8-65gv",
-        "GHSA-7pqw-9j4j-h8q3"
+        "GHSA-7pqw-9j4j-h8q3",
+        "GHSA-86w9-cpqp-85rv"
       ]
     },
     "overrides": {
@@ -115,7 +117,8 @@
       "undici@>=8 <8.10.2": "8.10.2",
       "engine.io@<6.6.11": "6.6.11",
       "fast-uri@>=3 <3.1.8": "3.1.8",
-      "fast-uri@>=4 <4.1.5": "4.1.5"
+      "fast-uri@>=4 <4.1.5": "4.1.5",
+      "fastify@<5.12.5": "5.12.5"
     },
     "patchedDependencies": {
       "minimatch@3.1.5": "patches/minimatch@3.1.5.patch",

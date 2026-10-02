@@ -297,6 +297,8 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/channel-policy",
       "/internal/gates",
       "/internal/migrations",
+      // Standalone pre-sales MNDA repository, not an account projection channel.
+      "/internal/mndas",
       "/internal/payg-offers",
       // Finance reads verified customer handoff requests directly.
       "/internal/payg-requests",

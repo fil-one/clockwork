@@ -10,3 +10,4 @@ export * from "./repositories/system";
 export * from "./repositories/experience";
 export * from "./schema";
 export * from "./transaction";
+export * from "./repositories/mnda";

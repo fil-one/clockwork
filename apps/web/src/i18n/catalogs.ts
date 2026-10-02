@@ -16,6 +16,7 @@ import { experienceMessages } from "./messages/experience";
 import { experienceDataMessages } from "./messages/experience-data";
 import { operationsMessages } from "./messages/operations";
 import { operationsFinanceMessages } from "./messages/operations-finance";
+import { mndaMessages } from "./messages/operations-mnda";
 import { partnerMessages } from "./messages/partner";
 import { platformMessages } from "./messages/platform";
 import {
@@ -57,7 +58,11 @@ export const messageModules = {
     prefixes: ["adminGovernance."],
   },
   operations: {
-    messages: { ...operationsMessages, ...operationsFinanceMessages },
+    messages: {
+      ...operationsMessages,
+      ...operationsFinanceMessages,
+      ...mndaMessages,
+    },
     prefixes: ["operations."],
   },
   platform: { messages: platformMessages, prefixes: ["platform."] },

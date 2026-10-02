@@ -64,6 +64,10 @@ jobs:
       TF_VAR_stripe_webhook_secret: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
       TF_VAR_trigger_secret_key: ${{ secrets.TRIGGER_SECRET_KEY }}
       TF_VAR_bootstrap_manifest: ${{ secrets.CLOCKWORK_BOOTSTRAP_MANIFEST }}
+      TF_VAR_staff_provisioning: ${{ secrets.CLOCKWORK_STAFF_PROVISIONING }}
+      TF_VAR_signwell_api_key: ${{ secrets.SIGNWELL_API_KEY }}
+      TF_VAR_signwell_webhook_id: ${{ secrets.SIGNWELL_WEBHOOK_ID }}
+      TF_VAR_commerce_mnda_enabled: ${{ vars.COMMERCE_MNDA_ENABLED || 'false' }}
     steps:
       - uses: actions/checkout@v4
         with:

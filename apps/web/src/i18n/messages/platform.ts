@@ -4,6 +4,10 @@ import { defineMessages, sameAsEnglish, sameInAllLanguages } from "../define";
  * Shell, navigation, settings, shared states, trust, developer reference, registration, signing and UI kit text. Owned by the platform lane.
  */
 export const platformMessages = defineMessages({
+  "platform.nav.internal.mndas": sameInAllLanguages(
+    "MNDAs",
+    "legal document acronym",
+  ),
   "app.pageLoaded": {
     en: "{page}. Page loaded.",
     es: "{page}. Página cargada.",
