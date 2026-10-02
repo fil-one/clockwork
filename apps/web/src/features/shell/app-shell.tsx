@@ -125,6 +125,7 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/internal/status": <RefreshCw size={19} strokeWidth={1.8} />,
   "/internal/unhandled-errors": <TriangleAlert size={19} strokeWidth={1.8} />,
   "/internal/agreements": <FileText size={19} strokeWidth={1.8} />,
+  "/internal/mndas": <FileText size={19} strokeWidth={1.8} />,
   "/internal/approvals": <Stamp size={19} strokeWidth={1.8} />,
   "/internal/price-books": <WalletCards size={19} strokeWidth={1.8} />,
   "/internal/payg-requests": <Inbox size={19} strokeWidth={1.8} />,
@@ -208,7 +209,12 @@ const navigationSections: Readonly<
   internal: [
     {
       id: "desk",
-      hrefs: ["/internal", "/internal/search", "/internal/assisted"],
+      hrefs: [
+        "/internal",
+        "/internal/mndas",
+        "/internal/search",
+        "/internal/assisted",
+      ],
     },
     {
       id: "queues",
@@ -538,6 +544,7 @@ export function AppShell({
   const navigationGroups = useMemo<readonly NavigationGroup[]>(() => {
     const remaining = new Map(
       navigation[audience]
+        .filter((item) => !item.providerBackedOnly || session.providerBacked)
         .filter((item) => canAccessNavigationItem(item, roles))
         .map((item) => [
           item.href as string,
@@ -572,7 +579,7 @@ export function AppShell({
       });
     }
     return sections.filter((section) => section.items.length > 0);
-  }, [audience, pathname, roles, t]);
+  }, [audience, pathname, roles, session.providerBacked, t]);
 
   /**
    * A client transition replaces the content of the page without a document

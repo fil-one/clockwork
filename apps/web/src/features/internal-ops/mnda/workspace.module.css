@@ -1,0 +1,168 @@
+.main {
+  padding: clamp(1rem, 3vw, 2.5rem);
+  display: grid;
+  gap: 1.5rem;
+  min-width: 0;
+}
+.main h1 {
+  font-size: 1.75rem;
+  font-weight: 650;
+  margin: 0 0 0.5rem;
+}
+.main h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.main p {
+  line-height: 1.5;
+  margin: 0.6rem 0;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.panel {
+  padding: 1.5rem;
+  border: 1px solid var(--cw-color-border, #e4e4e7);
+  border-radius: 8px;
+  background: var(--cw-color-surface, #fff);
+  min-width: 0;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 1rem;
+}
+.main label {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.main input,
+.main select {
+  min-height: 40px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #a1a1aa;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  min-width: 0;
+}
+.main button,
+.main a {
+  min-height: 40px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #2563eb;
+  border-radius: 5px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.main button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.main .secondary {
+  color: inherit;
+  border-color: #a1a1aa;
+  background: transparent;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  align-items: center;
+}
+.notice {
+  padding: 1rem;
+  border: 1px solid #fbbf24;
+  background: #fffbeb;
+  color: #78350f;
+  border-radius: 5px;
+}
+.error {
+  padding: 1rem;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 5px;
+}
+.table {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+.table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.table caption {
+  text-align: start;
+  font-weight: 600;
+  margin-bottom: 0.7rem;
+}
+.table th,
+.table td {
+  padding: 0.8rem;
+  text-align: start;
+  border-bottom: 1px solid #e4e4e7;
+  vertical-align: top;
+}
+.table th {
+  white-space: nowrap;
+  font-weight: 600;
+}
+.state {
+  display: inline-block;
+  background: #f4f4f5;
+  color: #27272a;
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+}
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 180px;
+}
+.rowActions button {
+  font-size: 0.8rem;
+  min-height: 32px;
+  color: #1d4ed8;
+  background: transparent;
+  border-color: #bfdbfe;
+}
+.signer {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid #e4e4e7;
+}
+.main .checkbox {
+  display: flex;
+  align-items: center;
+}
+.checkbox input {
+  min-height: 20px;
+  width: 20px;
+}
+@media (pointer: coarse) {
+  .main button,
+  .main a,
+  .main input,
+  .main select {
+    min-height: 44px;
+  }
+}

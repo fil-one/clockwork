@@ -6,3 +6,4 @@ export * from "./messages";
 export * from "./model";
 export * from "./render";
 export * from "./template";
+export * from "./mnda/render";

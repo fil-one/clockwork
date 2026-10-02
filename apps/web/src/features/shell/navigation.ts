@@ -19,6 +19,7 @@ export interface NavigationItem {
   match?: string;
   requiredPermission?: Permission;
   allowedRoles?: readonly Role[];
+  providerBackedOnly?: boolean;
 }
 
 export const navigation: Readonly<
@@ -140,6 +141,12 @@ export const navigation: Readonly<
   ],
   internal: [
     { href: "/internal", label: "nav.internal.home" },
+    {
+      href: "/internal/mndas",
+      label: "platform.nav.internal.mndas",
+      providerBackedOnly: true,
+      allowedRoles: ["internal_operator", "finance_approver", "legal_approver"],
+    },
     { href: "/internal/search", label: "nav.internal.search" },
     { href: "/internal/queues", label: "nav.internal.queues" },
     {

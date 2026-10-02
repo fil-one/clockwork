@@ -68,6 +68,13 @@ variable "task_runtime" {
   }
 }
 
+variable "staff_provisioning" {
+  description = "Optional explicit staff provisioning request. Applied by the migration task only."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "bootstrap_manifest" {
   description = "the production bootstrap manifest as JSON (docs/operations/production-bootstrap.md); kept in Secrets Manager and applied by the migration task, which skips the bootstrap while this is empty"
   type        = string
@@ -125,6 +132,24 @@ variable "trigger_secret_key" {
   type      = string
   sensitive = true
   default   = ""
+}
+
+variable "signwell_api_key" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "signwell_webhook_id" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "commerce_mnda_enabled" {
+  description = "Enable the approved standalone staff MNDA workflow; unrelated commerce capabilities remain governed separately."
+  type        = bool
+  default     = false
 }
 
 # Production database sizing. Staging keeps upstream's db.t4g.micro.

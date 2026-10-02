@@ -60,6 +60,7 @@ const messageModuleFiles: Readonly<Record<string, Lane>> = {
   "admin-governance.ts": "adminGovernance",
   "operations.ts": "operations",
   "operations-finance.ts": "operations",
+  "operations-mnda.ts": "operations",
   "platform.ts": "platform",
   "demo.ts": "demo",
 };

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./mnda": "./src/mnda.ts",
     ".": "./src/index.ts",
     "./core": "./src/core/index.ts",
     "./lifecycle": "./src/lifecycle/index.ts",

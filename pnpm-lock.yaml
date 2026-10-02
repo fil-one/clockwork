@@ -160,6 +160,9 @@ importers:
       netlify-cli:
         specifier: 27.1.1
         version: 27.1.1(@types/node@24.13.3)(picomatch@4.0.5)
+      postgres:
+        specifier: 'catalog:'
+        version: 3.4.9
       prettier:
         specifier: 3.9.6
         version: 3.9.6

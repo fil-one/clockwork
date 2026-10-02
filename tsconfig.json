@@ -1,5 +1,9 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": { "noEmit": true },
-  "include": ["*.ts", "scripts/bootstrap-production.ts"]
+  "include": [
+    "*.ts",
+    "scripts/bootstrap-production.ts",
+    "scripts/provision-staff.ts"
+  ]
 }

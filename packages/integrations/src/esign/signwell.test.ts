@@ -1,0 +1,138 @@
+import { createHmac } from "node:crypto";
+import { describe, expect, it, vi } from "vitest";
+import { fixtureRecord } from "../../../contracts/src/mnda-fixture";
+import {
+  assertSignWellSigningFields,
+  SignWellClient,
+  signWellState,
+  verifySignWellWakeup,
+  type SignWellDocument,
+} from "./signwell";
+
+const providerId = "019a44ac-0000-7000-8000-000000000004";
+const doc = (): SignWellDocument => ({
+  id: providerId,
+  status: "Draft",
+  test_mode: true,
+  metadata: {
+    commerce_mnda_id: fixtureRecord.id,
+    template_sha256: fixtureRecord.templateHash,
+  },
+  recipients: [
+    {
+      id: "counterparty",
+      email: fixtureRecord.input.signerEmail,
+      name: "Alex",
+    },
+    { id: "fil-one", email: fixtureRecord.countersigner.email, name: "James" },
+  ],
+  apply_signing_order: true,
+  fields: [
+    [
+      ...["counterparty", "fil-one"].flatMap((recipient_id) =>
+        ["signature", "autofill_date_signed"].map((type) => ({
+          recipient_id,
+          type,
+          required: true,
+        })),
+      ),
+    ],
+  ],
+});
+describe("SignWell MNDA contract", () => {
+  it("creates an unsent two-party draft and requires extracted signing fields", async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify(doc())));
+    await new SignWellClient("private-key", transport).createDraft(
+      fixtureRecord,
+      Buffer.from("%PDF-test"),
+    );
+    const rawBody = transport.mock.calls[0]?.[1]?.body;
+    if (typeof rawBody !== "string")
+      throw new Error("Expected JSON request body");
+    const body = JSON.parse(rawBody) as { recipients: { email: string }[] };
+    expect(body).toMatchObject({
+      draft: true,
+      test_mode: true,
+      apply_signing_order: true,
+      text_tags: true,
+      allow_reassign: false,
+    });
+    expect(body.recipients.map((r: { email: string }) => r.email)).toEqual([
+      fixtureRecord.input.signerEmail,
+      fixtureRecord.countersigner.email,
+    ]);
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(() => assertSignWellSigningFields(doc())).not.toThrow();
+    expect(() => assertSignWellSigningFields({ ...doc(), fields: [] })).toThrow(
+      "SIGNING_FIELDS",
+    );
+    expect(() =>
+      assertSignWellSigningFields({ ...doc(), apply_signing_order: false }),
+    ).toThrow("SIGNING_ORDER");
+  });
+  it("requires identity, environment, template and recipient bindings", () => {
+    expect(signWellState(doc(), fixtureRecord)).toBe("ready");
+    expect(signWellState({ ...doc(), status: "Created" }, fixtureRecord)).toBe(
+      "preparing",
+    );
+    expect(() =>
+      signWellState({ ...doc(), test_mode: false }, fixtureRecord),
+    ).toThrow("BINDING");
+    expect(() =>
+      signWellState({ ...doc(), recipients: [] }, fixtureRecord),
+    ).toThrow("SIGNERS");
+    expect(() =>
+      signWellState(doc(), { ...fixtureRecord, providerId: fixtureRecord.id }),
+    ).toThrow("BINDING");
+    expect(
+      signWellState({ ...doc(), status: "Manually completed" }, fixtureRecord),
+    ).toBe("attention");
+    expect(
+      signWellState({ ...doc(), status: "Completed" }, fixtureRecord),
+    ).toBe("completed");
+    const waiting = doc();
+    waiting.status = "Sent";
+    if (waiting.recipients[0]) waiting.recipients[0].status = "signed";
+    expect(signWellState(waiting, fixtureRecord)).toBe(
+      "awaiting_countersignature",
+    );
+  });
+  it("authenticates webhook wakeups, rejects stale/tampered MACs, and never trusts completion payloads", () => {
+    const time = 1_800_000_000,
+      type = "document_completed";
+    const hash = createHmac("sha256", "hook-id")
+      .update(`${type}@${time}`)
+      .digest("hex");
+    const event = {
+      event: { type, time, hash },
+      data: { object: { id: providerId, status: "completed" } },
+    };
+    expect(
+      verifySignWellWakeup(JSON.stringify(event), "hook-id", time * 1000),
+    ).toBe(providerId);
+    expect(() =>
+      verifySignWellWakeup(JSON.stringify(event), "wrong", time * 1000),
+    ).toThrow("INVALID_WEBHOOK");
+    expect(() =>
+      verifySignWellWakeup(
+        JSON.stringify(event),
+        "hook-id",
+        (time + 8 * 86400) * 1000,
+      ),
+    ).toThrow("INVALID_WEBHOOK");
+  });
+  it("does not expose provider response bodies and rejects non-PDF evidence", async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response("secret-provider-body", { status: 422 }));
+    await expect(
+      new SignWellClient("private-key", transport).get(providerId),
+    ).rejects.toThrow(/^SIGNWELL_HTTP_422$/);
+    transport.mockResolvedValue(new Response("not a pdf"));
+    await expect(
+      new SignWellClient("private-key", transport).completedPdf(providerId),
+    ).rejects.toThrow("INVALID_PDF");
+  });
+});

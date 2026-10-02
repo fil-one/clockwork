@@ -90,6 +90,8 @@ RUN pnpm exec turbo run build --filter=@clockwork/web
 # runner carries neither sources nor node_modules, so it ships as one file.
 RUN pnpm exec esbuild scripts/bootstrap-production.ts --bundle --platform=node \
     --target=node24 --format=esm --outfile=bootstrap/bootstrap-production.mjs
+RUN pnpm exec esbuild scripts/provision-staff.ts --bundle --platform=node \
+    --target=node24 --format=esm --outfile=bootstrap/provision-staff.mjs
 
 # ---------------------------------------------------------------------- runner
 FROM node:24.18.1-slim AS runner
