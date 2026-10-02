@@ -98,7 +98,7 @@ function RecipientField({
             ? style.heading
             : id === "signer_name" || id === "signer_title"
               ? style.line
-              : undefined
+              : {}
         }
       >
         {prefix}
