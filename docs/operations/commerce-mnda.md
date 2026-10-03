@@ -20,8 +20,12 @@ provider.
 This is the supplied English template. Its PDF font supports Latin-script names
 and addresses; unsupported glyphs are rejected rather than silently removed. Use
 a reviewed Latin-script legal name/address. Entity type should omit the initial
-article, e.g. `Delaware corporation`. Legal clauses and the FIL One notice email
-`m@fil.org` are preserved. Notice attention uses the configured countersigner.
+article, e.g. `Delaware corporation`. Legal clauses are preserved. Fil One
+notice attention and both Fil One email references use the selected
+countersigner's snapshot, including `james@fil.one` when James is selected. They
+do not use the logged-in sender's address. Existing PDFs are immutable; create a
+new preview to pick up layout changes or a different countersigner
+configuration.
 
 ## Deployment
 
@@ -58,10 +62,10 @@ verified in-app MFA challenge may also be requested.
   Failed PDF retrieval leaves the request incomplete locally, allowing recovery.
 - A callback returning 503 is retryable. Unknown document IDs are acknowledged
   without creating records; callbacks for the other deployment are ignored.
-- Run the targeted SignWell, workflow, staff-access, PDF semantic and database
-  integration tests. Non-binding live API qualification uses embedded signing
-  with notifications off, exercises both signers and retrieves the final PDF.
-  Test mode documents are not legally binding and do not count toward API
+- Choose tests using [change validation](#change-validation). When a complete
+  provider qualification is needed, use non-binding test mode with embedded
+  signing and notifications off; exercise both signers and retrieve the final
+  PDF. Test mode documents are not legally binding and do not count toward API
   billing.
 - Disabling the feature prevents provider operations. Originals and completed
   artifacts remain readable to authorized staff. Database backups retain
@@ -71,6 +75,33 @@ See [ADR 0011](../adr/0011-standalone-commerce-mnda.md) for boundaries and
 storage guarantees. Production acceptance requires a successful deployment plus
 the staff user's own first login; an automated role test cannot complete their
 MFA.
+
+## Change validation
+
+For PDF copy, spacing or configured-value changes, run the existing MNDA render
+tests and inspect a representative PDF's affected pages. If pagination changes,
+inspect every page. Check selected countersigner values in the output when
+changing their rendering. Use the pinned Node version and Poppler:
+
+```sh
+pnpm --filter @clockwork/documents exec vitest run --config vitest.integration.config.ts src/mnda/render.integration.test.ts
+pnpm --filter @clockwork/documents typecheck
+```
+
+Only add SignWell test-mode extraction/placement checks when field tags, field
+dimensions, placement, requiredness or provider payloads change. Cover the
+affected partner-detail modes; delete disposable test drafts afterward. Repeat
+the complete two-signer flow when signing order, recipient routing, send/retry,
+callbacks or completed-document retrieval changes, or when a concrete provider
+failure remains unresolved. Use the corresponding workflow, adapter, access or
+database tests for those changes. Do not send live agreements as a test of a
+cosmetic tweak.
+
+Once the relevant checks pass, proceed to the required CI and deployment gates.
+Use the deployment smoke result and focused verification of the changed
+behavior; do not repeat unrelated flows or recreate the user's existing drafts.
+General scope and stop rules are in the
+[contributor guide](../contributing.md#proportionate-validation).
 
 ## Partner-completed details
 

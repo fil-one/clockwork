@@ -152,6 +152,39 @@ Everything is a workspace-root `pnpm` script; Turborepo fans them out.
 
 ## Verification and CI
 
+### Proportionate validation
+
+Choose checks by the behavior affected, not by the size of the repository. For
+routine edits, use the smallest set that establishes the change works:
+
+| Change                                                               | Local validation                                                                                 |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Documentation only                                                   | Review the diff, referenced paths and formatting; no application tests or manual deployment.     |
+| Copy or visual layout                                                | Inspect the affected screen or rendered pages; run relevant existing tests where applicable.     |
+| A field value, default or validation rule                            | Run focused regression tests and the affected package's typecheck; inspect the resulting output. |
+| Provider payloads or signing field geometry                          | Run adapter/document tests and targeted provider test-mode extraction or placement checks.       |
+| Authorization, persistence, workflow transitions or shared contracts | Run the relevant access, database and integration suites; expand to affected consumers.          |
+| Cross-cutting architecture or release infrastructure                 | Use the applicable broader release gates.                                                        |
+
+Run these checks once after the final edit. A later change, failed check or
+specific unresolved risk justifies another run; elapsed waiting time does not.
+Use existing coverage where possible. Add tests for meaningful behavior and
+regressions, not to mirror a reversible wording or styling change. Live provider
+qualification is needed when the provider interaction changes or an unresolved
+provider issue requires it; a cosmetic change alone does not justify repeating
+an end-to-end signing flow. See the
+[MNDA validation guidance](operations/commerce-mnda.md#change-validation).
+
+Do not run the entire release suite locally merely to duplicate CI. Required
+hooks and GitHub checks remain in effect. CI currently runs all seven shards
+even for documentation-only PRs and main pushes, and successful main CI triggers
+the deployment pipeline. This guidance reduces discretionary work; it does not
+implement a faster CI path. Let normal automation run without adding manual
+deployments or duplicate qualification. Report required CI/deployment waiting
+separately from hands-on work.
+
+### Full verification commands
+
 Four gates compose the full check, and each one is runnable on its own:
 
 ```sh
@@ -189,7 +222,10 @@ provider fakes for replay and failure scenarios.
   machine code, and a safe user message. Every list endpoint takes a stable
   cursor and an explicit account scope; mutations return the aggregate version
   and any workflow handle.
-- **Git hooks** are installed by lefthook on `pnpm install` (`prepare`).
+- **Git hooks** are installed by lefthook on `pnpm install` (`prepare`). The
+  type-aware lint hook needs more than Node's default 4 GiB heap on this
+  workspace. Use `NODE_OPTIONS=--max-old-space-size=6144 git commit ...`,
+  matching CI's memory setting, to avoid an out-of-memory retry.
 
 ## Release evidence
 
