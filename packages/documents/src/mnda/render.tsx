@@ -61,22 +61,22 @@ const style = StyleSheet.create({
     fontFamily: "Helvetica",
     fontSize: 8,
     color: "#666666",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   rule: {
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#9a9a9a",
-    minHeight: 29,
-    paddingBottom: 4,
+    paddingBottom: 2,
   },
   section: {
     fontFamily: "Times-Bold",
     fontSize: 11,
-    marginTop: 19,
+    marginTop: 14,
     marginBottom: 10,
   },
 });
-export function mndaParagraphs(input: MndaInput): string[] {
+export function mndaParagraphs(
+  input: MndaInput,
+  countersigner: MndaSigner,
+): string[] {
   const values: Record<string, string> = {
     "[Counterparty Legal Name]": input.company,
     "[Counterparty Short Name]": input.shortName || input.company,
@@ -88,6 +88,10 @@ export function mndaParagraphs(input: MndaInput): string[] {
   };
   return template.paragraphs.map((p) =>
     p
+      .replace(
+        "ATTN: email: m@fil.org;",
+        `ATTN: email: ${countersigner.email};`,
+      )
       .replace(/\[[^\]]+\]/g, (token) => {
         const value = values[token];
         if (!value) throw new Error("MNDA_TEMPLATE_FIELD_UNRESOLVED");
@@ -103,11 +107,7 @@ export function mndaParagraphs(input: MndaInput): string[] {
 const alias = (id: MndaDetailFieldId) =>
   `f${mndaDetailFields.findIndex((f) => f.id === id) + 1}`;
 const fieldWidth = (id: MndaDetailFieldId) =>
-  id.endsWith("intro") || id === "entity"
-    ? 297
-    : id === "short_name"
-      ? 189
-      : 237.6;
+  id.endsWith("intro") || id === "entity" ? 297 : 189;
 const fieldTag = (id: MndaDetailFieldId) => `{{${alias(id)}}}`;
 function Definitions({ input }: { input: MndaInput }) {
   return (
@@ -154,7 +154,13 @@ function InlineDetail({
     </Text>
   );
 }
-function Introduction({ input }: { input: MndaInput }) {
+function Introduction({
+  input,
+  countersigner,
+}: {
+  input: MndaInput;
+  countersigner: MndaSigner;
+}) {
   const ids: Record<string, MndaDetailFieldId> = {
     "[Counterparty Legal Name]": "company_intro",
     "[jurisdiction / entity type, e.g., Delaware corporation]": "entity",
@@ -171,6 +177,10 @@ function Introduction({ input }: { input: MndaInput }) {
     >
       {introduction
         .replace("[Effective Date]", input.effectiveDate)
+        .replace(
+          "ATTN: email: m@fil.org;",
+          `ATTN: email: ${countersigner.email};`,
+        )
         .split(/(\[[^\]]+\])/g)
         .map((part, i) => {
           if (part === "[Counterparty address for notices]")
@@ -209,7 +219,7 @@ function Row({
   label,
   left,
   right,
-  height = 38,
+  height = 14,
 }: {
   label: string;
   left: React.ReactNode;
@@ -217,11 +227,24 @@ function Row({
   height?: number;
 }) {
   return (
-    <View wrap={false} style={{ ...style.row, marginBottom: 10 }}>
+    <View wrap={false} style={{ ...style.row, marginBottom: 6 }}>
       {[left, right].map((content, i) => (
-        <View key={i} style={style.cell}>
-          <Text style={style.caption}>{label}</Text>
-          <View style={{ ...style.rule, minHeight: height }}>{content}</View>
+        <View key={i} style={{ ...style.cell, flexDirection: "row", gap: 6 }}>
+          <Text style={{ ...style.caption, width: 42, paddingTop: 2 }}>
+            {label}
+          </Text>
+          <View
+            style={{
+              ...style.rule,
+              width: 196,
+              minHeight: height,
+              ...(label === "Signature"
+                ? { borderBottomWidth: 0.5, borderBottomColor: "#9a9a9a" }
+                : {}),
+            }}
+          >
+            {content}
+          </View>
         </View>
       ))}
     </View>
@@ -281,7 +304,7 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
   const missing = mndaSigningFields(input);
   const paragraphs = missing.length
     ? template.paragraphs.map((p) => p.replaceAll("\t", " "))
-    : mndaParagraphs(input);
+    : mndaParagraphs(input, countersigner);
   const pdf = await renderToBuffer(
     <Document
       title="Mutual Non-Disclosure Agreement"
@@ -297,7 +320,7 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
               {p}
             </Text>
           ) : missing.length && i === 1 ? (
-            <Introduction key={i} input={input} />
+            <Introduction key={i} input={input} countersigner={countersigner} />
           ) : (
             <Paragraph key={i} text={p} />
           ),
@@ -308,15 +331,17 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
         <Text style={style.title}>SIGNATURES</Text>
         <Row
           label="Party"
-          height={42}
+          height={isMissing(input, "company_sign") ? 44 : 26}
           left={
-            <Text>FIL ONE LLC, on behalf of itself and its Affiliates</Text>
+            <Text>
+              FIL ONE LLC,{"\n"}on behalf of itself and its Affiliates
+            </Text>
           }
           right={<Detail input={input} id="company_sign" />}
         />
         <Row
           label="Signature"
-          height={45}
+          height={38}
           left={
             <Text style={{ color: "#ffffff", fontSize: 23 }}>
               {"{{signature:2:y}}"}
@@ -330,36 +355,38 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
         />
         <Row
           label="Name"
+          height={isMissing(input, "signer_name") ? 38 : 14}
           left={<Text>{countersigner.name}</Text>}
           right={<Detail input={input} id="signer_name" />}
         />
         <Row
           label="Title"
+          height={isMissing(input, "signer_title") ? 38 : 14}
           left={<Text>{countersigner.title}</Text>}
           right={<Detail input={input} id="signer_title" />}
         />
         <Row
           label="Date"
-          height={22}
+          height={18}
           left={<Text style={{ color: "#ffffff" }}>{"{{af_d_s:2:y}}"}</Text>}
           right={<Text style={{ color: "#ffffff" }}>{"{{af_d_s:1:y}}"}</Text>}
         />
         <Text style={style.section}>ADDRESS FOR NOTICES</Text>
         <Row
           label="Company"
-          height={32}
+          height={isMissing(input, "company_notice") ? 44 : 14}
           left={<Text>FIL One LLC</Text>}
           right={<Detail input={input} id="company_notice" />}
         />
         <Row
           label="Attention"
-          height={32}
+          height={isMissing(input, "notice_contact") ? 38 : 14}
           left={<Text>{countersigner.name}</Text>}
           right={<Detail input={input} id="notice_contact" />}
         />
         <Row
           label="Address"
-          height={100}
+          height={input.detailsMode === "recipient" ? 70 : 28}
           left={
             <Text>600 N Broad Street, Suite 5{"\n"}Middletown, DE 19709</Text>
           }
@@ -368,18 +395,28 @@ export async function renderMnda(input: MndaInput, countersigner: MndaSigner) {
               <Detail input={input} id="address_notice" />
             ) : (
               <View>
-                <View style={{ minHeight: 45 }}>
+                <View
+                  style={{
+                    minHeight: isMissing(input, "street_notice") ? 42 : 14,
+                  }}
+                >
                   <Detail input={input} id="street_notice" />
                 </View>
-                <Detail input={input} id="locality_notice" />
+                <View
+                  style={{
+                    minHeight: isMissing(input, "locality_notice") ? 42 : 14,
+                  }}
+                >
+                  <Detail input={input} id="locality_notice" />
+                </View>
               </View>
             )
           }
         />
         <Row
           label="Email"
-          height={32}
-          left={<Text>m@fil.org</Text>}
+          height={isMissing(input, "email_notice") ? 32 : 14}
+          left={<Text>{countersigner.email}</Text>}
           right={<Detail input={input} id="email_notice" />}
         />
         <Footer />

@@ -35,7 +35,7 @@ it("preserves every supplied legal paragraph, both signers and all four tags in 
     );
     const normalize = (s: string) =>
       s.replace(/^\s*\d+\s*\/\s*\d+\s*$/gm, "").replace(/\s+/g, "");
-    for (const paragraph of mndaParagraphs(fixtureInput))
+    for (const paragraph of mndaParagraphs(fixtureInput, fixtureSigner))
       expect(normalize(text)).toContain(normalize(paragraph));
     for (const tag of [
       "{{signature:1:y}}",
@@ -45,6 +45,8 @@ it("preserves every supplied legal paragraph, both signers and all four tags in 
     ])
       expect(text).toContain(tag);
     expect(text).toContain(fixtureSigner.title);
+    expect(text.split(fixtureSigner.email)).toHaveLength(3);
+    expect(text).not.toContain("m@fil.org");
     expect(text).toContain(fixtureInput.noticesEmail);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -187,9 +189,59 @@ it("keeps partial-detail previews compact, numbered and aligned without breaking
       ].map((m) => Number(m[1]));
       expect(positions).toHaveLength(2);
       expect(positions[0]).toBe(positions[1]);
-      expect(positions[0]).toBeLessThan(720);
+      expect(positions[0]).toBeLessThan(450);
     }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 }, 30000);
+
+it.each(
+  (["team", "mixed", "recipient"] as const).flatMap((detailsMode) =>
+    ["james@fil.one", "alternate-signer@example.com"].map((email) => ({
+      detailsMode,
+      email,
+    })),
+  ),
+)(
+  "uses the configured countersigner email in both notice locations: %j",
+  async ({ detailsMode, email }) => {
+    const signer = { ...fixtureSigner, email };
+    const pdf = await renderMnda(
+      {
+        ...fixtureInput,
+        detailsMode,
+        ...(detailsMode === "mixed" ? { locality: "" } : {}),
+      },
+      signer,
+    );
+    const dir = mkdtempSync(join(tmpdir(), "mnda-email-"));
+    try {
+      const path = join(dir, "document.pdf");
+      writeFileSync(path, pdf.bytes);
+      const text = execFileSync("pdftotext", ["-layout", path, "-"], {
+        encoding: "utf8",
+      });
+      expect(text.split(signer.email)).toHaveLength(3);
+      expect(text).not.toContain("m@fil.org");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  },
+  30000,
+);
+
+it("preserves partner details that contain the former template email", () => {
+  const input = {
+    ...fixtureInput,
+    company: "m@fil.org Ventures",
+    noticesEmail: "m@fil.org",
+  };
+  const paragraphs = mndaParagraphs(input, {
+    ...fixtureSigner,
+    email: "james@fil.one",
+  });
+  expect(paragraphs[1]).toContain("m@fil.org Ventures");
+  expect(paragraphs[1]).toContain("(ATTN: m@fil.org;");
+  expect(paragraphs[1]).toContain("ATTN: email: james@fil.one;");
+});
