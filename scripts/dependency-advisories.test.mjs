@@ -16,6 +16,10 @@ const workspaceRoot = fileURLToPath(new URL("../", import.meta.url));
 // without recording why fails the suite.
 const acceptedHighAdvisories = new Map([
   [
+    "GHSA-vfj7-8cjw-p6xm",
+    "braces deeply nested glob stack exhaustion: no published fix through 3.0.3. Reached only through root development dependencies (Netlify CLI and Secretlint via micromatch/fast-glob). Commerce accepts no untrusted glob patterns through those tools, and the package is absent from the production dependency graph. A regression check below fails if it becomes a production dependency; the registry check expires this acceptance when a newer release appears.",
+  ],
+  [
     "GHSA-86w9-cpqp-85rv",
     "node-forge RSA verification: no published fix through 1.4.0. Reached only through netlify-cli > @netlify/dev > @netlify/images > ipx > listhen for local development certificates; it is not Commerce authentication, PDF signing, or the production runtime. No untrusted signatures are verified through that development certificate generator.",
   ],
@@ -33,6 +37,11 @@ const acceptedHighAdvisories = new Map([
 // `pnpm.overrides` block. If an override is dropped the resolved version slides
 // back under the advisory's vulnerable range and this catches it.
 const pinnedTransitives = [
+  {
+    name: "@fastify/busboy",
+    minimum: "3.2.2",
+    override: "@fastify/busboy@<3.2.2",
+  },
   { name: "fastify", minimum: "5.12.5", override: "fastify@<5.12.5" },
   { name: "js-yaml", minimum: "4.3.2", override: "js-yaml@<4.3.2" },
   { name: "nanoid", minimum: "3.3.18", override: "nanoid@<3.3.18" },
@@ -50,6 +59,7 @@ const catalogFloors = [{ name: "hono", minimum: "4.13.7" }];
 // so it is checked against the registry rather than asserted once and trusted:
 // the day either package publishes anything above this, the acceptance expires.
 const unpatchedPackages = [
+  { name: "braces", highestPublished: "3.0.3" },
   { name: "extract-zip", highestPublished: "2.0.1" },
   { name: "node-forge", highestPublished: "1.4.0" },
 ];
@@ -69,7 +79,10 @@ function compareSemver(left, right) {
 // the packages checked here.
 async function resolvedVersions(name) {
   const lockfile = await readFile(`${workspaceRoot}pnpm-lock.yaml`, "utf8");
-  const pattern = new RegExp(`^ {2}${name}@(\\d+\\.\\d+\\.\\d+)[:(]`, "gm");
+  const pattern = new RegExp(
+    `^ {2}['"]?${name}@(\\d+\\.\\d+\\.\\d+)['"]?[:(]`,
+    "gm",
+  );
   return [...lockfile.matchAll(pattern)].map((match) => match[1]);
 }
 
@@ -202,4 +215,17 @@ test("accepted advisories still have no published fix", async (t) => {
       `${name}@${newest} is newer than the ${highestPublished} that justified accepting its advisory; re-review the acceptance and upgrade`,
     );
   }
+});
+
+test("the unpatched braces package stays outside production dependencies", async () => {
+  const { stdout } = await execFileAsync(
+    "pnpm",
+    ["why", "-r", "--prod", "braces", "--json"],
+    { cwd: workspaceRoot, maxBuffer: 8 * 1024 * 1024 },
+  );
+  assert.deepEqual(
+    JSON.parse(stdout),
+    [],
+    "Re-review GHSA-vfj7-8cjw-p6xm: braces must not enter the production dependency graph",
+  );
 });
