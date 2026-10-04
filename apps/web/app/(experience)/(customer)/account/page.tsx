@@ -56,6 +56,8 @@ const roleLabels: Readonly<Record<Role, MessageId>> = {
   finance_approver: "role.financeApprover",
   legal_approver: "role.legalApprover",
   destructive_action_approver: "role.destructiveActionApprover",
+  revenue: "role.revenue",
+  commerce_admin: "role.commerceAdmin",
 };
 
 /** The acting role as a label; an unknown role is shown as its code. */

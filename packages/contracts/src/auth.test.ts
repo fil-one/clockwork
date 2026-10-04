@@ -8,11 +8,11 @@ describe("migration:execute grant", () => {
     (role) => !(internalRoles as readonly Role[]).includes(role),
   );
 
-  it("is held by internal_operator only", () => {
+  it("is held by internal_operator and the commerce administrator only", () => {
     const holders = roles.filter((role) =>
       hasPermission(role, "migration:execute"),
     );
-    expect(holders).toEqual(["internal_operator"]);
+    expect(holders).toEqual(["internal_operator", "commerce_admin"]);
   });
 
   it.each(tenantRoles)("is not held by the tenant role %s", (role) => {
@@ -26,7 +26,7 @@ describe("migration:execute grant", () => {
     expect(hasPermission("admin", "destructive:request")).toBe(true);
     expect(
       roles.filter((role) => hasPermission(role, "destructive:request")),
-    ).toEqual(["owner", "admin", "internal_operator"]);
+    ).toEqual(["owner", "admin", "internal_operator", "commerce_admin"]);
   });
 
   it("adds no other grant to any role", () => {
@@ -34,5 +34,6 @@ describe("migration:execute grant", () => {
     expect(rolePermissions.destructive_action_approver).not.toContain(
       "migration:execute",
     );
+    expect(rolePermissions.revenue).not.toContain("migration:execute");
   });
 });

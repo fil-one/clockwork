@@ -11,6 +11,12 @@ export const roles = [
   "finance_approver",
   "legal_approver",
   "destructive_action_approver",
+  // Fil One sellers: MNDAs, contracts and sales references, without platform
+  // operation, impersonation, billing or destructive tools.
+  "revenue",
+  // Commerce administrators hold every internal permission, plus the
+  // settings that bind Fil One: who may countersign and where notices go.
+  "commerce_admin",
 ] as const;
 
 export const RoleSchema = z.enum(roles);
@@ -44,6 +50,13 @@ export const permissions = [
   // against a third-party legacy system with no account scope at all, so it
   // gets its own permission rather than borrowing a tenant one.
   "migration:execute",
+  "mnda:send",
+  "contract:read",
+  "contract:write",
+  "contract:approve",
+  "signatory:manage",
+  "sales:read",
+  "collateral:manage",
 ] as const;
 
 export const PermissionSchema = z.enum(permissions);
@@ -130,6 +143,10 @@ export const rolePermissions = {
     "impersonation:assume",
     "destructive:request",
     "migration:execute",
+    "mnda:send",
+    "contract:read",
+    "contract:write",
+    "sales:read",
   ],
   finance_approver: [
     "account:read",
@@ -138,6 +155,10 @@ export const rolePermissions = {
     "billing:read",
     "billing:approve",
     "report:read",
+    "mnda:send",
+    "contract:read",
+    "contract:approve",
+    "sales:read",
   ],
   legal_approver: [
     "account:read",
@@ -145,6 +166,11 @@ export const rolePermissions = {
     "agreement:approve",
     "quote:read",
     "order:read",
+    "mnda:send",
+    "contract:read",
+    "contract:write",
+    "contract:approve",
+    "sales:read",
   ],
   destructive_action_approver: [
     "account:read",
@@ -152,6 +178,19 @@ export const rolePermissions = {
     "system:operate",
     "destructive:approve",
   ],
+  revenue: [
+    "account:read",
+    "agreement:read",
+    "quote:read",
+    "partner:portfolio:read",
+    "mnda:send",
+    "contract:read",
+    "contract:write",
+    "sales:read",
+  ],
+  commerce_admin: permissions.filter(
+    (permission) => permission !== "partner:quote:write",
+  ),
 } as const satisfies Record<Role, readonly Permission[]>;
 
 export const privilegedRoles = [
@@ -162,6 +201,8 @@ export const privilegedRoles = [
   "finance_approver",
   "legal_approver",
   "destructive_action_approver",
+  "revenue",
+  "commerce_admin",
 ] as const satisfies readonly Role[];
 
 export const internalRoles = [
@@ -169,6 +210,8 @@ export const internalRoles = [
   "finance_approver",
   "legal_approver",
   "destructive_action_approver",
+  "revenue",
+  "commerce_admin",
 ] as const satisfies readonly Role[];
 
 export function hasPermission(role: Role, permission: Permission): boolean {
