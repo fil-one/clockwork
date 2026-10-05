@@ -1,4 +1,4 @@
-import { and, asc, eq, lte } from "drizzle-orm";
+import { and, asc, eq, lte, sql } from "drizzle-orm";
 import { activatePriceBook } from "@clockwork/domain/core";
 import type { RuntimeDatabase } from "../../client";
 import { approvals, priceBooks } from "../../schema";
@@ -124,11 +124,20 @@ export class DatabasePriceBookScheduleRepository {
             decision.action !== "price_book_activation" ||
             decision.objectId !== book.id ||
             decision.approvedBy !== schedule.approvedBy ||
-            decision.requestedBy === schedule.approvedBy
+            (decision.requestedBy === schedule.approvedBy &&
+              !decision.selfApproved)
           )
             throw new Error("PRICE_SCHEDULE_APPROVAL_CHANGED");
           await assertPersistedPriceScheduleFinance(tx, decision.requestedBy);
           await assertPersistedPriceScheduleFinance(tx, schedule.approvedBy);
+          // A self-approval stands only while its approver still may.
+          if (decision.selfApproved) {
+            const [authority] = await tx.execute<{ allowed: boolean }>(
+              sql`select public.member_can_self_approve(${schedule.approvedBy}::uuid) as allowed`,
+            );
+            if (authority?.allowed !== true)
+              throw new Error("PRICE_SCHEDULE_APPROVAL_CHANGED");
+          }
         }
         if (now === undefined) {
           at = this.clock();

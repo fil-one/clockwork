@@ -13,8 +13,9 @@ import { staffRoleLabels } from "../team/model";
 import { RoleChips } from "../team/team-workspace";
 import { AccessMatrix } from "./access-matrix";
 import { markNoticesRead } from "./actions";
-import { ApprovalsPanel } from "./approvals-panel";
+import { ApprovalsPanel, useApprovalSubject } from "./approvals-panel";
 import {
+  approvalControlLabels,
   capabilityLabels,
   eventMessages,
   noticeErrorMessages,
@@ -24,6 +25,7 @@ import {
   type NoticeErrorCode,
   type NoticeView,
   type OwnerConsoleView,
+  type SelfApprovalView,
 } from "./model";
 import styles from "./owner-console.module.css";
 import { Panel, PanelLink, SectionBody } from "./panel";
@@ -41,7 +43,9 @@ export function useEventSentence(): (event: ConsoleEventView) => string {
   return (event) =>
     t(eventMessages[event.type] ?? "operations.owner.event.other", {
       actor: event.actor?.name ?? t("operations.owner.event.systemActor"),
-      subject: event.subject ?? t("operations.owner.event.unknownSubject"),
+      subject: event.control
+        ? t(approvalControlLabels[event.control])
+        : (event.subject ?? t("operations.owner.event.unknownSubject")),
       role: event.role ? roleLabel(event.role) : "",
     });
 }
@@ -389,6 +393,76 @@ function EventsPanel({
 }
 
 /**
+ * Requests their own requesters approved, newest first: who, which control and
+ * record, when, and the reason they gave. Read from the audit trail.
+ */
+function SelfApprovalsPanel({
+  selfApprovals,
+}: {
+  selfApprovals: ConsoleSection<SelfApprovalView>;
+}) {
+  const t = useTranslations();
+  const subject = useApprovalSubject();
+  return (
+    <Panel
+      id="owner-self-approvals"
+      title={t("operations.owner.selfApprovals.title")}
+      description={t("operations.owner.selfApprovals.description")}
+      wide
+    >
+      <SectionBody
+        section={selfApprovals}
+        empty="operations.owner.selfApprovals.empty"
+      >
+        {(items) => (
+          <ol className={styles.list}>
+            {items.map((item) => (
+              <li key={item.id} className={styles.item}>
+                <div className={styles.itemText}>
+                  {item.control ? (
+                    <span className={styles.badges}>
+                      <StatusBadge tone="neutral">
+                        {t(approvalControlLabels[item.control])}
+                      </StatusBadge>
+                    </span>
+                  ) : null}
+                  <p className={styles.eventText}>
+                    <bdi>
+                      {t("operations.owner.selfApprovals.line", {
+                        actor:
+                          item.actor?.name ??
+                          t("operations.owner.event.systemActor"),
+                        subject: item.control
+                          ? subject({
+                              control: item.control,
+                              name: item.name,
+                              version: item.version,
+                              detail: item.detail,
+                            })
+                          : (item.name ??
+                            t("operations.owner.event.unknownSubject")),
+                      })}
+                    </bdi>
+                  </p>
+                  <p className={styles.reason}>
+                    {t("operations.owner.event.reason", {
+                      reason: item.reason,
+                    })}
+                  </p>
+                  <p className={styles.time}>
+                    <LocalTimestamp value={item.at} />
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </SectionBody>
+    </Panel>
+  );
+}
+
+/**
  * The commerce administrator's overview: what needs them first, then what is
  * true right now, then the record and the rules.
  */
@@ -408,10 +482,11 @@ export function OwnerConsole({ view }: { view: OwnerConsoleView }) {
 
       <div className={styles.grid}>
         <NoticesPanel notices={view.notices} editable={editable} />
-        <ApprovalsPanel approvals={view.approvals} />
+        <ApprovalsPanel approvals={view.approvals} editable={editable} />
         <CapabilitiesPanel capabilities={view.capabilities} />
         <AssistedPanel sessions={view.assistedSessions} />
         <StaffPanel staff={view.staff} />
+        <SelfApprovalsPanel selfApprovals={view.selfApprovals} />
         <EventsPanel
           id="owner-security"
           title={t("operations.owner.security.title")}

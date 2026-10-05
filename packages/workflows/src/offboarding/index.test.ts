@@ -90,6 +90,27 @@ describe("offboarding workflows", () => {
     ).toThrow("TEARDOWN_SELF_APPROVAL_FORBIDDEN");
   });
 
+  it("lets one recorded self-approval by the requester fill both slots", () => {
+    const selfApproval = {
+      ...approvalOne,
+      approvalId: "approval-self",
+      approvedBy: "operator-1",
+      selfApproved: true,
+    };
+    expect(
+      validateDestructiveApprovals({
+        requestedBy: "operator-1",
+        approvals: [selfApproval],
+      }),
+    ).toEqual(["approval-self", "approval-self"]);
+    expect(() =>
+      validateDestructiveApprovals({
+        requestedBy: "operator-1",
+        approvals: [{ ...selfApproval, selfApproved: false }],
+      }),
+    ).toThrow("TEARDOWN_SELF_APPROVAL_FORBIDDEN");
+  });
+
   it("keeps teardown gated and certificate exclusions explicit", () => {
     const retention = evaluateRetention({
       objects: [],

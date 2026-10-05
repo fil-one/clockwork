@@ -4474,4 +4474,14 @@ export const adminGovernanceMessages = defineMessages({
     zh: "无法保存引用。请刷新并检查您当前的权限和证据。",
     ar: "تعذّر حفظ المرجع. حدّث الصفحة وتحقق من صلاحيتك الحالية والدليل.",
   },
+  "adminGovernance.channelPolicy.selfApprovalSubject": {
+    en: "channel policy version {version}",
+    es: "versión {version} de la política de canal",
+    fr: "version {version} de la politique de canal",
+    de: "Kanalrichtlinie, Version {version}",
+    ja: "チャネルポリシー バージョン {version}",
+    pt: "versão {version} da política de canal",
+    zh: "渠道政策第 {version} 版",
+    ar: "الإصدار {version} من سياسة القنوات",
+  },
 });

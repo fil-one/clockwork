@@ -31,6 +31,7 @@ import {
 } from "@/src/i18n/server";
 import { ChannelDecisionForm, ChannelTermsForm } from "./forms";
 import { withStaffPermission } from "@/src/features/shell/staff-access";
+import { mayApproveOwnRequests } from "@/src/features/internal-ops/self-approval/model";
 export const dynamic = "force-dynamic";
 
 const statusLabels: Readonly<Record<ChannelPolicyRecord["status"], MessageId>> =
@@ -307,6 +308,11 @@ async function Page() {
                             record.lastEditedBy,
                             record.proposedBy,
                           ].includes(session.userId)
+                        }
+                        selfApprovable={
+                          !demo &&
+                          session.providerBacked &&
+                          mayApproveOwnRequests(session)
                         }
                       />
                       <ChannelDecisionForm

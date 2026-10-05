@@ -37,7 +37,10 @@ authorize deletion.
    be distinct from one another, recently authenticated, authorized for
    `destructive:approve`, and distinct from the requester where separation of
    duties requires it. Each decision includes a meaningful reason and immutable
-   evidence document.
+   evidence document. A commerce administrator who requested the termination may
+   instead approve it once with `selfApproval: true` and a reason of 8 to 500
+   characters, which fills both slots; see
+   [approving your own request](self-approval.md).
 5. Complete the retrieval window and final billing before moving to
    `ready_for_teardown`. A rejection or changed scope returns the plan for a new
    version; it never mutates issued evidence.

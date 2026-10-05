@@ -1360,6 +1360,9 @@ export const exceptionCases = pgTable(
     targetAt: timestamp("target_at", { withTimezone: true }).notNull(),
     status: text("status").notNull(),
     decisionReason: text("decision_reason"),
+    /** The requester approved their own case under approval:self (001449). */
+    selfApproved: boolean("self_approved").notNull().default(false),
+    selfApprovalReason: text("self_approval_reason"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     rowVersion: rowVersion(),
@@ -1372,6 +1375,10 @@ export const exceptionCases = pgTable(
     check(
       "exception_case_roster_separation_check",
       sql`${table.escalationOwnerUserId} is null or (${table.escalationOwnerUserId} <> ${table.ownerUserId} and ${table.escalationOwnerUserId} is distinct from ${table.backupUserId})`,
+    ),
+    check(
+      "exception_cases_self_approval_check",
+      sql`(not ${table.selfApproved} and ${table.selfApprovalReason} is null) or (${table.selfApproved} and ${table.status} = 'approved' and ${table.requesterUserId} is not null and length(trim(${table.selfApprovalReason})) between 8 and 500)`,
     ),
   ],
 );
@@ -1393,6 +1400,9 @@ export const approvals = pgTable(
       .notNull()
       .defaultNow(),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
+    /** The requester decided their own request under approval:self (001449). */
+    selfApproved: boolean("self_approved").notNull().default(false),
+    selfApprovalReason: text("self_approval_reason"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     rowVersion: rowVersion(),
@@ -1405,7 +1415,11 @@ export const approvals = pgTable(
     ),
     check(
       "approvals_two_person_check",
-      sql`${table.approvedBy} is null or ${table.approvedBy} <> ${table.requestedBy}`,
+      sql`${table.approvedBy} is null or ${table.approvedBy} <> ${table.requestedBy} or ${table.selfApproved}`,
+    ),
+    check(
+      "approvals_self_approval_check",
+      sql`(not ${table.selfApproved} and ${table.selfApprovalReason} is null) or (${table.selfApproved} and ${table.approvedBy} = ${table.requestedBy} and ${table.status} <> 'pending' and length(trim(${table.selfApprovalReason})) between 8 and 500)`,
     ),
     check(
       "approvals_decision_check",

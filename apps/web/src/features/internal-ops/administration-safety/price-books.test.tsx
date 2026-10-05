@@ -634,3 +634,77 @@ describe("the page in the reader's language", () => {
     );
   });
 });
+
+describe("approving one's own activation request", () => {
+  const requester = draft.activationRequestedBy ?? "";
+  async function review(roles: Parameters<typeof permissionsForRoles>[0]) {
+    const user = userEvent.setup();
+    render(
+      <PriceBookAdministration
+        permissions={permissionsForRoles(roles)}
+        userId={requester}
+        books={[{ ...draft, effectiveFrom: "2026-09-01" }]}
+        source="service"
+        availability="available"
+        readAt="2026-09-06T12:00:00.000Z"
+      />,
+    );
+    await user.type(
+      screen.getByLabelText("Finance decision reason"),
+      "Reviewed my own floors again.",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Review price-book approval" }),
+    );
+    return user;
+  }
+
+  it("offers a commerce administrator the self-approval with a reason", async () => {
+    const user = await review(["commerce_admin"]);
+    expect(
+      screen.getByText(/you can approve it yourself with a written reason/),
+    ).toBeVisible();
+    await user.click(
+      screen.getByRole("button", { name: "Approve my own request" }),
+    );
+    const dialog = screen.getByRole("dialog");
+    const reason = within(dialog).getByLabelText(
+      /Why are you approving it yourself/,
+    );
+    await user.clear(reason);
+    await user.type(reason, "short");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Approve my own request" }),
+    );
+    expect(
+      within(dialog).getByText("Write a reason of 8 to 500 characters."),
+    ).toBeVisible();
+    expect(mocks.sendCoreCommand).not.toHaveBeenCalled();
+    await user.clear(reason);
+    await user.type(reason, "Second approver is away this week");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Approve my own request" }),
+    );
+    expect(mocks.sendCoreCommand).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        action: "activate",
+        payload: {
+          reason: "Second approver is away this week",
+          selfApproval: true,
+        },
+      }),
+    );
+  });
+
+  it("keeps a finance approver waiting for a second person", async () => {
+    await review(["finance_approver"]);
+    expect(
+      screen.queryByRole("button", { name: "Approve my own request" }),
+    ).toBeNull();
+    expect(
+      screen.getByText(
+        "You proposed this activation. Another finance approver decides it.",
+      ),
+    ).toBeVisible();
+  });
+});

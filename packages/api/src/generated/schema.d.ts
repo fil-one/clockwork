@@ -1101,6 +1101,8 @@ export interface paths {
                                 approvedBy: string | null;
                                 approvalEvidenceId: string | null;
                                 decisionReason: string;
+                                selfApproved?: boolean;
+                                selfApprovalReason?: string | null;
                                 /** Format: date-time */
                                 createdAt: string;
                                 /** Format: date-time */
@@ -1274,6 +1276,8 @@ export interface paths {
                         expectedRowVersion: number;
                         reason: string;
                         approvalEvidenceId?: string;
+                        /** @enum {boolean} */
+                        selfApproval?: true;
                     };
                 };
             };
@@ -1361,6 +1365,8 @@ export interface paths {
                             approvedBy: string | null;
                             approvalEvidenceId: string | null;
                             decisionReason: string;
+                            selfApproved?: boolean;
+                            selfApprovalReason?: string | null;
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
@@ -3405,6 +3411,8 @@ export interface paths {
                         reason: string;
                         /** Format: uuid */
                         evidenceDocumentId: string;
+                        /** @enum {boolean} */
+                        selfApproval?: true;
                     };
                 };
             };
@@ -3476,6 +3484,8 @@ export interface paths {
                         reason: string;
                         /** Format: uuid */
                         evidenceDocumentId: string;
+                        /** @enum {boolean} */
+                        selfApproval?: true;
                     };
                 };
             };

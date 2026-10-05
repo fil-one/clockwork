@@ -1,6 +1,10 @@
 import { createRoute, z, type OpenAPIHono } from "@hono/zod-openapi";
 import { ProblemError, type Actor } from "@clockwork/contracts";
-import { authorizationActor, unscopedInternalOnly } from "@clockwork/domain";
+import {
+  assertSelfApprovalSession,
+  authorizationActor,
+  unscopedInternalOnly,
+} from "@clockwork/domain";
 import {
   PaygOfferCommandSchema,
   PaygOfferRecordSchema,
@@ -126,6 +130,8 @@ export interface PaygOfferAdministrationService {
     actor: Actor;
     requestId: string;
     now: string;
+    /** Approving one's own version; the session has been checked. */
+    selfApproval?: { reason: string };
   }) => Promise<PaygOfferRecord>;
 }
 const listRoute = createRoute({
@@ -627,12 +633,21 @@ export function registerPaygOfferRoutes(
     requireRecentAuthentication(context);
     const requestId = context.get("requestContext").requestId;
     if (!service) throw unavailable(requestId);
+    const command = context.req.valid("json");
+    const selfApproval =
+      "selfApproval" in command && command.selfApproval
+        ? { reason: command.reason }
+        : undefined;
     try {
+      // Approving one's own version needs approval:self in the person's own
+      // MFA-verified session; an assisted session never carries it.
+      if (selfApproval) assertSelfApprovalSession(authorization);
       const record = await service.command({
-        command: context.req.valid("json"),
+        command,
         actor: authorizationActor(authorization),
         requestId,
         now: new Date().toISOString(),
+        ...(selfApproval ? { selfApproval } : {}),
       });
       return context.json(record, 200);
     } catch (error) {
@@ -654,7 +669,10 @@ export function registerPaygOfferRoutes(
           requestId,
           retryable: false,
         });
-      if (error instanceof Error && /^PAYG_OFFER_/.test(error.message))
+      if (
+        error instanceof Error &&
+        /^(PAYG_OFFER_|SELF_APPROVAL_)/.test(error.message)
+      )
         throw new ProblemError({
           type: "https://clockwork.test/problems/payg-policy",
           title: "PAYG policy change was not applied",

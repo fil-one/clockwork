@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { membershipHasPermission } from "../membership-permissions";
 import { sql, and, eq } from "drizzle-orm";
 import type { Actor } from "@clockwork/contracts";
+import type { SelfApproval } from "@clockwork/domain";
 import {
   ChannelPolicyCommandSchema,
   ChannelPolicyRecordSchema,
@@ -13,8 +14,9 @@ import {
 import type { RuntimeDatabase } from "../../client";
 import { auditEvents, commerceUsers, memberships } from "../../schema";
 import { withInternalTransaction } from "../../transaction";
+import { checkedSelfApproval } from "../self-approval";
 
-const projection = sql`id,row_version as "rowVersion",status,terms,created_by as "createdBy",last_edited_by as "lastEditedBy",proposed_by as "proposedBy",approved_by as "approvedBy",decision_reason as "decisionReason",approval_evidence as "approvalEvidence",created_at::text as "createdAt",updated_at::text as "updatedAt"`;
+const projection = sql`id,row_version as "rowVersion",status,terms,created_by as "createdBy",last_edited_by as "lastEditedBy",proposed_by as "proposedBy",approved_by as "approvedBy",decision_reason as "decisionReason",approval_evidence as "approvalEvidence",self_approved as "selfApproved",self_approval_reason as "selfApprovalReason",created_at::text as "createdAt",updated_at::text as "updatedAt"`;
 export class DatabaseChannelPolicyRepository {
   public constructor(private readonly database: RuntimeDatabase) {}
   public list(): Promise<ChannelPolicyRecord[]> {
@@ -40,6 +42,11 @@ export class DatabaseChannelPolicyRepository {
     actor: Actor;
     requestId: string;
     now: string;
+    /**
+     * The approver approves their own version under `approval:self`. The
+     * caller has checked the session; the stored authority is checked here.
+     */
+    selfApproval?: SelfApproval;
   }): Promise<ChannelPolicyRecord> {
     const command = ChannelPolicyCommandSchema.parse(input.command);
     if (
@@ -97,9 +104,20 @@ export class DatabaseChannelPolicyRepository {
             command,
             userId: input.actor.id,
             now: input.now,
+            ...(input.selfApproval
+              ? {
+                  selfApproval: await checkedSelfApproval(
+                    tx,
+                    input.actor.id,
+                    input.selfApproval,
+                  ),
+                }
+              : {}),
           });
+          // A self-approval is recorded on the row; the database checks the
+          // authority again and writes its audit event and notices.
           await tx.execute(
-            sql`update core_channel_policy_versions set terms=${JSON.stringify(next.terms)}::jsonb,status=${next.status},row_version=${next.rowVersion},last_edited_by=${next.lastEditedBy},proposed_by=${next.proposedBy},approved_by=${next.approvedBy},approval_evidence=${next.approvalEvidence},decision_reason=${next.decisionReason},updated_at=${input.now}::timestamptz where id=${next.id}`,
+            sql`update core_channel_policy_versions set terms=${JSON.stringify(next.terms)}::jsonb,status=${next.status},row_version=${next.rowVersion},last_edited_by=${next.lastEditedBy},proposed_by=${next.proposedBy},approved_by=${next.approvedBy},approval_evidence=${next.approvalEvidence},decision_reason=${next.decisionReason},self_approved=${next.selfApproved ?? false},self_approval_reason=${next.selfApprovalReason ?? null},updated_at=${input.now}::timestamptz where id=${next.id}`,
           );
         }
         await tx.insert(auditEvents).values({

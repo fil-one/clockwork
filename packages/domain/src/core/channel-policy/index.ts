@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  assertDistinctOrSelfApproved,
+  type SelfApproval,
+} from "../../self-approval";
+
 export const ChannelPolicyTermsSchema = z
   .object({
     version: z.number().int().positive(),
@@ -29,6 +34,9 @@ export const ChannelPolicyRecordSchema = z
     approvedBy: z.uuid().nullable(),
     decisionReason: z.string(),
     approvalEvidence: z.string().nullable(),
+    /** The approver approved a version they created, edited or proposed. */
+    selfApproved: z.boolean().optional(),
+    selfApprovalReason: z.string().nullable().optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -61,6 +69,11 @@ export const ChannelPolicyCommandSchema = z.discriminatedUnion("action", [
       expectedRowVersion: z.number().int().positive(),
       reason: z.string().trim().min(8).max(2000),
       approvalEvidence: z.string().trim().min(8).max(2000),
+      /**
+       * Approve one's own version under `approval:self`. The reason is then
+       * also the self-approval reason, 8 to 500 characters.
+       */
+      selfApproval: z.literal(true).optional(),
     })
     .strict(),
 ]);
@@ -111,8 +124,15 @@ export function applyChannelPolicyCommand(input: {
   command: Exclude<ChannelPolicyCommand, { action: "create" }>;
   userId: string;
   now: string;
+  /**
+   * The approver's own version, approved under `approval:self`. The caller
+   * has checked the authority; this records it.
+   */
+  selfApproval?: SelfApproval;
 }): ChannelPolicyRecord {
   const { current, command, userId, now } = input;
+  if (input.selfApproval && command.action !== "approve")
+    throw new Error("SELF_APPROVAL_APPROVE_ONLY");
   if (
     current.id !== command.id ||
     current.rowVersion !== command.expectedRowVersion
@@ -144,12 +164,12 @@ export function applyChannelPolicyCommand(input: {
   }
   if (current.status !== "proposed")
     throw new Error("CHANNEL_POLICY_NOT_PROPOSED");
-  if (
-    [current.createdBy, current.lastEditedBy, current.proposedBy].includes(
-      userId,
-    )
-  )
-    throw new Error("CHANNEL_POLICY_DISTINCT_APPROVER_REQUIRED");
+  const selfApproved = assertDistinctOrSelfApproved({
+    deciderId: userId,
+    requesterIds: [current.createdBy, current.lastEditedBy, current.proposedBy],
+    selfApproval: input.selfApproval,
+    distinctError: "CHANNEL_POLICY_DISTINCT_APPROVER_REQUIRED",
+  });
   if (command.action === "reject")
     return {
       ...next,
@@ -167,5 +187,11 @@ export function applyChannelPolicyCommand(input: {
     approvedBy: userId,
     approvalEvidence: command.approvalEvidence,
     decisionReason: command.reason,
+    ...(selfApproved && input.selfApproval
+      ? {
+          selfApproved: true,
+          selfApprovalReason: input.selfApproval.reason.trim(),
+        }
+      : {}),
   };
 }

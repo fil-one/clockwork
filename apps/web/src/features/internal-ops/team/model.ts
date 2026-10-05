@@ -172,6 +172,7 @@ export const permissionLabels: Readonly<Record<Permission, MessageId>> = {
   "audit:read": "operations.team.permission.auditRead",
   "audit:append": "operations.team.permission.auditAppend",
   "deal:register": "operations.team.permission.dealRegister",
+  "approval:self": "operations.team.permission.approvalSelf",
 };
 
 function demoMember(

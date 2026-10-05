@@ -41,6 +41,25 @@ describe("capability activation safeguards", () => {
       assertCapabilityDecision({ ...valid, actorId: "operator" }),
     ).toThrow("CAPABILITY_DISTINCT_APPROVER_REQUIRED");
   });
+  it("lets the requester approve their own request only as a recorded self-approval", () => {
+    const own = { ...valid, actorId: "operator" };
+    expect(
+      assertCapabilityDecision({
+        ...own,
+        selfApproval: { reason: "Second approver is away this week" },
+      }),
+    ).toBe(true);
+    expect(assertCapabilityDecision(valid)).toBe(false);
+    expect(() =>
+      assertCapabilityDecision({ ...own, selfApproval: { reason: "short" } }),
+    ).toThrow("SELF_APPROVAL_REASON_REQUIRED");
+    expect(() =>
+      assertCapabilityDecision({
+        ...valid,
+        selfApproval: { reason: "Second approver is away this week" },
+      }),
+    ).toThrow("SELF_APPROVAL_NOT_OWN_REQUEST");
+  });
   it("rejects stale evidence, clock skew, and capabilities changed after proposal", () => {
     expect(() =>
       assertCapabilityDecision({

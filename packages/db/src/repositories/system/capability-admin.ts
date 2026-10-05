@@ -1,5 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { uuidV7, type Actor, type Permission } from "@clockwork/contracts";
+import type { SelfApproval } from "@clockwork/domain";
 import { sanitizeActivationEvidenceReference } from "@clockwork/domain/system";
 
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
@@ -11,6 +12,7 @@ import {
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
 import { membershipHasPermission } from "../membership-permissions";
+import { checkedSelfApproval } from "../self-approval";
 import { systemCapabilityKeys, type SystemCapabilityKey } from "./capabilities";
 import {
   assertCapabilityDecision,
@@ -148,8 +150,18 @@ export class DatabaseSystemCapabilityAdmin {
     });
   }
 
+  /**
+   * Approves or rejects a pending request. A requester holding
+   * `approval:self` may approve their own request with `selfApproval`; the
+   * caller has checked the session, this checks the stored authority, and
+   * the database records the reason, the audit event and the notices.
+   */
   public decide(
-    input: ControlInput & { proposalId: string; approve: boolean },
+    input: ControlInput & {
+      proposalId: string;
+      approve: boolean;
+      selfApproval?: SelfApproval;
+    },
   ) {
     validateInput(input);
     return withInternalTransaction(this.db, input.requestId, async (tx) => {
@@ -176,14 +188,21 @@ export class DatabaseSystemCapabilityAdmin {
           ),
         );
       if (!request) throw new Error("CAPABILITY_REQUEST_NOT_PENDING");
+      if (input.selfApproval && !input.approve)
+        throw new Error("SELF_APPROVAL_APPROVE_ONLY");
+      const selfApproval = input.selfApproval
+        ? await checkedSelfApproval(tx, input.actor.id, input.selfApproval)
+        : undefined;
+      let selfApproved = false;
       if (input.approve) {
-        assertCapabilityDecision({
+        selfApproved = assertCapabilityDecision({
           requestedBy: request.requestedBy,
           actorId: input.actor.id,
           requestedAt: request.requestedAt,
           now: input.now,
           baseVersion: request.baseVersion,
           currentVersion: before.rowVersion,
+          ...(selfApproval ? { selfApproval } : {}),
         });
         // Requester may have lost their staff membership since proposing.
         await requireAuthority(
@@ -209,6 +228,9 @@ export class DatabaseSystemCapabilityAdmin {
           decidedBy: input.actor.id,
           decidedAt: input.now,
           decisionReason: input.reason.trim(),
+          ...(selfApproved && selfApproval
+            ? { selfApproved: true, selfApprovalReason: selfApproval.reason }
+            : {}),
         })
         .where(eq(systemCapabilityRequests.id, request.id));
       await appendAuditAndOutbox(tx, {
@@ -232,6 +254,7 @@ export class DatabaseSystemCapabilityAdmin {
               : before.recoveryEnabled,
           proposalId: request.id,
           requestedBy: request.requestedBy,
+          selfApproved,
           reason: input.reason.trim(),
           evidenceReference: request.evidenceReference,
         },

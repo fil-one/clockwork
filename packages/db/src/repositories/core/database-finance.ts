@@ -15,7 +15,11 @@ import {
   type TaxPort,
   type TaxTreatment,
 } from "@clockwork/contracts";
-import type { AuthorizationContext } from "@clockwork/domain";
+import {
+  assertSelfApprovalSession,
+  type AuthorizationContext,
+  type SelfApproval,
+} from "@clockwork/domain";
 import {
   applyRenewalPriceProtection,
   type RenewalGoverningAgreement,
@@ -135,6 +139,7 @@ import {
   withInternalTransaction,
 } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
+import { checkedSelfApproval } from "../self-approval";
 import { DatabaseWebhookReplayTaskStore } from "../system/webhook-replay";
 import { createAcceptedOrderProvisioningAttempt } from "../lifecycle/accepted-order-provisioning";
 import {
@@ -1277,6 +1282,43 @@ const RateCardCommandSchema = z
 const PriceBookDecisionCommandSchema = z
   .object({ reason: z.string().min(8).max(1_000) })
   .strict();
+
+/**
+ * Activating or scheduling a proposed book. `selfApproval` asks to approve
+ * one's own request under `approval:self`; the reason is then also the
+ * self-approval reason, 8 to 500 characters.
+ */
+const PriceBookApprovalCommandSchema = PriceBookDecisionCommandSchema.extend({
+  selfApproval: z.literal(true).optional(),
+}).strict();
+
+/**
+ * The self-approval a price-book approval asks for, with both halves of the
+ * authority checked: the session (own, MFA-verified, holding `approval:self`)
+ * and the stored memberships. Undefined for an ordinary approval.
+ */
+async function priceBookSelfApproval(
+  transaction: RuntimeTransaction,
+  input: CoreMutation,
+  command: z.output<typeof PriceBookApprovalCommandSchema>,
+): Promise<SelfApproval | undefined> {
+  if (!command.selfApproval) return undefined;
+  try {
+    assertSelfApprovalSession(input.authorization);
+    if (input.actor.effectiveUserId || input.actor.impersonatedAccountId)
+      throw new Error("SELF_APPROVAL_DIRECT_SESSION_REQUIRED");
+    return await checkedSelfApproval(transaction, input.authorization.userId, {
+      reason: command.reason,
+    });
+  } catch (error) {
+    throw new CoreServiceError(
+      "INVALID_STATE",
+      error instanceof Error && error.message.startsWith("SELF_APPROVAL_")
+        ? `${error.message}: approving your own request needs approval:self in your own MFA-verified session and a reason of 8 to 500 characters`
+        : "Self-approval could not be checked",
+    );
+  }
+}
 
 /** Canonical numeric(38,18) quantity strings; never a float. */
 const QuantitySchema = z.string().regex(/^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/);
@@ -5504,7 +5546,8 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         input.authorization.userId,
         input,
       );
-      const { reason } = PriceBookDecisionCommandSchema.parse(input.payload);
+      const approval = PriceBookApprovalCommandSchema.parse(input.payload);
+      const { reason } = approval;
       const [request] = await transaction
         .select()
         .from(approvals)
@@ -5516,10 +5559,16 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           ),
         )
         .for("update");
-      if (!request || request.requestedBy === input.authorization.userId)
+      const selfApproval = request
+        ? await priceBookSelfApproval(transaction, input, approval)
+        : undefined;
+      const ownRequest = request?.requestedBy === input.authorization.userId;
+      if (!request || ownRequest !== Boolean(selfApproval))
         throw new CoreServiceError(
           "INVALID_STATE",
-          "A different finance approver must approve the proposed schedule",
+          request && selfApproval
+            ? "SELF_APPROVAL_NOT_OWN_REQUEST: approve your own request only on a schedule you proposed"
+            : "A different finance approver must approve the proposed schedule",
         );
       await assertPersistedPriceScheduleFinance(
         transaction,
@@ -5546,12 +5595,17 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           "INVALID_STATE",
           "This currency already has an approved schedule; cancel it before approving another",
         );
+      // A self-approval is recorded on the approval; the database checks the
+      // authority again and writes its audit event and notices.
       await transaction
         .update(approvals)
         .set({
           status: "approved",
           approvedBy: input.authorization.userId,
           decidedAt: new Date(input.occurredAt),
+          ...(selfApproval
+            ? { selfApproved: true, selfApprovalReason: selfApproval.reason }
+            : {}),
         })
         .where(eq(approvals.id, request.id));
       const touched = await this.touchPriceBook(transaction, prior);
@@ -5957,7 +6011,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     prior: typeof priceBooks.$inferSelect,
   ) {
     assertFinanceApproval(input, "quote:approve");
-    const command = PriceBookDecisionCommandSchema.parse(input.payload);
+    const command = PriceBookApprovalCommandSchema.parse(input.payload);
     const request = await transaction.query.approvals.findFirst({
       where: and(
         eq(approvals.action, "price_book_activation"),
@@ -5970,10 +6024,20 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "INVALID_STATE",
         "Activation requires a pending request from another finance approver",
       );
-    if (request.requestedBy === input.authorization.userId)
+    const selfApproval = await priceBookSelfApproval(
+      transaction,
+      input,
+      command,
+    );
+    if (request.requestedBy === input.authorization.userId && !selfApproval)
       throw new CoreServiceError(
         "INVALID_STATE",
         "The approver of an activation cannot be the person who requested it",
+      );
+    if (selfApproval && request.requestedBy !== input.authorization.userId)
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "SELF_APPROVAL_NOT_OWN_REQUEST: approve your own request only on an activation you requested",
       );
     const currencyBooks = await transaction.query.priceBooks.findMany({
       where: eq(priceBooks.currency, prior.currency),
@@ -6051,6 +6115,9 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         approvedBy: input.authorization.userId,
         status: "approved",
         decidedAt: effectiveAt,
+        ...(selfApproval
+          ? { selfApproved: true, selfApprovalReason: selfApproval.reason }
+          : {}),
       })
       .where(and(eq(approvals.id, request.id), eq(approvals.status, "pending")))
       .returning();
@@ -6067,6 +6134,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         activationApprovalId: decided.id,
         activationRequestedBy: decided.requestedBy,
         activationApprovedBy: decided.approvedBy,
+        activationSelfApproved: decided.selfApproved,
         retiredPriceBookIds: decision.audits
           .filter((audit) => audit.action === "retired")
           .map((audit) => audit.priceBookId),

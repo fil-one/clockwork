@@ -800,6 +800,11 @@ const terminationApprovalRoute = createRoute({
               decision: z.enum(["approved", "rejected"]),
               reason: z.string().min(8),
               evidenceDocumentId: z.uuid(),
+              // The requester approves their own request under approval:self;
+              // the reason is then also the self-approval reason (8 to 500
+              // characters). The repository checks the session and the
+              // stored authority.
+              selfApproval: z.literal(true).optional(),
             })
             .strict(),
         },
@@ -825,6 +830,11 @@ const exceptionDecisionRoute = createRoute({
               decision: z.enum(["approved", "rejected"]),
               reason: z.string().min(8),
               evidenceDocumentId: z.uuid(),
+              // The requester approves their own request under approval:self;
+              // the reason is then also the self-approval reason (8 to 500
+              // characters). The repository checks the session and the
+              // stored authority.
+              selfApproval: z.literal(true).optional(),
             })
             .strict(),
         },
@@ -961,6 +971,33 @@ const migrationMatchDecisionRoute = createRoute({
   },
   responses: operationResponses,
 });
+
+/**
+ * A refused self-approval as a typed problem, so the page can say why: the
+ * reason, the session, or the authority. Anything else is rethrown.
+ */
+async function withSelfApprovalProblems<T>(
+  request: RequestContext,
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      /^SELF_APPROVAL_[A-Z_]+$/u.test(error.message)
+    )
+      throw new ProblemError({
+        type: "https://clockwork.test/problems/self-approval",
+        title: "Your own request was not approved",
+        status: error.message === "SELF_APPROVAL_REASON_REQUIRED" ? 422 : 403,
+        code: error.message,
+        requestId: request.requestId,
+        retryable: false,
+      });
+    throw error;
+  }
+}
 
 function serviceOrThrow(
   dependencies: LifecycleRouteDependencies,
@@ -1801,12 +1838,17 @@ export function registerLifecycleRoutes(
     requireRecentAuthentication(context);
     const request = context.get("requestContext");
     return context.json(
-      await serviceOrThrow(dependencies, request).decideTermination(
-        {
-          ...context.req.valid("json"),
-          terminationId: context.req.valid("param").terminationId,
-        },
-        operationContext(request, idempotencyKey(context.req.valid("header"))),
+      await withSelfApprovalProblems(request, () =>
+        serviceOrThrow(dependencies, request).decideTermination(
+          {
+            ...context.req.valid("json"),
+            terminationId: context.req.valid("param").terminationId,
+          },
+          operationContext(
+            request,
+            idempotencyKey(context.req.valid("header")),
+          ),
+        ),
       ),
       200,
     );
@@ -1843,9 +1885,14 @@ export function registerLifecycleRoutes(
         retryable: false,
       });
     return context.json(
-      await serviceOrThrow(dependencies, request).decideException(
-        { ...body, caseId, accountId: scope.accountId, queue: scope.queue },
-        operationContext(request, idempotencyKey(context.req.valid("header"))),
+      await withSelfApprovalProblems(request, () =>
+        serviceOrThrow(dependencies, request).decideException(
+          { ...body, caseId, accountId: scope.accountId, queue: scope.queue },
+          operationContext(
+            request,
+            idempotencyKey(context.req.valid("header")),
+          ),
+        ),
       ),
       200,
     );

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  assertDistinctOrSelfApproved,
+  type SelfApproval,
+} from "../../self-approval";
 import { CustomerAcquisitionPolicySchema } from "./acquisition-policy";
 
 const integer = z
@@ -72,6 +76,9 @@ export const PaygOfferRecordSchema = z
     approvedBy: z.uuid().nullable(),
     approvalEvidenceId: z.string().nullable(),
     decisionReason: z.string(),
+    /** The approver approved a version they created, edited or proposed. */
+    selfApproved: z.boolean().optional(),
+    selfApprovalReason: z.string().nullable().optional(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
   })
@@ -97,6 +104,11 @@ export const PaygOfferCommandSchema = z.discriminatedUnion("action", [
       expectedRowVersion: z.number().int().positive(),
       reason: z.string().trim().min(8).max(2000),
       approvalEvidenceId: z.string().trim().min(1).max(255).optional(),
+      /**
+       * Approve one's own version under `approval:self`. The reason is then
+       * also the self-approval reason, 8 to 500 characters.
+       */
+      selfApproval: z.literal(true).optional(),
     })
     .strict(),
 ]);
@@ -108,8 +120,15 @@ export function applyPaygOfferCommand(input: {
   command: Exclude<PaygOfferCommand, { action: "create" }>;
   userId: string;
   now: string;
+  /**
+   * The approver's own version, approved under `approval:self`. The caller
+   * has checked the authority; this records it.
+   */
+  selfApproval?: SelfApproval;
 }): PaygOfferRecord {
   const { current, command, userId } = input;
+  if (input.selfApproval && command.action !== "approve")
+    throw new Error("SELF_APPROVAL_APPROVE_ONLY");
   if (
     current.id !== command.id ||
     current.rowVersion !== command.expectedRowVersion
@@ -133,18 +152,26 @@ export function applyPaygOfferCommand(input: {
     } else if (command.action === "approve" || command.action === "reject") {
       if (current.status !== "proposed")
         throw new Error("PAYG_OFFER_NOT_PROPOSED");
-      if (
-        [current.createdBy, current.lastEditedBy, current.proposedBy].includes(
-          userId,
-        )
-      )
-        throw new Error("PAYG_OFFER_DISTINCT_APPROVER_REQUIRED");
+      const selfApproved = assertDistinctOrSelfApproved({
+        deciderId: userId,
+        requesterIds: [
+          current.createdBy,
+          current.lastEditedBy,
+          current.proposedBy,
+        ],
+        selfApproval: input.selfApproval,
+        distinctError: "PAYG_OFFER_DISTINCT_APPROVER_REQUIRED",
+      });
       if (command.action === "approve") {
         if (!command.approvalEvidenceId?.trim())
           throw new Error("PAYG_OFFER_APPROVAL_EVIDENCE_REQUIRED");
         next.status = "approved";
         next.approvedBy = userId;
         next.approvalEvidenceId = command.approvalEvidenceId;
+        if (selfApproved && input.selfApproval) {
+          next.selfApproved = true;
+          next.selfApprovalReason = input.selfApproval.reason.trim();
+        }
       } else {
         next.status = "draft";
         next.proposedBy = null;

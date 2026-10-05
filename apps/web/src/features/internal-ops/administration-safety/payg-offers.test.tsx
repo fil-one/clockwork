@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -366,5 +366,132 @@ describe("the storage price input", () => {
     expect(minor("4.99")).toBe("499");
     expect(minor(" 150,5 ")).toBe("15050");
     expect(() => minor("1.500,00")).toThrow();
+  });
+});
+
+describe("approving one's own PAYG offer version", () => {
+  const proposed = {
+    ...offer,
+    rowVersion: 2,
+    status: "proposed" as const,
+    proposedBy: creator,
+  };
+
+  it("lets a commerce administrator approve their own version with a reason and evidence", async () => {
+    const user = userEvent.setup();
+    mocks.fetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...proposed,
+          rowVersion: 3,
+          status: "approved",
+          approvedBy: creator,
+          approvalEvidenceId: "DOC-7",
+          selfApproved: true,
+          selfApprovalReason: "Launch day, approving my own offer",
+        }),
+        { status: 200 },
+      ),
+    );
+    render(
+      <PaygOfferAdministration
+        offers={[proposed]}
+        available
+        permissions={permissionsForRoles(["commerce_admin"])}
+        userId={creator}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Direct PAYG/ }));
+    expect(
+      screen.getByText(/you can approve it yourself with a written reason/),
+    ).toBeVisible();
+    await user.click(
+      screen.getByRole("button", { name: "Approve my own request" }),
+    );
+    const dialog = screen.getByRole("dialog");
+    const confirm = within(dialog).getByRole("button", {
+      name: "Approve my own request",
+    });
+    expect(confirm).toBeDisabled();
+    await user.type(
+      within(dialog).getByLabelText(/Approval evidence reference/),
+      "DOC-7",
+    );
+    await user.type(
+      within(dialog).getByLabelText(/Why are you approving it yourself/),
+      "Launch day, approving my own offer",
+    );
+    await user.click(confirm);
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(1));
+    const [url, init] = mocks.fetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/core/payg-offers");
+    expect(
+      JSON.parse(typeof init.body === "string" ? init.body : "{}") as unknown,
+    ).toEqual({
+      action: "approve",
+      id: proposed.id,
+      expectedRowVersion: 2,
+      reason: "Launch day, approving my own offer",
+      approvalEvidenceId: "DOC-7",
+      selfApproval: true,
+    });
+  });
+
+  it("words a refused self-approval in the dialog", async () => {
+    const user = userEvent.setup();
+    mocks.fetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({ code: "SELF_APPROVAL_DIRECT_SESSION_REQUIRED" }),
+        { status: 403 },
+      ),
+    );
+    render(
+      <PaygOfferAdministration
+        offers={[proposed]}
+        available
+        permissions={permissionsForRoles(["commerce_admin"])}
+        userId={creator}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Direct PAYG/ }));
+    await user.click(
+      screen.getByRole("button", { name: "Approve my own request" }),
+    );
+    const dialog = screen.getByRole("dialog");
+    await user.type(
+      within(dialog).getByLabelText(/Approval evidence reference/),
+      "DOC-7",
+    );
+    await user.type(
+      within(dialog).getByLabelText(/Why are you approving it yourself/),
+      "Launch day, approving my own offer",
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: "Approve my own request" }),
+    );
+    expect(
+      await within(dialog).findByText(/An assisted session cannot approve/),
+    ).toBeVisible();
+  });
+
+  it("keeps a finance approver on the distinct-approver rule", async () => {
+    const user = userEvent.setup();
+    render(
+      <PaygOfferAdministration
+        offers={[proposed]}
+        available
+        permissions={permissionsForRoles(["finance_approver"])}
+        userId={creator}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Direct PAYG/ }));
+    expect(
+      screen.queryByRole("button", { name: "Approve my own request" }),
+    ).toBeNull();
+    expect(
+      screen.getByText(
+        "A different finance approver must review this version.",
+      ),
+    ).toBeVisible();
   });
 });

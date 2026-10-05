@@ -140,6 +140,9 @@ export const systemCapabilityRequests = pgTable(
     decidedBy: uuid("decided_by").references(() => commerceUsers.id),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     decisionReason: text("decision_reason"),
+    /** The requester approved their own switch under approval:self (001449). */
+    selfApproved: boolean("self_approved").notNull().default(false),
+    selfApprovalReason: text("self_approval_reason"),
   },
   (table) => [
     uniqueIndex("system_capability_requests_pending_unique")
@@ -151,7 +154,11 @@ export const systemCapabilityRequests = pgTable(
     ),
     check(
       "system_capability_requests_separation_check",
-      sql`${table.status} <> 'approved' or ${table.decidedBy} <> ${table.requestedBy}`,
+      sql`${table.status} <> 'approved' or ${table.decidedBy} <> ${table.requestedBy} or ${table.selfApproved}`,
+    ),
+    check(
+      "system_capability_requests_self_approval_check",
+      sql`(not ${table.selfApproved} and ${table.selfApprovalReason} is null) or (${table.selfApproved} and ${table.status} = 'approved' and ${table.decidedBy} = ${table.requestedBy} and length(trim(${table.selfApprovalReason})) between 8 and 500)`,
     ),
     check(
       "system_capability_requests_decision_check",

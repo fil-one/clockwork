@@ -312,6 +312,9 @@ export const decideTerminationPayloadSchema = strict({
   decision: z.enum(["approved", "rejected"]),
   reason: z.string().trim().min(8),
   evidenceDocumentId: uuid,
+  // The requester approves their own termination under approval:self; the
+  // reason is then also the self-approval reason (8 to 500 characters).
+  selfApproval: z.literal(true).optional(),
 });
 
 export const createNovationPayloadSchema = strict({
@@ -347,6 +350,9 @@ export const decideExceptionPayloadSchema = strict({
   decision: z.enum(["approved", "rejected"]),
   reason: z.string().trim().min(8),
   evidenceDocumentId: uuid,
+  // The requester approves their own case under approval:self; the reason is
+  // then also the self-approval reason (8 to 500 characters).
+  selfApproval: z.literal(true).optional(),
 });
 
 export const listSupportSignalsPayloadSchema = strict({

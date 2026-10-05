@@ -73,6 +73,12 @@ export const permissions = [
   "audit:append",
   // Register a deal with Fil One. Referral and channel partners both do.
   "deal:register",
+  // Decide one's own request on a two-person control (price books, tax rule
+  // books, switches, channel policy, PAYG offers, exceptions, account
+  // closures and teardown), with a written reason that is recorded, audited
+  // and sent to the other commerce administrators. Held by the commerce
+  // administrator only.
+  "approval:self",
 ] as const;
 
 export const PermissionSchema = z.enum(permissions);
@@ -229,7 +235,8 @@ export const rolePermissions = {
     "audit:read",
     "audit:append",
   ],
-  // Every internal permission. The partner-only permissions stay with partners.
+  // Every internal permission, including deciding one's own two-person
+  // requests. The partner-only permissions stay with partners.
   commerce_admin: permissions.filter(
     (permission) =>
       permission !== "partner:quote:write" && permission !== "deal:register",
@@ -313,9 +320,9 @@ export const inviteRoleCeilings: Partial<Record<Role, readonly Role[]>> = {
 
 /**
  * Permissions an assisted session never carries. Acting inside someone else's
- * account is for helping them; deciding approvals, managing staff and
- * changing who signs for Fil One all wait until the staff member is back in
- * their own session.
+ * account is for helping them; deciding approvals (one's own included),
+ * managing staff and changing who signs for Fil One all wait until the staff
+ * member is back in their own session.
  */
 export const assistedSessionWithheldPermissions = [
   "agreement:approve",
@@ -325,6 +332,7 @@ export const assistedSessionWithheldPermissions = [
   "destructive:approve",
   "signatory:manage",
   "staff:manage",
+  "approval:self",
 ] as const satisfies readonly Permission[];
 
 export function hasPermission(role: Role, permission: Permission): boolean {

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { membershipHasPermission } from "../membership-permissions";
 import type { Actor } from "@clockwork/contracts";
+import type { SelfApproval } from "@clockwork/domain";
 import {
   applyPaygOfferCommand,
   PaygOfferCommandSchema,
@@ -14,6 +15,7 @@ import type { RuntimeDatabase } from "../../client";
 import { auditEvents, commerceUsers, memberships } from "../../schema";
 import { paygOfferVersions } from "../../schema/core/payg-offers";
 import { withInternalTransaction } from "../../transaction";
+import { checkedSelfApproval } from "../self-approval";
 
 function mapRow(row: typeof paygOfferVersions.$inferSelect): PaygOfferRecord {
   const record = { ...row };
@@ -51,6 +53,11 @@ export class DatabasePaygOfferRepository {
     actor: Actor;
     requestId: string;
     now: string;
+    /**
+     * The approver approves their own version under `approval:self`. The
+     * caller has checked the session; the stored authority is checked here.
+     */
+    selfApproval?: SelfApproval;
   }): Promise<PaygOfferRecord> {
     const command = PaygOfferCommandSchema.parse(input.command);
     if (
@@ -118,6 +125,15 @@ export class DatabasePaygOfferRepository {
             command,
             userId: input.actor.id,
             now: input.now,
+            ...(input.selfApproval
+              ? {
+                  selfApproval: await checkedSelfApproval(
+                    transaction,
+                    input.actor.id,
+                    input.selfApproval,
+                  ),
+                }
+              : {}),
           });
           await transaction
             .update(paygOfferVersions)
@@ -132,6 +148,10 @@ export class DatabasePaygOfferRepository {
               approvedBy: next.approvedBy,
               approvalEvidenceId: next.approvalEvidenceId,
               decisionReason: next.decisionReason,
+              // The database checks a self-approval again and writes its
+              // audit event and notices.
+              selfApproved: next.selfApproved ?? false,
+              selfApprovalReason: next.selfApprovalReason ?? null,
               updatedAt: new Date(input.now),
               rowVersion: next.rowVersion,
             })

@@ -1,3 +1,4 @@
+import { selfApprovalReason } from "@clockwork/domain";
 import {
   exceptionQueues,
   type ExceptionQueue,
@@ -171,6 +172,11 @@ export interface ExceptionDecisionEvidence {
   evidenceDocumentIds: readonly string[];
   actualActorId: string;
   effectiveActorId: string;
+  /**
+   * The requester approves their own case under `approval:self`, already
+   * checked by the caller. The reason must then be 8 to 500 characters.
+   */
+  selfApproved?: boolean | undefined;
 }
 
 export function decideExceptionCase(input: {
@@ -188,11 +194,17 @@ export function decideExceptionCase(input: {
   ]);
   if (!allowed.has(input.decision.decidedBy))
     throw new Error("EXCEPTION_DECIDER_NOT_ASSIGNED");
-  if (
-    input.policy.separationRequired &&
-    (input.decision.decidedBy === input.exceptionCase.requestedBy ||
-      input.decision.effectiveActorId === input.exceptionCase.requestedBy)
-  )
+  const own =
+    input.decision.decidedBy === input.exceptionCase.requestedBy ||
+    input.decision.effectiveActorId === input.exceptionCase.requestedBy;
+  if (input.decision.selfApproved) {
+    if (!own) throw new Error("SELF_APPROVAL_NOT_OWN_REQUEST");
+    if (input.decision.decision !== "approved")
+      throw new Error("SELF_APPROVAL_APPROVE_ONLY");
+    if (input.decision.actualActorId !== input.decision.effectiveActorId)
+      throw new Error("SELF_APPROVAL_DIRECT_SESSION_REQUIRED");
+    selfApprovalReason(input.decision.reason);
+  } else if (input.policy.separationRequired && own)
     throw new Error("EXCEPTION_SELF_APPROVAL_FORBIDDEN");
   if (input.decision.reason.trim().length < 8)
     throw new Error("DECISION_REASON_REQUIRED");

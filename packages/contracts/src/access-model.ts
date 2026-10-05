@@ -112,6 +112,8 @@ export const permissionDescriptions = {
   "audit:read": "Read the full activity history of reachable accounts",
   "audit:append": "Record activity beyond one's own finance decisions",
   "deal:register": "Register deals with Fil One",
+  "approval:self":
+    "Approve one's own request on a two-person control, with a recorded reason",
 } as const satisfies Record<Permission, string>;
 
 export const sideDescriptions = {

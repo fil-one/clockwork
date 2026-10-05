@@ -71,6 +71,38 @@ describe("exception workflows", () => {
     ).toMatchObject({ recipient: "backup-legal", escalationLevel: 1 });
   });
 
+  it("lets a requester holding approval:self approve their own case with a reason", () => {
+    const own = { ...exceptionCase, requestedBy: "owner-legal" };
+    const decision = {
+      decision: "approved" as const,
+      decidedBy: "owner-legal",
+      decidedAt: "2026-08-01T16:00:00.000Z",
+      reason: "Approved alone while legal is out",
+      evidenceDocumentIds: ["document-1"],
+      actualActorId: "owner-legal",
+      effectiveActorId: "owner-legal",
+      selfApproved: true,
+    };
+    expect(
+      decideExceptionCase({ exceptionCase: own, policy: legalPolicy, decision })
+        .payload,
+    ).toMatchObject({ selfApproved: true });
+    expect(() =>
+      decideExceptionCase({
+        exceptionCase: own,
+        policy: legalPolicy,
+        decision: { ...decision, reason: "short" },
+      }),
+    ).toThrow("SELF_APPROVAL_REASON_REQUIRED");
+    expect(() =>
+      decideExceptionCase({
+        exceptionCase: own,
+        policy: legalPolicy,
+        decision: { ...decision, decision: "rejected" },
+      }),
+    ).toThrow("SELF_APPROVAL_APPROVE_ONLY");
+  });
+
   it("forbids self-approval and requires immutable evidence", () => {
     expect(() =>
       decideExceptionCase({
