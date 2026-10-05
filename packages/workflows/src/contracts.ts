@@ -1,4 +1,5 @@
 import {
+  contractPdfFileName,
   terminalContractSigningStates,
   type Actor,
   type ContractSigningRecord,
@@ -20,7 +21,13 @@ export type ContractSigningClient = Pick<
 
 type Repository = Pick<
   ContractSigningRepository,
-  "claim" | "release" | "update" | "get" | "generatedPdf" | "decide"
+  | "claim"
+  | "extendLease"
+  | "release"
+  | "update"
+  | "get"
+  | "generatedPdf"
+  | "decide"
 >;
 
 /**
@@ -51,7 +58,7 @@ export class ContractSigningWorkflow {
       state === "completed"
         ? {
             bytes: await this.provider.completedPdf(doc.id),
-            fileName: `${record.documentName} (executed).pdf`,
+            fileName: contractPdfFileName(record.documentName, " (executed)"),
           }
         : undefined;
     return this.repo.update(
@@ -102,14 +109,17 @@ export class ContractSigningWorkflow {
       if (!current.providerId) throw new Error("CONTRACT_PROVIDER_ID_REQUIRED");
       let doc = await this.provider.getContract(current.providerId);
       // SignWell extracts text tags asynchronously after accepting a draft.
+      // Each round renews the lease, so a slow provider cannot outlive it.
       for (
         let attempt = 0;
         contractSignWellState(doc, current) === "preparing" && attempt < 8;
         attempt++
       ) {
         await this.wait(1500);
+        await this.repo.extendLease(contractId, token);
         doc = await this.provider.getContract(current.providerId);
       }
+      await this.repo.extendLease(contractId, token);
       if (contractSignWellState(doc, current) !== "ready")
         return await this.apply(current, token, doc, actor);
       assertContractSigningFields(doc);

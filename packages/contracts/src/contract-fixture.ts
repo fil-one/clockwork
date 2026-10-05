@@ -29,6 +29,7 @@ export const fixtureContractInput: ContractInput = {
 export const fixtureContractRecord: ContractRecord = {
   ...fixtureContractInput,
   source: "register",
+  executedAt: "2026-10-01T15:00:00.000Z",
   createdByName: "R.W. Holleman",
   createdAt: "2026-10-01T15:00:00.000Z",
   updatedAt: "2026-10-02T15:00:00.000Z",

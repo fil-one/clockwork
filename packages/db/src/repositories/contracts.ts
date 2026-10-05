@@ -3,6 +3,7 @@ import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import {
   ContractFileNameSchema,
   ContractInputSchema,
+  contractExportLimit,
   contractPageSize,
   terminalContractSigningStates,
   uploadableContractFileKinds,
@@ -32,7 +33,11 @@ import {
 import { mndaSigners } from "../schema/mnda";
 import { withInternalTransaction } from "../transaction";
 import { appendAuditAndOutbox } from "./audit-outbox";
-import type { ContractDocumentStores } from "./contract-documents";
+import {
+  lazyDocumentStores,
+  type ContractDocumentStores,
+  type DocumentStoresSource,
+} from "./contract-documents";
 
 type ContractRow = typeof commerceContracts.$inferSelect;
 type FileRow = typeof contractFiles.$inferSelect;
@@ -78,6 +83,7 @@ const contractView = (r: ContractRow, asOf: string): ContractRecord => ({
   ownerName: r.ownerName,
   internalNotes: r.internalNotes,
   tags: r.tags,
+  executedAt: r.executedAt?.toISOString() ?? null,
   createdByName: r.createdByName,
   createdAt: r.createdAt.toISOString(),
   updatedAt: r.updatedAt.toISOString(),
@@ -175,6 +181,7 @@ type ListRow = {
   owner_name: string;
   tags: string[];
   document_count: number;
+  signing_state: ContractSigningState | null;
   updated_at: Date | string;
   term_end_date: string | null;
   renewal_date: string | null;
@@ -196,6 +203,7 @@ const listRowView = (r: ListRow): ContractListRow => ({
   ownerName: r.owner_name,
   tags: r.tags,
   documentCount: Number(r.document_count),
+  signingState: r.signing_state,
   updatedAt: new Date(r.updated_at).toISOString(),
   termEndDate: r.term_end_date,
   renewalDate: r.renewal_date,
@@ -207,7 +215,16 @@ const listRowView = (r: ListRow): ContractListRow => ({
  * tables are read, never written, so the MNDA workflow stays the only owner
  * of its records.
  */
-function scheduledRows(asOf: string) {
+function scheduledRows(asOf: string, includeMndas: boolean) {
+  const mndas = includeMndas
+    ? sql`union all
+      select m.id, 'mnda', m.input->>'company', '', 'mnda', 'ours',
+        'executed', m.input->>'effectiveDate', false, null, null,
+        m.owner_name, '{}'::text[], coalesce(m.completed_at, m.updated_at),
+        null::date, 1, null::text
+      from public.commerce_mnda_requests m
+      where m.state = 'completed'`
+    : sql``;
   return sql`
     with register as (
       select c.id, c.source, c.counterparty_name, c.title, c.contract_type,
@@ -218,15 +235,11 @@ function scheduledRows(asOf: string) {
           c.initial_term_months, c.auto_renew, c.renewal_term_months,
           ${asOf}::date) as boundary,
         (select count(*)::integer from public.commerce_contract_files f
-          where f.contract_id = c.id) as document_count
+          where f.contract_id = c.id) as document_count,
+        (select s.state from public.commerce_contract_signing s
+          where s.contract_id = c.id) as signing_state
       from public.commerce_contracts c
-      union all
-      select m.id, 'mnda', m.input->>'company', '', 'mnda', 'ours',
-        'executed', m.input->>'effectiveDate', false, null, null,
-        m.owner_name, '{}'::text[], coalesce(m.completed_at, m.updated_at),
-        null::date, 1
-      from public.commerce_mnda_requests m
-      where m.state = 'completed'
+      ${mndas}
     ), scheduled as (
       select register.*,
         (boundary - 1)::text as term_end_date,
@@ -246,11 +259,23 @@ export interface ContractListResult {
   pageSize: number;
 }
 
+/** What a reader may see beyond the register itself. */
+export interface ContractListScope {
+  /** Signed MNDAs appear only to people who may open the MNDA register. */
+  includeMndas: boolean;
+}
+
 export class ContractRepository {
+  private readonly documentStores: () => ContractDocumentStores;
   constructor(
     private readonly db: RuntimeDatabase,
-    private readonly stores: ContractDocumentStores,
-  ) {}
+    stores: DocumentStoresSource,
+  ) {
+    this.documentStores = lazyDocumentStores(stores);
+  }
+  private get stores() {
+    return this.documentStores();
+  }
 
   private tx<T>(fn: (tx: RuntimeTransaction) => Promise<T>) {
     return withInternalTransaction(this.db, randomUUID(), fn);
@@ -265,7 +290,11 @@ export class ContractRepository {
         or exists (select 1 from unnest(tags) tag where tag ilike ${pattern}))`);
     }
     if (query.type) conditions.push(sql`contract_type = ${query.type}`);
-    if (query.status) conditions.push(sql`status = ${query.status}`);
+    if (query.status?.startsWith("signing_"))
+      conditions.push(
+        sql`status = 'draft' and signing_state = ${query.status.slice("signing_".length)}`,
+      );
+    else if (query.status) conditions.push(sql`status = ${query.status}`);
     if (query.window)
       conditions.push(
         sql`coalesce(renewal_date, term_end_date)::date between ${asOf}::date and ${addContractDays(asOf, query.window)}::date`,
@@ -285,9 +314,14 @@ export class ContractRepository {
   }
 
   /** One page of the register, newest activity first unless sorted. */
-  list(query: ContractListQuery, asOf: string): Promise<ContractListResult> {
+  list(
+    query: ContractListQuery,
+    asOf: string,
+    scope: ContractListScope,
+  ): Promise<ContractListResult> {
     return this.tx(async (tx) => {
-      const rows = await tx.execute<ListRow>(sql`${scheduledRows(asOf)}
+      const rows =
+        await tx.execute<ListRow>(sql`${scheduledRows(asOf, scope.includeMndas)}
         select *, count(*) over () as total from scheduled
         where ${this.filters(query, asOf)}
         order by ${this.order(query)}
@@ -302,14 +336,37 @@ export class ContractRepository {
     });
   }
 
-  /** Every row matching the filters, for export; capped well above use. */
-  exportRows(query: Omit<ContractListQuery, "page">, asOf: string) {
-    return this.tx(async (tx) =>
-      [
-        ...(await tx.execute<ListRow>(sql`${scheduledRows(asOf)}
+  /** Rows matching the filters for export, up to `contractExportLimit`;
+   * `truncated` says when more matched. */
+  exportRows(
+    query: Omit<ContractListQuery, "page">,
+    asOf: string,
+    scope: ContractListScope,
+  ) {
+    return this.tx(async (tx) => {
+      const rows = [
+        ...(await tx.execute<ListRow>(sql`${scheduledRows(asOf, scope.includeMndas)}
           select *, 0 as total from scheduled
           where ${this.filters(query, asOf)}
-          order by ${this.order(query)} limit 5000`)),
+          order by ${this.order(query)} limit ${contractExportLimit + 1}`)),
+      ].map(listRowView);
+      return {
+        rows: rows.slice(0, contractExportLimit),
+        truncated: rows.length > contractExportLimit,
+      };
+    });
+  }
+
+  /** Executed contracts that renew automatically and whose notice deadline
+   * for the next renewal has already passed. */
+  noticesPassed(asOf: string) {
+    return this.tx(async (tx) =>
+      [
+        ...(await tx.execute<ListRow>(sql`${scheduledRows(asOf, false)}
+          select *, 0 as total from scheduled
+          where status = 'executed' and notice_deadline::date < ${asOf}::date
+          order by renewal_date asc, lower(counterparty_name) asc
+          limit 500`)),
       ].map(listRowView),
     );
   }
@@ -318,9 +375,9 @@ export class ContractRepository {
   renewalsDue(asOf: string, days: number) {
     return this.tx(async (tx) =>
       [
-        ...(await tx.execute<ListRow>(sql`${scheduledRows(asOf)}
+        ...(await tx.execute<ListRow>(sql`${scheduledRows(asOf, false)}
           select *, 0 as total from scheduled
-          where source <> 'mnda' and status = 'executed'
+          where status = 'executed'
             and notice_deadline::date between ${asOf}::date
               and ${addContractDays(asOf, days)}::date
           order by notice_deadline asc, lower(counterparty_name) asc
@@ -336,21 +393,22 @@ export class ContractRepository {
         d30: number;
         d60: number;
         d90: number;
+        passed: number;
         next: string | null;
-      }>(sql`${scheduledRows(asOf)}
+      }>(sql`${scheduledRows(asOf, false)}
         select
-          count(*) filter (where notice_deadline::date <= ${addContractDays(asOf, 30)}::date)::integer as d30,
-          count(*) filter (where notice_deadline::date <= ${addContractDays(asOf, 60)}::date)::integer as d60,
-          count(*)::integer as d90,
-          min(notice_deadline) as next
+          count(*) filter (where notice_deadline::date between ${asOf}::date and ${addContractDays(asOf, 30)}::date)::integer as d30,
+          count(*) filter (where notice_deadline::date between ${asOf}::date and ${addContractDays(asOf, 60)}::date)::integer as d60,
+          count(*) filter (where notice_deadline::date between ${asOf}::date and ${addContractDays(asOf, 90)}::date)::integer as d90,
+          count(*) filter (where notice_deadline::date < ${asOf}::date)::integer as passed,
+          min(notice_deadline) filter (where notice_deadline::date >= ${asOf}::date) as next
         from scheduled
-        where source <> 'mnda' and status = 'executed'
-          and notice_deadline::date between ${asOf}::date
-            and ${addContractDays(asOf, 90)}::date`);
+        where status = 'executed' and notice_deadline is not null`);
       return {
         within30: row?.d30 ?? 0,
         within60: row?.d60 ?? 0,
         within90: row?.d90 ?? 0,
+        passed: row?.passed ?? 0,
         nextDeadline: row?.next ?? null,
       };
     });
@@ -440,6 +498,12 @@ export class ContractRepository {
           .map((f) => [f, { from: current[f], to: input[f] }]),
       );
       if (Object.keys(changes).length === 0) return current.version;
+      // Executed is final for ordinary edits; it may only expire or end.
+      if (
+        current.executedAt &&
+        !["executed", "expired", "terminated"].includes(input.status)
+      )
+        throw new Error("CONTRACT_EXECUTED_FINAL");
       // A contract that is out for signature from a template keeps the
       // status the signing provider reports.
       if (changes.status && current.source === "template") {
@@ -567,7 +631,7 @@ export class ContractRepository {
         );
       if (!file) throw new Error("CONTRACT_FILE_NOT_FOUND");
       if (
-        contract.status === "executed" ||
+        contract.executedAt !== null ||
         !(uploadableContractFileKinds as readonly string[]).includes(file.kind)
       )
         throw new Error("CONTRACT_FILE_PERMANENT");
@@ -702,10 +766,16 @@ export interface PrepareContractSigning {
  * transaction that marks the contract executed.
  */
 export class ContractSigningRepository {
+  private readonly documentStores: () => ContractDocumentStores;
   constructor(
     private readonly db: RuntimeDatabase,
-    private readonly stores: ContractDocumentStores,
-  ) {}
+    stores: DocumentStoresSource,
+  ) {
+    this.documentStores = lazyDocumentStores(stores);
+  }
+  private get stores() {
+    return this.documentStores();
+  }
 
   private tx<T>(fn: (tx: RuntimeTransaction) => Promise<T>) {
     return withInternalTransaction(this.db, randomUUID(), fn);
@@ -741,7 +811,7 @@ export class ContractSigningRepository {
       contentType: "application/pdf",
     });
     try {
-      return await this.tx(async (tx) => {
+      const result = await this.tx(async (tx) => {
         await tx.execute(
           sql`select pg_advisory_xact_lock(hashtext(${contract.id}))`,
         );
@@ -820,6 +890,10 @@ export class ContractSigningRepository {
         });
         return { record: signingView(row), duplicate: false };
       });
+      // A retried preparation keeps the first PDF; the second copy goes.
+      if (result.duplicate)
+        await this.stores.primary.delete(stored.key).catch(() => {});
+      return result;
     } catch (error) {
       await this.stores.primary.delete(stored.key).catch(() => {});
       throw error;
@@ -940,6 +1014,23 @@ export class ContractSigningRepository {
         .set({ leaseToken: token, leaseUntil: new Date(Date.now() + 120_000) })
         .where(eq(contractSigning.contractId, contractId));
       return { record: signingView(row), token };
+    });
+  }
+
+  /** Keeps a lease alive across a long provider call; fails if it was lost. */
+  extendLease(contractId: string, token: string) {
+    return this.tx(async (tx) => {
+      const [row] = await tx
+        .update(contractSigning)
+        .set({ leaseUntil: new Date(Date.now() + 120_000) })
+        .where(
+          and(
+            eq(contractSigning.contractId, contractId),
+            eq(contractSigning.leaseToken, token),
+          ),
+        )
+        .returning({ contractId: contractSigning.contractId });
+      if (!row) throw new Error("CONTRACT_LEASE_LOST");
     });
   }
 

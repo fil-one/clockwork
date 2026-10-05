@@ -18,6 +18,7 @@ it("counts notices due soon and links to the full list", async () => {
         within30: 2,
         within60: 3,
         within90: 5,
+        passed: 1,
         nextDeadline: "2026-10-05",
       },
     }),
@@ -30,6 +31,11 @@ it("counts notices due soon and links to the full list", async () => {
   ).toBeInTheDocument();
   expect(screen.getByText("Next deadline: Oct 5, 2026")).toBeInTheDocument();
   expect(
+    screen.getByText(
+      "1 contract renews automatically: its notice deadline has passed",
+    ),
+  ).toBeInTheDocument();
+  expect(
     screen.getByRole("link", { name: "Open renewal notices" }),
   ).toHaveAttribute("href", "/internal/contracts/notices");
 });
@@ -37,7 +43,13 @@ it("counts notices due soon and links to the full list", async () => {
 it("says when nothing is due", async () => {
   render(
     await RenewalNoticesSummary({
-      summary: { within30: 0, within60: 0, within90: 0, nextDeadline: null },
+      summary: {
+        within30: 0,
+        within60: 0,
+        within90: 0,
+        passed: 0,
+        nextDeadline: null,
+      },
     }),
   );
   expect(

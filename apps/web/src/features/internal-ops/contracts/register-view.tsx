@@ -14,6 +14,8 @@ import {
 } from "@clockwork/ui";
 import {
   contractRenewalWindows,
+  contractExportLimit,
+  contractStatusFilterExtras,
   contractStatuses,
   contractTypes,
   type ContractListQuery,
@@ -29,7 +31,11 @@ import {
   Tags,
   TermBoundaryValue,
 } from "./cells";
-import { contractStatusLabels, contractTypeLabels } from "./copy";
+import {
+  contractStatusLabels,
+  contractTypeLabels,
+  statusFilterExtraLabels,
+} from "./copy";
 import styles from "./contracts.module.css";
 
 type Query = ContractListQuery;
@@ -58,6 +64,22 @@ const rowHref = (row: ContractListRow) =>
   (row.source === "mnda"
     ? "/internal/mndas"
     : `/internal/contracts/${row.id}`) as Route;
+
+/** The counterparty as a link, unless it points somewhere the reader may
+ * not open. */
+function RowLink({
+  row,
+  canOpenMndas,
+}: {
+  row: ContractListRow;
+  canOpenMndas: boolean;
+}) {
+  return row.source === "mnda" && !canOpenMndas ? (
+    <span>{row.counterpartyName}</span>
+  ) : (
+    <Link href={rowHref(row)}>{row.counterpartyName}</Link>
+  );
+}
 
 const columns: readonly {
   sort: ContractSort | null;
@@ -104,10 +126,18 @@ function SortControl({
   );
 }
 
-function Counterparty({ row, t }: { row: ContractListRow; t: Translator }) {
+function Counterparty({
+  row,
+  t,
+  canOpenMndas,
+}: {
+  row: ContractListRow;
+  t: Translator;
+  canOpenMndas: boolean;
+}) {
   return (
     <span className={styles.primaryCell}>
-      <Link href={rowHref(row)}>{row.counterpartyName}</Link>
+      <RowLink row={row} canOpenMndas={canOpenMndas} />
       {row.source === "mnda" ? (
         <span className={styles.secondaryText}>
           {t("operations.contracts.source.mndaRow")}
@@ -127,6 +157,7 @@ export function RegisterView({
   result,
   today,
   canWrite,
+  canOpenMndas,
 }: {
   t: Translator;
   locale: string;
@@ -134,6 +165,7 @@ export function RegisterView({
   result: ContractListResult;
   today: string;
   canWrite: boolean;
+  canOpenMndas: boolean;
 }) {
   const filtered = Boolean(
     query.q || query.type || query.status || query.window,
@@ -208,6 +240,10 @@ export function RegisterView({
             ...contractStatuses.map((status) => ({
               value: status,
               label: t(contractStatusLabels[status]),
+            })),
+            ...contractStatusFilterExtras.map((status) => ({
+              value: status,
+              label: t(statusFilterExtraLabels[status]),
             })),
           ]}
         />
@@ -293,6 +329,15 @@ export function RegisterView({
               {t("operations.contracts.action.export")}
             </a>
           </div>
+          {result.total > contractExportLimit ? (
+            <p className={styles.muted} role="note">
+              {t("operations.contracts.export.truncated", {
+                limit: new Intl.NumberFormat(locale).format(
+                  contractExportLimit,
+                ),
+              })}
+            </p>
+          ) : null}
           <div className={styles.desktopOnly}>
             <Table
               caption={t("operations.contracts.title")}
@@ -322,7 +367,12 @@ export function RegisterView({
               )}
               rowKeys={result.rows.map((row) => row.id)}
               rows={result.rows.map((row) => [
-                <Counterparty key="name" row={row} t={t} />,
+                <Counterparty
+                  key="name"
+                  row={row}
+                  t={t}
+                  canOpenMndas={canOpenMndas}
+                />,
                 t(contractTypeLabels[row.contractType]),
                 <StatusValue key="status" row={row} t={t} />,
                 <DateValue
@@ -352,7 +402,7 @@ export function RegisterView({
             {result.rows.map((row) => (
               <li className={styles.mobileCard} key={row.id}>
                 <h3>
-                  <Link href={rowHref(row)}>{row.counterpartyName}</Link>
+                  <RowLink row={row} canOpenMndas={canOpenMndas} />
                 </h3>
                 <StatusValue row={row} t={t} />
                 <dl>

@@ -4,6 +4,7 @@ import type { Translator } from "@/src/i18n";
 import {
   contractStatusLabels,
   contractStatusTone,
+  signingStateLabels,
   daysUntil,
   formatContractDate,
 } from "./copy";
@@ -95,14 +96,29 @@ export function StatusValue({
   row,
   t,
 }: {
-  row: Pick<ContractListRow, "status" | "source" | "documentCount">;
+  row: Pick<
+    ContractListRow,
+    "status" | "source" | "documentCount" | "signingState"
+  >;
   t: Translator;
 }) {
+  const stopped =
+    row.status === "draft" &&
+    (row.signingState === "declined" ||
+      row.signingState === "expired" ||
+      row.signingState === "canceled");
   return (
     <span className={styles.badges}>
       <StatusBadge tone={contractStatusTone[row.status]}>
         {t(contractStatusLabels[row.status])}
       </StatusBadge>
+      {stopped && row.signingState ? (
+        <StatusBadge
+          tone={row.signingState === "canceled" ? "neutral" : "warning"}
+        >
+          {t(signingStateLabels[row.signingState])}
+        </StatusBadge>
+      ) : null}
       {row.status === "executed" &&
       row.source !== "mnda" &&
       row.documentCount === 0 ? (

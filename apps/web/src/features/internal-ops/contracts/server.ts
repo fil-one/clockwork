@@ -94,11 +94,11 @@ export function documentStores() {
 }
 
 export const contractRepository = () =>
-  new ContractRepository(getServiceDatabase(), documentStores());
+  new ContractRepository(getServiceDatabase(), documentStores);
 export const contractSigningRepository = () =>
-  new ContractSigningRepository(getServiceDatabase(), documentStores());
+  new ContractSigningRepository(getServiceDatabase(), documentStores);
 export const salesLibraryRepository = () =>
-  new SalesLibraryRepository(getServiceDatabase(), documentStores());
+  new SalesLibraryRepository(getServiceDatabase(), documentStores);
 
 /** Production templates. Tests supply their own registry instead. */
 export const contractTemplateRegistry = () => contractTemplates;

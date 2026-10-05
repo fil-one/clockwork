@@ -267,6 +267,8 @@ export interface ContractRecord extends ContractTermSchedule {
   ownerName: string;
   internalNotes: string;
   tags: string[];
+  /** When the contract was first executed; its documents are then permanent. */
+  executedAt: string | null;
   createdByName: string;
   createdAt: string;
   updatedAt: string;
@@ -288,6 +290,8 @@ export interface ContractListRow extends ContractTermSchedule {
   ownerName: string;
   tags: string[];
   documentCount: number;
+  /** For contracts prepared from a template, how signing stands. */
+  signingState: ContractSigningState | null;
   updatedAt: string;
 }
 
@@ -302,6 +306,17 @@ export const contractSorts = [
 ] as const;
 export type ContractSort = (typeof contractSorts)[number];
 export const contractRenewalWindows = [30, 60, 90] as const;
+/** Status filter values beyond the register statuses: drafts whose signing
+ * request ended without signatures. */
+export const contractStatusFilterExtras = [
+  "signing_declined",
+  "signing_expired",
+  "signing_canceled",
+] as const;
+export type ContractStatusFilter =
+  ContractStatus | (typeof contractStatusFilterExtras)[number];
+/** The most rows one CSV export carries. */
+export const contractExportLimit = 5000;
 
 const firstValue = (value: unknown): unknown =>
   Array.isArray(value)
@@ -320,7 +335,10 @@ export const ContractListQuerySchema = z.object({
   ),
   status: z.preprocess(
     firstValue,
-    z.enum(contractStatuses).optional().catch(undefined),
+    z
+      .enum([...contractStatuses, ...contractStatusFilterExtras])
+      .optional()
+      .catch(undefined),
   ),
   window: z.preprocess(
     (value) => {
@@ -398,13 +416,44 @@ export function assertContractPdf(bytes: Uint8Array) {
 }
 
 /** File names as typed by people: printable, no path separators. */
+export const contractFileNameMaxLength = 200;
 export const ContractFileNameSchema = z
   .string()
   .trim()
   .min(1)
-  .max(200)
+  .max(contractFileNameMaxLength)
   .refine(noControl, "control_character")
   .transform((name) => name.replace(/[\\/:*?"<>|]+/g, "-"));
+
+/**
+ * A PDF file name built from a base name and an optional suffix, such as
+ * " (executed)", that always fits `ContractFileNameSchema`. Path and control
+ * characters become "-"; the base is shortened (never mid-character) so the
+ * suffix and ".pdf" survive.
+ */
+export function contractPdfFileName(base: string, suffix = ""): string {
+  const clean = (text: string) =>
+    [...text]
+      .map((c) => {
+        const code = c.charCodeAt(0);
+        return code < 32 || code === 127 ? " " : c;
+      })
+      .join("")
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, " ");
+  const tail = `${clean(suffix)}.pdf`;
+  const stem = clean(base)
+    .trim()
+    .replace(/\.pdf$/i, "")
+    .trim();
+  const room = contractFileNameMaxLength - tail.length;
+  let kept = "";
+  for (const character of stem) {
+    if (kept.length + character.length > room) break;
+    kept += character;
+  }
+  return `${kept.trimEnd() || "document"}${tail}`;
+}
 
 export const salesCollateralKinds = [
   "pitch_deck",

@@ -10,6 +10,8 @@ export interface RenewalSummary {
   within30: number;
   within60: number;
   within90: number;
+  /** Notice deadline passed; the contract renews automatically. */
+  passed: number;
   nextDeadline: string | null;
 }
 
@@ -55,6 +57,13 @@ export async function RenewalNoticesSummary({
               ) : null}
             </>
           )}
+          {summary.passed > 0 ? (
+            <p className={styles.urgent}>
+              {t("operations.contracts.home.passed", {
+                count: summary.passed,
+              })}
+            </p>
+          ) : null}
         </div>
         <Link
           className={buttonClassName({ variant: "secondary" })}

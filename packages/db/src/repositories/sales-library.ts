@@ -10,7 +10,11 @@ import type { RuntimeDatabase, RuntimeTransaction } from "../client";
 import { salesCollateral } from "../schema/contracts";
 import { withInternalTransaction } from "../transaction";
 import { appendAuditAndOutbox } from "./audit-outbox";
-import type { ContractDocumentStores } from "./contract-documents";
+import {
+  lazyDocumentStores,
+  type ContractDocumentStores,
+  type DocumentStoresSource,
+} from "./contract-documents";
 
 type Row = typeof salesCollateral.$inferSelect;
 
@@ -39,8 +43,14 @@ const actorName = (actor: Actor) => actor.display ?? actor.id;
 export class SalesLibraryRepository {
   constructor(
     private readonly db: RuntimeDatabase,
-    private readonly stores: ContractDocumentStores,
-  ) {}
+    stores: DocumentStoresSource,
+  ) {
+    this.documentStores = lazyDocumentStores(stores);
+  }
+  private readonly documentStores: () => ContractDocumentStores;
+  private get stores() {
+    return this.documentStores();
+  }
 
   private tx<T>(fn: (tx: RuntimeTransaction) => Promise<T>) {
     return withInternalTransaction(this.db, randomUUID(), fn);

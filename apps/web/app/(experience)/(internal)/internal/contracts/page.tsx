@@ -36,6 +36,7 @@ export default async function Page({
       result={loaded.result}
       today={loaded.today}
       canWrite={loaded.canWrite}
+      canOpenMndas={loaded.canOpenMndas}
     />
   );
 }

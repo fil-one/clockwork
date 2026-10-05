@@ -1,5 +1,8 @@
 import "server-only";
-import { contractDocumentMaxBytes } from "@clockwork/contracts";
+import {
+  contractDocumentMaxBytes,
+  contractPdfFileName,
+} from "@clockwork/contracts";
 import { failure } from "./action-result";
 
 const noStore = {
@@ -26,23 +29,60 @@ export async function readUploadForm(request: Request): Promise<FormData> {
   const type = request.headers.get("content-type") ?? "";
   if (!type.startsWith("multipart/form-data"))
     throw new Error("UPLOAD_INVALID");
-  const reader = request.body?.getReader();
-  if (!reader) throw new Error("UPLOAD_INVALID");
-  const chunks: Uint8Array[] = [];
+  if (!request.body) throw new Error("UPLOAD_INVALID");
+  // Count bytes as the parser pulls them, without buffering a second copy.
   let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.length;
-    if (size > limit) {
-      await reader.cancel();
-      throw new Error("DOCUMENT_TOO_LARGE");
-    }
-    chunks.push(value);
+  let tooLarge = false;
+  const counted = request.body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        size += chunk.length;
+        if (size > limit) {
+          tooLarge = true;
+          controller.error(new Error("DOCUMENT_TOO_LARGE"));
+          return;
+        }
+        controller.enqueue(chunk);
+      },
+    }),
+  );
+  try {
+    return await new Response(counted, {
+      headers: { "content-type": type },
+    }).formData();
+  } catch (error) {
+    if (tooLarge) throw new Error("DOCUMENT_TOO_LARGE");
+    if (error instanceof TypeError) throw new Error("UPLOAD_INVALID");
+    throw error;
   }
-  return new Response(Buffer.concat(chunks), {
-    headers: { "content-type": type },
-  }).formData();
+}
+
+/**
+ * At most three document reads or writes run at once while PDFs live in the
+ * database, so a burst of large uploads cannot exhaust memory or the
+ * connection pool. Further requests wait their turn; past twenty waiting,
+ * the request is refused and can be retried.
+ */
+const documentSlotLimit = 3;
+const documentQueueLimit = 20;
+let activeDocumentSlots = 0;
+const waitingForSlot: (() => void)[] = [];
+
+export async function withDocumentSlot<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
+  if (activeDocumentSlots < documentSlotLimit) activeDocumentSlots += 1;
+  else if (waitingForSlot.length >= documentQueueLimit)
+    throw new Error("DOCUMENT_BUSY");
+  // A released slot passes straight to the next waiter.
+  else await new Promise<void>((resolve) => waitingForSlot.push(resolve));
+  try {
+    return await operation();
+  } finally {
+    const next = waitingForSlot.shift();
+    if (next) next();
+    else activeDocumentSlots -= 1;
+  }
 }
 
 /** The JSON details sent beside an uploaded file. */
@@ -62,7 +102,7 @@ export async function uploadedPdf(form: FormData) {
   // global one.
   if (!file || typeof file === "string") throw new Error("DOCUMENT_EMPTY");
   return {
-    fileName: file.name || "document.pdf",
+    fileName: contractPdfFileName(file.name || "document"),
     bytes: new Uint8Array(await file.arrayBuffer()),
   };
 }
@@ -83,7 +123,9 @@ const statusFor = (code: string) =>
             ? 422
             : code === "UNEXPECTED" || code === "DOCUMENT_INTEGRITY"
               ? 500
-              : 409;
+              : code === "DOCUMENT_BUSY"
+                ? 503
+                : 409;
 
 /** A refusal or failure as JSON; access errors carry their code. */
 export function jsonFailure(error: unknown) {
@@ -113,9 +155,19 @@ export function pdfResponse(
   fileName: string,
   disposition: "attachment" | "inline",
 ) {
-  return new Response(new Uint8Array(bytes), {
+  // A view over the stored bytes, not a copy.
+  const body = new Uint8Array(
+    bytes.buffer as ArrayBuffer,
+    bytes.byteOffset,
+    bytes.byteLength,
+  );
+  return new Response(body, {
     headers: {
       ...noStore,
+      // A PDF opened in the browser runs no script and is not embeddable
+      // from other sites.
+      "content-security-policy": "sandbox",
+      "cross-origin-resource-policy": "same-origin",
       "content-type": "application/pdf",
       "content-length": String(bytes.length),
       "content-disposition": contentDisposition(fileName, disposition),

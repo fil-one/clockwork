@@ -6,6 +6,7 @@ import {
   itemField,
   readUploadForm,
   uploadedPdf,
+  withDocumentSlot,
 } from "@/src/features/internal-ops/contracts/http";
 import {
   contractActor,
@@ -20,8 +21,9 @@ export async function GET(
 ) {
   try {
     await contractStaff("sales:read");
-    const { record, bytes } = await salesLibraryRepository().readFile(
-      z.uuid().parse((await params).id),
+    const id = z.uuid().parse((await params).id);
+    const { record, bytes } = await withDocumentSlot(() =>
+      salesLibraryRepository().readFile(id),
     );
     return pdfResponse(
       bytes,
@@ -45,20 +47,22 @@ export async function POST(
   try {
     const session = await contractStaff("collateral:manage");
     const id = z.uuid().parse((await params).id);
-    const form = await readUploadForm(request);
-    const item = itemField(form);
-    const expectedVersion = z.coerce
-      .number()
-      .int()
-      .min(1)
-      .parse(form.get("expectedVersion"));
-    const record = await salesLibraryRepository().update(
-      id,
-      expectedVersion,
-      item,
-      await uploadedPdf(form),
-      contractActor(session),
-    );
+    const record = await withDocumentSlot(async () => {
+      const form = await readUploadForm(request);
+      const item = itemField(form);
+      const expectedVersion = z.coerce
+        .number()
+        .int()
+        .min(1)
+        .parse(form.get("expectedVersion"));
+      return salesLibraryRepository().update(
+        id,
+        expectedVersion,
+        item,
+        await uploadedPdf(form),
+        contractActor(session),
+      );
+    });
     return Response.json(
       { ok: true, value: record },
       { headers: { "cache-control": "private, no-store" } },

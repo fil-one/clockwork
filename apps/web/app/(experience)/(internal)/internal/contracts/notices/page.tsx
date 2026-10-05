@@ -35,6 +35,7 @@ export default async function Page({
       locale={locale}
       days={loaded.days}
       rows={loaded.rows}
+      passed={loaded.passed}
       today={loaded.today}
     />
   );

@@ -381,7 +381,7 @@ export function ContractDetail({
             contractId={contract.id}
             files={files}
             canWrite={canWrite}
-            locked={contract.status === "executed"}
+            locked={contract.executedAt !== null}
             suggestedKind={suggestedKind(contract)}
           />
         </div>

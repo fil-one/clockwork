@@ -13,11 +13,21 @@ import { withInternalTransaction } from "../transaction";
 const sha256 = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
 
+/** The same bytes as a Buffer, without copying them. */
+export const asBuffer = (bytes: Uint8Array): Buffer =>
+  Buffer.isBuffer(bytes)
+    ? bytes
+    : Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
 /**
  * Database-backed document store (backend `postgres`). Bytes sit in the
  * backed-up PostgreSQL database, as ADR 0011 already accepts for MNDAs; a Fil
  * One S3-compatible store implements the same interface under another
  * backend name, and existing rows keep resolving through this one.
+ *
+ * Deleting a document that a contract file or sales library item still
+ * references is refused by the database, so a cleanup that cannot tell
+ * whether its own transaction committed never removes live evidence.
  */
 export class PostgresContractDocumentStore implements ContractDocumentStore {
   readonly backend = "postgres";
@@ -44,7 +54,7 @@ export class PostgresContractDocumentStore implements ContractDocumentStore {
         contentType: document.contentType,
         sizeBytes: document.sizeBytes,
         sha256: document.sha256,
-        bytes: Buffer.from(bytes),
+        bytes: asBuffer(bytes),
       }),
     );
     return document;
@@ -63,11 +73,11 @@ export class PostgresContractDocumentStore implements ContractDocumentStore {
         )[0],
     );
     if (!row) throw new Error("DOCUMENT_NOT_FOUND");
-    const bytes = new Uint8Array(row.bytes);
+    const bytes = row.bytes;
     if (
       bytes.length !== row.sizeBytes ||
       sha256(bytes) !== row.sha256 ||
-      Buffer.from(bytes.subarray(0, 5)).toString("latin1") !== "%PDF-"
+      bytes.subarray(0, 5).toString("latin1") !== "%PDF-"
     )
       throw new Error("DOCUMENT_INTEGRITY");
     return {
@@ -114,12 +124,22 @@ export class ContractDocumentStores {
     storageBackend: string;
     storageKey: string;
     sha256: string;
-  }) {
+  }): Promise<Buffer> {
     const { bytes, document } = await this.for(file.storageBackend).get(
       file.storageKey,
     );
     if (document.sha256 !== file.sha256 || sha256(bytes) !== file.sha256)
       throw new Error("DOCUMENT_INTEGRITY");
-    return Buffer.from(bytes);
+    return asBuffer(bytes);
   }
+}
+
+/** Stores, or a function that builds them when first needed, so code that
+ * never touches a document (a webhook lookup) never configures a store. */
+export type DocumentStoresSource =
+  ContractDocumentStores | (() => ContractDocumentStores);
+
+export function lazyDocumentStores(source: DocumentStoresSource) {
+  let resolved: ContractDocumentStores | undefined;
+  return () => (resolved ??= typeof source === "function" ? source() : source);
 }

@@ -7,7 +7,7 @@ import {
 import { EmptyState, PageHeader, Table, buttonClassName } from "@clockwork/ui";
 import type { Translator } from "@/src/i18n";
 import { DateValue, DeadlineValue } from "./cells";
-import { contractTypeLabels } from "./copy";
+import { contractTypeLabels, formatContractDate } from "./copy";
 import styles from "./contracts.module.css";
 
 export function RenewalsView({
@@ -15,12 +15,15 @@ export function RenewalsView({
   locale,
   days,
   rows,
+  passed = [],
   today,
 }: {
   t: Translator;
   locale: string;
   days: number;
   rows: readonly ContractListRow[];
+  /** Notice deadline already passed; the contract renews on its renewal date. */
+  passed?: readonly ContractListRow[];
   today: string;
 }) {
   return (
@@ -156,6 +159,37 @@ export function RenewalsView({
           </p>
         </section>
       )}
+      {passed.length ? (
+        <section className={styles.card} aria-labelledby="notices-passed">
+          <div className={styles.cardHeader}>
+            <div>
+              <h2 id="notices-passed">
+                {t("operations.contracts.renewals.passedTitle")}
+              </h2>
+              <p>{t("operations.contracts.renewals.passedBody")}</p>
+            </div>
+          </div>
+          <ul className={styles.documentList}>
+            {passed.map((row) => (
+              <li className={styles.passedRow} key={row.id}>
+                <Link href={`/internal/contracts/${row.id}` as Route}>
+                  {row.counterpartyName}
+                </Link>
+                <span className={styles.secondaryText}>
+                  {t("operations.contracts.renewals.passedRow", {
+                    deadline: row.noticeDeadline
+                      ? formatContractDate(row.noticeDeadline, locale)
+                      : "",
+                    renewal: row.renewalDate
+                      ? formatContractDate(row.renewalDate, locale)
+                      : "",
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
   );
 }

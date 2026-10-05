@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   ContractListQuerySchema,
   contractDocumentMaxBytes,
+  contractPdfFileName,
   type ContractInput,
 } from "@clockwork/contracts";
 import { contractTermSchedule } from "@clockwork/domain";
@@ -36,7 +37,9 @@ const approver = {
   id: randomUUID(),
   display: "Head of Revenue",
 };
-const pdf = (text = randomUUID()) => Buffer.from(`%PDF-1.7\n${text}\n%%EOF`);
+const pdf = (text: string = randomUUID()) =>
+  Buffer.from(`%PDF-1.7\n${text}\n%%EOF`);
+const all = { includeMndas: true };
 const query = (patch: Record<string, unknown>) =>
   ContractListQuerySchema.parse(patch);
 afterAll(() => client.end());
@@ -176,7 +179,7 @@ describe("contract register", () => {
     ];
     for (const row of rows) await repo.create(row, actor);
     const search = async (patch: Record<string, unknown>) =>
-      repo.list(query(patch), "2026-10-04");
+      repo.list(query(patch), "2026-10-04", all);
     expect((await search({ q: marker })).total).toBe(3);
     expect(
       (await search({ q: `Owner ${marker}` })).rows.map(
@@ -213,7 +216,7 @@ describe("contract register", () => {
     expect(second.total).toBe(27);
     expect(second.rows).toHaveLength(2);
     expect(
-      await repo.exportRows(query({ q: marker }), "2026-10-04"),
+      (await repo.exportRows(query({ q: marker }), "2026-10-04", all)).rows,
     ).toHaveLength(27);
   }, 60_000);
 
@@ -275,7 +278,11 @@ describe("contract register", () => {
       "2028-02-29",
       "2031-01-31",
     ]) {
-      const listed = await repo.exportRows(query({ q: marker }), asOf);
+      const { rows: listed } = await repo.exportRows(
+        query({ q: marker }),
+        asOf,
+        all,
+      );
       for (const input of inputs) {
         const row = listed.find((r) => r.id === input.id);
         const expected = contractTermSchedule(input, asOf);
@@ -316,7 +323,9 @@ describe("contract register", () => {
     expect(summary.within90).toBeGreaterThanOrEqual(2);
     expect(summary.within30).toBeLessThanOrEqual(summary.within60);
     expect(
-      (await repo.list(query({ q: marker, window: 60 }), "2026-10-04")).rows
+      (
+        await repo.list(query({ q: marker, window: 60 }), "2026-10-04", all)
+      ).rows
         .map((r) => r.id)
         .sort(),
     ).toEqual([due.id, unsigned.id].sort());
@@ -334,7 +343,7 @@ describe("contract register", () => {
     await client`insert into commerce_mnda_requests (id, input, countersigner, owner_id, owner_name, state, template_hash, test_mode, completed_at)
       values (${completed}, ${JSON.stringify(input(`Signed NDA ${marker}`))}::jsonb, '{"name":"James Kurz"}'::jsonb, ${actor.id}, 'R.W. Holleman', 'completed', ${"a".repeat(64)}, true, now()),
              (${pending}, ${JSON.stringify(input(`Pending NDA ${marker}`))}::jsonb, '{"name":"James Kurz"}'::jsonb, ${actor.id}, 'R.W. Holleman', 'sent', ${"a".repeat(64)}, true, null)`;
-    const { rows } = await repo.list(query({ q: marker }), "2026-10-04");
+    const { rows } = await repo.list(query({ q: marker }), "2026-10-04", all);
     expect(rows).toEqual([
       expect.objectContaining({
         id: completed,
@@ -348,15 +357,181 @@ describe("contract register", () => {
       }),
     ]);
     expect(
-      (await repo.list(query({ q: marker, type: "mnda" }), "2026-10-04")).total,
+      (await repo.list(query({ q: marker, type: "mnda" }), "2026-10-04", all))
+        .total,
     ).toBe(1);
     expect(
-      (await repo.list(query({ q: marker, type: "dpa" }), "2026-10-04")).total,
+      (await repo.list(query({ q: marker, type: "dpa" }), "2026-10-04", all))
+        .total,
     ).toBe(0);
     await expect(repo.get(completed, "2026-10-04")).rejects.toThrow(
       "CONTRACT_NOT_FOUND",
     );
+    // People who cannot open the MNDA register do not see its rows.
+    expect(
+      (
+        await repo.list(query({ q: marker }), "2026-10-04", {
+          includeMndas: false,
+        })
+      ).total,
+    ).toBe(0);
   });
+
+  it("keeps executed contracts executed, apart from expiry or termination", async () => {
+    const marker = randomUUID();
+    const input = contract(marker, { status: "in_negotiation" });
+    await repo.create(input, actor);
+    const file = await repo.addFile(
+      input.id,
+      { kind: "main", fileName: "Signed.pdf", bytes: pdf() },
+      actor,
+    );
+    let version = await repo.update(
+      input.id,
+      2,
+      { ...input, status: "executed" },
+      actor,
+    );
+    const executed = await repo.get(input.id, "2026-10-04");
+    expect(executed.contract.executedAt).not.toBeNull();
+    await expect(
+      repo.update(input.id, version, { ...input, status: "draft" }, actor),
+    ).rejects.toThrow("CONTRACT_EXECUTED_FINAL");
+    version = await repo.update(
+      input.id,
+      version,
+      { ...input, status: "terminated" },
+      actor,
+    );
+    const terminated = await repo.get(input.id, "2026-10-04");
+    expect(terminated.contract.executedAt).toBe(executed.contract.executedAt);
+    // Terminating does not make the signed copy removable again.
+    await expect(repo.removeFile(input.id, file.id, actor)).rejects.toThrow(
+      "CONTRACT_FILE_PERMANENT",
+    );
+    await expect(
+      client.begin(async (tx) => {
+        await tx`set local role clockwork_service`;
+        await tx`delete from commerce_contract_files where id = ${file.id}`;
+      }),
+    ).rejects.toThrow("Documents on an executed contract are permanent");
+    await expect(
+      client.begin(async (tx) => {
+        await tx`set local role clockwork_service`;
+        await tx`update commerce_contracts set status = 'in_negotiation', executed_at = null where id = ${input.id}`;
+      }),
+    ).rejects.toThrow("An executed contract can only expire or be terminated");
+    expect(version).toBeGreaterThan(1);
+  });
+
+  it("lists signing outcomes beside the draft status and filters by them", async () => {
+    const marker = randomUUID();
+    const [countersigner] = await signing.countersigners();
+    if (!countersigner) throw new Error("seed countersigner missing");
+    const input = contract(marker, {
+      paper: "ours",
+      status: "draft",
+      contractType: "other",
+    });
+    await signing.prepare(
+      {
+        contract: input,
+        signing: {
+          templateId: "test-fixture",
+          templateVersion: "1",
+          templateHash: "b".repeat(64),
+          documentName: `Doc ${marker}`,
+          input: {},
+          counterpartySigner: {
+            name: "Alex",
+            email: `alex-${marker}@example.com`,
+            title: "CEO",
+          },
+          countersignerId: countersigner.id,
+          approvalRequired: false,
+          testMode: true,
+        },
+        pdf: pdf(),
+        fileName: "Prepared.pdf",
+      },
+      actor,
+    );
+    const lease = await signing.claim(input.id);
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "sent", providerId: randomUUID() },
+      actor,
+    );
+    await signing.update(input.id, lease.token, { state: "declined" }, actor);
+    await signing.release(input.id, lease.token);
+    const listed = await repo.list(query({ q: marker }), "2026-10-04", all);
+    expect(listed.rows[0]).toMatchObject({
+      status: "draft",
+      signingState: "declined",
+    });
+    expect(
+      (
+        await repo.list(
+          query({ q: marker, status: "signing_declined" }),
+          "2026-10-04",
+          all,
+        )
+      ).total,
+    ).toBe(1);
+    expect(
+      (
+        await repo.list(
+          query({ q: marker, status: "signing_expired" }),
+          "2026-10-04",
+          all,
+        )
+      ).total,
+    ).toBe(0);
+  });
+
+  it("lists contracts whose notice deadline passed before they renew", async () => {
+    const marker = randomUUID();
+    // Term ends 2026-10-31, notice by 2026-10-01: passed on 2026-10-04.
+    const passed = contract(marker, {
+      effectiveDate: "2025-11-01",
+      noticePeriodDays: 30,
+    });
+    await repo.create(passed, actor);
+    const rows = (await repo.noticesPassed("2026-10-04")).filter((r) =>
+      r.counterpartyName.endsWith(marker),
+    );
+    expect(rows).toEqual([
+      expect.objectContaining({
+        id: passed.id,
+        noticeDeadline: "2026-10-01",
+        renewalDate: "2026-11-01",
+      }),
+    ]);
+    expect(
+      (await repo.renewalsDue("2026-10-04", 90)).some(
+        (r) => r.id === passed.id,
+      ),
+    ).toBe(false);
+    expect((await repo.renewalSummary("2026-10-04")).passed).toBeGreaterThan(0);
+  });
+
+  it("flags an export that stops at the row limit", async () => {
+    const marker = randomUUID();
+    await client`
+      insert into commerce_contracts (id, counterparty_name, contract_type, paper, status, owner_name, created_by_id, created_by_name)
+      select gen_random_uuid(), ${`Bulk ${marker}`} || ' ' || n, 'other', 'ours', 'draft', 'R.W.', ${actor.id}, 'R.W.'
+      from generate_series(1, 5001) n`;
+    const full = await repo.exportRows(query({ q: marker }), "2026-10-04", all);
+    expect(full.rows).toHaveLength(5000);
+    expect(full.truncated).toBe(true);
+    const one = await repo.exportRows(
+      query({ q: `${marker} 4999` }),
+      "2026-10-04",
+      all,
+    );
+    expect(one).toMatchObject({ truncated: false });
+  }, 60_000);
 });
 
 describe("contract documents", () => {
@@ -574,12 +749,18 @@ describe("template signing persistence", () => {
     ).rejects.toMatchObject({
       cause: { message: "Contract completion requires archived evidence" },
     });
+    // A 200-character document name still yields a valid file name.
+    const longName = contractPdfFileName("N".repeat(200), " (executed)");
+    await signing.extendLease(input.id, lease.token);
+    await expect(signing.extendLease(input.id, randomUUID())).rejects.toThrow(
+      "CONTRACT_LEASE_LOST",
+    );
     await signing.update(
       input.id,
       lease.token,
       { state: "completed" },
       { kind: "provider", id: "signwell" },
-      { bytes: pdf("executed with audit pages"), fileName: "Executed.pdf" },
+      { bytes: pdf("executed with audit pages"), fileName: longName },
     );
     await signing.release(input.id, lease.token);
     const detail = await repo.get(input.id, "2026-10-04");
@@ -594,9 +775,105 @@ describe("template signing persistence", () => {
       actorName: "SignWell",
     });
     const executed = detail.files.find((f) => f.kind === "executed");
+    expect(executed?.fileName).toBe(longName);
+    expect(detail.contract.executedAt).not.toBeNull();
     expect(
       (await repo.readFile(input.id, executed?.id ?? "")).bytes.toString(),
     ).toContain("audit pages");
+  });
+});
+
+describe("document lifetime", () => {
+  it("refuses to delete stored bytes that a record still references", async () => {
+    const marker = randomUUID();
+    const input = contract(marker, { status: "in_negotiation" });
+    await repo.create(input, actor);
+    const file = await repo.addFile(
+      input.id,
+      { kind: "main", fileName: "Draft.pdf", bytes: pdf("kept") },
+      actor,
+    );
+    const [located] = await client<{ key: string }[]>`
+      select storage_key as key from commerce_contract_files where id = ${file.id}`;
+    await expect(store.delete(located?.key ?? "")).rejects.toThrow();
+    expect((await repo.readFile(input.id, file.id)).bytes.toString()).toContain(
+      "kept",
+    );
+  });
+
+  it("keeps the PDF when a commit succeeded but its acknowledgement was lost", async () => {
+    const marker = randomUUID();
+    const input = contract(marker, { status: "in_negotiation" });
+    await repo.create(input, actor);
+    // The transaction commits, then the caller sees a failure, as when the
+    // connection drops before the commit is acknowledged. The repository's
+    // cleanup then tries to delete the bytes it just stored.
+    const flaky = new ContractRepository(db, stores);
+    const internal = flaky as unknown as {
+      tx: <T>(fn: (tx: never) => Promise<T>) => Promise<T>;
+    };
+    const commit = internal.tx.bind(flaky);
+    internal.tx = async (fn) => {
+      await commit(fn);
+      throw new Error("connection reset");
+    };
+    await expect(
+      flaky.addFile(
+        input.id,
+        { kind: "main", fileName: "Signed.pdf", bytes: pdf("survives") },
+        actor,
+      ),
+    ).rejects.toThrow("connection reset");
+    const { files } = await repo.get(input.id, "2026-10-04");
+    expect(files).toHaveLength(1);
+    expect(
+      (await repo.readFile(input.id, files[0]?.id ?? "")).bytes.toString(),
+    ).toContain("survives");
+  });
+
+  it("removes the second PDF when the same preparation is submitted twice", async () => {
+    const marker = randomUUID();
+    const [countersigner] = await signing.countersigners();
+    if (!countersigner) throw new Error("seed countersigner missing");
+    const prepared = {
+      contract: contract(marker, {
+        paper: "ours",
+        status: "draft",
+        contractType: "other",
+      }),
+      signing: {
+        templateId: "test-fixture",
+        templateVersion: "1",
+        templateHash: "b".repeat(64),
+        documentName: `Doc ${marker}`,
+        input: { a: "1" },
+        counterpartySigner: {
+          name: "Alex",
+          email: `alex-${marker}@example.com`,
+          title: "CEO",
+        },
+        countersignerId: countersigner.id,
+        approvalRequired: false,
+        testMode: true,
+      },
+      fileName: "Prepared.pdf",
+    };
+    const count = async () =>
+      Number(
+        (
+          await client<{ n: number }[]>`
+            select count(*)::integer as n from commerce_stored_documents
+            where bytes = ${pdf(marker)}`
+        )[0]?.n,
+      );
+    await signing.prepare({ ...prepared, pdf: pdf(marker) }, actor);
+    expect(await count()).toBe(1);
+    const again = await signing.prepare(
+      { ...prepared, pdf: pdf(marker) },
+      actor,
+    );
+    expect(again.duplicate).toBe(true);
+    expect(await count()).toBe(1);
   });
 });
 

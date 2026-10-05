@@ -503,6 +503,20 @@
   outline-offset: 2px;
 }
 
+.passedRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--cw-space-1) var(--cw-space-4);
+  padding: var(--cw-space-3) 0;
+  border-bottom: 1px solid var(--cw-border);
+}
+
+.passedRow a {
+  color: var(--cw-ink);
+  font-weight: 500;
+}
+
 .spaced {
   margin-top: var(--cw-space-4);
 }

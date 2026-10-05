@@ -384,10 +384,20 @@ export function ContractForm({
             label={t("operations.contracts.field.status")}
             value={draft.status}
             onChange={(e) => set("status", e.target.value as ContractStatus)}
-            options={contractStatuses.map((status) => ({
-              value: status,
-              label: t(contractStatusLabels[status]),
-            }))}
+            options={contractStatuses
+              // An executed contract can only expire or be terminated.
+              .filter(
+                (status) =>
+                  !contract?.executedAt ||
+                  ["executed", "expired", "terminated"].includes(status),
+              )
+              .map((status) => ({
+                value: status,
+                label: t(contractStatusLabels[status]),
+              }))}
+            {...(contract?.executedAt
+              ? { help: t("operations.contracts.field.statusExecutedHelp") }
+              : {})}
             error={fieldError("status")}
           />
         </div>

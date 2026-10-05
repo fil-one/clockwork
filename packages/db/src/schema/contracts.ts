@@ -71,6 +71,7 @@ export const commerceContracts = pgTable(
       .$type<"register" | "template">()
       .notNull()
       .default("register"),
+    executedAt: timestamp("executed_at", { withTimezone: true }),
     createdById: uuid("created_by_id").notNull(),
     createdByName: text("created_by_name").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(27);
 set local search_path=public,extensions;
 
 select ok((select bool_and(relrowsecurity and relforcerowsecurity) from pg_class where oid in (
@@ -32,16 +32,33 @@ select throws_ok($$insert into commerce_contracts(id,counterparty_name,contract_
   '23514',null,'auto-renewal needs a term');
 select throws_ok($$insert into commerce_contract_signing(contract_id,template_id,template_version,template_hash,document_name,input,counterparty_signer,countersigner,preparer_id,preparer_name,approval_required,approval_state,approver_id,approver_name,decided_at,test_mode)
   values('019a44ac-0000-7000-8000-00000000aa02','test-fixture','1',repeat('b',64),'Doc','{}','{}','{}','019a44ac-0000-7000-8000-00000000aa03','R.W.',true,'approved','019a44ac-0000-7000-8000-00000000aa03','R.W.',now(),true)$$,
-  '23514',null,'the preparer cannot be the approver');
+  'P0001','A contract signing request starts as an undecided, unsent draft','an approval cannot be recorded at creation');
+select throws_ok($$insert into commerce_contract_signing(contract_id,template_id,template_version,template_hash,document_name,input,counterparty_signer,countersigner,preparer_id,preparer_name,approval_required,approval_state,state,provider_id,test_mode)
+  values('019a44ac-0000-7000-8000-00000000aa02','test-fixture','1',repeat('b',64),'Doc','{}','{}','{}','019a44ac-0000-7000-8000-00000000aa03','R.W.',false,'not_required','sent','11111111-1111-4111-8111-111111111111',true)$$,
+  'P0001','A contract signing request starts as an undecided, unsent draft','a signing request cannot be created already sent');
 select lives_ok($$insert into commerce_contract_signing(contract_id,template_id,template_version,template_hash,document_name,input,counterparty_signer,countersigner,preparer_id,preparer_name,approval_required,approval_state,test_mode)
   values('019a44ac-0000-7000-8000-00000000aa02','test-fixture','1',repeat('b',64),'Doc','{}','{}','{}','019a44ac-0000-7000-8000-00000000aa03','R.W.',true,'pending',true)$$,
   'a preparation waits for approval');
+select throws_ok($$update commerce_contract_signing set approval_state='approved',approver_id=preparer_id,approver_name='R.W.',decided_at=now() where contract_id='019a44ac-0000-7000-8000-00000000aa02'$$,
+  '23514',null,'the preparer cannot be the approver');
 select throws_ok($$update commerce_contract_signing set state='sending' where contract_id='019a44ac-0000-7000-8000-00000000aa02'$$,
   'P0001','Contract requires approval before sending','nothing is sent before approval');
 select throws_ok($$update commerce_contract_signing set input='{"x":"y"}' where contract_id='019a44ac-0000-7000-8000-00000000aa02'$$,
   'P0001','Contract signing snapshots and provider binding are immutable','prepared values cannot change');
 select throws_ok($$update commerce_contract_signing set approval_state='approved',approver_id='019a44ac-0000-7000-8000-00000000aa04',approver_name='J',decided_at=now(),state='completed' where contract_id='019a44ac-0000-7000-8000-00000000aa02'$$,
   'P0001','Contract completion requires archived evidence','completion requires the executed PDF');
+select lives_ok($$insert into commerce_stored_documents(id,purpose,content_type,size_bytes,sha256,bytes)
+  values('019a44ac-0000-7000-8000-00000000aa05','contract','application/pdf',8,repeat('c',64),'%PDF-1.7'::bytea)$$,
+  'a PDF is stored');
+select lives_ok($$insert into commerce_contract_files(id,contract_id,kind,file_name,storage_backend,storage_key,sha256,size_bytes,content_type,uploaded_by_name)
+  values('019a44ac-0000-7000-8000-00000000aa06','019a44ac-0000-7000-8000-00000000aa02','main','Signed.pdf','postgres','019a44ac-0000-7000-8000-00000000aa05',repeat('c',64),8,'application/pdf','R.W.')$$,
+  'a contract references it');
+select throws_ok($$delete from commerce_stored_documents where id='019a44ac-0000-7000-8000-00000000aa05'$$,
+  'P0001','Stored document is still referenced','referenced bytes cannot be deleted');
+select lives_ok($$update commerce_contracts set status='executed' where id='019a44ac-0000-7000-8000-00000000aa02'$$,
+  'the contract is executed');
+select throws_ok($$update commerce_contracts set status='draft' where id='019a44ac-0000-7000-8000-00000000aa02'$$,
+  'P0001','An executed contract can only expire or be terminated','an executed contract cannot return to draft');
 reset role;
 
 select * from finish();

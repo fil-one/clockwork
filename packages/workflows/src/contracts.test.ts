@@ -55,6 +55,7 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
     async release() {
       leased = false;
     },
+    extendLease: vi.fn(async () => {}),
     async get() {
       return structuredClone(record);
     },
@@ -91,6 +92,7 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
   };
   const wait = vi.fn(async () => {});
   return {
+    repo,
     workflow: new ContractSigningWorkflow(repo, provider, wait),
     provider,
     doc,
@@ -111,7 +113,7 @@ it("refuses to send a request that still needs approval, before calling SignWell
 });
 
 it("binds the unsent draft before sending, waits for field extraction, then sends once", async () => {
-  const { workflow, provider, record, updates, wait } = setup();
+  const { workflow, provider, record, updates, wait, repo } = setup();
   const sent = await workflow.send(record().contractId, actor);
   expect(sent.state).toBe("sent");
   expect(provider.createContractDraft).toHaveBeenCalledOnce();
@@ -120,6 +122,8 @@ it("binds the unsent draft before sending, waits for field extraction, then send
     true,
   );
   expect(wait).toHaveBeenCalledOnce();
+  // The lease is renewed in each polling round and before sending.
+  expect(repo.extendLease).toHaveBeenCalledTimes(2);
   expect(updates.map((u) => u.state ?? u.providerId)).toEqual([
     "preparing",
     "ready",
@@ -185,4 +189,25 @@ it("only cancels drafts that were never sent", async () => {
   await expect(workflow.cancel(record().contractId, actor)).rejects.toThrow(
     "CONTRACT_CANCEL_IN_SIGNWELL",
   );
+});
+
+it("names the executed copy within the file name limit", async () => {
+  const documentName =
+    `Fil One Engine Test Fixture - ${"Very Long Counterparty ".repeat(9)}`.slice(
+      0,
+      200,
+    );
+  const { workflow, doc, record, archived } = setup({
+    providerId: "019a44ac-0000-7000-8000-0000000000d5",
+    state: "sent",
+    documentName,
+  });
+  doc.status = "Completed";
+  await workflow.sync(record().contractId, {
+    kind: "provider",
+    id: "signwell",
+  });
+  const fileName = archived()?.fileName ?? "";
+  expect(fileName.length).toBeLessThanOrEqual(200);
+  expect(fileName.endsWith(" (executed).pdf")).toBe(true);
 });

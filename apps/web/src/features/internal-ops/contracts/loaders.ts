@@ -52,6 +52,11 @@ const permissions = (session: ContractStaffSession) => ({
   canApprove: sessionHas(session, "contract:approve"),
 });
 
+/** Signed MNDAs join the register only for people who may open MNDAs. */
+export const listScope = (session: ContractStaffSession) => ({
+  includeMndas: sessionHas(session, "mnda:send"),
+});
+
 export function loadRegister(
   searchParams: Record<string, string | string[] | undefined>,
 ) {
@@ -62,7 +67,8 @@ export function loadRegister(
     return {
       query,
       today,
-      result: await contractRepository().list(query, today),
+      result: await contractRepository().list(query, today, listScope(session)),
+      canOpenMndas: listScope(session).includeMndas,
       ...permissions(session),
     };
   });
@@ -88,10 +94,12 @@ export function loadRenewals(window: unknown) {
     const days =
       contractRenewalWindows.find((w) => String(w) === String(window)) ?? 90;
     const today = contractToday();
+    const repository = contractRepository();
     return {
       days,
       today,
-      rows: await contractRepository().renewalsDue(today, days),
+      rows: await repository.renewalsDue(today, days),
+      passed: await repository.noticesPassed(today),
     };
   });
 }

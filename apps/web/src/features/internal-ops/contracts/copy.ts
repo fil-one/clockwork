@@ -1,4 +1,5 @@
 import type {
+  contractStatusFilterExtras,
   ContractApprovalState,
   ContractFileKind,
   ContractPaper,
@@ -46,6 +47,15 @@ export const contractStatusTone: Readonly<
   executed: "success",
   expired: "neutral",
   terminated: "neutral",
+};
+
+/** Status filter options for drafts whose signing ended unsigned. */
+export const statusFilterExtraLabels: Readonly<
+  Record<(typeof contractStatusFilterExtras)[number], MessageId>
+> = {
+  signing_declined: "operations.contracts.filters.signingDeclined",
+  signing_expired: "operations.contracts.filters.signingExpired",
+  signing_canceled: "operations.contracts.filters.signingCanceled",
 };
 
 export const contractFileKindLabels: Readonly<
@@ -105,6 +115,8 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
   DOCUMENT_EMPTY: "operations.contracts.error.empty",
   DOCUMENT_INTEGRITY: "operations.contracts.error.integrity",
   CONTRACT_FILE_PERMANENT: "operations.contracts.error.filePermanent",
+  CONTRACT_EXECUTED_FINAL: "operations.contracts.error.executedFinal",
+  DOCUMENT_BUSY: "operations.contracts.error.documentBusy",
   CONTRACT_STATUS_FOLLOWS_SIGNING:
     "operations.contracts.error.statusFollowsSigning",
   CONTRACT_APPROVER_IS_PREPARER: "operations.contracts.error.selfApproval",

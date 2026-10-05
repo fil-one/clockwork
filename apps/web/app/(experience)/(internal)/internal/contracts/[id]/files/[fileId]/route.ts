@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   jsonFailure,
   pdfResponse,
+  withDocumentSlot,
 } from "@/src/features/internal-ops/contracts/http";
 import {
   contractRepository,
@@ -17,9 +18,8 @@ export async function GET(
   try {
     await contractStaff("contract:read");
     const { id, fileId } = await params;
-    const { file, bytes } = await contractRepository().readFile(
-      z.uuid().parse(id),
-      z.uuid().parse(fileId),
+    const { file, bytes } = await withDocumentSlot(() =>
+      contractRepository().readFile(z.uuid().parse(id), z.uuid().parse(fileId)),
     );
     return pdfResponse(
       bytes,

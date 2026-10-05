@@ -24,6 +24,7 @@ const row = (patch: Partial<ContractListRow> = {}): ContractListRow => ({
   ownerName: "R.W. Holleman",
   tags: ["enterprise"],
   documentCount: 1,
+  signingState: null,
   updatedAt: "2026-10-01T00:00:00.000Z",
   termEndDate: "2026-12-31",
   renewalDate: "2027-01-01",
@@ -35,13 +36,20 @@ const query = (patch: Record<string, unknown> = {}) =>
 
 function renderRegister(
   rows: ContractListRow[],
-  patch: { q?: string; total?: number; canWrite?: boolean; page?: number } = {},
+  patch: {
+    q?: string;
+    status?: string;
+    total?: number;
+    canWrite?: boolean;
+    canOpenMndas?: boolean;
+    page?: number;
+  } = {},
 ) {
   return render(
     <RegisterView
       t={t}
       locale="en-US"
-      query={query({ q: patch.q, page: patch.page })}
+      query={query({ q: patch.q, page: patch.page, status: patch.status })}
       result={{
         rows,
         total: patch.total ?? rows.length,
@@ -50,6 +58,7 @@ function renderRegister(
       }}
       today="2026-10-04"
       canWrite={patch.canWrite ?? true}
+      canOpenMndas={patch.canOpenMndas ?? true}
     />,
   );
 }
@@ -228,4 +237,64 @@ describe("template picker", () => {
       within(ready).getByRole("link", { name: "Prepare Other" }),
     ).toHaveAttribute("href", "/internal/contracts/templates/test-fixture");
   });
+});
+
+describe("register signing outcomes, MNDA links and export limit", () => {
+  it("shows a declined signing beside the draft status and offers it as a filter", () => {
+    renderRegister([
+      row({ status: "draft", signingState: "declined", documentCount: 1 }),
+    ]);
+    expect(screen.getAllByText("Declined")[0]).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Draft: signer declined" }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not link MNDA rows for readers who cannot open the MNDA register", () => {
+    renderRegister(
+      [
+        row({
+          source: "mnda",
+          contractType: "mnda",
+          counterpartyName: "Northwind",
+        }),
+      ],
+      { canOpenMndas: false },
+    );
+    expect(screen.queryByRole("link", { name: "Northwind" })).toBeNull();
+  });
+
+  it("warns before an export that would stop at the row limit", () => {
+    renderRegister([row()], { total: 5001 });
+    expect(
+      screen.getByText(
+        /The CSV export includes the first 5,000 matching contracts/,
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+it("lists contracts whose notice deadline passed, with their renewal date", () => {
+  render(
+    <RenewalsView
+      t={t}
+      locale="en-US"
+      days={30}
+      rows={[]}
+      passed={[
+        row({
+          counterpartyName: "Harbor Media",
+          noticeDeadline: "2026-10-01",
+          renewalDate: "2026-11-01",
+        }),
+      ]}
+      today="2026-10-04"
+    />,
+  );
+  expect(
+    screen.getByRole("heading", { name: "Notice deadline passed" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("Notice deadline Oct 1, 2026, renews on Nov 1, 2026"),
+  ).toBeInTheDocument();
 });

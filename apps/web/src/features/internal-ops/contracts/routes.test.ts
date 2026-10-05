@@ -157,6 +157,10 @@ describe("downloads", () => {
     );
     expect(response.headers.get("content-type")).toBe("application/pdf");
     expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(response.headers.get("content-security-policy")).toBe("sandbox");
+    expect(response.headers.get("cross-origin-resource-policy")).toBe(
+      "same-origin",
+    );
     expect(response.headers.get("content-disposition")).toBe(
       contentDisposition("Contrato firmado — Señal"),
     );
@@ -197,33 +201,38 @@ describe("downloads", () => {
 describe("register export", () => {
   it("exports the filtered register as CSV that cannot run formulas", async () => {
     as("revenue");
-    mocks.repository.exportRows.mockResolvedValue([
-      {
-        id: contractId,
-        source: "register",
-        counterpartyName: '=HYPERLINK("http://x")',
-        title: "",
-        contractType: "dpa",
-        paper: "theirs",
-        status: "executed",
-        effectiveDate: "2026-01-01",
-        autoRenew: true,
-        noticePeriodDays: 30,
-        ownerName: "R.W., Holleman",
-        tags: ["eu", "priority"],
-        documentCount: 2,
-        updatedAt: "2026-10-01T00:00:00.000Z",
-        termEndDate: "2026-12-31",
-        renewalDate: "2027-01-01",
-        noticeDeadline: "2026-12-01",
-      },
-    ]);
+    mocks.repository.exportRows.mockResolvedValue({
+      truncated: true,
+      rows: [
+        {
+          id: contractId,
+          source: "register",
+          counterpartyName: '=HYPERLINK("http://x")',
+          title: "",
+          contractType: "dpa",
+          paper: "theirs",
+          status: "executed",
+          effectiveDate: "2026-01-01",
+          autoRenew: true,
+          noticePeriodDays: 30,
+          ownerName: "R.W., Holleman",
+          tags: ["eu", "priority"],
+          documentCount: 2,
+          updatedAt: "2026-10-01T00:00:00.000Z",
+          termEndDate: "2026-12-31",
+          renewalDate: "2027-01-01",
+          noticeDeadline: "2026-12-01",
+          signingState: null,
+        },
+      ],
+    });
     const response = await exportCsv(
       new Request(`${origin}/internal/contracts/export?type=dpa&q=blue`),
     );
     expect(response.headers.get("content-type")).toBe(
       "text/csv; charset=utf-8",
     );
+    expect(response.headers.get("x-contract-export-truncated")).toBe("true");
     const csv = await response.text();
     expect(csv).toContain(`"'=HYPERLINK(""http://x"")"`);
     expect(csv).toContain(`"R.W., Holleman"`);
@@ -231,6 +240,7 @@ describe("register export", () => {
     expect(mocks.repository.exportRows).toHaveBeenCalledWith(
       expect.objectContaining({ type: "dpa", q: "blue" }),
       expect.any(String),
+      { includeMndas: true },
     );
   });
 

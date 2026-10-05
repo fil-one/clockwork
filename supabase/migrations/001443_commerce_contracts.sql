@@ -43,6 +43,9 @@ create table public.commerce_contracts (
   internal_notes text not null default '' check (length(internal_notes) <= 10000),
   tags text[] not null default '{}' check (cardinality(tags) <= 20),
   source text not null default 'register' check (source in ('register','template')),
+  -- Set the first time the contract is executed and never cleared. Its
+  -- documents stay permanent even if it later expires or is terminated.
+  executed_at timestamptz,
   created_by_id uuid not null,
   created_by_name text not null,
   created_at timestamptz not null default now(),
@@ -195,7 +198,7 @@ begin
   if old.kind in ('generated','executed') then
     raise exception 'Prepared and executed contract documents are permanent';
   end if;
-  if exists (select 1 from public.commerce_contracts where id = old.contract_id and status = 'executed') then
+  if exists (select 1 from public.commerce_contracts where id = old.contract_id and executed_at is not null) then
     raise exception 'Documents on an executed contract are permanent';
   end if;
   return old;
@@ -203,8 +206,51 @@ end $$;
 create trigger protect_commerce_contract_file before update or delete on public.commerce_contract_files
   for each row execute function public.protect_commerce_contract_file();
 
+/* Executed is final for ordinary edits: once executed, a contract may only
+   become expired or terminated, and executed_at never changes. */
+create function public.protect_commerce_contract() returns trigger language plpgsql set search_path = public as $$
+begin
+  if tg_op = 'UPDATE' and old.executed_at is not null then
+    new.executed_at := old.executed_at;
+    if new.status not in ('executed','expired','terminated') then
+      raise exception 'An executed contract can only expire or be terminated';
+    end if;
+  end if;
+  if new.status = 'executed' and new.executed_at is null then
+    new.executed_at := now();
+  end if;
+  return new;
+end $$;
+create trigger protect_commerce_contract before insert or update on public.commerce_contracts
+  for each row execute function public.protect_commerce_contract();
+
+/* Stored bytes outlive any cleanup that cannot tell whether its transaction
+   committed: a document still referenced by a contract file or a sales
+   library item cannot be deleted. */
+create function public.protect_commerce_stored_document() returns trigger language plpgsql set search_path = public as $$
+begin
+  if exists (select 1 from public.commerce_contract_files
+               where storage_backend = 'postgres' and storage_key = old.id::text)
+     or exists (select 1 from public.commerce_sales_collateral
+               where storage_backend = 'postgres' and storage_key = old.id::text) then
+    raise exception 'Stored document is still referenced';
+  end if;
+  return old;
+end $$;
+create trigger protect_commerce_stored_document before delete on public.commerce_stored_documents
+  for each row execute function public.protect_commerce_stored_document();
+
 create function public.protect_commerce_contract_signing() returns trigger language plpgsql set search_path = public as $$
 begin
+  if tg_op = 'INSERT' then
+    if new.state <> 'draft' or new.approval_state not in ('pending','not_required')
+       or new.approver_id is not null or new.approver_name is not null or new.decided_at is not null
+       or new.rejection_reason is not null or new.provider_id is not null or new.error is not null
+       or new.completed_at is not null then
+      raise exception 'A contract signing request starts as an undecided, unsent draft';
+    end if;
+    return new;
+  end if;
   if new.input <> old.input or new.counterparty_signer <> old.counterparty_signer
      or new.countersigner <> old.countersigner or new.template_id <> old.template_id
      or new.template_version <> old.template_version or new.template_hash <> old.template_hash
@@ -235,7 +281,7 @@ begin
   end if;
   return new;
 end $$;
-create trigger protect_commerce_contract_signing before update on public.commerce_contract_signing
+create trigger protect_commerce_contract_signing before insert or update on public.commerce_contract_signing
   for each row execute function public.protect_commerce_contract_signing();
 
 alter table public.commerce_stored_documents enable row level security;

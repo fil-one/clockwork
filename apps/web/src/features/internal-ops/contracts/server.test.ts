@@ -7,7 +7,11 @@ vi.mock("@/src/auth/session", () => ({
   explicitDemoIdentityEnabled: mocks.demo,
 }));
 vi.mock("@/src/db/service", () => ({ getServiceDatabase: vi.fn() }));
-import { contractStaff, documentStores } from "./server";
+import {
+  contractSigningRepository,
+  contractStaff,
+  documentStores,
+} from "./server";
 
 const staff = (roles: string[]) => ({
   userId: "019a44ac-0000-7000-8000-000000000006",
@@ -65,5 +69,11 @@ describe("contract and sales library permissions", () => {
 it("refuses a document store it does not know", () => {
   vi.stubEnv("COMMERCE_DOCUMENT_STORE", "fil_one_s3");
   expect(() => documentStores()).toThrow("DOCUMENT_BACKEND_UNAVAILABLE");
+  vi.unstubAllEnvs();
+});
+
+it("lets a webhook look up a contract without configuring a document store", () => {
+  vi.stubEnv("COMMERCE_DOCUMENT_STORE", "not-a-store");
+  expect(() => contractSigningRepository()).not.toThrow();
   vi.unstubAllEnvs();
 });

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { availableContractTemplate } from "@clockwork/documents";
-import { ContractInputSchema } from "@clockwork/contracts";
+import { ContractInputSchema, contractPdfFileName } from "@clockwork/contracts";
 import { attempt } from "./action-result";
 import { prepareInputSchema } from "./prepare-input";
 import {
@@ -130,7 +130,7 @@ export async function prepareContract(raw: unknown) {
           testMode: contractSigningConfiguration().testMode,
         },
         pdf: rendered.bytes,
-        fileName: `${documentName}.pdf`,
+        fileName: contractPdfFileName(documentName),
       },
       contractActor(session),
     );

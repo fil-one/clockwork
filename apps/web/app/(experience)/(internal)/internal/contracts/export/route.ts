@@ -5,7 +5,9 @@ import {
   contractPaperLabels,
   contractStatusLabels,
   contractTypeLabels,
+  signingStateLabels,
 } from "@/src/features/internal-ops/contracts/copy";
+import { listScope } from "@/src/features/internal-ops/contracts/loaders";
 import { toCsv } from "@/src/features/internal-ops/contracts/csv";
 import { jsonFailure } from "@/src/features/internal-ops/contracts/http";
 import {
@@ -16,13 +18,17 @@ import {
 /** The register as CSV, with the same filters as the list on screen. */
 export async function GET(request: Request) {
   try {
-    await contractStaff("contract:read");
+    const session = await contractStaff("contract:read");
     const t = await getTranslations();
     const today = contractToday();
     const query = ContractListQuerySchema.parse(
       Object.fromEntries(new URL(request.url).searchParams),
     );
-    const rows = await contractRepository().exportRows(query, today);
+    const { rows, truncated } = await contractRepository().exportRows(
+      query,
+      today,
+      listScope(session),
+    );
     const csv = toCsv(
       [
         t("operations.contracts.field.counterparty"),
@@ -30,6 +36,7 @@ export async function GET(request: Request) {
         t("operations.contracts.field.type"),
         t("operations.contracts.field.paper"),
         t("operations.contracts.field.status"),
+        t("operations.contracts.export.signing"),
         t("operations.contracts.field.effectiveDate"),
         t("operations.contracts.field.termEnds"),
         t("operations.contracts.field.renewsOn"),
@@ -45,6 +52,7 @@ export async function GET(request: Request) {
         t(contractTypeLabels[row.contractType]),
         t(contractPaperLabels[row.paper]),
         t(contractStatusLabels[row.status]),
+        row.signingState ? t(signingStateLabels[row.signingState]) : "",
         row.effectiveDate,
         row.termEndDate,
         row.renewalDate,
@@ -65,6 +73,8 @@ export async function GET(request: Request) {
         "content-disposition": `attachment; filename="fil-one-contracts-${today}.csv"`,
         "cache-control": "private, no-store",
         "x-content-type-options": "nosniff",
+        // Past the row limit the file stops; the register page warns first.
+        "x-contract-export-truncated": String(truncated),
       },
     });
   } catch (error) {
