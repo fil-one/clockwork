@@ -197,20 +197,21 @@ export function signWellCopiedContacts(r: MndaRecord) {
     ? [{ name: r.ownerName, email: r.ownerEmail }]
     : [];
 }
-/** Before delivery: the draft must copy exactly the expected contacts, so a
- * sender is never silently left out of the completion email. */
+/**
+ * Before delivery: when SignWell reports the draft's copied contacts, they
+ * must include the sender, or sending stops. Whether SignWell echoes the field
+ * on a fetched draft is not yet confirmed, so a document without it returns
+ * `"unreported"` and sending continues; the caller records that.
+ */
 export function assertSignWellCopiedContacts(
   doc: SignWellDocument,
   record: MndaRecord,
-) {
-  const actual = (doc.copied_contacts ?? [])
-    .map((c) => c.email.toLowerCase())
-    .sort();
-  const expected = signWellCopiedContacts(record)
-    .map((c) => c.email)
-    .sort();
-  if (JSON.stringify(actual) !== JSON.stringify(expected))
+): "verified" | "unreported" {
+  if (doc.copied_contacts == null) return "unreported";
+  const actual = new Set(doc.copied_contacts.map((c) => c.email.toLowerCase()));
+  if (!signWellCopiedContacts(record).every((c) => actual.has(c.email)))
     throw new Error("SIGNWELL_COPIED_CONTACTS_MISMATCH");
+  return "verified";
 }
 /** Whether a failed call certainly changed nothing at SignWell: a 4xx refusal.
  * Timeouts, 5xx and unreadable responses may have been applied. */

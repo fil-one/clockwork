@@ -154,12 +154,20 @@ export class MndaWorkflow {
       if (signWellState(doc, current) !== "ready")
         return await this.apply(current, token, doc, actor);
       assertSignWellSigningFields(doc, record);
-      assertSignWellCopiedContacts(doc, current);
+      const copied = assertSignWellCopiedContacts(doc, current);
+      if (copied === "unreported")
+        // i18n-exempt: operator log; identifiers only, no email addresses
+        console.warn("MNDA copied contacts not reported by SignWell", {
+          mndaId: id,
+          providerId: current.providerId,
+        });
       await this.repo.update(
         id,
         token,
         { state: "sending", error: null },
         actor,
+        undefined,
+        { detail: { copiedContacts: copied } },
       );
       await this.provider.send(current.providerId, current.testMode);
       return await this.apply(

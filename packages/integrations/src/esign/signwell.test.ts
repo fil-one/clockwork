@@ -311,22 +311,39 @@ describe("after-send safety checks", () => {
       expect(signWellState(document, pending)).toBe("ready");
     }
   });
-  it("requires exactly the expected copied contacts before sending", () => {
-    expect(() =>
+  it("verifies a reported copy of the sender", () => {
+    expect(
       assertSignWellCopiedContacts(
         { ...doc(), copied_contacts: [{ email: "Seller@Example.com" }] },
         fixtureRecord,
       ),
-    ).not.toThrow();
-    expect(() => assertSignWellCopiedContacts(doc(), fixtureRecord)).toThrow(
-      "COPIED_CONTACTS",
+    ).toBe("verified");
+    expect(
+      assertSignWellCopiedContacts(
+        { ...doc(), copied_contacts: [] },
+        { ...fixtureRecord, ownerEmail: null },
+      ),
+    ).toBe("verified");
+  });
+  it("lets sending continue when SignWell does not report copied contacts", () => {
+    expect(assertSignWellCopiedContacts(doc(), fixtureRecord)).toBe(
+      "unreported",
     );
-    expect(() =>
-      assertSignWellCopiedContacts(doc(), {
-        ...fixtureRecord,
-        ownerEmail: null,
-      }),
-    ).not.toThrow();
+    expect(
+      assertSignWellCopiedContacts(
+        { ...doc(), copied_contacts: null },
+        fixtureRecord,
+      ),
+    ).toBe("unreported");
+  });
+  it("blocks sending when the reported copies leave out the sender", () => {
+    for (const copied_contacts of [[], [{ email: "someone@example.com" }]])
+      expect(() =>
+        assertSignWellCopiedContacts(
+          { ...doc(), copied_contacts },
+          fixtureRecord,
+        ),
+      ).toThrow("COPIED_CONTACTS");
   });
   it("treats only a 4xx answer as a definite refusal", () => {
     expect(signWellRefused(new Error("SIGNWELL_HTTP_422"))).toBe(true);

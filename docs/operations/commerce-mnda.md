@@ -144,11 +144,14 @@ The sender is a SignWell copied contact (`copied_contacts`) on every new
 request, so SignWell emails the sender the completed agreement when both sides
 have signed. The countersigner and partner receive it as recipients. A sender
 who is also the countersigner is not copied twice. No Commerce email is sent.
-Before sending, Commerce checks that the SignWell draft carries exactly the
-expected copied contact and refuses to send otherwise. SignWell's
-update-and-send request has no copied-contacts field, so the contact is set only
-when the draft is created. Requests created before this change have no copied
-contact.
+Before sending, Commerce reads the SignWell draft. If SignWell reports copied
+contacts and they leave out the sender, sending stops. If the draft does not
+report copied contacts at all, sending continues and the server logs "MNDA
+copied contacts not reported by SignWell" with the request and document IDs; the
+send audit event records `copiedContacts: "unreported"` (otherwise
+`"verified"`). SignWell's update-and-send request has no copied-contacts field,
+so the contact is set only when the draft is created. Requests created before
+this change have no copied contact.
 
 ## MNDA settings
 

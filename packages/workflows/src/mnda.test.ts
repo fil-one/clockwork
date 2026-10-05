@@ -403,7 +403,20 @@ it("drops the new email only when SignWell refuses it, and refuses after the par
   ).rejects.toThrow("SIGNER_STARTED");
   expect(s.provider.updateRecipient).toHaveBeenCalledTimes(1);
 });
-it("refuses to send when the sender is not copied on the completed agreement", async () => {
+it("sends with a logged warning when SignWell does not report copied contacts", async () => {
+  const s = setup();
+  delete s.doc.copied_contacts;
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  expect((await s.workflow.send(fixtureRecord.id, actor)).state).toBe("sent");
+  expect(s.provider.send).toHaveBeenCalledTimes(1);
+  expect(warn).toHaveBeenCalledWith(
+    "MNDA copied contacts not reported by SignWell",
+    { mndaId: fixtureRecord.id, providerId: s.doc.id },
+  );
+  expect(JSON.stringify(warn.mock.calls)).not.toContain("@");
+  warn.mockRestore();
+});
+it("refuses to send when the reported copies leave out the sender", async () => {
   const s = setup();
   s.doc.copied_contacts = [];
   await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
