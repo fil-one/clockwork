@@ -144,11 +144,20 @@ export const organizations = pgTable(
     isolated: boolean("isolated").notNull().default(false),
     workosOrganizationId: text("workos_organization_id").unique(),
     externalProvisioningId: text("external_provisioning_id").unique(),
+    /**
+     * fil_one, customer, channel_partner or referral_partner. Set by a trigger
+     * from the account when omitted; Fil One's own organization says so.
+     */
+    side: text("side").notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     rowVersion: rowVersion(),
   },
   (table) => [
+    check(
+      "organizations_side_check",
+      sql`${table.side} in ('fil_one','customer','channel_partner','referral_partner')`,
+    ),
     uniqueIndex("organizations_account_name_unique").on(
       table.accountId,
       table.name,

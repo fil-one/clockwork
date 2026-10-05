@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 
 import {
   internalRoles,
+  inviteRoleCeilings,
   privilegedRoles,
+  roleAllowedOnSide,
+  type OrganizationSide,
   type Role,
 } from "@clockwork/contracts";
 
@@ -160,6 +163,30 @@ export function evaluateMembershipPolicy(input: MembershipPolicyInput): {
     reason: "APPROVED",
     ignoredWorkosRoleSlugs: input.workosRoleSlugs,
   };
+}
+
+export type InviteRoleRefusal =
+  "INVITE_ROLE_NOT_ALLOWED_ON_SIDE" | "INVITE_ROLE_EXCEEDS_INVITER";
+
+/**
+ * Why a person may not invite someone into an organization with `role`, or
+ * null when they may. The role must be one the organization's side allows (no
+ * partner roles in a customer organization, no customer roles in a partner
+ * one), and one of the inviter's roles must list it in `inviteRoleCeilings`:
+ * an administrator cannot make an owner.
+ */
+export function inviteRoleRefusal(input: {
+  role: Role;
+  side: OrganizationSide;
+  inviterRoles: readonly Role[];
+}): InviteRoleRefusal | null {
+  if (!roleAllowedOnSide(input.role, input.side))
+    return "INVITE_ROLE_NOT_ALLOWED_ON_SIDE";
+  return input.inviterRoles.some((inviter) =>
+    inviteRoleCeilings[inviter]?.includes(input.role),
+  )
+    ? null
+    : "INVITE_ROLE_EXCEEDS_INVITER";
 }
 
 export function selectAccount(input: {

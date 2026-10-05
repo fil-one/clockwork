@@ -1,6 +1,8 @@
 import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles, type Permission } from "@clockwork/contracts";
+
 import type { Locale } from "@/src/i18n";
 import { messageModules } from "@/src/i18n/catalogs";
 
@@ -8,7 +10,8 @@ import type { ProjectionRecord } from "./model";
 
 const reader = vi.hoisted(() => ({ locale: "en" }));
 const mocks = vi.hoisted(() => ({
-  getRouteRoles: vi.fn(),
+  getRoutePermissions:
+    vi.fn<(audience: string) => Promise<readonly Permission[]>>(),
   loadPortalRecords: vi.fn(),
 }));
 
@@ -25,9 +28,9 @@ vi.mock("@/src/i18n/server", async () => {
   };
 });
 vi.mock("@/src/features/shell/route-session", () => ({
-  getRouteRoles: mocks.getRouteRoles,
+  getRoutePermissions: mocks.getRoutePermissions,
   getRouteSession: async (audience: string) => ({
-    roles: (await mocks.getRouteRoles(audience)) as readonly string[],
+    permissions: await mocks.getRoutePermissions(audience),
     providerBacked: false,
   }),
 }));
@@ -129,7 +132,9 @@ async function renderPages() {
 }
 
 beforeEach(() => {
-  mocks.getRouteRoles.mockResolvedValue(["internal_operator"]);
+  mocks.getRoutePermissions.mockResolvedValue(
+    permissionsForRoles(["internal_operator"]),
+  );
   mocks.loadPortalRecords.mockResolvedValue({
     records: [record()],
     generatedAt: "2026-08-01T12:00:00.000Z",

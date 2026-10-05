@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import type { QuoteSnapshot } from "@clockwork/domain/core";
 import type { DemoQuoteState } from "@/src/features/experience-server/demo-quote-flow";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -37,6 +38,7 @@ const partner: SessionClaims = {
   organizationId: "31000000-0000-4000-8000-000000000003",
   accountIds: [demoAccountIds.reseller],
   roles: ["partner_admin"],
+  permissions: permissionsForRoles(["partner_admin"]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -342,6 +344,7 @@ it("issues two bound documents, protects transfer prices, and safely replays", a
           ...partner,
           accountIds: [demoAccountIds.resaleEndClient],
           roles: ["owner"],
+          permissions: permissionsForRoles(["owner"]),
         },
         kind,
         prepared.requestId,
@@ -419,7 +422,11 @@ it("issues two bound documents, protects transfer prices, and safely replays", a
   };
   await expect(
     acceptance.prepare(
-      { ...partner, roles: ["partner_seller"] },
+      {
+        ...partner,
+        roles: ["partner_seller"],
+        permissions: permissionsForRoles(["partner_seller"]),
+      },
       orderInput,
       new Date(options.now),
     ),

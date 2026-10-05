@@ -5,7 +5,11 @@ import { isStoredQuote } from "@/src/features/customer-partner/partner/demo-part
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
-import { MinorUnitSchema, uuidV7 } from "@clockwork/contracts";
+import {
+  contextHasPermission,
+  MinorUnitSchema,
+  uuidV7,
+} from "@clockwork/contracts";
 import {
   commercialArtifactSourceHash,
   CommercialArtifactDefinitionSchema,
@@ -677,7 +681,8 @@ function derive(
   if (
     partnerId &&
     (!session.accountIds.includes(partnerId) ||
-      !session.roles.includes("partner_admin"))
+      !contextHasPermission(session, "deal:register") ||
+      !contextHasPermission(session, "agreement:execute"))
   )
     throw new ExperienceProblem(
       403,

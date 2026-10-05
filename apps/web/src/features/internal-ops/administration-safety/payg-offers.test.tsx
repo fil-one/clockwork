@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { permissionsForRoles } from "@clockwork/contracts";
 import type { PaygOfferRecord } from "@clockwork/domain/core";
 
 import { catalogs } from "@/src/i18n/catalogs";
@@ -70,7 +72,7 @@ describe("operable PAYG and trial policy administration", () => {
       <PaygOfferAdministration
         offers={[]}
         available={false}
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId={creator}
       />,
     );
@@ -96,7 +98,7 @@ describe("operable PAYG and trial policy administration", () => {
       <PaygOfferAdministration
         offers={[offer]}
         available
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId={creator}
       />,
     );
@@ -149,7 +151,7 @@ describe("operable PAYG and trial policy administration", () => {
           },
         ]}
         available
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId={creator}
       />,
     );
@@ -203,7 +205,7 @@ describe("operable PAYG and trial policy administration", () => {
           },
         ]}
         available
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId={creator}
       />,
     );
@@ -243,7 +245,7 @@ describe("operable PAYG and trial policy administration", () => {
       <PaygOfferAdministration
         offers={[{ ...offer, status: "proposed", proposedBy: creator }]}
         available
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId={creator}
       />,
     );
@@ -281,7 +283,7 @@ describe("PAYG and trial policies in the reader's language", () => {
       <PaygOfferAdministration
         offers={[{ ...offer, status: "approved" }]}
         available
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId={creator}
       />,
     );
@@ -326,7 +328,7 @@ describe("PAYG and trial policies in the reader's language", () => {
       <PaygOfferAdministration
         offers={[offer]}
         available
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId={creator}
       />,
     );

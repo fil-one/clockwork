@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LocalSessionResolver } from "./session";
@@ -31,6 +32,7 @@ describe("LocalSessionResolver", () => {
       organizationId: ids.organization,
       accountIds: [ids.selectedAccount],
       roles: ["partner_seller"],
+      permissions: permissionsForRoles(["partner_seller"]),
       isInternalStaff: false,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -53,6 +55,7 @@ describe("LocalSessionResolver", () => {
       userId: ids.internalUser,
       accountIds: [],
       roles: ["internal_operator"],
+      permissions: permissionsForRoles(["internal_operator"]),
       isInternalStaff: true,
     });
   });
@@ -81,6 +84,7 @@ describe("LocalSessionResolver", () => {
       organizationId: ids.organization,
       accountIds: ["10000000-0000-4000-8000-000000000001"],
       roles: ["member"],
+      permissions: permissionsForRoles(["member"]),
       isInternalStaff: false,
       mfaVerified: true,
       recentAuthenticationVerified: true,

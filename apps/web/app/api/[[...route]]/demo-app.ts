@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { createDemoCommerceHandlers } from "@clockwork/testing/demo-handlers";
 import { DEMO_ORIGIN } from "@clockwork/testing/demo-seed";
 import type { SessionClaims } from "@clockwork/api";
-import { hasPermission } from "@clockwork/contracts";
+import { contextHasPermission } from "@clockwork/contracts";
 import { getResponse } from "msw";
 
 import {
@@ -217,6 +217,7 @@ function immutableSession(session: SessionClaims): SessionClaims {
     ...session,
     accountIds: Object.freeze([...session.accountIds]),
     roles: Object.freeze([...session.roles]),
+    permissions: Object.freeze([...session.permissions]),
     ...(session.impersonation
       ? { impersonation: Object.freeze({ ...session.impersonation }) }
       : {}),
@@ -503,9 +504,7 @@ export async function handleDemoQueueProjectionRefresh(
   if ("response" in identity) return identity.response;
   if (
     !identity.session.isInternalStaff ||
-    !identity.session.roles.some((role) =>
-      hasPermission(role, "system:operate"),
-    )
+    !contextHasPermission(identity.session, "system:operate")
   )
     return queueRefreshProblem(
       request,
@@ -640,13 +639,12 @@ export async function handle(request: Request): Promise<Response> {
       return lane.handleDemoDealRegistrationCommand(request, identity.session);
     }
     if (isQuoteCommand(request, url)) {
-      const partnerRoles = identity.session.roles.filter(
-        (role) => role === "partner_admin" || role === "partner_seller",
-      );
-      if (partnerRoles.length > 0) {
+      // Partners, channel and referral alike, register deals; whether they
+      // may also price one is the partner lane's own check.
+      if (contextHasPermission(identity.session, "deal:register")) {
         if (
           identity.session.isInternalStaff ||
-          partnerRoles.length !== identity.session.roles.length
+          contextHasPermission(identity.session, "quote:write")
         )
           return quoteRoutingProblem(
             request,
@@ -759,9 +757,7 @@ export async function handleDemoProvisionOrder(
   if ("response" in identity) return identity.response;
   if (
     !identity.session.isInternalStaff ||
-    !identity.session.roles.some((role) =>
-      hasPermission(role, "system:operate"),
-    )
+    !contextHasPermission(identity.session, "system:operate")
   )
     return queueRefreshProblem(
       request,

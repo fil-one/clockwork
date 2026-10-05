@@ -1,5 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
+import { rolesHavePermission } from "@clockwork/contracts";
 import {
   CustomerAcquisitionCommandSchema,
   ResolveAcquisitionCommandSchema,
@@ -193,7 +194,7 @@ export class DemoCustomerAcquisitionRepository {
         {
           id: actor.organizationId,
           name,
-          canRequest: ["owner", "admin"].includes(actor.role),
+          canRequest: rolesHavePermission([actor.role], "quote:write"),
           providerMapped: false,
         },
       ],
@@ -208,7 +209,7 @@ export class DemoCustomerAcquisitionRepository {
   }
   async listInternal(userId: string) {
     enabled();
-    if (persona(userId).role !== "finance_approver")
+    if (!rolesHavePermission([persona(userId).role], "quote:approve"))
       throw new Error("ACQUISITION_FINANCE_REQUIRED");
     const name = await organizationName();
     const locale = await getLocale();
@@ -230,7 +231,7 @@ export class DemoCustomerAcquisitionRepository {
       actor.isInternalStaff ||
       actor.selectedAccountId !== command.accountId ||
       actor.organizationId !== command.organizationId ||
-      !["owner", "admin"].includes(actor.role)
+      !rolesHavePermission([actor.role], "quote:write")
     )
       throw new Error("ACQUISITION_ACCOUNT_AUTHORITY_REQUIRED");
     let result: CustomerAcquisitionRequest | undefined;
@@ -348,7 +349,7 @@ export class DemoCustomerAcquisitionRepository {
     now: string;
   }): Promise<CustomerAcquisitionRequest> {
     enabled();
-    if (persona(input.userId).role !== "finance_approver")
+    if (!rolesHavePermission([persona(input.userId).role], "quote:approve"))
       throw new Error("ACQUISITION_FINANCE_REQUIRED");
     const command = ResolveAcquisitionCommandSchema.parse(input.command);
     let result: CustomerAcquisitionRequest | undefined;

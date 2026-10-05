@@ -1,6 +1,8 @@
 import { use } from "react";
 import Link from "next/link";
 
+import type { Permission } from "@clockwork/contracts";
+
 import type { Translator } from "@/src/i18n";
 import { getTranslations } from "@/src/i18n/server";
 
@@ -36,15 +38,15 @@ function EnablementLedger({
 }
 
 export function PartnerEnablement({
-  roles,
+  permissions,
   partnerName,
 }: {
-  roles: readonly string[];
+  permissions: readonly Permission[];
   partnerName: string;
 }) {
   const t = use(getTranslations());
   const clientSafe = clientSafeEnablementItems();
-  const internal = internalEnablementItems(roles);
+  const internal = internalEnablementItems(permissions);
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.header}>

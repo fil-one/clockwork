@@ -1,11 +1,12 @@
 import "server-only";
 import { MndaRepository } from "@clockwork/db";
 import {
-  hasPermission,
+  contextHasPermission,
   MndaSignerSchema,
   type Actor,
   type Permission,
 } from "@clockwork/contracts";
+
 import { SignWellClient } from "@clockwork/integrations";
 import { MndaWorkflow } from "@clockwork/workflows/mnda";
 import {
@@ -35,13 +36,13 @@ export async function mndaStaff(permission: MndaPermission = "mnda:send") {
   )
     throw new Error("MNDA_FORBIDDEN");
   if (!session.mfaVerified) throw new Error("MNDA_MFA_REQUIRED");
-  if (!session.roles.some((role) => hasPermission(role, permission)))
+  if (!contextHasPermission(session, permission))
     throw new Error("MNDA_FORBIDDEN");
   return session;
 }
 export type MndaSession = Awaited<ReturnType<typeof mndaStaff>>;
 export function mndaCanManage(session: MndaSession) {
-  return session.roles.some((role) => hasPermission(role, "signatory:manage"));
+  return contextHasPermission(session, "signatory:manage");
 }
 export const mndaRepository = () => new MndaRepository(getServiceDatabase());
 export function mndaConfiguration() {

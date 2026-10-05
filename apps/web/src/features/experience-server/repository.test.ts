@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import type { SessionClaims } from "@clockwork/api";
 import type { RuntimeDatabase } from "@clockwork/db";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -18,6 +19,7 @@ const session: SessionClaims = {
   organizationId: "30000000-0000-4000-8000-000000000001",
   accountIds: [accountId],
   roles: ["owner"],
+  permissions: permissionsForRoles(["owner"]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -26,6 +28,7 @@ const session: SessionClaims = {
 const partnerSession: SessionClaims = {
   ...session,
   roles: ["partner_admin"],
+  permissions: permissionsForRoles(["partner_admin"]),
 };
 
 function database(results: unknown[][]): RuntimeDatabase {

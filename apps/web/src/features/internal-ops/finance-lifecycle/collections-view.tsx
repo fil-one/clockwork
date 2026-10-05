@@ -1,5 +1,6 @@
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use, type ReactNode } from "react";
+import type { Permission } from "@clockwork/contracts";
 import { StatusBadge, Table } from "@clockwork/ui";
 
 import { ProjectionActionButtons } from "@/src/features/experience-server/projection-action-buttons";
@@ -63,12 +64,12 @@ function Corrections({ entry }: { entry: CollectionCase }) {
 
 export function CollectionsView({
   cases,
-  roles,
+  permissions,
   provenance,
   notice,
 }: {
   cases: readonly CollectionCase[];
-  roles: readonly string[];
+  permissions: readonly Permission[];
   provenance: SurfaceProvenance;
   /** A page-wide notice the route supplies, shown under the header. */
   notice?: ReactNode;
@@ -231,7 +232,7 @@ export function CollectionsView({
                   projectionId={entry.projectionId}
                   version={entry.version}
                   actions={entry.permittedActions}
-                  roles={roles}
+                  permissions={permissions}
                   readOnlyNote={false}
                 />
                 <SurfaceActionGate

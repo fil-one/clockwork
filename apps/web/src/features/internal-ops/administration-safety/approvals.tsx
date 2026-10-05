@@ -12,6 +12,7 @@ import {
   resolveDemoText,
   type ResolvedDemoText,
 } from "@clockwork/testing/demo-localized-text";
+import type { Permission } from "@clockwork/contracts";
 import { Select } from "@clockwork/ui";
 
 import { formatMoney } from "@/src/features/shared/format";
@@ -83,7 +84,14 @@ function presentCase(
   return { ...resolveDemoText(rest, locale), description };
 }
 
-export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
+export function ApprovalWorkspace({
+  roles,
+  permissions,
+}: {
+  /** The reader's roles, which name the demo actor. */
+  roles: readonly string[];
+  permissions: readonly Permission[];
+}) {
   const t = useTranslations();
   const locale = useLocale();
   const formattingLocale = useFormattingLocale();
@@ -108,7 +116,7 @@ export function ApprovalWorkspace({ roles }: { roles: readonly string[] }) {
   }, [roles, t]);
 
   if (!selected) return null;
-  const permitted = canDecide(roles, selected.decision);
+  const permitted = canDecide(permissions, selected.decision);
   const heading = adminSafetyCopy.approvals;
   const identifiers = selected.identifiers.map(({ label, value }) => ({
     label: t(label),

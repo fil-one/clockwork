@@ -8,7 +8,10 @@ import { cache } from "react";
 
 import {
   roles as commerceRoles,
-  sessionRolesFor,
+  internalRoles,
+  permissionsForRoles,
+  type OrganizationSide,
+  type Permission,
   type Role,
 } from "@clockwork/contracts";
 import { demoAccountIds } from "@clockwork/testing/personas";
@@ -60,6 +63,8 @@ const demoMemberships: Readonly<
     accountId: demoAccountIds.direct,
     accountName: "Northstar Archive Labs",
     role: "owner",
+    roles: ["owner"],
+    side: "customer",
     audience: "customer",
     home: "/dashboard",
   },
@@ -74,6 +79,10 @@ const demoMemberships: Readonly<
     accountId: demoAccountIds.reseller,
     accountName: "Redwood Channel Group",
     role: "partner_admin",
+    roles: ["partner_admin"],
+    // The placeholder partner works the reseller account, so it prices and
+    // resells like any channel partner.
+    side: "channel_partner",
     audience: "partner",
     home: "/partner",
   },
@@ -88,6 +97,8 @@ const demoMemberships: Readonly<
     accountId: "10000000-0000-4000-8000-000000000009",
     accountName: "Fil One Internal Operations", // i18n-exempt: account name (data)
     role: "internal_operator",
+    roles: demoRoles.internal,
+    side: "fil_one",
     audience: "internal",
     home: "/internal",
   },
@@ -113,6 +124,8 @@ export const defaultRouteFormatting = {
 
 export interface RouteSession {
   roles: readonly string[];
+  /** What the session may do; every gate on a route reads this. */
+  permissions: readonly Permission[];
   profile: CommerceSession["profile"];
   /** BCP-47 tag the surface formats dates and numbers with. */
   locale: string;
@@ -141,6 +154,14 @@ function providerAuthenticationConfigured(): boolean {
 
 function isCommerceRole(value: string | null): value is Role {
   return Boolean(value && (commerceRoles as readonly string[]).includes(value));
+}
+
+/** The side a local role-only identity stands on. */
+function localRoleSide(role: Role): OrganizationSide {
+  if ((internalRoles as readonly Role[]).includes(role)) return "fil_one";
+  if (role === "partner_admin" || role === "partner_seller")
+    return "channel_partner";
+  return "customer";
 }
 
 function demoPersonaOverrideAllowed(): boolean {
@@ -181,7 +202,10 @@ export async function getRouteSession(
     if (persona) {
       const membership = demoPersonaMembership(persona);
       return {
-        roles: sessionRolesFor([persona.role]),
+        roles: membership.roles,
+        permissions: permissionsForRoles(membership.roles, {
+          side: membership.side,
+        }),
         profile: { name: membership.userName, email: membership.userEmail },
         // The catalog has carried a locale and a zone per persona all along --
         // `en-GB`/`Europe/London` for the reseller and the distributor,
@@ -201,10 +225,16 @@ export async function getRouteSession(
       ? (await headers()).get("x-clockwork-persona")
       : null;
     const selected = demoMemberships[audience];
+    const localRoles: readonly Role[] = isCommerceRole(demoRole)
+      ? [demoRole]
+      : demoRoles[audience];
     return {
-      roles: isCommerceRole(demoRole)
-        ? sessionRolesFor([demoRole])
-        : demoRoles[audience],
+      roles: localRoles,
+      permissions: permissionsForRoles(localRoles, {
+        side: isCommerceRole(demoRole)
+          ? localRoleSide(demoRole)
+          : selected.side,
+      }),
       profile: { name: selected.userName, email: selected.userEmail },
       ...formatting,
       memberships: Object.values(demoMemberships),
@@ -228,6 +258,7 @@ export async function getRouteSession(
     throw new Error("Selected commerce account is unavailable");
   return {
     roles: session.roles,
+    permissions: session.permissions,
     profile: session.profile,
     ...formatting,
     memberships: session.memberships,
@@ -244,10 +275,10 @@ export async function getRouteSession(
   };
 }
 
-export async function getRouteRoles(
+export async function getRoutePermissions(
   audience: ExperienceAudience,
-): Promise<readonly string[]> {
-  return (await getRouteSession(audience)).roles;
+): Promise<readonly Permission[]> {
+  return (await getRouteSession(audience)).permissions;
 }
 
 export interface RouteIdentity {

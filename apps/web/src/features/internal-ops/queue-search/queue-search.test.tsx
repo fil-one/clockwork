@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import type {
   ProjectionChannel,
   ProjectionRecord,
@@ -452,15 +454,20 @@ describe("queue permission and evidence disclosure", () => {
         "Add evidence",
         "Reassign owner",
       ],
-      requiredRole: "finance_approver",
+      requiredPermission: "quote:approve",
     });
-    expect(permittedActions(gated, ["internal_operator"])).toEqual([
-      "Add evidence",
-      "Reassign owner",
-    ]);
-    expect(permittedActions(gated, ["finance_approver"])).toEqual(
-      gated.permittedActions,
-    );
+    expect(
+      permittedActions(gated, permissionsForRoles(["internal_operator"])),
+    ).toEqual(["Add evidence", "Reassign owner"]);
+    expect(
+      permittedActions(gated, permissionsForRoles(["finance_approver"])),
+    ).toEqual(gated.permittedActions);
+    expect(
+      permittedActions(
+        gated,
+        permissionsForRoles(["commerce_admin"], { assisted: true }),
+      ),
+    ).toEqual(["Add evidence", "Reassign owner"]);
   });
 
   it("keeps technical IDs in an explicit evidence disclosure", async () => {
@@ -469,7 +476,7 @@ describe("queue permission and evidence disclosure", () => {
     if (!screening) throw new Error("Expected a screening case.");
     const gated = assigned(screening, {
       permittedActions: ["Request legal review", "Attach screening evidence"],
-      requiredRole: "legal_approver",
+      requiredPermission: "agreement:approve",
     });
     const technicalId = gated.sourceRecord?.technicalId as string;
     render(<QueueDetail item={gated} />);

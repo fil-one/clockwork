@@ -1,10 +1,10 @@
 import {
   ids,
   internalRoles,
+  permissionsForRoles,
   RoleSchema,
-  sessionRolesFor,
 } from "@clockwork/contracts";
-import type { Role } from "@clockwork/contracts";
+import type { Permission, Role } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import { createMiddleware } from "hono/factory";
 
@@ -14,7 +14,14 @@ export interface SessionClaims {
   userId: string;
   organizationId?: string;
   accountIds: readonly string[];
+  /** Every role the person holds in the selected organization. */
   roles: readonly Role[];
+  /**
+   * What those roles allow here: the union of their bundles, less what the
+   * organization's side withholds and, inside an assisted session, less the
+   * approver permissions. Every authorization check reads this.
+   */
+  permissions: readonly Permission[];
   isInternalStaff: boolean;
   mfaVerified: boolean;
   recentAuthenticationVerified: boolean;
@@ -87,7 +94,8 @@ export class LocalSessionResolver implements SessionResolver {
             request.headers.get("x-clockwork-account") ??
               "10000000-0000-4000-8000-000000000001",
           ],
-      roles: sessionRolesFor([role]),
+      roles: [role],
+      permissions: permissionsForRoles([role]),
       isInternalStaff: internal,
       mfaVerified: request.headers.get("x-clockwork-mfa") !== "false",
       recentAuthenticationVerified:
@@ -111,6 +119,7 @@ export const sessionMiddleware = (resolver: SessionResolver) =>
           ids.account.parse(accountId),
         ),
         roles: session.roles,
+        permissions: session.permissions,
         isInternalStaff: session.isInternalStaff,
         mfaVerified: session.mfaVerified,
         recentAuthenticationVerified: session.recentAuthenticationVerified,

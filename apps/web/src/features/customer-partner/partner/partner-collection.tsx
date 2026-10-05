@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import type { Permission } from "@clockwork/contracts";
 import { ApplicationStatePanel, Button, Table } from "@clockwork/ui";
 
 import { requestRenewal } from "@/src/features/contracts/commerce-client";
@@ -40,7 +41,7 @@ import {
   type PartnerQueryKey,
   type PartnerSort,
 } from "./partner-query";
-import { registrationCreditLabel, roleCanUseSurface } from "./partner-rules";
+import { registrationCreditLabel } from "./partner-rules";
 import styles from "./partner.module.css";
 
 /*
@@ -441,7 +442,7 @@ const sortOptions: readonly { value: PartnerSort; label: MessageId }[] = [
 export function PartnerCollection({
   surface,
   config,
-  roles,
+  permissions,
   partnerName,
   freshness,
   formatting,
@@ -450,7 +451,7 @@ export function PartnerCollection({
 }: {
   surface: PartnerSurfaceKey;
   config: PartnerSurfaceConfig;
-  roles: readonly string[];
+  permissions: readonly Permission[];
   partnerName: string;
   /** The `stale`/`generatedAt` pair the loader returned for this read. */
   freshness: ProjectionFreshness;
@@ -482,10 +483,7 @@ export function PartnerCollection({
     [config.records, state],
   );
   const page = paginatePartnerRecords(filtered, state.page, state.pageSize);
-  const canUse = roleCanUseSurface(roles, config.roles);
-  const role = roles.includes("partner_admin")
-    ? "partner_admin"
-    : "partner_seller";
+  const canUse = permissions.includes(config.requiredPermission);
   const owners = [
     ...new Set(config.records.map((record) => record.owner)),
   ].sort();
@@ -501,7 +499,9 @@ export function PartnerCollection({
   }
 
   const noMatch = canUse && filtered.length === 0;
-  const canCreate = config.primaryAction?.roles.includes(role);
+  const canCreate =
+    config.primaryAction &&
+    permissions.includes(config.primaryAction.requiredPermission);
 
   return (
     <main className={styles.main} id="main-content">

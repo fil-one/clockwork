@@ -1,4 +1,4 @@
-import type { Role } from "@clockwork/contracts";
+import type { OrganizationSide, Role } from "@clockwork/contracts";
 
 export const DEMO_PERSONA_HEADER = "x-clockwork-persona";
 export const DEMO_ACCOUNT_HEADER = "x-clockwork-account";
@@ -297,4 +297,23 @@ export function demoPersonaHeaders(persona: DemoPersonaKey) {
 
 export function getDemoPersona(persona: DemoPersonaKey): DemoPersona {
   return demoPersonas[persona];
+}
+
+const sideByKind = {
+  direct_buyer: "customer",
+  end_client: "customer",
+  billing_user: "customer",
+  referral_partner: "referral_partner",
+  reseller: "channel_partner",
+  distributor: "channel_partner",
+  legal_approver: "fil_one",
+  finance_approver: "fil_one",
+  internal_operator: "fil_one",
+  revenue: "fil_one",
+  commerce_admin: "fil_one",
+} as const satisfies Record<DemoPersonaKind, OrganizationSide>;
+
+/** The side of the organization a persona works in. */
+export function demoPersonaSide(persona: DemoPersona): OrganizationSide {
+  return sideByKind[persona.kind];
 }

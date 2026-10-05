@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  internalRoles,
+  type OrganizationSide,
+  type Role,
+} from "@clockwork/contracts";
 import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state";
 import { demoAccountIds } from "@clockwork/testing/personas";
 import type { UserInfo } from "@workos-inc/authkit-nextjs";
@@ -125,20 +130,33 @@ function workosSession(email = "owner@customer.example"): UserInfo {
 }
 
 function commerceIdentity(overrides: Record<string, unknown> = {}) {
+  // The identity reads the same membership rows as the membership list, so
+  // by default it carries the same roles and side for its primary role.
+  const role = (overrides.role ?? "owner") as Role;
   return {
     userId: fixture.commerceUserId,
     organizationId: fixture.commerceOrganizationId,
     accountId: fixture.accountId,
-    role: "owner",
+    role,
+    roles: [role],
+    side: naturalSide(role),
     isInternalStaff: false,
     mfaEnrolled: true,
     ...overrides,
   };
 }
 
+function naturalSide(role: Role): OrganizationSide {
+  if ((internalRoles as readonly Role[]).includes(role)) return "fil_one";
+  if (role === "partner_admin" || role === "partner_seller")
+    return "channel_partner";
+  return "customer";
+}
+
 function membership(
   overrides: Partial<AuthorizedMembership> = {},
 ): AuthorizedMembership {
+  const role = overrides.role ?? "owner";
   return {
     userId: fixture.commerceUserId,
     userName: "Customer owner",
@@ -149,7 +167,9 @@ function membership(
     organizationName: "Customer workspace",
     accountId: fixture.accountId,
     accountName: "Customer account",
-    role: "owner",
+    role,
+    roles: [role],
+    side: naturalSide(role),
     audience: "customer",
     home: "/dashboard",
     ...overrides,
@@ -818,6 +838,144 @@ describe("WorkOS commerce session mapping", () => {
         actualUserId: fixture.commerceUserId,
         actualActorEmail: "iris@filone.com",
       },
+    });
+  });
+
+  it("carries every role of the selected membership and the union of their permissions", async () => {
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({
+        role: "revenue",
+        roles: ["revenue", "legal_approver"],
+        isInternalStaff: true,
+      }),
+    );
+    authMocks.listAuthorizedMemberships.mockResolvedValue([
+      {
+        ...staffMembership(),
+        role: "revenue",
+        roles: ["revenue", "legal_approver"],
+      },
+    ]);
+
+    const session = await getCommerceSession();
+
+    expect(session.roles).toEqual(["revenue", "legal_approver"]);
+    expect(session.permissions).toEqual(
+      expect.arrayContaining([
+        "mnda:send",
+        "contract:write",
+        "agreement:approve",
+        "contract:approve",
+      ]),
+    );
+    expect(session.permissions).not.toContain("operations:write");
+    expect(session.permissions).not.toContain("staff:manage");
+  });
+
+  it("refuses a membership list that disagrees with the identity about roles or side", async () => {
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ role: "revenue", isInternalStaff: true }),
+    );
+    authMocks.listAuthorizedMemberships.mockResolvedValue([
+      {
+        ...staffMembership(),
+        role: "revenue",
+        roles: ["revenue", "commerce_admin"],
+      },
+    ]);
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Selected WorkOS membership does not match commerce scope",
+    );
+  });
+
+  it("withholds what a referral partner's side never confers", async () => {
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ role: "partner_admin", side: "referral_partner" }),
+    );
+    authMocks.listAuthorizedMemberships.mockResolvedValue([
+      membership({
+        role: "partner_admin",
+        side: "referral_partner",
+        audience: "partner",
+        home: "/partner",
+      }),
+    ]);
+
+    const session = await getCommerceSession();
+
+    expect(session.permissions).toContain("deal:register");
+    expect(session.permissions).toContain("account:write");
+    expect(session.permissions).not.toContain("partner:quote:write");
+  });
+
+  it("drops approver permissions inside an assisted session", async () => {
+    authMocks.assistedCookie = "12000000-0000-4000-8000-000000000001";
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ role: "commerce_admin", isInternalStaff: true }),
+    );
+    authMocks.listAuthorizedMemberships.mockResolvedValue([
+      membership({
+        ...staffMembership(),
+        role: "commerce_admin",
+        roles: ["commerce_admin"],
+      }),
+    ]);
+    authMocks.resolveAssistedSession.mockResolvedValue({
+      id: authMocks.assistedCookie,
+      authenticationSessionId: fixture.sessionId,
+      actualUserId: fixture.commerceUserId,
+      actualActorName: "Iris Operator",
+      actualActorEmail: "iris@filone.com",
+      actualRoles: ["commerce_admin"],
+      targetAccountId: "10000000-0000-4000-8000-000000000001",
+      targetAccountName: "Authorized customer",
+      reason: "Customer requested quote correction in case CASE-4812",
+      startedAt: new Date("2030-07-31T16:00:00.000Z"),
+      expiresAt: new Date("2030-07-31T16:15:00.000Z"),
+    });
+
+    const assisted = await getCommerceSession();
+
+    expect(assisted.roles).toEqual(["commerce_admin"]);
+    expect(assisted.permissions).toContain("impersonation:assume");
+    expect(assisted.permissions).toContain("operations:write");
+    for (const withheld of [
+      "quote:approve",
+      "billing:approve",
+      "agreement:approve",
+      "contract:approve",
+      "destructive:approve",
+      "signatory:manage",
+      "staff:manage",
+    ] as const)
+      expect(assisted.permissions).not.toContain(withheld);
+
+    authMocks.assistedCookie = undefined;
+    const own = await getCommerceSession();
+    expect(own.permissions).toEqual(
+      expect.arrayContaining(["quote:approve", "staff:manage"]),
+    );
+  });
+
+  it("refuses staff sign-in when no staff email domain is configured", async () => {
+    vi.stubEnv("INTERNAL_EMAIL_DOMAINS", "");
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ role: "internal_operator", isInternalStaff: true }),
+    );
+    authMocks.listAuthorizedMemberships.mockResolvedValue([staffMembership()]);
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Staff sign-in is unavailable until INTERNAL_EMAIL_DOMAINS is configured",
+    );
+  });
+
+  it("keeps customers signed in when no staff email domain is configured", async () => {
+    vi.stubEnv("INTERNAL_EMAIL_DOMAINS", "");
+
+    await expect(getCommerceSession()).resolves.toMatchObject({
+      roles: ["owner"],
+      isInternalStaff: false,
     });
   });
 

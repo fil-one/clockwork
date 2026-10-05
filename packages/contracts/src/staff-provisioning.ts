@@ -1,5 +1,39 @@
 import { z } from "zod";
 
+import type { Role } from "./auth";
+
+/**
+ * Every role a commerce administrator can grant or remove on the team page,
+ * in the order that picks a person's primary role (the role that decides
+ * their home page): the first of these they hold. A person may hold several;
+ * they hold the union of the roles' permissions.
+ */
+export const staffTeamRoles = [
+  "commerce_admin",
+  "internal_operator",
+  "revenue",
+  "finance_approver",
+  "legal_approver",
+  "destructive_action_approver",
+] as const satisfies readonly Role[];
+export const StaffTeamRoleSchema = z.enum(staffTeamRoles);
+export type StaffTeamRole = z.infer<typeof StaffTeamRoleSchema>;
+
+export function isStaffTeamRole(role: string): role is StaffTeamRole {
+  return (staffTeamRoles as readonly string[]).includes(role);
+}
+
+/** A set of roles in primary-role order, the first being the primary role. */
+export function orderStaffRoles(roles: readonly string[]): string[] {
+  const rank = (role: string) => {
+    const index = (staffTeamRoles as readonly string[]).indexOf(role);
+    return index === -1 ? staffTeamRoles.length : index;
+  };
+  return [...new Set(roles)].sort(
+    (left, right) => rank(left) - rank(right) || left.localeCompare(right),
+  );
+}
+
 /**
  * The roles a staff member can be given through provisioning or the team
  * page. Sellers start as `revenue`; the approver roles stay with the bootstrap

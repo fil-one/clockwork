@@ -1,6 +1,6 @@
 "use server";
 
-import { hasPermission } from "@clockwork/contracts";
+import { contextHasPermission } from "@clockwork/contracts";
 import type {
   ExternalGateConfiguredStatus,
   ExternalGateKey,
@@ -21,7 +21,7 @@ async function operator() {
   const session = await requireRecentAuthentication();
   if (
     !session.isInternalStaff ||
-    !session.roles.some((role) => hasPermission(role, "system:operate"))
+    !contextHasPermission(session, "system:operate")
   )
     throw new Error("DEMO_GATE_FORBIDDEN");
   return session;

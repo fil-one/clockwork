@@ -233,7 +233,8 @@ export class DatabaseRoleSynchronizationSink {
   /**
    * Links or revokes the WorkOS identity record on an existing commerce
    * membership. `input.roleSlugs` is deliberately NOT written to
-   * `memberships.role`; it is kept only in the event payload for audit.
+   * `memberships.role` or `membership_roles`; it is kept only in the event
+   * payload for audit.
    *
    * ADR 0004 (Accepted, 2026-07-31) states the contract twice: "WorkOS role
    * webhooks synchronize identifiers into commerce; they do not grant access
@@ -242,8 +243,8 @@ export class DatabaseRoleSynchronizationSink {
    * commerce approval remains authoritative."
    *
    * Writing the slug here would be a privilege escalation, not a bug fix.
-   * `resolveWorkosIdentity` (./identity.ts) selects `memberships.role` straight
-   * into the session identity used by apps/web/src/auth/session.ts and
+   * `resolveWorkosIdentity` (./identity.ts) selects `memberships.role` and
+   * every role in `membership_roles` straight into the session identity used by apps/web/src/auth/session.ts and
    * apps/web/app/auth/callback/route.ts, so a WorkOS-side actor who controls an
    * organization's role slugs would set the commerce role directly:
    * `evaluateMembershipPolicy` (@clockwork/domain) would never run, and its

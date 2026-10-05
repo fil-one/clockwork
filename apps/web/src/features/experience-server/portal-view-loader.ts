@@ -6,7 +6,7 @@ import { getLocale, getTranslations } from "@/src/i18n/server";
 
 import type { Route } from "next";
 
-import { hasPermission, uuidV7 } from "@clockwork/contracts";
+import { contextHasPermission, uuidV7 } from "@clockwork/contracts";
 import {
   findActiveCustomerQuoteOffers,
   findCustomerQuoteCurrency,
@@ -268,9 +268,7 @@ export async function loadCustomerQuoteOffers(): Promise<CustomerQuoteOffersLook
       ),
     };
   const session = await getCommerceSession();
-  const permitted = session.roles.some((role) =>
-    hasPermission(role, "quote:write"),
-  );
+  const permitted = contextHasPermission(session, "quote:write");
   if (!permitted) return { status: "forbidden" };
   const accountId = portalAccountId("customer", session);
   const runtime = getOptionalRuntimeDatabase();

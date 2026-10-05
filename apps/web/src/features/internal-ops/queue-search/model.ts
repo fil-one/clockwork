@@ -1,3 +1,5 @@
+import type { Permission } from "@clockwork/contracts";
+
 import type { MessageId } from "@/src/i18n";
 
 export type QueueRisk = "low" | "medium" | "high";
@@ -95,9 +97,15 @@ export interface QueueItem {
   related: ReadonlyArray<{ label: string; href: string }>;
   /** Action codes the source allows (`review_exception`, ...). */
   permittedActions: readonly string[];
-  requiredRole?:
-    "legal_approver" | "finance_approver" | "destructive_action_approver";
+  /** The approval authority the item's decision actions need. */
+  requiredPermission?: QueueDecisionPermission;
 }
+
+/** The approval authorities a queue decision can need. */
+export type QueueDecisionPermission = Extract<
+  Permission,
+  "agreement:approve" | "quote:approve" | "destructive:approve"
+>;
 
 export interface QueueFilters {
   text: string;
@@ -410,33 +418,16 @@ export function queueTypeOptions(
   return [...new Set(types)].sort((left, right) => left.localeCompare(right));
 }
 
-export const operationalRoleNames = [
-  "internal_operator",
-  "finance_approver",
-  "legal_approver",
-  "destructive_action_approver",
-] as const;
-
-export type OperationalRole = (typeof operationalRoleNames)[number];
-
-/** Narrows a session's roles without widening what the workspace will honor. */
-export function operationalRoles(
-  roles: readonly string[],
-): readonly OperationalRole[] {
-  return roles.filter((role): role is OperationalRole =>
-    (operationalRoleNames as readonly string[]).includes(role),
-  );
-}
-
 /**
- * Hides the decision actions a role cannot take. Matches action codes
- * (`approve_exception`) as well as the worded forms older sources wrote.
+ * Hides the decision actions the reader lacks the authority for. Matches
+ * action codes (`approve_exception`) as well as the worded forms older
+ * sources wrote.
  */
 export function permittedActions(
   item: QueueItem,
-  roles: readonly OperationalRole[],
+  permissions: readonly Permission[],
 ) {
-  if (!item.requiredRole || roles.includes(item.requiredRole))
+  if (!item.requiredPermission || permissions.includes(item.requiredPermission))
     return item.permittedActions;
   return item.permittedActions.filter(
     (action) =>

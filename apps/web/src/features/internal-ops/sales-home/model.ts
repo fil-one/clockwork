@@ -20,7 +20,7 @@ export interface SalesHomeRow {
 
 export interface SalesHomeContext {
   userId: string;
-  roles: readonly string[];
+  permissions: readonly Permission[];
   providerBacked: boolean;
   now: Date;
 }

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { use, type ReactNode } from "react";
 
 import {
+  contextHasPermission,
   internalRoles,
-  rolesHavePermission,
   type Permission,
 } from "@clockwork/contracts";
 import { buttonClassName } from "@clockwork/ui";
@@ -47,12 +47,16 @@ export function grantedRoleLabel(roles: readonly string[]): MessageId | null {
 
 /** Whether a staff session may use a surface that requires `permission`. */
 export function staffMayUse(
-  roles: readonly string[],
+  session: {
+    readonly roles: readonly string[];
+    readonly permissions?: readonly Permission[];
+  },
   permission: Permission,
 ): boolean {
   return (
-    roles.some((role) => (internalRoles as readonly string[]).includes(role)) &&
-    rolesHavePermission(roles, permission)
+    session.roles.some((role) =>
+      (internalRoles as readonly string[]).includes(role),
+    ) && contextHasPermission(session, permission)
   );
 }
 
@@ -89,7 +93,7 @@ export function withStaffPermission<Args extends unknown[]>(
 ): (...args: Args) => Promise<ReactNode> {
   return async function StaffPage(...args: Args) {
     const session = await getRouteSession("internal");
-    if (!staffMayUse(session.roles, permission))
+    if (!staffMayUse(session, permission))
       return <StaffRoleNotAvailable roles={session.roles} />;
     // Called rather than rendered, so the page is the same server component it
     // was before it was wrapped and starts no work for a refused reader.
@@ -109,7 +113,7 @@ export async function requireStaffPermission(
   permission: Permission,
 ): Promise<CommerceSession> {
   const session = await getCommerceSession();
-  if (!session.isInternalStaff || !staffMayUse(session.roles, permission))
+  if (!session.isInternalStaff || !staffMayUse(session, permission))
     throw new StaffPermissionError(permission);
   return session;
 }

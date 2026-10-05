@@ -2,6 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import { catalogs } from "@/src/i18n/catalogs";
 import { LanguageProvider } from "@/src/i18n/client";
 import type { Locale } from "@/src/i18n/locales";
@@ -31,6 +33,7 @@ globalThis.ResizeObserver ??= class {
 
 const session: RouteSession = {
   roles: ["owner"],
+  permissions: permissionsForRoles(["owner"]),
   profile: { name: "Maya Chen", email: "owner@northstar.test" },
   locale: "pt-BR",
   timeZone: "UTC",
@@ -46,6 +49,8 @@ const session: RouteSession = {
       accountId: "10000000-0000-4000-8000-000000000001",
       accountName: "Northstar Archive Labs",
       role: "owner",
+      roles: ["owner"],
+      side: "customer",
       audience: "customer",
       home: "/dashboard",
     },

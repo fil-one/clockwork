@@ -18,6 +18,7 @@ import { PriceBookImpactPanel } from "./price-book-impact";
 import type { PriceBookImpactResult } from "../price-books/price-book-impact-model";
 import { priceBookEconomicDiff } from "./price-book-diff";
 import type { PriceBookAdministrationRecord } from "@clockwork/db";
+import type { Permission } from "@clockwork/contracts";
 import { Table } from "@clockwork/ui";
 
 import {
@@ -219,7 +220,7 @@ function RegionList({
 }
 
 export function PriceBookAdministration({
-  roles,
+  permissions,
   userId,
   books,
   source,
@@ -227,7 +228,7 @@ export function PriceBookAdministration({
   readAt,
   impact,
 }: {
-  roles: readonly string[];
+  permissions: readonly Permission[];
   userId: string;
   books: readonly PriceBookAdministrationRecord[];
   source: PriceBookSource;
@@ -303,7 +304,7 @@ export function PriceBookAdministration({
     { tier: string; amount: string }[]
   >([]);
   const [authoringMessage, setAuthoringMessage] = useState("");
-  const permitted = canDecide(roles, "finance");
+  const permitted = canDecide(permissions, "finance");
   const authoringAvailable =
     permitted && availability !== "unavailable" && !refreshPending && !pending;
   const today = readAt.slice(0, 10);

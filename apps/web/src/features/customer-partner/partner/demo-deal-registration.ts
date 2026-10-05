@@ -4,7 +4,11 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
-import { hasPermission, QuantitySchema, uuidV7 } from "@clockwork/contracts";
+import {
+  contextHasPermission,
+  QuantitySchema,
+  uuidV7,
+} from "@clockwork/contracts";
 import {
   demoText,
   resolveDemoText,
@@ -271,12 +275,12 @@ export async function handleDemoDealRegistrationCommand(
   try {
     if (
       session.isInternalStaff ||
-      !session.roles.some((role) => hasPermission(role, "partner:quote:write"))
+      !contextHasPermission(session, "deal:register")
     )
       throw new RegistrationProblem(
         403,
         "REGISTRATION_AUTHORITY_FORBIDDEN",
-        "Partner quote authority is required", // i18n-exempt: API problem detail, not rendered
+        "Deal registration authority is required", // i18n-exempt: API problem detail, not rendered
       );
     const idempotencyKey = request.headers.get("idempotency-key")?.trim();
     if (

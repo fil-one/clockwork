@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { hasPermission } from "@clockwork/contracts";
+import { contextHasAnyPermission } from "@clockwork/contracts";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { requireRecentAuthentication } from "@/src/auth/session";
@@ -92,11 +92,8 @@ export async function classifyReconciliationVariance(
   // legitimate work rather than a control.
   const permitted =
     session.isInternalStaff &&
-    session.roles.some(
-      (role) =>
-        hasPermission(role, "billing:approve") ||
-        hasPermission(role, "system:operate"),
-    );
+    contextHasAnyPermission(session, ["billing:approve", "system:operate"]);
+
   if (!permitted) return { ok: false, code: "RECONCILIATION_FORBIDDEN" };
 
   if (demoEnabled && !database) {

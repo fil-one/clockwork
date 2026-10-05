@@ -1,4 +1,5 @@
 "use server";
+import { contextHasPermission } from "@clockwork/contracts";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { DemoCommercialPolicyRepository } from "@/src/features/internal-ops/commercial-policies/demo-policies";
 import { revalidatePath } from "next/cache";
@@ -27,7 +28,7 @@ export async function changeChannelPolicy(
     (!session.providerBacked && !demoDeployIdentityEnabled(process.env)) ||
     !session.isInternalStaff ||
     !session.mfaVerified ||
-    !session.roles.includes("finance_approver") ||
+    !contextHasPermission(session, "quote:approve") ||
     session.impersonation ||
     session.assistedSession ||
     session.authenticationProviderImpersonator

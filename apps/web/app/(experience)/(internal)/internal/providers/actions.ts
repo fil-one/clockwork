@@ -1,4 +1,5 @@
 "use server";
+import { contextHasAnyPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 import {
   DatabaseProviderReferenceAdmin,
@@ -26,9 +27,7 @@ export async function saveProviderReference(
     session.impersonation ||
     session.assistedSession ||
     session.authenticationProviderImpersonator ||
-    !session.roles.some(
-      (role) => role === "internal_operator" || role === "finance_approver",
-    )
+    !contextHasAnyPermission(session, ["operations:write", "quote:approve"])
   )
     return "adminGovernance.providers.result.directSessionRequired";
   const parsed = ProviderReferenceCommandSchema.safeParse({

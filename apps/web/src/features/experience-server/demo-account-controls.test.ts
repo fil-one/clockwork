@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { describe, expect, it } from "vitest";
 
 import type { SessionClaims } from "@clockwork/api";
@@ -18,6 +19,7 @@ const session: SessionClaims = {
   organizationId,
   accountIds: [accountId],
   roles: ["owner"],
+  permissions: permissionsForRoles(["owner"]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -237,7 +239,11 @@ describe("demo customer account controls", () => {
         body,
         duplex: "half",
       } as RequestInit),
-      { ...session, roles: ["member"] },
+      {
+        ...session,
+        roles: ["member"],
+        permissions: permissionsForRoles(["member"]),
+      },
       createMemoryDemoStore(),
     );
     expect(response.status).toBe(403);

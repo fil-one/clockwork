@@ -1,8 +1,10 @@
 import type { BrowserContext, Page } from "@playwright/test";
-import type { Role } from "@clockwork/contracts";
+import { permissionsForRoles } from "@clockwork/contracts";
+import type { Permission, Role } from "@clockwork/contracts";
 
 import {
   demoPersonaHeaders,
+  demoPersonaSide,
   demoPersonas,
   type DemoPersona,
   type DemoPersonaKey,
@@ -14,6 +16,7 @@ export interface DemoSessionProjection {
   readonly selectedAccountId: string;
   readonly accessibleAccountIds: readonly string[];
   readonly roles: readonly [Role];
+  readonly permissions: readonly Permission[];
   readonly mfaVerified: true;
   readonly recentAuthenticationVerified: true;
   readonly isInternalStaff: boolean;
@@ -30,6 +33,9 @@ export function demoSessionForPersona(
     selectedAccountId: persona.selectedAccountId,
     accessibleAccountIds: persona.accessibleAccountIds,
     roles: [persona.role],
+    permissions: permissionsForRoles([persona.role], {
+      side: demoPersonaSide(persona),
+    }),
     mfaVerified: true,
     recentAuthenticationVerified: true,
     isInternalStaff: persona.isInternalStaff,

@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { exportPriceBookExchange } from "@clockwork/domain/core";
@@ -26,6 +27,7 @@ const finance: SessionClaims = {
   organizationId: demoPersonas.financeApprover.organizationId,
   accountIds: [],
   roles: ["finance_approver"],
+  permissions: permissionsForRoles(["finance_approver"]),
   isInternalStaff: true,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -255,7 +257,11 @@ describe("durable demo price-book commands", () => {
 
   it("requires finance authority, MFA, and recent authentication", async () => {
     for (const denied of [
-      { ...finance, roles: ["internal_operator"] as const },
+      {
+        ...finance,
+        roles: ["internal_operator"] as const,
+        permissions: permissionsForRoles(["internal_operator"]),
+      },
       { ...finance, mfaVerified: false },
       { ...finance, recentAuthenticationVerified: false },
     ]) {

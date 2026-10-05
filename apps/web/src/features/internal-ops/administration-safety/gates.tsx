@@ -10,6 +10,7 @@ import {
   type FormEvent,
 } from "react";
 
+import type { Permission } from "@clockwork/contracts";
 import { Select, Table } from "@clockwork/ui";
 
 import {
@@ -383,12 +384,12 @@ function GateControls({
 }
 
 export function GateRegister({
-  roles,
+  permissions,
   gates,
   source,
   demoText,
 }: {
-  roles: readonly string[];
+  permissions: readonly Permission[];
   gates: readonly GateRecord[];
   source: GateRecordSource;
   /**
@@ -399,7 +400,7 @@ export function GateRegister({
 }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
-  const mayOperate = canDecide(roles, "assisted");
+  const mayOperate = canDecide(permissions, "operations");
   const [displayGates, setDisplayGates] = useState(gates);
   useEffect(() => setDisplayGates(gates), [gates]);
   const updateGate = (updated: GeneratedExternalGate) =>

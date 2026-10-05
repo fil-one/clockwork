@@ -2,7 +2,7 @@ import { CommercialRecordDetail } from "@/src/features/customer-partner/commerci
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import {
   getRouteIdentity,
-  getRouteRoles,
+  getRoutePermissions,
 } from "@/src/features/shell/route-session";
 import { loadCommercialRecord } from "@/src/features/experience-server/portal-view-loader";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
@@ -13,12 +13,12 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [identity, roles, record] = await Promise.all([
+  const [identity, permissions, record] = await Promise.all([
     getRouteIdentity("customer"),
-    getRouteRoles("customer"),
+    getRoutePermissions("customer"),
     loadCommercialRecord("billing", id),
   ]);
-  const canPay = roles.some((role) => role === "owner" || role === "billing");
+  const canPay = permissions.includes("billing:write");
   return (
     <SurfacePermissionGate
       audience="customer"

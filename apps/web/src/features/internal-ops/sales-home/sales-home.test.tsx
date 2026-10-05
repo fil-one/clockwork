@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { sessionRolesFor } from "@clockwork/contracts";
+import { permissionsForRoles } from "@clockwork/contracts";
 import type * as Db from "@clockwork/db";
 
 const mocks = vi.hoisted(() => ({ count: vi.fn(), database: vi.fn() }));
@@ -26,7 +26,7 @@ const counts = {
 };
 const context = {
   userId: "21000000-0000-4000-8000-000000000010",
-  roles: sessionRolesFor(["revenue"]),
+  permissions: permissionsForRoles(["revenue"], { side: "fil_one" }),
   providerBacked: true,
   now: new Date("2026-10-04T12:00:00.000Z"),
 };
@@ -99,7 +99,9 @@ describe("sales home loader", () => {
   it("leaves out a source the reader may not use", async () => {
     const sections = await loadSalesHome({
       ...context,
-      roles: sessionRolesFor(["destructive_action_approver"]),
+      permissions: permissionsForRoles(["destructive_action_approver"], {
+        side: "fil_one",
+      }),
     });
     expect(sections).toEqual([]);
   });

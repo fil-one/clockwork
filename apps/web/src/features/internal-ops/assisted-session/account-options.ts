@@ -1,6 +1,5 @@
 import "server-only";
 
-import { hasPermission, RoleSchema } from "@clockwork/contracts";
 import type { RuntimeDatabase } from "@clockwork/db";
 
 import type { RouteSession } from "@/src/features/shell/route-session";
@@ -17,11 +16,7 @@ export async function loadAssistedAccountOptions(
   input: { session: RouteSession; requestId: string },
   listAccounts: typeof listAssistableAccounts = listAssistableAccounts,
 ): Promise<AssistedAccountOption[]> {
-  const mayAssume = input.session.roles.some((value) => {
-    const role = RoleSchema.safeParse(value);
-    return role.success && hasPermission(role.data, "impersonation:assume");
-  });
-  if (!mayAssume) return [];
+  if (!input.session.permissions.includes("impersonation:assume")) return [];
   if (input.session.assistedSession)
     return [
       {

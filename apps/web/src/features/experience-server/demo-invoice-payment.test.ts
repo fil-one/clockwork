@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { describe, expect, it } from "vitest";
 
 import type { SessionClaims } from "@clockwork/api";
@@ -24,6 +25,7 @@ const session: SessionClaims = {
   organizationId: "31000000-0000-4000-8000-000000000001",
   accountIds: [demoAccountIds.direct],
   roles: ["owner"],
+  permissions: permissionsForRoles(["owner"]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -197,7 +199,11 @@ describe("demo invoice payment sandbox", () => {
         "payment-authority-key-0001",
         createBody,
       ),
-      { ...session, roles: ["member"] },
+      {
+        ...session,
+        roles: ["member"],
+        permissions: permissionsForRoles(["member"]),
+      },
       store,
     );
     expect(denied.status).toBe(403);

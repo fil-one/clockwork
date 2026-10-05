@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SessionClaims } from "@clockwork/api";
@@ -25,6 +26,7 @@ const session: SessionClaims = {
   userId: "21000000-0000-4000-8000-000000000003",
   accountIds: [demoAccountIds.reseller],
   roles: ["partner_admin"],
+  permissions: permissionsForRoles(["partner_admin"]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -118,7 +120,11 @@ describe("durable demo partner branding", () => {
     expect(crossAccount.status).toBe(403);
     const seller = await handleDemoPartnerBrand(
       request("demo-partner-brand-denied-0002"),
-      { ...session, roles: ["partner_seller"] },
+      {
+        ...session,
+        roles: ["partner_seller"],
+        permissions: permissionsForRoles(["partner_seller"]),
+      },
       demoAccountIds.reseller,
       { store },
     );

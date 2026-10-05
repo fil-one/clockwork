@@ -1,17 +1,20 @@
 import { and, asc, eq, ne, sql } from "drizzle-orm";
 
 import {
+  isStaffTeamRole,
+  orderStaffRoles,
   planStaffProvisioning,
-  StaffProvisioningRoleSchema,
+  rolesHavePermission,
   StaffProvisioningSchema,
   uuidV7,
   type Actor,
   type ExistingStaffIdentityRow,
-  type StaffProvisioningRole,
+  type StaffTeamRole,
 } from "@clockwork/contracts";
 
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
 import { commerceUsers, memberships, organizations } from "../../schema";
+import { membershipRoles } from "../../schema/access";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
 
@@ -24,6 +27,12 @@ import { appendAuditAndOutbox } from "../audit-outbox";
  * membership row by key, the identity row and every audit event stay, and the
  * person keeps no way into the portal: sign-in resolves access from
  * memberships alone. Inviting them again restores a membership.
+ *
+ * A person may hold several roles (`membership_roles`); `memberships.role` is
+ * the primary one, which picks their home page. Roles live only in Postgres,
+ * so granting or removing one is a single write. Authority is a permission,
+ * never a role name: the acting administrator must hold `staff:manage`, and
+ * the organization must always keep someone else who holds it.
  *
  * The identity-provider half of each change runs between a `prepare*` and a
  * `complete*` call, so the caller performs it only after the database has
@@ -40,6 +49,8 @@ export const staffTeamErrorCodes = [
   "STAFF_TEAM_IDENTITY_CONFLICT",
   "STAFF_TEAM_ROLE_NOT_MANAGED",
   "STAFF_TEAM_ROLE_UNCHANGED",
+  "STAFF_TEAM_ROLE_NOT_HELD",
+  "STAFF_TEAM_LAST_ROLE",
   "STAFF_TEAM_STALE",
   "STAFF_TEAM_WORKOS_NOT_LINKED",
 ] as const;
@@ -56,7 +67,10 @@ export interface StaffTeamMember {
   membershipId: string;
   name: string;
   email: string;
+  /** The primary role, which picks the home page. */
   role: string;
+  /** Every role held, the primary one first. */
+  roles: string[];
   mfaEnrolled: boolean;
   addedAt: Date;
   rowVersion: number;
@@ -69,7 +83,7 @@ export type StaffInvitePlan =
   | { kind: "create" }
   | { kind: "restore"; userId: string; workosUserId: string };
 
-const managedRoles = StaffProvisioningRoleSchema.options as readonly string[];
+const staffManage = "staff:manage";
 
 function userActor(actorUserId: string): Actor {
   return { kind: "user", id: actorUserId };
@@ -94,8 +108,10 @@ export async function lockStaffOrganization(
 }
 
 /**
- * Refuses a change that would leave the organization without a commerce
- * administrator. Call it under {@link lockStaffOrganization}.
+ * Refuses a change that would leave the organization without anyone else who
+ * may manage staff. Counts holders of `staff:manage` through every role they
+ * hold, so a seller who was also granted administration counts. Call it under
+ * {@link lockStaffOrganization}.
  */
 export async function assertAnotherStaffAdmin(
   tx: RuntimeTransaction,
@@ -109,9 +125,9 @@ export async function assertAnotherStaffAdmin(
     .where(
       and(
         eq(memberships.organizationId, organizationId),
-        eq(memberships.role, "commerce_admin"),
         eq(commerceUsers.isInternalStaff, true),
         ne(memberships.userId, targetUserId),
+        sql`public.member_has_permission(${memberships.userId}, ${staffManage}, ${organizationId})`,
       ),
     );
   if (!row || Number(row.total) === 0)
@@ -163,11 +179,13 @@ export class StaffTeamRepository {
     organizationId: string;
     email: string;
     name: string;
-    role: StaffProvisioningRole;
+    role: StaffTeamRole;
     binding: { workosUserId: string; workosMembershipId: string };
     requestId: string;
   }): Promise<StaffTeamMember> {
     const email = input.email.toLowerCase();
+    if (!isStaffTeamRole(input.role))
+      throw new StaffTeamError("STAFF_TEAM_ROLE_NOT_MANAGED");
     return withInternalTransaction(
       this.database,
       input.requestId,
@@ -228,13 +246,18 @@ export class StaffTeamRepository {
     );
   }
 
-  /** Changes a staff member's role. WorkOS holds no role, so this is one write. */
-  public changeRole(input: {
+  /**
+   * Gives a staff member one more role. The primary role stays as it is, so
+   * the person keeps their home page. WorkOS holds no role, so this is one
+   * write.
+   */
+  public grantRole(input: {
     actorUserId: string;
     organizationId: string;
     userId: string;
-    role: StaffProvisioningRole;
+    role: StaffTeamRole;
     expectedRowVersion: number;
+    reason?: string;
     requestId: string;
   }): Promise<StaffTeamMember> {
     return withInternalTransaction(
@@ -244,40 +267,152 @@ export class StaffTeamRepository {
         await lockStaffOrganization(tx, input.organizationId);
         await this.requireAdmin(tx, input.actorUserId, input.organizationId);
         const target = await this.lockedTarget(tx, input);
-        if (!managedRoles.includes(target.role))
+        if (target.rowVersion !== input.expectedRowVersion)
+          throw new StaffTeamError("STAFF_TEAM_STALE");
+        if (!isStaffTeamRole(input.role))
           throw new StaffTeamError("STAFF_TEAM_ROLE_NOT_MANAGED");
-        if (target.role === input.role)
+        if (target.roles.includes(input.role))
           throw new StaffTeamError("STAFF_TEAM_ROLE_UNCHANGED");
-        if (target.role === "commerce_admin")
+        await tx.insert(membershipRoles).values({
+          membershipId: target.membershipId,
+          role: input.role,
+          grantedBy: input.actorUserId,
+          reason: input.reason ?? null,
+        });
+        const rowVersion = await this.advance(tx, target, {});
+        const roles = [
+          target.role,
+          ...orderStaffRoles([...target.roles, input.role]).filter(
+            (role) => role !== target.role,
+          ),
+        ];
+        await appendAuditAndOutbox(tx, {
+          aggregateType: "membership",
+          aggregateId: target.membershipId,
+          aggregateVersion: rowVersion,
+          eventType: "staff.role_granted",
+          actor: userActor(input.actorUserId),
+          requestId: input.requestId,
+          before: { email: target.email, roles: target.roles },
+          after: {
+            email: target.email,
+            role: input.role,
+            roles,
+            ...(input.reason ? { reason: input.reason } : {}),
+          },
+        });
+        return { ...target, roles, rowVersion };
+      },
+    );
+  }
+
+  /**
+   * Takes one role away. A person always keeps at least one role (deactivate
+   * them instead), and the organization always keeps someone else who holds
+   * `staff:manage`. Removing the primary role moves the primary to the first
+   * remaining role in `staffTeamRoles` order.
+   */
+  public revokeRole(input: {
+    actorUserId: string;
+    organizationId: string;
+    userId: string;
+    role: StaffTeamRole;
+    expectedRowVersion: number;
+    reason?: string;
+    requestId: string;
+  }): Promise<StaffTeamMember> {
+    return withInternalTransaction(
+      this.database,
+      input.requestId,
+      async (tx) => {
+        await lockStaffOrganization(tx, input.organizationId);
+        await this.requireAdmin(tx, input.actorUserId, input.organizationId);
+        const target = await this.lockedTarget(tx, input);
+        if (target.rowVersion !== input.expectedRowVersion)
+          throw new StaffTeamError("STAFF_TEAM_STALE");
+        if (!isStaffTeamRole(input.role))
+          throw new StaffTeamError("STAFF_TEAM_ROLE_NOT_MANAGED");
+        if (!target.roles.includes(input.role))
+          throw new StaffTeamError("STAFF_TEAM_ROLE_NOT_HELD");
+        const remaining = target.roles.filter((role) => role !== input.role);
+        if (remaining.length === 0)
+          throw new StaffTeamError("STAFF_TEAM_LAST_ROLE");
+        if (
+          rolesHavePermission(target.roles, staffManage) &&
+          !rolesHavePermission(remaining, staffManage)
+        )
           await assertAnotherStaffAdmin(
             tx,
             input.organizationId,
             target.userId,
           );
-        const [updated] = await tx
-          .update(memberships)
-          .set({ role: input.role })
-          .where(
-            and(
-              eq(memberships.id, target.membershipId),
-              eq(memberships.rowVersion, input.expectedRowVersion),
-            ),
-          )
-          .returning({ rowVersion: memberships.rowVersion });
-        if (!updated) throw new StaffTeamError("STAFF_TEAM_STALE");
+        const primary =
+          input.role === target.role
+            ? (orderStaffRoles(remaining)[0] ?? target.role)
+            : target.role;
+        let rowVersion: number;
+        if (primary !== target.role) {
+          // Moving the primary role drops the old primary's row with it
+          // (memberships_sync_primary_role), which is the removal itself.
+          rowVersion = await this.advance(tx, target, { role: primary });
+        } else {
+          await tx
+            .delete(membershipRoles)
+            .where(
+              and(
+                eq(membershipRoles.membershipId, target.membershipId),
+                eq(membershipRoles.role, input.role),
+              ),
+            );
+          rowVersion = await this.advance(tx, target, {});
+        }
+        const roles = [
+          primary,
+          ...orderStaffRoles(remaining).filter((role) => role !== primary),
+        ];
         await appendAuditAndOutbox(tx, {
           aggregateType: "membership",
           aggregateId: target.membershipId,
-          aggregateVersion: updated.rowVersion,
-          eventType: "staff.role_changed",
+          aggregateVersion: rowVersion,
+          eventType: "staff.role_revoked",
           actor: userActor(input.actorUserId),
           requestId: input.requestId,
-          before: { email: target.email, role: target.role },
-          after: { email: target.email, role: input.role },
+          before: { email: target.email, roles: target.roles },
+          after: {
+            email: target.email,
+            role: input.role,
+            roles,
+            ...(input.reason ? { reason: input.reason } : {}),
+          },
         });
-        return { ...target, role: input.role, rowVersion: updated.rowVersion };
+        return { ...target, role: primary, roles, rowVersion };
       },
     );
+  }
+
+  /**
+   * Moves the membership's row version on, so a screen still holding the old
+   * one is refused. Returns the new version.
+   */
+  private async advance(
+    tx: RuntimeTransaction,
+    target: StaffTeamMember,
+    change: { role?: string },
+  ): Promise<number> {
+    const [updated] = await tx
+      .update(memberships)
+      // The row-version trigger sets updated_at itself; naming it here makes
+      // the update a real one when the role stays.
+      .set({ updatedAt: new Date(), ...change })
+      .where(
+        and(
+          eq(memberships.id, target.membershipId),
+          eq(memberships.rowVersion, target.rowVersion),
+        ),
+      )
+      .returning({ rowVersion: memberships.rowVersion });
+    if (!updated) throw new StaffTeamError("STAFF_TEAM_STALE");
+    return updated.rowVersion;
   }
 
   /** Checks a deactivation and returns what WorkOS must be told. */
@@ -336,6 +471,7 @@ export class StaffTeamRepository {
           before: {
             email: target.email,
             role: target.role,
+            roles: target.roles,
             workosMembershipId: target.workosMembershipId,
           },
           after: {
@@ -360,7 +496,7 @@ export class StaffTeamRepository {
     const target = await this.lockedTarget(tx, input);
     if (target.rowVersion !== input.expectedRowVersion)
       throw new StaffTeamError("STAFF_TEAM_STALE");
-    if (target.role === "commerce_admin")
+    if (rolesHavePermission(target.roles, staffManage))
       await assertAnotherStaffAdmin(tx, input.organizationId, target.userId);
     return target;
   }
@@ -379,9 +515,10 @@ export class StaffTeamRepository {
   }
 
   /**
-   * The actor's own membership row decides, not the session: someone whose
-   * administrator membership was removed a moment ago is refused here.
-   * Returns the organization's WorkOS id.
+   * The actor's own stored roles decide, not the session: someone whose
+   * administrator role was removed a moment ago is refused here. Only the Fil
+   * One staff organization is managed this way. Returns the organization's
+   * WorkOS id.
    */
   private async requireAdmin(
     tx: RuntimeTransaction,
@@ -400,8 +537,9 @@ export class StaffTeamRepository {
         and(
           eq(memberships.userId, actorUserId),
           eq(memberships.organizationId, organizationId),
-          eq(memberships.role, "commerce_admin"),
+          eq(organizations.side, "fil_one"),
           eq(commerceUsers.isInternalStaff, true),
+          sql`public.member_has_permission(${actorUserId}, ${staffManage}, ${organizationId})`,
         ),
       )
       .limit(1);
@@ -462,13 +600,17 @@ export class StaffTeamRepository {
     tx: RuntimeTransaction,
     organizationId: string,
   ): Promise<StaffTeamMember[]> {
-    return tx
+    const rows = await tx
       .select({
         userId: commerceUsers.id,
         membershipId: memberships.id,
         name: commerceUsers.name,
         email: commerceUsers.email,
         role: memberships.role,
+        roles: sql<string[]>`array(
+          select granted.role from public.membership_roles granted
+          where granted.membership_id = ${memberships.id}
+        )`,
         mfaEnrolled: commerceUsers.mfaEnrolled,
         addedAt: memberships.createdAt,
         rowVersion: memberships.rowVersion,
@@ -491,5 +633,13 @@ export class StaffTeamRepository {
         ),
       )
       .orderBy(asc(memberships.createdAt), asc(commerceUsers.email));
+    return rows.map((row) => ({
+      ...row,
+      // The primary role leads, then the rest in their usual order.
+      roles: [
+        row.role,
+        ...orderStaffRoles(row.roles).filter((role) => role !== row.role),
+      ],
+    }));
   }
 }

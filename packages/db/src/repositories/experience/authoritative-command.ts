@@ -3,9 +3,12 @@ import { z } from "zod";
 
 import {
   ActorSchema,
+  contextHasPermission,
+  OrganizationSideSchema,
+  permissions as permissionOrder,
+  permissionsForRoles,
   privilegedRoles,
   RoleSchema,
-  sessionRolesFor,
   type Actor,
   type Permission,
   type Role,
@@ -79,7 +82,7 @@ const actionPermissionByResource = {
 function portalCommandPermission(
   resource: (typeof resourceByAggregate)[keyof typeof resourceByAggregate],
   action: string,
-  roles: readonly Role[],
+  authorization: AuthorizationContext,
 ): Permission {
   const actionPermission = (
     actionPermissionByResource[
@@ -87,9 +90,11 @@ function portalCommandPermission(
     ] as Readonly<Record<string, Permission>> | undefined
   )?.[action];
   if (actionPermission) return actionPermission;
+  // A partner (anyone who registers deals) writes the partner quote, which a
+  // referral partner's side withholds.
   if (
     resource === "quotes" &&
-    roles.some((role) => role === "partner_admin" || role === "partner_seller")
+    contextHasPermission(authorization, "deal:register")
   )
     return "partner:quote:write";
   return permissionByResource[resource];
@@ -120,10 +125,52 @@ const IdentityRowSchema = z
     id: z.uuid(),
     email: z.email(),
     is_internal_staff: z.boolean(),
-    roles: z.array(RoleSchema),
+    /** One entry per membership: its organization's side and every role. */
+    grants: z.array(
+      z
+        .object({
+          side: OrganizationSideSchema,
+          roles: z.array(RoleSchema).min(1),
+        })
+        .strict(),
+    ),
     account_ids: z.array(z.uuid()),
   })
   .strict();
+
+/**
+ * The roles and permissions a person holds across the memberships read for a
+ * command: every role of every membership, primary roles first, and the union
+ * of what each membership confers on its own organization's side.
+ */
+function grantedAccess(
+  grants: z.infer<typeof IdentityRowSchema>["grants"],
+  options: { assisted: boolean },
+): { roles: Role[]; permissions: Permission[] } {
+  const held = new Set(
+    grants.flatMap((grant) =>
+      permissionsForRoles(grant.roles, {
+        side: grant.side,
+        assisted: options.assisted,
+      }),
+    ),
+  );
+  return {
+    roles: [...new Set(grants.flatMap((grant) => grant.roles))],
+    permissions: permissionOrder.filter((permission) => held.has(permission)),
+  };
+}
+
+/** Each membership's side and roles, primary role first. */
+const membershipGrant = sql`jsonb_build_object(
+  'side', organization.side,
+  'roles', (
+    select jsonb_agg(granted.role
+      order by granted.role = membership.role desc, granted.granted_at, granted.role)
+    from public.membership_roles granted
+    where granted.membership_id = membership.id
+  )
+)`;
 
 const AssistedSessionRowSchema = z
   .object({
@@ -236,16 +283,16 @@ export class DatabaseAuthoritativePortalCommandExecutor {
         const identityRows = await transaction.execute(sql`
           select app_user.id, app_user.email, app_user.is_internal_staff,
                  coalesce(
-                   jsonb_agg(distinct membership.role)
+                   jsonb_agg(${membershipGrant} order by membership.id)
                      filter (
-                       where membership.role is not null
+                       where membership.id is not null
                          and (
                            app_user.is_internal_staff
                            or organization.account_id = ${input.effectiveAccountId}::uuid
                          )
                      ),
                    '[]'::jsonb
-                 ) as roles,
+                 ) as grants,
                  coalesce(
                    jsonb_agg(distinct organization.account_id)
                      filter (where organization.account_id is not null),
@@ -260,9 +307,13 @@ export class DatabaseAuthoritativePortalCommandExecutor {
           group by app_user.id, app_user.email, app_user.is_internal_staff
         `);
         const identity = IdentityRowSchema.safeParse(identityRows[0]);
-        if (!identity.success || identity.data.roles.length === 0) return null;
+        if (!identity.success || identity.data.grants.length === 0) return null;
 
-        const roles = sessionRolesFor(identity.data.roles);
+        // Staff reach a customer's account only through an assisted session,
+        // which holds no approver permission.
+        const { roles, permissions } = grantedAccess(identity.data.grants, {
+          assisted: identity.data.is_internal_staff,
+        });
         if (
           !input.recentAuthenticationVerified ||
           (roles.some((role) =>
@@ -286,6 +337,7 @@ export class DatabaseAuthoritativePortalCommandExecutor {
               effectiveAccountId as AuthorizationContext["accountIds"][number],
             ],
             roles,
+            permissions,
             isInternalStaff: false,
             mfaVerified: input.mfaVerified,
             recentAuthenticationVerified: input.recentAuthenticationVerified,
@@ -321,6 +373,7 @@ export class DatabaseAuthoritativePortalCommandExecutor {
             effectiveAccountId as AuthorizationContext["accountIds"][number],
           ],
           roles,
+          permissions,
           isInternalStaff: true,
           mfaVerified: input.mfaVerified,
           recentAuthenticationVerified: input.recentAuthenticationVerified,
@@ -524,7 +577,7 @@ export class DatabaseAuthoritativePortalCommandExecutor {
     const permission = portalCommandPermission(
       resource,
       parsed.data.action,
-      authorization.roles,
+      authorization,
     );
     try {
       authorize(
@@ -649,14 +702,16 @@ export class DatabaseSystemRecoveryCommandExecutor {
         const rows = await transaction.execute(sql`
           select app_user.id, app_user.email, app_user.is_internal_staff,
                  coalesce(
-                   jsonb_agg(distinct membership.role)
-                     filter (where membership.role is not null),
+                   jsonb_agg(${membershipGrant} order by membership.id)
+                     filter (where membership.id is not null),
                    '[]'::jsonb
-                 ) as roles,
+                 ) as grants,
                  '[]'::jsonb as account_ids
           from public.commerce_users app_user
           left join public.memberships membership
             on membership.user_id = app_user.id
+          left join public.organizations organization
+            on organization.id = membership.organization_id
           where app_user.id = ${input.actorUserId}::uuid
           group by app_user.id, app_user.email, app_user.is_internal_staff
         `);
@@ -664,11 +719,13 @@ export class DatabaseSystemRecoveryCommandExecutor {
         if (
           !identity.success ||
           !identity.data.is_internal_staff ||
-          identity.data.roles.length === 0 ||
+          identity.data.grants.length === 0 ||
           !input.recentAuthenticationVerified
         )
           return null;
-        const roles = sessionRolesFor(identity.data.roles);
+        const { roles, permissions } = grantedAccess(identity.data.grants, {
+          assisted: false,
+        });
         if (
           roles.some((role) =>
             privilegedRoles.includes(role as (typeof privilegedRoles)[number]),
@@ -680,6 +737,7 @@ export class DatabaseSystemRecoveryCommandExecutor {
           userId: identity.data.id as AuthorizationContext["userId"],
           accountIds: [],
           roles,
+          permissions,
           isInternalStaff: true,
           mfaVerified: input.mfaVerified,
           recentAuthenticationVerified: input.recentAuthenticationVerified,

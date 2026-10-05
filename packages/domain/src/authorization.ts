@@ -1,4 +1,5 @@
 import {
+  contextHasPermission,
   hasPermission,
   internalRoles,
   permissions,
@@ -19,6 +20,12 @@ export interface AuthorizationContext {
   organizationId?: string;
   accountIds: readonly AccountId[];
   roles: readonly Role[];
+  /**
+   * The permissions the session holds. Built by the server from the roles;
+   * when absent they are derived from the roles the same way (see
+   * `contextPermissions`).
+   */
+  permissions?: readonly Permission[];
   isInternalStaff: boolean;
   mfaVerified: boolean;
   recentAuthenticationVerified: boolean;
@@ -252,7 +259,7 @@ export function authorize(
   if (
     decision.kind === "internal-staff" &&
     !salesWorkspacePermissions.has(permission) &&
-    !context.roles.some((role) => hasPermission(role, "operations:read"))
+    !contextHasPermission(context, "operations:read")
   ) {
     throw new AuthorizationError("FORBIDDEN");
   }
@@ -268,7 +275,7 @@ export function authorize(
     )
       throw new AuthorizationError("ACCOUNT_SCOPE");
   }
-  if (!context.roles.some((role) => hasPermission(role, permission))) {
+  if (!contextHasPermission(context, permission)) {
     throw new AuthorizationError("FORBIDDEN");
   }
 }

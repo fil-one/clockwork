@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import type { WebhookVerifier } from "@clockwork/contracts";
 import { renderCsv } from "@clockwork/workflows/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -227,6 +228,60 @@ describe("core-finance API", () => {
     expect(crossPartner.status).toBe(403);
     await expect(crossPartner.json()).resolves.toMatchObject({
       code: "CROSS_ACCOUNT_DENIED",
+    });
+  });
+
+  it("lets a referral partner register deals but never write a partner quote", async () => {
+    configureCoreRouteDependencies({ service: new MemoryCoreFinanceService() });
+    const referralPartner = createApiApp({
+      sessionResolver: {
+        resolve: () =>
+          Promise.resolve({
+            userId: "20000000-0000-4000-8000-000000000003",
+            organizationId: "30000000-0000-4000-8000-000000000002",
+            accountIds: [accountOne],
+            roles: ["partner_admin"],
+            permissions: permissionsForRoles(["partner_admin"], {
+              side: "referral_partner",
+            }),
+            isInternalStaff: false,
+            mfaVerified: true,
+            recentAuthenticationVerified: true,
+          }),
+      },
+    });
+    const registration = await referralPartner.request(
+      "/v1/core/commands/deal_registrations",
+      {
+        method: "POST",
+        headers: mutationHeaders({ key: "referral-registration-0001" }),
+        body: JSON.stringify({
+          id: "13000000-0000-4000-8000-000000000020",
+          accountId: accountOne,
+          action: "create",
+          payload: { endClientAccountId: accountTwo },
+        }),
+      },
+    );
+    expect(registration.status, await registration.clone().text()).toBe(200);
+
+    const quote = await referralPartner.request("/v1/core/commands/quotes", {
+      method: "POST",
+      headers: mutationHeaders({ key: "referral-partner-quote-0001" }),
+      body: JSON.stringify({
+        id: "13000000-0000-4000-8000-000000000021",
+        accountId: accountTwo,
+        action: "create",
+        payload: {
+          partnerAccountId: accountOne,
+          endClientAccountId: accountTwo,
+          route: "resale",
+        },
+      }),
+    });
+    expect(quote.status).toBe(403);
+    await expect(quote.json()).resolves.toMatchObject({
+      code: "AUTHORIZATION_DENIED",
     });
   });
 

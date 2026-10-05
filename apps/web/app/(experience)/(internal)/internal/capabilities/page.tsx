@@ -1,7 +1,9 @@
+import { contextHasPermission } from "@clockwork/contracts";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
   DatabaseSystemCapabilityAdmin,
+  capabilityApprovalPermission,
   capabilityApprovalRole,
   type SystemCapabilityKey,
 } from "@clockwork/db";
@@ -142,13 +144,12 @@ async function Page() {
             </div>
             <CapabilityControls
               capability={capability}
-              canOperate={session.roles.includes("internal_operator")}
-              canApprove={session.roles.some(
-                (role) =>
-                  role ===
-                  capabilityApprovalRole(
-                    capability.capabilityKey as SystemCapabilityKey,
-                  ),
+              canOperate={contextHasPermission(session, "operations:write")}
+              canApprove={contextHasPermission(
+                session,
+                capabilityApprovalPermission(
+                  capability.capabilityKey as SystemCapabilityKey,
+                ),
               )}
             />
           </section>

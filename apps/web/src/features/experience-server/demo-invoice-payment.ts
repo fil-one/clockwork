@@ -4,7 +4,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
-import { hasPermission, uuidV7 } from "@clockwork/contracts";
+import { contextHasPermission, uuidV7 } from "@clockwork/contracts";
 import type {
   DemoAdapterState,
   DemoAdapterStateStore,
@@ -93,7 +93,7 @@ function accountScope(session: SessionClaims, accountId: string): void {
 }
 
 function requireBillingAuthority(session: SessionClaims): void {
-  if (!session.roles.some((role) => hasPermission(role, "billing:write")))
+  if (!contextHasPermission(session, "billing:write"))
     throw new ExperienceProblem(
       403,
       "PAYMENT_AUTHORITY_FORBIDDEN",

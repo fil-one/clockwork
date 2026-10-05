@@ -1,24 +1,29 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles, type Permission } from "@clockwork/contracts";
+
+import { audienceCanAccess } from "./navigation";
 import { RoutePermissionGate, SurfacePermissionGate } from "./permission-gate";
 
-const getRouteRoles = vi.fn<(audience: string) => Promise<readonly string[]>>();
+const getRoutePermissions =
+  vi.fn<(audience: string) => Promise<readonly Permission[]>>();
 
 vi.mock("./route-session", () => ({
-  getRouteRoles: (audience: string) => getRouteRoles(audience),
+  getRoutePermissions: (audience: string) => getRoutePermissions(audience),
 }));
 
 describe("route permission gate", () => {
   it("renders customer content only for allowed commerce roles", () => {
+    const billing = permissionsForRoles(["billing"]);
     const { rerender } = render(
-      <RoutePermissionGate audience="customer" roles={["billing"]}>
+      <RoutePermissionGate audience="customer" permissions={billing}>
         <p>Account billing</p>
       </RoutePermissionGate>,
     );
     expect(screen.getByText("Account billing")).toBeInTheDocument();
     rerender(
-      <RoutePermissionGate audience="internal" roles={["billing"]}>
+      <RoutePermissionGate audience="internal" permissions={billing}>
         <p>Back office</p>
       </RoutePermissionGate>,
     );
@@ -27,9 +32,31 @@ describe("route permission gate", () => {
   });
 });
 
+describe("portal audiences", () => {
+  it.each([
+    ["owner", "customer", "customer"],
+    ["member", "customer", "customer"],
+    ["partner_admin", "channel_partner", "partner"],
+    ["partner_seller", "referral_partner", "partner"],
+    ["revenue", "fil_one", "internal"],
+    ["commerce_admin", "fil_one", "internal"],
+  ] as const)("opens only one portal to %s on %s", (role, side, audience) => {
+    const permissions = permissionsForRoles([role], { side });
+    for (const candidate of ["customer", "partner", "internal"] as const)
+      expect(audienceCanAccess(candidate, permissions)).toBe(
+        candidate === audience,
+      );
+  });
+
+  it("opens no portal to a session without permissions", () => {
+    expect(audienceCanAccess("internal", [])).toBe(false);
+    expect(audienceCanAccess("partner", [])).toBe(false);
+  });
+});
+
 describe("surface permission gate", () => {
-  it("resolves the roles on the server rather than from the client tree", async () => {
-    getRouteRoles.mockResolvedValue(["owner"]);
+  it("resolves the permissions on the server rather than from the client tree", async () => {
+    getRoutePermissions.mockResolvedValue(permissionsForRoles(["owner"]));
     render(
       await SurfacePermissionGate({
         audience: "customer",
@@ -37,12 +64,12 @@ describe("surface permission gate", () => {
         children: <p>Quote mutation</p>,
       }),
     );
-    expect(getRouteRoles).toHaveBeenCalledWith("customer");
+    expect(getRoutePermissions).toHaveBeenCalledWith("customer");
     expect(screen.getByText("Quote mutation")).toBeInTheDocument();
   });
 
   it("never renders the child of a denied surface", async () => {
-    getRouteRoles.mockResolvedValue(["member"]);
+    getRoutePermissions.mockResolvedValue(permissionsForRoles(["member"]));
     const Child = vi.fn(() => <p>Quote mutation</p>);
     render(
       await SurfacePermissionGate({
@@ -56,8 +83,8 @@ describe("surface permission gate", () => {
     expect(screen.getByRole("heading")).toHaveTextContent("not available");
   });
 
-  it("denies a surface when the session carries no roles", async () => {
-    getRouteRoles.mockResolvedValue([]);
+  it("denies a surface when the session carries no permissions", async () => {
+    getRoutePermissions.mockResolvedValue([]);
     render(
       await SurfacePermissionGate({
         audience: "internal",

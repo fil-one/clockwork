@@ -6,6 +6,7 @@ import {
 import {
   DEMO_PERSONA_HEADER,
   demoAccountIds,
+  demoPersonaSide,
   demoPersonas,
   type DemoPersona,
   type DemoPersonaKey,
@@ -336,8 +337,9 @@ export function demoPersonaStartRoute(
 }
 
 export function demoPersonaAudience(persona: DemoPersona): ExperienceAudience {
-  if (persona.isInternalStaff) return "internal";
-  if (persona.role === "partner_admin" || persona.role === "partner_seller")
+  const side = demoPersonaSide(persona);
+  if (side === "fil_one") return "internal";
+  if (side === "channel_partner" || side === "referral_partner")
     return "partner";
   return "customer";
 }
@@ -373,6 +375,8 @@ export function demoPersonaMembership(
     accountId: persona.selectedAccountId,
     accountName: demoPersonaAccountName(persona),
     role: persona.role,
+    roles: [persona.role],
+    side: demoPersonaSide(persona),
     audience,
     home:
       audience === "partner"

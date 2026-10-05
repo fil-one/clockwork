@@ -1,11 +1,6 @@
 import type { Route } from "next";
 
-import {
-  hasPermission,
-  roles as commerceRoles,
-  type Permission,
-  type Role,
-} from "@clockwork/contracts";
+import type { Permission } from "@clockwork/contracts";
 import type { CommandPaletteItem } from "@clockwork/ui";
 
 import type { Translator } from "@/src/i18n";
@@ -23,7 +18,8 @@ interface CommandAction {
   href: Route;
   keywords: readonly string[];
   requiredPermission?: Permission;
-  allowedRoles?: readonly Role[];
+  /** Offered to a reader holding at least one of these. */
+  anyPermission?: readonly Permission[];
 }
 
 export interface CommandItemContext {
@@ -58,6 +54,7 @@ const actionsFor = (
       description: t("app.command.action.registerDeal"),
       href: "/partner/registrations",
       keywords: ["new", "opportunity", "client"],
+      requiredPermission: "deal:register",
     },
     {
       id: "create-partner-quote",
@@ -84,48 +81,40 @@ const actionsFor = (
       href: "/internal/approvals",
       keywords: ["queue", "exception", "resolve"],
       requiredPermission: "operations:read",
-      allowedRoles: [
-        "finance_approver",
-        "legal_approver",
-        "destructive_action_approver",
+      anyPermission: [
+        "quote:approve",
+        "agreement:approve",
+        "destructive:approve",
       ],
     },
   ],
 });
 
-function isCommerceRole(role: string): role is Role {
-  return (commerceRoles as readonly string[]).includes(role);
-}
-
 function canAccessAction(
   action: CommandAction,
-  roles: readonly string[],
+  permissions: readonly Permission[],
 ): boolean {
-  const actionRoles = action.allowedRoles;
   if (
-    actionRoles &&
-    !roles.some((role) => isCommerceRole(role) && actionRoles.includes(role))
-  ) {
+    action.anyPermission &&
+    !action.anyPermission.some((permission) => permissions.includes(permission))
+  )
     return false;
-  }
-
-  const requiredPermission = action.requiredPermission;
-  if (!requiredPermission) return true;
-  return roles.some(
-    (role) => isCommerceRole(role) && hasPermission(role, requiredPermission),
+  return (
+    !action.requiredPermission ||
+    permissions.includes(action.requiredPermission)
   );
 }
 
 /** Builds the palette data for the active portal without leaking cross-audience actions. */
 export function getCommandItems(
   audience: ExperienceAudience,
-  roles: readonly string[],
+  permissions: readonly Permission[],
   context: CommandItemContext,
   t: Translator,
 ): CommandPaletteItem[] {
   const navigationItems: CommandPaletteItem[] = navigation[audience]
     .filter((item) => !item.providerBackedOnly || context.providerBacked)
-    .filter((item) => canAccessNavigationItem(item, roles))
+    .filter((item) => canAccessNavigationItem(item, permissions))
     .map((item) => ({
       id: `navigation-${item.href}`,
       label: t(item.label),
@@ -138,7 +127,8 @@ export function getCommandItems(
 
   const audienceActions = actionsFor(t)[audience];
   const actionItems: CommandPaletteItem[] = audienceActions
-    .filter((item) => canAccessAction(item, roles))
+    .filter((item) => canAccessAction(item, permissions))
+
     .map((item) => ({
       id: `action-${item.id}`,
       label: item.label,

@@ -2,7 +2,12 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 
-import { internalRoles, RoleSchema, type Role } from "@clockwork/contracts";
+import {
+  OrganizationSideSchema,
+  RoleSchema,
+  type OrganizationSide,
+  type Role,
+} from "@clockwork/contracts";
 import { type RuntimeDatabase, withInternalTransaction } from "@clockwork/db";
 
 export type PortalAudience = "customer" | "partner" | "internal";
@@ -17,7 +22,12 @@ export interface AuthorizedMembership {
   organizationName: string;
   accountId: string;
   accountName: string;
+  /** The primary role: it picks the label people see. */
   role: Role;
+  /** Every role the membership holds, the primary role first. */
+  roles: readonly Role[];
+  /** Which side of the business the organization is on. */
+  side: OrganizationSide;
   audience: PortalAudience;
   home: "/dashboard" | "/partner" | "/internal";
 }
@@ -33,18 +43,21 @@ interface MembershipRow extends Record<string, unknown> {
   account_id: string;
   account_name: string;
   role: string;
+  roles: string[] | null;
+  side: string;
 }
 
+/**
+ * The portal a membership opens, decided by the organization's side: Fil One
+ * staff work in the internal portal, channel and referral partners in the
+ * partner portal, and everyone else in the customer portal.
+ */
 export function audienceForMembership(input: {
-  role: Role;
+  side: OrganizationSide;
   isInternalStaff: boolean;
 }): PortalAudience {
-  if (
-    input.isInternalStaff &&
-    internalRoles.includes(input.role as (typeof internalRoles)[number])
-  )
-    return "internal";
-  if (input.role === "partner_admin" || input.role === "partner_seller")
+  if (input.side === "fil_one" && input.isInternalStaff) return "internal";
+  if (input.side === "channel_partner" || input.side === "referral_partner")
     return "partner";
   return "customer";
 }
@@ -57,10 +70,26 @@ export function homeForAudience(
   return "/dashboard";
 }
 
+/** The primary role first, then every other role the membership holds. */
+export function membershipRoles(
+  primary: Role,
+  granted: readonly string[],
+): Role[] {
+  return [
+    primary,
+    ...granted
+      .map((role) => RoleSchema.parse(role))
+      .filter(
+        (role, index, all) => role !== primary && all.indexOf(role) === index,
+      ),
+  ];
+}
+
 function membership(row: MembershipRow): AuthorizedMembership {
   const role = RoleSchema.parse(row.role);
+  const side = OrganizationSideSchema.parse(row.side);
   const audience = audienceForMembership({
-    role,
+    side,
     isInternalStaff: row.is_internal_staff,
   });
   return {
@@ -74,6 +103,8 @@ function membership(row: MembershipRow): AuthorizedMembership {
     accountId: row.account_id,
     accountName: row.account_name,
     role,
+    roles: membershipRoles(role, row.roles ?? []),
+    side,
     audience,
     home: homeForAudience(audience),
   };
@@ -94,7 +125,14 @@ export async function listAuthorizedMemberships(
              o.name as organization_name,
              a.id as account_id,
              a.legal_name as account_name,
-             m.role
+             m.role,
+             array(
+               select granted.role
+               from public.membership_roles granted
+               where granted.membership_id = m.id
+               order by granted.granted_at, granted.role
+             )::text[] as roles,
+             o.side
       from public.memberships m
       join public.commerce_users u on u.id = m.user_id
       join public.organizations o on o.id = m.organization_id
@@ -124,7 +162,14 @@ export async function listAuthorizedMembershipsForUser(
              o.name as organization_name,
              a.id as account_id,
              a.legal_name as account_name,
-             m.role
+             m.role,
+             array(
+               select granted.role
+               from public.membership_roles granted
+               where granted.membership_id = m.id
+               order by granted.granted_at, granted.role
+             )::text[] as roles,
+             o.side
       from public.memberships m
       join public.commerce_users u on u.id = m.user_id
       join public.organizations o on o.id = m.organization_id

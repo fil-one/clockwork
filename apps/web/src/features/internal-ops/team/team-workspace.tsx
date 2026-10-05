@@ -6,32 +6,38 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 
 import {
   Button,
+  Dialog,
   EmptyState,
   Input,
   Select,
   StateBanner,
   StatusBadge,
+  Textarea,
   buttonClassName,
 } from "@clockwork/ui";
 
-import type { MessageId } from "@/src/i18n";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
 import {
-  changeStaffRole,
   deactivateStaffMember,
+  grantStaffRole,
   inviteStaffMember,
+  revokeStaffRole,
 } from "./actions";
 import {
   inviteRoles,
   isTeamRole,
+  permissionLabels,
+  staffPermissions,
   staffRoleLabels,
+  staffRoleSummaries,
   teamErrorMessages,
   teamErrorsThatRefresh,
   teamRoles,
   type TeamActionResult,
   type TeamErrorCode,
   type TeamMemberView,
+  type TeamRole,
   type TeamView,
 } from "./model";
 import styles from "./team-workspace.module.css";
@@ -40,11 +46,51 @@ type Outcome =
   | { tone: "success"; message: string }
   | { tone: "danger"; code: TeamErrorCode };
 
-const roleSummaries: readonly [string, MessageId][] = [
-  ["revenue", "operations.team.roles.revenue"],
-  ["commerce_admin", "operations.team.roles.commerceAdmin"],
-  ["internal_operator", "operations.team.roles.internalOperator"],
-];
+const reasonLimit = 500;
+
+/** The refusal in the reader's words, with the sign-in check when it applies. */
+function OutcomeBanner({
+  outcome,
+  domains,
+}: {
+  outcome: Outcome | null;
+  domains: string;
+}) {
+  const t = useTranslations();
+  return (
+    <>
+      <p className="cw-sr-only" role="status" aria-live="polite">
+        {outcome?.tone === "success" ? outcome.message : ""}
+      </p>
+      {outcome?.tone === "success" ? (
+        <StateBanner tone="success" title={outcome.message} />
+      ) : null}
+      {outcome?.tone === "danger" ? (
+        <div role="alert">
+          <StateBanner
+            tone="danger"
+            title={t(teamErrorMessages[outcome.code], { domains })}
+            {...(outcome.code === "RECENT_SIGN_IN_REQUIRED"
+              ? {
+                  action: (
+                    <Link
+                      className={buttonClassName({
+                        variant: "secondary",
+                        size: "small",
+                      })}
+                      href="/access/mfa"
+                    >
+                      {t("operations.team.verify")}
+                    </Link>
+                  ),
+                }
+              : {})}
+          />
+        </div>
+      ) : null}
+    </>
+  );
+}
 
 export function TeamWorkspace({ view }: { view: TeamView }) {
   const t = useTranslations();
@@ -98,44 +144,17 @@ export function TeamWorkspace({ view }: { view: TeamView }) {
       ) : null}
 
       <div className={styles.feedback}>
-        <p className="cw-sr-only" role="status" aria-live="polite">
-          {outcome?.tone === "success" ? outcome.message : ""}
-        </p>
-        {outcome?.tone === "success" ? (
-          <StateBanner tone="success" title={outcome.message} />
-        ) : null}
-        {outcome?.tone === "danger" ? (
-          <div role="alert">
-            <StateBanner
-              tone="danger"
-              title={t(teamErrorMessages[outcome.code], { domains })}
-              {...(outcome.code === "RECENT_SIGN_IN_REQUIRED"
-                ? {
-                    action: (
-                      <Link
-                        className={buttonClassName({
-                          variant: "secondary",
-                          size: "small",
-                        })}
-                        href="/access/mfa"
-                      >
-                        {t("operations.team.verify")}
-                      </Link>
-                    ),
-                  }
-                : {})}
-            />
-          </div>
-        ) : null}
+        <OutcomeBanner outcome={outcome} domains={domains} />
       </div>
 
       <section className={styles.panel} aria-labelledby="team-roles">
         <h2 id="team-roles">{t("operations.team.roles.title")}</h2>
+        <p className={styles.note}>{t("operations.team.roles.combine")}</p>
         <dl className={styles.roles}>
-          {roleSummaries.map(([role, summary]) => (
+          {teamRoles.map((role) => (
             <div key={role}>
               <dt>{roleLabel(role)}</dt>
-              <dd>{t(summary)}</dd>
+              <dd>{t(staffRoleSummaries[role])}</dd>
             </div>
           ))}
         </dl>
@@ -145,6 +164,7 @@ export function TeamWorkspace({ view }: { view: TeamView }) {
         <InviteForm
           domains={domains}
           pending={pending}
+          roleLabel={roleLabel}
           onInvite={(person, reset) =>
             run(
               () => inviteStaffMember(person),
@@ -186,22 +206,8 @@ export function TeamWorkspace({ view }: { view: TeamView }) {
                   editable={editable}
                   pending={pending}
                   locale={locale}
+                  domains={domains}
                   roleLabel={roleLabel}
-                  onChangeRole={(role) =>
-                    run(
-                      () =>
-                        changeStaffRole({
-                          userId: member.userId,
-                          role,
-                          expectedRowVersion: member.rowVersion,
-                        }),
-                      () =>
-                        t("operations.team.role.saved", {
-                          name: member.name,
-                          role: roleLabel(role),
-                        }),
-                    )
-                  }
                   onDeactivate={() =>
                     run(
                       () =>
@@ -228,15 +234,17 @@ export function TeamWorkspace({ view }: { view: TeamView }) {
 function InviteForm({
   domains,
   pending,
+  roleLabel,
   onInvite,
 }: {
   domains: string;
   pending: boolean;
+  roleLabel: (role: string) => string;
   onInvite: (
     person: {
       name: string;
       email: string;
-      role: (typeof inviteRoles)[number];
+      role: TeamRole;
       title?: string;
     },
     reset: () => void,
@@ -258,14 +266,13 @@ function InviteForm({
             const value = values.get(name);
             return typeof value === "string" ? value.trim() : "";
           };
-          const role =
-            text("role") === "commerce_admin" ? "commerce_admin" : "revenue";
+          const chosen = text("role");
           const title = text("title");
           onInvite(
             {
               name: text("name"),
               email: text("email"),
-              role,
+              role: isTeamRole(chosen) ? chosen : "revenue",
               ...(title ? { title } : {}),
             },
             () => formRef.current?.reset(),
@@ -292,9 +299,10 @@ function InviteForm({
           label={t("operations.team.invite.role")}
           name="role"
           defaultValue="revenue"
+          help={t("operations.team.invite.roleHelp")}
           options={inviteRoles.map((role) => ({
             value: role,
-            label: t(staffRoleLabels[role] ?? "role.revenue"),
+            label: roleLabel(role),
           }))}
         />
         <Input
@@ -318,14 +326,33 @@ function InviteForm({
   );
 }
 
+/** A person's roles as chips, the primary one first. */
+export function RoleChips({
+  roles,
+  roleLabel,
+}: {
+  roles: readonly string[];
+  roleLabel: (role: string) => string;
+}) {
+  return (
+    <ul className={styles.chips}>
+      {roles.map((role) => (
+        <li key={role} className={styles.chip}>
+          {roleLabel(role)}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function MemberRow({
   member,
   self,
   editable,
   pending,
   locale,
+  domains,
   roleLabel,
-  onChangeRole,
   onDeactivate,
 }: {
   member: TeamMemberView;
@@ -333,19 +360,18 @@ function MemberRow({
   editable: boolean;
   pending: boolean;
   locale: string;
+  domains: string;
   roleLabel: (role: string) => string;
-  onChangeRole: (role: (typeof teamRoles)[number]) => void;
   onDeactivate: () => void;
 }) {
   const t = useTranslations();
   const nameId = useId();
-  const roleFieldId = useId();
-  const [role, setRole] = useState(member.role);
+  const permissionsId = useId();
   const [confirming, setConfirming] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(false);
   const confirmRef = useRef<HTMLButtonElement>(null);
   const removeRef = useRef<HTMLButtonElement>(null);
   const wasConfirming = useRef(false);
-  useEffect(() => setRole(member.role), [member.role]);
   useEffect(() => {
     // Move focus into the confirmation when it opens and back when it closes,
     // so a keyboard reader is never left on a control that disappeared.
@@ -358,7 +384,7 @@ function MemberRow({
       dateStyle: "medium",
       timeZone: "UTC",
     }).format(new Date(value));
-  const managed = isTeamRole(member.role);
+  const managed = member.roles.every(isTeamRole);
   const canAct = editable && !self && managed;
   const mfa =
     member.mfa.state === "verified"
@@ -388,7 +414,9 @@ function MemberRow({
       <dl className={styles.facts}>
         <div>
           <dt>{t("operations.team.column.role")}</dt>
-          <dd>{roleLabel(member.role)}</dd>
+          <dd>
+            <RoleChips roles={member.roles} roleLabel={roleLabel} />
+          </dd>
         </div>
         <div>
           <dt>{t("operations.team.column.mfa")}</dt>
@@ -416,39 +444,13 @@ function MemberRow({
         ) : null}
         {canAct && !confirming ? (
           <>
-            <form
-              className={styles.roleForm}
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (isTeamRole(role) && role !== member.role)
-                  onChangeRole(role);
-              }}
-            >
-              <label className="cw-sr-only" htmlFor={roleFieldId}>
-                {t("operations.team.role.change", { name: member.name })}
-              </label>
-              <select
-                id={roleFieldId}
-                className="cw-select"
-                value={role}
-                disabled={pending}
-                onChange={(event) => setRole(event.target.value)}
-              >
-                {teamRoles.map((option) => (
-                  <option key={option} value={option}>
-                    {roleLabel(option)}
-                  </option>
-                ))}
-              </select>
-              <Button
-                type="submit"
-                variant="secondary"
-                size="small"
-                disabled={pending || role === member.role}
-              >
-                {t("operations.team.role.save")}
-              </Button>
-            </form>
+            <RolesDialog
+              member={member}
+              nameId={nameId}
+              domains={domains}
+              disabled={pending}
+              roleLabel={roleLabel}
+            />
             <button
               ref={removeRef}
               type="button"
@@ -496,7 +498,197 @@ function MemberRow({
             </div>
           </div>
         ) : null}
+        <button
+          type="button"
+          className={`${buttonClassName({ variant: "quiet", size: "small" })} ${styles.disclosure}`}
+          aria-expanded={showPermissions}
+          aria-controls={permissionsId}
+          aria-describedby={nameId}
+          onClick={() => setShowPermissions((open) => !open)}
+        >
+          {t("operations.team.permissions.show")}
+        </button>
+      </div>
+      <div
+        id={permissionsId}
+        className={styles.permissions}
+        hidden={!showPermissions}
+      >
+        {showPermissions ? (
+          <EffectivePermissions name={member.name} roles={member.roles} />
+        ) : null}
       </div>
     </li>
+  );
+}
+
+/** Everything a person can do, from every role they hold. */
+function EffectivePermissions({
+  name,
+  roles,
+}: {
+  name: string;
+  roles: readonly string[];
+}) {
+  const t = useTranslations();
+  const held = staffPermissions(roles);
+  return (
+    <>
+      <p className={styles.note}>
+        {t("operations.team.permissions.title", { name })}
+      </p>
+      <ul className={styles.permissionList}>
+        {held.map((permission) => (
+          <li key={permission}>{t(permissionLabels[permission])}</li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/**
+ * Adds or removes one role at a time. Each change is its own record with an
+ * optional note, and the list is reread after it, so the dialog always shows
+ * the roles as they are now.
+ */
+function RolesDialog({
+  member,
+  nameId,
+  domains,
+  disabled,
+  roleLabel,
+}: {
+  member: TeamMemberView;
+  /** The row's name, which describes the button that opens the dialog. */
+  nameId: string;
+  domains: string;
+  disabled: boolean;
+  roleLabel: (role: string) => string;
+}) {
+  const t = useTranslations();
+  const router = useRouter();
+  const reasonId = useId().replaceAll(":", "");
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [pending, startTransition] = useTransition();
+  const onlyRole = member.roles.length === 1;
+
+  function change(kind: "grant" | "revoke", role: TeamRole) {
+    setOutcome(null);
+    const note = reason.trim();
+    startTransition(async () => {
+      const input = {
+        userId: member.userId,
+        role,
+        expectedRowVersion: member.rowVersion,
+        ...(note ? { reason: note } : {}),
+      };
+      const result = await (
+        kind === "grant" ? grantStaffRole(input) : revokeStaffRole(input)
+      ).catch((): TeamActionResult => ({ ok: false, code: "UNEXPECTED" }));
+      if (result.ok) {
+        setOutcome({
+          tone: "success",
+          message: t(
+            kind === "grant"
+              ? "operations.team.role.granted"
+              : "operations.team.role.revoked",
+            { name: member.name, role: roleLabel(role) },
+          ),
+        });
+        setReason("");
+        router.refresh();
+        return;
+      }
+      setOutcome({ tone: "danger", code: result.code });
+      if (teamErrorsThatRefresh.has(result.code)) router.refresh();
+    });
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setOutcome(null);
+      }}
+      closeLabel={t("common.close")}
+      title={t("operations.team.role.dialog.title", { name: member.name })}
+      description={t("operations.team.role.dialog.description")}
+      trigger={
+        <Button
+          variant="secondary"
+          size="small"
+          disabled={disabled}
+          aria-describedby={nameId}
+        >
+          {t("operations.team.role.change")}
+        </Button>
+      }
+    >
+      <div className={styles.dialogBody}>
+        <OutcomeBanner outcome={outcome} domains={domains} />
+        <ul className={styles.roleOptions}>
+          {teamRoles.map((role) => {
+            const held = member.roles.includes(role);
+            const primary = member.role === role;
+            const labelId = `${reasonId}-${role}`;
+            return (
+              <li key={role} className={styles.roleOption}>
+                <div>
+                  <strong id={labelId}>{roleLabel(role)}</strong>
+                  {held ? (
+                    <StatusBadge tone="success">
+                      {t("operations.team.role.held")}
+                    </StatusBadge>
+                  ) : null}
+                  {primary ? (
+                    <span className={styles.primaryNote}>
+                      {t("operations.team.role.primary")}
+                    </span>
+                  ) : null}
+                  <p>{t(staffRoleSummaries[role])}</p>
+                </div>
+                {held ? (
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    disabled={pending || onlyRole}
+                    aria-describedby={labelId}
+                    onClick={() => change("revoke", role)}
+                  >
+                    {t("operations.team.role.remove")}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="small"
+                    disabled={pending}
+                    aria-describedby={labelId}
+                    onClick={() => change("grant", role)}
+                  >
+                    {t("operations.team.role.add")}
+                  </Button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {onlyRole ? (
+          <p className={styles.note}>{t("operations.team.role.onlyRole")}</p>
+        ) : null}
+        <Textarea
+          id={reasonId}
+          label={t("operations.team.role.reason")}
+          optionalLabel={t("operations.team.invite.optional")}
+          help={t("operations.team.role.reasonHelp")}
+          value={reason}
+          maxLength={reasonLimit}
+          rows={2}
+          onChange={(event) => setReason(event.currentTarget.value)}
+        />
+      </div>
+    </Dialog>
   );
 }

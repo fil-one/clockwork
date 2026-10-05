@@ -17,7 +17,7 @@ export default async function Page() {
     <PartnerDashboard
       formatting={{ locale: session.locale, timeZone: session.timeZone }}
       projection={await loadPartnerDashboardProjection(identity)}
-      roles={session.roles}
+      permissions={session.permissions}
     />
   );
 }

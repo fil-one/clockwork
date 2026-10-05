@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { createMemoryDemoStore } from "@clockwork/testing/demo-reset";
 import { createPristineDemoAdapterState } from "@clockwork/testing/demo-state";
@@ -138,6 +139,7 @@ it("rejects unauthorized/assisted finance and never fabricates billing execution
     organizationId: "30000000-0000-4000-8000-000000000008",
     accountIds: [],
     roles: ["finance_approver"],
+    permissions: permissionsForRoles(["finance_approver"]),
     isInternalStaff: true,
     mfaVerified: true,
     recentAuthenticationVerified: true,
@@ -157,7 +159,11 @@ it("rejects unauthorized/assisted finance and never fabricates billing execution
     (
       await handleDemoPaygPolicy(
         request(),
-        { ...session, roles: ["internal_operator"] },
+        {
+          ...session,
+          roles: ["internal_operator"],
+          permissions: permissionsForRoles(["internal_operator"]),
+        },
         repo,
       )
     ).status,
@@ -223,6 +229,7 @@ it("returns demo policies in the language of the request's cookie", async () => 
     organizationId: "30000000-0000-4000-8000-000000000008",
     accountIds: [],
     roles: ["finance_approver"],
+    permissions: permissionsForRoles(["finance_approver"]),
     isInternalStaff: true,
     mfaVerified: true,
     recentAuthenticationVerified: true,

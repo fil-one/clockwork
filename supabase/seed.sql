@@ -93,6 +93,11 @@ insert into organizations (id, account_id, name, isolated, workos_organization_i
 ('30000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000008','Mercury Marketplace',false,'org_local_mercury'),
 ('30000000-0000-4000-8000-000000000008','10000000-0000-4000-8000-000000000009','Clockwork Staff',true,'org_local_clockwork_staff');
 
+-- Fil One's own organization is named, never inferred from its account; every
+-- other organization takes its side from its account.
+update organizations set side = 'fil_one'
+where id = '30000000-0000-4000-8000-000000000008';
+
 insert into memberships (id, organization_id, user_id, role) values
 ('31000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002','owner'),
 ('31000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000003','partner_admin'),

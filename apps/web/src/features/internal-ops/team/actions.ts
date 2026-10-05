@@ -32,11 +32,17 @@ const InviteSchema = z
   })
   .strict();
 
-const ChangeRoleSchema = z
+const RoleChangeSchema = z
   .object({
     userId: z.uuid(),
     role: z.enum(teamRoles),
     expectedRowVersion: z.int().positive(),
+    reason: z
+      .string()
+      .trim()
+      .max(500)
+      .optional()
+      .transform((value) => value || undefined),
   })
   .strict();
 
@@ -168,25 +174,40 @@ export async function inviteStaffMember(
   return { ok: true };
 }
 
-export async function changeStaffRole(raw: unknown): Promise<TeamActionResult> {
+/** Roles live only in Postgres; WorkOS role slugs are informational. */
+async function changeRoles(
+  raw: unknown,
+  operation: "grantRole" | "revokeRole",
+): Promise<TeamActionResult> {
   const authorized = await authorize();
   if ("ok" in authorized) return authorized;
-  const parsed = ChangeRoleSchema.safeParse(raw);
+  const parsed = RoleChangeSchema.safeParse(raw);
   if (!parsed.success) return fail("INVALID_INPUT");
   const { session, database } = authorized;
+  const { reason, ...change } = parsed.data;
   try {
-    // Roles live only in Postgres; WorkOS role slugs are informational.
-    await new StaffTeamRepository(database).changeRole({
+    await new StaffTeamRepository(database)[operation]({
       actorUserId: session.userId,
       organizationId: session.organizationId,
-      ...parsed.data,
-      requestId: requestId("role"),
+      ...change,
+      ...(reason ? { reason } : {}),
+      requestId: requestId(operation === "grantRole" ? "grant" : "revoke"),
     });
   } catch (error) {
-    return failure(error, "role");
+    return failure(error, operation === "grantRole" ? "grant" : "revoke");
   }
   revalidatePath("/internal/team");
   return { ok: true };
+}
+
+/** Gives a staff member one more role. */
+export async function grantStaffRole(raw: unknown): Promise<TeamActionResult> {
+  return changeRoles(raw, "grantRole");
+}
+
+/** Takes one role away from a staff member. */
+export async function revokeStaffRole(raw: unknown): Promise<TeamActionResult> {
+  return changeRoles(raw, "revokeRole");
 }
 
 export async function deactivateStaffMember(

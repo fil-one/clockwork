@@ -38,10 +38,10 @@ async function main() {
   });
   try {
     // Fail before provider changes unless the bootstrapped staff organization
-    // and authorizing operator both exist in this exact deployed database. A
-    // commerce administrator authorizes as an operator does.
+    // and authorizing operator both exist in this exact deployed database. The
+    // operator holds operations:write: an operator or a commerce administrator.
     const scope =
-      await client`select o.id from organizations o join memberships m on m.organization_id=o.id join commerce_users u on u.id=m.user_id where o.id=${manifest.organization.id} and o.workos_organization_id=${manifest.organization.workosOrganizationId} and u.id=${manifest.operatorUserId} and u.is_internal_staff and m.role in ('internal_operator','commerce_admin')`;
+      await client`select o.id from organizations o join memberships m on m.organization_id=o.id join commerce_users u on u.id=m.user_id where o.id=${manifest.organization.id} and o.workos_organization_id=${manifest.organization.workosOrganizationId} and u.id=${manifest.operatorUserId} and u.is_internal_staff and public.member_has_permission(u.id, 'operations:write', o.id)`;
     if (scope.length !== 1)
       throw new Error("STAFF_PROVISIONING_SCOPE_MISMATCH");
     const existing = await client<
@@ -82,7 +82,7 @@ async function main() {
         await tx`select id from memberships where organization_id=${manifest.organization.id} for update`;
         const [administrators] = await tx<
           { total: number }[]
-        >`select count(*)::int as total from memberships m join commerce_users u on u.id=m.user_id where m.organization_id=${manifest.organization.id} and m.role='commerce_admin' and u.is_internal_staff and m.user_id<>${plan.userId}`;
+        >`select count(*)::int as total from memberships m join commerce_users u on u.id=m.user_id where m.organization_id=${manifest.organization.id} and public.member_has_permission(m.user_id, 'staff:manage', m.organization_id) and u.is_internal_staff and m.user_id<>${plan.userId}`;
         assertStaffAdministratorRemains({
           from: plan.from,
           to: person.role,

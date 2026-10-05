@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { RuntimeDatabase } from "../client";
 import { memberships, roleSyncEvents } from "../schema";
+import { membershipRoles } from "../schema/access";
 import {
   DatabaseRoleSynchronizationSink,
   roleSynchronizationReasons,
@@ -36,6 +37,7 @@ function fakeServiceDatabase(seed: {
   latestProcessedAt?: Date;
 }) {
   const updates: RecordedUpdate[] = [];
+  const inserts: unknown[] = [];
   const deletes: unknown[] = [];
   const chain = <T>(result: T) => ({
     where: () => Promise.resolve(result),
@@ -60,7 +62,10 @@ function fakeServiceDatabase(seed: {
       commerceUsers: { findFirst: () => Promise.resolve(seed.user) },
       memberships: { findFirst: () => Promise.resolve(seed.membership) },
     },
-    insert: () => ({ values: () => chain(undefined) }),
+    insert: (table: unknown) => {
+      inserts.push(table);
+      return { values: () => chain(undefined) };
+    },
     delete: (table: unknown) => {
       deletes.push(table);
       return chain(undefined);
@@ -76,7 +81,7 @@ function fakeServiceDatabase(seed: {
     transaction: (operation: (tx: unknown) => Promise<unknown>) =>
       operation(transaction),
   } as unknown as RuntimeDatabase;
-  return { db, updates, deletes };
+  return { db, updates, inserts, deletes };
 }
 
 const activeUpsert = {
@@ -147,6 +152,27 @@ describe("WorkOS membership webhooks never write memberships.role", () => {
       });
       for (const update of updates.filter(({ table }) => table === memberships))
         expect(update.values).not.toHaveProperty("role");
+    }
+  });
+
+  it("never grants, changes or removes a role in membership_roles", async () => {
+    // Every role a person holds lives in membership_roles, so a slug written
+    // there would grant access exactly as one written to memberships.role.
+    for (const event of [
+      { ...activeUpsert, roleSlugs: ["internal_operator", "commerce_admin"] },
+      { ...activeUpsert, roleSlugs: ["owner", "billing"] },
+      { ...activeUpsert, action: "delete" as const, roleSlugs: ["owner"] },
+      { ...activeUpsert, membershipStatus: "inactive", roleSlugs: [] },
+    ]) {
+      const { db, updates, inserts, deletes } = fakeServiceDatabase({
+        organization: { id: "org-1" },
+        user: { id: "user-1" },
+        membership: { id: "membership-1", role: "member" },
+      });
+      await new DatabaseRoleSynchronizationSink(db).apply(event);
+      expect(inserts).not.toContain(membershipRoles);
+      expect(deletes).not.toContain(membershipRoles);
+      expect(updates.map(({ table }) => table)).not.toContain(membershipRoles);
     }
   });
 

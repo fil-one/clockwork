@@ -4,6 +4,8 @@ import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import { GlobalSearch } from "./global-search";
 import { QueueWorkspace } from "./queue-workspace";
 import type { QueueItem } from "./model";
@@ -114,7 +116,7 @@ const items: readonly QueueItem[] = [
 function renderWorkspace() {
   return render(
     <QueueWorkspace
-      roles={["internal_operator"]}
+      permissions={permissionsForRoles(["internal_operator"])}
       items={items}
       generatedAt="2026-07-31T16:00:00.000Z"
       stale={false}
@@ -264,7 +266,7 @@ describe("operator queue hydration", () => {
     });
     const workspace = (
       <QueueWorkspace
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         items={[hydrationItem]}
         generatedAt={generatedAt}
         stale={false}

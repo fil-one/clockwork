@@ -1,3 +1,4 @@
+import { contextHasAnyPermission } from "@clockwork/contracts";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -41,9 +42,7 @@ async function Page() {
   const session = await getCommerceSession();
   if (
     !session.isInternalStaff ||
-    !session.roles.some(
-      (role) => role === "internal_operator" || role === "finance_approver",
-    )
+    !contextHasAnyPermission(session, ["operations:write", "quote:approve"])
   )
     // i18n-exempt: thrown to the route's error boundary, which shows its own copy
     throw new Error("Operator or finance authority is required");

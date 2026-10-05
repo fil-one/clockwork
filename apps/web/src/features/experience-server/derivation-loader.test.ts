@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import type { SessionClaims } from "@clockwork/api";
 import type { InvoiceDerivation } from "@clockwork/db";
 import { describe, expect, it, vi } from "vitest";
@@ -31,6 +32,7 @@ function operator(overrides: Partial<SessionClaims> = {}): SessionClaims {
     userId: staffUser,
     accountIds: [],
     roles: ["internal_operator"],
+    permissions: permissionsForRoles(["internal_operator"]),
     isInternalStaff: true,
     mfaVerified: true,
     recentAuthenticationVerified: true,
@@ -43,6 +45,7 @@ function customer(overrides: Partial<SessionClaims> = {}): SessionClaims {
     userId: tenantUser,
     accountIds: [accountA],
     roles: ["billing"],
+    permissions: permissionsForRoles(["billing"]),
     isInternalStaff: false,
     mfaVerified: true,
     recentAuthenticationVerified: true,

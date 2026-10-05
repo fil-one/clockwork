@@ -4,6 +4,7 @@ import { useTranslations } from "@/src/i18n/client";
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import type { Permission } from "@clockwork/contracts";
 import { Button, Dialog } from "@clockwork/ui";
 
 import {
@@ -36,7 +37,7 @@ export function ProjectionActionButtons({
   projectionId,
   version,
   actions,
-  roles,
+  permissions,
   readOnlyNote = true,
 }: {
   audience: ExperienceAudience;
@@ -45,7 +46,7 @@ export function ProjectionActionButtons({
   projectionId: string;
   version: number;
   actions: readonly string[];
-  roles: readonly string[];
+  permissions: readonly Permission[];
   /**
    * Whether to say the record is read only when the reader may not run its
    * actions. A surface with its own working controls beside these (the
@@ -67,7 +68,7 @@ export function ProjectionActionButtons({
   const region = useId();
 
   const authorizedActions = actions.filter((action) =>
-    canRunProjectionAction(roles, audience, channel, action),
+    canRunProjectionAction(permissions, audience, channel, action),
   );
   /**
    * A command that lands usually spends the record's last permitted action, so

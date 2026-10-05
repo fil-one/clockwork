@@ -3,7 +3,11 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
-import { hasPermission, MoneySchema, uuidV7 } from "@clockwork/contracts";
+import {
+  contextHasPermission,
+  MoneySchema,
+  uuidV7,
+} from "@clockwork/contracts";
 import {
   validatePriceBook,
   PriceBookCloneCommandSchema,
@@ -833,7 +837,7 @@ export async function handleDemoPriceBookCommand(
     if (
       session.impersonation ||
       !session.isInternalStaff ||
-      !session.roles.some((role) => hasPermission(role, "quote:approve")) ||
+      !contextHasPermission(session, "quote:approve") ||
       !session.mfaVerified ||
       !session.recentAuthenticationVerified
     )

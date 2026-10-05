@@ -4,7 +4,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
-import { hasPermission, uuidV7 } from "@clockwork/contracts";
+import { contextHasPermission, uuidV7 } from "@clockwork/contracts";
 
 import { idempotencyKey } from "./authorization";
 import {
@@ -199,7 +199,7 @@ export async function handleDemoQuoteCommand(
 ): Promise<Response> {
   const requestId = request.headers.get("x-request-id") ?? uuidV7();
   try {
-    if (!session.roles.some((role) => hasPermission(role, "quote:write")))
+    if (!contextHasPermission(session, "quote:write"))
       throw new ExperienceProblem(
         403,
         "QUOTE_AUTHORITY_FORBIDDEN",

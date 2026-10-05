@@ -1,9 +1,5 @@
 // i18n-exempt-file: HTTP API problem+json titles are the integrator contract (stable English, logged); an interface shows the reader a sentence chosen from `code`/`status` (contracts/error-text.ts), never this title.
-import {
-  hasPermission,
-  RoleSchema,
-  type Permission,
-} from "@clockwork/contracts";
+import type { Permission } from "@clockwork/contracts";
 
 import { ExperienceProblem } from "./model";
 import type { ExperienceAudience, ProjectionChannel } from "./model";
@@ -13,7 +9,17 @@ function requiredPermissions(
   channel: ProjectionChannel,
   action: string,
 ): readonly Permission[] {
-  if (audience === "partner") return ["partner:quote:write"];
+  if (audience === "partner")
+    // Pricing and reselling (a quote, a supply order, a resale renewal) is a
+    // channel partner's work, wherever the record sits. Everything else,
+    // registering deals and raising disputes included, is every partner's,
+    // referral partners too.
+    return channel === "quotes" ||
+      channel === "orders" ||
+      channel === "renewals" ||
+      /quote|resale|order|renew/i.test(action)
+      ? ["partner:quote:write"]
+      : ["deal:register"];
   if (audience === "internal") {
     if (channel !== "approvals") return ["system:operate"];
     if (/delete|offboard|destructive/i.test(action))
@@ -37,28 +43,23 @@ function requiredPermissions(
 }
 
 export function canRunProjectionAction(
-  roles: readonly string[],
+  permissions: readonly Permission[],
   audience: ExperienceAudience,
   channel: ProjectionChannel,
   action: string,
 ): boolean {
-  const permissions = requiredPermissions(audience, channel, action);
-  return roles.some((value) => {
-    const role = RoleSchema.safeParse(value);
-    return (
-      role.success &&
-      permissions.some((permission) => hasPermission(role.data, permission))
-    );
-  });
+  return requiredPermissions(audience, channel, action).some((permission) =>
+    permissions.includes(permission),
+  );
 }
 
 export function requireProjectionActionAuthority(
-  roles: readonly string[],
+  permissions: readonly Permission[],
   audience: ExperienceAudience,
   channel: ProjectionChannel,
   action: string,
 ): void {
-  if (!canRunProjectionAction(roles, audience, channel, action))
+  if (!canRunProjectionAction(permissions, audience, channel, action))
     throw new ExperienceProblem(
       403,
       "ACTION_AUTHORITY_FORBIDDEN",

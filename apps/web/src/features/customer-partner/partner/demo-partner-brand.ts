@@ -3,7 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
-import { hasPermission, uuidV7 } from "@clockwork/contracts";
+import { contextHasPermission, uuidV7 } from "@clockwork/contracts";
 import type {
   DemoAdapterState,
   DemoAdapterStateStore,
@@ -218,10 +218,8 @@ export async function handleDemoPartnerBrand(
     if (
       session.isInternalStaff ||
       !session.accountIds.includes(accountId) ||
-      !session.roles.some((role) => hasPermission(role, "account:write")) ||
-      !session.roles.some(
-        (role) => role === "partner_admin" || role === "partner_seller",
-      )
+      !contextHasPermission(session, "account:write") ||
+      !contextHasPermission(session, "deal:register")
     )
       throw new BrandProblem(
         403,

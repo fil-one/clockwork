@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { membershipActsAs } from "../membership-roles";
+import { membershipHasPermission } from "../membership-permissions";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import type { Actor } from "@clockwork/contracts";
@@ -90,7 +90,7 @@ async function requireFinance(tx: RuntimeTransaction, actor: Actor) {
         eq(commerceUsers.id, actor.id),
         eq(commerceUsers.isInternalStaff, true),
         eq(commerceUsers.mfaEnrolled, true),
-        membershipActsAs("finance_approver"),
+        membershipHasPermission("billing:approve"),
       ),
     )
     .limit(1)

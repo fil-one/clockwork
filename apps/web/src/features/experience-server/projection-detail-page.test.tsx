@@ -1,10 +1,13 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles, type Permission } from "@clockwork/contracts";
+
 import type { ProjectionChannel, ProjectionRecord } from "./model";
 
 const mocks = vi.hoisted(() => ({
-  getRouteRoles: vi.fn(),
+  getRoutePermissions:
+    vi.fn<(audience: string) => Promise<readonly Permission[]>>(),
   loadPortalRecords: vi.fn(),
   billing: { enabled: true, recovery: true },
 }));
@@ -24,9 +27,9 @@ vi.mock("@/src/features/internal-ops/capability-state", () => ({
 }));
 
 vi.mock("@/src/features/shell/route-session", () => ({
-  getRouteRoles: mocks.getRouteRoles,
+  getRoutePermissions: mocks.getRoutePermissions,
   getRouteSession: async (audience: string) => ({
-    roles: (await mocks.getRouteRoles(audience)) as readonly string[],
+    permissions: await mocks.getRoutePermissions(audience),
     providerBacked: false,
   }),
 }));
@@ -106,7 +109,7 @@ function record(
 }
 
 beforeEach(() => {
-  mocks.getRouteRoles.mockResolvedValue(["owner"]);
+  mocks.getRoutePermissions.mockResolvedValue(permissionsForRoles(["owner"]));
   mocks.billing.enabled = true;
   mocks.billing.recovery = true;
 });
@@ -253,7 +256,9 @@ describe("projection detail task hierarchy", () => {
     }
 
     async function renderRecord(data: ProjectionRecord) {
-      mocks.getRouteRoles.mockResolvedValue(["internal_operator"]);
+      mocks.getRoutePermissions.mockResolvedValue(
+        permissionsForRoles(["internal_operator"]),
+      );
       mocks.loadPortalRecords.mockResolvedValue({
         records: [data],
         generatedAt: "2026-08-01T12:00:00.000Z",

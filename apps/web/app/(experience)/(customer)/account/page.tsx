@@ -21,7 +21,7 @@ import {
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 import {
   getRouteIdentity,
-  getRouteRoles,
+  getRoutePermissions,
 } from "@/src/features/shell/route-session";
 
 function text(
@@ -69,9 +69,9 @@ function roleLabel(role: string, t: Translator): string {
 async function AccountWorkspace() {
   const t = await getTranslations();
   const count = new Intl.NumberFormat(await getFormattingLocale());
-  const [identity, roles, users, procurement] = await Promise.all([
+  const [identity, permissions, users, procurement] = await Promise.all([
     getRouteIdentity("customer"),
-    getRouteRoles("customer"),
+    getRoutePermissions("customer"),
     loadPortalRecords("customer", "users"),
     loadPortalRecords("customer", "procurement"),
   ]);
@@ -135,9 +135,7 @@ async function AccountWorkspace() {
           />
         </SurfaceActionGate>
       }
-      canManageAccount={roles.some(
-        (role) => role === "owner" || role === "admin",
-      )}
+      canManageAccount={permissions.includes("account:write")}
       projection={projection}
     />
   );

@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { describe, expect, it, vi } from "vitest";
 
 import type { RouteSession } from "@/src/features/shell/route-session";
@@ -6,6 +7,7 @@ import { loadAssistedAccountOptions } from "./account-options";
 
 const baseSession: RouteSession = {
   roles: ["finance_approver"],
+  permissions: permissionsForRoles(["finance_approver"]),
   profile: { name: "Finance reviewer", email: "finance@filone.com" },
   locale: "en-US",
   timeZone: "UTC",
@@ -35,6 +37,7 @@ describe("assisted account selector confidentiality", () => {
     const session: RouteSession = {
       ...baseSession,
       roles: ["internal_operator"],
+      permissions: permissionsForRoles(["internal_operator"]),
       assistedSession: {
         id: "12000000-0000-4000-8000-000000000001",
         authenticationSessionId: "auth-session-001",
@@ -77,7 +80,11 @@ describe("assisted account selector confidentiality", () => {
       loadAssistedAccountOptions(
         {} as never,
         {
-          session: { ...baseSession, roles: ["internal_operator"] },
+          session: {
+            ...baseSession,
+            roles: ["internal_operator"],
+            permissions: permissionsForRoles(["internal_operator"]),
+          },
           requestId: "selector:authorized",
         },
         listAccounts,

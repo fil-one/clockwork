@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -29,6 +30,7 @@ const session = {
   organizationId: "66666666-6666-4666-8666-666666666666",
   accountIds: [accountId],
   roles: ["owner" as const],
+  permissions: permissionsForRoles(["owner" as const]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -123,6 +125,7 @@ describe("the demo order command boundary", () => {
     const unauthorizedSession = {
       ...session,
       roles: ["member"],
+      permissions: permissionsForRoles(["member"]),
     } as const;
 
     const response = await handleDemoOrderCommand(

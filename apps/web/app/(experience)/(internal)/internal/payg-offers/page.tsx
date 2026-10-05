@@ -1,3 +1,4 @@
+import { contextHasPermission } from "@clockwork/contracts";
 import type { Metadata } from "next";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
@@ -25,12 +26,12 @@ async function Page() {
   const session = await getCommerceSession();
   if (!session.isInternalStaff)
     throw new Error("Internal staff authority is required"); // i18n-exempt: server-side guard; Next.js masks thrown server errors and the shell shows its own translated error page
-  const roles = session.roles;
   const database = getOptionalServiceDatabase();
   let offers: PaygOfferRecord[] = [];
   let available = false;
   const demo = demoDeployIdentityEnabled(process.env);
-  if (demo && roles.includes("finance_approver")) {
+  const financeAuthority = contextHasPermission(session, "quote:approve");
+  if (demo && financeAuthority) {
     // Demo-authored policy text is shown in the reader's language.
     const locale = await getLocale();
     offers = (await new DemoCommercialPolicyRepository().listPayg()).map(
@@ -38,12 +39,7 @@ async function Page() {
     );
     available = true;
   }
-  if (
-    !demo &&
-    database &&
-    session.providerBacked &&
-    roles.includes("finance_approver")
-  ) {
+  if (!demo && database && session.providerBacked && financeAuthority) {
     try {
       offers = await new DatabasePaygOfferRepository(database).list();
       available = true;
@@ -54,7 +50,7 @@ async function Page() {
   return (
     <PaygOfferAdministration
       demo={demo}
-      roles={roles}
+      permissions={session.permissions}
       userId={session.userId}
       offers={offers}
       available={available}

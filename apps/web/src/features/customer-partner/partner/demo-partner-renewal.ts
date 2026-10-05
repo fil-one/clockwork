@@ -3,7 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
-import { hasPermission, uuidV7 } from "@clockwork/contracts";
+import { contextHasPermission, uuidV7 } from "@clockwork/contracts";
 import { demoAccountIds } from "@clockwork/testing/personas";
 import type {
   DemoAdapterState,
@@ -272,10 +272,8 @@ export async function handleDemoPartnerRenewal(
     if (
       session.isInternalStaff ||
       !session.accountIds.includes(relationship.partnerAccountId) ||
-      !session.roles.some((role) => hasPermission(role, "order:write")) ||
-      !session.roles.some(
-        (role) => role === "partner_admin" || role === "partner_seller",
-      )
+      !contextHasPermission(session, "order:write") ||
+      !contextHasPermission(session, "deal:register")
     )
       throw new RenewalProblem(
         403,

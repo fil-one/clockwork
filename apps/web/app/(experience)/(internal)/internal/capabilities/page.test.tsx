@@ -24,6 +24,7 @@ vi.mock("@clockwork/db", () => ({
       ]);
     }
   },
+  capabilityApprovalPermission: () => "quote:approve",
   capabilityApprovalRole: () => "finance_approver",
 }));
 vi.mock("@/src/auth/session", () => ({

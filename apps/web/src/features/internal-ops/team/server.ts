@@ -11,9 +11,10 @@ import { demoTeamMembers, type TeamMemberView, type TeamView } from "./model";
 /**
  * The staff email domains, read the way the sign-in boundary reads them, so
  * nobody is added with an address the portal would then refuse at sign-in.
+ * Unset means no domain is allowed, so every invitation is refused.
  */
-export function configuredStaffDomains(): string {
-  return process.env.INTERNAL_EMAIL_DOMAINS ?? "filone.com";
+export function configuredStaffDomains(): string | undefined {
+  return process.env.INTERNAL_EMAIL_DOMAINS;
 }
 
 export function teamMemberView(member: StaffTeamMember): TeamMemberView {
@@ -22,6 +23,7 @@ export function teamMemberView(member: StaffTeamMember): TeamMemberView {
     name: member.name,
     email: member.email,
     role: member.role,
+    roles: member.roles,
     mfa: member.lastMfaVerifiedAt
       ? { state: "verified", at: member.lastMfaVerifiedAt }
       : { state: member.mfaEnrolled ? "enrolled" : "unknown" },

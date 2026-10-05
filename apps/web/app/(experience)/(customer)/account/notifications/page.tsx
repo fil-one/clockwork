@@ -1,7 +1,7 @@
 import {
-  hasPermission,
   ids,
   roles as commerceRoles,
+  type Permission,
   type Role,
 } from "@clockwork/contracts";
 import { DatabaseNotificationPreferenceRepository } from "@clockwork/db";
@@ -13,7 +13,7 @@ import { configuredDemoStateStore } from "@/src/features/experience-server/demo-
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import {
   getRouteIdentity,
-  getRouteRoles,
+  getRouteSession,
 } from "@/src/features/shell/route-session";
 
 import {
@@ -54,6 +54,7 @@ async function loadStoredPreferences(input: {
   accountId: string;
   userId: string;
   roles: readonly string[];
+  permissions: readonly Permission[];
 }): Promise<readonly StoredPreference[] | undefined> {
   if (explicitDemoIdentityEnabled())
     return demoNotificationPreferences(
@@ -72,6 +73,7 @@ async function loadStoredPreferences(input: {
       userId: ids.user.parse(input.userId),
       accountIds: [ids.account.parse(input.accountId)],
       roles: input.roles.filter(isCommerceRole),
+      permissions: input.permissions,
       isInternalStaff: false,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -88,14 +90,15 @@ async function loadStoredPreferences(input: {
 }
 
 async function NotificationPreferencesWorkspace() {
-  const [identity, roles] = await Promise.all([
+  const [identity, session] = await Promise.all([
     getRouteIdentity("customer"),
-    getRouteRoles("customer"),
+    getRouteSession("customer"),
   ]);
   const stored = await loadStoredPreferences({
     accountId: identity.accountId,
     userId: identity.userId,
-    roles,
+    roles: session.roles,
+    permissions: session.permissions,
   });
   if (!stored) return <NotificationPreferencesUnavailable />;
   return (
@@ -104,14 +107,9 @@ async function NotificationPreferencesWorkspace() {
         accountId: identity.accountId,
         accountName: identity.accountName,
         // `PUT /v1/notifications/preferences` requires `account:write`, so a
-        // role that does not hold it is shown the settings read-only rather
-        // than given controls the API would answer 403 to. The permission is
-        // read from the same map the route gate uses, not restated as a role
-        // list this file could get wrong.
-        canManage: roles.some(
-          (role) =>
-            isCommerceRole(role) && hasPermission(role, "account:write"),
-        ),
+        // reader who does not hold it is shown the settings read-only rather
+        // than given controls the API would answer 403 to.
+        canManage: session.permissions.includes("account:write"),
         stored,
       }}
     />

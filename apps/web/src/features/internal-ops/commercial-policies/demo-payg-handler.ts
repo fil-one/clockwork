@@ -1,4 +1,5 @@
 import "server-only";
+import { contextHasPermission } from "@clockwork/contracts";
 import { z } from "zod";
 import type { SessionClaims } from "@clockwork/api";
 import {
@@ -125,7 +126,7 @@ export async function handleDemoPaygPolicy(
   if (
     session.impersonation ||
     !session.isInternalStaff ||
-    !session.roles.includes("finance_approver") ||
+    !contextHasPermission(session, "quote:approve") ||
     !session.mfaVerified ||
     !session.recentAuthenticationVerified
   )

@@ -168,7 +168,7 @@ export async function resolveAssistedSession(
              s.internal_user_id,
              s.actor_snapshot_name as actor_name,
              s.actor_snapshot_email as actor_email,
-             coalesce(array_agg(distinct m.role) filter (where m.role is not null), '{}') as actor_roles,
+             coalesce(array_agg(distinct granted.role) filter (where granted.role is not null), '{}') as actor_roles,
              s.target_account_id,
              a.legal_name as target_account_name,
              s.reason,
@@ -177,7 +177,12 @@ export async function resolveAssistedSession(
       from public.experience_assisted_sessions s
       join public.commerce_users u on u.id = s.internal_user_id
       join public.accounts a on a.id = s.target_account_id
-      left join public.memberships m on m.user_id = u.id
+      left join (
+        public.memberships m
+        join public.organizations staff_org
+          on staff_org.id = m.organization_id and staff_org.side = 'fil_one'
+        join public.membership_roles granted on granted.membership_id = m.id
+      ) on m.user_id = u.id
       where s.id = ${input.id}::uuid
         and s.authentication_session_id = ${input.authenticationSessionId}
         and s.internal_user_id = ${input.internalUserId}::uuid
@@ -262,7 +267,7 @@ export async function resolveProviderAssistedSession(
              s.internal_user_id,
              e.actor ->> 'display' as actor_name,
              e.actor ->> 'display' as actor_email,
-             coalesce(array_agg(distinct m.role) filter (where m.role is not null), '{}') as actor_roles,
+             coalesce(array_agg(distinct granted.role) filter (where granted.role is not null), '{}') as actor_roles,
              s.target_account_id,
              a.legal_name as target_account_name,
              s.reason,
@@ -276,7 +281,12 @@ export async function resolveProviderAssistedSession(
        and e.after ->> 'sessionId' = s.id::text
        and e.actor ->> 'id' = s.internal_user_id::text
        and lower(e.actor ->> 'display') = lower(${input.impersonatorEmail})
-      left join public.memberships m on m.user_id = s.internal_user_id
+      left join (
+        public.memberships m
+        join public.organizations staff_org
+          on staff_org.id = m.organization_id and staff_org.side = 'fil_one'
+        join public.membership_roles granted on granted.membership_id = m.id
+      ) on m.user_id = s.internal_user_id
       where lower(u.email) = lower(${input.impersonatorEmail})
         and s.target_account_id = ${input.targetAccountId}::uuid
         and s.reason = ${reason}
@@ -375,9 +385,14 @@ export async function createAssistedSession(
   return withInternalTransaction(db, input.requestId, async (transaction) => {
     const actors = await transaction.execute<ActorRow>(sql`
       select u.name, u.email, u.is_internal_staff,
-             coalesce(array_agg(distinct m.role) filter (where m.role is not null), '{}') as roles
+             coalesce(array_agg(distinct granted.role) filter (where granted.role is not null), '{}') as roles
       from public.commerce_users u
-      left join public.memberships m on m.user_id = u.id
+      left join (
+        public.memberships m
+        join public.organizations staff_org
+          on staff_org.id = m.organization_id and staff_org.side = 'fil_one'
+        join public.membership_roles granted on granted.membership_id = m.id
+      ) on m.user_id = u.id
       where u.id = ${input.internalUserId}::uuid
       group by u.id
     `);
@@ -455,10 +470,15 @@ export async function createAssistedSession(
                 ${actorName}::text as actor_name,
                 ${actorEmail}::text as actor_email,
                 array(
-                  select distinct role
-                  from public.memberships
-                  where user_id = ${input.internalUserId}::uuid
-                  order by role
+                  select distinct granted.role
+                  from public.memberships m
+                  join public.organizations staff_org
+                    on staff_org.id = m.organization_id
+                   and staff_org.side = 'fil_one'
+                  join public.membership_roles granted
+                    on granted.membership_id = m.id
+                  where m.user_id = ${input.internalUserId}::uuid
+                  order by granted.role
                 )::text[] as actor_roles,
                 target_account_id, ${target.name}::text as target_account_name,
                 reason, started_at, expires_at

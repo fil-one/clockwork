@@ -20,7 +20,7 @@ vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: () => state.database,
 }));
 vi.mock("@/src/features/shell/route-session", () => ({
-  getRouteRoles: () => Promise.resolve(["legal_approver"]),
+  getRoutePermissions: () => Promise.resolve(["agreement:approve"]),
 }));
 vi.mock("@/src/features/internal-ops/administration-safety/agreements", () => ({
   AgreementAdministration: () => <p>Explicit demo templates</p>,

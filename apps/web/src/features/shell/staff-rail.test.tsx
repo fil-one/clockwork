@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { sessionRolesFor, type Role } from "@clockwork/contracts";
+import { permissionsForRoles, type Role } from "@clockwork/contracts";
 
 import { AppShell } from "./app-shell";
 import type { RouteSession } from "./route-session";
@@ -30,7 +30,8 @@ globalThis.ResizeObserver ??= class {
 
 function sessionFor(granted: Role): RouteSession {
   return {
-    roles: sessionRolesFor([granted]),
+    roles: [granted],
+    permissions: permissionsForRoles([granted], { side: "fil_one" }),
     profile: { name: "Priya Raman", email: "priya.raman@fil.one" },
     locale: "en-US",
     timeZone: "UTC",
@@ -46,6 +47,8 @@ function sessionFor(granted: Role): RouteSession {
         accountId: "10000000-0000-4000-8000-000000000008",
         accountName: "Fil One LLC",
         role: granted,
+        roles: [granted],
+        side: "fil_one",
         audience: "internal",
         home: "/internal",
       },

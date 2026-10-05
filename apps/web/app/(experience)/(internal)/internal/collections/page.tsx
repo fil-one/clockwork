@@ -6,7 +6,7 @@ import { getTranslations } from "@/src/i18n/server";
 import { CollectionsView } from "@/src/features/internal-ops/finance-lifecycle/collections-view";
 import { loadCollectionsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { getRoutePermissions } from "@/src/features/shell/route-session";
 import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
@@ -24,9 +24,9 @@ export async function generateMetadata(): Promise<Metadata> {
  * are expected to triage it.
  */
 async function Page() {
-  const [workspace, roles] = await Promise.all([
+  const [workspace, permissions] = await Promise.all([
     loadCollectionsWorkspace(),
-    getRouteRoles("internal"),
+    getRoutePermissions("internal"),
   ]);
   return (
     <SurfacePermissionGate
@@ -35,7 +35,7 @@ async function Page() {
     >
       <CollectionsView
         cases={workspace.items}
-        roles={roles}
+        permissions={permissions}
         provenance={workspace.provenance}
         notice={<BillingOffNotice />}
       />

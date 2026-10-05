@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import { translatorFor } from "@/src/i18n/catalogs";
 
 import { getCommandItems } from "./command-items";
@@ -24,7 +26,7 @@ describe("audience-aware shell commands", () => {
     (audience) => {
       const items = getCommandItems(
         audience,
-        audienceRoles[audience],
+        permissionsForRoles(audienceRoles[audience]),
         providerContext,
         t,
       );
@@ -41,13 +43,13 @@ describe("audience-aware shell commands", () => {
   it("does not leak routes from another audience", () => {
     const customerHrefs = getCommandItems(
       "customer",
-      ["owner"],
+      permissionsForRoles(["owner"]),
       providerContext,
       t,
     ).flatMap((item) => (item.href ? [item.href] : []));
     const partnerHrefs = getCommandItems(
       "partner",
-      ["partner_admin"],
+      permissionsForRoles(["partner_admin"]),
       providerContext,
       t,
     ).flatMap((item) => (item.href ? [item.href] : []));
@@ -61,7 +63,12 @@ describe("audience-aware shell commands", () => {
   });
 
   it("does not expose fixture records in a provider-backed shell", () => {
-    const items = getCommandItems("customer", ["owner"], providerContext, t);
+    const items = getCommandItems(
+      "customer",
+      permissionsForRoles(["owner"]),
+      providerContext,
+      t,
+    );
 
     expect(items.some((item) => item.category === "records")).toBe(false);
     expect(items.map((item) => item.label).join(" ")).not.toMatch(
@@ -72,7 +79,7 @@ describe("audience-aware shell commands", () => {
   it("hides customer write actions and agreement navigation from billing users", () => {
     const hrefs = getCommandItems(
       "customer",
-      ["billing"],
+      permissionsForRoles(["billing"]),
       providerContext,
       t,
     ).flatMap((item) => (item.href ? [item.href] : []));
@@ -86,7 +93,7 @@ describe("audience-aware shell commands", () => {
   it("hides partner administration destinations from sellers", () => {
     const hrefs = getCommandItems(
       "partner",
-      ["partner_seller"],
+      permissionsForRoles(["partner_seller"]),
       providerContext,
       t,
     ).flatMap((item) => (item.href ? [item.href] : []));
@@ -101,10 +108,23 @@ describe("audience-aware shell commands", () => {
     expect(hrefs).toContain("/partner/support");
   });
 
+  it("offers a referral partner deal registration but never the partner quote", () => {
+    const hrefs = getCommandItems(
+      "partner",
+      permissionsForRoles(["partner_admin"], { side: "referral_partner" }),
+      providerContext,
+      t,
+    ).flatMap((item) => (item.href ? [item.href] : []));
+
+    expect(hrefs).toContain("/partner/registrations");
+    expect(hrefs).toContain("/partner/billing");
+    expect(hrefs).not.toContain("/partner/quotes/new");
+  });
+
   it("hides approval and finance destinations from internal operators", () => {
     const hrefs = getCommandItems(
       "internal",
-      ["internal_operator"],
+      permissionsForRoles(["internal_operator"]),
       providerContext,
       t,
     ).flatMap((item) => (item.href ? [item.href] : []));
@@ -124,7 +144,7 @@ describe("audience-aware shell commands", () => {
   it("keeps finance navigation behind report read and recovery behind system operate", () => {
     const financeHrefs = getCommandItems(
       "internal",
-      ["finance_approver"],
+      permissionsForRoles(["finance_approver"]),
       providerContext,
       t,
     ).flatMap((item) => (item.href ? [item.href] : []));

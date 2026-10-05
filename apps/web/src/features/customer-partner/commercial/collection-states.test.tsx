@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import { RoutePermissionGate } from "@/src/features/shell/permission-gate";
 
 import {
@@ -54,7 +56,7 @@ describe("commercial collection states", () => {
       <RoutePermissionGate
         audience="customer"
         requiredPermission="quote:write"
-        roles={["member"]}
+        permissions={permissionsForRoles(["member"])}
       >
         <p>Quote mutation</p>
       </RoutePermissionGate>,

@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import {
   afterEach,
   beforeAll,
@@ -121,6 +122,7 @@ beforeEach(() => {
     organizationId: "66666666-6666-4666-8666-666666666666",
     accountIds: ["11111111-1111-4111-8111-111111111111"],
     roles: ["owner"],
+    permissions: permissionsForRoles(["owner"]),
     isInternalStaff: false,
     mfaVerified: true,
     recentAuthenticationVerified: true,
@@ -462,6 +464,7 @@ describe("demo commerce api", () => {
         organizationId: "66666666-6666-4666-8666-666666666666",
         accountIds: ["11111111-1111-4111-8111-111111111111"],
         roles: ["owner"],
+        permissions: permissionsForRoles(["owner"]),
         isInternalStaff: false,
         mfaVerified: true,
         recentAuthenticationVerified: true,
@@ -557,6 +560,7 @@ describe("demo commerce api", () => {
         organizationId: "66666666-6666-4666-8666-666666666666",
         accountIds: ["11111111-1111-4111-8111-111111111111"],
         roles: ["member"],
+        permissions: permissionsForRoles(["member"]),
         isInternalStaff: false,
         mfaVerified: true,
         recentAuthenticationVerified: true,
@@ -707,6 +711,7 @@ describe("demo commerce api", () => {
       userId: "21000000-0000-4000-8000-000000000008",
       accountIds: [],
       roles: ["finance_approver"],
+      permissions: permissionsForRoles(["finance_approver"]),
       isInternalStaff: true,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -719,6 +724,7 @@ describe("demo commerce api", () => {
       expect.objectContaining({
         userId: "21000000-0000-4000-8000-000000000008",
         roles: ["finance_approver"],
+        permissions: permissionsForRoles(["finance_approver"]),
       }),
     );
   });
@@ -728,6 +734,7 @@ describe("demo commerce api", () => {
       userId: "21000000-0000-4000-8000-000000000003",
       accountIds: ["11000000-0000-4000-8000-000000000003"],
       roles: ["partner_admin"],
+      permissions: permissionsForRoles(["partner_admin"]),
       isInternalStaff: false,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -740,6 +747,7 @@ describe("demo commerce api", () => {
       expect.objectContaining({
         userId: "21000000-0000-4000-8000-000000000003",
         roles: ["partner_admin"],
+        permissions: permissionsForRoles(["partner_admin"]),
       }),
     );
   });
@@ -749,6 +757,7 @@ describe("demo commerce api", () => {
       userId: "21000000-0000-4000-8000-000000000003",
       accountIds: ["11000000-0000-4000-8000-000000000003"],
       roles: ["partner_admin"],
+      permissions: permissionsForRoles(["partner_admin"]),
       isInternalStaff: false,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -767,6 +776,7 @@ describe("demo commerce api", () => {
       userId: "21000000-0000-4000-8000-000000000001",
       accountIds: ["11000000-0000-4000-8000-000000000001"],
       roles: ["owner"],
+      permissions: permissionsForRoles(["owner"]),
       isInternalStaff: false,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -785,6 +795,7 @@ describe("demo commerce api", () => {
       userId: "21000000-0000-4000-8000-000000000003",
       accountIds: ["11000000-0000-4000-8000-000000000003"],
       roles: ["partner_admin", "owner"],
+      permissions: permissionsForRoles(["partner_admin", "owner"]),
       isInternalStaff: false,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -803,6 +814,7 @@ describe("demo commerce api", () => {
       userId: "21000000-0000-4000-8000-000000000003",
       accountIds: ["11000000-0000-4000-8000-000000000003"],
       roles: ["partner_admin"],
+      permissions: permissionsForRoles(["partner_admin"]),
       isInternalStaff: false,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -916,6 +928,7 @@ describe("demo queue refresh destination security", () => {
       userId: "21000000-0000-4000-8000-000000000009",
       accountIds: [],
       roles: ["internal_operator"],
+      permissions: permissionsForRoles(["internal_operator"]),
       isInternalStaff: true,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -1043,6 +1056,7 @@ describe("demo queue refresh destination security", () => {
       userId: "21000000-0000-4000-8000-000000000008",
       accountIds: [],
       roles: ["finance_approver"],
+      permissions: permissionsForRoles(["finance_approver"]),
       isInternalStaff: true,
       mfaVerified: true,
       recentAuthenticationVerified: true,

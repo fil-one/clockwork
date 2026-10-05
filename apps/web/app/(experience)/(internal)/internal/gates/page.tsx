@@ -5,7 +5,7 @@ import { getOptionalServiceDatabase } from "@/src/db/service";
 import { adminSafetyCopy } from "@/src/features/internal-ops/administration-safety/copy";
 import { demoGateText } from "@/src/features/internal-ops/administration-safety/data";
 import { GateRegister } from "@/src/features/internal-ops/administration-safety/gates";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { getRoutePermissions } from "@/src/features/shell/route-session";
 import { getLocale, getTranslations } from "@/src/i18n/server";
 
 import { loadConfiguredGateRecords } from "@/src/features/internal-ops/gates/server-gate-loader";
@@ -24,14 +24,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 async function Page() {
-  const [roles, configured, locale] = await Promise.all([
-    getRouteRoles("internal"),
+  const [permissions, configured, locale] = await Promise.all([
+    getRoutePermissions("internal"),
     loadConfiguredGateRecords(gateService),
     getLocale(),
   ]);
   return (
     <GateRegister
-      roles={roles}
+      permissions={permissions}
       gates={configured.gates}
       source={configured.source}
       {...(configured.source === "System gate registry"

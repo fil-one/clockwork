@@ -1,3 +1,4 @@
+import { contextHasPermission } from "@clockwork/contracts";
 import type { Metadata } from "next";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
 import layout from "./channel-policy.module.css";
@@ -102,7 +103,8 @@ async function Page() {
   let available = false;
   const database = getOptionalServiceDatabase();
   const demo = demoDeployIdentityEnabled(process.env);
-  if (demo && session.roles.includes("finance_approver")) {
+  const financeAuthority = contextHasPermission(session, "quote:approve");
+  if (demo && financeAuthority) {
     const repo = new DemoCommercialPolicyRepository();
     const [demoRecords, demoActive] = await Promise.all([
       repo.listChannel(),
@@ -118,12 +120,7 @@ async function Page() {
     active = demoActive;
     available = true;
   }
-  if (
-    !demo &&
-    database &&
-    session.providerBacked &&
-    session.roles.includes("finance_approver")
-  )
+  if (!demo && database && session.providerBacked && financeAuthority)
     try {
       const repo = new DatabaseChannelPolicyRepository(database);
       [records, active] = await Promise.all([repo.list(), repo.active()]);

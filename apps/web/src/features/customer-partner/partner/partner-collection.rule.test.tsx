@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
   usePathname: () => "/partner/commissions",
@@ -29,7 +31,7 @@ describe("partner collection truth copy", () => {
         formatting={formatting}
         freshness={fresh}
         partnerName="Aurora Systems"
-        roles={["partner_admin"]}
+        permissions={permissionsForRoles(["partner_admin"])}
         surface="commissions"
       />,
     );
@@ -59,7 +61,7 @@ describe("partner collection truth copy", () => {
         formatting={formatting}
         freshness={fresh}
         partnerName="Aurora Systems"
-        roles={["partner_admin"]}
+        permissions={permissionsForRoles(["partner_admin"])}
         surface="registrations"
       />,
     );

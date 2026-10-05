@@ -1,8 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 const mocks = vi.hoisted(() => ({
-  getRouteRoles: vi.fn(),
+  getRoutePermissions: vi.fn(),
   loadPartnerRecords: vi.fn(),
 }));
 
@@ -12,7 +14,7 @@ vi.mock("@/src/auth/demo-deploy", () => ({
 }));
 vi.mock("@/src/features/shell/route-session", () => ({
   getRouteIdentity: vi.fn(),
-  getRouteRoles: mocks.getRouteRoles,
+  getRoutePermissions: mocks.getRoutePermissions,
   getRouteSession: () =>
     Promise.resolve({ locale: "en-US", timeZone: "Europe/London" }),
 }));
@@ -25,7 +27,9 @@ import { PartnerQuoteDetail } from "./partner-detail";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getRouteRoles.mockResolvedValue(["partner_admin"]);
+  mocks.getRoutePermissions.mockResolvedValue(
+    permissionsForRoles(["partner_admin"]),
+  );
 });
 
 describe("partner quote detail creation actions", () => {
