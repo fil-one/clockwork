@@ -1,13 +1,12 @@
 // i18n-exempt-file: HTTP API problem+json titles are the integrator contract (stable English, logged); an interface shows the reader a sentence chosen from `code`/`status` (contracts/error-text.ts), never this title.
 import type { SessionClaims } from "@clockwork/api";
-import { uuidV7 } from "@clockwork/contracts";
+import {
+  contextHasAnyPermission,
+  contextHasPermission,
+  uuidV7,
+} from "@clockwork/contracts";
 
 import { ExperienceProblem, type ExperienceAudience } from "./model";
-
-const internalRole = (role: string) =>
-  role.startsWith("internal_") ||
-  role.endsWith("_approver") ||
-  role === "destructive_action_approver";
 
 export function requireAuthenticatedSession(
   session: SessionClaims | null,
@@ -25,9 +24,14 @@ export function requireAudience(
   session: SessionClaims,
   audience: ExperienceAudience,
 ): void {
-  const hasInternalRole = session.roles.some(internalRole);
   if (audience === "internal") {
-    if (!session.isInternalStaff || !hasInternalRole)
+    // Internal projections are operations data. A seller is internal staff
+    // but works in the sales workspace, so the audience follows the operations
+    // permission rather than the staff flag alone.
+    if (
+      !session.isInternalStaff ||
+      !contextHasPermission(session, "operations:read")
+    )
       throw new ExperienceProblem(
         403,
         "AUDIENCE_FORBIDDEN",
@@ -54,11 +58,16 @@ export function requireAudience(
       );
     return;
   }
-  const allowedRoles =
+  // Partners, channel and referral alike, register deals; a customer holds
+  // account access and no partner or staff permission.
+  const partner = contextHasPermission(session, "deal:register");
+  const permitted =
     audience === "partner"
-      ? new Set(["partner_admin", "partner_seller"])
-      : new Set(["owner", "admin", "billing", "member"]);
-  if (!session.roles.some((role) => allowedRoles.has(role)))
+      ? partner
+      : !partner &&
+        contextHasPermission(session, "account:read") &&
+        !contextHasAnyPermission(session, ["operations:read", "sales:read"]);
+  if (!permitted)
     throw new ExperienceProblem(
       403,
       "AUDIENCE_FORBIDDEN",
@@ -121,7 +130,10 @@ export function authorizationContext(session: SessionClaims, id: string) {
     userId: session.userId as never,
     accountIds: effectiveAccountIds,
     roles: session.roles,
+    permissions: session.permissions,
+    ...(session.side ? { side: session.side } : {}),
     isInternalStaff: session.isInternalStaff,
+
     requestId: id,
   };
 }

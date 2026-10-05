@@ -6,6 +6,7 @@ import {
   auditEvents,
   commerceUsers,
   memberships,
+  membershipHasPermission,
   prospectiveSupplierEntity,
   withInternalTransaction,
   type RuntimeDatabase,
@@ -127,7 +128,7 @@ export class DatabasePaygBillingRepository implements PaygBillingRepository {
           eq(commerceUsers.id, actor.id),
           eq(commerceUsers.isInternalStaff, true),
           eq(commerceUsers.mfaEnrolled, true),
-          eq(memberships.role, "finance_approver"),
+          membershipHasPermission("quote:approve"),
         ),
       )
       .limit(1)

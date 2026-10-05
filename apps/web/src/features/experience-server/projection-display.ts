@@ -226,6 +226,11 @@ function instant(value: string | null): Date | null {
   return Number.isFinite(parsed) ? new Date(parsed) : null;
 }
 
+/**
+ * A calendar date (invoice, due, notice, term). These carry contractual or
+ * accounting meaning and are dated in UTC, so they are not moved into the
+ * reader's zone.
+ */
 function day(value: string | null, context: DisplayContext): string | null {
   const date = instant(value);
   return date
@@ -1028,7 +1033,12 @@ export function localizedProductionRecord(
           ? actionLabel(actions[0] as string, context.t)
           : display.overdue
             ? context.t("status.review")
-            : context.t("experience.display.readOnly"),
+            : context.t("experience.display.noStep"),
+      // The row offers no action and nothing is overdue, so the step above is
+      // the neutral fallback. It claims nothing about what is due (a signature
+      // or a payment can still be outstanding through another surface), and a
+      // page may leave it out.
+      nextActionFallback: actions.length === 0 && !display.overdue,
     },
   };
 }

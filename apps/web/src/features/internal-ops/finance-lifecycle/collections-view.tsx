@@ -1,5 +1,6 @@
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
-import { use } from "react";
+import { use, type ReactNode } from "react";
+import type { Permission } from "@clockwork/contracts";
 import { StatusBadge, Table } from "@clockwork/ui";
 
 import { ProjectionActionButtons } from "@/src/features/experience-server/projection-action-buttons";
@@ -8,6 +9,7 @@ import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 import { correctionCopy } from "../collections-corrections/copy";
 import { CorrectionDialog } from "../collections-corrections/correction-dialog";
 import { correctionKinds } from "../collections-corrections/model";
+import { CopyableId } from "../copyable-id";
 import { lifecycleCopy } from "./copy";
 import {
   summarizeCollectionCases,
@@ -62,12 +64,15 @@ function Corrections({ entry }: { entry: CollectionCase }) {
 
 export function CollectionsView({
   cases,
-  roles,
+  permissions,
   provenance,
+  notice,
 }: {
   cases: readonly CollectionCase[];
-  roles: readonly string[];
+  permissions: readonly Permission[];
   provenance: SurfaceProvenance;
+  /** A page-wide notice the route supplies, shown under the header. */
+  notice?: ReactNode;
 }) {
   const t = use(getTranslations());
   const locale = use(getFormattingLocale());
@@ -90,6 +95,7 @@ export function CollectionsView({
       title={t(copy.title)}
       description={t(copy.description)}
       provenance={provenance}
+      notice={notice}
     >
       <section className={styles.summaryGrid} aria-label={t(copy.summaryLabel)}>
         <article className={styles.summaryCard}>
@@ -154,7 +160,20 @@ export function CollectionsView({
                 <span className={styles.secondary}>
                   {t(copy.priorityRank, { rank: String(index + 1) })}
                 </span>
-                <strong>{entry.reference}</strong>
+                <strong>{entry.accountName ?? entry.reference}</strong>
+                {entry.payerName ? (
+                  <span className={styles.secondary}>
+                    {t("operations.finance.billedTo", {
+                      name: entry.payerName,
+                    })}
+                  </span>
+                ) : null}
+                {entry.accountName ? (
+                  <CopyableId
+                    value={entry.reference}
+                    label={t("recordKind.invoice")}
+                  />
+                ) : null}
                 <details className={styles.disclosure}>
                   <summary>{t(lifecycleCopy.evidence.technical)}</summary>
                   <IdentifierLine
@@ -213,7 +232,8 @@ export function CollectionsView({
                   projectionId={entry.projectionId}
                   version={entry.version}
                   actions={entry.permittedActions}
-                  roles={roles}
+                  permissions={permissions}
+                  readOnlyNote={false}
                 />
                 <SurfaceActionGate
                   audience="internal"

@@ -1,5 +1,6 @@
 "use server";
 
+import { contextHasAnyPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 import { CatalogMappingSchema, DatabaseCatalogAdmin } from "@clockwork/db";
 import { requireRecentAuthentication } from "@/src/auth/session";
@@ -24,9 +25,7 @@ export async function saveCatalogMapping(
     session.impersonation ||
     session.assistedSession ||
     session.authenticationProviderImpersonator ||
-    !session.roles.some(
-      (role) => role === "internal_operator" || role === "finance_approver",
-    )
+    !contextHasAnyPermission(session, ["operations:write", "quote:approve"])
   )
     return "forbidden";
   const parsed = CatalogMappingSchema.safeParse({

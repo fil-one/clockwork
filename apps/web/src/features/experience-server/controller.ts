@@ -1,7 +1,11 @@
 // i18n-exempt-file: HTTP API problem+json titles are the integrator contract (stable English, logged); an interface shows the reader a sentence chosen from `code`/`status` (contracts/error-text.ts), never this title. The route table is an API description.
 import { timingSafeEqual } from "node:crypto";
 
-import { uuidV7 } from "@clockwork/contracts";
+import {
+  contextHasPermission,
+  contextPermissions,
+  uuidV7,
+} from "@clockwork/contracts";
 import {
   artifactDownloadHeaders,
   renderAuthorizedCommerceDocument,
@@ -17,6 +21,7 @@ import type { SessionResolver } from "@clockwork/api";
 import {
   idempotencyKey,
   requestId,
+  requireAudience,
   requireAuthenticatedSession,
   resolveScopedAccount,
 } from "./authorization";
@@ -417,7 +422,7 @@ export async function handleExperienceRequest(
       if (
         audienceValue === "partner" &&
         !session.isInternalStaff &&
-        !canReadPartnerChannel(session.roles, channelValue)
+        !canReadPartnerChannel(contextPermissions(session), channelValue)
       )
         throw new ExperienceProblem(
           403,
@@ -474,7 +479,7 @@ export async function handleExperienceRequest(
         const value = await body(request);
         const action = requiredString(value, "action");
         requireProjectionActionAuthority(
-          session.roles,
+          contextPermissions(session),
           input.audience,
           input.channel,
           action,
@@ -718,12 +723,17 @@ export async function handleExperienceRequest(
             "Evidence retention is server managed",
           );
         const requestedAccountId = optionalString(value, "accountId");
+        // Staff evidence is operations evidence: a seller is internal staff
+        // but holds no operations role, and is refused here as on every
+        // other internal experience route.
+        if (session.isInternalStaff && !session.impersonation)
+          requireAudience(session, "internal");
         const accountId =
           session.isInternalStaff && !session.impersonation
             ? null
             : resolveScopedAccount(
                 session,
-                session.roles.some((role) => role.startsWith("partner_"))
+                contextHasPermission(session, "deal:register")
                   ? "partner"
                   : "customer",
                 requestedAccountId,
@@ -732,7 +742,7 @@ export async function handleExperienceRequest(
         const legalHoldAllowed =
           session.isInternalStaff &&
           journey === "approval" &&
-          session.roles.some((role) => role === "legal_approver");
+          contextHasPermission(session, "agreement:approve");
         if (legalHoldRequested && !legalHoldAllowed)
           throw new ExperienceProblem(
             403,

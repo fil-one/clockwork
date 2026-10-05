@@ -3,29 +3,22 @@ import { use } from "react";
 import Link from "next/link";
 import { type ReactNode } from "react";
 
-import { hasPermission, roles as commerceRoles } from "@clockwork/contracts";
-import type { Permission, Role } from "@clockwork/contracts";
+import type { Permission } from "@clockwork/contracts";
 import { buttonClassName } from "@clockwork/ui";
 
-import { roleCanAccess, type ExperienceAudience } from "./navigation";
+import { audienceCanAccess, type ExperienceAudience } from "./navigation";
 import { PermissionSessionProvider } from "./permission-session";
 
 export { PermissionSessionProvider };
 
-function isCommerceRole(role: string): role is Role {
-  return (commerceRoles as readonly string[]).includes(role);
-}
-
 function permitted(
   audience: ExperienceAudience,
-  roles: readonly string[],
+  permissions: readonly Permission[],
   requiredPermission?: Permission,
 ): boolean {
-  return roles.some(
-    (role) =>
-      roleCanAccess(audience, role) &&
-      (!requiredPermission ||
-        (isCommerceRole(role) && hasPermission(role, requiredPermission))),
+  return (
+    audienceCanAccess(audience, permissions) &&
+    (!requiredPermission || permissions.includes(requiredPermission))
   );
 }
 
@@ -50,25 +43,25 @@ function Denied() {
 
 export function RoutePermissionGate({
   audience,
-  roles,
+  permissions,
   requiredPermission,
   children,
 }: {
   audience: ExperienceAudience;
-  roles: readonly string[];
+  permissions: readonly Permission[];
   requiredPermission?: Permission;
   children: ReactNode;
 }) {
-  if (!permitted(audience, roles, requiredPermission)) return <Denied />;
+  if (!permitted(audience, permissions, requiredPermission)) return <Denied />;
   return (
-    <PermissionSessionProvider roles={roles}>
+    <PermissionSessionProvider permissions={permissions}>
       {children}
     </PermissionSessionProvider>
   );
 }
 
 /**
- * Resolves the roles on the server so a denied surface never renders its
+ * Resolves the permissions on the server so a denied surface never renders its
  * children. A client-side check cannot deny anything: the async server child is
  * still rendered into the payload before the denial paints.
  */
@@ -83,16 +76,16 @@ export async function SurfacePermissionGate({
 }) {
   // Deferred so the session graph, which reaches the identity provider and the
   // database, loads only where a surface is actually gated.
-  const { getRouteRoles } = await import("./route-session");
-  const roles = await getRouteRoles(audience);
-  if (!permitted(audience, roles, requiredPermission)) return <Denied />;
+  const { getRoutePermissions } = await import("./route-session");
+  const permissions = await getRoutePermissions(audience);
+  if (!permitted(audience, permissions, requiredPermission)) return <Denied />;
   return children;
 }
 
 /**
  * Gates one mutation inside a surface the reader is already allowed to open.
  * A denied action renders nothing rather than replacing the page with a 403,
- * and resolves its roles on the server so the form never reaches a browser
+ * and resolves its permissions on the server so the form never reaches a browser
  * that may not submit it.
  */
 export async function SurfaceActionGate({
@@ -104,8 +97,9 @@ export async function SurfaceActionGate({
   requiredPermission: Permission;
   children: ReactNode;
 }) {
-  const { getRouteRoles } = await import("./route-session");
-  const roles = await getRouteRoles(audience);
-  if (!permitted(audience, roles, requiredPermission)) return null;
+  const { getRoutePermissions } = await import("./route-session");
+  const permissions = await getRoutePermissions(audience);
+  if (!permitted(audience, permissions, requiredPermission)) return null;
+
   return children;
 }

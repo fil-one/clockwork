@@ -305,8 +305,9 @@ export async function applyProductionBootstrap(input: {
       const a = manifest.account;
       await tx`insert into public.accounts (id, legal_name, relationship_roles, registered_address, billing_contact, ap_contact, invoice_delivery_email, domain, country, currency, screening_status)
         values (${a.id}, ${a.legalName}, array['direct_client'], ${tx.json(a.registeredAddress)}, ${tx.json(a.billingContact)}, ${tx.json(a.apContact)}, ${a.invoiceDeliveryEmail}, ${a.domain}, ${a.country}, ${a.currency}, 'pending')`;
-      await tx`insert into public.organizations (id, account_id, name, isolated, workos_organization_id)
-        values (${manifest.organization.id}, ${a.id}, ${manifest.organization.name}, true, ${manifest.organization.workosOrganizationId})`;
+      // Fil One's own organization is named, never inferred from its account.
+      await tx`insert into public.organizations (id, account_id, name, isolated, workos_organization_id, side)
+        values (${manifest.organization.id}, ${a.id}, ${manifest.organization.name}, true, ${manifest.organization.workosOrganizationId}, 'fil_one')`;
       for (const person of manifest.staff) {
         await tx`insert into public.commerce_users (id, workos_user_id, email, name, is_internal_staff, mfa_enrolled)
           values (${person.id}, ${person.workosUserId}, ${person.email}, ${person.name}, true, true)`;

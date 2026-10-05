@@ -1,4 +1,7 @@
 import { render, screen } from "@testing-library/react";
+vi.mock("@/src/features/shell/staff-access", () => ({
+  withStaffPermission: (_permission: string, page: unknown) => page,
+}));
 import { expect, it, vi } from "vitest";
 
 import { styles } from "@/src/features/internal-ops/administration-safety/ui";
@@ -21,6 +24,7 @@ vi.mock("@clockwork/db", () => ({
       ]);
     }
   },
+  capabilityApprovalPermission: () => "quote:approve",
   capabilityApprovalRole: () => "finance_approver",
 }));
 vi.mock("@/src/auth/session", () => ({

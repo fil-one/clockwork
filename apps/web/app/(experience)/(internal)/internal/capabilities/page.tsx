@@ -1,7 +1,9 @@
+import { contextHasPermission } from "@clockwork/contracts";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
   DatabaseSystemCapabilityAdmin,
+  capabilityApprovalPermission,
   capabilityApprovalRole,
   type SystemCapabilityKey,
 } from "@clockwork/db";
@@ -16,6 +18,7 @@ import type { MessageId, Translator } from "@/src/i18n";
 import { getTranslations } from "@/src/i18n/server";
 import { richText } from "@/src/i18n/rich";
 import { CapabilityControls } from "./controls";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("adminGovernance.capabilities.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const session = await getCommerceSession();
   if (!session.isInternalStaff)
     // i18n-exempt: thrown to the route's error boundary, which shows its own copy
@@ -141,13 +144,12 @@ export default async function Page() {
             </div>
             <CapabilityControls
               capability={capability}
-              canOperate={session.roles.includes("internal_operator")}
-              canApprove={session.roles.some(
-                (role) =>
-                  role ===
-                  capabilityApprovalRole(
-                    capability.capabilityKey as SystemCapabilityKey,
-                  ),
+              canOperate={contextHasPermission(session, "operations:write")}
+              canApprove={contextHasPermission(
+                session,
+                capabilityApprovalPermission(
+                  capability.capabilityKey as SystemCapabilityKey,
+                ),
               )}
             />
           </section>
@@ -156,3 +158,5 @@ export default async function Page() {
     </AdministrationPage>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

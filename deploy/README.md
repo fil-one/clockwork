@@ -388,6 +388,7 @@ about $100 to each.
   redirect URI is `https://<hostname>/auth/callback`, and whose staff
   organization enforces a factor policy ([Second factors](#second-factors)).
 - **Staff email domains.** `CLOCKWORK_INTERNAL_EMAIL_DOMAINS` defaults to
-  `fil.org`; confirm the list.
+  `fil.org,fil.one`; confirm the list. The application has no default of its
+  own: with the list empty, staff sign-in and staff invitations are refused.
 - **Deploy role scope.** The deploy role carries AdministratorAccess, as
   FilOne's own deploy roles do. Narrowing it is a follow-up.

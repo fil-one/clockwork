@@ -3,6 +3,7 @@ import { Buffer } from "node:buffer";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { z } from "zod";
 
+import { contextPermissions } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 
 import type { RuntimeDatabase } from "../../client";
@@ -68,6 +69,8 @@ export class DatabaseNotificationDeliveryRepository {
         userId: input.authorization.userId,
         accountIds: input.authorization.accountIds,
         roles: input.authorization.roles,
+        permissions: contextPermissions(input.authorization),
+        ...(input.authorization.side ? { side: input.authorization.side } : {}),
         isInternalStaff: input.authorization.isInternalStaff,
         requestId: input.requestId,
       },

@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 const mocks = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock("next/navigation", () => ({
@@ -50,7 +52,7 @@ function renderLedger(query = "") {
       formatting={formatting}
       freshness={fresh}
       partnerName="Aurora Systems"
-      roles={["partner_admin"]}
+      permissions={permissionsForRoles(["partner_admin"])}
       surface="portfolio"
     />,
   );
@@ -113,7 +115,7 @@ describe("partner ledger sortable columns", () => {
         formatting={formatting}
         freshness={fresh}
         partnerName="Aurora Systems"
-        roles={["partner_admin"]}
+        permissions={permissionsForRoles(["partner_admin"])}
         surface="portfolio"
       />,
     );

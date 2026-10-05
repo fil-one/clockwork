@@ -14,6 +14,7 @@ import {
   getRouteSession,
 } from "@/src/features/shell/route-session";
 import { getLocale, getTranslations } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ const reader = serviceDatabase
   ? new DatabasePriceBookAdministrationReader(serviceDatabase)
   : undefined;
 
-export default async function Page() {
+async function Page() {
   const locale = await getLocale();
   const [session, identity, priceBooks] = await Promise.all([
     getRouteSession("internal"),
@@ -43,15 +44,15 @@ export default async function Page() {
     books: priceBooks.books,
     userId: identity?.userId ?? "",
     providerBacked: session.providerBacked,
-    internalReader: session.roles.some(
-      (role) => role === "finance_approver" || role === "internal_operator",
-    ),
+    internalReader:
+      session.permissions.includes("operations:write") ||
+      session.permissions.includes("quote:approve"),
     demo: priceBooks.source === "demo",
     readAt: priceBooks.readAt,
   });
   return (
     <PriceBookAdministration
-      roles={session.roles}
+      permissions={session.permissions}
       userId={identity?.userId ?? ""}
       books={priceBooks.books}
       source={priceBooks.source}
@@ -61,3 +62,5 @@ export default async function Page() {
     />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

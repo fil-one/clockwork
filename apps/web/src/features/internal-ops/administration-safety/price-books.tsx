@@ -18,6 +18,7 @@ import { PriceBookImpactPanel } from "./price-book-impact";
 import type { PriceBookImpactResult } from "../price-books/price-book-impact-model";
 import { priceBookEconomicDiff } from "./price-book-diff";
 import type { PriceBookAdministrationRecord } from "@clockwork/db";
+import type { Permission } from "@clockwork/contracts";
 import { Table } from "@clockwork/ui";
 
 import {
@@ -25,6 +26,7 @@ import {
   sendCoreCommand,
 } from "@/src/features/contracts/commerce-client";
 import { formatDate } from "@/src/features/shared/format";
+import { useReaderTimeZone } from "../local-timestamp";
 import type {
   PriceBookAvailability,
   PriceBookSource,
@@ -218,7 +220,7 @@ function RegionList({
 }
 
 export function PriceBookAdministration({
-  roles,
+  permissions,
   userId,
   books,
   source,
@@ -226,7 +228,7 @@ export function PriceBookAdministration({
   readAt,
   impact,
 }: {
-  roles: readonly string[];
+  permissions: readonly Permission[];
   userId: string;
   books: readonly PriceBookAdministrationRecord[];
   source: PriceBookSource;
@@ -236,6 +238,7 @@ export function PriceBookAdministration({
 }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
+  const readerTimeZone = useReaderTimeZone();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [currency, setCurrency] = useState("all");
@@ -301,7 +304,7 @@ export function PriceBookAdministration({
     { tier: string; amount: string }[]
   >([]);
   const [authoringMessage, setAuthoringMessage] = useState("");
-  const permitted = canDecide(roles, "finance");
+  const permitted = canDecide(permissions, "finance");
   const authoringAvailable =
     permitted && availability !== "unavailable" && !refreshPending && !pending;
   const today = readAt.slice(0, 10);
@@ -311,7 +314,7 @@ export function PriceBookAdministration({
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-    timeZone: "UTC",
+    timeZone: readerTimeZone,
     timeZoneName: "short",
   }).format(new Date(readAt));
   const date = (value: string) => formatDate(value, formattingLocale);

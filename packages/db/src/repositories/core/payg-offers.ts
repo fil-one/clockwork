@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { membershipHasPermission } from "../membership-permissions";
 import type { Actor } from "@clockwork/contracts";
 import {
   applyPaygOfferCommand,
@@ -71,7 +72,7 @@ export class DatabasePaygOfferRepository {
               eq(commerceUsers.id, input.actor.id),
               eq(commerceUsers.isInternalStaff, true),
               eq(commerceUsers.mfaEnrolled, true),
-              eq(memberships.role, "finance_approver"),
+              membershipHasPermission("quote:approve"),
             ),
           )
           .limit(1);

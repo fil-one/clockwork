@@ -1,4 +1,5 @@
 import {
+  contextHasPermission,
   hasPermission,
   internalRoles,
   permissions,
@@ -8,6 +9,7 @@ import {
 import type {
   AccountId,
   Actor,
+  OrganizationSide,
   Permission,
   Role,
   rolePermissions,
@@ -19,6 +21,17 @@ export interface AuthorizationContext {
   organizationId?: string;
   accountIds: readonly AccountId[];
   roles: readonly Role[];
+  /**
+   * The permissions the session holds. Built by the server from the roles;
+   * when absent they are derived from the roles the same way (see
+   * `contextPermissions`).
+   */
+  permissions?: readonly Permission[];
+  /**
+   * The side of the organization the session acts in. Lets permissions
+   * derived from the roles apply the side's withholding.
+   */
+  side?: OrganizationSide;
   isInternalStaff: boolean;
   mfaVerified: boolean;
   recentAuthenticationVerified: boolean;
@@ -72,6 +85,21 @@ export const internalOnlyPermissions: ReadonlySet<Permission> = new Set(
       !tenantRoles.some((role) => hasPermission(role, permission)),
   ),
 );
+
+/**
+ * The permissions of the sales workspace: MNDAs, contracts and sales
+ * references. They are the only staff-wide reads open to a staff member who
+ * does not hold `operations:read`.
+ */
+export const salesWorkspacePermissions: ReadonlySet<Permission> = new Set([
+  "mnda:send",
+  "contract:read",
+  "contract:write",
+  "contract:approve",
+  "signatory:manage",
+  "sales:read",
+  "collateral:manage",
+]);
 
 const unscopedMarker = "clockwork.authorization.unscoped" as const;
 
@@ -230,6 +258,17 @@ export function authorize(
   if (decision.kind === "internal-staff" && !context.isInternalStaff) {
     throw new AuthorizationError("ACCOUNT_SCOPE_REQUIRED");
   }
+  // A seller is internal staff without the operations workspace. Reading
+  // commercial records across every account is operations work, so the
+  // staff-wide scope admits a seller only for the sales workspace's own
+  // permissions, whatever tenant-style read permissions the role carries.
+  if (
+    decision.kind === "internal-staff" &&
+    !salesWorkspacePermissions.has(permission) &&
+    !contextHasPermission(context, "operations:read")
+  ) {
+    throw new AuthorizationError("FORBIDDEN");
+  }
   if (
     decision.kind === "account" &&
     !context.accountIds.includes(decision.accountId)
@@ -242,7 +281,7 @@ export function authorize(
     )
       throw new AuthorizationError("ACCOUNT_SCOPE");
   }
-  if (!context.roles.some((role) => hasPermission(role, permission))) {
+  if (!contextHasPermission(context, permission)) {
     throw new AuthorizationError("FORBIDDEN");
   }
 }

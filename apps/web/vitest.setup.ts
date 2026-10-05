@@ -10,6 +10,10 @@ import { setHarnessLanguage } from "@/src/i18n/client";
 
 afterEach(cleanup);
 
+// Staff timestamps render in the browser's time zone. Tests pin it to UTC so a
+// run reads the same on every machine; a test about another zone sets TZ itself.
+process.env.TZ = "UTC";
+
 Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
   configurable: true,
   value: () => null,

@@ -21,7 +21,6 @@ import {
   NoPartnerMembership,
   partnerRouteMembership,
 } from "./partner-membership";
-import { roleCanUseSurface } from "./partner-rules";
 import { canReadPartnerChannel } from "./partner-access";
 import { demoCreatedRegistrations } from "./demo-deal-registration";
 import { demoCreatedPartnerQuotes } from "./demo-partner-quote";
@@ -61,8 +60,9 @@ export async function PartnerCollectionRoute({
   const config = partnerSurfaces[surface];
   const assistedInternal = Boolean(session.assistedSession);
   if (
-    !canReadPartnerChannel(session.roles, surface, assistedInternal) ||
-    (!assistedInternal && !roleCanUseSurface(session.roles, config.roles))
+    !canReadPartnerChannel(session.permissions, surface, assistedInternal) ||
+    (!assistedInternal &&
+      !session.permissions.includes(config.requiredPermission))
   )
     return <PartnerSurfacePermission />;
   const projection = await loadPartnerRecords(surface);
@@ -115,7 +115,7 @@ export async function PartnerCollectionRoute({
         ...config,
         records: [...createdRecords, ...projectedRecords],
       }}
-      roles={session.roles}
+      permissions={session.permissions}
       partnerName={partnerMembership.accountName}
       // The loader has always returned these. This route dropped them and
       // rendered the rows as current; the reader had no way to know otherwise.

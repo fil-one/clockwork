@@ -4,6 +4,7 @@ import { getTranslations } from "@/src/i18n/server";
 import { ReportsView } from "@/src/features/internal-ops/finance-lifecycle/reports-view";
 import { loadReportsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("operations.finance.reports.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const workspace = await loadReportsWorkspace();
   return (
     <SurfacePermissionGate audience="internal" requiredPermission="report:read">
@@ -24,3 +25,5 @@ export default async function Page() {
     </SurfacePermissionGate>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

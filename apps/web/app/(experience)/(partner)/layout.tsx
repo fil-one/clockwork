@@ -11,7 +11,7 @@ export default async function PartnerLayout({
 }) {
   const session = await getRouteSession("partner");
   return (
-    <RoutePermissionGate audience="partner" roles={session.roles}>
+    <RoutePermissionGate audience="partner" permissions={session.permissions}>
       <AppShell audience="partner" session={session}>
         {children}
       </AppShell>

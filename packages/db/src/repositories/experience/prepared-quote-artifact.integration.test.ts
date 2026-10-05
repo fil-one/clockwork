@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { uuidV7 } from "@clockwork/contracts";
+import { permissionsForRoles, uuidV7 } from "@clockwork/contracts";
 
 import { createRuntimeDatabase } from "../../client";
 import {
@@ -45,6 +45,7 @@ function tenantContext(accountId: string) {
     userId: requestedBy as never,
     accountIds: [accountId],
     roles: ["owner"] as const,
+    permissions: permissionsForRoles(["owner"]),
     isInternalStaff: false,
     requestId: `prepared-quote-artifact-${suffix}`,
   };

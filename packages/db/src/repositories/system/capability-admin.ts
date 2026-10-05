@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import { uuidV7, type Actor } from "@clockwork/contracts";
+import { uuidV7, type Actor, type Permission } from "@clockwork/contracts";
 import { sanitizeActivationEvidenceReference } from "@clockwork/domain/system";
 
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
@@ -10,10 +10,11 @@ import {
 } from "../../schema/system";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
+import { membershipHasPermission } from "../membership-permissions";
 import { systemCapabilityKeys, type SystemCapabilityKey } from "./capabilities";
 import {
   assertCapabilityDecision,
-  capabilityApprovalRole,
+  capabilityApprovalPermission,
 } from "./capability-policy";
 
 interface ControlInput {
@@ -28,7 +29,7 @@ interface ControlInput {
 async function requireAuthority(
   tx: RuntimeTransaction,
   actor: Actor,
-  role: string,
+  permission: Permission,
 ) {
   if (
     actor.kind !== "user" ||
@@ -45,7 +46,7 @@ async function requireAuthority(
         eq(commerceUsers.id, actor.id),
         eq(commerceUsers.isInternalStaff, true),
         eq(commerceUsers.mfaEnrolled, true),
-        eq(memberships.role, role),
+        membershipHasPermission(permission),
       ),
     )
     .limit(1);
@@ -99,7 +100,7 @@ export class DatabaseSystemCapabilityAdmin {
       input.evidenceReference,
     );
     return withInternalTransaction(this.db, input.requestId, async (tx) => {
-      await requireAuthority(tx, input.actor, "internal_operator");
+      await requireAuthority(tx, input.actor, "operations:write");
       const [before] = await tx
         .select()
         .from(systemCapabilities)
@@ -155,7 +156,7 @@ export class DatabaseSystemCapabilityAdmin {
       await requireAuthority(
         tx,
         input.actor,
-        capabilityApprovalRole(input.capabilityKey),
+        capabilityApprovalPermission(input.capabilityKey),
       );
       const [before] = await tx
         .select()
@@ -188,7 +189,7 @@ export class DatabaseSystemCapabilityAdmin {
         await requireAuthority(
           tx,
           { kind: "user", id: request.requestedBy },
-          "internal_operator",
+          "operations:write",
         );
         await tx
           .update(systemCapabilities)
@@ -241,7 +242,7 @@ export class DatabaseSystemCapabilityAdmin {
   public disable(input: ControlInput & { disableRecovery: boolean }) {
     validateInput(input);
     return withInternalTransaction(this.db, input.requestId, async (tx) => {
-      await requireAuthority(tx, input.actor, "internal_operator");
+      await requireAuthority(tx, input.actor, "operations:write");
       const [before] = await tx
         .select()
         .from(systemCapabilities)

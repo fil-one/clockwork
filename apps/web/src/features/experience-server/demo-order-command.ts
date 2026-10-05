@@ -4,7 +4,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
-import { hasPermission, uuidV7 } from "@clockwork/contracts";
+import { contextHasPermission, uuidV7 } from "@clockwork/contracts";
 
 import {
   demoAccessConfiguration,
@@ -259,7 +259,7 @@ export async function handleDemoOrderCommand(
         `orders does not accept the action ${JSON.stringify(action)}`,
       );
     const command = commandFrom(body, record(body.payload));
-    if (!session.roles.some((role) => hasPermission(role, "order:write")))
+    if (!contextHasPermission(session, "order:write"))
       throw new ExperienceProblem(
         403,
         "ORDER_AUTHORITY_FORBIDDEN",

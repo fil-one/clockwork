@@ -6,7 +6,7 @@ import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
 import { MachineCode } from "../machine-code";
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import { callbackStateLabels, replaySourceLabels } from "./copy";
 import { ReplayDecision } from "./replay-decision";
 import type { WebhookReplayQueue } from "./webhook-replay-loader";
@@ -89,11 +89,12 @@ export function WebhookReplayView({ queue }: { queue: WebhookReplayQueue }) {
               </div>,
               <MachineCode className={styles.code} value={event.eventType} />,
               t(callbackStateLabels[event.state]),
-              // Minute precision in UTC, so two operators reading the same row
-              // agree, worded in the reader's locale.
-              <time dateTime={event.occurredAt}>
-                {formatOperationalTimestamp(event.occurredAt, formattingLocale)}
-              </time>,
+              // Minute precision in the reader's own zone, named, with UTC on
+              // hover so two operators in different places can agree.
+              <LocalTimestamp
+                value={event.occurredAt}
+                locale={formattingLocale}
+              />,
               <strong>{event.attemptCount}</strong>,
               event.processingError ? (
                 <MachineCode

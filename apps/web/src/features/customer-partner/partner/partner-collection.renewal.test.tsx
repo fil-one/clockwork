@@ -2,6 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 type RequestRenewal = (
   input: {
     accountId: string;
@@ -66,7 +68,7 @@ describe("partner renewal collection action", () => {
           accountId: "11000000-0000-4000-8000-000000000006",
           orderId: "demo-partner-renewal-ec-0038",
         }}
-        roles={["partner_admin"]}
+        permissions={permissionsForRoles(["partner_admin"])}
         surface="renewals"
       />,
     );
@@ -121,7 +123,7 @@ describe("partner renewal collection action", () => {
           accountId: "11000000-0000-4000-8000-000000000006",
           orderId: "demo-partner-renewal-ec-0038",
         }}
-        roles={["partner_admin"]}
+        permissions={permissionsForRoles(["partner_admin"])}
         surface="renewals"
       />,
     );

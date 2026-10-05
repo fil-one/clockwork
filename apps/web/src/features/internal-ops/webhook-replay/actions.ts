@@ -1,7 +1,7 @@
 "use server";
 
 import { DatabaseCoreFinanceService } from "@clockwork/api";
-import { hasPermission } from "@clockwork/contracts";
+import { contextHasPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
@@ -77,8 +77,7 @@ export async function replayWebhookEvent(
   }
 
   const permitted =
-    session.isInternalStaff &&
-    session.roles.some((role) => hasPermission(role, "system:operate"));
+    session.isInternalStaff && contextHasPermission(session, "system:operate");
   if (!permitted) return { ok: false, code: "WEBHOOK_REPLAY_FORBIDDEN" };
 
   if (demoEnabled && (!database || !pricingDatabase || !authorizationSecret)) {

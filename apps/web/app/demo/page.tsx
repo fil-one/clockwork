@@ -121,7 +121,13 @@ export default function Page() {
           {
             id: "teams",
             heading: t("demo.workspace.teams"),
-            keys: ["financeApprover", "internalOperator", "legalApprover"],
+            keys: [
+              "revenueSeller",
+              "commerceAdmin",
+              "financeApprover",
+              "internalOperator",
+              "legalApprover",
+            ],
           },
         ].map((group) => (
           <PersonaGroup

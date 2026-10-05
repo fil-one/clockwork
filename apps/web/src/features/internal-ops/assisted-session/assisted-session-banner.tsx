@@ -4,7 +4,7 @@ import {
 } from "@/src/auth/actions";
 import { use } from "react";
 
-import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
+import { LocalTimestamp } from "@/src/features/internal-ops/local-timestamp";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { richText } from "@/src/i18n/rich";
 
@@ -52,9 +52,7 @@ export function AssistedSessionBanner({
             {richText(t, "operations.assisted.reasonExpires", {
               reason: session.reason,
               time: (
-                <time dateTime={expiresAt}>
-                  {formatOperationalTimestamp(expiresAt, formattingLocale)}
-                </time>
+                <LocalTimestamp value={expiresAt} locale={formattingLocale} />
               ),
             })}
           </dd>

@@ -1,4 +1,12 @@
-import { hasPermission, ids, permissions, roles } from "@clockwork/contracts";
+import {
+  contextHasPermission,
+  hasPermission,
+  ids,
+  internalRoles,
+  permissions,
+  permissionsForRoles,
+  roles,
+} from "@clockwork/contracts";
 import type { Permission, Role } from "@clockwork/contracts";
 import { describe, expect, it } from "vitest";
 
@@ -167,14 +175,8 @@ describe("commerce authorization boundaries", () => {
 
   it("derives the internal-only permission set from the live role table", () => {
     const tenantRoles = roles.filter(
-      (role) =>
-        ![
-          "internal_operator",
-          "finance_approver",
-          "legal_approver",
-          "destructive_action_approver",
-        ].includes(role),
-    ) as readonly Role[];
+      (role) => !(internalRoles as readonly Role[]).includes(role),
+    );
     for (const permission of permissions) {
       const heldByTenant = tenantRoles.some((role) =>
         hasPermission(role, permission),
@@ -201,6 +203,16 @@ describe("commerce authorization boundaries", () => {
       authorize(context, "impersonation:assume", unscopedInternalOnly);
       authorize(context, "destructive:approve", unscopedInternalOnly);
       authorize(context, "migration:execute", unscopedInternalOnly);
+      authorize(context, "mnda:send", unscopedInternalOnly);
+      authorize(context, "contract:read", unscopedInternalOnly);
+      authorize(context, "contract:write", unscopedInternalOnly);
+      authorize(context, "contract:approve", unscopedInternalOnly);
+      authorize(context, "signatory:manage", unscopedInternalOnly);
+      authorize(context, "sales:read", unscopedInternalOnly);
+      authorize(context, "collateral:manage", unscopedInternalOnly);
+      authorize(context, "operations:read", unscopedInternalOnly);
+      authorize(context, "staff:manage", unscopedInternalOnly);
+      authorize(context, "operations:write", unscopedInternalOnly);
     }
 
     // Runtime half: the list above is exactly the derived set, so a permission
@@ -214,9 +226,130 @@ describe("commerce authorization boundaries", () => {
         "migration:execute",
         "quote:approve",
         "system:operate",
+        "mnda:send",
+        "contract:read",
+        "contract:write",
+        "contract:approve",
+        "signatory:manage",
+        "sales:read",
+        "collateral:manage",
+        "operations:read",
+        "staff:manage",
+        "operations:write",
       ].sort(),
     );
     expect(typeAdmitsTheSameSet).toBeInstanceOf(Function);
+  });
+
+  it("keeps a seller to sales permissions when reading across accounts", () => {
+    const seller = internalContext({ roles: ["revenue"] });
+    for (const permission of [
+      "account:read",
+      "agreement:read",
+      "quote:read",
+      "partner:portfolio:read",
+    ] as const)
+      expect(() =>
+        authorize(seller, permission, unscopedInternalStaff),
+      ).toThrow(new AuthorizationError("FORBIDDEN"));
+    // The seller holds the activity history of its own work, but reading it
+    // across every account is operations work.
+    expect(contextHasPermission(seller, "audit:read")).toBe(true);
+    expect(() =>
+      authorize(seller, "audit:read", unscopedInternalStaff),
+    ).toThrow(new AuthorizationError("FORBIDDEN"));
+    expect(() =>
+      authorize(seller, "contract:read", unscopedInternalStaff),
+    ).not.toThrow();
+    expect(() =>
+      authorize(seller, "mnda:send", unscopedInternalOnly),
+    ).not.toThrow();
+  });
+
+  it("lets every operations role and the administrator read across accounts", () => {
+    for (const roles of [
+      ["internal_operator"],
+      ["finance_approver"],
+      ["legal_approver"],
+      ["commerce_admin"],
+    ] as const)
+      expect(() =>
+        authorize(
+          internalContext({ roles }),
+          "account:read",
+          unscopedInternalStaff,
+        ),
+      ).not.toThrow();
+  });
+
+  it("decides on the permissions the session carries, not the role names", () => {
+    // The signed permissions are the authority: a context whose roles would
+    // allow more is held to what the server granted.
+    const narrowed = internalContext({
+      roles: ["commerce_admin"],
+      permissions: permissionsForRoles(["revenue"]),
+    });
+    expect(() =>
+      authorize(narrowed, "contract:write", unscopedInternalOnly),
+    ).not.toThrow();
+    expect(() =>
+      authorize(narrowed, "staff:manage", unscopedInternalOnly),
+    ).toThrow(new AuthorizationError("FORBIDDEN"));
+    // Without operations:read the staff-wide scope stays sales-only.
+    expect(() =>
+      authorize(narrowed, "account:read", unscopedInternalStaff),
+    ).toThrow(new AuthorizationError("FORBIDDEN"));
+  });
+
+  it("grants a person holding several roles the union of their bundles", () => {
+    const context = internalContext({
+      roles: ["revenue", "legal_approver"],
+      permissions: permissionsForRoles(["revenue", "legal_approver"]),
+    });
+    expect(() =>
+      authorize(context, "agreement:approve", unscopedInternalOnly),
+    ).not.toThrow();
+    expect(() =>
+      authorize(context, "account:read", unscopedInternalStaff),
+    ).not.toThrow();
+    expect(() =>
+      authorize(context, "quote:approve", unscopedInternalOnly),
+    ).toThrow(new AuthorizationError("FORBIDDEN"));
+    // Derived from the roles when the context carries no permissions.
+    expect(() =>
+      authorize(
+        internalContext({ roles: ["revenue", "legal_approver"] }),
+        "agreement:approve",
+        unscopedInternalOnly,
+      ),
+    ).not.toThrow();
+  });
+
+  it("withholds approvals inside an assisted session", () => {
+    const impersonation = {
+      accountId: identity.customerAccountId,
+      reason: "Customer requested assisted checkout",
+      sessionId: "assisted-session-002",
+      actualUserId: identity.actualUserId,
+      actualActorEmail: "admin@filone.com",
+    };
+    for (const context of [
+      internalContext({ roles: ["commerce_admin"], impersonation }),
+      internalContext({
+        roles: ["commerce_admin"],
+        impersonation,
+        permissions: permissionsForRoles(["commerce_admin"], {
+          assisted: true,
+        }),
+      }),
+    ]) {
+      expect(() =>
+        authorize(context, "quote:approve", identity.customerAccountId),
+      ).toThrow(new AuthorizationError("FORBIDDEN"));
+      expect(() =>
+        authorize(context, "account:write", identity.customerAccountId),
+      ).not.toThrow();
+    }
   });
 
   it("restricts a cross-account read to internal staff inside the control", () => {

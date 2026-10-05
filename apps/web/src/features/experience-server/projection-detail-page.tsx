@@ -2,14 +2,26 @@ import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import type { MessageId, Translator } from "@/src/i18n";
 import { richText } from "@/src/i18n/rich";
 import { EmptyState } from "@clockwork/ui";
+import { actionLabel } from "./projection-action-labels";
 
 import { ProjectionActionButtons } from "./projection-action-buttons";
 import Link from "next/link";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import { EvidenceUploadControl } from "./evidence-upload-control";
-import { getRouteRoles } from "@/src/features/shell/route-session";
-import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
+import { getRouteSession } from "@/src/features/shell/route-session";
+import {
+  allCapabilitiesEnabled,
+  getCapabilityState,
+} from "@/src/features/internal-ops/capability-state";
+import {
+  availableActions,
+  isActive,
+  isCapabilityKey,
+  type CapabilityState,
+} from "@/src/features/internal-ops/capability-state-model";
+import { CopyableId } from "@/src/features/internal-ops/copyable-id";
+import { LocalTimestamp } from "@/src/features/internal-ops/local-timestamp";
 import styles from "./projection-detail-page.module.css";
 import {
   ArtifactDeliveryList,
@@ -30,6 +42,40 @@ function label(record: ProjectionRecord): string {
     if (typeof value === "string" && value.trim()) return value;
   }
   return record.recordKey;
+}
+
+/**
+ * The record's next step, or `null` when there is none to show.
+ *
+ * - A step derived from actions that are all switched off is not shown: the
+ *   server would refuse them, so the step is not work anyone can do yet.
+ * - A written step can name the capability it belongs to
+ *   (`nextActionCapability`); it is not shown while no work for that
+ *   capability can run.
+ * - A production row with no action and nothing overdue carries only the
+ *   neutral fallback (`nextActionFallback`), which is not worth a panel.
+ */
+function nextStepText(
+  record: ProjectionRecord,
+  actions: readonly string[],
+  available: readonly string[],
+  capabilities: CapabilityState,
+  t: Translator,
+): string | null {
+  if (actions.length > 0 && available.length === 0) return null;
+  const stepCapability = text(record, "nextActionCapability");
+  if (
+    stepCapability &&
+    isCapabilityKey(stepCapability) &&
+    !isActive(capabilities, stepCapability)
+  )
+    return null;
+  if (record.data.nextActionFallback === true && available.length === 0)
+    return null;
+  const [first] = actions;
+  if (first !== undefined && !available.includes(first))
+    return actionLabel(available[0] as string, t);
+  return text(record, "nextAction") ?? t("experience.detail.nextStep.fallback");
 }
 
 function allowedActions(record: ProjectionRecord): readonly string[] {
@@ -60,6 +106,8 @@ const presentedElsewhere = new Set([
   "tone",
   "risk",
   "nextAction",
+  "nextActionCapability",
+  "nextActionFallback",
   "nextActionHref",
   "href",
   "valueSort",
@@ -111,9 +159,15 @@ function contextFacts(record: ProjectionRecord): readonly Fact[] {
  * shown under its field name, marked as code, rather than dropped.
  */
 function recordFacts(record: ProjectionRecord, t: Translator): readonly Fact[] {
+  // A fact that repeats the record's own name ("Reference: Meridian Archive
+  // Labs, Inc." under that heading) or its system key says nothing new; the
+  // system key stays in the audit evidence.
+  const repeats = new Set([label(record), record.recordKey]);
   const named = namedFacts.flatMap(({ key, label }) => {
     const value = text(record, key);
-    return value ? [{ key, label: label(record, t), value }] : [];
+    return value && !repeats.has(value)
+      ? [{ key, label: label(record, t), value }]
+      : [];
   });
   const handled = new Set([
     ...presentedElsewhere,
@@ -214,8 +268,10 @@ function promiseChain(
       ];
 }
 
-const workspaceLabels: Readonly<Record<ExperienceAudience, MessageId>> = {
-  internal: "experience.workspace.internal",
+/** Staff pages carry no eyebrow: every staff page is the staff workspace. */
+const workspaceLabels: Readonly<
+  Partial<Record<ExperienceAudience, MessageId>>
+> = {
   partner: "experience.workspace.partner",
   customer: "experience.workspace.customer",
 };
@@ -282,14 +338,26 @@ export async function ProjectionDetailPage({
 }) {
   const t = await getTranslations();
   const formattingLocale = await getFormattingLocale();
-  const [projection, roles] = await Promise.all([
+  const [projection, session] = await Promise.all([
     loadPortalRecords(audience, channel),
-    getRouteRoles(audience),
+    getRouteSession(audience),
   ]);
+  const permissions = session.permissions;
+  // A staff record's next step is shown only while the capability it belongs
+  // to is switched on: with billing off, "evaluate dunning" is not work.
+  const capabilities =
+    audience === "internal"
+      ? await getCapabilityState(session)
+      : allCapabilitiesEnabled;
+  const workspaceLabel = workspaceLabels[audience];
   const records = recordKey
     ? projection.records.filter((record) => record.recordKey === recordKey)
     : projection.records;
   const commercial = isCommercialDecision(audience, channel);
+  // A single staff record has no ledger heading above it, so its title is the
+  // page's second-level heading.
+  const ledgerHeaderHidden = Boolean(recordKey) && !commercial;
+  const RecordHeading = ledgerHeaderHidden ? "h2" : "h3";
   const visibleRecords = commercial
     ? [...records].sort(
         (left, right) =>
@@ -300,7 +368,9 @@ export async function ProjectionDetailPage({
   return (
     <main className={styles.main} id="main-content">
       <header className={styles.pageHeader}>
-        <p className={styles.context}>{t(workspaceLabels[audience])}</p>
+        {workspaceLabel ? (
+          <p className={styles.context}>{t(workspaceLabel)}</p>
+        ) : null}
         <h1>{title}</h1>
         <p className={styles.description}>{description}</p>
         <p
@@ -314,12 +384,10 @@ export async function ProjectionDetailPage({
             {" "}
             {richText(t, "common.asOf", {
               time: (
-                <time dateTime={projection.generatedAt}>
-                  {formatOperationalTimestamp(
-                    projection.generatedAt,
-                    formattingLocale,
-                  )}
-                </time>
+                <LocalTimestamp
+                  value={projection.generatedAt}
+                  locale={formattingLocale}
+                />
               ),
             })}
           </span>
@@ -368,7 +436,7 @@ export async function ProjectionDetailPage({
           }
           className={styles.recordLedger}
         >
-          <header className={styles.ledgerHeader}>
+          <header className={styles.ledgerHeader} hidden={ledgerHeaderHidden}>
             <div>
               <h2>
                 {commercial
@@ -391,133 +459,171 @@ export async function ProjectionDetailPage({
           </header>
 
           <div className={styles.recordList}>
-            {visibleRecords.map((record) => (
-              <article className={styles.record} key={record.id}>
-                <header className={styles.recordHeader}>
-                  <div>
-                    <p className={styles.recordReference}>
-                      {t("experience.detail.referenceVersion", {
-                        reference: record.recordKey,
-                        version: record.version,
-                      })}
-                    </p>
-                    <h3>{label(record)}</h3>
-                    {text(record, "description") ? (
-                      <p className={styles.recordDescription}>
-                        {text(record, "description")}
+            {visibleRecords.map((record) => {
+              const actions = allowedActions(record);
+              const available = availableActions(
+                record.aggregateType,
+                actions,
+                capabilities,
+              );
+              const nextStep = nextStepText(
+                record,
+                actions,
+                available,
+                capabilities,
+                t,
+              );
+              return (
+                <article className={styles.record} key={record.id}>
+                  <header className={styles.recordHeader}>
+                    <div>
+                      {audience === "internal" ? (
+                        // Staff quote the reference, so it stays one click
+                        // from the clipboard; the version is in the audit
+                        // evidence.
+                        <CopyableId
+                          value={record.recordKey}
+                          label={t("common.referenceLabel")}
+                        />
+                      ) : (
+                        <p className={styles.recordReference}>
+                          {t("experience.detail.referenceVersion", {
+                            reference: record.recordKey,
+                            version: record.version,
+                          })}
+                        </p>
+                      )}
+                      <RecordHeading>{label(record)}</RecordHeading>
+                      {text(record, "description") ? (
+                        <p className={styles.recordDescription}>
+                          {text(record, "description")}
+                        </p>
+                      ) : null}
+                    </div>
+                    {text(record, "statusLabel") ? (
+                      <p
+                        className={`${styles.recordStatus} ${styles[tone(record)]}`}
+                      >
+                        {statusChip(record, t)}
                       </p>
                     ) : null}
-                  </div>
-                  {text(record, "statusLabel") ? (
-                    <p
-                      className={`${styles.recordStatus} ${styles[tone(record)]}`}
-                    >
-                      {statusChip(record, t)}
-                    </p>
-                  ) : null}
-                </header>
+                  </header>
 
-                <dl className={styles.factLedger}>
-                  {(commercial
-                    ? commercialFacts(record, channel, t)
-                    : recordFacts(record, t)
-                  ).map((fact) => (
-                    <div key={fact.key}>
-                      <dt>
-                        {fact.code ? <code>{fact.label}</code> : fact.label}
-                      </dt>
-                      <dd>{fact.value}</dd>
-                    </div>
-                  ))}
-                </dl>
+                  <dl className={styles.factLedger}>
+                    {(commercial
+                      ? commercialFacts(record, channel, t)
+                      : recordFacts(record, t)
+                    ).map((fact) => (
+                      <div key={fact.key}>
+                        <dt>
+                          {fact.code ? <code>{fact.label}</code> : fact.label}
+                        </dt>
+                        <dd>{fact.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
 
-                <div className={styles.recordDecision}>
-                  <div>
-                    <p>{t("experience.detail.nextStep")}</p>
-                    <strong>
-                      {text(record, "nextAction") ??
-                        t("experience.detail.nextStep.fallback")}
-                    </strong>
-                  </div>
-                  <div className={styles.recordActions}>
-                    <ProjectionActionButtons
-                      audience={audience}
-                      channel={channel}
-                      recordKey={record.recordKey}
-                      projectionId={record.id}
-                      version={record.version}
-                      actions={allowedActions(record)}
-                      roles={roles}
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.recordEvidence}>
-                  <ArtifactDeliveryList artifacts={artifacts(record)} />
-                  {audience === "customer" && channel === "agreements" ? (
-                    <>
-                      <Link
-                        href={
-                          `/signing/redirect?agreementId=${encodeURIComponent(record.aggregateId)}` as Route
-                        }
-                      >
-                        {t("experience.detail.sign")}
-                      </Link>
-                      <EvidenceUploadControl
-                        journey="customer_paper"
-                        targetId={record.aggregateId}
-                        kind="agreement"
+                  {/*
+                   * The actions stay mounted when there is no step to show: a
+                   * receipt has to outlive the refresh that spends the
+                   * record's last action.
+                   */}
+                  <div
+                    className={
+                      nextStep
+                        ? styles.recordDecision
+                        : styles.recordActionsOnly
+                    }
+                  >
+                    {nextStep ? (
+                      <div>
+                        <p>{t("experience.detail.nextStep")}</p>
+                        <strong>{nextStep}</strong>
+                      </div>
+                    ) : null}
+                    <div className={styles.recordActions}>
+                      <ProjectionActionButtons
+                        audience={audience}
+                        channel={channel}
+                        recordKey={record.recordKey}
+                        projectionId={record.id}
+                        version={record.version}
+                        actions={available}
+                        permissions={permissions}
                       />
-                    </>
-                  ) : audience === "customer" && channel === "pocs" ? (
-                    <EvidenceUploadControl
-                      journey="poc"
-                      targetId={record.aggregateId}
-                      kind="acceptance"
-                    />
-                  ) : audience === "customer" && channel === "procurement" ? (
-                    <EvidenceUploadControl
-                      journey="procurement"
-                      targetId={record.aggregateId}
-                      kind="approval"
-                    />
-                  ) : audience === "internal" && channel === "approvals" ? (
-                    <EvidenceUploadControl
-                      journey="approval"
-                      targetId={record.aggregateId}
-                      kind="approval"
-                    />
-                  ) : audience === "internal" && channel === "queues" ? (
-                    <EvidenceUploadControl
-                      journey="exception"
-                      targetId={record.aggregateId}
-                      kind="screening"
-                    />
-                  ) : null}
-                </div>
+                    </div>
+                  </div>
 
-                <details className={styles.technical}>
-                  <summary>{t("common.auditEvidence")}</summary>
-                  <p>
-                    {t("experience.detail.systemRecord", {
-                      reference: record.recordKey,
-                    })}
-                  </p>
-                  <p>
-                    {richText(t, "common.updatedAt", {
-                      time: (
-                        <time dateTime={record.sourceUpdatedAt}>
-                          {formatOperationalTimestamp(
-                            record.sourceUpdatedAt,
-                            formattingLocale,
-                          )}
-                        </time>
-                      ),
-                    })}
-                  </p>
-                </details>
-              </article>
-            ))}
+                  <div className={styles.recordEvidence}>
+                    <ArtifactDeliveryList artifacts={artifacts(record)} />
+                    {audience === "customer" && channel === "agreements" ? (
+                      <>
+                        <Link
+                          href={
+                            `/signing/redirect?agreementId=${encodeURIComponent(record.aggregateId)}` as Route
+                          }
+                        >
+                          {t("experience.detail.sign")}
+                        </Link>
+                        <EvidenceUploadControl
+                          journey="customer_paper"
+                          targetId={record.aggregateId}
+                          kind="agreement"
+                        />
+                      </>
+                    ) : audience === "customer" && channel === "pocs" ? (
+                      <EvidenceUploadControl
+                        journey="poc"
+                        targetId={record.aggregateId}
+                        kind="acceptance"
+                      />
+                    ) : audience === "customer" && channel === "procurement" ? (
+                      <EvidenceUploadControl
+                        journey="procurement"
+                        targetId={record.aggregateId}
+                        kind="approval"
+                      />
+                    ) : audience === "internal" && channel === "approvals" ? (
+                      <EvidenceUploadControl
+                        journey="approval"
+                        targetId={record.aggregateId}
+                        kind="approval"
+                      />
+                    ) : audience === "internal" && channel === "queues" ? (
+                      <EvidenceUploadControl
+                        journey="exception"
+                        targetId={record.aggregateId}
+                        kind="screening"
+                      />
+                    ) : null}
+                  </div>
+
+                  <details className={styles.technical}>
+                    <summary>{t("common.auditEvidence")}</summary>
+                    <p>
+                      {audience === "internal"
+                        ? t("experience.detail.referenceVersion", {
+                            reference: record.recordKey,
+                            version: record.version,
+                          })
+                        : t("experience.detail.systemRecord", {
+                            reference: record.recordKey,
+                          })}
+                    </p>
+                    <p>
+                      {richText(t, "common.updatedAt", {
+                        time: (
+                          <LocalTimestamp
+                            value={record.sourceUpdatedAt}
+                            locale={formattingLocale}
+                          />
+                        ),
+                      })}
+                    </p>
+                  </details>
+                </article>
+              );
+            })}
           </div>
         </section>
       )}

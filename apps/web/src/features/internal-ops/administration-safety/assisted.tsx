@@ -4,6 +4,7 @@ import type { MessageId } from "@/src/i18n";
 
 import { useState } from "react";
 
+import type { Permission } from "@clockwork/contracts";
 import { Select } from "@clockwork/ui";
 
 import { startAssistedSession } from "@/src/auth/actions";
@@ -49,13 +50,13 @@ const assistedActions = {
 type AssistedActionKey = keyof typeof assistedActions;
 
 export function AssistedMode({
-  roles,
+  permissions,
   accounts,
   actor,
   sessionActive = false,
   guidedDemo = false,
 }: {
-  roles: readonly string[];
+  permissions: readonly Permission[];
   accounts: readonly SelectOption[];
   actor: string;
   sessionActive?: boolean;
@@ -78,10 +79,10 @@ export function AssistedMode({
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const account = accounts.find((item) => item.id === accountId) ?? accounts[0];
   const action = assistedActions[actionKey];
-  const mayAssume = canDecide(roles, "assisted");
+  const mayAssume = canDecide(permissions, "assisted");
   const reviewed = Boolean(summary);
   const ready = assistedCommercialActionReady({
-    roles,
+    permissions,
     reviewed,
     reason,
     effectiveAccountId: accountId,

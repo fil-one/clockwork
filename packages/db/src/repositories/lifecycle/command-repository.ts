@@ -15,11 +15,15 @@ import {
 } from "drizzle-orm";
 import {
   ActorSchema,
+  contextPermissions,
   ids,
+  OrganizationSideSchema,
   ProblemError,
+  RoleSchema,
   uuidV7,
   type Actor,
   type EntityName,
+  type OrganizationSide,
   type TaxPort,
 } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
@@ -49,6 +53,7 @@ import {
   hashExactText,
   hashPocEvidence,
   ingestCounterSignatureEvidence,
+  inviteRoleRefusal,
   openExceptionCase,
   planOffboarding,
   prepopulateRenewalRequest,
@@ -113,6 +118,7 @@ import {
   orderLineSnapshots,
   quoteSnapshots,
 } from "../../schema/core/finance";
+import { membershipRoles } from "../../schema/access";
 import {
   lifecycleAgreementDrafts,
   lifecycleAgreementTemplateTexts,
@@ -395,10 +401,19 @@ function databaseAuthorization(context: LifecycleRepositoryOperationContext) {
     userId: authorization.userId,
     accountIds: authorization.accountIds,
     roles: authorization.roles,
+    permissions: contextPermissions(authorization),
+    ...(authorization.side ? { side: authorization.side } : {}),
     isInternalStaff: authorization.isInternalStaff,
     requestId: context.requestId,
   };
 }
+
+const organizationSideNames = {
+  fil_one: "Fil One",
+  customer: "customer",
+  channel_partner: "channel partner",
+  referral_partner: "referral partner",
+} as const satisfies Record<OrganizationSide, string>;
 
 function result(
   id: string,
@@ -1256,6 +1271,8 @@ export class DatabaseLifecycleCommandRepository {
         accountId: account.id,
         name: account.legalName,
         isolated: false,
+        // Self-registration creates a customer: its registrant is the owner.
+        side: "customer",
       })
       .returning();
     if (!organization) throw new Error("ORGANIZATION_INSERT_FAILED");
@@ -1331,6 +1348,47 @@ export class DatabaseLifecycleCommandRepository {
       ),
     });
     if (!organization) throw new Error("ORGANIZATION_NOT_FOUND");
+    const side = OrganizationSideSchema.parse(organization.side);
+    // The ceiling comes from the roles the inviter holds in this organization,
+    // as stored, not from the session: a role held elsewhere, or claimed
+    // without being granted here, invites no one.
+    const inviterGrants = await transaction
+      .select({ role: membershipRoles.role })
+      .from(memberships)
+      .innerJoin(
+        membershipRoles,
+        eq(membershipRoles.membershipId, memberships.id),
+      )
+      .where(
+        and(
+          eq(memberships.userId, requireAuthorization(context).userId),
+          eq(memberships.organizationId, organization.id),
+        ),
+      );
+    const refusal = inviteRoleRefusal({
+      role: payload.role,
+      side,
+      inviterRoles: inviterGrants.flatMap(({ role }) => {
+        const parsed = RoleSchema.safeParse(role);
+        return parsed.success ? [parsed.data] : [];
+      }),
+    });
+    if (refusal)
+      throw new ProblemError({
+        type: "https://clockwork.test/problems/invite-role",
+        title:
+          refusal === "INVITE_ROLE_NOT_ALLOWED_ON_SIDE"
+            ? "This role cannot be held in this organization"
+            : "Your role cannot invite someone with this role",
+        status: 403,
+        detail:
+          refusal === "INVITE_ROLE_NOT_ALLOWED_ON_SIDE"
+            ? `The ${payload.role} role is not available to ${organizationSideNames[side]} organizations.`
+            : `Your role cannot invite someone as ${payload.role}.`,
+        code: refusal,
+        requestId: context.requestId,
+        retryable: false,
+      });
     if (Date.parse(payload.expiresAt) <= this.now().getTime())
       throw new Error("INVITE_EXPIRY_INVALID");
     const tokenHash = hashText(
@@ -3240,6 +3298,8 @@ export class DatabaseLifecycleCommandRepository {
         accountId: payload.accountId,
         name: `POC ${payload.workload.slice(0, 68)} ${pocId.slice(0, 8)}`,
         isolated: true,
+        // The trial belongs to the end client trying the service.
+        side: "customer",
       })
       .returning();
     if (!organization) throw new Error("POC_ORGANIZATION_INSERT_FAILED");

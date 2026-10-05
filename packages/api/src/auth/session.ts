@@ -1,5 +1,10 @@
-import { ids, RoleSchema } from "@clockwork/contracts";
-import type { Role } from "@clockwork/contracts";
+import {
+  ids,
+  internalRoles,
+  permissionsForRoles,
+  RoleSchema,
+} from "@clockwork/contracts";
+import type { OrganizationSide, Permission, Role } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import { createMiddleware } from "hono/factory";
 
@@ -9,7 +14,16 @@ export interface SessionClaims {
   userId: string;
   organizationId?: string;
   accountIds: readonly string[];
+  /** Every role the person holds in the selected organization. */
   roles: readonly Role[];
+  /**
+   * What those roles allow here: the union of their bundles, less what the
+   * organization's side withholds and, inside an assisted session, less the
+   * approver permissions. Every authorization check reads this.
+   */
+  permissions: readonly Permission[];
+  /** The side of the organization the permissions were computed for. */
+  side?: OrganizationSide;
   isInternalStaff: boolean;
   mfaVerified: boolean;
   recentAuthenticationVerified: boolean;
@@ -68,10 +82,7 @@ export class LocalSessionResolver implements SessionResolver {
       request.headers.get("x-clockwork-persona"),
     );
     const role = parsedRole.success ? parsedRole.data : "member";
-    const internal =
-      role.startsWith("internal_") ||
-      role.endsWith("_approver") ||
-      role === "destructive_action_approver";
+    const internal = (internalRoles as readonly Role[]).includes(role);
     return Promise.resolve({
       userId: internal
         ? "20000000-0000-4000-8000-000000000001"
@@ -86,6 +97,7 @@ export class LocalSessionResolver implements SessionResolver {
               "10000000-0000-4000-8000-000000000001",
           ],
       roles: [role],
+      permissions: permissionsForRoles([role]),
       isInternalStaff: internal,
       mfaVerified: request.headers.get("x-clockwork-mfa") !== "false",
       recentAuthenticationVerified:
@@ -109,6 +121,8 @@ export const sessionMiddleware = (resolver: SessionResolver) =>
           ids.account.parse(accountId),
         ),
         roles: session.roles,
+        permissions: session.permissions,
+        ...(session.side ? { side: session.side } : {}),
         isInternalStaff: session.isInternalStaff,
         mfaVerified: session.mfaVerified,
         recentAuthenticationVerified: session.recentAuthenticationVerified,

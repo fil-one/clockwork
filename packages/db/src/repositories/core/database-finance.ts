@@ -2,6 +2,9 @@ import { and, asc, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 
 import {
+  contextHasAnyPermission,
+  contextHasPermission,
+  contextPermissions,
   coreReportNames,
   ids,
   MoneySchema,
@@ -170,10 +173,9 @@ import {
   type CoreMutationAudit,
 } from "./finance";
 import { z } from "zod";
+import { coreCommandCapabilities } from "./capability-requirements";
 
 type JsonRecord = Record<string, unknown>;
-type CoreCapabilityKey =
-  "new_business" | "legal" | "billing" | "partner" | "marketplace" | "teardown";
 
 export const databaseCoreResourceNames = [
   "accounts",
@@ -2818,6 +2820,8 @@ function authorization(input: {
     userId: input.authorization.userId,
     accountIds: input.authorization.accountIds,
     roles: input.authorization.roles,
+    permissions: contextPermissions(input.authorization),
+    ...(input.authorization.side ? { side: input.authorization.side } : {}),
     isInternalStaff: input.authorization.isInternalStaff,
     requestId: input.requestId ?? uuidV7(),
   };
@@ -2838,10 +2842,17 @@ function priceBookAudit(
   };
 }
 
-function assertFinanceApproval(input: CoreMutation): void {
+/**
+ * Pricing decisions need `quote:approve`; invoices, credits, refunds and
+ * disputes need `billing:approve`.
+ */
+function assertFinanceApproval(
+  input: CoreMutation,
+  permission: "quote:approve" | "billing:approve",
+): void {
   if (
     !input.authorization.isInternalStaff ||
-    !input.authorization.roles.includes("finance_approver") ||
+    !contextHasPermission(input.authorization, permission) ||
     input.actor.kind !== "user" ||
     input.actor.id !== input.authorization.userId
   )
@@ -3558,59 +3569,13 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     input: CoreMutation,
     orderAcceptanceContext?: OrderAcceptanceContext,
   ): Promise<void> {
-    let capabilities: readonly CoreCapabilityKey[] = [];
-    let recovery = false;
-    switch (input.resource) {
-      case "accounts":
-        capabilities = ["new_business", "legal"];
-        break;
-      case "procurement_profiles":
-      case "price_books":
-        capabilities = ["legal"];
-        break;
-      case "quotes":
-        capabilities = ["new_business", "legal"];
-        break;
-      case "orders": {
-        capabilities = ["new_business", "legal", "billing"];
-        const route = orderAcceptanceContext?.snapshot.route;
-        if (["referral", "resale", "distributor"].includes(route ?? ""))
-          capabilities = [...capabilities, "partner"];
-        if (route === "marketplace")
-          capabilities = [...capabilities, "marketplace"];
-        break;
-      }
-      case "amendments":
-      case "commitments":
-        capabilities = ["new_business", "legal", "billing"];
-        break;
-      case "invoices":
-        capabilities = ["billing"];
-        recovery = input.action === "evaluate_dunning";
-        break;
-      case "credit_notes":
-      case "refunds":
-      case "disputes":
-        capabilities = ["billing"];
-        recovery = true;
-        break;
-      case "deal_registrations":
-        capabilities = ["new_business", "partner"];
-        break;
-      case "commissions":
-        capabilities = ["billing", "partner"];
-        recovery = true;
-        break;
-      case "accounting_exports":
-      case "reports":
-        capabilities = ["billing"];
-        recovery = true;
-        break;
-      case "marketplace_reconciliations":
-        capabilities = ["marketplace"];
-        recovery = true;
-        break;
-    }
+    const { capabilities, recovery } = coreCommandCapabilities({
+      resource: input.resource,
+      action: input.action,
+      ...(orderAcceptanceContext
+        ? { route: orderAcceptanceContext.snapshot.route }
+        : {}),
+    });
     for (const capability of new Set(capabilities)) {
       const [row] = await transaction.execute<{ enabled: boolean }>(sql`
         select public.system_capability_is_enabled(
@@ -4523,9 +4488,10 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       input.authorization.impersonation ||
       input.actor.kind !== "user" ||
       input.actor.id !== input.authorization.userId ||
-      !input.authorization.roles.some((role) =>
-        ["internal_operator", "finance_approver"].includes(role),
-      )
+      !contextHasAnyPermission(input.authorization, [
+        "operations:write",
+        "quote:approve",
+      ])
     )
       throw new CoreServiceError(
         "INVALID_STATE",
@@ -5185,7 +5151,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     input: CoreMutation,
   ) {
     if (input.action === "import") {
-      assertFinanceApproval(input);
+      assertFinanceApproval(input, "quote:approve");
       if (
         input.actor.kind !== "user" ||
         input.actor.effectiveUserId ||
@@ -5302,7 +5268,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       );
     }
     if (input.action === "clone") {
-      assertFinanceApproval(input);
+      assertFinanceApproval(input, "quote:approve");
       if (
         input.actor.kind !== "user" ||
         input.actor.effectiveUserId ||
@@ -5475,7 +5441,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "Price book changed since it was read",
       );
     if (input.action === "cancel_schedule") {
-      assertFinanceApproval(input);
+      assertFinanceApproval(input, "quote:approve");
       await assertPersistedPriceScheduleFinance(
         transaction,
         input.authorization.userId,
@@ -5532,7 +5498,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "This approved schedule is frozen; cancel it before changing the draft or its decision",
       );
     if (input.action === "schedule_activation") {
-      assertFinanceApproval(input);
+      assertFinanceApproval(input, "quote:approve");
       await assertPersistedPriceScheduleFinance(
         transaction,
         input.authorization.userId,
@@ -5627,7 +5593,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "update_discount_matrix",
       ].includes(input.action)
     ) {
-      assertFinanceApproval(input);
+      assertFinanceApproval(input, "quote:approve");
       if (prior.status !== "draft")
         throw new CoreServiceError(
           "INVALID_STATE",
@@ -5691,7 +5657,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       return this.addPriceBookRate(transaction, input, prior);
     }
     if (input.action === "reject_activation") {
-      assertFinanceApproval(input);
+      assertFinanceApproval(input, "quote:approve");
       const { reason } = PriceBookDecisionCommandSchema.parse(input.payload);
       const pending = await transaction.query.approvals.findFirst({
         where: and(
@@ -5750,7 +5716,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "INVALID_STATE",
         "Unsupported price book action",
       );
-    assertFinanceApproval(input);
+    assertFinanceApproval(input, "quote:approve");
     const command = PriceBookDecisionCommandSchema.parse(input.payload);
     if (prior.status !== "active")
       throw new CoreServiceError(
@@ -5818,7 +5784,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     input: CoreMutation,
     prior: typeof priceBooks.$inferSelect,
   ) {
-    assertFinanceApproval(input);
+    assertFinanceApproval(input, "quote:approve");
     const command = RateCardCommandSchema.parse(input.payload);
     if (prior.status !== "draft")
       throw new CoreServiceError(
@@ -5920,7 +5886,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     input: CoreMutation,
     prior: typeof priceBooks.$inferSelect,
   ) {
-    assertFinanceApproval(input);
+    assertFinanceApproval(input, "quote:approve");
     const command = PriceBookDecisionCommandSchema.parse(input.payload);
     if (prior.status !== "draft")
       throw new CoreServiceError(
@@ -5990,7 +5956,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     input: CoreMutation,
     prior: typeof priceBooks.$inferSelect,
   ) {
-    assertFinanceApproval(input);
+    assertFinanceApproval(input, "quote:approve");
     const command = PriceBookDecisionCommandSchema.parse(input.payload);
     const request = await transaction.query.approvals.findFirst({
       where: and(
@@ -7969,7 +7935,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       );
     }
     if (input.action === "evaluate_dunning") {
-      assertFinanceApproval(input);
+      assertFinanceApproval(input, "billing:approve");
       DunningCommandSchema.parse(input.payload);
       await transaction.execute(
         sql`select id from invoices where id = ${input.id} for update`,
@@ -8135,7 +8101,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     transaction: RuntimeTransaction,
     input: CoreMutation,
   ) {
-    assertFinanceApproval(input);
+    assertFinanceApproval(input, "billing:approve");
     if (input.action !== "issue")
       throw new CoreServiceError(
         "INVALID_STATE",
@@ -8221,7 +8187,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     transaction: RuntimeTransaction,
     input: CoreMutation,
   ) {
-    assertFinanceApproval(input);
+    assertFinanceApproval(input, "billing:approve");
     if (input.action !== "submit")
       throw new CoreServiceError("INVALID_STATE", "Unsupported refund action");
     const command = RefundSubmitCommandSchema.parse(input.payload);
@@ -8284,7 +8250,7 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     transaction: RuntimeTransaction,
     input: CoreMutation,
   ) {
-    assertFinanceApproval(input);
+    assertFinanceApproval(input, "billing:approve");
     if (input.action !== "create")
       throw new CoreServiceError("INVALID_STATE", "Unsupported dispute action");
     const command = DisputeCreateCommandSchema.parse(input.payload);

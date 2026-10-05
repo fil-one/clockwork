@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
@@ -22,6 +23,7 @@ const session: SessionClaims = {
   organizationId: "31000000-0000-4000-8000-000000000001",
   accountIds: ["11000000-0000-4000-8000-000000000001"],
   roles: ["owner"],
+  permissions: permissionsForRoles(["owner"]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -285,6 +287,7 @@ describe("demo document artifacts", () => {
     userId: "21000000-0000-4000-8000-000000000009",
     accountIds: [],
     roles: ["internal_operator"],
+    permissions: permissionsForRoles(["internal_operator"]),
     isInternalStaff: true,
   };
 

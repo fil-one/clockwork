@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import {
   canRunProjectionAction,
   requireProjectionActionAuthority,
@@ -8,14 +10,24 @@ import {
 describe("projection action authority", () => {
   it("allows record-bound actions only to the corresponding authority", () => {
     expect(
-      canRunProjectionAction(["owner"], "customer", "quotes", "accept"),
+      canRunProjectionAction(
+        permissionsForRoles(["owner"]),
+        "customer",
+        "quotes",
+        "accept",
+      ),
     ).toBe(true);
     expect(
-      canRunProjectionAction(["billing"], "customer", "quotes", "accept"),
+      canRunProjectionAction(
+        permissionsForRoles(["billing"]),
+        "customer",
+        "quotes",
+        "accept",
+      ),
     ).toBe(false);
     expect(
       canRunProjectionAction(
-        ["partner_seller"],
+        permissionsForRoles(["partner_seller"]),
         "partner",
         "quotes",
         "issue_quote",
@@ -23,7 +35,7 @@ describe("projection action authority", () => {
     ).toBe(true);
     expect(
       canRunProjectionAction(
-        ["internal_operator"],
+        permissionsForRoles(["internal_operator"]),
         "internal",
         "approvals",
         "approve_exception",
@@ -31,7 +43,7 @@ describe("projection action authority", () => {
     ).toBe(false);
     expect(
       canRunProjectionAction(
-        ["finance_approver"],
+        permissionsForRoles(["finance_approver"]),
         "internal",
         "approvals",
         "approve_exception",
@@ -39,14 +51,51 @@ describe("projection action authority", () => {
     ).toBe(true);
   });
 
-  it("fails closed for forged or insufficient roles", () => {
-    expect(() =>
-      requireProjectionActionAuthority(
-        ["forged-owner"],
-        "customer",
-        "orders",
-        "accept",
+  it("lets a referral partner act on its registrations but never price a quote", () => {
+    const referral = permissionsForRoles(["partner_seller"], {
+      side: "referral_partner",
+    });
+    expect(
+      canRunProjectionAction(referral, "partner", "registrations", "withdraw"),
+    ).toBe(true);
+    expect(
+      canRunProjectionAction(referral, "partner", "disputes", "raise_dispute"),
+    ).toBe(true);
+    expect(
+      canRunProjectionAction(referral, "partner", "quotes", "issue_quote"),
+    ).toBe(false);
+    expect(
+      canRunProjectionAction(
+        referral,
+        "partner",
+        "portfolio",
+        "create_resale_quote",
       ),
+    ).toBe(false);
+    expect(
+      canRunProjectionAction(
+        permissionsForRoles(["partner_seller"], { side: "channel_partner" }),
+        "partner",
+        "portfolio",
+        "create_resale_quote",
+      ),
+    ).toBe(true);
+  });
+
+  it("withholds approval actions inside an assisted session", () => {
+    expect(
+      canRunProjectionAction(
+        permissionsForRoles(["commerce_admin"], { assisted: true }),
+        "internal",
+        "approvals",
+        "approve_exception",
+      ),
+    ).toBe(false);
+  });
+
+  it("fails closed for a session without the permission", () => {
+    expect(() =>
+      requireProjectionActionAuthority([], "customer", "orders", "accept"),
     ).toThrow("cannot run this projection action");
   });
 });

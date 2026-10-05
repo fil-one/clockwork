@@ -1,3 +1,4 @@
+import { contextHasPermission } from "@clockwork/contracts";
 import type { Metadata } from "next";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
@@ -12,6 +13,7 @@ import { getLocale, getTranslations } from "@/src/i18n/server";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import { getCommerceSession } from "@/src/auth/session";
 import { PaygOfferAdministration } from "@/src/features/internal-ops/administration-safety/payg-offers";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -20,16 +22,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("adminPricing.payg.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const session = await getCommerceSession();
   if (!session.isInternalStaff)
     throw new Error("Internal staff authority is required"); // i18n-exempt: server-side guard; Next.js masks thrown server errors and the shell shows its own translated error page
-  const roles = session.roles;
   const database = getOptionalServiceDatabase();
   let offers: PaygOfferRecord[] = [];
   let available = false;
   const demo = demoDeployIdentityEnabled(process.env);
-  if (demo && roles.includes("finance_approver")) {
+  const financeAuthority = contextHasPermission(session, "quote:approve");
+  if (demo && financeAuthority) {
     // Demo-authored policy text is shown in the reader's language.
     const locale = await getLocale();
     offers = (await new DemoCommercialPolicyRepository().listPayg()).map(
@@ -37,12 +39,7 @@ export default async function Page() {
     );
     available = true;
   }
-  if (
-    !demo &&
-    database &&
-    session.providerBacked &&
-    roles.includes("finance_approver")
-  ) {
+  if (!demo && database && session.providerBacked && financeAuthority) {
     try {
       offers = await new DatabasePaygOfferRepository(database).list();
       available = true;
@@ -53,10 +50,12 @@ export default async function Page() {
   return (
     <PaygOfferAdministration
       demo={demo}
-      roles={roles}
+      permissions={session.permissions}
       userId={session.userId}
       offers={offers}
       available={available}
     />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

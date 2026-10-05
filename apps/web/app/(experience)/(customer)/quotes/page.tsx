@@ -20,9 +20,7 @@ export default async function Page({
     getRouteSession("customer"),
     loadCommercialRecords("quotes"),
   ]);
-  const canWrite = session.roles.some(
-    (role) => role === "owner" || role === "admin",
-  );
+  const canWrite = session.permissions.includes("quote:write");
   return (
     <SurfacePermissionGate audience="customer" requiredPermission="quote:read">
       <CommercialCollectionPage

@@ -1,12 +1,15 @@
-import type { Role } from "@clockwork/contracts";
+import type { Permission } from "@clockwork/contracts";
 
-export type SafetyDecision = "finance" | "legal" | "destructive" | "assisted";
+export type SafetyDecision =
+  "finance" | "legal" | "destructive" | "assisted" | "operations";
 
-const decisionRoles: Readonly<Record<SafetyDecision, readonly Role[]>> = {
-  finance: ["finance_approver"],
-  legal: ["legal_approver"],
-  destructive: ["destructive_action_approver"],
-  assisted: ["internal_operator"],
+/** The permission each decision needs. */
+const decisionPermissions: Readonly<Record<SafetyDecision, Permission>> = {
+  finance: "quote:approve",
+  legal: "agreement:approve",
+  destructive: "destructive:approve",
+  assisted: "impersonation:assume",
+  operations: "operations:write",
 };
 
 export interface ReviewSummaryInput {
@@ -28,10 +31,10 @@ export interface EvidenceIdentifier {
 }
 
 export function canDecide(
-  roles: readonly string[],
+  permissions: readonly Permission[],
   decision: SafetyDecision,
 ): boolean {
-  return decisionRoles[decision].some((role) => roles.includes(role));
+  return permissions.includes(decisionPermissions[decision]);
 }
 
 export function buildReviewSummary(input: ReviewSummaryInput): ReviewSummary {
@@ -60,13 +63,13 @@ export function disclosedIdentifiers(
 }
 
 export function assistedCommercialActionReady(input: {
-  roles: readonly string[];
+  permissions: readonly Permission[];
   reviewed: boolean;
   reason: string;
   effectiveAccountId: string;
 }): boolean {
   return (
-    canDecide(input.roles, "assisted") &&
+    canDecide(input.permissions, "assisted") &&
     input.reviewed &&
     input.reason.trim().length >= 8 &&
     input.effectiveAccountId.trim().length > 0

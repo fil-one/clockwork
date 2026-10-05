@@ -9,6 +9,8 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles, type Permission } from "@clockwork/contracts";
+
 import { catalogs } from "@/src/i18n/catalogs";
 import { LanguageProvider } from "@/src/i18n/client";
 
@@ -64,7 +66,7 @@ async function elapse(milliseconds: number) {
 
 function renderButtons(
   actions: readonly string[],
-  roles: readonly string[] = ["owner"],
+  permissions: readonly Permission[] = permissionsForRoles(["owner"]),
 ) {
   return render(
     <ProjectionActionButtons
@@ -74,7 +76,7 @@ function renderButtons(
       projectionId="projection-1"
       version={3}
       actions={actions}
-      roles={roles}
+      permissions={permissions}
     />,
   );
 }
@@ -89,7 +91,7 @@ function renderPortugueseButtons(actions: readonly string[]) {
         projectionId="projection-1"
         version={3}
         actions={actions}
-        roles={["owner"]}
+        permissions={permissionsForRoles(["owner"])}
       />
     </LanguageProvider>,
   );
@@ -135,15 +137,27 @@ describe("projection action buttons", () => {
     ).toBeVisible();
   });
 
-  it("separates destructive styling from routine actions", () => {
-    renderButtons(["issue", "void"]);
+  it("makes the constructive decision primary and the destructive one secondary", () => {
+    renderButtons(["approve_exception", "reject_exception"]);
+
+    expect(
+      screen.getByRole("button", { name: "Approve exception" }),
+    ).toHaveClass("cw-button--primary");
+    const reject = screen.getByRole("button", { name: "Reject exception" });
+    expect(reject).toHaveClass("cw-button--secondary");
+    expect(reject).not.toHaveClass("cw-button--danger");
+    expect(reject).not.toHaveClass("cw-button--primary");
+  });
+
+  it("keeps routine actions secondary when nothing on the record is destructive", () => {
+    renderButtons(["issue", "evaluate_dunning"]);
 
     expect(screen.getByRole("button", { name: "Issue" })).toHaveClass(
       "cw-button--secondary",
     );
-    expect(screen.getByRole("button", { name: "Void invoice" })).toHaveClass(
-      "cw-button--danger",
-    );
+    expect(
+      screen.getByRole("button", { name: "Evaluate dunning" }),
+    ).toHaveClass("cw-button--secondary");
   });
 
   it("requires a confirmation before a destructive command is sent", async () => {
@@ -175,7 +189,7 @@ describe("projection action buttons", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
     expect(screen.getByRole("status")).toHaveTextContent(
-      "“Void invoice” is queued. Waiting for the authoritative result.",
+      "“Void invoice” is queued. Waiting for the result.",
     );
   });
 
@@ -238,7 +252,7 @@ describe("projection action buttons", () => {
     await elapse(1_000);
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "“Issue” was applied at authoritative version 4.",
+      "“Issue” was applied. The record is now at version 4.",
     );
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
     expect(
@@ -258,7 +272,7 @@ describe("projection action buttons", () => {
 
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent(
-      "“Issue” was not applied. The commerce API rejected it with code INVOICE_ALREADY_PAID.",
+      "“Issue” was not applied. It was refused with code INVOICE_ALREADY_PAID.",
     );
     expect(alert).toHaveClass("form-message--error");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
@@ -321,18 +335,41 @@ describe("projection action buttons", () => {
         projectionId="projection-1"
         version={4}
         actions={[]}
-        roles={["owner"]}
+        permissions={permissionsForRoles(["owner"])}
       />,
     );
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "“Issue” was applied at authoritative version 4.",
+      "“Issue” was applied. The record is now at version 4.",
     );
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("says nothing about access when the record has no actions at all", () => {
+    renderButtons([], permissionsForRoles(["owner"]));
+
+    expect(screen.queryByText(/Read only/)).not.toBeInTheDocument();
+  });
+
+  it("leaves the read-only note out where the surface has its own controls", () => {
+    render(
+      <ProjectionActionButtons
+        audience="internal"
+        channel="collections"
+        recordKey="INV-2026-0781"
+        projectionId="projection-1"
+        version={3}
+        actions={["evaluate_dunning"]}
+        permissions={permissionsForRoles(["legal_approver"])}
+        readOnlyNote={false}
+      />,
+    );
+
+    expect(screen.queryByText(/Read only/)).not.toBeInTheDocument();
+  });
+
   it("explains who can act when the role holds no authorized action", () => {
-    renderButtons(["void", "issue"], ["member"]);
+    renderButtons(["void", "issue"], permissionsForRoles(["member"]));
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(
@@ -372,7 +409,7 @@ describe("projection action buttons", () => {
 
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent(
-      "“Emitir” não foi aplicado. A API comercial informou uma falha com o código PROVIDER_TIMEOUT.",
+      "“Emitir” não foi aplicado. Falhou com o código PROVIDER_TIMEOUT.",
     );
     expect(alert).not.toHaveTextContent("failed");
   });

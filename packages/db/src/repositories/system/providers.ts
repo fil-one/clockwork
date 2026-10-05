@@ -1,7 +1,7 @@
 import { loadPaygInvoiceSource } from "../core/payg-invoice-source";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 
-import { ids } from "@clockwork/contracts";
+import { contextPermissions, ids } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
@@ -1711,6 +1711,8 @@ export class DatabaseCustomerPaymentTargetRepository {
         userId: input.authorization.userId,
         accountIds: input.authorization.accountIds,
         roles: input.authorization.roles,
+        permissions: contextPermissions(input.authorization),
+        ...(input.authorization.side ? { side: input.authorization.side } : {}),
         isInternalStaff: input.authorization.isInternalStaff,
         requestId: input.requestId,
       },
@@ -1782,6 +1784,8 @@ export class DatabaseImmutableArtifactRepository {
         userId: input.authorization.userId,
         accountIds: input.authorization.accountIds,
         roles: input.authorization.roles,
+        permissions: contextPermissions(input.authorization),
+        ...(input.authorization.side ? { side: input.authorization.side } : {}),
         isInternalStaff: input.authorization.isInternalStaff,
         requestId: input.requestId,
       },
@@ -1882,6 +1886,8 @@ export class DatabaseActiveAgreementTemplateRepository {
         userId: input.authorization.userId,
         accountIds: input.authorization.accountIds,
         roles: input.authorization.roles,
+        permissions: contextPermissions(input.authorization),
+        ...(input.authorization.side ? { side: input.authorization.side } : {}),
         isInternalStaff: input.authorization.isInternalStaff,
         requestId: input.requestId,
       },

@@ -1,12 +1,16 @@
 "use client";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 
 import type { Route } from "next";
 import Link from "next/link";
 
+import type { Permission } from "@clockwork/contracts";
+
 import type { MessageId } from "@/src/i18n";
 
-import { formatOperationalTimestamp } from "../presentation";
+import { CopyableId } from "../copyable-id";
+import { LocalTimestamp } from "../local-timestamp";
 import styles from "./queue-search.module.css";
 import {
   actionLabels,
@@ -20,44 +24,39 @@ import {
 import {
   permittedActions,
   slaFor,
-  type OperationalRole,
+  type QueueDecisionPermission,
   type QueueItem,
 } from "./model";
 
-/** The role a restricted action needs, as the role list names it. */
-const requiredRoleLabels: Readonly<
-  Record<NonNullable<QueueItem["requiredRole"]>, MessageId>
-> = {
-  legal_approver: "role.legalApprover",
-  finance_approver: "role.financeApprover",
-  destructive_action_approver: "role.destructiveActionApprover",
-};
+/** The role that carries a restricted action's authority, as the role list names it. */
+const requiredRoleLabels: Readonly<Record<QueueDecisionPermission, MessageId>> =
+  {
+    "agreement:approve": "role.legalApprover",
+    "quote:approve": "role.financeApprover",
+    "destructive:approve": "role.destructiveActionApprover",
+  };
 
 function Moment({ value }: { value: string | null }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
   if (!value) return <>{t("common.notRecorded")}</>;
-  return (
-    <time dateTime={value}>
-      {formatOperationalTimestamp(value, formattingLocale)}
-    </time>
-  );
+  return <LocalTimestamp value={value} locale={formattingLocale} />;
 }
 
 export function QueueDetail({
   item,
-  roles = ["internal_operator"],
+  permissions = [],
   standalone = false,
   now,
 }: {
   item: QueueItem;
-  roles?: readonly OperationalRole[];
+  permissions?: readonly Permission[];
   standalone?: boolean;
   now?: Date;
 }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
-  const actions = permittedActions(item, roles);
+  const actions = permittedActions(item, permissions);
   const restricted = actions.length !== item.permittedActions.length;
   const sla = slaFor(item, now);
   return (
@@ -67,22 +66,20 @@ export function QueueDetail({
     >
       <header className={styles.detailHeader}>
         <div>
-          <p className={styles.eyebrow}>
-            {item.type
-              ? t("common.join.labels", {
-                  first: t("operations.queue.detail.queue", {
-                    queue: codeLabel(queueLabels, item.type, t),
-                  }),
-                  second: item.id,
-                })
-              : item.id}
-          </p>
+          {item.type ? (
+            <p className={styles.eyebrow}>
+              {t("operations.queue.detail.queue", {
+                queue: codeLabel(queueLabels, item.type, t),
+              })}
+            </p>
+          ) : null}
           <h2 id={`detail-title-${item.id}`}>{item.title}</h2>
           {item.entity ? (
             <p className={styles.entity}>
               {codeLabel(subjectLabels, item.entity, t)}
             </p>
           ) : null}
+          <CopyableId value={item.id} label={t("common.referenceLabel")} />
         </div>
         {sla ? (
           <span className={`${styles.sla} ${styles[`sla_${sla}`]}`}>
@@ -201,11 +198,13 @@ export function QueueDetail({
             <div>
               <dt>{t("operations.queue.detail.sourceRecord")}</dt>
               <dd>
-                {t("operations.queue.detail.sourceVersion", {
+                {richText(t, "operations.queue.detail.sourceVersion", {
                   version: item.sourceRecord.version,
-                  time: formatOperationalTimestamp(
-                    item.sourceRecord.updatedAt,
-                    formattingLocale,
+                  time: (
+                    <LocalTimestamp
+                      value={item.sourceRecord.updatedAt}
+                      locale={formattingLocale}
+                    />
                   ),
                 })}
                 <details className={styles.technicalDisclosure}>
@@ -243,10 +242,10 @@ export function QueueDetail({
         <h3 id={`actions-${item.id}`}>
           {t("operations.queue.detail.actions")}
         </h3>
-        {restricted && item.requiredRole ? (
+        {restricted && item.requiredPermission ? (
           <p className={styles.permissionNote} role="note">
             {t("operations.queue.detail.restricted", {
-              role: t(requiredRoleLabels[item.requiredRole]),
+              role: t(requiredRoleLabels[item.requiredPermission]),
             })}
           </p>
         ) : null}

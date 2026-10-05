@@ -18,7 +18,7 @@ import type { Route } from "next";
 
 import type { SessionClaims } from "@clockwork/api";
 import {
-  hasPermission,
+  contextHasPermission,
   MoneySchema,
   QuantitySchema,
   uuidV7,
@@ -520,13 +520,12 @@ export async function handleDemoPartnerQuoteCommand(
 ): Promise<Response> {
   const requestId = request.headers.get("x-request-id") ?? uuidV7();
   try {
-    const partnerRole = session.roles.some(
-      (role) => role === "partner_admin" || role === "partner_seller",
-    );
+    // Pricing a deal is a channel partner's work: a referral partner
+    // registers deals but never holds the partner quote.
     if (
       session.isInternalStaff ||
-      !partnerRole ||
-      !session.roles.some((role) => hasPermission(role, "partner:quote:write"))
+      !contextHasPermission(session, "deal:register") ||
+      !contextHasPermission(session, "partner:quote:write")
     )
       throw new PartnerQuoteProblem(
         403,

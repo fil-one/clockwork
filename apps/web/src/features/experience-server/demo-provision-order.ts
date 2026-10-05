@@ -1,7 +1,7 @@
 import "server-only";
 // i18n-exempt-file: demo provisioning refusals travel as the API's `detail`; each carries a stable code for the interface to map (the handoff surface and demo-app route are other lanes' files).
 import type { SessionClaims } from "@clockwork/api";
-import { hasPermission } from "@clockwork/contracts";
+import { contextHasPermission } from "@clockwork/contracts";
 import { provisioningRequest } from "@clockwork/domain/core";
 import { createFakeProviderPorts } from "@clockwork/integrations/fakes";
 import { z } from "zod";
@@ -36,7 +36,7 @@ export async function submitDemoProvisioning(
 ) {
   if (
     !session.isInternalStaff ||
-    !session.roles.some((role) => hasPermission(role, "system:operate"))
+    !contextHasPermission(session, "system:operate")
   )
     throw new DemoProvisioningRefusal(
       "PROVISIONING_FORBIDDEN",

@@ -1,10 +1,13 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles, type Permission } from "@clockwork/contracts";
+
 import type { ProjectionRecord } from "./model";
 
 const mocks = vi.hoisted(() => ({
-  getRouteRoles: vi.fn(),
+  getRoutePermissions:
+    vi.fn<(audience: string) => Promise<readonly Permission[]>>(),
   loadPortalRecords: vi.fn(),
 }));
 
@@ -19,7 +22,11 @@ vi.mock("@/src/i18n/server", async () => {
   };
 });
 vi.mock("@/src/features/shell/route-session", () => ({
-  getRouteRoles: mocks.getRouteRoles,
+  getRoutePermissions: mocks.getRoutePermissions,
+  getRouteSession: async (audience: string) => ({
+    permissions: await mocks.getRoutePermissions(audience),
+    providerBacked: false,
+  }),
 }));
 vi.mock("./portal-view-loader", () => ({
   loadPortalRecords: mocks.loadPortalRecords,
@@ -29,6 +36,9 @@ vi.mock("./projection-action-buttons", () => ({
 }));
 vi.mock("./artifact-delivery-list", () => ({
   ArtifactDeliveryList: () => <p>documentos</p>,
+}));
+vi.mock("@/src/features/internal-ops/copyable-id", () => ({
+  CopyableId: ({ value }: { value: string }) => <bdi>{value}</bdi>,
 }));
 vi.mock("./evidence-upload-control", () => ({
   EvidenceUploadControl: ({ label }: { label?: string }) => (
@@ -69,7 +79,9 @@ function queueRecord(): ProjectionRecord {
 }
 
 beforeEach(() => {
-  mocks.getRouteRoles.mockResolvedValue(["internal_operator"]);
+  mocks.getRoutePermissions.mockResolvedValue(
+    permissionsForRoles(["internal_operator"]),
+  );
   mocks.loadPortalRecords.mockResolvedValue({
     records: [queueRecord()],
     generatedAt: "2026-08-01T12:00:00.000Z",
@@ -89,16 +101,18 @@ describe("experience pages in Portuguese", () => {
       }),
     );
 
-    expect(screen.getByText("Espaço do operador")).toBeVisible();
+    // A staff page carries no workspace eyebrow.
+    expect(screen.queryByText("Espaço do operador")).toBeNull();
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Os dados operacionais precisam ser atualizados.",
     );
     const ledger = screen.getByRole("region", { name: "Registro da fila" });
+    // A single staff record needs no "Records · 1 record" header over it.
     expect(
-      within(ledger).getByRole("heading", { name: "Registros autorizados" }),
-    ).toBeVisible();
-    expect(ledger).toHaveTextContent("1 registro · dados operacionais atuais");
-    // The label and the key used to be concatenated: "Referênciaqueue-…".
+      within(ledger).queryByRole("heading", { name: "Registros" }),
+    ).toBeNull();
+    // The reference and version sit in the audit evidence. The label and the
+    // key used to be concatenated: "Referênciaqueue-…".
     expect(ledger).toHaveTextContent(
       "Referência queue-legal-meridian · versão 3",
     );

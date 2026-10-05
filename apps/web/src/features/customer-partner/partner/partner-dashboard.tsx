@@ -3,6 +3,7 @@ import { use } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 
+import type { Permission } from "@clockwork/contracts";
 import { TermBar, type RenewalState } from "@clockwork/ui";
 
 import {
@@ -52,16 +53,16 @@ export interface PartnerDashboardProjection {
 
 export function PartnerDashboard({
   projection,
-  roles,
+  permissions,
   formatting,
 }: {
   projection: PartnerDashboardProjection;
-  roles: readonly string[];
+  permissions: readonly Permission[];
   /** Locale and zone of the partner reading, from the active route session. */
   formatting: SurfaceFormatting;
 }) {
   const t = use(getTranslations());
-  const isAdmin = currentPartnerRole(roles) === "partner_admin";
+  const isAdmin = currentPartnerRole(permissions) === "partner_admin";
   const visibleWork = projection.work.filter(
     (item) => isAdmin || !item.adminOnly,
   );

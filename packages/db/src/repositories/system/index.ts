@@ -10,8 +10,10 @@ export * from "./external-gates";
 export * from "./exception-routing";
 export * from "./gate-activation-tasks";
 export * from "./outbox";
+export * from "./owner-console";
 export * from "./providers";
 export * from "./provider-reference-admin";
+export * from "./staff-team";
 export * from "./webhook-replay";
 
 import { DatabaseExternalGateService } from "./external-gates";

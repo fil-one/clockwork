@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import { createPristineDemoAdapterState } from "@clockwork/testing/demo-state";
 import { demoAccountIds } from "@clockwork/testing/personas";
 
@@ -38,6 +40,7 @@ describe("guided partner renewal route", () => {
   it("binds the collection CTA to the same hidden order as the portfolio", async () => {
     mocks.getRouteSession.mockResolvedValue({
       roles: ["partner_admin"],
+      permissions: permissionsForRoles(["partner_admin"]),
       locale: "en-US",
       timeZone: "UTC",
     });

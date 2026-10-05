@@ -1058,20 +1058,23 @@ durable as the assertion behind it.
   - _What happened when it was implemented._ Confirmed against the live
     database, not argued: writing the slug put **`internal_operator` on a
     customer organization's membership row**.
-    `packages/db/src/repositories/identity.ts` selects `memberships.role`
-    straight into the session identity through `resolveWorkosIdentity`, so
-    `evaluateMembershipPolicy` — which is what refuses on
-    `COMMERCE_APPROVAL_REQUIRED`, `STAFF_BOUNDARY` and `MFA_POLICY_REQUIRED` —
-    never runs at all. An exploitable privilege escalation, granted from outside
-    the commerce boundary. Reverted in `bd42c1b`.
+    `packages/db/src/repositories/identity.ts` selects `memberships.role` (and
+    every role in `membership_roles`) straight into the session identity through
+    `resolveWorkosIdentity`, so `evaluateMembershipPolicy` — which is what
+    refuses on `COMMERCE_APPROVAL_REQUIRED`, `STAFF_BOUNDARY` and
+    `MFA_POLICY_REQUIRED` — never runs at all. An exploitable privilege
+    escalation, granted from outside the commerce boundary. Reverted in
+    `bd42c1b`.
   - _Pinning test._ Reimplementing this fails
-    `packages/db/src/repositories/webhooks.test.ts:106`, "WorkOS membership
-    webhooks never write `memberships.role`" — three cases: a role-change event
+    `packages/db/src/repositories/webhooks.test.ts:111`, "WorkOS membership
+    webhooks never write `memberships.role`" — four cases: a role-change event
     must update `workosMembershipId` and `updatedAt` and nothing else; every
     slug spelling including `Internal-Operator` and `superuser` must be ignored;
-    and revocation must delete the membership rather than downgrade its role. It
-    also fails `packages/db/src/repositories/webhooks.integration.test.ts:97`,
-    which asserts the same three against a real database.
+    no event may insert, change or delete a row in `membership_roles`, where a
+    person's additional roles live; and revocation must delete the membership
+    rather than downgrade its role. It also fails
+    `packages/db/src/repositories/webhooks.integration.test.ts:113`, which
+    asserts the same four against a real database.
 
 - **Outbox dead-lettering — "messages with no registered handler are never
   claimed, retried or dead-lettered."**

@@ -15,6 +15,7 @@ import {
   disputeCases,
   entitlements,
   invoices,
+  memberships,
   orderLines,
   orders,
   payments,
@@ -32,6 +33,7 @@ import {
 } from "../../schema/core/finance";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
+import { membershipHasPermission } from "../membership-permissions";
 import {
   acceptedAmendmentDeltaMinor,
   DatabaseCoreError,
@@ -761,10 +763,21 @@ export class DatabaseCoreWorkflowDispatchStore {
       transaction.query.accounts.findFirst({
         where: eq(accounts.id, order.partnerAccountId),
       }),
-      transaction.query.commerceUsers.findFirst({
-        where: eq(commerceUsers.isInternalStaff, true),
-        orderBy: [asc(commerceUsers.id)],
-      }),
+      // The accrual is attributed to an operator, never to a seller or an
+      // approver who happens to sort first.
+      transaction
+        .select({ id: commerceUsers.id })
+        .from(commerceUsers)
+        .innerJoin(memberships, eq(memberships.userId, commerceUsers.id))
+        .where(
+          and(
+            eq(commerceUsers.isInternalStaff, true),
+            membershipHasPermission("operations:write"),
+          ),
+        )
+        .orderBy(asc(commerceUsers.id))
+        .limit(1)
+        .then(([user]) => user),
     ]);
     if (
       !partner ||

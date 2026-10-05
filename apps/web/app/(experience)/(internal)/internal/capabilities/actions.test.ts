@@ -79,6 +79,13 @@ describe("capability server action", () => {
       expect(mocks.propose).not.toHaveBeenCalled();
     },
   );
+  it("refuses a seller before reaching the capability register", async () => {
+    mocks.session.mockResolvedValue({ ...staff, roles: ["revenue"] });
+    expect(await said(changeCapability("", form()))).toBe(
+      english("adminGovernance.capabilities.error.authority"),
+    );
+    expect(mocks.propose).not.toHaveBeenCalled();
+  });
   it("binds the actor and exact reviewed version on the server", async () => {
     const data = form();
     data.set("actor", "attacker");

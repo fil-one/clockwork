@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { membershipHasPermission } from "../membership-permissions";
 import { and, desc, eq, sql } from "drizzle-orm";
 import {
   CustomerAcquisitionCommandSchema,
@@ -52,7 +53,12 @@ async function customerMembership(
   write = false,
 ) {
   const rows = await tx
-    .select({ organization: organizations, role: memberships.role })
+    // Owners and administrators request offers; billing contacts and members
+    // only see them.
+    .select({
+      organization: organizations,
+      canRequest: membershipHasPermission("quote:write"),
+    })
     .from(memberships)
     .innerJoin(organizations, eq(organizations.id, memberships.organizationId))
     .where(
@@ -63,10 +69,7 @@ async function customerMembership(
       ),
     )
     .for("share");
-  if (
-    !rows.length ||
-    (write && !rows.some((row) => ["owner", "admin"].includes(row.role)))
-  )
+  if (!rows.length || (write && !rows.some((row) => row.canRequest)))
     throw new Error("ACQUISITION_ACCOUNT_AUTHORITY_REQUIRED");
   return rows;
 }
@@ -80,7 +83,7 @@ async function finance(tx: RuntimeTransaction, userId: string) {
         eq(commerceUsers.id, userId),
         eq(commerceUsers.isInternalStaff, true),
         eq(commerceUsers.mfaEnrolled, true),
-        eq(memberships.role, "finance_approver"),
+        membershipHasPermission("quote:approve"),
       ),
     )
     .for("share");
@@ -176,10 +179,10 @@ export class DatabaseCustomerAcquisitionRepository {
         .limit(200);
       return {
         offers: effectiveCustomerOffers(offers.map(offerRow), input.now),
-        organizations: member.map(({ organization, role }) => ({
+        organizations: member.map(({ organization, canRequest }) => ({
           id: organization.id,
           name: organization.name,
-          canRequest: ["owner", "admin"].includes(role),
+          canRequest,
           providerMapped: Boolean(organization.externalProvisioningId),
         })),
         requests: await Promise.all(rows.map((row) => mapRequest(tx, row))),

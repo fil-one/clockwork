@@ -4,6 +4,7 @@ import { useTranslations } from "@/src/i18n/client";
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import type { Permission } from "@clockwork/contracts";
 import { Button, Dialog } from "@clockwork/ui";
 
 import {
@@ -14,6 +15,7 @@ import type { ExperienceAudience, ProjectionChannel } from "./model";
 import { actionLabel, isDestructiveAction } from "./projection-action-labels";
 import { problemText } from "@/src/features/contracts/error-text";
 import { canRunProjectionAction } from "./projection-authorization";
+import styles from "./projection-action-buttons.module.css";
 
 type ActionFeedback = {
   readonly tone: "progress" | "success" | "error";
@@ -35,7 +37,8 @@ export function ProjectionActionButtons({
   projectionId,
   version,
   actions,
-  roles,
+  permissions,
+  readOnlyNote = true,
 }: {
   audience: ExperienceAudience;
   channel: ProjectionChannel;
@@ -43,7 +46,14 @@ export function ProjectionActionButtons({
   projectionId: string;
   version: number;
   actions: readonly string[];
-  roles: readonly string[];
+  permissions: readonly Permission[];
+  /**
+   * Whether to say the record is read only when the reader may not run its
+   * actions. A surface with its own working controls beside these (the
+   * collections corrections) turns it off, so "Read only" never sits above a
+   * button that works.
+   */
+  readOnlyNote?: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -58,7 +68,7 @@ export function ProjectionActionButtons({
   const region = useId();
 
   const authorizedActions = actions.filter((action) =>
-    canRunProjectionAction(roles, audience, channel, action),
+    canRunProjectionAction(permissions, audience, channel, action),
   );
   /**
    * A command that lands usually spends the record's last permitted action, so
@@ -66,8 +76,12 @@ export function ProjectionActionButtons({
    * early return here used to drop "was applied" the moment it was reported.
    */
   const readOnly = authorizedActions.length === 0;
+  // "Read only" means someone else can act. A record with no actions at all
+  // has nothing anyone can do here, so it says nothing rather than pointing
+  // the reader, who may be its owner, at somebody else.
+  const showReadOnly = readOnly && readOnlyNote && actions.length > 0;
   if (readOnly && Object.keys(feedback).length === 0)
-    return <span>{t("projection.action.readOnly")}</span>;
+    return showReadOnly ? <span>{t("projection.action.readOnly")}</span> : null;
 
   const messageId = (action: string) => `${region}-${action}`;
   const report = (action: string, next: ActionFeedback) =>
@@ -199,9 +213,18 @@ export function ProjectionActionButtons({
       .finally(() => track(action, false));
   };
 
+  // In a decision pair (approve or reject an exception) the constructive
+  // choice is the primary button and the destructive one an outlined,
+  // confirmed secondary. Without a destructive sibling every action stays
+  // secondary, so a table of rows does not fill with primary buttons.
+  const decisionPair = authorizedActions.some(isDestructiveAction);
+  const primaryAction = decisionPair
+    ? authorizedActions.find((action) => !isDestructiveAction(action))
+    : undefined;
+
   return (
-    <div>
-      {readOnly ? <span>{t("projection.action.readOnly")}</span> : null}
+    <div className={styles.actions}>
+      {showReadOnly ? <span>{t("projection.action.readOnly")}</span> : null}
       {authorizedActions.map((action) => {
         const running = pending.includes(action);
         const destructive = isDestructiveAction(action);
@@ -209,7 +232,8 @@ export function ProjectionActionButtons({
           <Button
             key={action}
             size="small"
-            variant={destructive ? "danger" : "secondary"}
+            variant={action === primaryAction ? "primary" : "secondary"}
+            className={destructive ? styles.destructive : undefined}
             disabled={running}
             aria-describedby={feedback[action] ? messageId(action) : undefined}
             {...(destructive ? {} : { onClick: () => run(action) })}

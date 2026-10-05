@@ -4,8 +4,9 @@ import { ProjectionActionButtons } from "./projection-action-buttons";
 import { loadPortalRecords } from "./portal-view-loader";
 import type { ProjectionChannel, ProjectionRecord } from "./model";
 import { EvidenceUploadControl } from "./evidence-upload-control";
-import { getRouteRoles } from "@/src/features/shell/route-session";
-import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
+import { getRoutePermissions } from "@/src/features/shell/route-session";
+import { CopyableId } from "@/src/features/internal-ops/copyable-id";
+import { LocalTimestamp } from "@/src/features/internal-ops/local-timestamp";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { richText } from "@/src/i18n/rich";
 import styles from "./internal-projection-page.module.css";
@@ -38,9 +39,9 @@ export async function InternalProjectionPage({
   title: string;
   description: string;
 }) {
-  const [projection, roles, formattingLocale, t] = await Promise.all([
+  const [projection, permissions, formattingLocale, t] = await Promise.all([
     loadPortalRecords("internal", channel),
-    getRouteRoles("internal"),
+    getRoutePermissions("internal"),
     getFormattingLocale(),
     getTranslations(),
   ]);
@@ -61,12 +62,10 @@ export async function InternalProjectionPage({
               : "experience.internal.freshness.current",
             {
               time: (
-                <time dateTime={projection.generatedAt}>
-                  {formatOperationalTimestamp(
-                    projection.generatedAt,
-                    formattingLocale,
-                  )}
-                </time>
+                <LocalTimestamp
+                  value={projection.generatedAt}
+                  locale={formattingLocale}
+                />
               ),
             },
           )}
@@ -97,7 +96,12 @@ export async function InternalProjectionPage({
                 ["title", "name", "label", "account"],
                 record.recordKey,
               )}
-              <small className={styles.recordKey}>{record.recordKey}</small>
+              <span className={styles.recordKey}>
+                <CopyableId
+                  value={record.recordKey}
+                  label={t("experience.internal.column.record")}
+                />
+              </span>
             </>,
             value(record, ["statusLabel"], notRecorded),
             value(record, ["owner", "assignee", "requestedBy"], notRecorded),
@@ -110,7 +114,7 @@ export async function InternalProjectionPage({
                 projectionId={record.id}
                 version={record.version}
                 actions={actions(record)}
-                roles={roles}
+                permissions={permissions}
               />
               {channel === "queues" ? (
                 <EvidenceUploadControl

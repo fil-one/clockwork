@@ -111,7 +111,7 @@ export class StripeFinanceGateway
       ...(configuration.apiVersion === undefined
         ? {}
         : { apiVersion: configuration.apiVersion }),
-      appInfo: { name: "Clockwork Commerce", version: "1" },
+      appInfo: { name: "Fil One Commerce", version: "1" },
       maxNetworkRetries: 2,
       timeout: 30_000,
     });

@@ -14,6 +14,7 @@ import {
   useTransition,
 } from "react";
 
+import type { Permission } from "@clockwork/contracts";
 import {
   AppShell as StructuralAppShell,
   ArrowLeftRight,
@@ -22,10 +23,12 @@ import {
   BrandLogo,
   Building2,
   Button,
+  Calculator,
   ChevronDown,
   CircleHelp,
   CommandPalette,
   FileDiff,
+  FileSignature,
   FileText,
   FlaskConical,
   Handshake,
@@ -72,7 +75,9 @@ import {
   canAccessNavigationItem,
   isNavigationItemActive,
   navigation,
+  salesNavigation,
   type ExperienceAudience,
+  type NavigationIconName,
 } from "./navigation";
 import type { RouteSession } from "./route-session";
 
@@ -110,7 +115,7 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/partner/brand": <Paintbrush size={19} strokeWidth={1.8} />,
   "/partner/enablement": <BookOpen size={19} strokeWidth={1.8} />,
   "/partner/support": <CircleHelp size={19} strokeWidth={1.8} />,
-  "/internal": <LayoutDashboard size={19} strokeWidth={1.8} />,
+  "/internal/operations": <LayoutDashboard size={19} strokeWidth={1.8} />,
   "/internal/search": <Search size={19} strokeWidth={1.8} />,
   "/internal/queues": <Inbox size={19} strokeWidth={1.8} />,
   "/internal/renewals": <RefreshCw size={19} strokeWidth={1.8} />,
@@ -125,7 +130,6 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/internal/status": <RefreshCw size={19} strokeWidth={1.8} />,
   "/internal/unhandled-errors": <TriangleAlert size={19} strokeWidth={1.8} />,
   "/internal/agreements": <FileText size={19} strokeWidth={1.8} />,
-  "/internal/mndas": <FileText size={19} strokeWidth={1.8} />,
   "/internal/approvals": <Stamp size={19} strokeWidth={1.8} />,
   "/internal/price-books": <WalletCards size={19} strokeWidth={1.8} />,
   "/internal/payg-requests": <Inbox size={19} strokeWidth={1.8} />,
@@ -138,10 +142,26 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/internal/assisted": <Users size={19} strokeWidth={1.8} />,
 };
 
+/** Drawings for the icon names a navigation entry can declare. */
+const namedNavigationIcons: Readonly<Record<NavigationIconName, ReactNode>> = {
+  owner: <ShieldCheck size={19} strokeWidth={1.8} />,
+  home: <LayoutDashboard size={19} strokeWidth={1.8} />,
+  document: <FileText size={19} strokeWidth={1.8} />,
+  contract: <FileSignature size={19} strokeWidth={1.8} />,
+  library: <BookOpen size={19} strokeWidth={1.8} />,
+  pricing: <Calculator size={19} strokeWidth={1.8} />,
+  team: <Users size={19} strokeWidth={1.8} />,
+};
+
 interface NavigationSection {
   id: string;
   label?: MessageId;
   hrefs: readonly string[];
+  /**
+   * Operations sections sit behind the sales workspace for anyone who has
+   * one: they start closed unless they hold the current page.
+   */
+  secondary?: boolean;
 }
 
 /**
@@ -208,16 +228,19 @@ const navigationSections: Readonly<
   ],
   internal: [
     {
-      id: "desk",
-      hrefs: [
-        "/internal",
-        "/internal/mndas",
-        "/internal/search",
-        "/internal/assisted",
-      ],
+      id: "sales",
+      label: "platform.nav.group.sales",
+      hrefs: salesNavigation.map(({ href }) => href),
+    },
+    {
+      id: "operations",
+      label: "platform.nav.group.operations",
+      hrefs: ["/internal/operations", "/internal/search", "/internal/assisted"],
+      secondary: true,
     },
     {
       id: "queues",
+      secondary: true,
       label: "nav.group.internal.queues",
       hrefs: [
         "/internal/queues",
@@ -229,6 +252,7 @@ const navigationSections: Readonly<
     },
     {
       id: "provider-recovery",
+      secondary: true,
       label: "nav.group.internal.providerRecovery",
       hrefs: [
         "/internal/provisioning",
@@ -241,6 +265,7 @@ const navigationSections: Readonly<
     },
     {
       id: "administration",
+      secondary: true,
       label: "nav.group.internal.administration",
       hrefs: [
         "/internal/agreements",
@@ -377,27 +402,45 @@ function ShellUtilities({
   commandItems,
   profile,
   providerBacked,
+  permissions,
 }: {
   audience: ExperienceAudience;
   commandItems: readonly CommandPaletteItem[];
   profile: RouteSession["profile"];
   providerBacked: boolean;
+  permissions: readonly Permission[];
 }) {
   const t = useTranslations();
   const router = useRouter();
+  // Operating guidance lives in the operations workspace; a seller's help is
+  // the start guide on their own home page.
+  const internalHelp =
+    audience !== "internal"
+      ? null
+      : permissions.includes("operations:read")
+        ? "operations"
+        : "sales";
   const helpHref: Route =
     audience === "partner"
       ? "/partner/support"
-      : audience === "internal"
+      : internalHelp === "operations"
         ? "/internal/gates"
-        : "/support";
+        : internalHelp === "sales"
+          ? "/internal"
+          : "/support";
   const helpLabel = t(
-    audience === "internal" ? "app.help.internal" : "app.help",
+    internalHelp === "operations"
+      ? "app.help.internal"
+      : internalHelp === "sales"
+        ? "platform.help.sales"
+        : "app.help",
   );
   const helpDescription = t(
-    audience === "internal"
+    internalHelp === "operations"
       ? "app.help.internal.description"
-      : "app.help.description",
+      : internalHelp === "sales"
+        ? "platform.help.sales.description"
+        : "app.help.description",
   );
   const initials = profile.name
     .split(/\s+/)
@@ -523,7 +566,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const t = useTranslations();
-  const roles = session.roles;
+  const permissions = session.permissions;
   const pathname = usePathname();
   const router = useRouter();
   const [hydrated, setHydrated] = useState(false);
@@ -533,29 +576,37 @@ export function AppShell({
     () =>
       getCommandItems(
         audience,
-        roles,
+        permissions,
         {
           providerBacked: session.providerBacked,
         },
         t,
       ),
-    [audience, roles, session.providerBacked, t],
+    [audience, permissions, session.providerBacked, t],
   );
   const navigationGroups = useMemo<readonly NavigationGroup[]>(() => {
     const remaining = new Map(
       navigation[audience]
         .filter((item) => !item.providerBackedOnly || session.providerBacked)
-        .filter((item) => canAccessNavigationItem(item, roles))
+        .filter((item) => canAccessNavigationItem(item, permissions))
         .map((item) => [
           item.href as string,
           {
             id: item.href,
             href: item.href,
             label: t(item.label),
-            icon: navigationIcons[item.href],
+            icon: item.icon
+              ? namedNavigationIcons[item.icon]
+              : navigationIcons[item.href],
             active: isNavigationItemActive(item, pathname),
           },
         ]),
+    );
+    // Someone with a sales workspace works there first; the operations
+    // sections stay one click away, open only where the current page is.
+    const hasPrimaryWorkspace = navigationSections[audience].some(
+      (section) =>
+        !section.secondary && section.hrefs.some((href) => remaining.has(href)),
     );
     const sections = navigationSections[audience].map((section) => {
       const items = section.hrefs.flatMap((href) => {
@@ -564,10 +615,17 @@ export function AppShell({
         remaining.delete(href);
         return [item];
       });
+      const collapsible = Boolean(section.secondary && hasPrimaryWorkspace);
       return {
         id: `${audience}-${section.id}`,
         ...(section.label ? { label: t(section.label) } : {}),
         items,
+        ...(collapsible
+          ? {
+              collapsible,
+              defaultOpen: items.some((item) => item.active),
+            }
+          : {}),
       };
     });
     // A destination added to `navigation` but not to a section still has to
@@ -579,7 +637,7 @@ export function AppShell({
       });
     }
     return sections.filter((section) => section.items.length > 0);
-  }, [audience, pathname, roles, session.providerBacked, t]);
+  }, [audience, pathname, permissions, session.providerBacked, t]);
 
   /**
    * A client transition replaces the content of the page without a document
@@ -685,10 +743,14 @@ export function AppShell({
           skipLabel={t("app.skip")}
           brand={<Wordmark audience={audience} />}
           organization={
-            <OrganizationSwitcher
-              session={session}
-              announce={setAnnouncement}
-            />
+            // Staff belong to the one Fil One organization. Showing a customer
+            // or partner name there read as being signed in as that company.
+            audience === "internal" ? null : (
+              <OrganizationSwitcher
+                session={session}
+                announce={setAnnouncement}
+              />
+            )
           }
           utilities={
             <ShellUtilities
@@ -696,15 +758,11 @@ export function AppShell({
               commandItems={commandItems}
               profile={session.profile}
               providerBacked={session.providerBacked}
+              permissions={permissions}
             />
           }
           banner={banner}
           bannerLabel={t("platform.shell.banner")}
-          footer={
-            <div className="shell-footer-content">
-              <p>{t("platform.shell.footer")}</p>
-            </div>
-          }
           navigationLabel={t("app.nav.primary")}
           navigationDensity="comfortable"
           mobileNavigationLabel={t("app.nav.open")}

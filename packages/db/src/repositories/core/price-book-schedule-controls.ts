@@ -1,5 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
-import type { Actor } from "@clockwork/contracts";
+import { membershipHasPermission } from "../membership-permissions";
+import { contextHasPermission, type Actor } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import type { RuntimeTransaction } from "../../client";
 import { commerceUsers, memberships } from "../../schema";
@@ -27,7 +28,7 @@ export async function assertPersistedPriceScheduleFinance(
       command.actor.effectiveUserId ||
       command.actor.impersonatedAccountId ||
       !command.authorization.isInternalStaff ||
-      !command.authorization.roles.includes("finance_approver") ||
+      !contextHasPermission(command.authorization, "quote:approve") ||
       !command.authorization.mfaVerified ||
       !command.authorization.recentAuthenticationVerified)
   )
@@ -44,7 +45,7 @@ export async function assertPersistedPriceScheduleFinance(
         eq(commerceUsers.id, userId),
         eq(commerceUsers.isInternalStaff, true),
         eq(commerceUsers.mfaEnrolled, true),
-        eq(memberships.role, "finance_approver"),
+        membershipHasPermission("quote:approve"),
       ),
     )
     .limit(1)

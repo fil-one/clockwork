@@ -20,9 +20,7 @@ export default async function Page({
     getRouteSession("customer"),
     loadCommercialRecords("agreements"),
   ]);
-  const canExecute = session.roles.some(
-    (role) => role === "owner" || role === "admin",
-  );
+  const canExecute = session.permissions.includes("agreement:execute");
   return (
     <SurfacePermissionGate
       audience="customer"

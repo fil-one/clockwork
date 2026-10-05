@@ -4,6 +4,8 @@ import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import { GlobalSearch } from "./global-search";
 import { QueueWorkspace } from "./queue-workspace";
 import type { QueueItem } from "./model";
@@ -114,7 +116,7 @@ const items: readonly QueueItem[] = [
 function renderWorkspace() {
   return render(
     <QueueWorkspace
-      roles={["internal_operator"]}
+      permissions={permissionsForRoles(["internal_operator"])}
       items={items}
       generatedAt="2026-07-31T16:00:00.000Z"
       stale={false}
@@ -264,7 +266,7 @@ describe("operator queue hydration", () => {
     });
     const workspace = (
       <QueueWorkspace
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         items={[hydrationItem]}
         generatedAt={generatedAt}
         stale={false}
@@ -282,8 +284,8 @@ describe("operator queue hydration", () => {
       document.body.innerHTML = `<div id="hydration-root">${serverHtml}</div>`;
 
       // Hydration happens later and west of UTC: without a request-stable
-      // clock and an explicit display zone, both the SLA and calendar day can
-      // disagree with the server markup.
+      // clock, the SLA could disagree with the server markup. The due day
+      // hydrates as the server wrote it, then moves to the reader's zone.
       process.env.TZ = "America/New_York";
       vi.setSystemTime(new Date("2026-08-19T01:00:00.000Z"));
       const container = document.querySelector<HTMLElement>("#hydration-root");
@@ -297,7 +299,8 @@ describe("operator queue hydration", () => {
 
       expect(onRecoverableError).not.toHaveBeenCalled();
       expect(within(container).getAllByText("Due soon")).toHaveLength(2);
-      expect(within(container).getByText("Aug 19")).toBeVisible();
+      const due = within(container).getByText("Aug 18");
+      expect(due).toHaveAttribute("title", "Aug 18, 2026, 8:30 PM EDT");
     } finally {
       if (root)
         act(() => {

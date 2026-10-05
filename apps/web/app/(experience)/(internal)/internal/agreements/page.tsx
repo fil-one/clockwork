@@ -16,7 +16,7 @@ import { AdministrationPage } from "@/src/features/internal-ops/administration-s
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
 import { formatDate } from "@/src/features/shared/format";
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { getRoutePermissions } from "@/src/features/shell/route-session";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 import {
   explicitDemoIdentityEnabled,
@@ -29,6 +29,7 @@ import {
   getLocale,
   getTranslations,
 } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -50,12 +51,12 @@ function storedLabel(
   return id ? t(id) : value;
 }
 
-export default async function Page() {
+async function Page() {
   if (explicitDemoIdentityEnabled()) {
     const locale = await getLocale();
     return (
       <AgreementAdministration
-        roles={await getRouteRoles("internal")}
+        permissions={await getRoutePermissions("internal")}
         versions={resolveDemoText(agreementVersions, locale)}
         scannedAt={agreementScanAt}
         readOnly
@@ -175,3 +176,5 @@ export default async function Page() {
     </AdministrationPage>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

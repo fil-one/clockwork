@@ -8,6 +8,7 @@ import type {
 
 import type { PriceBookImpactResult } from "../price-books/price-book-impact-model";
 import { styles } from "./ui";
+import { useReaderTimeZone } from "../local-timestamp";
 
 const metrics: readonly [
   MessageId,
@@ -56,6 +57,7 @@ export function PriceBookImpactPanel({
 }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
+  const readerTimeZone = useReaderTimeZone();
   const books = incumbent ? [incumbent, candidate] : [candidate];
   const records = books.map((book) =>
     impact?.availability === "available"
@@ -90,7 +92,7 @@ export function PriceBookImpactPanel({
                   day: "numeric",
                   hour: "numeric",
                   minute: "2-digit",
-                  timeZone: "UTC",
+                  timeZone: readerTimeZone,
                   timeZoneName: "short",
                 }).format(new Date(impact.asOf)),
               },

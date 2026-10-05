@@ -65,13 +65,10 @@
   max-width: 16rem;
 }
 
+/* The record key with its copy button; the key itself is set in mono. */
 .recordKey {
   display: block;
   margin-top: 0.25rem;
-  color: var(--web-muted);
-  font-family: var(--cw-font-mono);
-  font-size: var(--cw-text-xs);
-  font-variant-numeric: tabular-nums;
   font-weight: 400;
 }
 

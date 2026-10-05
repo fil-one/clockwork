@@ -962,6 +962,53 @@ summary {
   text-transform: var(--cw-label-transform);
 }
 
+/* A secondary group opens on demand. The summary keeps the label's look and
+   gains a chevron that turns when the group is open. */
+.cw-navigation__summary {
+  display: flex;
+  min-height: 1.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cw-space-2);
+  border-radius: var(--cw-radius-sm);
+  cursor: pointer;
+  list-style: none;
+}
+
+.cw-navigation__summary::-webkit-details-marker {
+  display: none;
+}
+
+.cw-navigation__summary::after {
+  width: 0.4rem;
+  height: 0.4rem;
+  flex: none;
+  /* Physical sides on purpose: the chevron points down in either direction. */
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  content: "";
+  transform: rotate(45deg);
+  transition: transform var(--cw-motion-fast) var(--cw-motion-ease);
+}
+
+.cw-navigation__group--collapsible[open] > .cw-navigation__summary::after {
+  transform: rotate(225deg);
+}
+
+/* Closed groups read as one list of headings rather than spaced sections. */
+.cw-navigation__group--collapsible:not([open])
+  + .cw-navigation__group--collapsible {
+  margin-top: calc(var(--cw-space-3) * -1);
+}
+
+.cw-navigation__summary:hover {
+  color: var(--cw-ink-soft);
+}
+
+.cw-navigation__group--collapsible[open] > .cw-navigation__summary {
+  margin-block-end: var(--cw-space-1);
+}
+
 .cw-navigation__list {
   display: grid;
   gap: 1px;

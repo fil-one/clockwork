@@ -12,7 +12,7 @@ export default async function InternalLayout({
 }) {
   const session = await getRouteSession("internal");
   return (
-    <RoutePermissionGate audience="internal" roles={session.roles}>
+    <RoutePermissionGate audience="internal" permissions={session.permissions}>
       <AppShell audience="internal" session={session}>
         {session.assistedSession ? (
           <AssistedSessionBanner

@@ -3,7 +3,13 @@ import type { Metadata } from "next";
 import { getTranslations } from "@/src/i18n/server";
 import { RenewalsView } from "@/src/features/internal-ops/finance-lifecycle/renewals-view";
 import { loadRenewalsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
+import {
+  getCapabilityState,
+  isActive,
+} from "@/src/features/internal-ops/capability-state";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+import { getRouteSession } from "@/src/features/shell/route-session";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +29,22 @@ export async function generateMetadata(): Promise<Metadata> {
  * narrow would take the page away from the role that plans renewals. Row
  * visibility is enforced by the projection read itself, not by this gate.
  */
-export default async function Page() {
-  const workspace = await loadRenewalsWorkspace();
+async function Page() {
+  const [workspace, session] = await Promise.all([
+    loadRenewalsWorkspace(),
+    getRouteSession("internal"),
+  ]);
+  const capabilities = await getCapabilityState(session);
   return (
     <SurfacePermissionGate audience="internal" requiredPermission="report:read">
       <RenewalsView
         windows={workspace.items}
         provenance={workspace.provenance}
         invoiceProvenance={workspace.invoiceProvenance}
+        billingLive={isActive(capabilities, "billing")}
       />
     </SurfacePermissionGate>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

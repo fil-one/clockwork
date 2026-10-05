@@ -1,6 +1,6 @@
 "use server";
 
-import { hasPermission, ids } from "@clockwork/contracts";
+import { contextHasPermission, ids } from "@clockwork/contracts";
 import { signOut, switchToOrganization } from "@workos-inc/authkit-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -71,9 +71,7 @@ export async function startAssistedSession(formData: FormData) {
   const session = await requireRecentAuthentication();
   if (
     !session.isInternalStaff ||
-    !session.roles.some((role) =>
-      hasPermission(role, "impersonation:assume"),
-    ) ||
+    !contextHasPermission(session, "impersonation:assume") ||
     !session.authenticationSessionId ||
     session.assistedSession
   )

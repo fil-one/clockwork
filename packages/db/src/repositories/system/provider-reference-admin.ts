@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Actor } from "@clockwork/contracts";
 import { sanitizeActivationEvidenceReference } from "@clockwork/domain/system";
@@ -8,6 +8,7 @@ import { systemProductionBootstraps } from "../../schema/system";
 import { providerConnectionReferences } from "../../schema/system/provider-references";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
+import { membershipHasAnyPermission } from "../membership-permissions";
 
 export const managedProviders = [
   "billing",
@@ -86,7 +87,7 @@ async function requireAuthority(tx: RuntimeTransaction, actor: Actor) {
         eq(commerceUsers.id, actor.id),
         eq(commerceUsers.isInternalStaff, true),
         eq(commerceUsers.mfaEnrolled, true),
-        inArray(memberships.role, ["internal_operator", "finance_approver"]),
+        membershipHasAnyPermission(["operations:write", "quote:approve"]),
       ),
     )
     .limit(1)

@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 
 import { InternalProjectionPage } from "@/src/features/experience-server/internal-projection-page";
 import { getTranslations } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
   return { title: t("adminGovernance.approvals.page.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const t = await getTranslations();
   return (
     <InternalProjectionPage
@@ -18,3 +19,5 @@ export default async function Page() {
     />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

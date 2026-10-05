@@ -1,4 +1,9 @@
-import { internalRoles, privilegedRoles } from "@clockwork/contracts";
+import {
+  internalRoles,
+  permissionsForRoles,
+  privilegedRoles,
+  type OrganizationSide,
+} from "@clockwork/contracts";
 import {
   LocalSessionResolver,
   type SessionClaims,
@@ -45,6 +50,7 @@ import {
   verifyDemoAccessCookie,
 } from "@/src/auth/demo-access";
 import { getServiceDatabase } from "@/src/db/service";
+import { requireStaffEmailDomains } from "@/src/auth/staff-domains";
 
 export const workosAuthenticationConfigured = () =>
   Boolean(
@@ -97,9 +103,9 @@ function assertStaffBoundary(
   actorEmail: string,
 ) {
   const emailDomain = actorEmail.split("@")[1]?.toLowerCase() ?? "";
-  const staffDomains = (process.env.INTERNAL_EMAIL_DOMAINS ?? "filone.com")
-    .split(",")
-    .map((domain) => domain.trim().toLowerCase());
+  // Staff sign-in needs the deployment to say which domains are Fil One's;
+  // there is no built-in default to fall back on.
+  const staffDomains = isInternalStaff ? requireStaffEmailDomains() : [];
   const hasInternalRole = roles.some((role) =>
     internalRoles.includes(role as (typeof internalRoles)[number]),
   );
@@ -318,7 +324,12 @@ async function getReleaseProofCommerceSession(input: {
       // Invalid or expired assisted proof never establishes effective scope.
     }
   }
-  const roles = assistedSession?.actualRoles ?? [proof.selected.role];
+  const roles = assistedSession?.actualRoles ?? proof.selected.roles;
+  const side = assistedSession ? "fil_one" : proof.selected.side;
+  const permissions = permissionsForRoles(roles, {
+    side,
+    assisted: Boolean(assistedSession),
+  });
   const actorEmail =
     assistedSession?.actualActorEmail ?? proof.selected.userEmail;
   const isInternalStaff = assistedSession
@@ -337,6 +348,8 @@ async function getReleaseProofCommerceSession(input: {
         : []
       : [proof.selected.accountId],
     roles,
+    permissions,
+    side,
     isInternalStaff,
     mfaVerified: proof.mfaVerified,
     recentAuthenticationVerified: proof.recentAuthenticationVerified,
@@ -369,16 +382,21 @@ async function getReleaseProofCommerceSession(input: {
 }
 
 function demoPersonaSession(persona: DemoPersona): CommerceSession {
+  const membership = demoPersonaMembership(persona);
   return {
     userId: persona.userId,
     organizationId: persona.organizationId,
     accountIds: persona.isInternalStaff ? [] : [persona.selectedAccountId],
-    roles: [persona.role],
+    roles: membership.roles,
+    permissions: permissionsForRoles(membership.roles, {
+      side: membership.side,
+    }),
+    side: membership.side,
     isInternalStaff: persona.isInternalStaff,
     mfaVerified: persona.mfaVerified,
     recentAuthenticationVerified: true,
     profile: { name: persona.displayName, email: persona.email },
-    memberships: [demoPersonaMembership(persona)],
+    memberships: [membership],
     selectedAccountId: persona.selectedAccountId,
     effectiveAccountId: persona.selectedAccountId,
     providerBacked: false,
@@ -453,11 +471,17 @@ export async function getCommerceSession(): Promise<CommerceSession> {
     const isInternalStaff = internalRoles.includes(
       role as (typeof internalRoles)[number],
     );
+    const partner = role === "partner_admin" || role === "partner_seller";
+    const side: OrganizationSide = isInternalStaff
+      ? "fil_one"
+      : partner
+        ? "channel_partner"
+        : "customer";
     const selectedAccountId =
       requestHeaders.get("x-clockwork-account") ??
       (isInternalStaff
         ? "10000000-0000-4000-8000-000000000009"
-        : role === "partner_admin" || role === "partner_seller"
+        : partner
           ? demoAccountIds.reseller
           : demoAccountIds.direct);
     return {
@@ -469,6 +493,8 @@ export async function getCommerceSession(): Promise<CommerceSession> {
         : "30000000-0000-4000-8000-000000000001",
       accountIds: isInternalStaff ? [] : [selectedAccountId],
       roles: [role],
+      permissions: permissionsForRoles([role], { side }),
+      side,
       isInternalStaff,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -514,7 +540,9 @@ async function workosCommerceSession(
     selected.userId !== identity.userId ||
     selected.organizationId !== identity.organizationId ||
     selected.accountId !== identity.accountId ||
-    selected.role !== identity.role
+    selected.role !== identity.role ||
+    selected.side !== identity.side ||
+    [...selected.roles].sort().join() !== [...identity.roles].sort().join()
   )
     // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Selected WorkOS membership does not match commerce scope");
@@ -569,7 +597,16 @@ async function workosCommerceSession(
     // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Provider assisted actor membership is unavailable");
   const activeAssistedSession = assistedSession ?? providerAssistedSession;
-  const normalizedRoles = activeAssistedSession?.actualRoles ?? [identity.role];
+  // Every role the person holds in the selected organization. An assisted
+  // session carries the staff member's own roles, less the approver
+  // permissions: those decisions wait until they are back in their own
+  // session.
+  const normalizedRoles = activeAssistedSession?.actualRoles ?? selected.roles;
+  const side = activeAssistedSession ? "fil_one" : selected.side;
+  const permissions = permissionsForRoles(normalizedRoles, {
+    side,
+    assisted: Boolean(activeAssistedSession),
+  });
   const actorEmail =
     activeAssistedSession?.actualActorEmail ?? selected.userEmail;
   const isInternalStaff = activeAssistedSession
@@ -628,6 +665,8 @@ async function workosCommerceSession(
       : identity.organizationId,
     accountIds,
     roles: normalizedRoles,
+    permissions,
+    side,
     isInternalStaff,
     mfaVerified,
     recentAuthenticationVerified,

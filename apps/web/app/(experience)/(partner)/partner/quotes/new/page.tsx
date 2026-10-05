@@ -1,6 +1,11 @@
 import { sql } from "drizzle-orm";
 
-import { ids, roles as commerceRoles, type Role } from "@clockwork/contracts";
+import {
+  ids,
+  roles as commerceRoles,
+  type Permission,
+  type Role,
+} from "@clockwork/contracts";
 import {
   withAuthorizedTransaction,
   withInternalTransaction,
@@ -108,7 +113,11 @@ interface PartnerCommercialTruth {
  */
 async function loadPartnerTruth(
   partnerAccountId: string,
-  session: { userId: string; roles: readonly string[] },
+  session: {
+    userId: string;
+    roles: readonly string[];
+    permissions: readonly Permission[];
+  },
 ): Promise<PartnerCommercialTruth | undefined> {
   const runtime = getOptionalRuntimeDatabase();
   if (!runtime) return undefined;
@@ -118,6 +127,7 @@ async function loadPartnerTruth(
       userId: ids.user.parse(session.userId),
       accountIds: [partnerAccountId],
       roles: session.roles.filter(isCommerceRole),
+      permissions: session.permissions,
       isInternalStaff: false,
       requestId: `partner-quote-options:${crypto.randomUUID()}`,
     },
@@ -252,6 +262,11 @@ async function ResaleQuoteWorkspace({
     getRouteIdentity("partner"),
     getRouteSession("partner"),
   ]);
+  // A referral partner introduces the client and Fil One bills it, so the
+  // partner never prices it: its organization does not confer the partner
+  // quote. It is told why, rather than shown a refusal.
+  if (!session.permissions.includes("partner:quote:write"))
+    return <NothingToQuote missing="referralRoute" />;
   if (demoDeployIdentityEnabled(process.env)) {
     const context = demoPartnerQuoteContext(
       await configuredDemoStateStore().read(),
@@ -268,6 +283,7 @@ async function ResaleQuoteWorkspace({
   const truth = await loadPartnerTruth(identity.accountId, {
     userId: identity.userId,
     roles: session.roles,
+    permissions: session.permissions,
   });
   if (!truth) return <NothingToQuote missing="agreement" />;
   const partnerPriced = partnerPricedRoute(truth.route);
@@ -309,7 +325,7 @@ export default async function Page({
   return (
     <SurfacePermissionGate
       audience="partner"
-      requiredPermission="partner:quote:write"
+      requiredPermission="deal:register"
     >
       <ResaleQuoteWorkspace reference={revises} />
     </SurfacePermissionGate>

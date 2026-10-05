@@ -31,7 +31,9 @@ const INTERNAL_VIEWPORTS = [
 ] as const;
 
 const INTERNAL_DESTINATIONS = [
-  "Operations",
+  "Home",
+  "Pricing",
+  "Operations health",
   "Global search",
   "Queues & approvals",
   "Renewals desk",
@@ -101,6 +103,9 @@ test.describe("internal operator operations journey", () => {
     // reads the session-scoped queue projection, so a fixture never adds rows.
     await expect(table.getByRole("row")).toHaveCount(7);
     await expect(page.getByText("6 results")).toBeVisible();
+    await expect(
+      table.getByText("Collections aging decision").first(),
+    ).toBeVisible();
     await expect(table.getByText("EXC-COL-008").first()).toBeVisible();
     // The projection carries no risk, age, or backup for these records, and the
     // surface says so instead of filling in a plausible value.
@@ -125,7 +130,7 @@ test.describe("internal operator operations journey", () => {
     // followed by the fifteen one-second receipt polls.
     await expect(
       page.getByText(
-        /^“review exception” was applied at authoritative version \d+\.$/i,
+        /^“review exception” was applied\. The record is now at version \d+\.$/i,
       ),
     ).toBeVisible({ timeout: 60_000 });
     await page.reload();
@@ -209,9 +214,7 @@ test.describe("internal operator operations journey", () => {
 
     await gotoHydrated(page, "/internal/assisted");
     await expect(page.getByLabel("Assisted mode active")).toHaveCount(0);
-    await expect(
-      page.getByText("The staff actor never changes."),
-    ).toBeVisible();
+    await expect(page.getByText("You stay the person acting.")).toBeVisible();
     await expect(
       page.getByText(/Demo internal operator · operator@filone.test/),
     ).toBeVisible();
@@ -241,6 +244,13 @@ test.describe("internal operator operations journey", () => {
     await trigger.click();
     const drawer = page.getByRole("dialog", { name: "Navigation" });
     await expect(drawer).toBeVisible();
+    // Operations groups sit closed behind the sales workspace; open each one.
+    // Opening a group changes which groups match, so always take the first.
+    const openOperationsGroups = async () => {
+      const closed = drawer.locator("details:not([open]) > summary");
+      while ((await closed.count()) > 0) await closed.first().click();
+    };
+    await openOperationsGroups();
     for (const destination of INTERNAL_DESTINATIONS) {
       await expectTargetSize(
         drawer.getByRole("link", { name: destination, exact: true }),
@@ -250,6 +260,7 @@ test.describe("internal operator operations journey", () => {
     await expect(drawer).toBeHidden();
     await expect(trigger).toBeFocused();
     await trigger.click();
+    await openOperationsGroups();
     await drawer
       .getByRole("link", { name: "Global search", exact: true })
       .click();
@@ -267,9 +278,10 @@ test.describe("internal operator operations journey", () => {
         page.getByRole("heading", { level: 3, name: lane }),
       ).toBeVisible();
     }
-    // Each lane states when it was read ("Read Sep 24, 2026, 11:31 AM UTC").
+    // Each lane states when it was read, in the reader's zone ("Read Sep 24,
+    // 2026, 11:31 AM EDT").
     await expect(
-      page.getByText(/^Read \w{3} \d{1,2}, \d{4}, \d{1,2}:\d{2} [AP]M UTC$/),
+      page.getByText(/^Read \w{3} \d{1,2}, \d{4}, \d{1,2}:\d{2} [AP]M \S+$/),
     ).toHaveCount(3);
     await expect(
       page.getByText("This status endpoint did not return a readable result."),
@@ -286,8 +298,9 @@ test.describe("internal operator operations journey", () => {
       page.getByRole("heading", { level: 1, name: "Queue record" }),
     ).toBeVisible();
     await expect(
+      // A single record's title follows the page title, with no level skipped.
       page.getByRole("heading", {
-        level: 3,
+        level: 2,
         name: "Collections aging decision",
       }),
     ).toBeVisible();
@@ -436,7 +449,8 @@ test.describe("internal responsive and accessibility coverage", () => {
     page,
   }) => {
     const surfaces = [
-      { path: "/internal", heading: "Operational health" },
+      { path: "/internal", heading: "My work" },
+      { path: "/internal/operations", heading: "Operational health" },
       {
         path: "/internal/queues?view=sla-breached",
         heading: "Operational queues",
@@ -482,6 +496,8 @@ test.describe("internal responsive and accessibility coverage", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     for (const path of [
       "/internal",
+      "/internal/operations",
+      "/internal/pricing",
       "/internal/queues",
       "/internal/reports",
       "/internal/revenue",

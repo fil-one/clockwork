@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 
-import { ids } from "@clockwork/contracts";
+import { ids, permissionsForRoles } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 
 import { createRuntimeDatabase } from "../../client";
@@ -62,6 +62,7 @@ async function scopedCurrency(
       userId: parsedUserId,
       accountIds: [scopedAccountId],
       roles: ["owner"],
+      permissions: permissionsForRoles(["owner"]),
       isInternalStaff: false,
       requestId: `quote-offer-currency-${runId}`,
     },

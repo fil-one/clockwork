@@ -5,10 +5,11 @@ import { getOptionalServiceDatabase } from "@/src/db/service";
 import { adminSafetyCopy } from "@/src/features/internal-ops/administration-safety/copy";
 import { demoGateText } from "@/src/features/internal-ops/administration-safety/data";
 import { GateRegister } from "@/src/features/internal-ops/administration-safety/gates";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { getRoutePermissions } from "@/src/features/shell/route-session";
 import { getLocale, getTranslations } from "@/src/i18n/server";
 
 import { loadConfiguredGateRecords } from "@/src/features/internal-ops/gates/server-gate-loader";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -22,15 +23,15 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t(adminSafetyCopy.gates.title) };
 }
 
-export default async function Page() {
-  const [roles, configured, locale] = await Promise.all([
-    getRouteRoles("internal"),
+async function Page() {
+  const [permissions, configured, locale] = await Promise.all([
+    getRoutePermissions("internal"),
     loadConfiguredGateRecords(gateService),
     getLocale(),
   ]);
   return (
     <GateRegister
-      roles={roles}
+      permissions={permissions}
       gates={configured.gates}
       source={configured.source}
       {...(configured.source === "System gate registry"
@@ -39,3 +40,5 @@ export default async function Page() {
     />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

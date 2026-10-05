@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import type { SessionClaims, SessionResolver } from "@clockwork/api";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -21,6 +22,7 @@ const session: SessionClaims = {
   organizationId: "30000000-0000-4000-8000-000000000001",
   accountIds: [accountA],
   roles: ["owner"],
+  permissions: permissionsForRoles(["owner"]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,

@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./contract-terms": "./src/contract-terms.ts",
     "./core": "./src/core/index.ts",
     "./lifecycle": "./src/lifecycle/index.ts",
     "./system": "./src/system/index.ts"

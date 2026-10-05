@@ -1,0 +1,316 @@
+.main {
+  display: grid;
+  min-width: 0;
+  gap: 1.5rem;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.header h1 {
+  margin: 0;
+  font-family: var(--cw-font-display);
+  font-size: var(--cw-text-display);
+  font-weight: 600;
+  line-height: var(--cw-leading-tight);
+}
+
+.description {
+  max-width: 48rem;
+  margin: 0.25rem 0 0;
+  color: var(--web-muted);
+  font-size: var(--cw-text-md);
+}
+
+.feedback:empty {
+  display: none;
+}
+
+.feedback {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.panel {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-md, 8px);
+  background: var(--cw-surface, #fff);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: var(--cw-text-lg, 1.125rem);
+  font-weight: 600;
+}
+
+.note {
+  max-width: 48rem;
+  margin: 0;
+  color: var(--web-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.roles dt {
+  font-weight: 600;
+}
+
+.roles dd {
+  margin: 0.25rem 0 0;
+  color: var(--web-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.inviteForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  align-items: start;
+  gap: 1rem;
+}
+
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.inviteForm .formActions {
+  grid-column: 1 / -1;
+}
+
+/* Wide screens read the people as a table: one row per person under a
+   visual header. Each row still names its own facts for assistive technology,
+   and on narrow screens the same markup stacks into cards. */
+.columns,
+.member {
+  display: grid;
+  grid-template-columns:
+    minmax(12rem, 1.4fr) minmax(11rem, 1.3fr) minmax(9rem, 1fr)
+    minmax(7rem, 0.7fr) minmax(12rem, 1.2fr);
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.columns {
+  border-bottom: 1px solid var(--cw-border);
+  padding: 0 0 0.5rem;
+  color: var(--web-muted);
+  font-size: var(--cw-text-xs);
+  font-weight: 600;
+  letter-spacing: var(--cw-label-tracking);
+  text-transform: var(--cw-label-transform);
+}
+
+.members {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member {
+  border-bottom: 1px solid var(--cw-border);
+  padding: 0.75rem 0;
+}
+
+.member:last-child {
+  border-bottom: 0;
+}
+
+.identity {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.email {
+  flex-basis: 100%;
+  min-width: 0;
+  color: var(--web-muted);
+  font-size: var(--cw-text-sm);
+  overflow-wrap: anywhere;
+}
+
+/* The facts sit in the middle three columns of the row. */
+.facts {
+  display: contents;
+}
+
+.facts > div {
+  min-width: 0;
+}
+
+.facts dt {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.access {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  border: 1px solid var(--cw-border);
+  border-radius: 999px;
+  background: var(--cw-canvas-deep, transparent);
+  padding: 0.125rem 0.55rem;
+  font-size: var(--cw-text-xs);
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* The first chip is the primary role, which picks the home page. */
+.chip:first-child {
+  border-color: var(--cw-info-border, var(--cw-border));
+  background: var(--cw-info-soft, transparent);
+}
+
+.disclosure {
+  white-space: nowrap;
+}
+
+.permissions {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.5rem;
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-canvas-deep, transparent);
+  padding: 0.75rem 1rem;
+}
+
+.permissions[hidden] {
+  display: none;
+}
+
+.permissionList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: 0.25rem 1.5rem;
+  margin: 0;
+  padding-inline-start: 1.1rem;
+  font-size: var(--cw-text-sm);
+}
+
+.dialogBody {
+  display: grid;
+  gap: 1rem;
+}
+
+.roleOptions {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.roleOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--cw-border);
+  padding: 0.65rem 0;
+}
+
+.roleOption:last-child {
+  border-bottom: 0;
+}
+
+.roleOption > div {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.roleOption p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--web-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.primaryNote {
+  color: var(--web-muted);
+  font-size: var(--cw-text-xs);
+}
+
+.confirm {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-canvas-deep, transparent);
+  padding: 0.75rem;
+}
+
+.confirm p {
+  margin: 0;
+  font-size: var(--cw-text-sm);
+}
+
+@media (max-width: 64rem) {
+  .columns {
+    display: none;
+  }
+
+  .member {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 1rem 0;
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+    gap: 0.75rem;
+  }
+
+  .facts dt {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    color: var(--web-muted);
+    font-size: var(--cw-text-xs);
+    font-weight: 600;
+  }
+}

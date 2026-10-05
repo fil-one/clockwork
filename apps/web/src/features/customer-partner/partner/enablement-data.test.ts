@@ -3,6 +3,8 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import { navigation } from "@/src/features/shell/navigation";
 
 import {
@@ -38,18 +40,31 @@ describe("partner enablement destinations", () => {
   });
 
   it("filters administrative money and account work from sellers", () => {
-    const seller = internalEnablementItems(["partner_seller"]);
-    const admin = internalEnablementItems(["partner_admin"]);
+    const seller = internalEnablementItems(
+      permissionsForRoles(["partner_seller"]),
+    );
+    const admin = internalEnablementItems(
+      permissionsForRoles(["partner_admin"]),
+    );
     expect(seller.map((item) => item.href)).toContain("/partner/registrations");
     expect(seller.map((item) => item.href)).not.toContain(
       "/partner/commissions",
     );
     expect(admin.map((item) => item.href)).toContain("/partner/commissions");
     expect(admin.length).toBeGreaterThan(seller.length);
-    expect(internalEnablementItems(["owner"])).toEqual([]);
+    expect(internalEnablementItems(permissionsForRoles(["owner"]))).toEqual([]);
   });
 
-  it("keeps internal audience roles aligned with partner navigation", () => {
+  it("gives a referral partner the same partner work its role reaches", () => {
+    const referral = internalEnablementItems(
+      permissionsForRoles(["partner_admin"], { side: "referral_partner" }),
+    ).map((item) => item.href);
+    expect(referral).toContain("/partner/registrations");
+    expect(referral).toContain("/partner/commissions");
+    expect(referral).not.toContain("/partner/quotes/new");
+  });
+
+  it("keeps internal audience permissions aligned with partner navigation", () => {
     const partnerNavigation = new Map(
       navigation.partner.map((item) => [item.href, item]),
     );
@@ -60,8 +75,8 @@ describe("partner enablement destinations", () => {
     )) {
       const navItem = partnerNavigation.get(item.href);
       expect(navItem, item.href).toBeDefined();
-      expect(new Set(item.allowedRoles)).toEqual(
-        new Set(navItem?.allowedRoles ?? ["partner_admin", "partner_seller"]),
+      expect(item.requiredPermission).toBe(
+        navItem?.requiredPermission ?? "deal:register",
       );
     }
   });

@@ -1,4 +1,5 @@
 import type { SessionClaims } from "@clockwork/api";
+import { permissionsForRoles, type Role } from "@clockwork/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -16,6 +17,7 @@ function assisted(overrides: Partial<SessionClaims> = {}): SessionClaims {
     userId: staffUser,
     accountIds: [],
     roles: ["internal_operator"],
+    permissions: permissionsForRoles(["internal_operator"], { assisted: true }),
     isInternalStaff: true,
     mfaVerified: true,
     recentAuthenticationVerified: true,
@@ -39,6 +41,9 @@ describe("experience assisted authorization", () => {
       userId: staffUser,
       accountIds: [accountA],
       roles: ["internal_operator"],
+      permissions: permissionsForRoles(["internal_operator"], {
+        assisted: true,
+      }),
       isInternalStaff: true,
       requestId: "request-12345678",
     });
@@ -70,11 +75,58 @@ describe("experience assisted authorization", () => {
     );
   });
 
+  it("signs an assisted session's withheld approvals into the database context", () => {
+    const session = assisted({
+      roles: ["commerce_admin"],
+      permissions: permissionsForRoles(["commerce_admin"], { assisted: true }),
+    });
+    const context = authorizationContext(session, "request-12345678");
+    expect(context.permissions).not.toContain("quote:approve");
+    expect(context.permissions).toContain("operations:write");
+  });
+
   it("never lets unassisted staff enter a tenant audience", () => {
     const { impersonation, ...session } = assisted();
     expect(impersonation).toBeDefined();
     expect(() => requireAudience(session, "customer")).toThrow(
       "audited assisted session",
     );
+  });
+});
+
+describe("tenant portal audiences", () => {
+  function tenant(
+    role: Role,
+    side?: "customer" | "channel_partner" | "referral_partner",
+  ): SessionClaims {
+    return {
+      userId: "20000000-0000-4000-8000-000000000002",
+      accountIds: [accountA],
+      roles: [role],
+      permissions: permissionsForRoles([role], side ? { side } : {}),
+      isInternalStaff: false,
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    };
+  }
+
+  it.each([
+    ["owner", undefined, "customer"],
+    ["member", undefined, "customer"],
+    ["partner_admin", "channel_partner", "partner"],
+    ["partner_seller", "referral_partner", "partner"],
+  ] as const)("admits %s only to its own portal", (role, side, audience) => {
+    const session = tenant(role, side);
+    const other = audience === "customer" ? "partner" : "customer";
+    expect(() => requireAudience(session, audience)).not.toThrow();
+    expect(() => requireAudience(session, other)).toThrow(
+      "Portal audience access denied",
+    );
+  });
+
+  it("refuses a tenant session that holds no permissions", () => {
+    expect(() =>
+      requireAudience({ ...tenant("owner"), permissions: [] }, "customer"),
+    ).toThrow("Portal audience access denied");
   });
 });

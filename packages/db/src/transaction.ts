@@ -2,7 +2,13 @@ import { createHmac } from "node:crypto";
 
 import { sql } from "drizzle-orm";
 
-import type { Role, UserId } from "@clockwork/contracts";
+import { contextPermissions } from "@clockwork/contracts";
+import type {
+  OrganizationSide,
+  Permission,
+  Role,
+  UserId,
+} from "@clockwork/contracts";
 
 import {
   configuredServiceConnectionRole,
@@ -14,6 +20,10 @@ export interface DatabaseAuthorizationContext {
   userId: UserId;
   accountIds: readonly string[];
   roles: readonly Role[];
+  /** The permissions the database policies test, as the session holds them. */
+  permissions: readonly Permission[];
+  /** The side of the organization the session acts in, when known. */
+  side?: OrganizationSide;
   isInternalStaff: boolean;
   requestId: string;
 }
@@ -78,6 +88,8 @@ export async function withAuthorizedTransaction<T>(
     userId: context.userId,
     accountIds: context.accountIds,
     roles: context.roles,
+    permissions: contextPermissions(context),
+    ...(context.side ? { side: context.side } : {}),
     isInternalStaff: context.isInternalStaff,
     requestId: context.requestId,
     expiresAt,

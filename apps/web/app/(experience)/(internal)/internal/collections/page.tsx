@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 
+import { BillingOffNotice } from "@/src/features/internal-ops/billing-off-notice";
+
 import { getTranslations } from "@/src/i18n/server";
 import { CollectionsView } from "@/src/features/internal-ops/finance-lifecycle/collections-view";
 import { loadCollectionsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { getRoutePermissions } from "@/src/features/shell/route-session";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +23,10 @@ export async function generateMetadata(): Promise<Metadata> {
  * approval permission to open the page denied the read to the operators who
  * are expected to triage it.
  */
-export default async function Page() {
-  const [workspace, roles] = await Promise.all([
+async function Page() {
+  const [workspace, permissions] = await Promise.all([
     loadCollectionsWorkspace(),
-    getRouteRoles("internal"),
+    getRoutePermissions("internal"),
   ]);
   return (
     <SurfacePermissionGate
@@ -32,9 +35,12 @@ export default async function Page() {
     >
       <CollectionsView
         cases={workspace.items}
-        roles={roles}
+        permissions={permissions}
         provenance={workspace.provenance}
+        notice={<BillingOffNotice />}
       />
     </SurfacePermissionGate>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

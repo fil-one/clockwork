@@ -5,6 +5,7 @@ import type { MessageId, Translator } from "@/src/i18n";
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { Permission } from "@clockwork/contracts";
 import type {
   PaygOfferCommand,
   PaygOfferRecord,
@@ -93,7 +94,11 @@ function decimalStorage(
   }).format(`${count / scale}.${fraction}` as Intl.StringNumericLiteral);
 }
 
-/** An ISO timestamp in the reader's format, in UTC and labelled as UTC. */
+/**
+ * An ISO timestamp in the reader's format, in UTC and labelled as UTC. Trial
+ * and enrollment start and end instants are commercial terms the customer
+ * accepted in UTC, so they stay in UTC rather than the reader's zone.
+ */
 function utcTimestamp(value: string, locale: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.valueOf())) return value;
@@ -1298,13 +1303,13 @@ export function PaygOfferAdministration({
   offers: initial,
   demo = false,
   available,
-  roles,
+  permissions,
   userId,
 }: {
   offers: readonly PaygOfferRecord[];
   demo?: boolean;
   available: boolean;
-  roles: readonly string[];
+  permissions: readonly Permission[];
   userId: string;
 }) {
   const t = useTranslations();
@@ -1316,7 +1321,7 @@ export function PaygOfferAdministration({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const canManage = roles.includes("finance_approver");
+  const canManage = permissions.includes("quote:approve");
   async function run(body: PaygOfferCommand) {
     setBusy(true);
     setError("");

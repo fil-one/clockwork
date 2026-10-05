@@ -2,6 +2,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import { AppShell } from "./app-shell";
 import type { RouteSession } from "./route-session";
 
@@ -29,6 +31,7 @@ globalThis.ResizeObserver ??= class {
 
 const session: RouteSession = {
   roles: ["internal_operator"],
+  permissions: permissionsForRoles(["internal_operator"], { side: "fil_one" }),
   profile: { name: "Demo internal operator", email: "operator@filone.test" },
   locale: "en-US",
   timeZone: "UTC",
@@ -44,6 +47,8 @@ const session: RouteSession = {
       accountId: "10000000-0000-4000-8000-000000000008",
       accountName: "Fil One Internal Operations",
       role: "internal_operator",
+      roles: ["internal_operator"],
+      side: "fil_one",
       audience: "internal",
       home: "/internal",
     },

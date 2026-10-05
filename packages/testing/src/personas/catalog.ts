@@ -1,4 +1,4 @@
-import type { Role } from "@clockwork/contracts";
+import type { OrganizationSide, Role } from "@clockwork/contracts";
 
 export const DEMO_PERSONA_HEADER = "x-clockwork-persona";
 export const DEMO_ACCOUNT_HEADER = "x-clockwork-account";
@@ -13,10 +13,13 @@ export type DemoPersonaKind =
   | "billing_user"
   | "legal_approver"
   | "finance_approver"
-  | "internal_operator";
+  | "internal_operator"
+  | "revenue"
+  | "commerce_admin";
 
 export type DemoPersonaKey =
   | "billingUser"
+  | "commerceAdmin"
   | "directBuyer"
   | "distributor"
   | "endClient"
@@ -24,7 +27,8 @@ export type DemoPersonaKey =
   | "internalOperator"
   | "legalApprover"
   | "referralPartner"
-  | "reseller";
+  | "reseller"
+  | "revenueSeller";
 
 /**
  * A demo identity. Only facts live here: names, ids, role and regional
@@ -61,6 +65,8 @@ const userIds = {
   legalApprover: "21000000-0000-4000-8000-000000000007",
   financeApprover: "21000000-0000-4000-8000-000000000008",
   internalOperator: "21000000-0000-4000-8000-000000000009",
+  revenueSeller: "21000000-0000-4000-8000-000000000010",
+  commerceAdmin: "21000000-0000-4000-8000-000000000011",
 } as const;
 
 export const demoAccountIds = {
@@ -244,6 +250,40 @@ export const demoPersonas = {
     isInternalStaff: true,
     assistedAccountId: demoAccountIds.reseller,
   },
+  revenueSeller: {
+    key: "revenueSeller",
+    kind: "revenue",
+    displayName: "Priya Raman",
+    email: "priya.raman@fil-one-internal.test",
+    userId: userIds.revenueSeller,
+    organizationId: organizationIds.internal,
+    selectedAccountId: demoAccountIds.direct,
+    accessibleAccountIds: [],
+    role: "revenue",
+    startRoute: "/internal",
+    locale: "en-US",
+    timeZone: "America/New_York",
+    currency: "USD",
+    mfaVerified: true,
+    isInternalStaff: true,
+  },
+  commerceAdmin: {
+    key: "commerceAdmin",
+    kind: "commerce_admin",
+    displayName: "Elena Brooks",
+    email: "elena.brooks@fil-one-internal.test",
+    userId: userIds.commerceAdmin,
+    organizationId: organizationIds.internal,
+    selectedAccountId: demoAccountIds.direct,
+    accessibleAccountIds: [],
+    role: "commerce_admin",
+    startRoute: "/internal",
+    locale: "en-US",
+    timeZone: "America/New_York",
+    currency: "USD",
+    mfaVerified: true,
+    isInternalStaff: true,
+  },
 } as const satisfies Record<DemoPersonaKey, DemoPersona>;
 
 export function demoPersonaHeaders(persona: DemoPersonaKey) {
@@ -257,4 +297,23 @@ export function demoPersonaHeaders(persona: DemoPersonaKey) {
 
 export function getDemoPersona(persona: DemoPersonaKey): DemoPersona {
   return demoPersonas[persona];
+}
+
+const sideByKind = {
+  direct_buyer: "customer",
+  end_client: "customer",
+  billing_user: "customer",
+  referral_partner: "referral_partner",
+  reseller: "channel_partner",
+  distributor: "channel_partner",
+  legal_approver: "fil_one",
+  finance_approver: "fil_one",
+  internal_operator: "fil_one",
+  revenue: "fil_one",
+  commerce_admin: "fil_one",
+} as const satisfies Record<DemoPersonaKind, OrganizationSide>;
+
+/** The side of the organization a persona works in. */
+export function demoPersonaSide(persona: DemoPersona): OrganizationSide {
+  return sideByKind[persona.kind];
 }

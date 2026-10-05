@@ -19,7 +19,7 @@
     "generate": "pnpm --filter @clockwork/api generate",
     "generate:baseline": "node scripts/generate-baseline-manifests.mjs",
     "generate:schedules": "tsx scripts/generate-schedule-manifest.mjs",
-    "check:generated": "pnpm generate && git diff --exit-code -- packages/api/src/generated && pnpm generate:schedules && git diff --exit-code -- deploy/app/schedule-manifest.json",
+    "check:generated": "pnpm generate && git diff --exit-code -- packages/api/src/generated && pnpm generate:schedules && git diff --exit-code -- deploy/app/schedule-manifest.json && tsx scripts/generate-access-model.ts --check",
     "check:traceability": "node scripts/validate-traceability.mjs",
     "check:schema-drift": "tsx scripts/check-schema-drift.mjs",
     "check:citation-liveness": "node scripts/check-citation-liveness.mjs",
@@ -55,7 +55,9 @@
     "release:compare": "node scripts/compare-release-results.mjs",
     "release:benchmark": "node scripts/benchmark-release.mjs",
     "verify": "pnpm verify:static && pnpm verify:database && pnpm verify:build && pnpm verify:ui",
-    "bootstrap:production": "tsx scripts/bootstrap-production.ts"
+    "bootstrap:production": "tsx scripts/bootstrap-production.ts",
+    "generate:access-model": "tsx scripts/generate-access-model.ts",
+    "test:db:permission-upgrade": "tsx scripts/qualify-permission-upgrade.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

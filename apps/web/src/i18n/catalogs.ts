@@ -17,8 +17,12 @@ import { experienceDataMessages } from "./messages/experience-data";
 import { operationsMessages } from "./messages/operations";
 import { operationsFinanceMessages } from "./messages/operations-finance";
 import { mndaMessages } from "./messages/operations-mnda";
+import { contractMessages } from "./messages/operations-contracts";
 import { partnerMessages } from "./messages/partner";
 import { platformMessages } from "./messages/platform";
+import { platformAccessMessages } from "./messages/platform-access";
+import { salesMessages } from "./messages/operations-sales";
+import { teamMessages } from "./messages/operations-team";
 import {
   createTranslator,
   type CatalogEntry,
@@ -62,10 +66,16 @@ export const messageModules = {
       ...operationsMessages,
       ...operationsFinanceMessages,
       ...mndaMessages,
+      ...salesMessages,
+      ...teamMessages,
+      ...contractMessages,
     },
     prefixes: ["operations."],
   },
-  platform: { messages: platformMessages, prefixes: ["platform."] },
+  platform: {
+    messages: { ...platformMessages, ...platformAccessMessages },
+    prefixes: ["platform."],
+  },
   demo: { messages: demoMessages, prefixes: ["demo."] },
 } as const satisfies Record<
   string,

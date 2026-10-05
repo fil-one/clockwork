@@ -1,11 +1,25 @@
+import type { Permission, Role } from "@clockwork/contracts";
+
 import type { SystemCapabilityKey } from "./capabilities";
 
-export function capabilityApprovalRole(key: SystemCapabilityKey): string {
+/** The role whose name the console shows as the approver of a switch. */
+export function capabilityApprovalRole(key: SystemCapabilityKey): Role {
   return key === "legal"
     ? "legal_approver"
     : key === "teardown"
       ? "destructive_action_approver"
       : "finance_approver";
+}
+
+/** The permission that decides a request to turn a switch on. */
+export function capabilityApprovalPermission(
+  key: SystemCapabilityKey,
+): Permission {
+  return key === "legal"
+    ? "agreement:approve"
+    : key === "teardown"
+      ? "destructive:approve"
+      : "quote:approve";
 }
 
 export function assertCapabilityDecision(input: {

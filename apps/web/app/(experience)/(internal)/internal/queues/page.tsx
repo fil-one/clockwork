@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
-import { operationalRoles } from "@/src/features/internal-ops/queue-search/model";
 import { QueueWorkspace } from "@/src/features/internal-ops/queue-search/queue-workspace";
 import { loadQueueWorkspace } from "@/src/features/internal-ops/queue-search/server-loader";
 import { getRouteSession } from "@/src/features/shell/route-session";
 import { getTranslations } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
   return { title: t("operations.queue.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const [session, workspace] = await Promise.all([
     getRouteSession("internal"),
     loadQueueWorkspace(),
@@ -22,7 +22,7 @@ export default async function Page() {
   );
   return (
     <QueueWorkspace
-      roles={operationalRoles(session.roles)}
+      permissions={session.permissions}
       items={workspace.items}
       generatedAt={workspace.generatedAt}
       stale={workspace.stale}
@@ -31,3 +31,5 @@ export default async function Page() {
     />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

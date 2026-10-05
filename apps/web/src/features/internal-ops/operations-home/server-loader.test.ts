@@ -50,6 +50,11 @@ vi.mock("@/src/features/experience-server/portal-view-loader", () => ({
   }),
 }));
 
+vi.mock("@/src/features/shell/route-session", () => ({
+  getRouteSession: vi.fn(() => Promise.resolve({ providerBacked: false })),
+}));
+
+import { capabilityStateFrom } from "../capability-state-model";
 import { loadOperationsHome } from "./server-loader";
 
 const now = new Date("2026-08-15T09:20:00.000Z");
@@ -104,5 +109,29 @@ describe("operations home signals", () => {
       expect(signal.action).not.toBe(source?.action);
       expect(signal.detail).not.toBe(source?.detail);
     }
+  });
+
+  it("lists billing work while any billing work can run", async () => {
+    const channels = async (enabled: boolean, recoveryEnabled: boolean) =>
+      (
+        await loadOperationsHome(
+          now,
+          translatorFor("en"),
+          "en-US",
+          capabilityStateFrom([
+            { capabilityKey: "billing", enabled, recoveryEnabled },
+          ]),
+        )
+      ).signals.map((signal) => signal.channel);
+    const all = ["queues", "provisioning", "collections", "orders", "reports"];
+
+    expect(await channels(false, false)).toEqual([
+      "queues",
+      "orders",
+      "reports",
+    ]);
+    // Recovery alone keeps the work listed: invoices in flight still finish.
+    expect(await channels(false, true)).toEqual(all);
+    expect(await channels(true, false)).toEqual(all);
   });
 });

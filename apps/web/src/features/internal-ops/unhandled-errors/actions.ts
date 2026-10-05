@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { hasPermission } from "@clockwork/contracts";
+import { contextHasPermission } from "@clockwork/contracts";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { requireRecentAuthentication } from "@/src/auth/session";
@@ -78,8 +78,7 @@ export async function decideUnhandledError(
   }
 
   const permitted =
-    session.isInternalStaff &&
-    session.roles.some((role) => hasPermission(role, "system:operate"));
+    session.isInternalStaff && contextHasPermission(session, "system:operate");
   if (!permitted) return { ok: false, code: "UNHANDLED_ERROR_FORBIDDEN" };
 
   if (demoEnabled && !database) {

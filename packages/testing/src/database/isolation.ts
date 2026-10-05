@@ -8,6 +8,11 @@ export interface TestDatabaseContext {
     userId: string;
     accountIds: readonly string[];
     roles?: readonly string[];
+    /**
+     * The signed permissions. Without them the database derives them from
+     * the roles, as it does for any claim that carries none.
+     */
+    permissions?: readonly string[];
     isInternal?: boolean;
   }): Promise<void>;
 }
@@ -26,6 +31,7 @@ export async function withSupabaseRollback<T>(
         userId,
         accountIds,
         roles = ["member"],
+        permissions,
         isInternal = false,
       }) => {
         if (isInternal) {
@@ -39,6 +45,7 @@ export async function withSupabaseRollback<T>(
           userId,
           accountIds,
           roles,
+          ...(permissions ? { permissions } : {}),
           isInternalStaff: false,
           requestId: "test-rollback-context",
           expiresAt: new Date(Date.now() + 60_000).toISOString(),

@@ -1,13 +1,15 @@
 "use client";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 import type { MessageId } from "@/src/i18n";
 
 import { useMemo, useState, type ReactNode } from "react";
 
+import type { Permission } from "@clockwork/contracts";
 import { Table } from "@clockwork/ui";
 
 import { formatDate } from "@/src/features/shared/format";
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 
 import {
   adminSafetyCopy,
@@ -44,13 +46,13 @@ const jurisdictions = Object.keys(
 const states = Object.keys(agreementStateLabels) as AgreementVersionState[];
 
 export function AgreementAdministration({
-  roles,
+  permissions,
   versions,
   scannedAt,
   publishAction,
   readOnly = false,
 }: {
-  roles: readonly string[];
+  permissions: readonly Permission[];
   /** Template versions with their demo text resolved for this reader. */
   versions: readonly AgreementVersionView[];
   /** ISO timestamp of the version scan these rows come from. */
@@ -76,7 +78,7 @@ export function AgreementAdministration({
   );
   const [reason, setReason] = useState("");
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
-  const permitted = canDecide(roles, "legal");
+  const permitted = canDecide(permissions, "legal");
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -130,10 +132,10 @@ export function AgreementAdministration({
               {t("adminGovernance.agreements.scanHeading")}
             </h2>
             <p>
-              {t("adminGovernance.agreements.scanMeta", {
-                // Internal pages state times in UTC, like every other
-                // operator page; this one used a fixed New York zone.
-                time: formatOperationalTimestamp(scannedAt, formattingLocale),
+              {richText(t, "adminGovernance.agreements.scanMeta", {
+                time: (
+                  <LocalTimestamp value={scannedAt} locale={formattingLocale} />
+                ),
               })}
             </p>
           </div>

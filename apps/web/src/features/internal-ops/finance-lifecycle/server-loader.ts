@@ -5,9 +5,11 @@ import { loadPortalRecords } from "@/src/features/experience-server/portal-view-
 import {
   billingAccountsByOrder,
   collectionCaseFromProjection,
+  customerAccountsByOrder,
   prioritizeCollectionCases,
   type CollectionCase,
 } from "./collections-projection";
+import { accountNamesFromProjection } from "./account-names";
 import type { SurfaceProvenance } from "./provenance";
 import {
   prioritizeProvisioningWork,
@@ -48,12 +50,18 @@ function provenance(
     pagesRead: number;
     recordCount: number;
   },
+  /**
+   * Reads the rows are joined with (names, billing accounts). A stale or
+   * truncated join (a truncated read is stale by construction) makes the
+   * surface stale too, because a row may show a missing or old name.
+   */
+  joined: readonly { stale: boolean }[] = [],
 ): SurfaceProvenance {
   return {
     kind: "projection",
     channel,
     generatedAt: page.generatedAt,
-    stale: page.stale,
+    stale: page.stale || joined.some((read) => read.stale),
     pagesRead: page.pagesRead,
     recordCount: page.recordCount,
   };
@@ -74,18 +82,30 @@ export interface CollectionsWorkspace extends ProjectionWorkspace<
 export async function loadCollectionsWorkspace(
   now: Date = new Date(),
 ): Promise<CollectionsWorkspace> {
-  const [invoicePage, orderPage] = await Promise.all([
+  const [invoicePage, orderPage, accountPage] = await Promise.all([
     loadPortalRecords("internal", "collections"),
     loadPortalRecords("internal", "orders"),
+    loadPortalRecords("internal", "dashboard"),
   ]);
   const billingAccounts = billingAccountsByOrder(orderPage.records);
+  const customerAccounts = customerAccountsByOrder(orderPage.records);
+  const accountNames = accountNamesFromProjection(accountPage.records);
   return {
     items: prioritizeCollectionCases(
       invoicePage.records.map((record) =>
-        collectionCaseFromProjection(record, billingAccounts, now),
+        collectionCaseFromProjection(
+          record,
+          billingAccounts,
+          now,
+          accountNames,
+          customerAccounts,
+        ),
       ),
     ),
-    provenance: provenance("collections", invoicePage),
+    provenance: provenance("collections", invoicePage, [
+      orderPage,
+      accountPage,
+    ]),
     orderProvenance: provenance("orders", orderPage),
   };
 }
@@ -161,18 +181,20 @@ export interface RenewalsWorkspace extends ProjectionWorkspace<
 export async function loadRenewalsWorkspace(
   now: Date = new Date(),
 ): Promise<RenewalsWorkspace> {
-  const [orderPage, invoicePage] = await Promise.all([
+  const [orderPage, invoicePage, accountPage] = await Promise.all([
     loadPortalRecords("internal", "orders"),
     loadPortalRecords("internal", "collections"),
+    loadPortalRecords("internal", "dashboard"),
   ]);
   const totals = invoiceTotalsByOrder(invoicePage.records);
+  const accountNames = accountNamesFromProjection(accountPage.records);
   const orders = orderPage.records.map((record) =>
-    renewalOrderFromProjection(record, totals, now),
+    renewalOrderFromProjection(record, totals, now, accountNames),
   );
   return {
     items: groupRenewalOrders(orders),
     orders,
-    provenance: provenance("orders", orderPage),
+    provenance: provenance("orders", orderPage, [accountPage]),
     invoiceProvenance: provenance("collections", invoicePage),
   };
 }

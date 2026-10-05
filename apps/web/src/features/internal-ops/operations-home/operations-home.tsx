@@ -3,13 +3,13 @@ import {
   getLocale,
   getTranslations,
 } from "@/src/i18n/server";
-import { use } from "react";
+import { use, type ReactNode } from "react";
 import Link from "next/link";
 
 import { rtlLocales, type MessageId } from "@/src/i18n";
 import { richText } from "@/src/i18n/rich";
 
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import type { OperationsHomeData, OperationalSignal } from "./server-loader";
 import styles from "./operations-home.module.css";
 
@@ -29,11 +29,7 @@ function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
   const forward = rtlLocales.has(use(getLocale())) ? "←" : "→";
   return signals.map((signal) => {
     const area = areaLabels[signal.channel];
-    const time = (
-      <time dateTime={signal.generatedAt}>
-        {formatOperationalTimestamp(signal.generatedAt, locale)}
-      </time>
-    );
+    const time = <LocalTimestamp value={signal.generatedAt} locale={locale} />;
     return (
       <tr key={signal.channel} data-tone={signal.tone}>
         <th scope="row">
@@ -81,7 +77,14 @@ function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
 const MY_QUEUE_HREF =
   "/internal/queues?view=assigned-to-me&sort=sla-risk-age&page=1&pageSize=25" as const;
 
-export function OperationsHome({ data }: { data: OperationsHomeData }) {
+export function OperationsHome({
+  data,
+  renewals,
+}: {
+  data: OperationsHomeData;
+  /** The contract renewal notices card, when the page supplies one. */
+  renewals?: ReactNode;
+}) {
   const t = use(getTranslations());
   const locale = use(getFormattingLocale());
   const staleAreas = data.staleChannels.map((channel) => {
@@ -97,11 +100,7 @@ export function OperationsHome({ data }: { data: OperationsHomeData }) {
         </div>
         <p className={styles.freshness} role="status">
           {richText(t, "common.updatedAt", {
-            time: (
-              <time dateTime={data.generatedAt}>
-                {formatOperationalTimestamp(data.generatedAt, locale)}
-              </time>
-            ),
+            time: <LocalTimestamp value={data.generatedAt} locale={locale} />,
           })}
         </p>
       </header>
@@ -116,6 +115,8 @@ export function OperationsHome({ data }: { data: OperationsHomeData }) {
           })}
         </p>
       ) : null}
+
+      {renewals}
 
       <section aria-labelledby="action-health-title">
         <div className={styles.sectionHeading}>
