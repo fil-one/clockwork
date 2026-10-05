@@ -71,7 +71,7 @@ interface DurableActionRow {
 }
 
 const customerAccount = "10000000-0000-4000-8000-000000000001";
-const partnerAccount = "10000000-0000-4000-8000-000000000002";
+const partnerAccount = "10000000-0000-4000-8000-000000000003";
 
 function expectProductionRequestShape(page: Page) {
   const forbidden: string[] = [];
@@ -914,7 +914,7 @@ test("@partner drives only authorized resale records and cannot read customer tr
   await page.reload();
   await expect(authorizedAccountRow).toBeVisible();
   await expectDurableActions(
-    "20000000-0000-4000-8000-000000000003",
+    "20000000-0000-4000-8000-000000000008",
     durableActions,
   );
   assertHeaders();

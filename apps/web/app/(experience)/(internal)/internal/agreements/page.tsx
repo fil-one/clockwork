@@ -16,7 +16,7 @@ import { AdministrationPage } from "@/src/features/internal-ops/administration-s
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
 import { formatDate } from "@/src/features/shared/format";
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { getRoutePermissions } from "@/src/features/shell/route-session";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 import {
   explicitDemoIdentityEnabled,
@@ -56,7 +56,7 @@ async function Page() {
     const locale = await getLocale();
     return (
       <AgreementAdministration
-        roles={await getRouteRoles("internal")}
+        permissions={await getRoutePermissions("internal")}
         versions={resolveDemoText(agreementVersions, locale)}
         scannedAt={agreementScanAt}
         readOnly

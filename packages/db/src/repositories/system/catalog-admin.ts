@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Actor } from "@clockwork/contracts";
 import { sanitizeActivationEvidenceReference } from "@clockwork/domain/system";
@@ -14,6 +14,7 @@ import { providerResourceBindings } from "../../schema/system/providers";
 import { priceBookSchedules } from "../../schema/core/price-book-schedules";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
+import { membershipHasAnyPermission } from "../membership-permissions";
 
 export const CatalogMappingSchema = z
   .object({
@@ -132,11 +133,7 @@ export class DatabaseCatalogAdmin {
             eq(commerceUsers.id, input.actor.id),
             eq(commerceUsers.isInternalStaff, true),
             eq(commerceUsers.mfaEnrolled, true),
-            inArray(memberships.role, [
-              "internal_operator",
-              "finance_approver",
-              "commerce_admin",
-            ]),
+            membershipHasAnyPermission(["operations:write", "quote:approve"]),
           ),
         )
         .limit(1);

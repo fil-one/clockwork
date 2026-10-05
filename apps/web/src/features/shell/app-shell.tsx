@@ -14,7 +14,7 @@ import {
   useTransition,
 } from "react";
 
-import { rolesHavePermission } from "@clockwork/contracts";
+import type { Permission } from "@clockwork/contracts";
 import {
   AppShell as StructuralAppShell,
   ArrowLeftRight,
@@ -144,6 +144,7 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
 
 /** Drawings for the icon names a navigation entry can declare. */
 const namedNavigationIcons: Readonly<Record<NavigationIconName, ReactNode>> = {
+  owner: <ShieldCheck size={19} strokeWidth={1.8} />,
   home: <LayoutDashboard size={19} strokeWidth={1.8} />,
   document: <FileText size={19} strokeWidth={1.8} />,
   contract: <FileSignature size={19} strokeWidth={1.8} />,
@@ -401,13 +402,13 @@ function ShellUtilities({
   commandItems,
   profile,
   providerBacked,
-  roles,
+  permissions,
 }: {
   audience: ExperienceAudience;
   commandItems: readonly CommandPaletteItem[];
   profile: RouteSession["profile"];
   providerBacked: boolean;
-  roles: readonly string[];
+  permissions: readonly Permission[];
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -416,7 +417,7 @@ function ShellUtilities({
   const internalHelp =
     audience !== "internal"
       ? null
-      : rolesHavePermission(roles, "operations:read")
+      : permissions.includes("operations:read")
         ? "operations"
         : "sales";
   const helpHref: Route =
@@ -565,7 +566,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const t = useTranslations();
-  const roles = session.roles;
+  const permissions = session.permissions;
   const pathname = usePathname();
   const router = useRouter();
   const [hydrated, setHydrated] = useState(false);
@@ -575,19 +576,19 @@ export function AppShell({
     () =>
       getCommandItems(
         audience,
-        roles,
+        permissions,
         {
           providerBacked: session.providerBacked,
         },
         t,
       ),
-    [audience, roles, session.providerBacked, t],
+    [audience, permissions, session.providerBacked, t],
   );
   const navigationGroups = useMemo<readonly NavigationGroup[]>(() => {
     const remaining = new Map(
       navigation[audience]
         .filter((item) => !item.providerBackedOnly || session.providerBacked)
-        .filter((item) => canAccessNavigationItem(item, roles))
+        .filter((item) => canAccessNavigationItem(item, permissions))
         .map((item) => [
           item.href as string,
           {
@@ -636,7 +637,7 @@ export function AppShell({
       });
     }
     return sections.filter((section) => section.items.length > 0);
-  }, [audience, pathname, roles, session.providerBacked, t]);
+  }, [audience, pathname, permissions, session.providerBacked, t]);
 
   /**
    * A client transition replaces the content of the page without a document
@@ -757,7 +758,7 @@ export function AppShell({
               commandItems={commandItems}
               profile={session.profile}
               providerBacked={session.providerBacked}
-              roles={roles}
+              permissions={permissions}
             />
           }
           banner={banner}

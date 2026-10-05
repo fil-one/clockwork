@@ -63,10 +63,6 @@ export const permissions = [
   // Invite Fil One staff, change their roles and deactivate them. Held by the
   // commerce administrator only.
   "staff:manage",
-  // Decide a request one raised oneself, on the record: a written reason, a
-  // verified second factor, an `approval.self_approved` audit event and a
-  // notice to every other administrator. Everyone else needs a second person.
-  "approval:self",
   // Work the operations queues and records: exceptions, provisioning,
   // recovery and the operational projections.
   "operations:write",
@@ -223,11 +219,9 @@ export const rolePermissions = {
     "audit:read",
     "audit:append",
   ],
+  // A seller has no assisted session and the sales gate refuses staff-wide
+  // tenant reads, so the bundle holds only what the sales workspace uses.
   revenue: [
-    "account:read",
-    "agreement:read",
-    "quote:read",
-    "partner:portfolio:read",
     "mnda:send",
     "contract:read",
     "contract:write",
@@ -306,10 +300,22 @@ export function roleAllowedOnSide(role: Role, side: OrganizationSide): boolean {
 }
 
 /**
+ * The roles each role may invite someone into its own organization with. An
+ * administrator never makes an owner; a role not listed invites no one. A
+ * person with several roles may invite the union of their roles' lists, and
+ * the invited role must still fit the organization's side.
+ */
+export const inviteRoleCeilings: Partial<Record<Role, readonly Role[]>> = {
+  owner: ["owner", "admin", "billing", "member"],
+  admin: ["admin", "billing", "member"],
+  partner_admin: ["partner_admin", "partner_seller"],
+};
+
+/**
  * Permissions an assisted session never carries. Acting inside someone else's
- * account is for helping them; deciding approvals, managing staff, changing
- * who signs for Fil One and approving one's own request all wait until the
- * staff member is back in their own session.
+ * account is for helping them; deciding approvals, managing staff and
+ * changing who signs for Fil One all wait until the staff member is back in
+ * their own session.
  */
 export const assistedSessionWithheldPermissions = [
   "agreement:approve",
@@ -319,7 +325,6 @@ export const assistedSessionWithheldPermissions = [
   "destructive:approve",
   "signatory:manage",
   "staff:manage",
-  "approval:self",
 ] as const satisfies readonly Permission[];
 
 export function hasPermission(role: Role, permission: Permission): boolean {

@@ -55,8 +55,8 @@ export class DatabasePriceBookImpactReader {
         const authorized = await tx.execute(sql`
           select u.id from commerce_users u
           where u.id = ${userId}::uuid and u.is_internal_staff
-          and exists (select 1 from memberships m where m.user_id=u.id
-            and m.role in ('finance_approver','internal_operator','commerce_admin'))
+          and (public.member_has_permission(u.id, 'operations:write')
+            or public.member_has_permission(u.id, 'quote:approve'))
         `);
         if (!authorized.length)
           throw new Error("PRICE_BOOK_IMPACT_ACCESS_DENIED");

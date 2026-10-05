@@ -1,3 +1,4 @@
+import { contextHasAnyPermission } from "@clockwork/contracts";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DatabaseCatalogAdmin } from "@clockwork/db";
@@ -43,9 +44,10 @@ async function Page() {
   } catch {
     rows = null;
   }
-  const canEdit = session.roles.some(
-    (role) => role === "internal_operator" || role === "finance_approver",
-  );
+  const canEdit = contextHasAnyPermission(session, [
+    "operations:write",
+    "quote:approve",
+  ]);
   const priceBooksSentence = richText(
     t,
     "adminPricing.catalog.priceBooksSentence",

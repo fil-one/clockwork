@@ -11,7 +11,7 @@ export default async function CustomerLayout({
 }) {
   const session = await getRouteSession("customer");
   return (
-    <RoutePermissionGate audience="customer" roles={session.roles}>
+    <RoutePermissionGate audience="customer" permissions={session.permissions}>
       <AppShell audience="customer" session={session}>
         {children}
       </AppShell>

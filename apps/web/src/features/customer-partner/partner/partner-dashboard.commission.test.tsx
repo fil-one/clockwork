@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import {
   PartnerDashboard,
   type PartnerDashboardProjection,
@@ -39,7 +41,7 @@ describe("partner dashboard commission position", () => {
       <PartnerDashboard
         formatting={formatting}
         projection={projection}
-        roles={["partner_admin"]}
+        permissions={permissionsForRoles(["partner_admin"])}
       />,
     );
 
@@ -64,7 +66,7 @@ describe("partner dashboard commission position", () => {
       <PartnerDashboard
         formatting={formatting}
         projection={projection}
-        roles={["partner_seller"]}
+        permissions={permissionsForRoles(["partner_seller"])}
       />,
     );
 
@@ -81,7 +83,7 @@ describe("partner dashboard commission position", () => {
       <PartnerDashboard
         formatting={formatting}
         projection={projectionWithoutCommission}
-        roles={["partner_admin"]}
+        permissions={permissionsForRoles(["partner_admin"])}
       />,
     );
 

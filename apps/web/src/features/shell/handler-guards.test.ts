@@ -27,8 +27,9 @@ const guardCalls = [
   "requireAudience(",
   "mndaStaff(",
   "contractStaff(",
-  "roles.includes(",
-  "roles.some(",
+  "contextHasPermission(",
+  "contextHasAnyPermission(",
+  "permissions.includes(",
 ] as const;
 
 /** Handlers that do not authorize a role, and what stands in for it. */

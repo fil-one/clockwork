@@ -3,7 +3,10 @@ import { getTranslations } from "@/src/i18n/server";
 import { QuoteIssue } from "@/src/features/customer-partner/commercial/quote-issue";
 import { CommercialRecordDetail } from "@/src/features/customer-partner/commercial/record-detail";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-import { getRouteIdentity } from "@/src/features/shell/route-session";
+import {
+  getRouteIdentity,
+  getRoutePermissions,
+} from "@/src/features/shell/route-session";
 import { loadCommercialRecord } from "@/src/features/experience-server/portal-view-loader";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,11 +20,12 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [identity, record] = await Promise.all([
+  const [identity, permissions, record] = await Promise.all([
     getRouteIdentity("customer"),
+    getRoutePermissions("customer"),
     loadCommercialRecord("quotes", id),
   ]);
-  const canWrite = identity.role === "owner" || identity.role === "admin";
+  const canWrite = permissions.includes("quote:write");
   return (
     <SurfacePermissionGate audience="customer" requiredPermission="quote:read">
       <CommercialRecordDetail

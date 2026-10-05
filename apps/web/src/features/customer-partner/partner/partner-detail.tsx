@@ -22,7 +22,7 @@ import { configuredDemoStateStore } from "@/src/features/experience-server/demo-
 import { loadPartnerRecords } from "@/src/features/experience-server/portal-view-loader";
 import {
   getRouteIdentity,
-  getRouteRoles,
+  getRoutePermissions,
   getRouteSession,
 } from "@/src/features/shell/route-session";
 import type { MessageId } from "@/src/i18n";
@@ -267,13 +267,13 @@ export async function PartnerPortfolioDetail({
 
 export async function PartnerQuoteDetail({ id }: { id: string }) {
   const t = await getTranslations();
-  const [record, roles, session] = await Promise.all([
+  const [record, permissions, session] = await Promise.all([
     partnerRecordFor("quotes", id),
-    getRouteRoles("partner"),
+    getRoutePermissions("partner"),
     getRouteSession("partner"),
   ]);
   if (!record) return <MissingRecord backHref="/partner/quotes" />;
-  const role = currentPartnerRole(roles) ?? "partner_seller";
+  const role = currentPartnerRole(permissions) ?? "partner_seller";
   const actions = validPartnerQuoteActions(record.status, role).filter(
     (action) =>
       !record.allowedActions || record.allowedActions.includes(action),
@@ -309,7 +309,7 @@ export async function PartnerQuoteDetail({ id }: { id: string }) {
         </section>
       ) : record.quoteCommand &&
         record.status === "open" &&
-        role === "partner_admin" ? (
+        permissions.includes("agreement:execute") ? (
         <section className={styles.detailCard}>
           <h2>{t("partner.detail.quote.orderTitle")}</h2>
           <p>{t("partner.detail.quote.orderDescription")}</p>

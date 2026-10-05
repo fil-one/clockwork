@@ -4,6 +4,8 @@ import { catalogs } from "@/src/i18n/catalogs";
 import { LanguageProvider } from "@/src/i18n/client";
 import { describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 vi.mock("@/src/features/internal-ops/gates/demo-gate-actions", () => ({
   updateDemoExternalGate: vi.fn(),
   runDemoExternalGateActivationTest: vi.fn(),
@@ -102,7 +104,7 @@ describe("truthful external-gate administration", () => {
 
     render(
       <GateRegister
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         gates={[gate]}
         source="System gate registry"
       />,
@@ -122,7 +124,7 @@ describe("truthful external-gate administration", () => {
   it("renders registry failure as activation denied", () => {
     render(
       <GateRegister
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         gates={[
           {
             id: "SYSTEM-GATE-REGISTRY-UNAVAILABLE",
@@ -157,7 +159,7 @@ describe("truthful external-gate administration", () => {
     ];
     render(
       <GateRegister
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         gates={records}
         source="System gate registry"
       />,
@@ -177,7 +179,7 @@ describe("truthful external-gate administration", () => {
   it("colours a launch blocker as danger and a path blocker as a warning", () => {
     render(
       <GateRegister
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         gates={[
           presentGeneratedGate(generated("EXT-LEGAL-01"), "en-US"),
           presentGeneratedGate(
@@ -201,7 +203,7 @@ describe("truthful external-gate administration", () => {
   it("exposes the same persisted controls for the demonstration registry", () => {
     render(
       <GateRegister
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         gates={[presentGeneratedGate(generated("EXT-PROVIDER-01"), "en-US")]}
         source="Demonstration gate registry"
       />,
@@ -223,7 +225,7 @@ describe("truthful external-gate administration", () => {
     );
     render(
       <GateRegister
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         gates={[record]}
         source="System gate registry"
       />,
@@ -281,7 +283,7 @@ describe("the gate register in the reader's language", () => {
   it("words demo fixture text, statuses and blocker codes in Portuguese", () => {
     inPortuguese(
       <GateRegister
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         gates={[demoRow()]}
         source="Demonstration gate registry"
         demoText={demoGateText("pt")}
@@ -310,7 +312,7 @@ describe("the gate register in the reader's language", () => {
   it("shows what an operator typed over a demo field as written", () => {
     inPortuguese(
       <GateRegister
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         gates={[demoRow({ owner: "Northwind platform desk" })]}
         source="Demonstration gate registry"
         demoText={demoGateText("pt")}
@@ -325,7 +327,7 @@ describe("the gate register in the reader's language", () => {
   it("leaves system registry rows as the registry wrote them", () => {
     inPortuguese(
       <GateRegister
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         gates={[demoRow()]}
         source="System gate registry"
       />,
@@ -342,7 +344,7 @@ describe("the gate register in the reader's language", () => {
     render(
       <LanguageProvider locale="ja" catalog={catalogs.ja}>
         <GateRegister
-          roles={["internal_operator"]}
+          permissions={permissionsForRoles(["internal_operator"])}
           gates={fallbackGates}
           source="Fail-closed operational fallback"
           demoText={demoGateText("ja")}

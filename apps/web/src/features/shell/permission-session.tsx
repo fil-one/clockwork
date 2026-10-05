@@ -2,18 +2,24 @@
 
 import { createContext, type ReactNode } from "react";
 
+import type { Permission } from "@clockwork/contracts";
+
 /**
  * Empty by default so a client surface rendered outside the provider is denied
- * rather than handed the roles of a privileged session.
+ * rather than handed the permissions of a privileged session.
  */
-export const RoleContext = createContext<readonly string[]>([]);
+export const PermissionContext = createContext<readonly Permission[]>([]);
 
 export function PermissionSessionProvider({
-  roles,
+  permissions,
   children,
 }: {
-  roles: readonly string[];
+  permissions: readonly Permission[];
   children: ReactNode;
 }) {
-  return <RoleContext.Provider value={roles}>{children}</RoleContext.Provider>;
+  return (
+    <PermissionContext.Provider value={permissions}>
+      {children}
+    </PermissionContext.Provider>
+  );
 }

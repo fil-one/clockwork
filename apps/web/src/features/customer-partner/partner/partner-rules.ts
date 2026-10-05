@@ -1,3 +1,4 @@
+import type { Permission } from "@clockwork/contracts";
 import { merchantOfRecord } from "@clockwork/domain/core";
 
 import type { MessageId, Translator } from "@/src/i18n";
@@ -50,20 +51,17 @@ export function registrationCreditLabel(status: PartnerStatus): MessageId {
 export type PartnerQuoteAction =
   "edit" | "issue" | "cancel" | "revise" | "download";
 
+/**
+ * How a partner's permissions read: every partner registers deals, and one
+ * who also manages the partner account is its administrator.
+ */
 export function currentPartnerRole(
-  roles: readonly string[],
+  permissions: readonly Permission[],
 ): PartnerRole | null {
-  if (roles.includes("partner_admin")) return "partner_admin";
-  if (roles.includes("partner_seller")) return "partner_seller";
-  return null;
-}
-
-export function roleCanUseSurface(
-  roles: readonly string[],
-  allowed: readonly PartnerRole[],
-): boolean {
-  const role = currentPartnerRole(roles);
-  return Boolean(role && allowed.includes(role));
+  if (!permissions.includes("deal:register")) return null;
+  return permissions.includes("account:write")
+    ? "partner_admin"
+    : "partner_seller";
 }
 
 export function validPartnerQuoteActions(

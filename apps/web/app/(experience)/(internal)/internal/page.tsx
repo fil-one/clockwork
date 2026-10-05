@@ -27,15 +27,15 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function Page() {
   const session = await getRouteSession("internal");
-  if (!staffMayUse(session.roles, "sales:read")) {
-    if (staffMayUse(session.roles, "operations:read"))
+  if (!staffMayUse(session, "sales:read")) {
+    if (staffMayUse(session, "operations:read"))
       redirect("/internal/operations");
     return <StaffRoleNotAvailable roles={session.roles} />;
   }
   const identity = await getRouteIdentity("internal");
   const sections = await loadSalesHome({
     userId: identity.userId,
-    roles: session.roles,
+    permissions: session.permissions,
     providerBacked: session.providerBacked,
     now: new Date(),
   });
@@ -43,9 +43,7 @@ export default async function Page() {
     <SalesHome
       userId={identity.userId}
       sections={sections}
-      canSendMnda={
-        session.providerBacked && staffMayUse(session.roles, "mnda:send")
-      }
+      canSendMnda={session.providerBacked && staffMayUse(session, "mnda:send")}
       cards={<RenewalNoticesCard />}
     />
   );

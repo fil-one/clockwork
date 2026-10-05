@@ -17,7 +17,7 @@ export default async function Page() {
   if (!membership) return <NoPartnerMembership />;
   return (
     <PartnerEnablement
-      roles={session.roles}
+      permissions={session.permissions}
       partnerName={membership.accountName}
     />
   );

@@ -1,7 +1,7 @@
 import { CommercialRecordDetail } from "@/src/features/customer-partner/commercial/record-detail";
 import { loadCommercialRecord } from "@/src/features/experience-server/portal-view-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-import { getRouteRoles } from "@/src/features/shell/route-session";
+import { getRoutePermissions } from "@/src/features/shell/route-session";
 
 /**
  * The detail page for one live entitlement.
@@ -14,9 +14,9 @@ import { getRouteRoles } from "@/src/features/shell/route-session";
  *
  * The read gate matches `/services`: `order:read`. `canMutate` gates the one
  * forward action this record has, "Request offboarding", whose destination
- * `/account/offboarding` is gated on `account:write`; `owner` and `admin` are
- * exactly the customer roles that hold it, so a reader who would be refused
- * there is shown the explanation here instead of a link that denies them.
+ * `/account/offboarding` is gated on `account:write`, so a reader who would be
+ * refused there is shown the explanation here instead of a link that denies
+ * them.
  */
 export default async function Page({
   params,
@@ -24,13 +24,11 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [roles, record] = await Promise.all([
-    getRouteRoles("customer"),
+  const [permissions, record] = await Promise.all([
+    getRoutePermissions("customer"),
     loadCommercialRecord("services", id),
   ]);
-  const canOffboard = roles.some(
-    (role) => role === "owner" || role === "admin",
-  );
+  const canOffboard = permissions.includes("account:write");
   return (
     <SurfacePermissionGate audience="customer" requiredPermission="order:read">
       <CommercialRecordDetail canMutate={canOffboard} id={id} record={record} />

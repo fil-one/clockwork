@@ -10,9 +10,7 @@ export default async function Page() {
     getRouteSession("customer"),
     getRouteIdentity("customer"),
   ]);
-  const canCreateQuote = session.roles.some(
-    (role) => role === "owner" || role === "admin",
-  );
+  const canCreateQuote = session.permissions.includes("quote:write");
   return (
     <CustomerDashboard
       canCreateQuote={canCreateQuote}

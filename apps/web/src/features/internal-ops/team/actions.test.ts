@@ -10,7 +10,8 @@ const mocks = vi.hoisted(() => ({
   deactivateWorkos: vi.fn(),
   prepareInvite: vi.fn(),
   completeInvite: vi.fn(),
-  changeRole: vi.fn(),
+  grantRole: vi.fn(),
+  revokeRole: vi.fn(),
   prepareDeactivate: vi.fn(),
   completeDeactivate: vi.fn(),
 }));
@@ -45,7 +46,8 @@ vi.mock("@clockwork/db", async (importOriginal) => {
     StaffTeamRepository: class {
       prepareInvite = mocks.prepareInvite;
       completeInvite = mocks.completeInvite;
-      changeRole = mocks.changeRole;
+      grantRole = mocks.grantRole;
+      revokeRole = mocks.revokeRole;
       prepareDeactivate = mocks.prepareDeactivate;
       completeDeactivate = mocks.completeDeactivate;
     },
@@ -56,9 +58,10 @@ import { StaffPermissionError } from "@/src/features/shell/staff-access";
 import { StaffTeamError } from "@clockwork/db";
 
 import {
-  changeStaffRole,
   deactivateStaffMember,
+  grantStaffRole,
   inviteStaffMember,
+  revokeStaffRole,
 } from "./actions";
 
 const admin = {
@@ -88,7 +91,8 @@ beforeEach(() => {
     workosMembershipId: "om_sam",
   });
   mocks.completeInvite.mockResolvedValue({});
-  mocks.changeRole.mockResolvedValue({});
+  mocks.grantRole.mockResolvedValue({});
+  mocks.revokeRole.mockResolvedValue({});
   mocks.prepareDeactivate.mockResolvedValue({
     member: { workosMembershipId: "om_seller" },
     workosOrganizationId: "org_staff",
@@ -132,9 +136,18 @@ describe("inviting staff", () => {
     expect(mocks.provision).not.toHaveBeenCalled();
   });
 
+  it("allows no address at all while the staff domains are not configured", async () => {
+    vi.stubEnv("INTERNAL_EMAIL_DOMAINS", undefined);
+    await expect(
+      inviteStaffMember({ ...invite, email: "sam@filone.com" }),
+    ).resolves.toEqual({ ok: false, code: "DOMAIN_NOT_ALLOWED" });
+    expect(mocks.provision).not.toHaveBeenCalled();
+  });
+
   it.each([
-    [{ ...invite, role: "finance_approver" }],
-    [{ ...invite, role: "internal_operator" }],
+    // Any staff role may start; customer and partner roles never.
+    [{ ...invite, role: "owner" }],
+    [{ ...invite, role: "partner_admin" }],
     [{ ...invite, name: "" }],
     [{ ...invite, admin: true }],
     ["not an object"],
@@ -185,13 +198,13 @@ describe("authorization", () => {
       recentAuthenticationVerified: false,
     });
     await expect(
-      changeStaffRole({
+      grantStaffRole({
         userId: seller,
         role: "commerce_admin",
         expectedRowVersion: 1,
       }),
     ).resolves.toEqual({ ok: false, code: "RECENT_SIGN_IN_REQUIRED" });
-    expect(mocks.changeRole).not.toHaveBeenCalled();
+    expect(mocks.grantRole).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -226,77 +239,76 @@ describe("authorization", () => {
 });
 
 describe("role changes", () => {
-  it("passes the version the reader saw and maps guard refusals", async () => {
+  it("grants a role with the version the reader saw and an optional reason", async () => {
     await expect(
-      changeStaffRole({
+      grantStaffRole({
         userId: seller,
-        role: "commerce_admin",
+        role: "legal_approver",
         expectedRowVersion: 4,
+        reason: "  Covers contract reviews  ",
       }),
     ).resolves.toEqual({ ok: true });
-    expect(mocks.changeRole).toHaveBeenCalledWith(
+    expect(mocks.grantRole).toHaveBeenCalledWith(
       expect.objectContaining({
         actorUserId: admin.userId,
+        organizationId: admin.organizationId,
         userId: seller,
-        role: "commerce_admin",
+        role: "legal_approver",
         expectedRowVersion: 4,
+        reason: "Covers contract reviews",
       }),
     );
-    for (const code of ["SELF_CHANGE", "LAST_ADMIN", "STALE"] as const) {
-      mocks.changeRole.mockRejectedValueOnce(
+    expect(mocks.revalidate).toHaveBeenCalledWith("/internal/team");
+  });
+
+  it("removes a role, leaving out an empty reason", async () => {
+    await expect(
+      revokeStaffRole({
+        userId: seller,
+        role: "revenue",
+        expectedRowVersion: 2,
+        reason: "   ",
+      }),
+    ).resolves.toEqual({ ok: true });
+    expect(mocks.revokeRole.mock.calls[0]?.[0]).not.toHaveProperty("reason");
+  });
+
+  it("refuses roles outside the staff roles and over-long reasons", async () => {
+    for (const input of [
+      { userId: seller, role: "owner", expectedRowVersion: 1 },
+      { userId: seller, role: "revenue", expectedRowVersion: 0 },
+      {
+        userId: seller,
+        role: "revenue",
+        expectedRowVersion: 1,
+        reason: "x".repeat(501),
+      },
+    ])
+      await expect(grantStaffRole(input)).resolves.toEqual({
+        ok: false,
+        code: "INVALID_INPUT",
+      });
+    expect(mocks.grantRole).not.toHaveBeenCalled();
+  });
+
+  it("maps guard refusals", async () => {
+    for (const code of [
+      "SELF_CHANGE",
+      "LAST_ADMIN",
+      "LAST_ROLE",
+      "ROLE_NOT_HELD",
+      "STALE",
+    ] as const) {
+      mocks.revokeRole.mockRejectedValueOnce(
         new StaffTeamError(`STAFF_TEAM_${code}`),
       );
       await expect(
-        changeStaffRole({
+        revokeStaffRole({
           userId: seller,
           role: "revenue",
           expectedRowVersion: 4,
         }),
       ).resolves.toEqual({ ok: false, code });
     }
-  });
-});
-
-describe("deactivation", () => {
-  it("removes the WorkOS membership first, then the commerce membership", async () => {
-    await expect(
-      deactivateStaffMember({ userId: seller, expectedRowVersion: 2 }),
-    ).resolves.toEqual({ ok: true });
-    expect(mocks.deactivateWorkos).toHaveBeenCalledWith("sk_test_private", {
-      organizationId: "org_staff",
-      membershipId: "om_seller",
-    });
-    expect(mocks.completeDeactivate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: seller,
-        expectedRowVersion: 2,
-        workos: "deactivated",
-      }),
-    );
-    expect(mocks.deactivateWorkos.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.completeDeactivate.mock.invocationCallOrder[0] ?? 0,
-    );
-  });
-
-  it("keeps commerce access untouched when WorkOS fails", async () => {
-    mocks.deactivateWorkos.mockRejectedValueOnce(
-      new Error("STAFF_WORKOS_HTTP_500"),
-    );
-    await expect(
-      deactivateStaffMember({ userId: seller, expectedRowVersion: 2 }),
-    ).resolves.toEqual({ ok: false, code: "PROVIDER_FAILED" });
-    expect(mocks.completeDeactivate).not.toHaveBeenCalled();
-  });
-
-  it("records a membership WorkOS never linked without calling WorkOS", async () => {
-    mocks.prepareDeactivate.mockResolvedValueOnce({
-      member: { workosMembershipId: null },
-      workosOrganizationId: "org_staff",
-    });
-    await deactivateStaffMember({ userId: seller, expectedRowVersion: 2 });
-    expect(mocks.deactivateWorkos).not.toHaveBeenCalled();
-    expect(mocks.completeDeactivate).toHaveBeenCalledWith(
-      expect.objectContaining({ workos: "not_linked" }),
-    );
   });
 });

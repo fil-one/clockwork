@@ -2,7 +2,7 @@ export * from "./client";
 export * from "./repositories/audit-outbox";
 export * from "./repositories/idempotency";
 export * from "./repositories/identity";
-export * from "./repositories/membership-roles";
+export * from "./repositories/membership-permissions";
 export * from "./repositories/webhooks";
 export * from "./repositories/workflows";
 export * from "./repositories/core";

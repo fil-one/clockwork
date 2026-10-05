@@ -44,15 +44,15 @@ async function Page() {
     books: priceBooks.books,
     userId: identity?.userId ?? "",
     providerBacked: session.providerBacked,
-    internalReader: session.roles.some(
-      (role) => role === "finance_approver" || role === "internal_operator",
-    ),
+    internalReader:
+      session.permissions.includes("operations:write") ||
+      session.permissions.includes("quote:approve"),
     demo: priceBooks.source === "demo",
     readAt: priceBooks.readAt,
   });
   return (
     <PriceBookAdministration
-      roles={session.roles}
+      permissions={session.permissions}
       userId={identity?.userId ?? ""}
       books={priceBooks.books}
       source={priceBooks.source}

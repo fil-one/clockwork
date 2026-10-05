@@ -1,4 +1,5 @@
 "use server";
+import { contextHasPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 import {
   CustomerAcquisitionCommandSchema,
@@ -73,7 +74,7 @@ export async function submitCustomerAcquisition(
       };
     if (
       parsed.data.accountId !== session.selectedAccountId ||
-      !session.roles.some((role) => ["owner", "admin"].includes(role))
+      !contextHasPermission(session, "quote:write")
     )
       return {
         ok: false,
@@ -113,7 +114,7 @@ export async function resolveCustomerAcquisition(
     if (
       (!session.providerBacked && !demo) ||
       !session.isInternalStaff ||
-      !session.roles.includes("finance_approver") ||
+      !contextHasPermission(session, "quote:approve") ||
       !session.mfaVerified ||
       session.impersonation ||
       session.assistedSession ||

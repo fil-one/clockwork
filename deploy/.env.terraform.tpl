@@ -16,7 +16,7 @@ TF_VAR_github_environment=staging
 AWS_PROFILE=filone-sandbox
 
 # Non-secret application settings rendered into .env.production.local
-CLOCKWORK_INTERNAL_EMAIL_DOMAINS=fil.org
+CLOCKWORK_INTERNAL_EMAIL_DOMAINS=fil.org,fil.one
 # The WorkOS organizations whose factor policy the application trusts, comma
 # separated. A verified authenticator only unlocks a privileged session for an
 # organization named here, so until this carries the stage's staff

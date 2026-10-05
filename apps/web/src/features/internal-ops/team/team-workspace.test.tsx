@@ -9,13 +9,15 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   invite: vi.fn(),
-  changeRole: vi.fn(),
+  grant: vi.fn(),
+  revoke: vi.fn(),
   deactivate: vi.fn(),
   refresh: vi.fn(),
 }));
 vi.mock("./actions", () => ({
   inviteStaffMember: mocks.invite,
-  changeStaffRole: mocks.changeRole,
+  grantStaffRole: mocks.grant,
+  revokeStaffRole: mocks.revoke,
   deactivateStaffMember: mocks.deactivate,
 }));
 vi.mock("next/navigation", () => ({
@@ -25,8 +27,9 @@ vi.mock("next/navigation", () => ({
 import { demoTeamMembers, type TeamView } from "./model";
 import { TeamWorkspace } from "./team-workspace";
 
-const [admin, seller] = demoTeamMembers;
-if (!admin || !seller) throw new Error("The demo team fixture is incomplete");
+const [admin, seller, newcomer] = demoTeamMembers;
+if (!admin || !seller || !newcomer)
+  throw new Error("The demo team fixture is incomplete");
 const live: TeamView = {
   mode: "live",
   members: demoTeamMembers,
@@ -37,7 +40,8 @@ const live: TeamView = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.invite.mockResolvedValue({ ok: true });
-  mocks.changeRole.mockResolvedValue({ ok: true });
+  mocks.grant.mockResolvedValue({ ok: true });
+  mocks.revoke.mockResolvedValue({ ok: true });
   mocks.deactivate.mockResolvedValue({ ok: true });
 });
 
@@ -45,7 +49,20 @@ function row(name: string) {
   return screen.getByRole("listitem", { name });
 }
 
-it("lists staff with role, authenticator status and date, and marks the reader", () => {
+function openRoles(name: string) {
+  fireEvent.click(
+    within(row(name)).getByRole("button", { name: "Change roles" }),
+  );
+  return screen.getByRole("dialog", { name: `Roles for ${name}` });
+}
+
+function roleOption(dialog: HTMLElement, label: string) {
+  const option = within(dialog).getByText(label).closest("li");
+  if (!option) throw new Error(`No ${label} option`);
+  return option;
+}
+
+it("lists staff with every role, authenticator status and date, and marks the reader", () => {
   render(<TeamWorkspace view={live} />);
   const own = row(admin.name);
   expect(within(own).getByText("You")).toBeInTheDocument();
@@ -56,12 +73,30 @@ it("lists staff with role, authenticator status and date, and marks the reader",
     ),
   ).toBeInTheDocument();
   expect(
-    within(own).queryByRole("button", { name: "Remove access" }),
+    within(own).queryByRole("button", { name: "Change roles" }),
   ).not.toBeInTheDocument();
+  const both = row(seller.name);
+  expect(within(both).getByText("Revenue")).toBeInTheDocument();
+  expect(within(both).getByText("Legal approver")).toBeInTheDocument();
   expect(
-    within(row("Priya Raman")).getByText("Not confirmed yet"),
+    within(row(newcomer.name)).getByText("Not confirmed yet"),
   ).toBeInTheDocument();
-  expect(within(row(seller.name)).getByText(/^Checked /)).toBeInTheDocument();
+  expect(within(both).getByText(/^Checked /)).toBeInTheDocument();
+});
+
+it("describes every staff role and how roles combine", () => {
+  render(<TeamWorkspace view={live} />);
+  const roles = screen.getByRole("region", { name: "What each role can do" });
+  expect(within(roles).getByText(/can hold several roles/)).toBeInTheDocument();
+  for (const label of [
+    "Commerce administrator",
+    "Internal operator",
+    "Revenue",
+    "Finance approver",
+    "Legal approver",
+    "Destructive-action approver",
+  ])
+    expect(within(roles).getByText(label)).toBeInTheDocument();
 });
 
 it("adds a seller by default and explains that no email is sent", async () => {
@@ -70,6 +105,9 @@ it("adds a seller by default and explains that no email is sent", async () => {
   expect(
     screen.getByText("Use an address on fil.one or fil.org."),
   ).toBeInTheDocument();
+  expect(
+    within(screen.getByLabelText("Role")).getAllByRole("option"),
+  ).toHaveLength(6);
   fireEvent.change(screen.getByLabelText("Full name"), {
     target: { value: "Sam Ortiz" },
   });
@@ -90,22 +128,113 @@ it("adds a seller by default and explains that no email is sent", async () => {
   expect(mocks.refresh).toHaveBeenCalled();
 });
 
-it("changes a role with the version the reader saw", async () => {
+it("adds a role with the version the reader saw and the note for the record", async () => {
   render(<TeamWorkspace view={live} />);
-  const target = row(seller.name);
-  const save = within(target).getByRole("button", { name: "Save role" });
-  expect(save).toBeDisabled();
-  fireEvent.change(within(target).getByLabelText(`Role for ${seller.name}`), {
-    target: { value: "commerce_admin" },
+  const dialog = openRoles(newcomer.name);
+  expect(
+    within(roleOption(dialog, "Revenue")).getByText("Decides their home page"),
+  ).toBeInTheDocument();
+  fireEvent.change(within(dialog).getByLabelText(/Note for the record/), {
+    target: { value: "Covers contract review in Q4" },
   });
-  fireEvent.click(save);
+  fireEvent.click(
+    within(roleOption(dialog, "Legal approver")).getByRole("button", {
+      name: "Add role",
+    }),
+  );
   await waitFor(() =>
-    expect(mocks.changeRole).toHaveBeenCalledExactlyOnceWith({
+    expect(mocks.grant).toHaveBeenCalledExactlyOnceWith({
+      userId: newcomer.userId,
+      role: "legal_approver",
+      expectedRowVersion: newcomer.rowVersion,
+      reason: "Covers contract review in Q4",
+    }),
+  );
+  expect(
+    await within(dialog).findAllByText(
+      `${newcomer.name} now has the Legal approver role.`,
+    ),
+  ).not.toHaveLength(0);
+  expect(mocks.refresh).toHaveBeenCalled();
+});
+
+it("removes one of several roles, and never someone's only role", async () => {
+  render(<TeamWorkspace view={live} />);
+  const dialog = openRoles(seller.name);
+  fireEvent.click(
+    within(roleOption(dialog, "Legal approver")).getByRole("button", {
+      name: "Remove role",
+    }),
+  );
+  await waitFor(() =>
+    expect(mocks.revoke).toHaveBeenCalledExactlyOnceWith({
       userId: seller.userId,
-      role: "commerce_admin",
+      role: "legal_approver",
       expectedRowVersion: seller.rowVersion,
     }),
   );
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+
+  const single = openRoles(newcomer.name);
+  expect(
+    within(roleOption(single, "Revenue")).getByRole("button", {
+      name: "Remove role",
+    }),
+  ).toBeDisabled();
+  expect(within(single).getByText(/This is their only role/)).toBeVisible();
+});
+
+it("words each refusal in the dialog and offers the sign-in check when it is stale", async () => {
+  mocks.grant.mockResolvedValueOnce({
+    ok: false,
+    code: "RECENT_SIGN_IN_REQUIRED",
+  });
+  render(<TeamWorkspace view={live} />);
+  const dialog = openRoles(newcomer.name);
+  fireEvent.click(
+    within(roleOption(dialog, "Finance approver")).getByRole("button", {
+      name: "Add role",
+    }),
+  );
+  const alert = await within(dialog).findByRole("alert");
+  expect(alert).toHaveTextContent(/team changes need a recent sign-in check/);
+  expect(
+    within(alert).getByRole("link", { name: "Verify sign-in" }),
+  ).toHaveAttribute("href", "/access/mfa");
+});
+
+it("explains why the last administrator keeps the role", async () => {
+  mocks.revoke.mockResolvedValueOnce({ ok: false, code: "LAST_ADMIN" });
+  render(<TeamWorkspace view={live} />);
+  const dialog = openRoles(seller.name);
+  fireEvent.click(
+    within(roleOption(dialog, "Revenue")).getByRole("button", {
+      name: "Remove role",
+    }),
+  );
+  expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+    /at least one commerce administrator/,
+  );
+});
+
+it("shows everything a person can do on demand", () => {
+  render(<TeamWorkspace view={live} />);
+  const target = row(newcomer.name);
+  const toggle = within(target).getByRole("button", {
+    name: "What they can do",
+  });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(toggle).toHaveAccessibleDescription(newcomer.name);
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect(within(target).getByText("Send MNDAs")).toBeInTheDocument();
+  expect(
+    within(target).queryByText(
+      "Add staff, change their roles and remove their access",
+    ),
+  ).not.toBeInTheDocument();
+  fireEvent.click(toggle);
+  expect(within(target).queryByText("Send MNDAs")).not.toBeInTheDocument();
 });
 
 it("asks for confirmation before removing access, and can back out", async () => {
@@ -133,24 +262,6 @@ it("asks for confirmation before removing access, and can back out", async () =>
   );
 });
 
-it("words each refusal specifically and offers the sign-in check when it is stale", async () => {
-  mocks.changeRole.mockResolvedValueOnce({
-    ok: false,
-    code: "RECENT_SIGN_IN_REQUIRED",
-  });
-  render(<TeamWorkspace view={live} />);
-  const target = row(seller.name);
-  fireEvent.change(within(target).getByLabelText(`Role for ${seller.name}`), {
-    target: { value: "commerce_admin" },
-  });
-  fireEvent.click(within(target).getByRole("button", { name: "Save role" }));
-  const alert = await screen.findByRole("alert");
-  expect(alert).toHaveTextContent(/team changes need a recent sign-in check/);
-  expect(
-    within(alert).getByRole("link", { name: "Verify sign-in" }),
-  ).toHaveAttribute("href", "/access/mfa");
-});
-
 it("rereads the list when someone else changed it first", async () => {
   mocks.deactivate.mockResolvedValueOnce({ ok: false, code: "STALE" });
   render(<TeamWorkspace view={live} />);
@@ -174,8 +285,14 @@ it("shows the demo list read-only", () => {
     screen.queryByRole("button", { name: "Add to team" }),
   ).not.toBeInTheDocument();
   expect(
+    screen.queryByRole("button", { name: "Change roles" }),
+  ).not.toBeInTheDocument();
+  expect(
     screen.queryByRole("button", { name: "Remove access" }),
   ).not.toBeInTheDocument();
+  expect(
+    within(row(seller.name)).getByRole("button", { name: "What they can do" }),
+  ).toBeInTheDocument();
 });
 
 it("explains a list that could not be read instead of claiming the team is empty", () => {
@@ -190,14 +307,19 @@ it("explains a list that could not be read instead of claiming the team is empty
   ).not.toBeInTheDocument();
 });
 
-it("keeps approver roles out of reach on this page", () => {
+it("leaves a role from outside the staff roles to deployment provisioning", () => {
   render(
     <TeamWorkspace
       view={{
         ...live,
         members: [
           admin,
-          { ...seller, role: "finance_approver", name: "Elena Torres" },
+          {
+            ...seller,
+            role: "owner",
+            roles: ["owner"],
+            name: "Elena Torres",
+          },
         ],
       }}
     />,
@@ -206,5 +328,7 @@ it("keeps approver roles out of reach on this page", () => {
   expect(
     within(target).getByText("Managed by deployment provisioning"),
   ).toBeInTheDocument();
-  expect(within(target).queryByRole("button")).not.toBeInTheDocument();
+  expect(
+    within(target).queryByRole("button", { name: "Change roles" }),
+  ).not.toBeInTheDocument();
 });

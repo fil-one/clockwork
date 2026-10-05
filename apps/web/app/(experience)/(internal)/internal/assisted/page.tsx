@@ -26,7 +26,7 @@ async function Page() {
     : resolveDemoText(demoAccounts, await getLocale());
   return (
     <AssistedMode
-      roles={session.roles}
+      permissions={session.permissions}
       accounts={accounts}
       actor={`${session.profile.name} · ${session.profile.email}`}
       sessionActive={Boolean(session.assistedSession)}

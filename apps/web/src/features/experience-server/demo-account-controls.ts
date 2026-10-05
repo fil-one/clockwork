@@ -4,7 +4,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
-import { hasPermission, uuidV7 } from "@clockwork/contracts";
+import { contextHasPermission, uuidV7 } from "@clockwork/contracts";
 import type {
   DemoAdapterState,
   DemoAdapterStateStore,
@@ -218,7 +218,7 @@ function permission(
   session: SessionClaims,
   name: "account:read" | "account:write",
 ): void {
-  if (!session.roles.some((role) => hasPermission(role, name)))
+  if (!contextHasPermission(session, name))
     throw new ExperienceProblem(
       403,
       "ACCOUNT_AUTHORITY_FORBIDDEN",

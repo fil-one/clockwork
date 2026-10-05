@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { createHash } from "node:crypto";
 
 import type { SessionClaims } from "@clockwork/api";
@@ -33,6 +34,7 @@ const customerSession: SessionClaims = {
   organizationId: "30000000-0000-4000-8000-000000000001",
   accountIds: [accountId],
   roles: ["owner"],
+  permissions: permissionsForRoles(["owner"]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -40,11 +42,13 @@ const customerSession: SessionClaims = {
 const partnerSession: SessionClaims = {
   ...customerSession,
   roles: ["partner_admin"],
+  permissions: permissionsForRoles(["partner_admin"]),
 };
 const internalSession: SessionClaims = {
   ...customerSession,
   accountIds: [],
   roles: ["internal_operator"],
+  permissions: permissionsForRoles(["internal_operator"]),
   isInternalStaff: true,
 };
 

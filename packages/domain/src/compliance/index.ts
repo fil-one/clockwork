@@ -1,3 +1,5 @@
+import type { Permission } from "@clockwork/contracts";
+
 export type ScreeningDecision = "clear" | "review" | "blocked";
 export type ScreeningReason =
   "registration" | "pre_signature" | "partner_activation" | "scheduled_refresh";
@@ -80,14 +82,17 @@ export interface EvidenceAccessRequest {
   actorId: string;
   accountIds: readonly string[];
   documentAccountId: string | null;
-  internalRoles: readonly string[];
+  /** The permissions of the person asking. */
+  permissions: readonly Permission[];
   purpose: EvidenceAccessPurpose;
   operation: "upload" | "download" | "metadata";
 }
 
 export function authorizeEvidenceAccess(input: EvidenceAccessRequest): void {
-  const internal = input.internalRoles.some((role) =>
-    ["internal_operator", "legal_approver"].includes(role),
+  // Operators and legal approvers handle evidence on Fil One's side.
+  const internal = input.permissions.some(
+    (permission) =>
+      permission === "operations:write" || permission === "agreement:approve",
   );
   const ownsDocument =
     input.documentAccountId !== null &&

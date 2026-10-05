@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import type { SessionClaims } from "@clockwork/api";
 import { createMemoryDemoStore } from "@clockwork/testing/demo-reset";
 import {
@@ -35,6 +36,7 @@ const session: SessionClaims = {
   organizationId: persona.organizationId,
   accountIds: [demoAccountIds.direct],
   roles: ["owner"],
+  permissions: permissionsForRoles(["owner"]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -564,6 +566,7 @@ it("dispatches the accepted order once to the demo provisioner without claiming 
     ...session,
     isInternalStaff: true,
     roles: ["internal_operator"] as const,
+    permissions: permissionsForRoles(["internal_operator"]),
   };
   const result = await submitDemoProvisioning(
     { orderId: created.id },

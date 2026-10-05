@@ -1,7 +1,12 @@
 import { loadChannelPolicy } from "@/src/features/experience-server/channel-policy-loader";
 import { sql } from "drizzle-orm";
 
-import { ids, roles as commerceRoles, type Role } from "@clockwork/contracts";
+import {
+  ids,
+  roles as commerceRoles,
+  type Permission,
+  type Role,
+} from "@clockwork/contracts";
 import { withAuthorizedTransaction } from "@clockwork/db";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
@@ -56,7 +61,11 @@ function isCommerceRole(value: string): value is Role {
  */
 async function loadRegistrableEndClients(
   partnerAccountId: string,
-  session: { userId: string; roles: readonly string[] },
+  session: {
+    userId: string;
+    roles: readonly string[];
+    permissions: readonly Permission[];
+  },
 ): Promise<readonly RegistrableEndClient[] | undefined> {
   if (demoDeployIdentityEnabled(process.env))
     return demoRegistrableEndClients(partnerAccountId);
@@ -69,6 +78,7 @@ async function loadRegistrableEndClients(
       userId: ids.user.parse(session.userId),
       accountIds: [partnerAccountId],
       roles: session.roles.filter(isCommerceRole),
+      permissions: session.permissions,
       isInternalStaff: false,
       requestId: `partner-registration-clients:${crypto.randomUUID()}`,
     },
@@ -116,6 +126,7 @@ async function RegistrationAction() {
   const endClients = await loadRegistrableEndClients(identity.accountId, {
     userId: identity.userId,
     roles: session.roles,
+    permissions: session.permissions,
   });
   const channelPolicy = await loadChannelPolicy();
   if (!endClients || !channelPolicy)
@@ -139,7 +150,7 @@ export default function Page() {
       actions={
         <SurfaceActionGate
           audience="partner"
-          requiredPermission="partner:quote:write"
+          requiredPermission="deal:register"
         >
           <RegistrationAction />
         </SurfaceActionGate>

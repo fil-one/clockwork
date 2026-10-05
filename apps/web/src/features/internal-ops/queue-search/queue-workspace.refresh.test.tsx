@@ -2,6 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import type { QueueItem } from "./model";
 import { QueueWorkspace } from "./queue-workspace";
 
@@ -47,7 +49,7 @@ const item: QueueItem = {
 function renderWorkspace(demoRefreshEnabled: boolean) {
   return render(
     <QueueWorkspace
-      roles={["internal_operator"]}
+      permissions={permissionsForRoles(["internal_operator"])}
       items={[item]}
       generatedAt="2026-07-31T16:00:00.000Z"
       stale

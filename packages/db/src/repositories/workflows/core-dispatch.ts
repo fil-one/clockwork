@@ -33,6 +33,7 @@ import {
 } from "../../schema/core/finance";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
+import { membershipHasPermission } from "../membership-permissions";
 import {
   acceptedAmendmentDeltaMinor,
   DatabaseCoreError,
@@ -771,7 +772,7 @@ export class DatabaseCoreWorkflowDispatchStore {
         .where(
           and(
             eq(commerceUsers.isInternalStaff, true),
-            inArray(memberships.role, ["internal_operator", "commerce_admin"]),
+            membershipHasPermission("operations:write"),
           ),
         )
         .orderBy(asc(commerceUsers.id))

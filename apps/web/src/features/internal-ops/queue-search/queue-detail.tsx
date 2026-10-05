@@ -5,6 +5,8 @@ import { richText } from "@/src/i18n/rich";
 import type { Route } from "next";
 import Link from "next/link";
 
+import type { Permission } from "@clockwork/contracts";
+
 import type { MessageId } from "@/src/i18n";
 
 import { CopyableId } from "../copyable-id";
@@ -22,18 +24,17 @@ import {
 import {
   permittedActions,
   slaFor,
-  type OperationalRole,
+  type QueueDecisionPermission,
   type QueueItem,
 } from "./model";
 
-/** The role a restricted action needs, as the role list names it. */
-const requiredRoleLabels: Readonly<
-  Record<NonNullable<QueueItem["requiredRole"]>, MessageId>
-> = {
-  legal_approver: "role.legalApprover",
-  finance_approver: "role.financeApprover",
-  destructive_action_approver: "role.destructiveActionApprover",
-};
+/** The role that carries a restricted action's authority, as the role list names it. */
+const requiredRoleLabels: Readonly<Record<QueueDecisionPermission, MessageId>> =
+  {
+    "agreement:approve": "role.legalApprover",
+    "quote:approve": "role.financeApprover",
+    "destructive:approve": "role.destructiveActionApprover",
+  };
 
 function Moment({ value }: { value: string | null }) {
   const t = useTranslations();
@@ -44,18 +45,18 @@ function Moment({ value }: { value: string | null }) {
 
 export function QueueDetail({
   item,
-  roles = ["internal_operator"],
+  permissions = [],
   standalone = false,
   now,
 }: {
   item: QueueItem;
-  roles?: readonly OperationalRole[];
+  permissions?: readonly Permission[];
   standalone?: boolean;
   now?: Date;
 }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
-  const actions = permittedActions(item, roles);
+  const actions = permittedActions(item, permissions);
   const restricted = actions.length !== item.permittedActions.length;
   const sla = slaFor(item, now);
   return (
@@ -241,10 +242,10 @@ export function QueueDetail({
         <h3 id={`actions-${item.id}`}>
           {t("operations.queue.detail.actions")}
         </h3>
-        {restricted && item.requiredRole ? (
+        {restricted && item.requiredPermission ? (
           <p className={styles.permissionNote} role="note">
             {t("operations.queue.detail.restricted", {
-              role: t(requiredRoleLabels[item.requiredRole]),
+              role: t(requiredRoleLabels[item.requiredPermission]),
             })}
           </p>
         ) : null}

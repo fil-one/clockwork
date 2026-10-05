@@ -1,12 +1,6 @@
 import type { Route } from "next";
 
-import {
-  hasPermission,
-  internalRoles,
-  roles as commerceRoles,
-  type Permission,
-  type Role,
-} from "@clockwork/contracts";
+import type { Permission } from "@clockwork/contracts";
 
 import type { MessageId } from "@/src/i18n";
 
@@ -28,7 +22,7 @@ export const staffWorkspacePermission: Readonly<
 
 /** Rail icons a destination can name; the shell owns the drawings. */
 export type NavigationIconName =
-  "home" | "document" | "contract" | "library" | "pricing" | "team";
+  "owner" | "home" | "document" | "contract" | "library" | "pricing" | "team";
 
 export interface NavigationItem {
   href: Route;
@@ -37,7 +31,8 @@ export interface NavigationItem {
   keywords?: readonly string[];
   match?: string;
   requiredPermission?: Permission;
-  allowedRoles?: readonly Role[];
+  /** Shown to a reader holding at least one of these. */
+  anyPermission?: readonly Permission[];
   providerBackedOnly?: boolean;
   workspace?: StaffWorkspace;
   icon?: NavigationIconName;
@@ -49,6 +44,24 @@ export interface NavigationItem {
  * and the command palette all read this list.
  */
 export const salesNavigation: readonly NavigationItem[] = [
+  {
+    href: "/internal/owner",
+    label: "platform.nav.sales.owner",
+    description: "platform.nav.sales.owner.description",
+    // i18n-exempt: search aliases matched in addition to the translated label; never displayed
+    keywords: [
+      "owner",
+      "console",
+      "approvals",
+      "notices",
+      "security",
+      "access",
+      "admin",
+    ],
+    requiredPermission: "staff:manage",
+    workspace: "sales",
+    icon: "owner",
+  },
   {
     href: "/internal",
     label: "platform.nav.sales.home",
@@ -148,7 +161,7 @@ export const navigation: Readonly<
       label: "nav.payg",
       // i18n-exempt: search aliases matched in addition to the translated label; never displayed
       keywords: ["trial", "pay as you go", "usage"],
-      allowedRoles: ["owner", "admin"],
+      requiredPermission: "quote:write",
     },
     {
       href: "/agreements",
@@ -222,29 +235,29 @@ export const navigation: Readonly<
     {
       href: "/partner/billing",
       label: "nav.partner.billing",
-      allowedRoles: ["partner_admin"],
+      requiredPermission: "billing:read",
     },
     {
       href: "/partner/commissions",
       label: "nav.partner.commissions",
-      allowedRoles: ["partner_admin"],
+      requiredPermission: "billing:read",
     },
     {
       href: "/partner/renewals",
       label: "nav.partner.renewals",
-      allowedRoles: ["partner_admin"],
+      requiredPermission: "order:write",
     },
     { href: "/partner/disputes", label: "nav.partner.disputes" },
     { href: "/partner/marketplace", label: "nav.partner.marketplace" },
     {
       href: "/partner/sandboxes",
       label: "nav.partner.sandboxes",
-      allowedRoles: ["partner_admin"],
+      requiredPermission: "poc:manage",
     },
     {
       href: "/partner/brand",
       label: "nav.partner.brand",
-      allowedRoles: ["partner_admin"],
+      requiredPermission: "account:write",
     },
     { href: "/partner/enablement", label: "nav.partner.enablement" },
     { href: "/partner/support", label: "nav.partner.support" },
@@ -273,22 +286,22 @@ export const navigation: Readonly<
       {
         href: "/internal/provisioning",
         label: "nav.internal.provisioning",
-        allowedRoles: ["internal_operator"],
+        requiredPermission: "operations:write",
       },
       {
         href: "/internal/recovery",
         label: "nav.internal.recovery",
-        allowedRoles: ["internal_operator"],
+        requiredPermission: "operations:write",
       },
       {
         href: "/internal/webhook-replay",
         label: "nav.internal.webhookReplay",
-        allowedRoles: ["internal_operator"],
+        requiredPermission: "operations:write",
       },
       {
         href: "/internal/migrations",
         label: "nav.internal.migrations",
-        allowedRoles: ["internal_operator"],
+        requiredPermission: "migration:execute",
       },
       {
         href: "/internal/reports",
@@ -318,15 +331,15 @@ export const navigation: Readonly<
       {
         href: "/internal/agreements",
         label: "nav.internal.agreements",
-        allowedRoles: ["legal_approver"],
+        requiredPermission: "agreement:approve",
       },
       {
         href: "/internal/approvals",
         label: "nav.internal.approvals",
-        allowedRoles: [
-          "finance_approver",
-          "legal_approver",
-          "destructive_action_approver",
+        anyPermission: [
+          "quote:approve",
+          "agreement:approve",
+          "destructive:approve",
         ],
       },
       {
@@ -337,83 +350,55 @@ export const navigation: Readonly<
       {
         href: "/internal/payg-requests",
         label: "nav.internal.paygRequests",
-        allowedRoles: ["finance_approver"],
+        requiredPermission: "quote:approve",
       },
       {
         href: "/internal/payg-offers",
         label: "nav.internal.paygOffers",
-        allowedRoles: ["finance_approver"],
+        requiredPermission: "quote:approve",
       },
       {
         href: "/internal/capabilities",
         label: "nav.internal.capabilities",
-        allowedRoles: [
-          "internal_operator",
-          "finance_approver",
-          "legal_approver",
-          "destructive_action_approver",
-        ],
       },
       {
         href: "/internal/providers",
         label: "nav.internal.providers",
-        allowedRoles: ["internal_operator", "finance_approver"],
+        anyPermission: ["operations:write", "quote:approve"],
       },
       {
         href: "/internal/catalog",
         label: "nav.internal.catalog",
-        allowedRoles: ["internal_operator", "finance_approver"],
+        anyPermission: ["operations:write", "quote:approve"],
       },
       {
         href: "/internal/channel-policy",
         label: "nav.internal.channelPolicy",
-        allowedRoles: ["finance_approver"],
+        requiredPermission: "quote:approve",
       },
       {
         href: "/internal/gates",
         label: "nav.internal.gates",
-        allowedRoles: ["internal_operator"],
+        requiredPermission: "operations:write",
       },
       {
         href: "/internal/assisted",
         label: "nav.internal.assisted",
-        allowedRoles: ["internal_operator"],
+        requiredPermission: "impersonation:assume",
       },
     ]),
   ],
 };
 
-export const allowedRoles = {
-  customer: ["owner", "admin", "billing", "member"],
-  partner: ["partner_admin", "partner_seller"],
-  internal: internalRoles,
-} as const;
-
-export type CommerceRole =
-  (typeof allowedRoles)[keyof typeof allowedRoles][number];
-
-function isCommerceRole(role: string): role is Role {
-  return (commerceRoles as readonly string[]).includes(role);
-}
-
 export function canAccessNavigationItem(
   item: NavigationItem,
-  roles: readonly string[],
+  permissions: readonly Permission[],
 ): boolean {
-  const itemRoles = item.allowedRoles;
-  if (
-    itemRoles &&
-    !roles.some((role) => isCommerceRole(role) && itemRoles.includes(role))
-  ) {
-    return false;
-  }
-
   const permitted = (permission: Permission) =>
-    roles.some(
-      (role) => isCommerceRole(role) && hasPermission(role, permission),
-    );
+    permissions.includes(permission);
   if (item.workspace && !permitted(staffWorkspacePermission[item.workspace]))
     return false;
+  if (item.anyPermission && !item.anyPermission.some(permitted)) return false;
   return !item.requiredPermission || permitted(item.requiredPermission);
 }
 
@@ -429,9 +414,20 @@ export function isNavigationItemActive(
     : pathname === match || pathname.startsWith(`${match}/`);
 }
 
-export function roleCanAccess(
+/**
+ * Whether a session belongs in an audience's portal: staff hold a workspace
+ * permission, partners (channel and referral alike) register deals, and
+ * customers hold neither.
+ */
+export function audienceCanAccess(
   audience: ExperienceAudience,
-  role: string,
+  permissions: readonly Permission[],
 ): boolean {
-  return (allowedRoles[audience] as readonly string[]).includes(role);
+  const staff =
+    permissions.includes("operations:read") ||
+    permissions.includes("sales:read");
+  const partner = permissions.includes("deal:register");
+  if (audience === "internal") return staff;
+  if (audience === "partner") return partner && !staff;
+  return !staff && !partner;
 }

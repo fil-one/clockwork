@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { translatorFor } from "@/src/i18n/catalogs";
 
+import { permissionsForRoles } from "@clockwork/contracts";
 import { merchantOfRecord } from "@clockwork/domain/core";
 
 import {
@@ -10,7 +11,6 @@ import {
   partnerRoleSummary,
   registrationCreditLabel,
   renewalReviewSummary,
-  roleCanUseSurface,
   validPartnerQuoteActions,
   type AttributionRoute,
 } from "./partner-rules";
@@ -72,22 +72,24 @@ describe("structural partner attribution", () => {
 });
 
 describe("partner role behavior", () => {
-  it("prefers partner_admin when multiple partner roles exist", () => {
-    expect(currentPartnerRole(["partner_seller", "partner_admin"])).toBe(
-      "partner_admin",
+  it("reads the administrator from the permissions, whichever roles carry them", () => {
+    expect(
+      currentPartnerRole(
+        permissionsForRoles(["partner_seller", "partner_admin"]),
+      ),
+    ).toBe("partner_admin");
+    expect(currentPartnerRole(permissionsForRoles(["partner_seller"]))).toBe(
+      "partner_seller",
     );
+    expect(
+      currentPartnerRole(
+        permissionsForRoles(["partner_admin"], { side: "referral_partner" }),
+      ),
+    ).toBe("partner_admin");
+    expect(currentPartnerRole(permissionsForRoles(["owner"]))).toBeNull();
   });
 
   it("keeps seller access out of financial and renewal surfaces", () => {
-    expect(roleCanUseSurface(["partner_seller"], ["partner_admin"])).toBe(
-      false,
-    );
-    expect(
-      roleCanUseSurface(
-        ["partner_seller"],
-        ["partner_admin", "partner_seller"],
-      ),
-    ).toBe(true);
     expect(
       partnerRoleSummary("partner_seller", translatorFor("en")).join(" "),
     ).toContain("Cannot view partner billing");

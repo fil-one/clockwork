@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { sessionRolesFor, type Role } from "@clockwork/contracts";
+import { permissionsForRoles, type Role } from "@clockwork/contracts";
 
 const mocks = vi.hoisted(() => ({
   routeSession: vi.fn(),
@@ -22,10 +22,14 @@ import {
   withStaffPermission,
 } from "./staff-access";
 
-function signedInAs(granted: Role) {
-  const roles = sessionRolesFor([granted]);
-  mocks.routeSession.mockResolvedValue({ roles });
-  mocks.commerceSession.mockResolvedValue({ roles, isInternalStaff: true });
+function signedInAs(...roles: Role[]) {
+  const permissions = permissionsForRoles(roles, { side: "fil_one" });
+  mocks.routeSession.mockResolvedValue({ roles, permissions });
+  mocks.commerceSession.mockResolvedValue({
+    roles,
+    permissions,
+    isInternalStaff: true,
+  });
 }
 
 beforeEach(() => vi.clearAllMocks());
@@ -72,6 +76,16 @@ describe("staff page guard", () => {
     expect(screen.getByText(/Internal operator/u)).toBeInTheDocument();
   });
 
+  it("names the primary role and admits every permission of a multi-role seller", async () => {
+    signedInAs("revenue", "legal_approver");
+    render(
+      await withStaffPermission("contract:approve", () => <p>Approve</p>)(),
+    );
+    expect(screen.getByText("Approve")).toBeInTheDocument();
+    render(await withStaffPermission("staff:manage", () => <p>Team</p>)());
+    expect(screen.getByText(/Your role, Revenue, does not/u)).toBeVisible();
+  });
+
   it("passes the route props through to the page", async () => {
     signedInAs("commerce_admin");
     const page = vi.fn(({ id }: { id: string }) => <p>{id}</p>);
@@ -91,12 +105,28 @@ describe("staff action guard", () => {
   it("refuses a customer even with a matching permission", async () => {
     mocks.commerceSession.mockResolvedValue({
       roles: ["owner"],
+      permissions: permissionsForRoles(["owner"]),
       isInternalStaff: false,
     });
     await expect(requireStaffPermission("account:read")).rejects.toThrow(
       StaffPermissionError,
     );
-    expect(staffMayUse(["owner"], "account:read")).toBe(false);
+    expect(
+      staffMayUse(
+        { roles: ["owner"], permissions: permissionsForRoles(["owner"]) },
+        "account:read",
+      ),
+    ).toBe(false);
+  });
+
+  it("reads the session's permissions, so an assisted session stays without approvals", () => {
+    const assisted = {
+      roles: ["commerce_admin"],
+      permissions: permissionsForRoles(["commerce_admin"], { assisted: true }),
+    };
+    expect(staffMayUse(assisted, "operations:read")).toBe(true);
+    expect(staffMayUse(assisted, "staff:manage")).toBe(false);
+    expect(staffMayUse(assisted, "quote:approve")).toBe(false);
   });
 
   it("returns the session to an administrator", async () => {
@@ -119,6 +149,7 @@ describe("every staff route is guarded", () => {
     "page.tsx": "landing",
     "pricing/page.tsx": "sales:read",
     "team/page.tsx": "staff:manage",
+    "owner/page.tsx": "staff:manage",
   };
   function pages(directory: string): string[] {
     return readdirSync(directory).flatMap((name) => {
@@ -133,7 +164,7 @@ describe("every staff route is guarded", () => {
     const source = readFileSync(join(internal, page), "utf8");
     const expected = sales[path];
     if (expected === "landing") {
-      expect(source).toContain('staffMayUse(session.roles, "sales:read")');
+      expect(source).toContain('staffMayUse(session, "sales:read")');
       return;
     }
     // The MNDA workspace checks `mnda:send` and `signatory:manage` in its own

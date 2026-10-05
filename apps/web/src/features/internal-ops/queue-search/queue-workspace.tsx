@@ -6,6 +6,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
+import type { Permission } from "@clockwork/contracts";
+
 import type { MessageId, Translator } from "@/src/i18n";
 import { richText } from "@/src/i18n/rich";
 
@@ -43,7 +45,6 @@ import {
   type QueueFilters,
   type QueueItem,
   type QueuePerson,
-  type OperationalRole,
 } from "./model";
 import { QueueDetail } from "./queue-detail";
 
@@ -327,14 +328,14 @@ function QueueTable({
 }
 
 export function QueueWorkspace({
-  roles,
+  permissions,
   items,
   generatedAt,
   stale,
   actorId = null,
   demoRefreshEnabled = false,
 }: {
-  roles: readonly OperationalRole[];
+  permissions: readonly Permission[];
   items: readonly QueueItem[];
   generatedAt: string;
   stale: boolean;
@@ -759,7 +760,11 @@ export function QueueWorkspace({
             aria-label={t("operations.queue.detail.label")}
           >
             {selected ? (
-              <QueueDetail item={selected} roles={roles} now={now} />
+              <QueueDetail
+                item={selected}
+                permissions={permissions}
+                now={now}
+              />
             ) : null}
           </aside>
         </div>

@@ -76,16 +76,23 @@ describe("the generated access matrix", () => {
     for (const role of roles) expect(roleDescriptions[role].label).toBeTruthy();
     for (const permission of permissions)
       expect(permissionDescriptions[permission]).toBeTruthy();
-    expect(document).not.toContain("—");
+    // No em dashes in generated documentation.
+    expect(document).not.toContain(String.fromCharCode(0x2014));
   });
 
   it("marks exactly the bundles in the role table", () => {
     const row = (permission: string) =>
       document
         .split("\n")
-        .find((line) => line.startsWith(`| \`${permission}\` | `) && line.includes(" x "));
-    expect(row("approval:self")?.split("|").filter((cell) => cell.trim() === "x"))
-      .toHaveLength(1);
+        .find(
+          (line) =>
+            line.startsWith(`| \`${permission}\` | `) && line.includes(" x "),
+        );
+    expect(
+      row("signatory:manage")
+        ?.split("|")
+        .filter((cell) => cell.trim() === "x"),
+    ).toHaveLength(1);
     expect(row("staff:manage")).toMatch(/\| x \|$/u);
   });
 });

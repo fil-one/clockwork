@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 const mocks = vi.hoisted(() => ({
   getRouteSession: vi.fn(),
   loadPartnerRecords: vi.fn(),
@@ -23,15 +25,14 @@ import { partnerSurfaces, type PartnerSurfaceKey } from "./partner-data";
 import { PartnerCollectionRoute } from "./partner-route";
 
 const adminOnlySurfaces = Object.entries(partnerSurfaces)
-  .filter(([, config]) =>
-    config.roles.every((role) => role === "partner_admin"),
-  )
+  .filter(([, config]) => config.requiredPermission !== "deal:register")
   .map(([surface]) => surface as PartnerSurfaceKey);
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getRouteSession.mockResolvedValue({
     roles: ["partner_seller"],
+    permissions: permissionsForRoles(["partner_seller"]),
     locale: "en-US",
     timeZone: "UTC",
   });
@@ -64,6 +65,7 @@ describe("PartnerCollectionRoute authorization", () => {
   it("loads an admin-only surface for a partner administrator", async () => {
     mocks.getRouteSession.mockResolvedValue({
       roles: ["partner_admin"],
+      permissions: permissionsForRoles(["partner_admin"]),
       locale: "en-US",
       timeZone: "UTC",
     });
@@ -80,9 +82,36 @@ describe("PartnerCollectionRoute authorization", () => {
     expect(result.type).toBe(PartnerCollection);
   });
 
+  it("opens shared surfaces to a referral partner, quotes included", async () => {
+    mocks.getRouteSession.mockResolvedValue({
+      roles: ["partner_seller"],
+      permissions: permissionsForRoles(["partner_seller"], {
+        side: "referral_partner",
+      }),
+      locale: "en-US",
+      timeZone: "UTC",
+    });
+    mocks.loadPartnerRecords.mockResolvedValue({
+      records: [],
+      generatedAt: "2026-08-16T12:00:00.000Z",
+      truncated: false,
+      stale: false,
+    });
+
+    for (const surface of ["registrations", "quotes"] as const) {
+      const result = await PartnerCollectionRoute({ surface });
+      expect(mocks.loadPartnerRecords).toHaveBeenCalledWith(surface);
+      expect(result.type).toBe(PartnerCollection);
+    }
+  });
+
   it("preserves a validated assisted internal read of the selected partner", async () => {
     mocks.getRouteSession.mockResolvedValue({
       roles: ["internal_operator"],
+      permissions: permissionsForRoles(["internal_operator"], {
+        side: "fil_one",
+        assisted: true,
+      }),
       locale: "en-US",
       timeZone: "UTC",
       assistedSession: { accountId: "10000000-0000-4000-8000-000000000002" },

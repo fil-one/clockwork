@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import type { SessionClaims } from "@clockwork/api";
 import { canonicalTaxHash, type RuntimeTransaction } from "@clockwork/db";
 import { describe, expect, it, vi } from "vitest";
@@ -89,6 +90,7 @@ const row = {
 const session: SessionClaims = {
   userId: supplierId,
   roles: [],
+  permissions: permissionsForRoles([]),
   mfaVerified: true,
   recentAuthenticationVerified: true,
   accountIds: [accountId],

@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles } from "@clockwork/contracts";
+
 import type { GeneratedExternalGate } from "@/src/features/contracts/external-gates-client";
 
 vi.mock("next/navigation", () => ({
@@ -64,7 +66,7 @@ describe("staff timestamps in the reader's zone", () => {
     );
     render(
       <GateRegister
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         gates={[gate]}
         source="System gate registry"
       />,
@@ -76,7 +78,7 @@ describe("staff timestamps in the reader's zone", () => {
   it("states the price-book read time in the reader's zone", () => {
     render(
       <PriceBookAdministration
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId="21000000-0000-4000-8000-000000000008"
         books={[]}
         source="service"

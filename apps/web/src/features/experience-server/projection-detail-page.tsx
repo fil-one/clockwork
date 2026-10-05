@@ -342,7 +342,7 @@ export async function ProjectionDetailPage({
     loadPortalRecords(audience, channel),
     getRouteSession(audience),
   ]);
-  const roles = session.roles;
+  const permissions = session.permissions;
   // A staff record's next step is shown only while the capability it belongs
   // to is switched on: with billing off, "evaluate dunning" is not work.
   const capabilities =
@@ -549,7 +549,7 @@ export async function ProjectionDetailPage({
                         projectionId={record.id}
                         version={record.version}
                         actions={available}
-                        roles={roles}
+                        permissions={permissions}
                       />
                     </div>
                   </div>

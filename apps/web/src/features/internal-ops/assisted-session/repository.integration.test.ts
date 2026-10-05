@@ -211,9 +211,11 @@ describe.sequential("persistent assisted-session identity", () => {
     const originalRole = original[0]?.role;
     if (!originalRole)
       throw new Error("Internal fixture membership is missing");
+    // A staff organization only holds staff roles, so the revocation moves
+    // the operator to a seller role, which cannot assist.
     await withInternalTransaction(db, `${requestPrefix}:revoke-role`, (tx) =>
       tx.execute(sql`
-        update public.memberships set role = 'member'
+        update public.memberships set role = 'revenue'
         where id = ${membershipId}::uuid and user_id = ${internalUserId}::uuid
       `),
     );
@@ -233,6 +235,33 @@ describe.sequential("persistent assisted-session identity", () => {
             update public.memberships set role = ${originalRole}
             where id = ${membershipId}::uuid and user_id = ${internalUserId}::uuid
           `),
+      );
+    }
+
+    // Every role the staff member holds is carried, not only the primary one.
+    await withInternalTransaction(db, `${requestPrefix}:grant-role`, (tx) =>
+      tx.execute(sql`
+        insert into public.membership_roles (membership_id, role)
+        values (${membershipId}::uuid, 'legal_approver')
+      `),
+    );
+    try {
+      const granted = await resolveAssistedSession(db, {
+        id,
+        authenticationSessionId: durabilityAuthenticationSessionId,
+        internalUserId,
+        requestId: `${requestPrefix}:granted-read`,
+        now: new Date(baseline.getTime() + 2_500),
+      });
+      expect([...granted.actualRoles].sort()).toEqual(
+        [originalRole, "legal_approver"].sort(),
+      );
+    } finally {
+      await withInternalTransaction(db, `${requestPrefix}:ungrant-role`, (tx) =>
+        tx.execute(sql`
+          delete from public.membership_roles
+          where membership_id = ${membershipId}::uuid and role = 'legal_approver'
+        `),
       );
     }
 

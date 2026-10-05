@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MoneySchema } from "@clockwork/contracts";
+import { MoneySchema, permissionsForRoles } from "@clockwork/contracts";
 import type { PriceBookAdministrationRecord } from "@clockwork/db";
 import type * as CommerceClient from "@/src/features/contracts/commerce-client";
 import { catalogs } from "@/src/i18n/catalogs";
@@ -55,7 +55,7 @@ describe("price-book administration actionability", () => {
   it("distinguishes an available empty catalogue from an outage", () => {
     const { rerender } = render(
       <PriceBookAdministration
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId="21000000-0000-4000-8000-000000000008"
         books={[]}
         source="service"
@@ -70,7 +70,7 @@ describe("price-book administration actionability", () => {
 
     rerender(
       <PriceBookAdministration
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId="21000000-0000-4000-8000-000000000008"
         books={[]}
         source="unavailable"
@@ -87,7 +87,7 @@ describe("price-book administration actionability", () => {
   it("explains that a renamed book still replaces the active currency catalogue", () => {
     render(
       <PriceBookAdministration
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId="reviewer"
         books={[
           { ...draft, name: "New independent book", rateCards: [] },
@@ -114,7 +114,7 @@ describe("price-book administration actionability", () => {
   it("renders a seeded draft as a second-authority finance decision", () => {
     render(
       <PriceBookAdministration
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId="21000000-0000-4000-8000-000000000008"
         books={[draft]}
         source="demo"
@@ -149,7 +149,7 @@ describe("price-book administration actionability", () => {
     );
     const { rerender } = render(
       <PriceBookAdministration
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId="21000000-0000-4000-8000-000000000008"
         books={[draft]}
         source="demo"
@@ -221,7 +221,7 @@ describe("price-book administration actionability", () => {
     };
     const page = (book: PriceBookAdministrationRecord) => (
       <PriceBookAdministration
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId="21000000-0000-4000-8000-000000000008"
         books={[draft, book]}
         source="demo"
@@ -315,7 +315,7 @@ it("reopens a saved rate and edits transfer economics without losing its other f
   };
   render(
     <PriceBookAdministration
-      roles={["finance_approver"]}
+      permissions={permissionsForRoles(["finance_approver"])}
       userId="21000000-0000-4000-8000-000000000008"
       books={[editable]}
       source="service"
@@ -352,7 +352,7 @@ it("invalidates reviewed evidence when a refreshed price-book version arrives", 
   };
   const page = (book: PriceBookAdministrationRecord) => (
     <PriceBookAdministration
-      roles={["finance_approver"]}
+      permissions={permissionsForRoles(["finance_approver"])}
       userId="21000000-0000-4000-8000-000000000008"
       books={[book]}
       source="service"
@@ -424,7 +424,7 @@ it.each([
     const user = userEvent.setup();
     render(
       <PriceBookAdministration
-        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
         userId="other-finance"
         books={[{ ...draft, effectiveFrom, effectiveTo }]}
         source="service"
@@ -457,7 +457,7 @@ it("shows an approved schedule as frozen and permits explicit cancellation", asy
   const user = userEvent.setup();
   render(
     <PriceBookAdministration
-      roles={["finance_approver"]}
+      permissions={permissionsForRoles(["finance_approver"])}
       userId="reviewer"
       books={[
         {
@@ -515,7 +515,7 @@ it("reports a duplicate clone version before sending a mutation", async () => {
   const user = userEvent.setup();
   render(
     <PriceBookAdministration
-      roles={["finance_approver"]}
+      permissions={permissionsForRoles(["finance_approver"])}
       userId="other-finance"
       books={[draft]}
       source="service"
@@ -572,7 +572,7 @@ describe("the page in the reader's language", () => {
     render(
       <LanguageProvider locale={locale} catalog={catalogs[locale]}>
         <PriceBookAdministration
-          roles={["finance_approver"]}
+          permissions={permissionsForRoles(["finance_approver"])}
           userId="21000000-0000-4000-8000-000000000008"
           books={books}
           source="demo"

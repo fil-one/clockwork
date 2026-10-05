@@ -19,7 +19,9 @@ WORKOS_REDIRECT_URI=https://<%= ${TF_VAR_canonical_hostname:-${TF_VAR_hostname:?
 
 # one hop: the application load balancer
 CLOCKWORK_TRUSTED_PROXY_HOPS=1
-INTERNAL_EMAIL_DOMAINS=<%= ${CLOCKWORK_INTERNAL_EMAIL_DOMAINS:-fil.org} %>
+# Staff sign-in and staff invitations accept only these domains; the
+# application has no built-in default and refuses staff sign-in without them.
+INTERNAL_EMAIL_DOMAINS=<%= ${CLOCKWORK_INTERNAL_EMAIL_DOMAINS:-fil.org,fil.one} %>
 
 # Privileged roles need a second factor, and the application counts one only
 # for an organization whose WorkOS factor policy it has been told to trust.

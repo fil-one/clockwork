@@ -2,6 +2,8 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles, type Role } from "@clockwork/contracts";
+
 vi.mock("@/src/auth/actions", () => ({ startAssistedSession: vi.fn() }));
 
 import { resolveDemoText } from "@clockwork/testing/demo-localized-text";
@@ -24,14 +26,31 @@ import { HumanSelector, StatusPill, TechnicalEvidence, styles } from "./ui";
 
 describe("administration and safety policy", () => {
   it("keeps finance, legal, destructive, and assisted authorities segregated", () => {
-    expect(canDecide(["finance_approver"], "finance")).toBe(true);
-    expect(canDecide(["finance_approver"], "legal")).toBe(false);
-    expect(canDecide(["legal_approver"], "legal")).toBe(true);
-    expect(canDecide(["legal_approver"], "destructive")).toBe(false);
-    expect(canDecide(["destructive_action_approver"], "destructive")).toBe(
+    const can = (role: Role) => permissionsForRoles([role]);
+    expect(canDecide(can("finance_approver"), "finance")).toBe(true);
+    expect(canDecide(can("finance_approver"), "legal")).toBe(false);
+    expect(canDecide(can("legal_approver"), "legal")).toBe(true);
+    expect(canDecide(can("legal_approver"), "destructive")).toBe(false);
+    expect(canDecide(can("destructive_action_approver"), "destructive")).toBe(
       true,
     );
-    expect(canDecide(["internal_operator"], "assisted")).toBe(true);
+    expect(canDecide(can("internal_operator"), "assisted")).toBe(true);
+    expect(canDecide(can("internal_operator"), "operations")).toBe(true);
+    expect(canDecide(can("destructive_action_approver"), "operations")).toBe(
+      false,
+    );
+  });
+
+  it("lets a person holding two roles decide for both, and no approvals inside an assisted session", () => {
+    const both = permissionsForRoles(["revenue", "legal_approver"]);
+    expect(canDecide(both, "legal")).toBe(true);
+    expect(canDecide(both, "finance")).toBe(false);
+    const assisted = permissionsForRoles(["commerce_admin"], {
+      assisted: true,
+    });
+    expect(canDecide(assisted, "finance")).toBe(false);
+    expect(canDecide(assisted, "legal")).toBe(false);
+    expect(canDecide(assisted, "assisted")).toBe(true);
   });
 
   it("requires a reason and complete decision summary evidence", () => {
@@ -57,7 +76,7 @@ describe("administration and safety policy", () => {
 
   it("does not enable an assisted commercial action before review", () => {
     const base = {
-      roles: ["internal_operator"],
+      permissions: permissionsForRoles(["internal_operator"]),
       reason: "Customer requested staff assistance",
       effectiveAccountId: "account-1",
     } as const;
@@ -70,7 +89,7 @@ describe("administration and safety policy", () => {
     expect(
       assistedCommercialActionReady({
         ...base,
-        roles: ["finance_approver"],
+        permissions: permissionsForRoles(["finance_approver"]),
         reviewed: true,
       }),
     ).toBe(false);
@@ -118,7 +137,10 @@ describe("administration and safety disclosure UI", () => {
 
   it("disables a finance decision for legal authority while retaining review access", () => {
     const { rerender } = render(
-      <ApprovalWorkspace roles={["legal_approver"]} />,
+      <ApprovalWorkspace
+        roles={["legal_approver"]}
+        permissions={permissionsForRoles(["legal_approver"])}
+      />,
     );
     expect(
       screen.getByRole("button", { name: "Review approval" }),
@@ -126,7 +148,12 @@ describe("administration and safety disclosure UI", () => {
     expect(
       screen.getByText("This role cannot decide this case."),
     ).toBeVisible();
-    rerender(<ApprovalWorkspace roles={["finance_approver"]} />);
+    rerender(
+      <ApprovalWorkspace
+        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
+      />,
+    );
     expect(
       screen.getByRole("button", { name: "Review approval" }),
     ).toBeEnabled();
@@ -145,7 +172,7 @@ describe("agreement version filters", () => {
     const { container } = render(
       <LanguageProvider locale="pt" catalog={catalogs.pt}>
         <AgreementAdministration
-          roles={["legal_approver"]}
+          permissions={permissionsForRoles(["legal_approver"])}
           versions={resolveDemoText(agreementVersions, "pt")}
           scannedAt={agreementScanAt}
           readOnly
@@ -179,7 +206,7 @@ describe("agreement registry scan time", () => {
   it("states the scan time in UTC like the other operator pages", () => {
     render(
       <AgreementAdministration
-        roles={["legal_approver"]}
+        permissions={permissionsForRoles(["legal_approver"])}
         versions={resolveDemoText(agreementVersions, "en")}
         scannedAt="2026-07-31T15:44:00Z"
         readOnly
@@ -215,7 +242,7 @@ describe("status chip colour", () => {
   it("colours a current registry and a held authority as success", () => {
     const { unmount } = render(
       <AgreementAdministration
-        roles={["legal_approver"]}
+        permissions={permissionsForRoles(["legal_approver"])}
         versions={resolveDemoText(agreementVersions, "en")}
         scannedAt={agreementScanAt}
         readOnly
@@ -227,16 +254,24 @@ describe("status chip colour", () => {
     );
     unmount();
     const { rerender } = render(
-      <ApprovalWorkspace roles={["finance_approver"]} />,
+      <ApprovalWorkspace
+        roles={["finance_approver"]}
+        permissions={permissionsForRoles(["finance_approver"])}
+      />,
     );
     expect(screen.getByText("Authorized role")).toHaveClass(
       styles.success ?? "",
     );
-    rerender(<ApprovalWorkspace roles={["legal_approver"]} />);
+    rerender(
+      <ApprovalWorkspace
+        roles={["legal_approver"]}
+        permissions={permissionsForRoles(["legal_approver"])}
+      />,
+    );
     expect(screen.getByText("Read only")).toHaveClass(styles.warning ?? "");
     rerender(
       <AssistedMode
-        roles={["internal_operator"]}
+        permissions={permissionsForRoles(["internal_operator"])}
         accounts={resolveDemoText(accounts, "en")}
         actor="Ada Mercer"
       />,
@@ -250,7 +285,7 @@ describe("status chip colour", () => {
     render(
       <LanguageProvider locale="pt" catalog={catalogs.pt}>
         <AgreementAdministration
-          roles={["legal_approver"]}
+          permissions={permissionsForRoles(["legal_approver"])}
           versions={resolveDemoText(agreementVersions, "pt")}
           scannedAt={agreementScanAt}
           readOnly

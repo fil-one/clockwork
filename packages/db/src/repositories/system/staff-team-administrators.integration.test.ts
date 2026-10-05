@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 
+import type { StaffTeamRole } from "@clockwork/contracts";
+
 import { createRuntimeDatabase } from "../../client";
 import {
   accounts,
@@ -9,6 +11,7 @@ import {
   memberships,
   organizations,
 } from "../../schema";
+import { membershipRoles } from "../../schema/access";
 import { withInternalTransaction } from "../../transaction";
 import {
   assertAnotherStaffAdmin,
@@ -77,7 +80,8 @@ async function versionOf(userId: string): Promise<number> {
 beforeAll(async () => {
   await db.insert(accounts).values({
     id: accountId,
-    legalName: "Administrators Test LLC",
+    // Committed and never removed, so unique per run.
+    legalName: `Administrators Test ${accountId} LLC`,
     relationshipRoles: ["direct_client"],
     registeredAddress: {
       line1: "1 Main St",
@@ -97,6 +101,7 @@ beforeAll(async () => {
     id: organizationId,
     accountId,
     name: "Administrators Test",
+    side: "fil_one",
     workosOrganizationId: `org_admins${organizationId.replaceAll("-", "")}`,
   } as typeof organizations.$inferInsert);
 });
@@ -133,6 +138,28 @@ it("refuses a change that would leave no commerce administrator", async () => {
       await assertAnotherStaffAdmin(tx, organizationId, onlyAdmin);
     }),
   ).rejects.toThrow("STAFF_TEAM_LAST_ADMIN");
+  // A seller who was also given administration counts.
+  const [membership] = await db
+    .select({ id: memberships.id })
+    .from(memberships)
+    .where(eq(memberships.userId, second));
+  if (!membership) throw new Error("membership missing");
+  await db
+    .insert(membershipRoles)
+    .values({ membershipId: membership.id, role: "commerce_admin" });
+  await expect(
+    withInternalTransaction(db, `admins-${randomUUID()}`, async (tx) => {
+      await assertAnotherStaffAdmin(tx, organizationId, onlyAdmin);
+    }),
+  ).resolves.toBeUndefined();
+  await db
+    .delete(membershipRoles)
+    .where(
+      and(
+        eq(membershipRoles.membershipId, membership.id),
+        eq(membershipRoles.role, "commerce_admin"),
+      ),
+    );
 });
 
 it("lets only one of two administrators demote the other at the same moment", async () => {
@@ -154,12 +181,22 @@ it("lets only one of two administrators demote the other at the same moment", as
       ),
     );
   const repository = new StaffTeamRepository(db);
+  // Each also sells, so removing administration leaves them a role.
+  for (const user of [first, second])
+    await repository.grantRole({
+      actorUserId: user === first ? second : first,
+      organizationId,
+      userId: user,
+      role: "revenue",
+      expectedRowVersion: await versionOf(user),
+      requestId: `admins-${randomUUID()}`,
+    });
   const demote = async (actor: string, target: string) =>
-    repository.changeRole({
+    repository.revokeRole({
       actorUserId: actor,
       organizationId,
       userId: target,
-      role: "revenue",
+      role: "commerce_admin",
       expectedRowVersion: await versionOf(target),
       requestId: `admins-${randomUUID()}`,
     });
@@ -177,4 +214,44 @@ it("lets only one of two administrators demote the other at the same moment", as
   );
   const remaining = [await roleOf(first), await roleOf(second)];
   expect(remaining.filter((role) => role === "commerce_admin")).toHaveLength(1);
+});
+
+it("keeps everyone at least one role and moves authority with the roles", async () => {
+  const keeper = await staff("commerce_admin");
+  const seller = await staff("revenue");
+  const repository = new StaffTeamRepository(db);
+  const change = async (
+    kind: "grantRole" | "revokeRole",
+    actor: string,
+    target: string,
+    role: StaffTeamRole,
+  ) =>
+    repository[kind]({
+      actorUserId: actor,
+      organizationId,
+      userId: target,
+      role,
+      expectedRowVersion: await versionOf(target),
+      reason: "Cover for the quarter close",
+      requestId: `admins-${randomUUID()}`,
+    });
+
+  const granted = await change("grantRole", keeper, seller, "commerce_admin");
+  expect(granted.roles).toEqual(["revenue", "commerce_admin"]);
+  // The primary role, and so the home page, stays.
+  expect(await roleOf(seller)).toBe("revenue");
+
+  // The keeper's only role cannot go; they would be left with none.
+  await expect(
+    change("revokeRole", seller, keeper, "commerce_admin"),
+  ).rejects.toThrow("STAFF_TEAM_LAST_ROLE");
+  await change("grantRole", seller, keeper, "revenue");
+  const demoted = await change("revokeRole", seller, keeper, "commerce_admin");
+  expect(demoted).toMatchObject({ role: "revenue", roles: ["revenue"] });
+  expect(await roleOf(keeper)).toBe("revenue");
+
+  // Without the role, the keeper manages nobody.
+  await expect(
+    change("revokeRole", keeper, seller, "commerce_admin"),
+  ).rejects.toThrow("STAFF_TEAM_ADMIN_REQUIRED");
 });

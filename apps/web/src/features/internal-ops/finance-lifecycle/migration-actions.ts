@@ -1,6 +1,6 @@
 "use server";
 
-import { hasPermission } from "@clockwork/contracts";
+import { contextHasPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
@@ -47,7 +47,7 @@ export async function recordDemoMigrationDecision(
   }
   if (
     !session.isInternalStaff ||
-    !session.roles.some((role) => hasPermission(role, "system:operate"))
+    !contextHasPermission(session, "system:operate")
   )
     return { ok: false, code: "MIGRATION_FORBIDDEN" };
   try {

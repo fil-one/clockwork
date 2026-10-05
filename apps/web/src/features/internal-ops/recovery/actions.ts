@@ -2,7 +2,7 @@
 
 import { DatabaseSystemRecoveryCommandExecutor } from "@clockwork/db";
 import type { DeadLetterSource } from "@clockwork/db";
-import { hasPermission } from "@clockwork/contracts";
+import { contextHasPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
@@ -66,7 +66,7 @@ export async function decideDeadLetterOperation(
   if (demoEnabled && !database) {
     const permitted =
       session.isInternalStaff &&
-      session.roles.some((role) => hasPermission(role, "system:operate"));
+      contextHasPermission(session, "system:operate");
     if (!permitted)
       return { ok: false, code: "SYSTEM_RECOVERY_PERMISSION_REVOKED" };
     try {

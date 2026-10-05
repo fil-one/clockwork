@@ -2,8 +2,7 @@ import type { Route } from "next";
 
 import type { MessageId } from "@/src/i18n";
 
-import type { PartnerRole } from "./partner-data";
-import { currentPartnerRole } from "./partner-rules";
+import type { Permission } from "@clockwork/contracts";
 
 export type EnablementAudience = "client_safe" | "partner_internal";
 
@@ -14,10 +13,12 @@ export interface EnablementItem {
   description: MessageId;
   href: Route;
   audience: EnablementAudience;
-  allowedRoles: readonly PartnerRole[];
+  /** What a partner must hold to see the item. */
+  requiredPermission: Permission;
 }
 
-const bothPartnerRoles = ["partner_admin", "partner_seller"] as const;
+/** Every partner, channel or referral, registers deals. */
+const everyPartner = "deal:register" as const satisfies Permission;
 
 /**
  * Every entry is a route that exists in the application tree. Client-safe
@@ -31,7 +32,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.trust.description",
     href: "/trust",
     audience: "client_safe",
-    allowedRoles: bothPartnerRoles,
+    requiredPermission: everyPartner,
   },
   {
     id: "developers",
@@ -39,7 +40,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.developers.description",
     href: "/developers",
     audience: "client_safe",
-    allowedRoles: bothPartnerRoles,
+    requiredPermission: everyPartner,
   },
   {
     id: "demo",
@@ -47,7 +48,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.demo.description",
     href: "/demo",
     audience: "client_safe",
-    allowedRoles: bothPartnerRoles,
+    requiredPermission: everyPartner,
   },
   {
     id: "portfolio",
@@ -55,7 +56,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.portfolio.description",
     href: "/partner/portfolio",
     audience: "partner_internal",
-    allowedRoles: bothPartnerRoles,
+    requiredPermission: everyPartner,
   },
   {
     id: "registrations",
@@ -63,7 +64,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.registrations.description",
     href: "/partner/registrations",
     audience: "partner_internal",
-    allowedRoles: bothPartnerRoles,
+    requiredPermission: everyPartner,
   },
   {
     id: "quotes",
@@ -71,7 +72,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.quotes.description",
     href: "/partner/quotes",
     audience: "partner_internal",
-    allowedRoles: bothPartnerRoles,
+    requiredPermission: everyPartner,
   },
   {
     id: "quote-new",
@@ -79,7 +80,8 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.quoteNew.description",
     href: "/partner/quotes/new",
     audience: "partner_internal",
-    allowedRoles: bothPartnerRoles,
+    // Pricing is a channel partner's work; a referral partner never quotes.
+    requiredPermission: "partner:quote:write",
   },
   {
     id: "marketplace",
@@ -87,7 +89,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.marketplace.description",
     href: "/partner/marketplace",
     audience: "partner_internal",
-    allowedRoles: bothPartnerRoles,
+    requiredPermission: everyPartner,
   },
   {
     id: "disputes",
@@ -95,7 +97,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.disputes.description",
     href: "/partner/disputes",
     audience: "partner_internal",
-    allowedRoles: bothPartnerRoles,
+    requiredPermission: everyPartner,
   },
   {
     id: "support",
@@ -103,7 +105,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.support.description",
     href: "/partner/support",
     audience: "partner_internal",
-    allowedRoles: bothPartnerRoles,
+    requiredPermission: everyPartner,
   },
   {
     id: "billing",
@@ -111,7 +113,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.billing.description",
     href: "/partner/billing",
     audience: "partner_internal",
-    allowedRoles: ["partner_admin"],
+    requiredPermission: "billing:read",
   },
   {
     id: "commissions",
@@ -119,7 +121,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.commissions.description",
     href: "/partner/commissions",
     audience: "partner_internal",
-    allowedRoles: ["partner_admin"],
+    requiredPermission: "billing:read",
   },
   {
     id: "renewals",
@@ -127,7 +129,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.renewals.description",
     href: "/partner/renewals",
     audience: "partner_internal",
-    allowedRoles: ["partner_admin"],
+    requiredPermission: "order:write",
   },
   {
     id: "sandboxes",
@@ -135,7 +137,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.sandboxes.description",
     href: "/partner/sandboxes",
     audience: "partner_internal",
-    allowedRoles: ["partner_admin"],
+    requiredPermission: "poc:manage",
   },
   {
     id: "brand",
@@ -143,7 +145,7 @@ export const enablementItems: readonly EnablementItem[] = [
     description: "partner.enablement.item.brand.description",
     href: "/partner/brand",
     audience: "partner_internal",
-    allowedRoles: ["partner_admin"],
+    requiredPermission: "account:write",
   },
 ] as const;
 
@@ -152,12 +154,12 @@ export function clientSafeEnablementItems(): readonly EnablementItem[] {
 }
 
 export function internalEnablementItems(
-  roles: readonly string[],
+  permissions: readonly Permission[],
 ): readonly EnablementItem[] {
-  const role = currentPartnerRole(roles);
-  if (!role) return [];
+  if (!permissions.includes("deal:register")) return [];
   return enablementItems.filter(
     (item) =>
-      item.audience === "partner_internal" && item.allowedRoles.includes(role),
+      item.audience === "partner_internal" &&
+      permissions.includes(item.requiredPermission),
   );
 }

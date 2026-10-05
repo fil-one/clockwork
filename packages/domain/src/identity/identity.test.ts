@@ -1,9 +1,11 @@
+import { type OrganizationSide, type Role } from "@clockwork/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
   assistedActionEvidence,
   evaluateMembershipPolicy,
   evaluateProcurementOnboarding,
+  inviteRoleRefusal,
   registerLegalEntity,
   resolvePartnerBranding,
   routeLifecycleNotification,
@@ -213,5 +215,65 @@ describe("identity and onboarding policy", () => {
       communicationOwner: "partner",
       fallbackApplied: true,
     });
+  });
+});
+
+describe("inviteRoleRefusal", () => {
+  const invite = (
+    inviterRoles: readonly Role[],
+    role: Role,
+    side: OrganizationSide,
+  ) => inviteRoleRefusal({ role, side, inviterRoles });
+
+  it("lets an owner invite every customer role", () => {
+    for (const role of ["owner", "admin", "billing", "member"] as const)
+      expect(invite(["owner"], role, "customer")).toBeNull();
+  });
+
+  it("lets an administrator invite every customer role but the owner", () => {
+    for (const role of ["admin", "billing", "member"] as const)
+      expect(invite(["admin"], role, "customer")).toBeNull();
+    expect(invite(["admin"], "owner", "customer")).toBe(
+      "INVITE_ROLE_EXCEEDS_INVITER",
+    );
+  });
+
+  it("lets a partner administrator invite partner roles on either partner side", () => {
+    for (const side of ["channel_partner", "referral_partner"] as const)
+      for (const role of ["partner_admin", "partner_seller"] as const)
+        expect(invite(["partner_admin"], role, side)).toBeNull();
+  });
+
+  it("lets every other role invite no one", () => {
+    for (const inviter of ["billing", "member"] as const)
+      for (const role of ["owner", "admin", "billing", "member"] as const)
+        expect(invite([inviter], role, "customer")).toBe(
+          "INVITE_ROLE_EXCEEDS_INVITER",
+        );
+    expect(
+      invite(["partner_seller"], "partner_seller", "channel_partner"),
+    ).toBe("INVITE_ROLE_EXCEEDS_INVITER");
+    expect(invite(["commerce_admin"], "member", "customer")).toBe(
+      "INVITE_ROLE_EXCEEDS_INVITER",
+    );
+  });
+
+  it("refuses a role the organization's side does not allow", () => {
+    expect(invite(["owner"], "partner_admin", "customer")).toBe(
+      "INVITE_ROLE_NOT_ALLOWED_ON_SIDE",
+    );
+    expect(invite(["partner_admin"], "owner", "referral_partner")).toBe(
+      "INVITE_ROLE_NOT_ALLOWED_ON_SIDE",
+    );
+    expect(invite(["owner"], "internal_operator", "customer")).toBe(
+      "INVITE_ROLE_NOT_ALLOWED_ON_SIDE",
+    );
+  });
+
+  it("lets a person with several roles invite the union of their ceilings", () => {
+    expect(invite(["member", "admin"], "billing", "customer")).toBeNull();
+    expect(invite(["billing", "admin"], "owner", "customer")).toBe(
+      "INVITE_ROLE_EXCEEDS_INVITER",
+    );
   });
 });

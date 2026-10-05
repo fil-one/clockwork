@@ -1,5 +1,6 @@
 import type { Route } from "next";
 
+import type { Permission } from "@clockwork/contracts";
 import {
   demoText,
   type DemoTextField,
@@ -209,11 +210,12 @@ export interface PartnerSurfaceConfig<Row = PartnerRecord> {
   searchPlaceholder: MessageId;
   columns: readonly [MessageId, MessageId, MessageId];
   records: readonly Row[];
-  roles: readonly PartnerRole[];
+  /** What a partner must hold to open the surface. */
+  requiredPermission: Permission;
   primaryAction?: {
     label: MessageId;
     href: Route;
-    roles: readonly PartnerRole[];
+    requiredPermission: Permission;
   };
   gate?: MessageId;
   amountColumn?: number;
@@ -1002,8 +1004,9 @@ const support: readonly PartnerFixture[] = [
   },
 ];
 
-const both = ["partner_admin", "partner_seller"] as const;
-const admin = ["partner_admin"] as const;
+// Every partner, channel or referral, registers deals; the other surfaces
+// need the permission their records' work takes.
+const everyPartner = "deal:register" as const satisfies Permission;
 
 export const partnerSurfaces: Readonly<
   Record<PartnerSurfaceKey, PartnerSurfaceConfig<PartnerFixture>>
@@ -1021,7 +1024,7 @@ export const partnerSurfaces: Readonly<
       "partner.surface.portfolio.column2",
     ],
     records: portfolio,
-    roles: both,
+    requiredPermission: everyPartner,
   },
   registrations: {
     eyebrow: "partner.surface.registrations.eyebrow",
@@ -1036,7 +1039,7 @@ export const partnerSurfaces: Readonly<
       "partner.surface.registrations.column2",
     ],
     records: registrations,
-    roles: both,
+    requiredPermission: everyPartner,
     gate: "partner.surface.registrations.gate",
   },
   disputes: {
@@ -1052,7 +1055,7 @@ export const partnerSurfaces: Readonly<
       "partner.surface.disputes.column2",
     ],
     records: disputes,
-    roles: both,
+    requiredPermission: everyPartner,
     gate: "partner.surface.disputes.gate",
   },
   quotes: {
@@ -1068,11 +1071,11 @@ export const partnerSurfaces: Readonly<
       "partner.surface.quotes.column2",
     ],
     records: quotes,
-    roles: both,
+    requiredPermission: everyPartner,
     primaryAction: {
       label: "partner.surface.quotes.primaryAction",
       href: "/partner/quotes/new",
-      roles: both,
+      requiredPermission: "partner:quote:write",
     },
   },
   billing: {
@@ -1088,7 +1091,7 @@ export const partnerSurfaces: Readonly<
       "partner.surface.billing.column2",
     ],
     records: billing,
-    roles: admin,
+    requiredPermission: "billing:read",
     amountColumn: 3,
   },
   commissions: {
@@ -1104,7 +1107,7 @@ export const partnerSurfaces: Readonly<
       "partner.surface.commissions.column2",
     ],
     records: commissions,
-    roles: admin,
+    requiredPermission: "billing:read",
     amountColumn: 3,
   },
   renewals: {
@@ -1120,7 +1123,7 @@ export const partnerSurfaces: Readonly<
       "partner.surface.renewals.column2",
     ],
     records: renewals,
-    roles: admin,
+    requiredPermission: "order:write",
   },
   sandboxes: {
     eyebrow: "partner.surface.sandboxes.eyebrow",
@@ -1135,7 +1138,7 @@ export const partnerSurfaces: Readonly<
       "partner.surface.sandboxes.column2",
     ],
     records: sandboxes,
-    roles: admin,
+    requiredPermission: "poc:manage",
   },
   marketplace: {
     eyebrow: "partner.surface.marketplace.eyebrow",
@@ -1150,7 +1153,7 @@ export const partnerSurfaces: Readonly<
       "partner.surface.marketplace.column2",
     ],
     records: marketplace,
-    roles: both,
+    requiredPermission: everyPartner,
     gate: "partner.surface.marketplace.gate",
   },
   brand: {
@@ -1166,7 +1169,7 @@ export const partnerSurfaces: Readonly<
       "partner.surface.brand.column2",
     ],
     records: brand,
-    roles: admin,
+    requiredPermission: "account:write",
     gate: "partner.surface.brand.gate",
   },
   support: {
@@ -1182,7 +1185,7 @@ export const partnerSurfaces: Readonly<
       "partner.surface.support.column2",
     ],
     records: support,
-    roles: both,
+    requiredPermission: everyPartner,
     gate: "partner.surface.support.gate",
   },
 };

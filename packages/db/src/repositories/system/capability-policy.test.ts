@@ -1,6 +1,9 @@
+import { hasPermission, roles } from "@clockwork/contracts";
 import { describe, expect, it } from "vitest";
+import { systemCapabilityKeys } from "./capabilities";
 import {
   assertCapabilityDecision,
+  capabilityApprovalPermission,
   capabilityApprovalRole,
 } from "./capability-policy";
 
@@ -19,6 +22,19 @@ describe("capability activation safeguards", () => {
       "destructive_action_approver",
     );
     expect(capabilityApprovalRole("new_business")).toBe("finance_approver");
+    expect(capabilityApprovalPermission("legal")).toBe("agreement:approve");
+    expect(capabilityApprovalPermission("teardown")).toBe(
+      "destructive:approve",
+    );
+    expect(capabilityApprovalPermission("billing")).toBe("quote:approve");
+  });
+  it("lets exactly the named approver and the commerce administrator decide each switch", () => {
+    for (const key of systemCapabilityKeys)
+      expect(
+        roles.filter((role) =>
+          hasPermission(role, capabilityApprovalPermission(key)),
+        ),
+      ).toEqual([capabilityApprovalRole(key), "commerce_admin"]);
   });
   it("requires a distinct approver even if the requester has approval authority", () => {
     expect(() =>

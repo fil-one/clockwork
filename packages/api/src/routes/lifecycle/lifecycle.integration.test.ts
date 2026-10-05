@@ -1,4 +1,4 @@
-import { ProblemError } from "@clockwork/contracts";
+import { permissionsForRoles, ProblemError } from "@clockwork/contracts";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { describe, expect, it, vi } from "vitest";
 
@@ -9,6 +9,7 @@ import { registerLifecycleRoutes, TransactionalLifecycleService } from ".";
 import type {
   LifecycleAuthorizationScopeResolver,
   LifecycleCommandRepository,
+  LifecycleOperationContext,
   LifecycleRouteDependencies,
   LifecycleRouteService,
 } from ".";
@@ -88,6 +89,7 @@ function app(input: {
           organizationId,
           accountIds: input.accountIds ?? [accountId],
           roles: [input.role ?? "owner"],
+          permissions: permissionsForRoles([input.role ?? "owner"]),
           isInternalStaff: input.role === "internal_operator",
           mfaVerified: true,
           recentAuthenticationVerified: true,
@@ -122,6 +124,64 @@ const mutationHeaders = {
 };
 
 describe("lifecycle API authorization and evidence", () => {
+  it("hands the inviter's roles to the invite and returns its refusal", async () => {
+    const inviteMember = vi.fn().mockRejectedValue(
+      new ProblemError({
+        type: "https://clockwork.test/problems/invite-role",
+        title: "This role cannot be held in this organization",
+        status: 403,
+        code: "INVITE_ROLE_NOT_ALLOWED_ON_SIDE",
+        requestId: "request-1",
+        retryable: false,
+      }),
+    );
+    const response = await app({
+      service: service({ inviteMember }),
+      role: "member",
+    }).request(`/v1/lifecycle/organizations/${organizationId}/invites`, {
+      method: "POST",
+      headers: mutationHeaders,
+      body: JSON.stringify({
+        accountId,
+        email: "new.owner@northstar.test",
+        role: "owner",
+        expiresAt: "2026-08-31T16:00:00.000Z",
+      }),
+    });
+    // A member holds no account:write, so the route refuses before the
+    // repository is asked.
+    expect(response.status).toBe(403);
+    expect(inviteMember).not.toHaveBeenCalled();
+
+    const refused = await app({
+      service: service({ inviteMember }),
+      role: "owner",
+    }).request(`/v1/lifecycle/organizations/${organizationId}/invites`, {
+      method: "POST",
+      headers: mutationHeaders,
+      body: JSON.stringify({
+        accountId,
+        email: "new.partner@northstar.test",
+        role: "partner_admin",
+        expiresAt: "2026-08-31T16:00:00.000Z",
+      }),
+    });
+    expect(refused.status).toBe(403);
+    await expect(refused.json()).resolves.toMatchObject({
+      code: "INVITE_ROLE_NOT_ALLOWED_ON_SIDE",
+    });
+    const [payload, context] = inviteMember.mock.calls[0] as [
+      unknown,
+      LifecycleOperationContext,
+    ];
+    expect(payload).toMatchObject({ organizationId, role: "partner_admin" });
+    // The repository judges the invited role against the inviter's roles.
+    expect(context.authorization?.roles).toEqual(["owner"]);
+    expect(context.authorization?.permissions).toEqual(
+      permissionsForRoles(["owner"]),
+    );
+  });
+
   it("rejects a whitespace-only POC success-test target at the API boundary", async () => {
     const createPoc = vi.fn();
     const response = await app({ service: service({ createPoc }) }).request(

@@ -1,3 +1,4 @@
+import { permissionsForRoles } from "@clockwork/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SessionClaims } from "@clockwork/api";
@@ -31,6 +32,7 @@ const partner: SessionClaims = {
   organizationId: "31000000-0000-4000-8000-000000000003",
   accountIds: [demoAccountIds.reseller],
   roles: ["partner_admin"],
+  permissions: permissionsForRoles(["partner_admin"]),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -139,7 +141,14 @@ describe("durable demo deal registration", () => {
             },
           },
         ],
-        [{ ...partner, roles: ["owner"] }, body],
+        [
+          {
+            ...partner,
+            roles: ["owner"],
+            permissions: permissionsForRoles(["owner"]),
+          },
+          body,
+        ],
       ];
     for (const [session, command] of cases) {
       const response = await handleDemoDealRegistrationCommand(

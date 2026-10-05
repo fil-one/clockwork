@@ -1,5 +1,6 @@
 import {
   assistedSessionWithheldPermissions,
+  inviteRoleCeilings,
   internalRoles,
   organizationSides,
   permissions,
@@ -69,8 +70,7 @@ export const roleDescriptions = {
   },
   commerce_admin: {
     label: "Fil One commerce administrator",
-    purpose:
-      "Every internal permission, plus staff and who signs for Fil One.",
+    purpose: "Every internal permission, plus staff and who signs for Fil One.",
   },
 } as const satisfies Record<Role, { label: string; purpose: string }>;
 
@@ -87,13 +87,15 @@ export const permissionDescriptions = {
   "order:write": "Place, change and renew orders",
   "billing:read": "Read invoices and billing",
   "billing:write": "Change billing details and pay",
-  "billing:approve": "Approve credits, refunds, commissions and other money controls",
+  "billing:approve":
+    "Approve credits, refunds, commissions and other money controls",
   "partner:portfolio:read": "Read partner portfolios",
   "partner:quote:write": "Prepare partner quotes for resale",
   "poc:manage": "Run proofs of concept",
   "report:read": "Read and export reports",
   "system:operate": "Use the platform tools",
-  "impersonation:assume": "Start an assisted session in a customer or partner account",
+  "impersonation:assume":
+    "Start an assisted session in a customer or partner account",
   "destructive:request": "Ask for an account to be ended or deleted",
   "destructive:approve": "Approve teardown and deletion",
   "migration:execute": "Run migrations from legacy systems",
@@ -125,9 +127,7 @@ export const permissionModelMarker = "clockwork:generated-permission-model";
 const sqlText = (value: string) => `'${value.replaceAll("'", "''")}'`;
 
 function valuesBlock(rows: readonly (readonly string[])[]): string {
-  return rows
-    .map((row) => `  (${row.map(sqlText).join(", ")})`)
-    .join(",\n");
+  return rows.map((row) => `  (${row.map(sqlText).join(", ")})`).join(",\n");
 }
 
 /**
@@ -272,13 +272,27 @@ export function accessMatrixMarkdown(
     );
     return `| \`${role}\` (${roleColumns[role]}) | ${roleDescriptions[role].label} | ${sides
       .map((side) => sideDescriptions[side])
-      .join(", ")} | ${mark((privilegedRoles as readonly Role[]).includes(role)) || "no"} | ${roleDescriptions[role].purpose} |`;
+      .join(
+        ", ",
+      )} | ${mark((privilegedRoles as readonly Role[]).includes(role)) || "no"} | ${roleDescriptions[role].purpose} |`;
   });
   const sideRows = organizationSides.map((side) => {
     const withheld = sideWithheldPermissions[side] as readonly Permission[];
-    return `| \`${side}\` | ${sideDescriptions[side]} | ${(sideRoles[side] as readonly Role[])
+    return `| \`${side}\` | ${sideDescriptions[side]} | ${(
+      sideRoles[side] as readonly Role[]
+    )
       .map((role) => `\`${role}\``)
-      .join(", ")} | ${withheld.length ? withheld.map((permission) => `\`${permission}\``).join(", ") : "none"} |`;
+      .join(
+        ", ",
+      )} | ${withheld.length ? withheld.map((permission) => `\`${permission}\``).join(", ") : "none"} |`;
+  });
+  const inviteRows = roles.flatMap((role) => {
+    const ceiling = inviteRoleCeilings[role];
+    return ceiling
+      ? [
+          `| \`${role}\` | ${ceiling.map((invited) => `\`${invited}\``).join(", ")} |`,
+        ]
+      : [];
   });
   const permissionRows = permissions.map(
     (permission) =>
@@ -320,6 +334,15 @@ ${rows.join("\n")}
 | Side | Name | Roles its members may hold | Permissions it withholds |
 |---|---|---|---|
 ${sideRows.join("\n")}
+
+## Who may invite whom
+
+A person may invite the roles any of their roles allows, and only roles their
+organization's side may hold. Fil One staff are added on the Team page.
+
+| Inviter | May invite |
+|---|---|
+${inviteRows.join("\n")}
 
 ## Permissions
 

@@ -9,6 +9,8 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { permissionsForRoles, type Permission } from "@clockwork/contracts";
+
 import { catalogs } from "@/src/i18n/catalogs";
 import { LanguageProvider } from "@/src/i18n/client";
 
@@ -64,7 +66,7 @@ async function elapse(milliseconds: number) {
 
 function renderButtons(
   actions: readonly string[],
-  roles: readonly string[] = ["owner"],
+  permissions: readonly Permission[] = permissionsForRoles(["owner"]),
 ) {
   return render(
     <ProjectionActionButtons
@@ -74,7 +76,7 @@ function renderButtons(
       projectionId="projection-1"
       version={3}
       actions={actions}
-      roles={roles}
+      permissions={permissions}
     />,
   );
 }
@@ -89,7 +91,7 @@ function renderPortugueseButtons(actions: readonly string[]) {
         projectionId="projection-1"
         version={3}
         actions={actions}
-        roles={["owner"]}
+        permissions={permissionsForRoles(["owner"])}
       />
     </LanguageProvider>,
   );
@@ -333,7 +335,7 @@ describe("projection action buttons", () => {
         projectionId="projection-1"
         version={4}
         actions={[]}
-        roles={["owner"]}
+        permissions={permissionsForRoles(["owner"])}
       />,
     );
 
@@ -344,7 +346,7 @@ describe("projection action buttons", () => {
   });
 
   it("says nothing about access when the record has no actions at all", () => {
-    renderButtons([], ["owner"]);
+    renderButtons([], permissionsForRoles(["owner"]));
 
     expect(screen.queryByText(/Read only/)).not.toBeInTheDocument();
   });
@@ -358,7 +360,7 @@ describe("projection action buttons", () => {
         projectionId="projection-1"
         version={3}
         actions={["evaluate_dunning"]}
-        roles={["legal_approver"]}
+        permissions={permissionsForRoles(["legal_approver"])}
         readOnlyNote={false}
       />,
     );
@@ -367,7 +369,7 @@ describe("projection action buttons", () => {
   });
 
   it("explains who can act when the role holds no authorized action", () => {
-    renderButtons(["void", "issue"], ["member"]);
+    renderButtons(["void", "issue"], permissionsForRoles(["member"]));
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(

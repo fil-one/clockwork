@@ -1,7 +1,5 @@
 import "server-only";
 
-import { rolesHavePermission } from "@clockwork/contracts";
-
 import { mndaHomeSource } from "./mnda-source";
 import type {
   SalesHomeContext,
@@ -26,8 +24,9 @@ export async function loadSalesHome(
   return Promise.all(
     sources
       .filter((source) =>
-        rolesHavePermission(context.roles, source.requiredPermission),
+        context.permissions.includes(source.requiredPermission),
       )
+
       .map(async (source) => {
         const section = {
           id: source.id,

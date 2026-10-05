@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { Route } from "next";
+import { contextHasPermission } from "@clockwork/contracts";
 import type { RenewalState } from "@clockwork/ui";
 import { NOT_RECORDED } from "@clockwork/workflows";
 import { demoText, demoTextIn } from "@clockwork/testing/demo-localized-text";
@@ -1175,7 +1176,9 @@ export async function loadPartnerDashboardProjection(identity?: {
   const session = await getCommerceSession();
   const [loaded, commissions] = await Promise.all([
     loadDashboardChannels("partner", partnerChannels, session, reader),
-    session.roles.includes("partner_admin")
+    // Commission is the partner administrator's money truth.
+    contextHasPermission(session, "deal:register") &&
+    contextHasPermission(session, "billing:read")
       ? loadTopPortalRecords(
           "partner",
           "commissions",

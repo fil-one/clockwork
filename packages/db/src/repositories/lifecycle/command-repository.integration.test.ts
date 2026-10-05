@@ -1,7 +1,12 @@
-import { ids, type TaxPort } from "@clockwork/contracts";
+import {
+  ids,
+  permissionsForRoles,
+  type Role,
+  type TaxPort,
+} from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import { exceptionQueues } from "@clockwork/domain/lifecycle";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, like } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 
 import { createRuntimeDatabase } from "../../client";
@@ -9,6 +14,7 @@ import {
   accounts,
   approvals,
   auditEvents,
+  invites,
   orders,
   organizations,
   outboxMessages,
@@ -749,6 +755,134 @@ describe.concurrent("database lifecycle production repository", () => {
       status: "stale",
       lastAppliedSequence: sequence,
     });
+  });
+});
+
+describe("membership invitations", () => {
+  /** Seeded: Northstar (customer) and Redwood (referral partner). */
+  const northstar = {
+    accountId: "10000000-0000-4000-8000-000000000001",
+    organizationId: "30000000-0000-4000-8000-000000000001",
+    userId: "20000000-0000-4000-8000-000000000002",
+    side: "customer",
+  } as const;
+  const redwood = {
+    accountId: "10000000-0000-4000-8000-000000000002",
+    organizationId: "30000000-0000-4000-8000-000000000002",
+    userId: "20000000-0000-4000-8000-000000000003",
+    side: "referral_partner",
+  } as const;
+
+  const refusedEmails: string[] = [];
+
+  async function invite(
+    organization: typeof northstar | typeof redwood,
+    inviterRole: Role,
+    role: string,
+  ) {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const email = `invitee-${suffix}@invites.clockwork.test`;
+    try {
+      return await repository.executeInTransaction({
+        command: "invite_member",
+        payload: {
+          accountId: organization.accountId,
+          organizationId: organization.organizationId,
+          email,
+          role,
+          expiresAt: "2099-01-01T00:00:00.000Z",
+        },
+        context: {
+          ...userContext(
+            `lifecycle-invite-${suffix}`,
+            organization.userId,
+            organization.accountId,
+            "owner",
+            `lifecycle-invite-${suffix}`,
+          ),
+          authorization: {
+            ...authorization(
+              organization.userId,
+              organization.accountId,
+              "owner",
+            ),
+            roles: [inviterRole],
+            permissions: permissionsForRoles([inviterRole], {
+              side: organization.side,
+            }),
+          },
+        },
+      });
+    } catch (error) {
+      refusedEmails.push(email);
+      throw error;
+    }
+  }
+
+  afterAll(async () => {
+    await withInternalTransaction(db, "lifecycle-invite-cleanup", (tx) =>
+      tx.delete(invites).where(like(invites.email, "%@invites.clockwork.test")),
+    );
+  });
+
+  it("lets an owner invite every customer role", async () => {
+    for (const role of ["owner", "admin", "billing", "member"])
+      await expect(invite(northstar, "owner", role)).resolves.toMatchObject({
+        status: "pending",
+        eventType: "membership.invited",
+      });
+  });
+
+  it("lets an administrator invite a billing contact but never an owner", async () => {
+    await expect(invite(northstar, "admin", "billing")).resolves.toMatchObject({
+      status: "pending",
+    });
+    await expect(invite(northstar, "admin", "owner")).rejects.toMatchObject({
+      problem: { status: 403, code: "INVITE_ROLE_EXCEEDS_INVITER" },
+    });
+  });
+
+  it("lets a partner administrator invite a partner seller", async () => {
+    await expect(
+      invite(redwood, "partner_admin", "partner_seller"),
+    ).resolves.toMatchObject({ status: "pending" });
+  });
+
+  it("refuses every invitation across sides", async () => {
+    await expect(
+      invite(northstar, "owner", "partner_admin"),
+    ).rejects.toMatchObject({
+      problem: { status: 403, code: "INVITE_ROLE_NOT_ALLOWED_ON_SIDE" },
+    });
+    await expect(
+      invite(redwood, "partner_admin", "owner"),
+    ).rejects.toMatchObject({
+      problem: { status: 403, code: "INVITE_ROLE_NOT_ALLOWED_ON_SIDE" },
+    });
+  });
+
+  it("lets billing contacts and members invite no one", async () => {
+    for (const inviter of ["billing", "member"] as const)
+      for (const role of ["owner", "admin", "billing", "member"])
+        await expect(invite(northstar, inviter, role)).rejects.toMatchObject({
+          problem: { status: 403, code: "INVITE_ROLE_EXCEEDS_INVITER" },
+        });
+  });
+
+  it("records no invitation it refused", async () => {
+    await expect(invite(northstar, "member", "admin")).rejects.toMatchObject({
+      problem: { code: "INVITE_ROLE_EXCEEDS_INVITER" },
+    });
+    const recorded = await withInternalTransaction(
+      db,
+      "lifecycle-invite-refused-read",
+      (tx) =>
+        tx
+          .select({ email: invites.email })
+          .from(invites)
+          .where(inArray(invites.email, refusedEmails)),
+    );
+    expect(recorded).toEqual([]);
   });
 });
 

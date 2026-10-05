@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { rolesHavePermission, uuidV7 } from "@clockwork/contracts";
+import { contextHasPermission, uuidV7 } from "@clockwork/contracts";
 import {
   DatabaseSystemCapabilityAdmin,
   systemCapabilityKeys,
@@ -41,7 +41,7 @@ export async function changeCapability(
     session.authenticationProviderImpersonator
   )
     return "adminGovernance.capabilities.result.directSessionRequired";
-  if (!rolesHavePermission(session.roles, "operations:read"))
+  if (!contextHasPermission(session, "operations:read"))
     return "adminGovernance.capabilities.error.authority";
   const parsed = ControlSchema.safeParse(Object.fromEntries(data));
   if (!parsed.success) return "adminGovernance.capabilities.result.invalid";

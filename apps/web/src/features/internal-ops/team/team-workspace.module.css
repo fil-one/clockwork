@@ -94,8 +94,8 @@
 .member {
   display: grid;
   grid-template-columns:
-    minmax(12rem, 1.6fr) minmax(8rem, 0.9fr) minmax(9rem, 1fr)
-    minmax(7rem, 0.7fr) minmax(14rem, 1.5fr);
+    minmax(12rem, 1.4fr) minmax(11rem, 1.3fr) minmax(9rem, 1fr)
+    minmax(7rem, 0.7fr) minmax(12rem, 1.2fr);
   align-items: center;
   gap: 0.75rem 1rem;
 }
@@ -172,15 +172,104 @@
   gap: 0.5rem;
 }
 
-.roleForm {
+.chips {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.roleForm select {
-  min-width: 10rem;
+.chip {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  border: 1px solid var(--cw-border);
+  border-radius: 999px;
+  background: var(--cw-canvas-deep, transparent);
+  padding: 0.125rem 0.55rem;
+  font-size: var(--cw-text-xs);
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* The first chip is the primary role, which picks the home page. */
+.chip:first-child {
+  border-color: var(--cw-info-border, var(--cw-border));
+  background: var(--cw-info-soft, transparent);
+}
+
+.disclosure {
+  white-space: nowrap;
+}
+
+.permissions {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.5rem;
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-canvas-deep, transparent);
+  padding: 0.75rem 1rem;
+}
+
+.permissions[hidden] {
+  display: none;
+}
+
+.permissionList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: 0.25rem 1.5rem;
+  margin: 0;
+  padding-inline-start: 1.1rem;
+  font-size: var(--cw-text-sm);
+}
+
+.dialogBody {
+  display: grid;
+  gap: 1rem;
+}
+
+.roleOptions {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.roleOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--cw-border);
+  padding: 0.65rem 0;
+}
+
+.roleOption:last-child {
+  border-bottom: 0;
+}
+
+.roleOption > div {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.roleOption p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--web-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.primaryNote {
+  color: var(--web-muted);
+  font-size: var(--cw-text-xs);
 }
 
 .confirm {

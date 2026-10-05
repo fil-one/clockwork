@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { createRuntimeDatabase } from "../client";
 import { memberships, roleSyncEvents } from "../schema";
+import { membershipRoles } from "../schema/access";
 import { withInternalTransaction } from "../transaction";
 import {
   DatabaseRoleSynchronizationSink,
@@ -57,6 +58,21 @@ function readMembership() {
     tx.query.memberships.findFirst({
       where: eq(memberships.id, danaMembership),
     }),
+  );
+}
+
+/** Every role row Dana's membership holds, exactly as stored. */
+function readGrantedRoles() {
+  return withInternalTransaction(db, `${requestPrefix}:read-roles`, (tx) =>
+    tx
+      .select({
+        id: membershipRoles.id,
+        role: membershipRoles.role,
+        grantedAt: membershipRoles.grantedAt,
+      })
+      .from(membershipRoles)
+      .where(eq(membershipRoles.membershipId, danaMembership))
+      .orderBy(membershipRoles.role),
   );
 }
 
@@ -130,6 +146,29 @@ describe("WorkOS membership synchronization keeps commerce roles authoritative",
     expect(after?.workosMembershipId).toBe("om_evt_role_escalation_1");
   });
 
+  it("never grants, changes or removes a role in membership_roles", async () => {
+    // A person holds the union of every role in membership_roles, so a slug
+    // written there would grant access as surely as one on memberships.role.
+    const before = await readGrantedRoles();
+    expect(before.map(({ role }) => role)).toEqual(["owner"]);
+
+    for (const [index, roleSlugs] of [
+      ["internal_operator", "commerce_admin"],
+      ["owner", "admin", "billing"],
+      ["member"],
+    ].entries())
+      await sink.apply(
+        event({
+          eventId: `evt_role_grant_${index}`,
+          roleSlugs,
+          membershipStatus: "active",
+          occurredAt: `2026-08-01T11:3${index}:00.000Z`,
+        }),
+      );
+
+    expect(await readGrantedRoles()).toEqual(before);
+  });
+
   it("revokes an inactive membership by deleting the row, not by rewriting the role", async () => {
     // Restored by afterAll; asserted here because deletion, not demotion, is
     // the only revocation the webhook is allowed to perform.
@@ -141,6 +180,8 @@ describe("WorkOS membership synchronization keeps commerce roles authoritative",
       }),
     );
     expect(await readMembership()).toBeUndefined();
+    // The roles go with the membership; none is left behind to grant access.
+    expect(await readGrantedRoles()).toEqual([]);
 
     await withInternalTransaction(db, `${requestPrefix}:reinstate`, (tx) =>
       tx.insert(memberships).values({

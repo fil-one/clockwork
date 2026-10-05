@@ -107,6 +107,7 @@ beforeAll(async () => {
       id: organizationId,
       accountId,
       name: `Trial ${run}`,
+      side: "customer",
       externalProvisioningId: tenantId,
     });
     await tx.insert(lifecyclePartnerDomains).values({

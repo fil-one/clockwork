@@ -1,10 +1,8 @@
 import "server-only";
 import {
-  hasPermission,
-  roles as commerceRoles,
+  contextHasPermission,
   type Actor,
   type Permission,
-  type Role,
 } from "@clockwork/contracts";
 import {
   ContractDocumentStores,
@@ -32,16 +30,11 @@ export class ContractAccessError extends Error {
   }
 }
 
-const isRole = (role: string): role is Role =>
-  (commerceRoles as readonly string[]).includes(role);
-
 export function sessionHas(
-  session: Pick<CommerceSession, "roles">,
+  session: Pick<CommerceSession, "roles" | "permissions">,
   permission: Permission,
 ) {
-  return session.roles.some(
-    (role) => isRole(role) && hasPermission(role, permission),
-  );
+  return contextHasPermission(session, permission);
 }
 
 /**

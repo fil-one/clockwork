@@ -1,3 +1,4 @@
+import { contextHasPermission } from "@clockwork/contracts";
 import type { Metadata } from "next";
 import { DatabaseCustomerAcquisitionRepository } from "@clockwork/db";
 import type { CustomerAcquisitionRequest } from "@clockwork/domain/core";
@@ -20,7 +21,7 @@ async function Page() {
   let available = false;
   if (
     session.isInternalStaff &&
-    session.roles.includes("finance_approver") &&
+    contextHasPermission(session, "quote:approve") &&
     !session.impersonation &&
     !session.assistedSession
   ) {

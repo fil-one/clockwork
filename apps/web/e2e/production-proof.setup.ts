@@ -20,11 +20,13 @@ export const proofIdentities = [
     userId: "20000000-0000-4000-8000-000000000002",
     organizationId: "30000000-0000-4000-8000-000000000001",
   },
+  // A channel partner: the proof issues a resale quote, which a referral
+  // partner's organization never confers.
   {
     name: "partner",
     sessionId: "90000000-0000-4000-8000-000000000002",
-    userId: "20000000-0000-4000-8000-000000000003",
-    organizationId: "30000000-0000-4000-8000-000000000002",
+    userId: "20000000-0000-4000-8000-000000000008",
+    organizationId: "30000000-0000-4000-8000-000000000004",
   },
   {
     name: "internal",
@@ -36,7 +38,7 @@ export const proofIdentities = [
 
 const accounts = {
   customer: "10000000-0000-4000-8000-000000000001",
-  partner: "10000000-0000-4000-8000-000000000002",
+  partner: "10000000-0000-4000-8000-000000000003",
 } as const;
 
 const sourceTime = "2026-07-31T16:00:00.000Z";

@@ -62,6 +62,7 @@ beforeAll(async () => {
       id: organizationId,
       accountId,
       name: `Acquisition ${run}`,
+      side: "customer",
       externalProvisioningId: tenantId,
     });
     await tx.insert(lifecyclePartnerDomains).values({

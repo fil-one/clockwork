@@ -1,5 +1,5 @@
 import type { Permission, WebhookVerifier } from "@clockwork/contracts";
-import { ids, ProblemError } from "@clockwork/contracts";
+import { contextHasPermission, ids, ProblemError } from "@clockwork/contracts";
 import {
   authorizationActor,
   unscopedBecause,
@@ -309,7 +309,7 @@ const permissionByResource: Record<CoreResourceName, Permission> = {
   credit_notes: "billing:approve",
   refunds: "billing:approve",
   disputes: "billing:approve",
-  deal_registrations: "partner:quote:write",
+  deal_registrations: "deal:register",
   commissions: "billing:approve",
   accounting_exports: "billing:approve",
   marketplace_reconciliations: "billing:approve",
@@ -549,17 +549,18 @@ export function registerCoreRoutes(
     const accountId = body.accountId
       ? ids.account.parse(body.accountId)
       : undefined;
-    const partnerActor = current?.roles.some(
-      (role) => role === "partner_admin" || role === "partner_seller",
-    );
+    // Partners, referral and channel alike, are the people who register
+    // deals. Only channel partners also price and resell: a referral partner's
+    // side withholds the partner quote.
+    const partnerActor =
+      current != null && contextHasPermission(current, "deal:register");
     const actionPermission =
       actionPermissionByResource[resource]?.[body.action];
     const permission = actionPermission
       ? actionPermission
-      : (resource === "quotes" || resource === "deal_registrations") &&
-          partnerActor
+      : resource === "quotes" && partnerActor
         ? "partner:quote:write"
-        : resource === "deal_registrations"
+        : resource === "deal_registrations" && !partnerActor
           ? "quote:write"
           : permissionByResource[resource];
     // Partner identity is an asserted quote input, but order acceptance derives

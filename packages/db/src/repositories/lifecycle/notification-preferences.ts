@@ -1,5 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 
+import { contextPermissions } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 
 import type { RuntimeDatabase } from "../../client";
@@ -117,6 +118,7 @@ export class DatabaseNotificationPreferenceRepository {
         userId: input.authorization.userId,
         accountIds: input.authorization.accountIds,
         roles: input.authorization.roles,
+        permissions: contextPermissions(input.authorization),
         isInternalStaff: input.authorization.isInternalStaff,
         requestId: input.requestId,
       },

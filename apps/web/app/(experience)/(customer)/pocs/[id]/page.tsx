@@ -10,7 +10,7 @@ import {
 import { loadCommercialRecord } from "@/src/features/experience-server/portal-view-loader";
 import {
   getRouteIdentity,
-  getRouteRoles,
+  getRoutePermissions,
 } from "@/src/features/shell/route-session";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 
@@ -25,9 +25,9 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [identity, roles, record] = await Promise.all([
+  const [identity, permissions, record] = await Promise.all([
     getRouteIdentity("customer"),
-    getRouteRoles("customer"),
+    getRoutePermissions("customer"),
     loadCommercialRecord("pocs", id),
   ]);
   const guidedDemo = demoDeployIdentityEnabled(process.env);
@@ -48,7 +48,7 @@ export default async function Page({
                 projectionId={record.projectionId}
                 version={Number(record.version)}
                 actions={record.allowedActions ?? []}
-                roles={roles}
+                permissions={permissions}
               />
             ) : (
               <WorkflowPanel
