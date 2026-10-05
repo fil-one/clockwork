@@ -149,6 +149,7 @@ export const contractSigning = pgTable("commerce_contract_signing", {
   templateId: text("template_id").notNull(),
   templateVersion: text("template_version").notNull(),
   templateHash: text("template_hash").notNull(),
+  documentName: text("document_name").notNull(),
   input: jsonb("input").$type<Record<string, string>>().notNull(),
   counterpartySigner: jsonb("counterparty_signer")
     .$type<ContractSigner>()

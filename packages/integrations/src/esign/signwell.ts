@@ -51,7 +51,7 @@ export class SignWellClient implements MndaSigningProvider {
   ) {
     if (!apiKey.trim()) throw new Error("SIGNWELL_NOT_CONFIGURED");
   }
-  private async request(
+  protected async request(
     path: string,
     method = "GET",
     body?: unknown,

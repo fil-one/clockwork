@@ -94,6 +94,8 @@ create table public.commerce_contract_signing (
   template_id text not null check (template_id ~ '^[a-z0-9][a-z0-9-]{0,62}$'),
   template_version text not null check (length(template_version) between 1 and 40),
   template_hash text not null check (template_hash ~ '^[0-9a-f]{64}$'),
+  -- Shown to signers as the SignWell document name; never an internal reference.
+  document_name text not null check (length(btrim(document_name)) between 1 and 200),
   input jsonb not null,
   counterparty_signer jsonb not null,
   countersigner jsonb not null,
@@ -206,6 +208,7 @@ begin
   if new.input <> old.input or new.counterparty_signer <> old.counterparty_signer
      or new.countersigner <> old.countersigner or new.template_id <> old.template_id
      or new.template_version <> old.template_version or new.template_hash <> old.template_hash
+     or new.document_name <> old.document_name
      or new.preparer_id <> old.preparer_id or new.test_mode <> old.test_mode
      or new.approval_required <> old.approval_required
      or (old.provider_id is not null and new.provider_id is distinct from old.provider_id) then

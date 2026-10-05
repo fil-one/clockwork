@@ -227,6 +227,7 @@ export interface ContractSigningRecord {
   templateId: string;
   templateVersion: string;
   templateHash: string;
+  documentName: string;
   input: Record<string, string>;
   counterpartySigner: ContractSigner;
   countersigner: ContractSigner & { id: string };

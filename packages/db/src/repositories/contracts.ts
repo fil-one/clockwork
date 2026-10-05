@@ -101,6 +101,7 @@ const signingView = (s: SigningRow): ContractSigningRecord => ({
   templateId: s.templateId,
   templateVersion: s.templateVersion,
   templateHash: s.templateHash,
+  documentName: s.documentName,
   input: s.input,
   counterpartySigner: s.counterpartySigner,
   countersigner: s.countersigner,
@@ -682,6 +683,7 @@ export interface PrepareContractSigning {
     templateId: string;
     templateVersion: string;
     templateHash: string;
+    documentName: string;
     input: Record<string, string>;
     counterpartySigner: ContractSigner;
     countersignerId: string;
@@ -779,6 +781,7 @@ export class ContractSigningRepository {
             templateId: prepared.signing.templateId,
             templateVersion: prepared.signing.templateVersion,
             templateHash: prepared.signing.templateHash,
+            documentName: prepared.signing.documentName,
             input: prepared.signing.input,
             counterpartySigner: prepared.signing.counterpartySigner,
             countersigner: {

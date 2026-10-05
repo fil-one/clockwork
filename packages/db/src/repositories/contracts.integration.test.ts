@@ -477,6 +477,7 @@ describe("template signing persistence", () => {
           templateId: "test-fixture",
           templateVersion: "1",
           templateHash: "b".repeat(64),
+          documentName: `Fil One Engine Test Fixture: Bluefin ${marker}`,
           input: { partner_name: `Bluefin ${marker}` },
           counterpartySigner: {
             name: "Alex Example",
