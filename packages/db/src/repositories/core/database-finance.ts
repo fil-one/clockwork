@@ -170,10 +170,9 @@ import {
   type CoreMutationAudit,
 } from "./finance";
 import { z } from "zod";
+import { coreCommandCapabilities } from "./capability-requirements";
 
 type JsonRecord = Record<string, unknown>;
-type CoreCapabilityKey =
-  "new_business" | "legal" | "billing" | "partner" | "marketplace" | "teardown";
 
 export const databaseCoreResourceNames = [
   "accounts",
@@ -3558,59 +3557,13 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
     input: CoreMutation,
     orderAcceptanceContext?: OrderAcceptanceContext,
   ): Promise<void> {
-    let capabilities: readonly CoreCapabilityKey[] = [];
-    let recovery = false;
-    switch (input.resource) {
-      case "accounts":
-        capabilities = ["new_business", "legal"];
-        break;
-      case "procurement_profiles":
-      case "price_books":
-        capabilities = ["legal"];
-        break;
-      case "quotes":
-        capabilities = ["new_business", "legal"];
-        break;
-      case "orders": {
-        capabilities = ["new_business", "legal", "billing"];
-        const route = orderAcceptanceContext?.snapshot.route;
-        if (["referral", "resale", "distributor"].includes(route ?? ""))
-          capabilities = [...capabilities, "partner"];
-        if (route === "marketplace")
-          capabilities = [...capabilities, "marketplace"];
-        break;
-      }
-      case "amendments":
-      case "commitments":
-        capabilities = ["new_business", "legal", "billing"];
-        break;
-      case "invoices":
-        capabilities = ["billing"];
-        recovery = input.action === "evaluate_dunning";
-        break;
-      case "credit_notes":
-      case "refunds":
-      case "disputes":
-        capabilities = ["billing"];
-        recovery = true;
-        break;
-      case "deal_registrations":
-        capabilities = ["new_business", "partner"];
-        break;
-      case "commissions":
-        capabilities = ["billing", "partner"];
-        recovery = true;
-        break;
-      case "accounting_exports":
-      case "reports":
-        capabilities = ["billing"];
-        recovery = true;
-        break;
-      case "marketplace_reconciliations":
-        capabilities = ["marketplace"];
-        recovery = true;
-        break;
-    }
+    const { capabilities, recovery } = coreCommandCapabilities({
+      resource: input.resource,
+      action: input.action,
+      ...(orderAcceptanceContext
+        ? { route: orderAcceptanceContext.snapshot.route }
+        : {}),
+    });
     for (const capability of new Set(capabilities)) {
       const [row] = await transaction.execute<{ enabled: boolean }>(sql`
         select public.system_capability_is_enabled(

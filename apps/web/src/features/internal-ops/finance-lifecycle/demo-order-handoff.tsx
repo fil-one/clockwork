@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { lifecycleCopy } from "./copy";
 import { formatCalendarDay } from "./projection-fields";
+import { LocalTimestamp } from "../local-timestamp";
 import styles from "./finance-lifecycle.module.css";
 
 const copy = lifecycleCopy.handoff;
@@ -93,10 +94,8 @@ export function DemoOrderHandoff({
                 order.startsOn,
             });
             const state = order.submittedAt ? (
-              t(copy.submitted, {
-                time: new Date(order.submittedAt).toLocaleString(
-                  formattingLocale,
-                ),
+              richText(t, copy.submitted, {
+                time: <LocalTimestamp value={order.submittedAt} />,
               })
             ) : order.ready ? (
               <button

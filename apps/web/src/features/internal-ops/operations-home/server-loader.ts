@@ -4,6 +4,7 @@ import "server-only";
 import type { Route } from "next";
 
 import { loadPortalRecords } from "@/src/features/experience-server/portal-view-loader";
+import { getRouteSession } from "@/src/features/shell/route-session";
 import type { ProjectionChannel } from "@/src/features/experience-server/model";
 import {
   formatMoney,
@@ -26,6 +27,11 @@ import {
   risk,
   totalInDominantCurrency,
 } from "../finance-lifecycle/projection-fields";
+import {
+  getCapabilityState,
+  isActive,
+  type CapabilityState,
+} from "../capability-state";
 
 /**
  * The operations home used to be six hand-written signals with hand-written
@@ -107,7 +113,16 @@ export async function loadOperationsHome(
   now: Date,
   t: Translator,
   locale: string,
+  /** Resolved from the session when omitted. */
+  capabilityState?: CapabilityState,
 ): Promise<OperationsHomeData> {
+  const capabilities =
+    capabilityState ??
+    (await getCapabilityState(await getRouteSession("internal")));
+  // Provisioning and collections are billing work. They stay listed while
+  // billing recovery is on, because work in flight is still being finished;
+  // with billing fully off they are not work anyone can do.
+  const billingLive = isActive(capabilities, "billing");
   const number = (count: number) => new Intl.NumberFormat(locale).format(count);
   const countText = (count: number, key: keyof typeof countMessages) =>
     t(countMessages[key], { count });
@@ -144,7 +159,7 @@ export async function loadOperationsHome(
   const noticeDue =
     renewalWindows["notice-passed"].length + renewalWindows["30"].length;
 
-  const signals: OperationalSignal[] = [
+  const allSignals: OperationalSignal[] = [
     {
       label: t("operations.queueWork"),
       value: countText(queues.recordCount, "cases"),
@@ -211,6 +226,11 @@ export async function loadOperationsHome(
     },
   ];
 
+  const signals = allSignals.filter(
+    (signal) =>
+      billingLive ||
+      (signal.channel !== "provisioning" && signal.channel !== "collections"),
+  );
   const instants = signals.map((signal) => Date.parse(signal.generatedAt));
   const newest = Math.max(...instants.filter(Number.isFinite));
   return {

@@ -18,7 +18,7 @@ import { Button, EmptyState } from "@clockwork/ui";
 import type { Translator } from "@/src/i18n";
 import { richText } from "@/src/i18n/rich";
 
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import styles from "./queue-search.module.css";
 import { codeLabel, recordStatusLabels, searchGroupLabels } from "./copy";
 import {
@@ -52,8 +52,8 @@ function DetailLine({ record }: { record: SearchRecord }) {
     );
   return (
     <p>
-      {t("common.updatedAt", {
-        time: formatOperationalTimestamp(detail.at, formattingLocale),
+      {richText(t, "common.updatedAt", {
+        time: <LocalTimestamp value={detail.at} locale={formattingLocale} />,
       })}
     </p>
   );

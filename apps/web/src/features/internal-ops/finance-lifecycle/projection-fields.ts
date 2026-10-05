@@ -156,6 +156,8 @@ export function formatCalendarRange(
   const from = parse(start);
   const to = parse(end);
   if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+  // A service term is a contractual calendar range, written in UTC; the
+  // reader's zone would move its first or last day.
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeZone: "UTC",

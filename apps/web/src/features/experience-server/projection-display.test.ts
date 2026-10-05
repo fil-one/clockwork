@@ -165,6 +165,44 @@ describe("production projection labels at read time", () => {
     );
   });
 
+  /**
+   * A customer's agreement awaiting signature and an invoice not yet due
+   * offer no portal action, yet a signature or a payment is still owed through
+   * their own surfaces. The step claims nothing about that, and it is marked
+   * so a page can leave it out.
+   */
+  it("gives a row with no action a neutral, marked step that claims nothing is due", async () => {
+    const agreement = await row("agreement", {
+      paper: "ours",
+      termMonths: 12,
+      effectiveOn: "2026-01-01",
+    });
+    const invoice = await row("invoice", {
+      currency: "USD",
+      amountMinor: "123450",
+      dueAt: "2026-10-10T00:00:00.000Z",
+    });
+    for (const record of [agreement, invoice]) {
+      const en = localizedProductionRecord(record, context("en")).data;
+      expect(en.nextAction).toBe("No next step recorded");
+      expect(en.nextAction).not.toMatch(/no action|read only|needed/i);
+      expect(en.nextActionFallback).toBe(true);
+      expect(
+        localizedProductionRecord(record, context("es")).data.nextAction,
+      ).toBe("No hay un siguiente paso registrado");
+    }
+
+    const actionable = await row(
+      "quote",
+      { status: "issued", expiresAt: "2026-09-21T00:00:00.000Z" },
+      { allowedActions: ["expire"] },
+    );
+    expect(
+      localizedProductionRecord(actionable, context("en")).data
+        .nextActionFallback,
+    ).toBe(false);
+  });
+
   it("keeps identifiers and codes verbatim inside Arabic sentences", async () => {
     const agreement = await row("agreement", {
       paper: "ours",

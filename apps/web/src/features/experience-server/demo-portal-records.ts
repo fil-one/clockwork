@@ -1434,6 +1434,8 @@ const internalBook: readonly DemoPortalRecord[] = [
       risk: "medium",
       owner: "Ada Mercer",
       nextAction: demoMessage("experience.data.next.confirmAchRetry"),
+      // An ACH retry is billing work: the step is not shown while billing is off.
+      nextActionCapability: "billing",
       context: [
         {
           label: demoMessage("experience.data.label.relationship"),

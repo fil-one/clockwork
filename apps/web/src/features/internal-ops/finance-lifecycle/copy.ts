@@ -28,6 +28,7 @@ export const lifecycleCopy = {
     invoiceId: "operations.finance.evidence.invoiceId",
     billingAccount: "operations.finance.evidence.billingAccount",
     recordId: "operations.finance.evidence.recordId",
+    documentId: "operations.finance.evidence.documentId",
   },
   renewals: {
     title: "operations.finance.renewals.title",
@@ -218,6 +219,7 @@ export const lifecycleCopy = {
       recorded: "operations.finance.reports.column.recorded",
     },
     documentPending: "operations.finance.reports.documentPending",
+    documentStored: "operations.finance.reports.documentStored",
     catalogueHeading: "operations.finance.reports.catalogueHeading",
     catalogueDescription: "operations.finance.reports.catalogueDescription",
     scopeLabel: "operations.finance.reports.scopeLabel",

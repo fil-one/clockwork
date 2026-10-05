@@ -7,7 +7,7 @@ import {
 } from "@clockwork/db";
 import { getCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
-import { formatSurfaceTimestamp } from "@/src/features/customer-partner/formatting";
+import { LocalTimestamp } from "@/src/features/internal-ops/local-timestamp";
 import { AdministrationPage } from "@/src/features/internal-ops/administration-safety/ui";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
 import type { MessageId } from "@/src/i18n";
@@ -62,12 +62,10 @@ export default async function Page() {
     rows = null;
   }
   const now = Date.now();
-  /** Stored timestamps are UTC; show them in the reader's format, labelled. */
-  const timestamp = (value: string) =>
-    formatSurfaceTimestamp(value, {
-      locale: formattingLocale,
-      timeZone: "UTC",
-    });
+  /** Stored instants, in the reader's own zone and labelled with it. */
+  const timestamp = (value: string) => (
+    <LocalTimestamp value={value} locale={formattingLocale} />
+  );
   return (
     <AdministrationPage
       title={t("adminGovernance.providers.title")}
@@ -140,7 +138,7 @@ export default async function Page() {
                     <dd>{timestamp(row.configuration.rotatedAt)}</dd>
                     <dt>{t("adminGovernance.providers.reviewDue")}</dt>
                     <dd>
-                      {t("adminGovernance.providers.reviewDueValue", {
+                      {richText(t, "adminGovernance.providers.reviewDueValue", {
                         date: row.reviewDueAt
                           ? timestamp(row.reviewDueAt)
                           : t("common.notRecorded"),
@@ -154,12 +152,16 @@ export default async function Page() {
                     <p>{t("adminGovernance.providers.bootstrapNote")}</p>
                   ) : (
                     <p>
-                      {t("adminGovernance.providers.registryVersion", {
-                        version: row.rowVersion,
-                        time: row.updatedAt
-                          ? timestamp(row.updatedAt)
-                          : t("common.notRecorded"),
-                      })}
+                      {richText(
+                        t,
+                        "adminGovernance.providers.registryVersion",
+                        {
+                          version: row.rowVersion,
+                          time: row.updatedAt
+                            ? timestamp(row.updatedAt)
+                            : t("common.notRecorded"),
+                        },
+                      )}
                     </p>
                   )}
                 </>

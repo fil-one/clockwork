@@ -101,6 +101,9 @@ test.describe("internal operator operations journey", () => {
     // reads the session-scoped queue projection, so a fixture never adds rows.
     await expect(table.getByRole("row")).toHaveCount(7);
     await expect(page.getByText("6 results")).toBeVisible();
+    await expect(
+      table.getByText("Collections aging decision").first(),
+    ).toBeVisible();
     await expect(table.getByText("EXC-COL-008").first()).toBeVisible();
     // The projection carries no risk, age, or backup for these records, and the
     // surface says so instead of filling in a plausible value.
@@ -125,7 +128,7 @@ test.describe("internal operator operations journey", () => {
     // followed by the fifteen one-second receipt polls.
     await expect(
       page.getByText(
-        /^“review exception” was applied at authoritative version \d+\.$/i,
+        /^“review exception” was applied\. The record is now at version \d+\.$/i,
       ),
     ).toBeVisible({ timeout: 60_000 });
     await page.reload();
@@ -209,9 +212,7 @@ test.describe("internal operator operations journey", () => {
 
     await gotoHydrated(page, "/internal/assisted");
     await expect(page.getByLabel("Assisted mode active")).toHaveCount(0);
-    await expect(
-      page.getByText("The staff actor never changes."),
-    ).toBeVisible();
+    await expect(page.getByText("You stay the person acting.")).toBeVisible();
     await expect(
       page.getByText(/Demo internal operator · operator@filone.test/),
     ).toBeVisible();
@@ -286,8 +287,9 @@ test.describe("internal operator operations journey", () => {
       page.getByRole("heading", { level: 1, name: "Queue record" }),
     ).toBeVisible();
     await expect(
+      // A single record's title follows the page title, with no level skipped.
       page.getByRole("heading", {
-        level: 3,
+        level: 2,
         name: "Collections aging decision",
       }),
     ).toBeVisible();

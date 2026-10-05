@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { BillingOffNotice } from "@/src/features/internal-ops/billing-off-notice";
+
 import { getTranslations } from "@/src/i18n/server";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
@@ -40,6 +42,7 @@ export default async function Page() {
       <ProvisioningView
         work={workspace.items}
         provenance={workspace.provenance}
+        notice={<BillingOffNotice />}
       >
         {orders ? <DemoOrderHandoff orders={orders} /> : null}
       </ProvisioningView>

@@ -2,6 +2,7 @@ import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use } from "react";
 import { StatusBadge, Table } from "@clockwork/ui";
 
+import { CopyableId } from "../copyable-id";
 import { lifecycleCopy } from "./copy";
 import { FinancePageFrame, IdentifierLine, RecordEvidence } from "./page-frame";
 import {
@@ -42,10 +43,17 @@ function riskClass(order: RenewalOrder): string {
 export function RenewalsView({
   windows,
   provenance,
+  billingLive = true,
 }: {
   windows: Readonly<Record<RenewalWindow, readonly RenewalOrder[]>>;
   provenance: SurfaceProvenance;
   invoiceProvenance: SurfaceProvenance;
+  /**
+   * Whether any billing work can run (new work or recovery). Invoiced-to-date
+   * only means something once invoices exist, so with billing fully off the
+   * column is left out.
+   */
+  billingLive?: boolean;
 }) {
   const t = use(getTranslations());
   const locale = use(getFormattingLocale());
@@ -107,17 +115,30 @@ export function RenewalsView({
                 captionHidden
                 density="compact"
                 headers={[
-                  t("recordKind.order"),
+                  t("operations.finance.column.customer"),
                   t(copy.columns.route),
                   t(copy.columns.notice),
                   t(copy.columns.serviceTerm),
                   t("common.status"),
-                  t(copy.invoicedLabel),
+                  ...(billingLive ? [t(copy.invoicedLabel)] : []),
                 ]}
                 rowKeys={orders.map((order) => order.id)}
                 rows={orders.map((order) => [
                   <div className={styles.primaryCell}>
-                    <strong>{order.reference}</strong>
+                    <strong>{order.accountName ?? order.reference}</strong>
+                    {order.payerName ? (
+                      <span className={styles.secondary}>
+                        {t("operations.finance.billedTo", {
+                          name: order.payerName,
+                        })}
+                      </span>
+                    ) : null}
+                    {order.accountName ? (
+                      <CopyableId
+                        value={order.reference}
+                        label={t("recordKind.order")}
+                      />
+                    ) : null}
                     <span className={riskClass(order)}>
                       {order.risk
                         ? t(riskChips[order.risk])
@@ -157,22 +178,28 @@ export function RenewalsView({
                       orderStatusMessages,
                     )}
                   </StatusBadge>,
-                  <div className={styles.truthStack}>
-                    <strong>
-                      {order.invoicedToDate
-                        ? formatMinorAmount(
-                            order.invoicedToDate.minor,
-                            order.invoicedToDate.currency,
-                            locale,
-                          )
-                        : t(copy.noInvoices)}
-                    </strong>
-                    {order.invoiceCount > 0 ? (
-                      <span>
-                        {t(copy.invoiceCount, { count: order.invoiceCount })}
-                      </span>
-                    ) : null}
-                  </div>,
+                  ...(billingLive
+                    ? [
+                        <div className={styles.truthStack}>
+                          <strong>
+                            {order.invoicedToDate
+                              ? formatMinorAmount(
+                                  order.invoicedToDate.minor,
+                                  order.invoicedToDate.currency,
+                                  locale,
+                                )
+                              : t(copy.noInvoices)}
+                          </strong>
+                          {order.invoiceCount > 0 ? (
+                            <span>
+                              {t(copy.invoiceCount, {
+                                count: order.invoiceCount,
+                              })}
+                            </span>
+                          ) : null}
+                        </div>,
+                      ]
+                    : []),
                 ])}
                 emptyState={t(copy.empty)}
               />

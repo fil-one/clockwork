@@ -12,7 +12,7 @@ import {
   reportNames,
   type ReportName,
 } from "@/src/features/contracts/commerce-client";
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 
 import { lifecycleCopy } from "./copy";
 import { FinancePageFrame, IdentifierLine, RecordEvidence } from "./page-frame";
@@ -191,6 +191,12 @@ export function ReportsView({
                     label={lifecycleCopy.evidence.recordId}
                     value={record.aggregateId}
                   />
+                  {record.documentId ? (
+                    <IdentifierLine
+                      label={lifecycleCopy.evidence.documentId}
+                      value={record.documentId}
+                    />
+                  ) : null}
                   <RecordEvidence
                     entries={record.evidence}
                     version={record.version}
@@ -201,14 +207,15 @@ export function ReportsView({
               <StatusBadge tone={statusTone(record.status)}>
                 {statusText(t, [record.status], record.statusLabel)}
               </StatusBadge>,
-              record.documentId ? (
-                <span className={styles.id}>{record.documentId}</span>
-              ) : (
-                t(copy.documentPending)
-              ),
-              <time dateTime={record.updatedAt}>
-                {formatOperationalTimestamp(record.updatedAt, formattingLocale)}
-              </time>,
+              // The document's identifier is in the technical evidence; the
+              // column says whether there is one.
+              record.documentId
+                ? t(copy.documentStored)
+                : t(copy.documentPending),
+              <LocalTimestamp
+                value={record.updatedAt}
+                locale={formattingLocale}
+              />,
             ])}
           />
         )}
@@ -271,8 +278,6 @@ export function ReportsView({
             <article className={styles.reportCard} key={report}>
               <div>
                 <h3>{label(t, report)}</h3>
-                {/* The registry name the export API and the CSV file use. */}
-                <p className={styles.secondary}>{report}</p>
               </div>
               <div className={styles.reportActions}>
                 <Button

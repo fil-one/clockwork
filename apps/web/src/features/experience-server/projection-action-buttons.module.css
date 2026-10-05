@@ -1,0 +1,21 @@
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/*
+ * A destructive action opens a confirmation, and only the confirming button is
+ * filled red. The trigger is an outline in the danger colour, so beside a
+ * primary decision ("Approve") it reads as the secondary, riskier choice.
+ */
+.destructive:global(.cw-button) {
+  border-color: color-mix(in srgb, var(--cw-danger) 45%, transparent);
+  color: var(--cw-danger-strong);
+}
+
+.destructive:global(.cw-button):hover:not(:disabled) {
+  border-color: var(--cw-danger);
+  background: color-mix(in srgb, var(--cw-danger) 8%, var(--cw-surface));
+}

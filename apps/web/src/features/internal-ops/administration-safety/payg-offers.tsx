@@ -93,7 +93,11 @@ function decimalStorage(
   }).format(`${count / scale}.${fraction}` as Intl.StringNumericLiteral);
 }
 
-/** An ISO timestamp in the reader's format, in UTC and labelled as UTC. */
+/**
+ * An ISO timestamp in the reader's format, in UTC and labelled as UTC. Trial
+ * and enrollment start and end instants are commercial terms the customer
+ * accepted in UTC, so they stay in UTC rather than the reader's zone.
+ */
 function utcTimestamp(value: string, locale: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.valueOf())) return value;

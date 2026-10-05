@@ -26,6 +26,10 @@ vi.mock("@/src/i18n/server", async () => {
 });
 vi.mock("@/src/features/shell/route-session", () => ({
   getRouteRoles: mocks.getRouteRoles,
+  getRouteSession: async (audience: string) => ({
+    roles: (await mocks.getRouteRoles(audience)) as readonly string[],
+    providerBacked: false,
+  }),
 }));
 vi.mock("./portal-view-loader", () => ({
   loadPortalRecords: mocks.loadPortalRecords,
@@ -40,6 +44,9 @@ vi.mock("./artifact-delivery-list", () => ({
 }));
 vi.mock("./evidence-upload-control", () => ({
   EvidenceUploadControl: () => null,
+}));
+vi.mock("@/src/features/internal-ops/copyable-id", () => ({
+  CopyableId: ({ value }: { value: string }) => <bdi>{value}</bdi>,
 }));
 
 import { InternalProjectionPage } from "./internal-projection-page";

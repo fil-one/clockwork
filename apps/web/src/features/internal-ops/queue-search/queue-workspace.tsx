@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { MessageId, Translator } from "@/src/i18n";
 import { richText } from "@/src/i18n/rich";
 
+import { LocalTimestamp, useReaderTimeZone } from "../local-timestamp";
 import { formatOperationalTimestamp } from "../presentation";
 import styles from "./queue-search.module.css";
 import {
@@ -53,13 +54,20 @@ import { QueueDetail } from "./queue-detail";
  */
 const SEARCH_COMMIT_DELAY_MS = 180;
 
-/** The subject and queue under a row's title, or its reference when neither is known. */
+/**
+ * The line under a row's title: the subject and queue where the source names
+ * them, then the case reference, which the search box also matches.
+ */
 export function queueItemKind(item: QueueItem, t: Translator): string {
   const entity = item.entity ? codeLabel(subjectLabels, item.entity, t) : null;
   const queue = item.type ? codeLabel(queueLabels, item.type, t) : null;
-  if (entity && queue)
-    return t("common.join.labels", { first: entity, second: queue });
-  return entity ?? queue ?? item.id;
+  const kind =
+    entity && queue
+      ? t("common.join.labels", { first: entity, second: queue })
+      : (entity ?? queue);
+  return kind
+    ? t("common.join.labels", { first: kind, second: item.id })
+    : item.id;
 }
 
 /** What the active-filter summary calls each filter. */
@@ -167,6 +175,7 @@ function QueueState({
 function SlaCell({ item, now }: { item: QueueItem; now: Date }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
+  const timeZone = useReaderTimeZone();
   const sla = slaFor(item, now);
   if (!sla || !item.dueAt) return <span>{t("common.notRecorded")}</span>;
   return (
@@ -174,11 +183,19 @@ function SlaCell({ item, now }: { item: QueueItem; now: Date }) {
       <span className={`${styles.sla} ${styles[`sla_${sla}`]}`}>
         {t(slaLabels[sla])}
       </span>
-      <time dateTime={item.dueAt}>
+      {/* The deadline's day in the reader's zone; the full time and zone on hover. */}
+      <time
+        dateTime={item.dueAt}
+        title={formatOperationalTimestamp(
+          item.dueAt,
+          formattingLocale,
+          timeZone,
+        )}
+      >
         {new Intl.DateTimeFormat(formattingLocale, {
           month: "short",
           day: "numeric",
-          timeZone: "UTC",
+          timeZone,
         }).format(new Date(item.dueAt))}
       </time>
     </>
@@ -531,9 +548,7 @@ export function QueueWorkspace({
           <span aria-hidden="true" />
           {richText(t, "common.updatedAt", {
             time: (
-              <time dateTime={generatedAt}>
-                {formatOperationalTimestamp(generatedAt, formattingLocale)}
-              </time>
+              <LocalTimestamp value={generatedAt} locale={formattingLocale} />
             ),
           })}
         </p>

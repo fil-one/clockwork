@@ -9,12 +9,12 @@ import {
   formatCount,
   formatMinorAmount,
 } from "../finance-lifecycle/projection-fields";
-import { use } from "react";
+import { use, type ReactNode } from "react";
 
 import type { Translator } from "@/src/i18n";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import { reconciliationCopy } from "./copy";
 import {
   blockingVariances,
@@ -46,7 +46,7 @@ function subjectText(t: Translator, variance: ReconciliationVariance): string {
   });
 }
 
-/** `YYYY-MM` as the reader's language names the month. */
+/** `YYYY-MM` as the reader's language names the month. Accounting periods are UTC months, so the zone stays UTC. */
 function monthText(period: string, locale: string): string {
   const date = new Date(`${period}-01T00:00:00.000Z`);
   return Number.isNaN(date.getTime())
@@ -61,9 +61,12 @@ function monthText(period: string, locale: string): string {
 export function ReconciliationView({
   workspace,
   now = new Date(),
+  notice,
 }: {
   workspace: ReconciliationWorkspace;
   now?: Date;
+  /** A page-wide notice the route supplies, shown under the header. */
+  notice?: ReactNode;
 }) {
   const { readable, source } = workspace;
   const t = use(getTranslations());
@@ -82,6 +85,7 @@ export function ReconciliationView({
           ? { kind: "read", source, readAt: now.toISOString() }
           : { kind: "unreadable", source }
       }
+      notice={notice}
     >
       <section className={styles.summaryGrid} aria-label={t(summary.label)}>
         <article className={styles.summaryCard}>
@@ -210,18 +214,14 @@ export function ReconciliationView({
                 </span>
               </div>,
               variance.ownerEmail ?? shortId(variance.ownerUserId),
-              <time dateTime={variance.openedAt}>
-                {formatOperationalTimestamp(
-                  variance.openedAt,
-                  formattingLocale,
-                )}
-              </time>,
-              <time dateTime={variance.targetAt}>
-                {formatOperationalTimestamp(
-                  variance.targetAt,
-                  formattingLocale,
-                )}
-              </time>,
+              <LocalTimestamp
+                value={variance.openedAt}
+                locale={formattingLocale}
+              />,
+              <LocalTimestamp
+                value={variance.targetAt}
+                locale={formattingLocale}
+              />,
               variance.latestClassification ? (
                 <div className={styles.primaryCell}>
                   <strong>

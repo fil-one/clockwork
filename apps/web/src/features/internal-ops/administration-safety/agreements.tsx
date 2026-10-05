@@ -1,5 +1,6 @@
 "use client";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 import type { MessageId } from "@/src/i18n";
 
 import { useMemo, useState, type ReactNode } from "react";
@@ -7,7 +8,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Table } from "@clockwork/ui";
 
 import { formatDate } from "@/src/features/shared/format";
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 
 import {
   adminSafetyCopy,
@@ -130,10 +131,10 @@ export function AgreementAdministration({
               {t("adminGovernance.agreements.scanHeading")}
             </h2>
             <p>
-              {t("adminGovernance.agreements.scanMeta", {
-                // Internal pages state times in UTC, like every other
-                // operator page; this one used a fixed New York zone.
-                time: formatOperationalTimestamp(scannedAt, formattingLocale),
+              {richText(t, "adminGovernance.agreements.scanMeta", {
+                time: (
+                  <LocalTimestamp value={scannedAt} locale={formattingLocale} />
+                ),
               })}
             </p>
           </div>

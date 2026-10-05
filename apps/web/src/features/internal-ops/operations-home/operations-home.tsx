@@ -9,7 +9,7 @@ import Link from "next/link";
 import { rtlLocales, type MessageId } from "@/src/i18n";
 import { richText } from "@/src/i18n/rich";
 
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import type { OperationsHomeData, OperationalSignal } from "./server-loader";
 import styles from "./operations-home.module.css";
 
@@ -29,11 +29,7 @@ function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
   const forward = rtlLocales.has(use(getLocale())) ? "←" : "→";
   return signals.map((signal) => {
     const area = areaLabels[signal.channel];
-    const time = (
-      <time dateTime={signal.generatedAt}>
-        {formatOperationalTimestamp(signal.generatedAt, locale)}
-      </time>
-    );
+    const time = <LocalTimestamp value={signal.generatedAt} locale={locale} />;
     return (
       <tr key={signal.channel} data-tone={signal.tone}>
         <th scope="row">
@@ -97,11 +93,7 @@ export function OperationsHome({ data }: { data: OperationsHomeData }) {
         </div>
         <p className={styles.freshness} role="status">
           {richText(t, "common.updatedAt", {
-            time: (
-              <time dateTime={data.generatedAt}>
-                {formatOperationalTimestamp(data.generatedAt, locale)}
-              </time>
-            ),
+            time: <LocalTimestamp value={data.generatedAt} locale={locale} />,
           })}
         </p>
       </header>
