@@ -43,3 +43,19 @@ their own permissions. SignWell API keys and callback verification IDs remain
 server secrets. External cancellation is managed in SignWell: its API deletes
 documents, so Commerce only cancels drafts with no provider binding to avoid
 racing a final signature and deleting evidence.
+
+## Amendment, 2026-10-04
+
+Sending, tracking and after-send actions require the `mnda:send` permission;
+countersigners and the Fil One notice email require `signatory:manage`, held
+only by commerce administrators. The notice email is a database setting,
+snapshotted on each draft like the countersigner.
+
+Staff may now void a provider-bound MNDA in Commerce. The workflow takes the
+request lease, re-reads the authoritative SignWell state, keeps a request that
+completed in the meantime (with its executed PDF), and only then deletes the
+SignWell document. The original PDF, the record and the stated reason remain in
+Commerce. A bound document SignWell no longer has closes as canceled instead of
+failing every callback. A bounced or wrong partner email may be replaced through
+SignWell's recipient update while the partner has not started signing; the
+corrected address is recorded beside the immutable input snapshot.
