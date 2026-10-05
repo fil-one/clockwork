@@ -1,3 +1,4 @@
+import type * as UploadClient from "../contracts/upload-client";
 import {
   fireEvent,
   render,
@@ -18,7 +19,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("./actions", () => ({ saveCollateral: mocks.save }));
 vi.mock("../contracts/upload-client", async (original) => ({
-  ...(await original<typeof import("../contracts/upload-client")>()),
+  ...(await original<typeof UploadClient>()),
   postCollateral: mocks.post,
 }));
 import { SalesLibraryView } from "./library-view";
@@ -129,13 +130,13 @@ it("adds a link only when it starts with https://", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Add to library" }));
   await waitFor(() =>
-    expect(mocks.save).toHaveBeenCalledWith({
-      item: expect.objectContaining({
+    expect(mocks.save.mock.calls[0]?.[0]).toMatchObject({
+      item: {
         title: "Case study: media archive",
         linkUrl: "https://example.com/case",
         status: "current",
         contentUpdatedOn: "2026-10-04",
-      }),
+      },
     }),
   );
   expect(
@@ -165,7 +166,8 @@ it("uploads a PDF item through the upload route", async () => {
   await waitFor(() => expect(mocks.post).toHaveBeenCalledOnce());
   const [url, body] = mocks.post.mock.calls[0] as [string, FormData];
   expect(url).toBe("/internal/sales-library/items");
-  expect(JSON.parse(String(body.get("item")))).toMatchObject({
+  const item = body.get("item");
+  expect(JSON.parse(typeof item === "string" ? item : "null")).toMatchObject({
     title: "Pricing",
     linkUrl: "",
   });

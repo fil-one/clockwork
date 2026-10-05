@@ -1,3 +1,4 @@
+import type * as Server from "./server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fixtureContractInput } from "../../../../../../packages/contracts/src/contract-fixture";
 import { fixtureContractTemplateRegistry } from "../../../../../../packages/documents/src/__fixtures__/contract-template";
@@ -24,7 +25,7 @@ vi.mock("@/src/auth/session", () => ({
 }));
 vi.mock("@/src/db/service", () => ({ getServiceDatabase: vi.fn() }));
 vi.mock("./server", async (original) => ({
-  ...(await original<typeof import("./server")>()),
+  ...(await original<typeof Server>()),
   contractRepository: () => mocks.repository,
   contractSigningRepository: () => mocks.signing,
   contractSigningWorkflow: () => mocks.workflow,

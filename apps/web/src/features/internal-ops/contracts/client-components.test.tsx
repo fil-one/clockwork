@@ -1,3 +1,4 @@
+import type * as UploadClient from "./upload-client";
 import {
   fireEvent,
   render,
@@ -32,7 +33,7 @@ vi.mock("./actions", () => ({
   prepareContract: mocks.prepareContract,
 }));
 vi.mock("./upload-client", async (original) => ({
-  ...(await original<typeof import("./upload-client")>()),
+  ...(await original<typeof UploadClient>()),
   uploadContractFile: mocks.upload,
 }));
 import { ContractDocuments } from "./contract-documents";
@@ -95,8 +96,9 @@ describe("record a contract", () => {
         "/internal/contracts/019a44ac-0000-7000-8000-0000000000c1",
       ),
     );
-    expect(mocks.saveContract).toHaveBeenCalledWith({
-      contract: expect.objectContaining({
+    expect(mocks.saveContract).toHaveBeenCalledOnce();
+    expect(mocks.saveContract.mock.calls[0]?.[0]).toMatchObject({
+      contract: {
         counterpartyName: "Bluefin Data Co.",
         status: "executed",
         paper: "theirs",
@@ -108,10 +110,13 @@ describe("record a contract", () => {
         currency: "USD",
         ownerName: "R.W. Holleman",
         tags: ["Enterprise", "EU"],
-      }),
+      },
     });
     expect(
-      mocks.upload.mock.calls.map((call) => [call[1].name, call[2]]),
+      (mocks.upload.mock.calls as [string, File, string][]).map((call) => [
+        call[1].name,
+        call[2],
+      ]),
     ).toEqual([
       ["Signed MSA.pdf", "main"],
       ["DPA.pdf", "attachment"],

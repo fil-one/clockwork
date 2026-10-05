@@ -5,7 +5,6 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useId, useMemo, useRef, useState, type FormEvent } from "react";
 import {
-  FileText,
   X,
   Button,
   Checkbox,
@@ -596,13 +595,14 @@ export function ContractForm({
               {files.map((pending) => (
                 <li className={styles.selectedFile} key={pending.key}>
                   <span className={styles.documentName}>
-                    <strong>
-                      <FileText aria-hidden="true" size={14} />{" "}
+                    <strong title={pending.file.name}>
                       {pending.file.name}
                     </strong>
                     <span
                       className={
-                        pending.problem ? styles.urgent : styles.secondaryText
+                        pending.problem
+                          ? styles.fileError
+                          : styles.secondaryText
                       }
                       role={pending.problem ? "alert" : undefined}
                     >

@@ -1,3 +1,5 @@
+import type * as Http from "./http";
+import type * as Server from "./server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -15,7 +17,7 @@ vi.mock("@/src/auth/session", () => ({
 }));
 vi.mock("@/src/db/service", () => ({ getServiceDatabase: vi.fn() }));
 vi.mock("./http", async (original) => {
-  const actual = await original<typeof import("./http")>();
+  const actual = await original<typeof Http>();
   return {
     ...actual,
     readUploadForm: (request: Request) => {
@@ -25,7 +27,7 @@ vi.mock("./http", async (original) => {
   };
 });
 vi.mock("./server", async (original) => ({
-  ...(await original<typeof import("./server")>()),
+  ...(await original<typeof Server>()),
   contractRepository: () => mocks.repository,
   salesLibraryRepository: () => mocks.library,
 }));

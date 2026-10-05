@@ -148,14 +148,6 @@
   height: 0.85rem;
 }
 
-.desktopOnly {
-  display: block;
-}
-
-.mobileOnly {
-  display: none;
-}
-
 .mobileList {
   display: grid;
   gap: var(--cw-space-3);
@@ -515,6 +507,12 @@
   margin-top: var(--cw-space-4);
 }
 
+.fileError {
+  color: var(--cw-danger);
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
+}
+
 .urgent {
   color: var(--cw-warning-ink);
   font-weight: 600;
@@ -617,14 +615,6 @@
 }
 
 @media (max-width: 640px) {
-  .desktopOnly {
-    display: none;
-  }
-
-  .mobileOnly {
-    display: block;
-  }
-
   .filters {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -654,5 +644,21 @@
 
   .statGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The phone list replaces the table under 640px. Declared last so it wins
+   over the list's own display. */
+.mobileOnly {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .desktopOnly {
+    display: none;
+  }
+
+  .mobileOnly {
+    display: grid;
   }
 }

@@ -168,7 +168,7 @@ export function RegisterView({
             ) : null}
             <Link
               className={buttonClassName({ variant: "secondary" })}
-              href="/internal/contracts/renewals"
+              href="/internal/contracts/notices"
             >
               {t("operations.contracts.action.renewals")}
             </Link>

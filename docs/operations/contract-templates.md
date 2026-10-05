@@ -178,7 +178,7 @@ the build and tests rather than a preparation.
 pnpm --filter @clockwork/documents exec vitest run src/contract-templates
 
 # A specimen PDF with sample values, for counsel to compare with their file.
-pnpm exec tsx scripts/render-contract-specimen.mts channel-partnership /tmp/specimen.pdf
+pnpm exec tsx scripts/render-contract-specimen.ts channel-partnership /tmp/specimen.pdf
 ```
 
 Send the specimen to counsel. The renderer lays the wording out in its own

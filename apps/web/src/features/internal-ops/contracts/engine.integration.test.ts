@@ -57,13 +57,15 @@ function fakeSignWell() {
     new Response(JSON.stringify(body), {
       headers: { "content-type": "application/json" },
     });
-  const transport: typeof fetch = async (input, init) => {
-    const url = new URL(String(input));
+  const respond = (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(input instanceof Request ? input.url : input);
     const path = url.pathname.replace("/api/v1/", "");
     const method = init?.method ?? "GET";
     calls.push(`${method} ${path}`);
     if (method === "POST" && path === "documents") {
-      const body = JSON.parse(String(init?.body)) as {
+      const body = JSON.parse(
+        typeof init?.body === "string" ? init.body : "{}",
+      ) as {
         test_mode: boolean;
         draft: boolean;
         metadata: Record<string, string>;
@@ -116,6 +118,8 @@ function fakeSignWell() {
       );
     return new Response(null, { status: 400 });
   };
+  const transport: typeof fetch = (input, init) =>
+    Promise.resolve(respond(input, init));
   return { transport, documents, calls };
 }
 

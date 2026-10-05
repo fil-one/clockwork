@@ -227,10 +227,8 @@ export function ContractDocuments({
               type="file"
               accept="application/pdf,.pdf"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              aria-describedby={`${contractId}-file-rules`}
             />
-            <span className={styles.hint}>
-              {t("operations.contracts.form.fileRules")}
-            </span>
           </label>
           <Button
             onClick={() => void upload()}
@@ -241,6 +239,11 @@ export function ContractDocuments({
             {t("operations.contracts.documents.upload")}
           </Button>
         </div>
+      ) : null}
+      {canWrite ? (
+        <p className={styles.hint} id={`${contractId}-file-rules`}>
+          {t("operations.contracts.form.fileRules")}
+        </p>
       ) : null}
       <Dialog
         open={removing !== null}

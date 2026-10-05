@@ -45,7 +45,7 @@ export function RenewalsView({
           <Link
             key={window}
             className={styles.windowTab}
-            href={`/internal/contracts/renewals?window=${window}` as Route}
+            href={`/internal/contracts/notices?window=${window}` as Route}
             aria-current={window === days ? "page" : undefined}
           >
             {t("operations.contracts.renewals.window", { count: window })}
