@@ -68,6 +68,7 @@ create function public.commerce_mnda_normalize_company(name text) returns text
 language plpgsql immutable strict parallel safe set search_path = pg_catalog as $$
 declare
   words text[];
+  joined text;
   suffixes constant text[] := array['ab','ag','as','bv','co','company','corp','corporation','gmbh','inc','incorporated','kk','limited','llc','llp','lp','ltd','nv','oy','plc','pte','pty','sa','sarl','sas','spa','srl'];
 begin
   name := lower(regexp_replace(normalize(name, NFKD), '[\u0300-\u036f]', '', 'g'));
@@ -81,7 +82,13 @@ begin
   while cardinality(words) > 1 and words[cardinality(words)] = any(suffixes) loop
     words := words[1:cardinality(words) - 1];
   end loop;
-  return array_to_string(words, ' ');
+  -- array_to_string is only STABLE; join by hand so the generated column's
+  -- expression stays IMMUTABLE.
+  joined := words[1];
+  for i in 2..cardinality(words) loop
+    joined := joined || ' ' || words[i];
+  end loop;
+  return joined;
 end $$;
 revoke all on function public.commerce_mnda_normalize_company(text) from public;
 grant execute on function public.commerce_mnda_normalize_company(text) to clockwork_service;
