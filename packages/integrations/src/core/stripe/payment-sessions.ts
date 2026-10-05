@@ -38,7 +38,7 @@ export class StripeInvoicePaymentSessionGateway {
     if (!configuration.apiKey.startsWith("sk_"))
       throw new Error("A Stripe secret API key is required");
     this.stripe = new Stripe(configuration.apiKey, {
-      appInfo: { name: "Clockwork Commerce", version: "1" },
+      appInfo: { name: "Fil One Commerce", version: "1" },
       maxNetworkRetries: 2,
       timeout: 30_000,
     });

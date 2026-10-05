@@ -205,7 +205,7 @@ export class FetchJsonProviderTransport implements ProviderJsonTransport {
             accept: "application/json",
             authorization: `Bearer ${this.options.bearerToken}`,
             "content-type": "application/json",
-            "user-agent": "clockwork-commerce/1",
+            "user-agent": "fil-one-commerce/1",
             "x-clockwork-provider": this.options.provider,
             "x-clockwork-operation": input.operation,
             ...(input.idempotencyKey
