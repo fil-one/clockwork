@@ -61,6 +61,8 @@ const literalLocales = [
 export default tseslint.config(
   {
     ignores: [
+      // Agent worktrees are full checkouts of other branches.
+      ".claude/worktrees/**",
       "**/.next/**",
       "**/.next-*/**",
       // Deploy adapter output. Generated into the app directory during a build
