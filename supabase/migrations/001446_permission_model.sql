@@ -347,8 +347,9 @@ for each row execute function public.guard_organization_side_change();
 -- ---------------------------------------------------------------------------
 -- 2. Stored-membership permission checks.
 -- ---------------------------------------------------------------------------
-create function public.member_has_permission(candidate_user uuid, candidate text)
-returns boolean language sql stable security definer
+create function public.member_has_permission(
+  candidate_user uuid, candidate text, candidate_organization uuid default null
+) returns boolean language sql stable security definer
 set search_path = pg_catalog, public as $$
   select exists (
     select 1
@@ -358,17 +359,19 @@ set search_path = pg_catalog, public as $$
     join public.role_permissions grant_row
       on grant_row.role = granted.role and grant_row.permission = candidate
     where membership.user_id = candidate_user
+      and (candidate_organization is null
+        or membership.organization_id = candidate_organization)
       and not exists (
         select 1 from public.organization_side_withheld_permissions withheld
         where withheld.side = organization.side and withheld.permission = candidate
       )
   )
 $$;
-revoke all on function public.member_has_permission(uuid, text) from public;
-grant execute on function public.member_has_permission(uuid, text)
+revoke all on function public.member_has_permission(uuid, text, uuid) from public;
+grant execute on function public.member_has_permission(uuid, text, uuid)
   to clockwork_runtime, clockwork_service;
-comment on function public.member_has_permission(uuid, text) is
-  'Whether a person''s stored memberships confer a permission, across every role they hold, less what their organization''s side withholds.';
+comment on function public.member_has_permission(uuid, text, uuid) is
+  'Whether a person''s stored memberships (in one organization, when given) confer a permission, across every role they hold, less what the organization''s side withholds.';
 
 -- ---------------------------------------------------------------------------
 -- 5. Notices to the other commerce administrators.

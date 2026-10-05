@@ -36,12 +36,12 @@ select throws_ok($$
 $$, '23514', null, 'the role vocabulary stays closed');
 select ok(
   pg_get_functiondef('public.guard_customer_acquisition_request()'::regprocedure)
-    like '%m.role in (''finance_approver'',''commerce_admin'')%',
+    like '%public.member_has_permission(u.id,''quote:approve'')%',
   'an administrator may resolve an acquisition request as the finance approver of record'
 );
 select ok(
   pg_get_functiondef('public.validate_payg_credit_source()'::regprocedure)
-    like '%membership.role in (''finance_approver'',''commerce_admin'')%',
+    like '%public.member_has_permission(staff.id,''billing:approve'')%',
   'an administrator may approve a PAYG credit as the finance approver of record'
 );
 
@@ -156,8 +156,11 @@ select lives_ok($$
     clock_timestamp(),'pgtap-1441-admin-invoice'
   )
 $$, 'the administrator audits a finance aggregate outside its accounts');
--- Attribution is not traded away.
-select throws_ok($$
+-- Since 001447 the finance confinement is monotone: holding finance
+-- authority never narrows a wider role, so the administrator appends on its
+-- assisted account exactly as an operator does, bounded by the permissive
+-- policies that admit the operator.
+select lives_ok($$
   insert into audit_events (
     account_id, aggregate_type, aggregate_id, aggregate_version,
     event_type, event_version, actor, occurred_at, request_id
@@ -167,7 +170,7 @@ select throws_ok($$
     '{"kind":"user","id":"20000000-0000-4000-8000-000000000006"}',
     clock_timestamp(),'pgtap-1441-admin-forged'
   )
-$$, '42501', null, 'the administrator cannot audit under another user''s name');
+$$, 'the administrator appends on its assisted account as an operator does');
 select throws_ok($$
   insert into audit_events (
     account_id, aggregate_type, aggregate_id, aggregate_version,
@@ -272,11 +275,11 @@ values ('b1441000-0000-4000-8000-0000000000e1','Fil One LLC',array['direct_clien
   '{"line1":"1 Main St","city":"Wilmington","region":"DE","postalCode":"19801","country":"US"}',
   '{"name":"Billing","email":"billing@other.test"}','{"name":"AP","email":"ap@other.test"}',
   'billing@other.test','other.test','US','USD');
-insert into organizations (id, account_id, name, workos_organization_id) values
+insert into organizations (id, account_id, name, workos_organization_id, side) values
   ('b1441000-0000-4000-8000-0000000000f1','b1441000-0000-4000-8000-0000000000e1',
-   'Fil One LLC','org_01M21RDQDM5NHYD4CEHWJZFG3J'),
+   'Fil One LLC','org_01M21RDQDM5NHYD4CEHWJZFG3J','fil_one'),
   ('b1441000-0000-4000-8000-0000000000f2','b1441000-0000-4000-8000-0000000000e2',
-   'Other Co','org_1441_other');
+   'Other Co','org_1441_other','customer');
 insert into commerce_users (id, workos_user_id, email, name, is_internal_staff) values
   ('b1441000-0000-4000-8000-000000000101','user_1441_james','James@fil.one','James Kurz',true),
   ('b1441000-0000-4000-8000-000000000102','user_1441_rw','rw@fil.one','R.W. Holleman',true),

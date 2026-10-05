@@ -5,6 +5,7 @@ import { systemSchema } from "./system";
 import { experienceSchema } from "./experience";
 import { mndaSchema } from "./mnda";
 import { contractsSchema } from "./contracts";
+import { accessSchema } from "./access";
 
 export * from "../schema";
 export * from "./core";
@@ -13,6 +14,7 @@ export * from "./system";
 export * from "./experience";
 export * from "./mnda";
 export * from "./contracts";
+export * from "./access";
 
 /** Drizzle consumes this stable composition; lanes only edit their own object. */
 export const runtimeSchema: typeof foundationSchema &
@@ -21,7 +23,8 @@ export const runtimeSchema: typeof foundationSchema &
   typeof systemSchema &
   typeof experienceSchema &
   typeof mndaSchema &
-  typeof contractsSchema = {
+  typeof contractsSchema &
+  typeof accessSchema = {
   ...foundationSchema,
   ...coreSchema,
   ...lifecycleSchema,
@@ -29,4 +32,5 @@ export const runtimeSchema: typeof foundationSchema &
   ...experienceSchema,
   ...mndaSchema,
   ...contractsSchema,
+  ...accessSchema,
 };

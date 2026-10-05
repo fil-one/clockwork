@@ -32,7 +32,7 @@ select is(
 );
 
 select ok(
-  (select position('partner_admin' in qual) > 0
+  (select position('account:write' in qual) > 0
           and position('experience_session_assisted_account' in qual) > 0
           and position('billing' in qual) > 0
           and position('commissions' in qual) > 0
