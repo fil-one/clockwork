@@ -536,7 +536,9 @@ async function workosCommerceSession(
     selected.userId !== identity.userId ||
     selected.organizationId !== identity.organizationId ||
     selected.accountId !== identity.accountId ||
-    selected.role !== identity.role
+    selected.role !== identity.role ||
+    selected.side !== identity.side ||
+    [...selected.roles].sort().join() !== [...identity.roles].sort().join()
   )
     // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Selected WorkOS membership does not match commerce scope");

@@ -3,7 +3,7 @@
 // abilities they had, apart from the changes the release makes on purpose.
 //
 //   pnpm exec tsx scripts/qualify-permission-upgrade.ts \
-//     --server postgresql://supabase_admin:postgres@127.0.0.1:<port>/postgres
+//     --server "$LOCAL_SUPABASE_ADMIN_URL"   (a URL for the supabase_admin role)
 //
 // The server must be a Supabase Postgres image (the migrations expect its
 // roles). A scratch database is created, migrated to the last version before
@@ -56,7 +56,8 @@ const expectedChanges: readonly {
 }[] = [
   {
     persona: /^referral_partner\//u,
-    table: /^(quotes|quote_lines|core_quote_snapshots|core_quote_commercial_profiles)$/u,
+    table:
+      /^(quotes|quote_lines|core_quote_snapshots|core_quote_commercial_profiles)$/u,
     command: /^(insert|update)$/u,
     why: "a referral partner no longer holds partner:quote:write (it never could write a partner quote: the audit append was already refused)",
   },
@@ -79,6 +80,12 @@ function argument(name: string): string | undefined {
   return index >= 0 ? process.argv[index + 1] : undefined;
 }
 
+/**
+ * The roles the application signed before this release, reproduced exactly:
+ * a commerce administrator's claim carried the four internal roles it acted
+ * as, because the database tested role names. This is the baseline being
+ * compared against, so it names roles on purpose.
+ */
 function sessionRolesBeforeUpgrade(role: Role): Role[] {
   return role === "commerce_admin"
     ? [
@@ -120,11 +127,14 @@ async function personas(sql: Sql): Promise<Persona[]> {
   >`
     select m.user_id, o.account_id, o.id as organization_id, m.role,
       u.is_internal_staff,
+      -- A label only, from account data: the pre-upgrade schema has no side.
+      -- The upgrade's own backfill decides the side the new claim uses.
       case
-        when m.role in ('partner_admin','partner_seller') then
+        when u.is_internal_staff then 'fil_one'
+        when 'partner' = any(a.relationship_roles)
+          and not ('direct_client' = any(a.relationship_roles)) then
           case when coalesce(a.partner_agreement_type,'referral') = 'referral'
             then 'referral_partner' else 'channel_partner' end
-        when u.is_internal_staff then 'fil_one'
         else 'customer'
       end as side
     from memberships m
@@ -203,7 +213,9 @@ async function abilities(
     join pg_namespace n on n.oid = c.relnamespace and n.nspname = p.schemaname
     where p.schemaname = 'public' and c.relrowsecurity
       and (p.roles @> array['clockwork_runtime']::name[] or p.roles @> array['public']::name[])`;
-  const tables = [...new Set(policies.map((policy) => policy.tablename))].sort();
+  const tables = [
+    ...new Set(policies.map((policy) => policy.tablename)),
+  ].sort();
   const result = new Map<string, number>();
   await sql.begin(async (tx) => {
     const text = JSON.stringify(payload);
@@ -287,7 +299,10 @@ async function main() {
     for (const persona of people)
       snapshots.set(
         persona.key,
-        await abilities(sql, claims(persona, "before", [persona.role], "customer")),
+        await abilities(
+          sql,
+          claims(persona, "before", [persona.role], "customer"),
+        ),
       );
 
     const upgrade = postgres(url.toString(), {
@@ -330,7 +345,7 @@ async function main() {
         sql,
         claims(persona, "after", membership.roles, membership.side),
       );
-      const previous = snapshots.get(persona.key) ?? new Map();
+      const previous = snapshots.get(persona.key) ?? new Map<string, number>();
       for (const [key, total] of previous) {
         const now = after.get(key);
         if (now === undefined || now === total) continue;

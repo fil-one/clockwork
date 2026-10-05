@@ -130,11 +130,16 @@ function workosSession(email = "owner@customer.example"): UserInfo {
 }
 
 function commerceIdentity(overrides: Record<string, unknown> = {}) {
+  // The identity reads the same membership rows as the membership list, so
+  // by default it carries the same roles and side for its primary role.
+  const role = (overrides.role ?? "owner") as Role;
   return {
     userId: fixture.commerceUserId,
     organizationId: fixture.commerceOrganizationId,
     accountId: fixture.accountId,
-    role: "owner",
+    role,
+    roles: [role],
+    side: naturalSide(role),
     isInternalStaff: false,
     mfaEnrolled: true,
     ...overrides,
@@ -838,7 +843,11 @@ describe("WorkOS commerce session mapping", () => {
 
   it("carries every role of the selected membership and the union of their permissions", async () => {
     authMocks.resolveWorkosIdentity.mockResolvedValue(
-      commerceIdentity({ role: "revenue", isInternalStaff: true }),
+      commerceIdentity({
+        role: "revenue",
+        roles: ["revenue", "legal_approver"],
+        isInternalStaff: true,
+      }),
     );
     authMocks.listAuthorizedMemberships.mockResolvedValue([
       {
@@ -863,9 +872,26 @@ describe("WorkOS commerce session mapping", () => {
     expect(session.permissions).not.toContain("staff:manage");
   });
 
+  it("refuses a membership list that disagrees with the identity about roles or side", async () => {
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ role: "revenue", isInternalStaff: true }),
+    );
+    authMocks.listAuthorizedMemberships.mockResolvedValue([
+      {
+        ...staffMembership(),
+        role: "revenue",
+        roles: ["revenue", "commerce_admin"],
+      },
+    ]);
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Selected WorkOS membership does not match commerce scope",
+    );
+  });
+
   it("withholds what a referral partner's side never confers", async () => {
     authMocks.resolveWorkosIdentity.mockResolvedValue(
-      commerceIdentity({ role: "partner_admin" }),
+      commerceIdentity({ role: "partner_admin", side: "referral_partner" }),
     );
     authMocks.listAuthorizedMemberships.mockResolvedValue([
       membership({

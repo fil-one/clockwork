@@ -60,6 +60,18 @@ describe("the database mirror of the role table", () => {
   });
 });
 
+/**
+ * The committed file is the generator's output after the repository's
+ * formatter, which pads table cells and rewraps prose; compare with whitespace
+ * and table rule lengths normalized.
+ */
+const unpadded = (markdown: string) =>
+  markdown
+    .replace(/\s+/gu, " ")
+    .replace(/ ?\| ?/gu, "|")
+    .replace(/\|:?-+:?(?=\|)/gu, "|-")
+    .trim();
+
 describe("the generated access matrix", () => {
   const document = readFileSync(
     join(root, "docs/security/access-matrix.md"),
@@ -69,7 +81,9 @@ describe("the generated access matrix", () => {
   it("is current with auth.ts", () => {
     // The enforcement section is checked by `pnpm check:generated`, which
     // scans the application; everything above it comes from contracts alone.
-    expect(document.startsWith(accessMatrixMarkdown())).toBe(true);
+    expect(
+      unpadded(document).startsWith(unpadded(accessMatrixMarkdown())),
+    ).toBe(true);
   });
 
   it("gives every role and permission a plain description", () => {
@@ -86,13 +100,13 @@ describe("the generated access matrix", () => {
         .split("\n")
         .find(
           (line) =>
-            line.startsWith(`| \`${permission}\` | `) && line.includes(" x "),
+            line.startsWith(`| \`${permission}\``) && line.includes(" x "),
         );
     expect(
       row("signatory:manage")
         ?.split("|")
         .filter((cell) => cell.trim() === "x"),
     ).toHaveLength(1);
-    expect(row("staff:manage")).toMatch(/\| x \|$/u);
+    expect(row("staff:manage")).toMatch(/\|\s+x\s+\|$/u);
   });
 });

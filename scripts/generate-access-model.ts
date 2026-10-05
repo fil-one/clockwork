@@ -14,6 +14,8 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import process from "node:process";
 
+import { format, resolveConfig } from "prettier";
+
 import {
   accessMatrixMarkdown,
   permissionModelMarker,
@@ -73,8 +75,16 @@ export function latestPermissionModelMigration(): string | undefined {
     );
 }
 
-function main(argv: readonly string[]) {
-  const matrix = accessMatrixMarkdown(scanEnforcement());
+/** The matrix as the repository's formatter writes it, so format checks pass. */
+async function formattedMatrix(): Promise<string> {
+  return format(accessMatrixMarkdown(scanEnforcement()), {
+    ...(await resolveConfig(matrixPath)),
+    filepath: matrixPath,
+  });
+}
+
+async function main(argv: readonly string[]) {
+  const matrix = await formattedMatrix();
   const sql = permissionModelSql();
   if (argv.includes("--check")) {
     const problems: string[] = [];
@@ -91,9 +101,7 @@ function main(argv: readonly string[]) {
     const migration = latestPermissionModelMigration();
     if (!migration)
       problems.push("no migration carries the generated permission model");
-    else if (
-      readFileSync(join(migrationsDirectory, migration), "utf8") !== sql
-    )
+    else if (readFileSync(join(migrationsDirectory, migration), "utf8") !== sql)
       problems.push(
         `supabase/migrations/${migration} no longer matches packages/contracts/src/auth.ts: write the next migration with pnpm generate:access-model --migration supabase/migrations/<next>.sql`,
       );
@@ -111,4 +119,7 @@ function main(argv: readonly string[]) {
   }
 }
 
-main(process.argv.slice(2));
+main(process.argv.slice(2)).catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});

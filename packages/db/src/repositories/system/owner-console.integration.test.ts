@@ -157,9 +157,22 @@ it("lists one open request from every control, each with the page it is decided 
           name: "Northstar Archive Labs",
           href: null,
         });
-        // Decided requests stay off the list: the seed's approved price book
-        // activations are not there.
-        expect(listed.get("price_book_activation")).toHaveLength(1);
+        // Decided requests stay off the list: every price book request listed
+        // is still pending, so the seed's approved activations are not there.
+        // Other files may leave pending requests of their own, so the list is
+        // not assumed to hold only this file's fixture.
+        const listedIds = (listed.get("price_book_activation") ?? []).map(
+          (item) => item.id,
+        );
+        const statuses = await outer.execute<{ status: string }>(sql`
+          select status from public.approvals
+          where id in (${sql.join(
+            listedIds.map((id) => sql`${id}::uuid`),
+            sql`, `,
+          )})`);
+        expect(statuses.map((row) => row.status)).toEqual(
+          listedIds.map(() => "pending"),
+        );
       } finally {
         nested.mockRestore();
       }

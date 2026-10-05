@@ -4,7 +4,9 @@
   "include": [
     "*.ts",
     "scripts/bootstrap-production.ts",
+    "scripts/generate-access-model.ts",
     "scripts/provision-staff.ts",
+    "scripts/qualify-permission-upgrade.ts",
     "scripts/render-contract-specimen.ts"
   ]
 }
