@@ -78,6 +78,26 @@ export const salesNavigation: readonly NavigationItem[] = [
     icon: "document",
   },
   {
+    href: "/internal/contracts",
+    label: "platform.nav.internal.contracts",
+    // i18n-exempt: search aliases matched in addition to the translated label; never displayed
+    keywords: ["agreements", "msa", "renewals", "notice", "contract"],
+    requiredPermission: "contract:read",
+    providerBackedOnly: true,
+    workspace: "sales",
+    icon: "contract",
+  },
+  {
+    href: "/internal/sales-library",
+    label: "platform.nav.internal.salesLibrary",
+    // i18n-exempt: search aliases matched in addition to the translated label; never displayed
+    keywords: ["deck", "collateral", "case study", "one-pager", "library"],
+    requiredPermission: "sales:read",
+    providerBackedOnly: true,
+    workspace: "sales",
+    icon: "library",
+  },
+  {
     href: "/internal/pricing",
     label: "platform.nav.sales.pricing",
     description: "platform.nav.sales.pricing.description",

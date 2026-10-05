@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "@/src/i18n/server";
 import { SalesHome } from "@/src/features/internal-ops/sales-home/sales-home";
 import { loadSalesHome } from "@/src/features/internal-ops/sales-home/server-loader";
+import { RenewalNoticesCard } from "@/src/features/internal-ops/contracts/renewal-notices-card";
 import {
   getRouteIdentity,
   getRouteSession,
@@ -45,6 +46,7 @@ export default async function Page() {
       canSendMnda={
         session.providerBacked && staffMayUse(session.roles, "mnda:send")
       }
+      cards={<RenewalNoticesCard />}
     />
   );
 }

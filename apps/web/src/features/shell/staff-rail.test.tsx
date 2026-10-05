@@ -75,7 +75,7 @@ describe("staff rail", () => {
     pathname = "/internal";
   });
 
-  it("gives a seller one Sales group with home, MNDAs and pricing", () => {
+  it("gives a seller one Sales group with home, MNDAs, contracts, library and pricing", () => {
     const rail = renderRail("revenue");
     const links = within(rail)
       .getAllByRole("link")
@@ -83,6 +83,8 @@ describe("staff rail", () => {
     expect(links).toEqual([
       expect.stringContaining("Home"),
       expect.stringContaining("MNDAs"),
+      expect.stringContaining("Contracts"),
+      expect.stringContaining("Sales library"),
       expect.stringContaining("Pricing"),
     ]);
     expect(within(rail).getByText("Sales")).toBeInTheDocument();
