@@ -19,6 +19,7 @@ import {
   ids,
   OrganizationSideSchema,
   ProblemError,
+  RoleSchema,
   uuidV7,
   type Actor,
   type EntityName,
@@ -117,6 +118,7 @@ import {
   orderLineSnapshots,
   quoteSnapshots,
 } from "../../schema/core/finance";
+import { membershipRoles } from "../../schema/access";
 import {
   lifecycleAgreementDrafts,
   lifecycleAgreementTemplateTexts,
@@ -400,6 +402,7 @@ function databaseAuthorization(context: LifecycleRepositoryOperationContext) {
     accountIds: authorization.accountIds,
     roles: authorization.roles,
     permissions: contextPermissions(authorization),
+    ...(authorization.side ? { side: authorization.side } : {}),
     isInternalStaff: authorization.isInternalStaff,
     requestId: context.requestId,
   };
@@ -1346,10 +1349,29 @@ export class DatabaseLifecycleCommandRepository {
     });
     if (!organization) throw new Error("ORGANIZATION_NOT_FOUND");
     const side = OrganizationSideSchema.parse(organization.side);
+    // The ceiling comes from the roles the inviter holds in this organization,
+    // as stored, not from the session: a role held elsewhere, or claimed
+    // without being granted here, invites no one.
+    const inviterGrants = await transaction
+      .select({ role: membershipRoles.role })
+      .from(memberships)
+      .innerJoin(
+        membershipRoles,
+        eq(membershipRoles.membershipId, memberships.id),
+      )
+      .where(
+        and(
+          eq(memberships.userId, requireAuthorization(context).userId),
+          eq(memberships.organizationId, organization.id),
+        ),
+      );
     const refusal = inviteRoleRefusal({
       role: payload.role,
       side,
-      inviterRoles: requireAuthorization(context).roles,
+      inviterRoles: inviterGrants.flatMap(({ role }) => {
+        const parsed = RoleSchema.safeParse(role);
+        return parsed.success ? [parsed.data] : [];
+      }),
     });
     if (refusal)
       throw new ProblemError({

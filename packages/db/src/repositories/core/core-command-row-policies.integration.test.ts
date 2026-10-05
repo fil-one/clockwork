@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { ids } from "@clockwork/contracts";
+import { ids, permissionsForRoles } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 
 import { createRuntimeDatabase } from "../../client";
@@ -106,10 +106,12 @@ const tenant = (
   userId: string,
   roles: AuthorizationContext["roles"],
   accountIds: string[],
+  side?: AuthorizationContext["side"],
 ): AuthorizationContext => ({
   userId: ids.user.parse(userId),
   accountIds: accountIds.map((accountId) => ids.account.parse(accountId)),
   roles,
+  ...(side ? { side } : {}),
   isInternalStaff: false,
   mfaVerified: true,
   recentAuthenticationVerified: true,
@@ -285,6 +287,7 @@ describe.sequential("core commands the row policies used to refuse", () => {
           userId: ids.user.parse(opsUserId),
           accountIds: [referralPartnerId],
           roles,
+          permissions: permissionsForRoles(roles),
           isInternalStaff: true,
           requestId: key(`forge-${actorId}`),
         },
@@ -476,6 +479,7 @@ describe.sequential("core commands the row policies used to refuse", () => {
         userId: ids.user.parse(distributorUserId),
         accountIds: [distributorAccountId],
         roles: ["partner_admin"],
+        permissions: permissionsForRoles(["partner_admin"]),
         isInternalStaff: false,
         requestId: key("signer-refusal"),
       },
@@ -512,6 +516,7 @@ describe.sequential("core commands the row policies used to refuse", () => {
         distributorUserId,
         ["partner_admin"],
         [distributorAccountId],
+        "channel_partner",
       ),
     };
     await repository.mutate({
@@ -609,6 +614,7 @@ describe.sequential("core commands the row policies used to refuse", () => {
         distributorUserId,
         ["partner_admin"],
         [distributorAccountId],
+        "channel_partner",
       ),
     };
     await repository.mutate({

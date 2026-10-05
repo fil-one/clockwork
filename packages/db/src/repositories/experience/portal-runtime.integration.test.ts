@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { ids } from "@clockwork/contracts";
+import { ids, permissionsForRoles } from "@clockwork/contracts";
 
 import { createRuntimeDatabase } from "../../client";
 import {
@@ -72,6 +72,7 @@ async function seedAction(
       userId: ids.user.parse(userId),
       accountIds: [ids.account.parse(accountId)],
       roles: ["owner"],
+      permissions: permissionsForRoles(["owner"]),
       isInternalStaff: false,
       requestId: `portal-action:${seededActionId}:queue`,
     },

@@ -1,5 +1,5 @@
 begin;
-select plan(29);
+select plan(37);
 set local search_path = public, extensions;
 
 -- Fixture: the seeded organizations (Clockwork Staff 30..08 on the Fil One
@@ -149,12 +149,44 @@ set local role clockwork_runtime;
 select ok(not app_has_permission('account:read'), 'an unsigned claim holds nothing');
 reset role;
 
+-- The fallback applies what the side withholds, from the claimed accounts.
+select pg_temp.sign('{"roles":["partner_admin"],"isInternalStaff":false,"accountIds":["10000000-0000-4000-8000-000000000002"]}');
+set local role clockwork_runtime;
+select ok(app_has_permission('deal:register') and not app_has_permission('partner:quote:write'),
+  'a roles-only claim for a referral partner withholds partner quoting');
+reset role;
+select pg_temp.sign('{"roles":["partner_admin"],"isInternalStaff":false,"accountIds":["10000000-0000-4000-8000-000000000003"]}');
+set local role clockwork_runtime;
+select ok(app_has_permission('partner:quote:write'),
+  'a roles-only claim for a channel partner keeps partner quoting');
+reset role;
+
 select ok(
   not has_table_privilege('clockwork_runtime', 'public.membership_roles', 'INSERT')
   and not has_table_privilege('clockwork_runtime', 'public.role_permissions', 'INSERT')
   and not has_table_privilege('clockwork_service', 'public.role_permissions', 'DELETE')
   and has_table_privilege('clockwork_runtime', 'public.role_permissions', 'SELECT'),
   'roles are granted only through the service pool, and the bundles are read-only at runtime');
+
+-- =========================================================================
+-- 5b. Only the service pool chooses or changes a side.
+-- =========================================================================
+select pg_temp.sign('{"roles":["partner_admin"],"permissions":["account:read","account:write","deal:register"],"isInternalStaff":false,"accountIds":["10000000-0000-4000-8000-000000000002"]}');
+set local role clockwork_runtime;
+select throws_ok($$
+  update organizations set side = 'channel_partner' where id = '30000000-0000-4000-8000-000000000002'
+$$, '42501', null, 'a partner administrator cannot change its organization''s side');
+select throws_ok($$
+  insert into organizations (account_id, name, side)
+  values ('10000000-0000-4000-8000-000000000002', 'Redwood Staff', 'fil_one')
+$$, '42501', null, 'a partner administrator cannot create a Fil One organization');
+select lives_ok($$
+  insert into organizations (id, account_id, name)
+  values ('b1446000-0000-4000-8000-000000000005', '10000000-0000-4000-8000-000000000002', 'Redwood Third')
+$$, 'an organization the tenant creates takes its account''s side');
+reset role;
+select is((select side from organizations where id = 'b1446000-0000-4000-8000-000000000005'),
+  'referral_partner', 'and that side is the one the account implies');
 
 -- =========================================================================
 -- 6. Notices to the other administrators.
@@ -178,6 +210,24 @@ select is(
 select is(
   (select count(*)::integer from staff_notices where audit_event_id = 'b1446000-0000-4000-8000-0000000000e2'),
   0, 'ordinary events notify nobody');
+insert into audit_events (id, account_id, aggregate_type, aggregate_id, aggregate_version,
+  event_type, event_version, actor, occurred_at, request_id) values
+  ('b1446000-0000-4000-8000-0000000000e3', '10000000-0000-4000-8000-000000000001', 'membership',
+   '31000000-0000-4000-8000-000000000001', 9, 'staff.role_granted', 1,
+   '{"kind":"user","id":"b1446000-0000-4000-8000-000000000101"}', now(), 'pgtap-1446-tenant-shaped');
+select is(
+  (select count(*)::integer from staff_notices where audit_event_id = 'b1446000-0000-4000-8000-0000000000e3'),
+  0, 'an account-bound event never notifies, whatever its type');
+select pg_temp.sign('{"roles":["owner"],"permissions":["account:read","account:write","audit:read","audit:append"],"isInternalStaff":false,"userId":"20000000-0000-4000-8000-000000000002","accountIds":["10000000-0000-4000-8000-000000000001"]}');
+set local role clockwork_runtime;
+select throws_ok($$
+  insert into audit_events (account_id, aggregate_type, aggregate_id, aggregate_version,
+    event_type, event_version, actor, occurred_at, request_id)
+  values ('10000000-0000-4000-8000-000000000001', 'membership', '31000000-0000-4000-8000-000000000001', 10,
+    'staff.role_granted', 1, '{"kind":"user","id":"20000000-0000-4000-8000-000000000002"}',
+    now(), 'pgtap-1446-forged-staff-event')
+$$, '42501', null, 'the tenant pool cannot write a staff event to forge a notice');
+reset role;
 select ok(
   has_column_privilege('clockwork_service', 'public.staff_notices', 'read_at', 'UPDATE')
   and not has_column_privilege('clockwork_service', 'public.staff_notices', 'recipient_user_id', 'UPDATE')

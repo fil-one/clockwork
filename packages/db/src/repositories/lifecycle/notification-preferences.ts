@@ -119,6 +119,7 @@ export class DatabaseNotificationPreferenceRepository {
         accountIds: input.authorization.accountIds,
         roles: input.authorization.roles,
         permissions: contextPermissions(input.authorization),
+        ...(input.authorization.side ? { side: input.authorization.side } : {}),
         isInternalStaff: input.authorization.isInternalStaff,
         requestId: input.requestId,
       },

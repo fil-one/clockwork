@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import { and, eq, inArray, sql } from "drizzle-orm";
 
-import { ids, MoneySchema } from "@clockwork/contracts";
+import { ids, MoneySchema, permissionsForRoles } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import { issueQuote, type QuoteSnapshot } from "@clockwork/domain/core";
 import { exceptionQueues } from "@clockwork/domain/lifecycle";
@@ -370,6 +370,7 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
           userId: partnerUserId,
           accountIds: [partnerAccountId],
           roles: ["partner_admin"],
+          permissions: permissionsForRoles(["partner_admin"]),
           isInternalStaff: false,
           requestId: `unrelated-commercial-artifact-${runId}`,
         },
@@ -539,6 +540,7 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
         signerUserId: "20000000-0000-4000-8000-000000000004",
         authorizationAccountId: "10000000-0000-4000-8000-000000000004",
         role: "owner" as const,
+        side: "customer" as const,
         invoicingAccountId: "10000000-0000-4000-8000-000000000004",
         governingAgreementId: "51000000-0000-4000-8000-000000000007",
         partnerAgreementId: "51000000-0000-4000-8000-000000000008",
@@ -549,6 +551,7 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
         signerUserId: "20000000-0000-4000-8000-000000000008",
         authorizationAccountId: "10000000-0000-4000-8000-000000000003",
         role: "partner_admin" as const,
+        side: "channel_partner" as const,
         invoicingAccountId: "10000000-0000-4000-8000-000000000003",
         governingAgreementId: "51000000-0000-4000-8000-000000000003",
         partnerAgreementId: "51000000-0000-4000-8000-000000000003",
@@ -559,6 +562,7 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
         signerUserId: "20000000-0000-4000-8000-000000000005",
         authorizationAccountId: "10000000-0000-4000-8000-000000000005",
         role: "partner_admin" as const,
+        side: "channel_partner" as const,
         invoicingAccountId: "10000000-0000-4000-8000-000000000005",
         governingAgreementId: "51000000-0000-4000-8000-000000000004",
         partnerAgreementId: "51000000-0000-4000-8000-000000000004",
@@ -576,6 +580,7 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
         userId: ids.user.parse(channel.signerUserId),
         accountIds: [ids.account.parse(channel.authorizationAccountId)],
         roles: [channel.role],
+        side: channel.side,
         isInternalStaff: false,
         mfaVerified: true,
         recentAuthenticationVerified: true,
@@ -4523,6 +4528,7 @@ describe("database core quote persistence under row-level security", () => {
         userId: ids.user.parse(distributorUserId),
         accountIds: [ids.account.parse(distributorAccountId)],
         roles: ["partner_admin"],
+        side: "channel_partner",
         isInternalStaff: false,
         mfaVerified: true,
         recentAuthenticationVerified: true,

@@ -4,9 +4,9 @@
 --    person's roles (union of the role bundles, less what the organization's
 --    side withholds, less the approver permissions inside an assisted
 --    session). `app_has_permission` and `app_has_any_permission` test them. A
---    claim without the key (an older signer, a test fixture) answers from its
---    roles through the generated role_permissions table (001445), so the two
---    shapes can never disagree about a bundle.
+--    claim without the key (an instance signed before this release, during
+--    the rolling deploy) answers from its roles through the generated
+--    role_permissions table (001445), less what the side withholds.
 --
 -- 2. `member_has_permission(user, permission)` answers the same question for
 --    STORED memberships ("does the approver of record still hold finance
@@ -28,43 +28,67 @@
 -- ---------------------------------------------------------------------------
 -- 1. Permission checks on the signed claim.
 -- ---------------------------------------------------------------------------
+-- The fallback for a claim without `permissions` exists only for the rolling
+-- deploy, while application instances signed before this release still serve
+-- requests: it derives the permissions from the claim's roles exactly as the
+-- application does, including what the side withholds (the claim's `side`
+-- when present, else the side of the organizations of the claimed accounts).
+-- Remove it, and require `permissions` in app_context_is_valid, once every
+-- instance signs permissions.
+create function private.claim_permissions_from_roles(claims jsonb)
+returns text[] language plpgsql stable security definer
+set search_path = pg_catalog, public as $$
+begin
+  return (select coalesce(array_agg(distinct grant_row.permission), '{}')
+  from public.role_permissions grant_row
+  where claims->'roles' ? grant_row.role
+    and not exists (
+      select 1 from public.organization_side_withheld_permissions withheld
+      where withheld.permission = grant_row.permission
+        and (
+          withheld.side = claims->>'side'
+          or (claims->>'side' is null and exists (
+            select 1 from public.organizations organization
+            where organization.side = withheld.side
+              and organization.account_id::text in (
+                select jsonb_array_elements_text(claims->'accountIds'))
+          ))
+        )
+    ));
+end $$;
+revoke all on function private.claim_permissions_from_roles(jsonb)
+  from public, anon, authenticated, clockwork_runtime, clockwork_service;
+
+-- The permissions the current signed claim holds.
+create function public.app_claim_permissions() returns text[]
+language plpgsql stable security definer
+set search_path = pg_catalog, public as $$
+declare claims jsonb;
+begin
+  if not public.app_context_is_valid() then return '{}'; end if;
+  claims := public.app_context_claims();
+  if jsonb_typeof(claims->'permissions') = 'array' then
+    return array(select jsonb_array_elements_text(claims->'permissions'));
+  end if;
+  return private.claim_permissions_from_roles(claims);
+end $$;
+revoke all on function public.app_claim_permissions() from public;
+grant execute on function public.app_claim_permissions()
+  to clockwork_runtime, clockwork_service;
+
 create function public.app_has_permission(candidate text) returns boolean
 language sql stable set search_path = public as $$
-  select app_is_internal() or (
-    app_context_is_valid() and (
-      case
-        when jsonb_typeof(app_context_claims()->'permissions') = 'array'
-          then app_context_claims()->'permissions' ? candidate
-        else exists (
-          select 1 from public.role_permissions grant_row
-          where grant_row.permission = candidate
-            and app_context_claims()->'roles' ? grant_row.role
-        )
-      end
-    )
-  )
+  select app_is_internal() or candidate = any(app_claim_permissions())
 $$;
 revoke all on function public.app_has_permission(text) from public;
 grant execute on function public.app_has_permission(text)
   to clockwork_runtime, clockwork_service;
 comment on function public.app_has_permission(text) is
-  'True on the service pool, or when the signed claim carries the permission. A claim without a permissions array answers from its roles through role_permissions.';
+  'True on the service pool, or when the signed claim carries the permission (see app_claim_permissions).';
 
 create function public.app_has_any_permission(candidates text[]) returns boolean
 language sql stable set search_path = public as $$
-  select app_is_internal() or (
-    app_context_is_valid() and (
-      case
-        when jsonb_typeof(app_context_claims()->'permissions') = 'array'
-          then app_context_claims()->'permissions' ?| candidates
-        else exists (
-          select 1 from public.role_permissions grant_row
-          where grant_row.permission = any(candidates)
-            and app_context_claims()->'roles' ? grant_row.role
-        )
-      end
-    )
-  )
+  select app_is_internal() or candidates && app_claim_permissions()
 $$;
 revoke all on function public.app_has_any_permission(text[]) from public;
 grant execute on function public.app_has_any_permission(text[])
@@ -76,8 +100,8 @@ grant execute on function public.app_has_any_permission(text[])
 alter table public.organizations add column side text;
 
 -- The side an organization would be given from its account alone, for an
--- organization with no members yet. Fil One's own organization is never
--- inferred from account data: it is named explicitly (the backfill below, the
+-- organization with no members. Fil One's own organization is never inferred
+-- from account data: it is named explicitly (the backfill below, the
 -- production bootstrap, the seed).
 create function private.organization_side_from_account(candidate_account uuid)
 returns text language sql stable security definer
@@ -86,10 +110,10 @@ set search_path = pg_catalog, public as $$
     when 'partner' = any(account.relationship_roles)
       and not ('direct_client' = any(account.relationship_roles))
       then case
-        -- A partner account with no agreement type is treated as a referral
-        -- partner, as the finance chain already treats it.
-        when coalesce(account.partner_agreement_type, 'referral') = 'referral'
-          then 'referral_partner'
+        -- Only a recorded referral agreement makes a referral partner. A
+        -- partner account with no agreement type keeps partner quoting, as it
+        -- has today.
+        when account.partner_agreement_type = 'referral' then 'referral_partner'
         else 'channel_partner'
       end
     else 'customer'
@@ -99,23 +123,28 @@ $$;
 revoke all on function private.organization_side_from_account(uuid)
   from public, anon, authenticated, clockwork_runtime, clockwork_service;
 
--- Backfill rule, applied in this order:
---   a. members holding an internal role                    -> fil_one
---   b. no members, and one of the two Fil One staff
---      organizations by identity-provider binding (001440) -> fil_one
---   c. members holding a partner role                      -> referral_partner
---      when the account's partner agreement type is referral or unset,
---      otherwise channel_partner
---   d. members holding a customer role                     -> customer
---   e. no members                                          -> from the account:
---      a partner account (and not also a direct client) by agreement type as
---      in c, otherwise customer
--- An organization whose members span two of a, c and d is a data error a
--- person must resolve; the migration stops and names how many there are.
+-- Backfill rule, applied to every organization in this order:
+--   a. bound to one of the two Fil One staff organizations by identity
+--      provider (001440), or any member holding an internal role -> fil_one
+--   b. any member holding a partner role                     -> referral_partner
+--      when the account's partner agreement type is referral, otherwise
+--      channel_partner
+--   c. any member holding a customer role                    -> customer
+--   d. no members                                            -> from the account,
+--      as organization_side_from_account above
+-- This migration runs unattended, so it never stops on existing data. An
+-- organization whose members' roles do not all fit the side it is given (for
+-- example a staff organization holding a stray `member` row) is resolved by
+-- the order above, named in a NOTICE, and recorded in one audit event per
+-- organization (`organization.side_conflict_resolved`). Those memberships are
+-- grandfathered: the side guard below checks only rows inserted or changed
+-- after this migration, so nobody loses access tonight, and a person resolves
+-- each one from the audit trail.
 do $$
 declare
-  conflicts integer;
+  resolved record;
   summary text;
+  conflicts integer := 0;
 begin
   with member_kinds as (
     select membership.organization_id,
@@ -126,47 +155,69 @@ begin
     from public.memberships membership
     group by membership.organization_id
   )
-  select count(*) into conflicts from member_kinds
-  where has_internal::int + has_partner::int + has_customer::int > 1;
-  if conflicts > 0 then
-    raise exception using errcode = '23514',
-      message = format('ORGANIZATION_SIDE_CONFLICT: %s organizations have members on more than one side; split them before this migration', conflicts);
-  end if;
-
-  with member_kinds as (
-    select membership.organization_id,
-      bool_or(membership.role in ('internal_operator','finance_approver','legal_approver',
-        'destructive_action_approver','revenue','commerce_admin')) as has_internal,
-      bool_or(membership.role in ('partner_admin','partner_seller')) as has_partner
-    from public.memberships membership
-    group by membership.organization_id
-  )
   update public.organizations organization
   set side = case
-    when kinds.has_internal then 'fil_one'
-    when kinds.organization_id is null and organization.workos_organization_id in (
-      'org_01M21Q2N3ER4KWVJ30VRN8G0PV', -- staging
-      'org_01M21RDQDM5NHYD4CEHWJZFG3J'  -- production
-    ) then 'fil_one'
-    when kinds.has_partner then
-      case when coalesce(account.partner_agreement_type, 'referral') = 'referral'
+    when target.workos_organization_id in (
+        'org_01M21Q2N3ER4KWVJ30VRN8G0PV', -- staging
+        'org_01M21RDQDM5NHYD4CEHWJZFG3J'  -- production
+      ) or coalesce(kinds.has_internal, false) then 'fil_one'
+    when coalesce(kinds.has_partner, false) then
+      case when account.partner_agreement_type = 'referral'
         then 'referral_partner' else 'channel_partner' end
-    when kinds.organization_id is not null then 'customer'
-    else private.organization_side_from_account(organization.account_id)
+    when coalesce(kinds.has_customer, false) then 'customer'
+    else private.organization_side_from_account(target.account_id)
   end
-  from public.accounts account
-  left join member_kinds kinds on true
-  where account.id = organization.account_id
-    and (kinds.organization_id = organization.id or kinds.organization_id is null)
+  from public.organizations target
+  join public.accounts account on account.id = target.account_id
+  left join member_kinds kinds on kinds.organization_id = target.id
+  where target.id = organization.id
     and organization.side is null;
+
+  for resolved in
+    select organization.id, organization.account_id, organization.side,
+      array_agg(distinct membership.role order by membership.role) as roles,
+      array_agg(distinct membership.role order by membership.role)
+        filter (where not exists (
+          select 1 from public.organization_side_roles allowed
+          where allowed.side = organization.side and allowed.role = membership.role
+        )) as outside
+    from public.organizations organization
+    join public.memberships membership on membership.organization_id = organization.id
+    group by organization.id, organization.account_id, organization.side
+    having bool_or(not exists (
+      select 1 from public.organization_side_roles allowed
+      where allowed.side = organization.side and allowed.role = membership.role
+    ))
+  loop
+    conflicts := conflicts + 1;
+    raise notice 'ORGANIZATION_SIDE_CONFLICT organization % set to %; members also hold % (kept)',
+      resolved.id, resolved.side, resolved.outside;
+    insert into public.audit_events (
+      id, account_id, aggregate_type, aggregate_id, aggregate_version,
+      event_type, event_version, actor, occurred_at, request_id, before, after,
+      metadata
+    ) values (
+      gen_random_uuid(), resolved.account_id, 'organization', resolved.id,
+      coalesce((select max(event.aggregate_version) from public.audit_events event
+        where event.aggregate_type = 'organization' and event.aggregate_id = resolved.id), 0) + 1,
+      'organization.side_conflict_resolved', 1,
+      jsonb_build_object('kind', 'system', 'id', 'migration:001446_permission_model'),
+      now(), 'migration:001446_permission_model',
+      jsonb_build_object('roles', to_jsonb(resolved.roles)),
+      jsonb_build_object('side', resolved.side,
+        'rolesOutsideSide', to_jsonb(resolved.outside)),
+      jsonb_build_object('migration', '001446_permission_model',
+        'grandfathered', true)
+    );
+  end loop;
 
   select string_agg(format('%s=%s', side, total), ', ' order by side) into summary
   from (select side, count(*) as total from public.organizations group by side) counted;
-  raise notice 'organization sides after backfill: %', coalesce(summary, 'none');
+  raise notice 'organization sides after backfill: %; conflicts resolved: %',
+    coalesce(summary, 'none'), conflicts;
 end $$;
 
--- The left join above pairs every organization with every member_kinds row or
--- with the null row; the update must have set every side exactly once.
+-- Every organization matched exactly one row above.
 do $$
 begin
   if exists (select 1 from public.organizations where side is null) then
@@ -182,19 +233,40 @@ comment on column public.organizations.side is
 
 -- New organizations without an explicit side take the side their account
 -- implies. Fil One's own organization must say so.
-create function public.default_organization_side() returns trigger
+--
+-- The side decides which roles members may hold, so the tenant pool may never
+-- choose it: on clockwork_runtime an explicit side must be the one the account
+-- implies anyway, and a side never changes. Only the service pool (or a
+-- migration) names Fil One's organization or moves an organization between
+-- sides.
+create function public.guard_organization_side() returns trigger
 language plpgsql security definer set search_path = pg_catalog, public as $$
+declare
+  implied text := private.organization_side_from_account(new.account_id);
+  -- This function runs as its owner, so current_user is not the caller; the
+  -- tenant pool always enters through `set local role clockwork_runtime`
+  -- (packages/db/src/transaction.ts), which the role setting still shows.
+  tenant_pool boolean := current_setting('role', true) = 'clockwork_runtime'
+    or session_user = 'clockwork_runtime';
 begin
-  if new.side is null then
-    new.side := private.organization_side_from_account(new.account_id);
+  if tg_op = 'INSERT' then
+    if new.side is null then
+      new.side := implied;
+    elsif tenant_pool and new.side is distinct from implied then
+      raise exception using errcode = '42501',
+        message = 'ORGANIZATION_SIDE_SERVICE_ONLY: only the service pool chooses an organization''s side';
+    end if;
+  elsif new.side is distinct from old.side and tenant_pool then
+    raise exception using errcode = '42501',
+      message = 'ORGANIZATION_SIDE_SERVICE_ONLY: only the service pool changes an organization''s side';
   end if;
   return new;
 end $$;
-revoke all on function public.default_organization_side()
+revoke all on function public.guard_organization_side()
   from public, anon, authenticated, clockwork_runtime, clockwork_service;
 create trigger organizations_default_side
-before insert on public.organizations
-for each row execute function public.default_organization_side();
+before insert or update of side on public.organizations
+for each row execute function public.guard_organization_side();
 
 -- ---------------------------------------------------------------------------
 -- 4. Several roles per membership.
@@ -398,16 +470,19 @@ grant update (read_at) on public.staff_notices to clockwork_service;
 create policy staff_notices_service on public.staff_notices
   for all to clockwork_service using (true) with check (true);
 
--- Event types that notify. Written as audit events by whichever command made
--- the change, in its own transaction, so a notice exists exactly when the
--- change does.
+-- Event types that notify. Written as audit events by the staff-team commands
+-- on the service pool, in the change's own transaction, so a notice exists
+-- exactly when the change does. Staff events concern a membership and no
+-- account, and the tenant pool may not write them at all (policy below), so
+-- nobody can forge a notice from a tenant session.
 create function public.notify_commerce_admins() returns trigger
 language plpgsql security definer set search_path = pg_catalog, public as $$
 begin
-  if new.event_type in (
-    'staff.invited', 'staff.reactivated', 'staff.deactivated',
-    'staff.role_changed', 'staff.role_granted', 'staff.role_revoked'
-  ) then
+  if new.account_id is null and new.aggregate_type = 'membership'
+    and new.event_type in (
+      'staff.invited', 'staff.reactivated', 'staff.deactivated',
+      'staff.role_changed', 'staff.role_granted', 'staff.role_revoked'
+    ) then
     insert into public.staff_notices (recipient_user_id, audit_event_id, event_type)
     select staff.id, new.id, new.event_type
     from public.commerce_users staff
@@ -423,3 +498,9 @@ revoke all on function public.notify_commerce_admins()
 create trigger audit_events_notify_commerce_admins
 after insert on public.audit_events
 for each row execute function public.notify_commerce_admins();
+
+-- Staff events come only from the service pool. A restriction on a fact about
+-- the row, so it is monotone: no grant can widen or narrow it.
+create policy audit_events_staff_events_service_only
+on public.audit_events as restrictive for insert to clockwork_runtime
+with check (event_type not like 'staff.%');

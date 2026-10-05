@@ -126,6 +126,8 @@ export interface RouteSession {
   roles: readonly string[];
   /** What the session may do; every gate on a route reads this. */
   permissions: readonly Permission[];
+  /** The side of the organization the permissions were computed for. */
+  side?: OrganizationSide;
   profile: CommerceSession["profile"];
   /** BCP-47 tag the surface formats dates and numbers with. */
   locale: string;
@@ -206,6 +208,7 @@ export async function getRouteSession(
         permissions: permissionsForRoles(membership.roles, {
           side: membership.side,
         }),
+        side: membership.side,
         profile: { name: membership.userName, email: membership.userEmail },
         // The catalog has carried a locale and a zone per persona all along --
         // `en-GB`/`Europe/London` for the reseller and the distributor,
@@ -228,13 +231,13 @@ export async function getRouteSession(
     const localRoles: readonly Role[] = isCommerceRole(demoRole)
       ? [demoRole]
       : demoRoles[audience];
+    const side = isCommerceRole(demoRole)
+      ? localRoleSide(demoRole)
+      : selected.side;
     return {
       roles: localRoles,
-      permissions: permissionsForRoles(localRoles, {
-        side: isCommerceRole(demoRole)
-          ? localRoleSide(demoRole)
-          : selected.side,
-      }),
+      permissions: permissionsForRoles(localRoles, { side }),
+      side,
       profile: { name: selected.userName, email: selected.userEmail },
       ...formatting,
       memberships: Object.values(demoMemberships),
@@ -259,6 +262,7 @@ export async function getRouteSession(
   return {
     roles: session.roles,
     permissions: session.permissions,
+    ...(session.side ? { side: session.side } : {}),
     profile: session.profile,
     ...formatting,
     memberships: session.memberships,

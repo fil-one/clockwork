@@ -10,6 +10,7 @@ import {
   privilegedRoles,
   RoleSchema,
   type Actor,
+  type OrganizationSide,
   type Permission,
   type Role,
   type TaxPort,
@@ -141,12 +142,13 @@ const IdentityRowSchema = z
 /**
  * The roles and permissions a person holds across the memberships read for a
  * command: every role of every membership, primary roles first, and the union
- * of what each membership confers on its own organization's side.
+ * of what each membership confers on its own organization's side. The side is
+ * named only when every membership is on the same one.
  */
 function grantedAccess(
   grants: z.infer<typeof IdentityRowSchema>["grants"],
   options: { assisted: boolean },
-): { roles: Role[]; permissions: Permission[] } {
+): { roles: Role[]; permissions: Permission[]; side?: OrganizationSide } {
   const held = new Set(
     grants.flatMap((grant) =>
       permissionsForRoles(grant.roles, {
@@ -155,9 +157,11 @@ function grantedAccess(
       }),
     ),
   );
+  const sides = new Set(grants.map((grant) => grant.side));
   return {
     roles: [...new Set(grants.flatMap((grant) => grant.roles))],
     permissions: permissionOrder.filter((permission) => held.has(permission)),
+    ...(sides.size === 1 ? { side: [...sides][0] } : {}),
   };
 }
 
@@ -311,9 +315,10 @@ export class DatabaseAuthoritativePortalCommandExecutor {
 
         // Staff reach a customer's account only through an assisted session,
         // which holds no approver permission.
-        const { roles, permissions } = grantedAccess(identity.data.grants, {
-          assisted: identity.data.is_internal_staff,
-        });
+        const { roles, permissions, side } = grantedAccess(
+          identity.data.grants,
+          { assisted: identity.data.is_internal_staff },
+        );
         if (
           !input.recentAuthenticationVerified ||
           (roles.some((role) =>
@@ -338,6 +343,7 @@ export class DatabaseAuthoritativePortalCommandExecutor {
             ],
             roles,
             permissions,
+            ...(side ? { side } : {}),
             isInternalStaff: false,
             mfaVerified: input.mfaVerified,
             recentAuthenticationVerified: input.recentAuthenticationVerified,
@@ -374,6 +380,7 @@ export class DatabaseAuthoritativePortalCommandExecutor {
           ],
           roles,
           permissions,
+          ...(side ? { side } : {}),
           isInternalStaff: true,
           mfaVerified: input.mfaVerified,
           recentAuthenticationVerified: input.recentAuthenticationVerified,
@@ -723,9 +730,10 @@ export class DatabaseSystemRecoveryCommandExecutor {
           !input.recentAuthenticationVerified
         )
           return null;
-        const { roles, permissions } = grantedAccess(identity.data.grants, {
-          assisted: false,
-        });
+        const { roles, permissions, side } = grantedAccess(
+          identity.data.grants,
+          { assisted: false },
+        );
         if (
           roles.some((role) =>
             privilegedRoles.includes(role as (typeof privilegedRoles)[number]),
@@ -738,6 +746,7 @@ export class DatabaseSystemRecoveryCommandExecutor {
           accountIds: [],
           roles,
           permissions,
+          ...(side ? { side } : {}),
           isInternalStaff: true,
           mfaVerified: input.mfaVerified,
           recentAuthenticationVerified: input.recentAuthenticationVerified,

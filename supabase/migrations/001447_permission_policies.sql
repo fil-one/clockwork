@@ -12,7 +12,7 @@
 --   destructive_action_approver             destructive:approve
 --   legal/finance/destructive approvers     agreement:approve, quote:approve,
 --                                            billing:approve, destructive:approve
---   partner_admin (partner channels)        account:write
+--   partner_admin (partner channels)        deal:register and account:write
 --   internal_operator, finance_approver     operations:write, billing:approve
 --   destructive approver, operator          system:operate
 --   owner, admin, partner_admin, operator   account:write (order:write on order
@@ -261,7 +261,7 @@ alter policy experience_evidence_read on public.experience_evidence_uploads
   using ((app_is_current_user(owner_user_id) AND (app_has_account(account_id) OR (experience_session_is_internal() AND ((experience_session_assisted_account() IS NULL) OR (account_id = experience_session_assisted_account())) AND (((journey = 'exception'::text) AND app_has_permission('operations:write'::text)) OR ((journey = 'approval'::text) AND app_has_any_permission(ARRAY['agreement:approve'::text, 'quote:approve'::text, 'billing:approve'::text, 'destructive:approve'::text])))))));
 
 alter policy experience_projection_read on public.experience_portal_projections
-  using ((((audience = 'internal'::text) AND experience_session_is_internal() AND ((experience_session_assisted_account() IS NULL) OR (subject_account_id = experience_session_assisted_account())) AND (((channel = 'approvals'::text) AND app_has_any_permission(ARRAY['agreement:approve'::text, 'quote:approve'::text, 'billing:approve'::text, 'destructive:approve'::text])) OR ((channel <> 'approvals'::text) AND app_has_permission('operations:write'::text)))) OR ((audience <> 'internal'::text) AND app_has_account(audience_account_id) AND ((audience <> 'partner'::text) OR (channel <> ALL (ARRAY['billing'::text, 'commissions'::text, 'renewals'::text, 'sandboxes'::text, 'brand'::text])) OR app_has_permission('account:write'::text) OR (experience_session_is_internal() AND (experience_session_assisted_account() = audience_account_id))))));
+  using ((((audience = 'internal'::text) AND experience_session_is_internal() AND ((experience_session_assisted_account() IS NULL) OR (subject_account_id = experience_session_assisted_account())) AND (((channel = 'approvals'::text) AND app_has_any_permission(ARRAY['agreement:approve'::text, 'quote:approve'::text, 'billing:approve'::text, 'destructive:approve'::text])) OR ((channel <> 'approvals'::text) AND app_has_permission('operations:write'::text)))) OR ((audience <> 'internal'::text) AND app_has_account(audience_account_id) AND ((audience <> 'partner'::text) OR (channel <> ALL (ARRAY['billing'::text, 'commissions'::text, 'renewals'::text, 'sandboxes'::text, 'brand'::text])) OR (app_has_permission('deal:register'::text) AND app_has_permission('account:write'::text)) OR (experience_session_is_internal() AND (experience_session_assisted_account() = audience_account_id))))));
 
 alter policy guard_i_inbound_notices_ab0c7a3e on public.inbound_notices
   with check (app_has_any_permission(ARRAY['account:write'::text, 'agreement:approve'::text]));

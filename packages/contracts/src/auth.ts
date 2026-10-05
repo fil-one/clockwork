@@ -367,19 +367,26 @@ export function rolesHavePermission(
 /**
  * The permissions a session or authorization context holds. A context built
  * by the server carries them; one that does not (an older test fixture, a
- * local persona) gets the same answer from its roles, less the approver
- * permissions when it is an assisted session.
+ * local persona) gets the answer from its roles, less what its organization's
+ * side withholds and less the approver permissions when it is an assisted
+ * session. Without a known side it withholds what any side withholds.
  */
 export function contextPermissions(context: {
   readonly roles: readonly string[];
   readonly permissions?: readonly Permission[] | undefined;
   readonly impersonation?: unknown;
+  readonly side?: OrganizationSide | undefined;
 }): readonly Permission[] {
-  return (
-    context.permissions ??
-    permissionsForRoles(context.roles, {
-      assisted: Boolean(context.impersonation),
-    })
+  if (context.permissions) return context.permissions;
+  const assisted = Boolean(context.impersonation);
+  if (context.side) {
+    return permissionsForRoles(context.roles, { side: context.side, assisted });
+  }
+  const withheld = new Set<Permission>(
+    organizationSides.flatMap((side) => sideWithheldPermissions[side]),
+  );
+  return permissionsForRoles(context.roles, { assisted }).filter(
+    (permission) => !withheld.has(permission),
   );
 }
 
