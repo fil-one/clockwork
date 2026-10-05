@@ -9,7 +9,12 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import type { MndaInput, MndaSigner, MndaState } from "@clockwork/contracts";
+import type {
+  MndaCancelCode,
+  MndaInput,
+  MndaSigner,
+  MndaState,
+} from "@clockwork/contracts";
 
 export const mndaSigners = pgTable(
   "commerce_mnda_signers",
@@ -32,8 +37,12 @@ export const mndaRequests = pgTable("commerce_mnda_requests", {
   id: uuid("id").primaryKey(),
   input: jsonb("input").$type<MndaInput>().notNull(),
   countersigner: jsonb("countersigner").$type<MndaSigner>().notNull(),
+  noticeEmail: text("notice_email"),
   ownerId: uuid("owner_id").notNull(),
   ownerName: text("owner_name").notNull(),
+  ownerEmail: text("owner_email"),
+  correctedSignerEmail: text("corrected_signer_email"),
+  pendingSignerEmail: text("pending_signer_email"),
   state: text("state").$type<MndaState>().notNull().default("draft"),
   providerId: text("provider_id").unique(),
   templateHash: text("template_hash").notNull(),
@@ -44,7 +53,14 @@ export const mndaRequests = pgTable("commerce_mnda_requests", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  remindedAt: timestamp("reminded_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
+  cancelCode: text("cancel_code").$type<MndaCancelCode>(),
+  cancelReason: text("cancel_reason"),
+  normalizedCompany: text("normalized_company").generatedAlwaysAs(
+    sql`public.commerce_mnda_normalize_company(input->>'company')`,
+  ),
   leaseUntil: timestamp("lease_until", { withTimezone: true }),
   leaseToken: uuid("lease_token"),
   error: text("error"),
@@ -66,4 +82,19 @@ export const mndaArtifacts = pgTable(
   },
   (t) => [uniqueIndex("commerce_mnda_artifact_kind").on(t.requestId, t.kind)],
 );
-export const mndaSchema = { mndaSigners, mndaRequests, mndaArtifacts };
+/** Single row (`id` is always true): settings that bind new drafts. */
+export const mndaSettings = pgTable("commerce_mnda_settings", {
+  id: boolean("id").primaryKey().default(true),
+  noticeEmail: text("notice_email").notNull(),
+  version: integer("version").notNull().default(1),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedBy: uuid("updated_by"),
+});
+export const mndaSchema = {
+  mndaSigners,
+  mndaRequests,
+  mndaArtifacts,
+  mndaSettings,
+};

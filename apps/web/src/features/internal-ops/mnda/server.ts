@@ -1,6 +1,11 @@
 import "server-only";
 import { MndaRepository } from "@clockwork/db";
-import { MndaSignerSchema, type Actor } from "@clockwork/contracts";
+import {
+  hasPermission,
+  MndaSignerSchema,
+  type Actor,
+  type Permission,
+} from "@clockwork/contracts";
 import { SignWellClient } from "@clockwork/integrations";
 import { MndaWorkflow } from "@clockwork/workflows/mnda";
 import {
@@ -9,27 +14,34 @@ import {
 } from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
 
-export async function mndaStaff(manage = false) {
+/** Sending, tracking and downloading need `mnda:send`; choosing who may
+ * countersign and where notices go needs `signatory:manage`. */
+export type MndaPermission = Extract<
+  Permission,
+  "mnda:send" | "signatory:manage"
+>;
+
+/**
+ * Every MNDA action and route re-checks the real staff session here. Assisted,
+ * impersonated and demo sessions never act on legal documents.
+ */
+export async function mndaStaff(permission: MndaPermission = "mnda:send") {
   const session = await getCommerceSession();
   if (
     !session.isInternalStaff ||
-    !session.mfaVerified ||
     session.impersonation ||
     session.assistedSession ||
-    explicitDemoIdentityEnabled() ||
-    !session.roles.some((r) =>
-      ["internal_operator", "finance_approver", "legal_approver"].includes(r),
-    )
+    explicitDemoIdentityEnabled()
   )
     throw new Error("MNDA_FORBIDDEN");
-  if (
-    manage &&
-    !session.roles.some((r) =>
-      ["internal_operator", "finance_approver", "legal_approver"].includes(r),
-    )
-  )
+  if (!session.mfaVerified) throw new Error("MNDA_MFA_REQUIRED");
+  if (!session.roles.some((role) => hasPermission(role, permission)))
     throw new Error("MNDA_FORBIDDEN");
   return session;
+}
+export type MndaSession = Awaited<ReturnType<typeof mndaStaff>>;
+export function mndaCanManage(session: MndaSession) {
+  return session.roles.some((role) => hasPermission(role, "signatory:manage"));
 }
 export const mndaRepository = () => new MndaRepository(getServiceDatabase());
 export function mndaConfiguration() {
@@ -46,9 +58,7 @@ export function mndaWorkflow() {
     throw new Error("MNDA_NOT_CONFIGURED");
   return new MndaWorkflow(mndaRepository(), new SignWellClient(apiKey));
 }
-export function mndaActor(
-  session: Awaited<ReturnType<typeof mndaStaff>>,
-): Actor {
+export function mndaActor(session: MndaSession): Actor {
   return { kind: "user", id: session.userId, display: session.profile.name };
 }
 export async function mndaSigners() {

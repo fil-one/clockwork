@@ -1,7 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import {
+  mndaSignerEmail,
   mndaSigningFields,
+  type MndaAttentionReason,
   type MndaRecord,
   type MndaState,
 } from "@clockwork/contracts";
@@ -21,6 +23,7 @@ const documentSchema = z.object({
       name: z.string(),
       status: z.string().nullable().optional(),
       bounced: z.boolean().nullable().optional(),
+      signing_order: z.number().int().nullable().optional(),
     }),
   ),
   fields: z.array(
@@ -34,6 +37,10 @@ const documentSchema = z.object({
     ),
   ),
   apply_signing_order: z.boolean(),
+  copied_contacts: z
+    .array(z.object({ email: z.string() }))
+    .nullable()
+    .optional(),
 });
 export type SignWellDocument = z.infer<typeof documentSchema>;
 export interface MndaSigningProvider {
@@ -41,7 +48,13 @@ export interface MndaSigningProvider {
   get(id: string): Promise<SignWellDocument>;
   send(id: string, testMode: boolean): Promise<void>;
   remind(id: string): Promise<void>;
+  /** Deletes the document in SignWell, which also stops signing. */
   cancel(id: string): Promise<void>;
+  /** Replaces a recipient who has not started signing; SignWell re-sends. */
+  updateRecipient(
+    id: string,
+    recipient: { id: string; name: string; email: string },
+  ): Promise<SignWellDocument>;
   completedPdf(id: string): Promise<Uint8Array>;
 }
 export class SignWellClient implements MndaSigningProvider {
@@ -101,35 +114,38 @@ export class SignWellClient implements MndaSigningProvider {
     );
   }
   createDraft(r: MndaRecord, pdf: Uint8Array) {
+    const recipients = [
+      {
+        id: "counterparty",
+        name: r.input.signerName,
+        email: mndaSignerEmail(r),
+      },
+      {
+        id: "fil-one",
+        name: r.countersigner.name,
+        email: r.countersigner.email,
+      },
+    ];
+    const copied = signWellCopiedContacts(r);
     return this.document("documents", "POST", {
       draft: true,
       test_mode: r.testMode,
-      name: `Fil One Commerce MNDA — ${r.input.company}`,
+      name: signWellDocumentName(r),
       files: [
         {
           name: "Fil-One-MNDA.pdf",
           file_base64: Buffer.from(pdf).toString("base64"),
         },
       ],
-      recipients: [
-        {
-          id: "counterparty",
-          name: r.input.signerName,
-          email: r.input.signerEmail,
-        },
-        {
-          id: "fil-one",
-          name: r.countersigner.name,
-          email: r.countersigner.email,
-        },
-      ],
+      recipients,
+      copied_contacts: copied,
       apply_signing_order: true,
       text_tags: true,
       reminders: true,
       expires_in: 30,
       embedded_signing: false,
       allow_reassign: false,
-      subject: "Fil One — Mutual Non-Disclosure Agreement",
+      subject: "Fil One: Mutual Non-Disclosure Agreement",
       message:
         "Please review and sign the mutual non-disclosure agreement. Fil One will countersign and you will receive the completed agreement.",
       metadata: { commerce_mnda_id: r.id, template_sha256: r.templateHash },
@@ -138,6 +154,8 @@ export class SignWellClient implements MndaSigningProvider {
   get(id: string) {
     return this.document(`documents/${z.uuid().parse(id)}`);
   }
+  /** SignWell's update-and-send request has no copied-contacts field; the
+   * copy is set on the draft and checked before sending. */
   async send(id: string, testMode: boolean) {
     await this.request(`documents/${z.uuid().parse(id)}/send`, "POST", {
       test_mode: testMode,
@@ -152,6 +170,16 @@ export class SignWellClient implements MndaSigningProvider {
   async cancel(id: string) {
     await this.request(`documents/${z.uuid().parse(id)}`, "DELETE");
   }
+  updateRecipient(
+    id: string,
+    recipient: { id: string; name: string; email: string },
+  ) {
+    return this.document(
+      `documents/${z.uuid().parse(id)}/recipients`,
+      "PATCH",
+      { recipients: [recipient] },
+    );
+  }
   async completedPdf(id: string) {
     const bytes = await this.request(
       `documents/${z.uuid().parse(id)}/completed_pdf?url_only=false&audit_page=true&file_format=pdf`,
@@ -160,6 +188,45 @@ export class SignWellClient implements MndaSigningProvider {
       throw new Error("SIGNWELL_INVALID_PDF");
     return bytes;
   }
+}
+/** The sender receives the completed agreement by email. Recipients already
+ * do, so a sender who also signs is not copied twice. */
+export function signWellCopiedContacts(r: MndaRecord) {
+  const recipients = [mndaSignerEmail(r), r.countersigner.email];
+  return r.ownerEmail && !recipients.includes(r.ownerEmail)
+    ? [{ name: r.ownerName, email: r.ownerEmail }]
+    : [];
+}
+/**
+ * Before delivery: when SignWell reports the draft's copied contacts, they
+ * must include the sender, or sending stops. Whether SignWell echoes the field
+ * on a fetched draft is not yet confirmed, so a document without it returns
+ * `"unreported"` and sending continues; the caller records that.
+ */
+export function assertSignWellCopiedContacts(
+  doc: SignWellDocument,
+  record: MndaRecord,
+): "verified" | "unreported" {
+  if (doc.copied_contacts == null) return "unreported";
+  const actual = new Set(doc.copied_contacts.map((c) => c.email.toLowerCase()));
+  if (!signWellCopiedContacts(record).every((c) => actual.has(c.email)))
+    throw new Error("SIGNWELL_COPIED_CONTACTS_MISMATCH");
+  return "verified";
+}
+/** Whether a failed call certainly changed nothing at SignWell: a 4xx refusal.
+ * Timeouts, 5xx and unreadable responses may have been applied. */
+export function signWellRefused(error: unknown): boolean {
+  const status = /^SIGNWELL_HTTP_(\d{3})$/.exec(
+    error instanceof Error ? error.message : "",
+  )?.[1];
+  return Boolean(status?.startsWith("4") && status !== "408");
+}
+/** Partner-facing. In the partner-completes mode the company field is only an
+ * internal reference, so it is never shown to the partner. */
+export function signWellDocumentName(r: MndaRecord): string {
+  return r.input.detailsMode === "recipient"
+    ? "Mutual NDA: Fil One"
+    : `Mutual NDA: Fil One and ${r.input.company}`;
 }
 /** The webhook MAC authenticates only type/time, NOT its document payload.
  * Treat callbacks as wakeups and GET the bound document before applying state. */
@@ -201,10 +268,20 @@ export function signWellState(
     (record.providerId && doc.id !== record.providerId)
   )
     throw new Error("SIGNWELL_BINDING_MISMATCH");
+  // A partner email change is recorded before SignWell confirms it, so the
+  // original, the last confirmed correction and a pending one all identify
+  // the partner until the next successful refresh settles it.
+  const partnerEmail = doc.recipients
+    .find((r) => r.id === "counterparty")
+    ?.email.toLowerCase();
   if (
     doc.recipients.length !== 2 ||
-    doc.recipients.find((r) => r.id === "counterparty")?.email.toLowerCase() !==
-      record.input.signerEmail ||
+    !partnerEmail ||
+    ![
+      record.input.signerEmail,
+      record.correctedSignerEmail,
+      record.pendingSignerEmail,
+    ].includes(partnerEmail) ||
     doc.recipients.find((r) => r.id === "fil-one")?.email.toLowerCase() !==
       record.countersigner.email
   )
@@ -218,13 +295,21 @@ export function signWellState(
   if (status === "draft") return "ready";
   if (status === "sending") return "sending";
   if (!["sent", "pending", "viewed"].includes(status)) return "attention";
-  const recipient = doc.recipients.find(
-    (r) => r.email.toLowerCase() === record.input.signerEmail,
-  );
+  const recipient = doc.recipients.find((r) => r.id === "counterparty");
   if (["signed", "completed"].includes(recipient?.status?.toLowerCase() ?? ""))
     return "awaiting_countersignature";
   if (status === "viewed" || status === "pending") return "viewed";
   return "sent";
+}
+
+/** Why a document in `attention` needs a person. */
+export function signWellAttentionReason(
+  doc: SignWellDocument,
+): MndaAttentionReason {
+  return doc.status.toLowerCase() === "bounced" ||
+    doc.recipients.some((r) => r.bounced)
+    ? "recipient_bounced"
+    : "provider_stopped";
 }
 
 export function assertSignWellSigningFields(

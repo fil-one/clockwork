@@ -1,6 +1,15 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, expect, it, vi } from "vitest";
 import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import { beforeEach, expect, it, vi } from "vitest";
+import type { MndaRecord, MndaRegisterQuery } from "@clockwork/contracts";
+import {
+  fixtureInput,
   fixtureRecord,
   fixtureSigner,
 } from "../../../../../../packages/contracts/src/mnda-fixture";
@@ -8,52 +17,91 @@ const mocks = vi.hoisted(() => ({
   prepare: vi.fn(),
   operate: vi.fn(),
   load: vi.fn(),
-  download: vi.fn(),
-  configure: vi.fn(),
+  duplicates: vi.fn(),
+  void: vi.fn(),
+  correct: vi.fn(),
 }));
 vi.mock("./actions", () => ({
   prepareMnda: mocks.prepare,
   operateMnda: mocks.operate,
   loadMndas: mocks.load,
-  downloadMnda: mocks.download,
-  configureMndaSigner: mocks.configure,
+  findMndaDuplicates: mocks.duplicates,
+  voidMnda: mocks.void,
+  correctMndaSigner: mocks.correct,
 }));
 import { MndaWorkspace } from "./workspace";
-const initial = {
-  records: [],
-  signers: [fixtureSigner],
-  ready: true,
-  testMode: true,
-  canManage: true,
+
+const query: MndaRegisterQuery = {
+  status: [],
+  mine: false,
+  q: "",
+  page: 1,
+  pageSize: 25,
 };
+const data = (records: MndaRecord[] = []) => ({
+  register: { records, total: records.length, page: 1, pageSize: 25 },
+  signers: [fixtureSigner],
+  noticeEmail: "legal@fil.one",
+  ready: true,
+  testMode: false,
+  canManage: false,
+  viewerId: fixtureRecord.ownerId,
+});
+const sent: MndaRecord = {
+  ...fixtureRecord,
+  state: "sent",
+  providerId: "019a44ac-0000-7000-8000-000000000005",
+  sentAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+};
+function fill(values: Partial<Record<string, string>>) {
+  for (const [name, value] of Object.entries(values))
+    fireEvent.change(
+      document.querySelector(`input[name="${name}"]`) as HTMLInputElement,
+      { target: { value } },
+    );
+}
 beforeEach(() => {
   vi.clearAllMocks();
-  Object.defineProperty(URL, "createObjectURL", {
-    configurable: true,
-    value: vi.fn(() => "blob:preview"),
+  mocks.load.mockResolvedValue({ ok: true, value: data() });
+  mocks.duplicates.mockResolvedValue({ ok: true, value: [] });
+  mocks.prepare.mockResolvedValue({ ok: true, value: fixtureRecord });
+  mocks.operate.mockResolvedValue({
+    ok: true,
+    value: { ...fixtureRecord, state: "sent" },
   });
-  Object.defineProperty(URL, "revokeObjectURL", {
-    configurable: true,
-    value: vi.fn(),
-  });
-  mocks.load.mockResolvedValue(initial);
-  mocks.prepare.mockResolvedValue({
-    record: fixtureRecord,
-    pdf: btoa("%PDF-preview"),
-  });
-  mocks.operate.mockResolvedValue({ ...fixtureRecord, state: "sent" });
 });
-it("lets a revenue operator preview the immutable two-party document before confirming delivery", async () => {
-  const { container } = render(<MndaWorkspace initial={initial} />);
+
+it("previews before sending, then edits the same details into a replacement draft", async () => {
+  render(<MndaWorkspace initial={data()} initialQuery={query} />);
   fireEvent.click(screen.getByRole("button", { name: "New MNDA" }));
-  for (const [name, value] of Object.entries(fixtureRecord.input)) {
-    const input = container.querySelector(`input[name="${name}"]`);
-    if (input) fireEvent.change(input, { target: { value } });
-  }
+  fill({
+    signerName: fixtureInput.signerName,
+    signerEmail: fixtureInput.signerEmail,
+    company: fixtureInput.company,
+  });
   fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
-  await screen.findByRole("link", { name: "Open PDF" });
+  await screen.findByRole("heading", { name: "Review before sending" });
   expect(mocks.operate).not.toHaveBeenCalled();
-  expect(screen.getByText(/alex@example.com → James Kurz/)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Open PDF" })).toHaveAttribute(
+    "href",
+    `/internal/mndas/${fixtureRecord.id}/pdf?kind=original`,
+  );
+  expect(screen.getByText("notices@example.com")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
+  expect(screen.getByLabelText(/Counterparty legal name/)).toHaveValue(
+    fixtureInput.company,
+  );
+  fill({ company: "Example Holdings LLC" });
+  fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
+  await waitFor(() => expect(mocks.prepare).toHaveBeenCalledTimes(2));
+  const second = mocks.prepare.mock.calls[1]?.[0] as {
+    input: { id: string; company: string };
+    supersedes: string[];
+  };
+  expect(second.supersedes).toEqual([fixtureRecord.id]);
+  expect(second.input.company).toBe("Example Holdings LLC");
+  expect(second.input.id).not.toBe(fixtureRecord.id);
+  await screen.findByRole("heading", { name: "Review before sending" });
   fireEvent.click(screen.getByRole("button", { name: "Confirm and send" }));
   await waitFor(() =>
     expect(mocks.operate).toHaveBeenCalledExactlyOnceWith({
@@ -61,98 +109,203 @@ it("lets a revenue operator preview the immutable two-party document before conf
       operation: "send",
     }),
   );
-  await waitFor(() =>
-    expect(
-      screen.queryByRole("button", { name: "Confirm and send" }),
-    ).not.toBeInTheDocument(),
-  );
+  expect(await screen.findByText(/Sent to alex@example.com/)).toBeVisible();
 });
-it("keeps delivery disabled when the provider is not configured", async () => {
-  mocks.load.mockResolvedValue({ ...initial, ready: false });
-  mocks.download.mockResolvedValue(btoa("%PDF-preview"));
+
+it("shows specific messages next to each field and focuses the first problem", async () => {
+  render(<MndaWorkspace initial={data()} initialQuery={query} />);
+  fireEvent.click(screen.getByRole("button", { name: "New MNDA" }));
+  fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
+  await waitFor(() =>
+    expect(document.activeElement).toBe(
+      screen.getByLabelText(/Counterparty signer name/),
+    ),
+  );
+  expect(screen.getAllByText("Enter this detail.")).toHaveLength(3);
+  expect(mocks.prepare).not.toHaveBeenCalled();
+  mocks.prepare.mockResolvedValueOnce({
+    ok: false,
+    code: "invalid_characters",
+    fields: [{ field: "company", code: "invalid_characters" }],
+  });
+  fill({
+    signerName: "Alex",
+    signerEmail: "alex@example.com",
+    company: "Acme {internal}",
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
+  const company = screen.getByLabelText(/Counterparty legal name/);
+  await waitFor(() => expect(document.activeElement).toBe(company));
+  expect(company).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByText(/Remove angle brackets/)).toBeVisible();
+  fill({ signerEmail: fixtureSigner.email, company: "Acme" });
+  fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
+  expect(
+    await screen.findByText(
+      "The partner signer can't use the Fil One countersigner's email.",
+    ),
+  ).toBeVisible();
+});
+
+it("warns before papering a company that already has an MNDA", async () => {
+  mocks.duplicates.mockResolvedValue({
+    ok: true,
+    value: [
+      {
+        id: sent.id,
+        company: "Example Corporation",
+        state: "completed",
+        createdAt: "2026-09-28T00:00:00Z",
+        completedAt: "2026-09-28T00:00:00Z",
+        ownerName: "R.W. Holleman",
+      },
+    ],
+  });
+  render(<MndaWorkspace initial={data()} initialQuery={query} />);
+  fireEvent.click(screen.getByRole("button", { name: "New MNDA" }));
+  fill({ company: "Example Corp." });
+  expect(
+    await screen.findByText(
+      "Fil One already has an MNDA with this company",
+      {},
+      { timeout: 2000 },
+    ),
+  ).toBeVisible();
+  expect(
+    screen.getByRole("link", { name: "Example Corporation" }),
+  ).toHaveAttribute("href", "/internal/mndas?q=Example%20Corporation");
+  expect(screen.getByText(/Signed, .*R\.W\. Holleman/)).toBeVisible();
+});
+
+it("explains blocked requests in plain words with the next step", () => {
   render(
     <MndaWorkspace
-      initial={{ ...initial, ready: false, records: [fixtureRecord] }}
+      initial={data([
+        { ...sent, state: "attention", error: "recipient_bounced" },
+        {
+          ...sent,
+          id: fixtureInput.countersignerId,
+          state: "awaiting_countersignature",
+        },
+      ])}
+      initialQuery={query}
     />,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Open PDF" }));
+  expect(screen.getByText(/The partner's email bounced\./)).toBeVisible();
+  expect(
+    screen.getByText(/Fix the email and SignWell sends it again\./),
+  ).toBeVisible();
+  expect(screen.getAllByRole("button", { name: "Fix email" })).toHaveLength(1);
+  expect(
+    screen.getByRole("button", { name: "Remind James Kurz" }),
+  ).toBeVisible();
+  expect(screen.getAllByText("3 days")).toHaveLength(2);
+});
+
+it("filters by status and owner through the URL", async () => {
+  const replace = vi.spyOn(window.history, "replaceState");
+  render(<MndaWorkspace initial={data([sent])} initialQuery={query} />);
+  fireEvent.click(screen.getByRole("button", { name: "Waiting on partner" }));
+  await waitFor(() =>
+    expect(mocks.load).toHaveBeenCalledWith(
+      expect.objectContaining({ status: ["sent", "viewed"], page: 1 }),
+    ),
+  );
+  expect(replace).toHaveBeenLastCalledWith(
+    null,
+    "",
+    expect.stringContaining("?status=sent%2Cviewed"),
+  );
+  expect(
+    screen.getByRole("button", { name: "Waiting on partner" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("checkbox", { name: "Only mine" }));
+  await waitFor(() =>
+    expect(mocks.load).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: ["sent", "viewed"], mine: true }),
+    ),
+  );
+  expect(screen.getByRole("link", { name: "Export CSV" })).toHaveAttribute(
+    "href",
+    "/internal/mndas/export?status=sent%2Cviewed&mine=1",
+  );
+});
+
+it("voids a sent MNDA only after a reason is given", async () => {
+  mocks.void.mockResolvedValue({
+    ok: true,
+    value: { ...sent, state: "canceled", cancelReason: "Wrong entity" },
+  });
+  render(<MndaWorkspace initial={data([sent])} initialQuery={query} />);
+  fireEvent.click(screen.getByRole("button", { name: "Void" }));
+  const dialog = await screen.findByRole("dialog", {
+    name: "Void this MNDA?",
+  });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Void MNDA" }));
+  expect(
+    await within(dialog).findByText("Enter a reason of at least 3 characters."),
+  ).toBeVisible();
+  expect(mocks.void).not.toHaveBeenCalled();
+  fireEvent.change(within(dialog).getByLabelText(/Reason/), {
+    target: { value: "Wrong entity" },
+  });
+  act(() => {
+    fireEvent.click(within(dialog).getByRole("button", { name: "Void MNDA" }));
+  });
+  expect(mocks.void).toHaveBeenCalledWith({
+    id: sent.id,
+    reason: "Wrong entity",
+  });
+  expect(
+    await screen.findByText("MNDA voided. The partner can no longer sign it."),
+  ).toBeVisible();
+});
+
+it("keeps sending disabled when the provider is not configured", async () => {
+  render(
+    <MndaWorkspace
+      initial={{ ...data([fixtureRecord]), ready: false }}
+      initialQuery={query}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
   expect(
     await screen.findByRole("button", { name: "Confirm and send" }),
   ).toBeDisabled();
-  expect(mocks.operate).not.toHaveBeenCalled();
 });
 
-it("lets the partner supply legal details without requiring staff to know them", async () => {
-  const { container } = render(<MndaWorkspace initial={initial} />);
-  fireEvent.click(screen.getByRole("button", { name: "New MNDA" }));
-  fireEvent.change(
-    screen.getByRole("combobox", { name: "Who completes partner details?" }),
-    { target: { value: "recipient" } },
+it("offers void and email fixes only to the preparer, and never after the partner signed", () => {
+  const colleague = {
+    ...sent,
+    id: "019a44ac-0000-7000-8000-0000000000aa",
+    ownerId: "019a44ac-0000-7000-8000-0000000000bb",
+    input: { ...sent.input, company: "Colleague Co" },
+  };
+  const signed = {
+    ...sent,
+    id: "019a44ac-0000-7000-8000-0000000000cc",
+    state: "awaiting_countersignature" as const,
+    input: { ...sent.input, company: "Signed Co" },
+  };
+  render(
+    <MndaWorkspace
+      initial={data([sent, colleague, signed])}
+      initialQuery={query}
+    />,
   );
+  const row = (company: string) =>
+    within(screen.getByText(company).closest("tr") as HTMLElement);
   expect(
-    screen.queryByLabelText("Counterparty short name"),
-  ).not.toBeInTheDocument();
-  for (const name of [
-    "company",
-    "signerName",
-    "signerEmail",
-    "effectiveDate",
-  ] as const) {
-    const input = container.querySelector(`input[name="${name}"]`);
-    if (!input) throw new Error("Expected recipient field");
-    fireEvent.change(input, { target: { value: fixtureRecord.input[name] } });
-  }
-  fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
-  await screen.findByRole("link", { name: "Open PDF" });
-  expect(mocks.prepare).toHaveBeenCalledWith(
-    expect.objectContaining({
-      detailsMode: "recipient",
-      signerEmail: fixtureRecord.input.signerEmail,
-    }),
-  );
-  expect(mocks.operate).not.toHaveBeenCalled();
-});
-
-it("defaults to partial completion, auto-fills an editable short name and preserves known address data", async () => {
-  const { container } = render(<MndaWorkspace initial={initial} />);
-  fireEvent.click(screen.getByRole("button", { name: "New MNDA" }));
+    row("Example Corporation").getByRole("button", { name: "Void" }),
+  ).toBeVisible();
   expect(
-    screen.getByRole("combobox", { name: "Who completes partner details?" }),
-  ).toHaveValue("mixed");
-  const company = screen.getByLabelText("Counterparty legal name");
-  const shortName = container.querySelector('input[name="shortName"]');
-  if (!shortName) throw new Error("Expected short name input");
-  fireEvent.change(company, { target: { value: "Example LLC" } });
-  expect(shortName).toHaveValue("Example LLC");
-  expect(shortName).not.toBeRequired();
-  fireEvent.change(shortName, { target: { value: "Example" } });
-  fireEvent.change(company, { target: { value: "Example Holdings LLC" } });
-  expect(shortName).toHaveValue("Example");
-  fireEvent.change(shortName, { target: { value: "" } });
-  fireEvent.blur(shortName);
-  expect(shortName).toHaveValue("Example Holdings LLC");
+    row("Colleague Co").queryByRole("button", { name: "Void" }),
+  ).toBeNull();
   expect(
-    screen.getByLabelText("Jurisdiction and entity type"),
-  ).not.toBeRequired();
+    row("Colleague Co").queryByRole("button", { name: "Fix email" }),
+  ).toBeNull();
   expect(
-    screen.getByLabelText("City, region, postal code, country"),
-  ).not.toBeRequired();
-  for (const name of ["signerName", "signerEmail", "streetAddress"] as const) {
-    const input = container.querySelector(`input[name="${name}"]`);
-    if (!input) throw new Error("Expected partner input");
-    fireEvent.change(input, { target: { value: fixtureRecord.input[name] } });
-  }
-  fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
-  await screen.findByRole("link", { name: "Open PDF" });
-  expect(mocks.prepare).toHaveBeenCalledWith(
-    expect.objectContaining({
-      detailsMode: "mixed",
-      company: "Example Holdings LLC",
-      shortName: "Example Holdings LLC",
-      streetAddress: fixtureRecord.input.streetAddress,
-      locality: "",
-      entityDescription: "",
-    }),
-  );
-  expect(mocks.operate).not.toHaveBeenCalled();
+    row("Colleague Co").getByRole("button", { name: /^Remind/ }),
+  ).toBeVisible();
+  expect(row("Signed Co").queryByRole("button", { name: "Void" })).toBeNull();
 });
