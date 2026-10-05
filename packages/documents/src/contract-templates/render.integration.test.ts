@@ -80,7 +80,9 @@ it("refuses values that could form tags or that the PDF font cannot draw", async
 });
 
 it("fails closed when a declared field has no value", async () => {
-  const { fixture_note: _, ...values } = input.values;
+  const values = Object.fromEntries(
+    Object.entries(input.values).filter(([key]) => key !== "fixture_note"),
+  );
   await expect(
     fixtureContractTemplate.render({ ...input, values }),
   ).rejects.toThrow("CONTRACT_TEMPLATE_FIELD_UNRESOLVED");

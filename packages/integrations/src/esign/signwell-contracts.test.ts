@@ -41,7 +41,9 @@ describe("SignWell template contracts", () => {
       "private-key",
       transport,
     ).createContractDraft(record, Buffer.from("%PDF-test"));
-    const body = JSON.parse(String(transport.mock.calls[0]?.[1]?.body)) as {
+    const sent = transport.mock.calls[0]?.[1]?.body;
+    if (typeof sent !== "string") throw new Error("Expected JSON request body");
+    const body = JSON.parse(sent) as {
       name: string;
       subject: string;
       recipients: { id: string; email: string }[];
@@ -108,14 +110,16 @@ describe("SignWell template contracts", () => {
     expect(at("Completed")).toBe("completed");
     expect(at("Declined")).toBe("declined");
     expect(at("Something new")).toBe("attention");
-    const bounced = doc();
-    bounced.recipients[0] = { ...bounced.recipients[0]!, bounced: true };
-    expect(at("Sent", { recipients: bounced.recipients })).toBe("attention");
-    const signed = doc();
-    signed.recipients[0] = { ...signed.recipients[0]!, status: "signed" };
-    expect(at("Sent", { recipients: signed.recipients })).toBe(
-      "awaiting_countersignature",
-    );
+    const [counterparty, filOne] = doc().recipients;
+    if (!counterparty || !filOne) throw new Error("Expected two recipients");
+    expect(
+      at("Sent", { recipients: [{ ...counterparty, bounced: true }, filOne] }),
+    ).toBe("attention");
+    expect(
+      at("Sent", {
+        recipients: [{ ...counterparty, status: "signed" }, filOne],
+      }),
+    ).toBe("awaiting_countersignature");
   });
 
   it("requires one signature and one signing date per signer, in order", () => {
@@ -123,7 +127,7 @@ describe("SignWell template contracts", () => {
     expect(() =>
       assertContractSigningFields({
         ...doc(),
-        fields: [doc().fields[0]!.slice(1)],
+        fields: [(doc().fields[0] ?? []).slice(1)],
       }),
     ).toThrow("SIGNING_FIELDS");
     expect(() =>

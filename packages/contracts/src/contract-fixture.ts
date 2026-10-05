@@ -43,7 +43,7 @@ export const fixtureSigningRecord: ContractSigningRecord = {
   templateId: "test-fixture",
   templateVersion: "fixture-1",
   templateHash: "b".repeat(64),
-  documentName: "Fil One Engine Test Fixture: Bluefin Data Co.",
+  documentName: "Fil One Engine Test Fixture - Bluefin Data Co.",
   input: { fixture_reference: "REF-7", fixture_tier: "beta", fixture_note: "" },
   counterpartySigner: {
     name: "Alex Example",

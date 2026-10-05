@@ -397,9 +397,12 @@ describe("contract documents", () => {
       ),
     ).rejects.toThrow("DOCUMENT_NOT_PDF");
     await repo.removeFile(input.id, draft.id, actor);
-    const [{ key }] = await client<{ key: string }[]>`
+    const [located] = await client<{ key: string }[]>`
       select storage_key as key from commerce_contract_files where id = ${signed.id}`;
-    await client`update commerce_stored_documents set bytes = ${pdf("swapped")}, size_bytes = ${pdf("swapped").length}, sha256 = encode(sha256(${pdf("swapped")}), 'hex') where id = ${key}`;
+    const swapped = pdf("swapped");
+    // A row whose bytes and own hash were both replaced still fails, because
+    // the contract file keeps the hash recorded at upload.
+    await client`update commerce_stored_documents set bytes = ${swapped}, size_bytes = ${swapped.length}, sha256 = encode(sha256(${swapped}), 'hex') where id = ${located?.key ?? ""}`;
     await expect(repo.readFile(input.id, signed.id)).rejects.toThrow(
       "DOCUMENT_INTEGRITY",
     );
@@ -477,7 +480,7 @@ describe("template signing persistence", () => {
           templateId: "test-fixture",
           templateVersion: "1",
           templateHash: "b".repeat(64),
-          documentName: `Fil One Engine Test Fixture: Bluefin ${marker}`,
+          documentName: `Fil One Engine Test Fixture - Bluefin ${marker}`,
           input: { partner_name: `Bluefin ${marker}` },
           counterpartySigner: {
             name: "Alex Example",

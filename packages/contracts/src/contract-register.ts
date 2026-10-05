@@ -303,8 +303,12 @@ export const contractSorts = [
 export type ContractSort = (typeof contractSorts)[number];
 export const contractRenewalWindows = [30, 60, 90] as const;
 
-const firstValue = (value: unknown) =>
-  Array.isArray(value) ? value[0] : value === "" ? undefined : value;
+const firstValue = (value: unknown): unknown =>
+  Array.isArray(value)
+    ? (value as unknown[])[0]
+    : value === ""
+      ? undefined
+      : value;
 
 /** Register filters, read from URL search parameters. Unknown values fall
  * back to defaults rather than failing the page. */

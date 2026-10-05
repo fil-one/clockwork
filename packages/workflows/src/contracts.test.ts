@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/require-await, @typescript-eslint/unbound-method -- synchronous in-memory implementations model the async provider and repository contracts; assertions inspect mocks, never unbound real methods. */
+/* eslint-disable @typescript-eslint/require-await -- synchronous in-memory implementations model the async provider and repository contracts; assertions inspect mocks, never unbound real methods. */
 import { randomUUID } from "node:crypto";
 import { expect, it, vi } from "vitest";
 import type { Actor, ContractSigningRecord } from "@clockwork/contracts";
@@ -91,13 +91,7 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
   };
   const wait = vi.fn(async () => {});
   return {
-    workflow: new ContractSigningWorkflow(
-      repo as unknown as ConstructorParameters<
-        typeof ContractSigningWorkflow
-      >[0],
-      provider,
-      wait,
-    ),
+    workflow: new ContractSigningWorkflow(repo, provider, wait),
     provider,
     doc,
     updates,
@@ -163,7 +157,7 @@ it("archives the executed PDF when a wakeup finds the document completed", async
   expect(done.state).toBe("completed");
   expect(archived()).toEqual({
     bytes: Buffer.from("%PDF-executed-with-audit"),
-    fileName: "Fil One Engine Test Fixture: Bluefin Data Co. (executed).pdf",
+    fileName: "Fil One Engine Test Fixture - Bluefin Data Co. (executed).pdf",
   });
 });
 

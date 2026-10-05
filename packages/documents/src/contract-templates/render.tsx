@@ -66,9 +66,31 @@ const style = StyleSheet.create({
 // The PDF base fonts encode WinAnsi only. A value outside it would be dropped
 // silently, so it is refused instead. Brackets and braces are refused so a
 // value can never form a template token or a SignWell text tag.
-const winAnsi = /^[ -~ -ÿŒœŠšŸƒˆ˜–—‘-‚“-„†-•…‰‹›€]*$/u;
+const winAnsi: readonly (readonly [number, number])[] = [
+  [0x20, 0x7e],
+  [0xa0, 0xff],
+  [0x152, 0x153],
+  [0x160, 0x161],
+  [0x178, 0x178],
+  [0x192, 0x192],
+  [0x2c6, 0x2c6],
+  [0x2dc, 0x2dc],
+  [0x2013, 0x2014],
+  [0x2018, 0x201a],
+  [0x201c, 0x201e],
+  [0x2020, 0x2022],
+  [0x2026, 0x2026],
+  [0x2030, 0x2030],
+  [0x2039, 0x203a],
+  [0x20ac, 0x20ac],
+];
+const drawable = (value: string) =>
+  [...value].every((character) => {
+    const point = character.codePointAt(0) ?? 0;
+    return winAnsi.some(([from, to]) => point >= from && point <= to);
+  });
 export function assertTemplateValue(value: string) {
-  if (/[<>[\]{}]/.test(value) || !winAnsi.test(value))
+  if (/[<>[\]{}]/.test(value) || !drawable(value))
     throw new Error("CONTRACT_TEMPLATE_VALUE_CHARACTERS");
 }
 
