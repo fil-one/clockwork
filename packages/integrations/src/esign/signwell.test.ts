@@ -4,6 +4,7 @@ import { fixtureRecord } from "../../../contracts/src/mnda-fixture";
 import {
   assertSignWellSigningFields,
   SignWellClient,
+  signWellAttentionReason,
   signWellState,
   verifySignWellWakeup,
   type SignWellDocument,
@@ -195,4 +196,97 @@ it("requires exactly the missing mixed-mode fields before sending", async () => 
   expect(() => assertSignWellSigningFields(document, record)).toThrow(
     "SIGNING_FIELDS",
   );
+});
+
+describe("partner-facing details and after-send corrections", () => {
+  const created = async (record: typeof fixtureRecord) => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify(doc())));
+    await new SignWellClient("private-key", transport).createDraft(
+      record,
+      Buffer.from("%PDF-test"),
+    );
+    const raw = transport.mock.calls[0]?.[1]?.body;
+    if (typeof raw !== "string") throw new Error("Expected JSON body");
+    return JSON.parse(raw) as {
+      name: string;
+      subject: string;
+      copied_contacts: { name: string; email: string }[];
+    };
+  };
+  it("names the document for the partner and never shows an internal reference", async () => {
+    expect((await created(fixtureRecord)).name).toBe(
+      "Mutual NDA: Fil One and Example Corporation",
+    );
+    const reference = await created({
+      ...fixtureRecord,
+      input: {
+        ...fixtureRecord.input,
+        detailsMode: "recipient",
+        company: "Acme, warm intro via Bob",
+      },
+    });
+    expect(reference.name).toBe("Mutual NDA: Fil One");
+    expect(JSON.stringify(reference)).not.toContain("warm intro");
+    expect(JSON.stringify(reference)).not.toContain("Commerce");
+    expect(reference.subject).not.toMatch(/—/);
+  });
+  it("copies the sender on the completed agreement unless the sender already signs", async () => {
+    expect((await created(fixtureRecord)).copied_contacts).toEqual([
+      { name: fixtureRecord.ownerName, email: "seller@example.com" },
+    ]);
+    expect(
+      (
+        await created({
+          ...fixtureRecord,
+          ownerEmail: fixtureRecord.countersigner.email,
+        })
+      ).copied_contacts,
+    ).toEqual([]);
+    expect(
+      (await created({ ...fixtureRecord, ownerEmail: null })).copied_contacts,
+    ).toEqual([]);
+  });
+  it("replaces only the partner recipient through SignWell's update endpoint", async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify(doc())));
+    await new SignWellClient("private-key", transport).updateRecipient(
+      providerId,
+      { id: "counterparty", name: "Alex", email: "right@example.com" },
+    );
+    const [url, init] = transport.mock.calls[0] ?? [];
+    expect(url).toBe(
+      `https://www.signwell.com/api/v1/documents/${providerId}/recipients`,
+    );
+    expect(init?.method).toBe("PATCH");
+    expect(JSON.parse(init?.body as string)).toEqual({
+      recipients: [
+        { id: "counterparty", name: "Alex", email: "right@example.com" },
+      ],
+    });
+  });
+  it("accepts the corrected or original partner email and explains bounces", () => {
+    const corrected = {
+      ...fixtureRecord,
+      correctedSignerEmail: "right@example.com",
+    };
+    const moved = doc();
+    if (moved.recipients[0]) moved.recipients[0].email = "right@example.com";
+    expect(signWellState(moved, corrected)).toBe("ready");
+    expect(signWellState(doc(), corrected)).toBe("ready");
+    const stranger = doc();
+    if (stranger.recipients[0])
+      stranger.recipients[0].email = "stranger@example.com";
+    expect(() => signWellState(stranger, corrected)).toThrow("SIGNERS");
+    const bounced = doc();
+    bounced.status = "Sent";
+    if (bounced.recipients[0]) bounced.recipients[0].bounced = true;
+    expect(signWellState(bounced, fixtureRecord)).toBe("attention");
+    expect(signWellAttentionReason(bounced)).toBe("recipient_bounced");
+    expect(signWellAttentionReason({ ...doc(), status: "Error" })).toBe(
+      "provider_stopped",
+    );
+  });
 });

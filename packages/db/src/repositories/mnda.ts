@@ -1,15 +1,41 @@
 import { createHash, randomUUID } from "node:crypto";
-import { and, desc, eq, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  ne,
+  not,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import {
   MndaInputSchema,
+  MndaRegisterQuerySchema,
+  MndaSettingsSchema,
   MndaSignerSchema,
+  mndaStates,
+  normalizeMndaCompany,
   type Actor,
   type MndaRecord,
+  type MndaRegisterPage,
+  type MndaRegisterQuery,
+  type MndaSettings,
   type MndaSigner,
   type MndaState,
+  type MndaStateCounts,
 } from "@clockwork/contracts";
 import type { RuntimeDatabase, RuntimeTransaction } from "../client";
-import { mndaSigners, mndaRequests, mndaArtifacts } from "../schema/mnda";
+import {
+  mndaSigners,
+  mndaRequests,
+  mndaArtifacts,
+  mndaSettings,
+} from "../schema/mnda";
 import { withInternalTransaction } from "../transaction";
 import { appendAuditAndOutbox } from "./audit-outbox";
 
@@ -18,8 +44,11 @@ const view = (r: Row): MndaRecord => ({
   id: r.id,
   input: r.input,
   countersigner: r.countersigner,
+  noticeEmail: r.noticeEmail,
   ownerId: r.ownerId,
   ownerName: r.ownerName,
+  ownerEmail: r.ownerEmail,
+  correctedSignerEmail: r.correctedSignerEmail,
   state: r.state,
   providerId: r.providerId,
   testMode: r.testMode,
@@ -28,7 +57,10 @@ const view = (r: Row): MndaRecord => ({
   version: r.version,
   createdAt: r.createdAt.toISOString(),
   updatedAt: r.updatedAt.toISOString(),
+  sentAt: r.sentAt?.toISOString() ?? null,
+  remindedAt: r.remindedAt?.toISOString() ?? null,
   completedAt: r.completedAt?.toISOString() ?? null,
+  cancelReason: r.cancelReason,
 });
 export const terminalMndaStates: readonly MndaState[] = [
   "completed",
@@ -36,26 +68,237 @@ export const terminalMndaStates: readonly MndaState[] = [
   "expired",
   "canceled",
 ];
+/** States reached only after the partner received the request. */
+const deliveredStates: readonly MndaState[] = [
+  "sent",
+  "viewed",
+  "awaiting_countersignature",
+  "completed",
+  "declined",
+  "expired",
+];
+/** Cancel reasons the application writes itself, translated by the workspace. */
+export const mndaSystemCancelReasons = ["superseded", "discarded"] as const;
+/** Audit aggregate for the single settings row. */
+const settingsAggregateId = "019a44ac-0000-7000-8000-000000001442";
+const exportLimit = 10_000;
+
+function emptyCounts(): MndaStateCounts {
+  return Object.fromEntries(mndaStates.map((s) => [s, 0])) as MndaStateCounts;
+}
+/** `%` and `_` in a search are literal text, not wildcards. */
+function contains(value: string) {
+  return `%${value.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+
+export interface MndaRegisterMatch {
+  id: string;
+  company: string;
+  state: MndaState;
+  createdAt: string;
+  completedAt: string | null;
+  ownerName: string;
+}
+export interface MndaOwner {
+  id: string;
+  name: string;
+  email: string;
+}
+export interface MndaUpdatePatch {
+  state?: MndaState;
+  providerId?: string;
+  error?: string | null;
+  correctedSignerEmail?: string;
+  cancelReason?: string;
+  remindedAt?: Date;
+}
+export interface MndaAuditNote {
+  /** Overrides the default `mnda.<state>` event name. */
+  eventType?: string;
+  before?: Record<string, unknown>;
+  detail?: Record<string, unknown>;
+}
+
 export class MndaRepository {
   constructor(private readonly db: RuntimeDatabase) {}
   private tx<T>(fn: (tx: RuntimeTransaction) => Promise<T>) {
     return withInternalTransaction(this.db, randomUUID(), fn);
   }
-  list() {
+  private registerFilter(query: MndaRegisterQuery, viewerId: string) {
+    const filters: SQL[] = [];
+    if (query.status.length)
+      filters.push(inArray(mndaRequests.state, query.status));
+    // Superseded and discarded drafts never reached the partner; they are
+    // noise in the default view but stay reachable through the closed filter.
+    else
+      filters.push(
+        not(
+          and(
+            eq(mndaRequests.state, "canceled"),
+            isNull(mndaRequests.providerId),
+          ) as SQL,
+        ),
+      );
+    if (query.mine) filters.push(eq(mndaRequests.ownerId, viewerId));
+    if (query.q) {
+      const pattern = contains(query.q);
+      filters.push(
+        or(
+          ilike(sql`${mndaRequests.input}->>'company'`, pattern),
+          ilike(sql`${mndaRequests.input}->>'signerName'`, pattern),
+          ilike(sql`${mndaRequests.input}->>'signerEmail'`, pattern),
+          ilike(mndaRequests.correctedSignerEmail, pattern),
+          ilike(mndaRequests.ownerName, pattern),
+        ) as SQL,
+      );
+    }
+    return and(...filters);
+  }
+  /** One page of the register, newest first. */
+  list(raw: Partial<MndaRegisterQuery>, viewerId: string) {
+    const query = MndaRegisterQuerySchema.parse(raw);
+    return this.tx(async (tx): Promise<MndaRegisterPage> => {
+      const where = this.registerFilter(query, viewerId);
+      const [total] = await tx
+        .select({ value: count() })
+        .from(mndaRequests)
+        .where(where);
+      const records = await tx
+        .select()
+        .from(mndaRequests)
+        .where(where)
+        .orderBy(desc(mndaRequests.createdAt), desc(mndaRequests.id))
+        .limit(query.pageSize)
+        .offset((query.page - 1) * query.pageSize);
+      return {
+        records: records.map(view),
+        total: total?.value ?? 0,
+        page: query.page,
+        pageSize: query.pageSize,
+      };
+    });
+  }
+  /** Every row matching the register filters, for export. Bounded. */
+  exportRows(raw: Partial<MndaRegisterQuery>, viewerId: string) {
+    const query = MndaRegisterQuerySchema.parse(raw);
     return this.tx(async (tx) =>
       (
         await tx
           .select()
           .from(mndaRequests)
-          .orderBy(desc(mndaRequests.createdAt))
-          .limit(200)
+          .where(this.registerFilter(query, viewerId))
+          .orderBy(desc(mndaRequests.createdAt), desc(mndaRequests.id))
+          .limit(exportLimit)
       ).map(view),
     );
+  }
+  /** Request counts by state, for everyone and for one owner. */
+  countByState(ownerId?: string) {
+    return this.tx(async (tx) => {
+      const rows = await tx
+        .select({
+          state: mndaRequests.state,
+          mine: mndaRequests.ownerId,
+          value: count(),
+        })
+        .from(mndaRequests)
+        .groupBy(mndaRequests.state, mndaRequests.ownerId);
+      const byState = emptyCounts();
+      const mine = emptyCounts();
+      for (const row of rows) {
+        if (!(row.state in byState)) continue;
+        byState[row.state] += row.value;
+        if (ownerId && row.mine === ownerId) mine[row.state] += row.value;
+      }
+      return { byState, mine };
+    });
+  }
+  /** Existing, non-canceled requests whose normalized legal name matches. */
+  duplicates(company: string, excludeId?: string) {
+    const key = normalizeMndaCompany(company);
+    if (!key) return Promise.resolve([] as MndaRegisterMatch[]);
+    return this.tx(async (tx) => {
+      const rows = await tx
+        .select({
+          id: mndaRequests.id,
+          company: sql<string>`${mndaRequests.input}->>'company'`,
+          detailsMode: sql<
+            string | null
+          >`${mndaRequests.input}->>'detailsMode'`,
+          state: mndaRequests.state,
+          createdAt: mndaRequests.createdAt,
+          completedAt: mndaRequests.completedAt,
+          ownerName: mndaRequests.ownerName,
+        })
+        .from(mndaRequests)
+        .where(ne(mndaRequests.state, "canceled"))
+        .orderBy(desc(mndaRequests.createdAt));
+      return rows
+        .filter(
+          (r) =>
+            r.id !== excludeId &&
+            // In the partner-completes mode the company is only an internal
+            // reference, which is still the best available match key.
+            normalizeMndaCompany(r.company) === key,
+        )
+        .slice(0, 5)
+        .map((r): MndaRegisterMatch => ({
+          id: r.id,
+          company: r.company,
+          state: r.state,
+          createdAt: r.createdAt.toISOString(),
+          completedAt: r.completedAt?.toISOString() ?? null,
+          ownerName: r.ownerName,
+        }));
+    });
   }
   signers() {
     return this.tx((tx) =>
       tx.select().from(mndaSigners).orderBy(mndaSigners.name),
     );
+  }
+  settings() {
+    return this.tx(async (tx): Promise<MndaSettings> => {
+      const [row] = await tx.select().from(mndaSettings);
+      if (!row) throw new Error("MNDA_SETTINGS_MISSING");
+      return {
+        noticeEmail: row.noticeEmail,
+        version: row.version,
+        updatedAt: row.updatedAt.toISOString(),
+        updatedBy: row.updatedBy,
+      };
+    });
+  }
+  /** `expectedVersion` rejects a save made against a stale copy of the form. */
+  saveSettings(raw: unknown, expectedVersion: number, actor: Actor) {
+    const input = MndaSettingsSchema.parse(raw);
+    return this.tx(async (tx) => {
+      const [previous] = await tx.select().from(mndaSettings).for("update");
+      if (!previous) throw new Error("MNDA_SETTINGS_MISSING");
+      if (previous.version !== expectedVersion)
+        throw new Error("MNDA_SETTINGS_CONFLICT");
+      if (previous.noticeEmail === input.noticeEmail) return;
+      const version = previous.version + 1;
+      await tx
+        .update(mndaSettings)
+        .set({
+          noticeEmail: input.noticeEmail,
+          version,
+          updatedAt: new Date(),
+          updatedBy: actor.kind === "user" ? actor.id : null,
+        })
+        .where(eq(mndaSettings.id, true));
+      await appendAuditAndOutbox(tx, {
+        aggregateType: "agreement_template",
+        aggregateId: settingsAggregateId,
+        aggregateVersion: version,
+        eventType: "mnda.settings_changed",
+        actor,
+        requestId: randomUUID(),
+        before: { noticeEmail: previous.noticeEmail },
+        after: { noticeEmail: input.noticeEmail },
+      });
+    });
   }
   get(id: string) {
     return this.tx(async (tx) => {
@@ -116,15 +359,23 @@ export class MndaRepository {
       });
     });
   }
+  /**
+   * Stores a rendered draft. `supersedes` names the same owner's unsent draft
+   * this one corrects; it is canceled in the same transaction so a re-preview
+   * never leaves an orphan in the register.
+   */
   async create(
     raw: unknown,
-    owner: { id: string; name: string },
+    owner: MndaOwner,
     templateHash: string,
     testMode: boolean,
     pdf: Uint8Array,
     signer: MndaSigner,
+    noticeEmail: string,
+    supersedes?: string,
   ) {
     const input = MndaInputSchema.parse(raw);
+    const notice = MndaSettingsSchema.parse({ noticeEmail }).noticeEmail;
     return this.tx(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(hashtext(${input.id}))`,
@@ -155,26 +406,57 @@ export class MndaRepository {
         activeSigner.email !== signer.email
       )
         throw new Error("MNDA_SIGNER_CHANGED");
+      const [settings] = await tx.select().from(mndaSettings);
+      if (settings?.noticeEmail !== notice)
+        throw new Error("MNDA_SETTINGS_CHANGED");
+      const actor: Actor = { kind: "user", id: owner.id, display: owner.name };
+      if (supersedes && supersedes !== input.id) {
+        const [old] = await tx
+          .select()
+          .from(mndaRequests)
+          .where(eq(mndaRequests.id, supersedes))
+          .for("update");
+        if (
+          old &&
+          old.ownerId === owner.id &&
+          !old.providerId &&
+          !terminalMndaStates.includes(old.state)
+        ) {
+          if (old.leaseUntil && old.leaseUntil > new Date())
+            throw new Error("MNDA_BUSY");
+          const [canceled] = await tx
+            .update(mndaRequests)
+            .set({
+              state: "canceled",
+              cancelReason: "superseded",
+              version: old.version + 1,
+              updatedAt: new Date(),
+            })
+            .where(eq(mndaRequests.id, old.id))
+            .returning();
+          if (canceled)
+            await this.audit(tx, canceled, actor, "mnda.canceled", {
+              detail: { reason: "superseded", replacement: input.id },
+            });
+        }
+      }
       const [r] = await tx
         .insert(mndaRequests)
         .values({
           id: input.id,
           input,
           countersigner: signer,
+          noticeEmail: notice,
           ownerId: owner.id,
           ownerName: owner.name,
+          ownerEmail: owner.email.toLowerCase(),
           templateHash,
           testMode,
         })
         .returning();
       if (!r) throw new Error("MNDA_CREATE_FAILED");
       await this.artifact(tx, input.id, "original", pdf);
-      await this.audit(
-        tx,
-        r,
-        { kind: "user", id: owner.id, display: owner.name },
-        "mnda.drafted",
-      );
+      await this.audit(tx, r, actor, "mnda.drafted");
       return view(r);
     });
   }
@@ -244,9 +526,10 @@ export class MndaRepository {
   update(
     id: string,
     token: string,
-    patch: { state?: MndaState; providerId?: string; error?: string | null },
+    patch: MndaUpdatePatch,
     actor: Actor,
     executed?: Uint8Array,
+    note?: MndaAuditNote,
   ) {
     return this.tx(async (tx) => {
       const [r] = await tx
@@ -257,19 +540,29 @@ export class MndaRepository {
       if (!r) throw new Error("MNDA_LEASE_LOST");
       if (terminalMndaStates.includes(r.state)) return view(r);
       if (executed) await this.artifact(tx, id, "executed", executed);
+      const now = new Date();
       const [next] = await tx
         .update(mndaRequests)
         .set({
           ...patch,
           leaseUntil: new Date(Date.now() + 120_000),
           version: r.version + 1,
-          updatedAt: new Date(),
-          ...(patch.state === "completed" ? { completedAt: new Date() } : {}),
+          updatedAt: now,
+          ...(patch.state === "completed" ? { completedAt: now } : {}),
+          ...(patch.state && deliveredStates.includes(patch.state) && !r.sentAt
+            ? { sentAt: now }
+            : {}),
         })
         .where(eq(mndaRequests.id, id))
         .returning();
       if (!next) throw new Error("MNDA_UPDATE_FAILED");
-      await this.audit(tx, next, actor, `mnda.${next.state}`);
+      await this.audit(
+        tx,
+        next,
+        actor,
+        note?.eventType ?? `mnda.${next.state}`,
+        note,
+      );
       return view(next);
     });
   }
@@ -278,6 +571,7 @@ export class MndaRepository {
     r: Row,
     actor: Actor,
     eventType: string,
+    note?: MndaAuditNote,
   ) {
     return appendAuditAndOutbox(tx, {
       aggregateType: "agreement",
@@ -286,11 +580,13 @@ export class MndaRepository {
       eventType,
       actor,
       requestId: randomUUID(),
+      ...(note?.before ? { before: note.before } : {}),
       after: {
         state: r.state,
         providerId: r.providerId,
         templateHash: r.templateHash,
         testMode: r.testMode,
+        ...note?.detail,
       },
     });
   }
