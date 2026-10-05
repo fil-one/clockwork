@@ -23,8 +23,7 @@
 --    membership_roles in step, so every existing writer keeps working.
 --
 -- 5. Staff notices: an in-app notice to every other commerce administrator
---    whenever a staff member's access changes or a request is approved by the
---    person who raised it.
+--    whenever a staff member's access changes.
 
 -- ---------------------------------------------------------------------------
 -- 1. Permission checks on the signed claim.
@@ -388,7 +387,7 @@ create table public.staff_notices (
 create index staff_notices_unread_idx
   on public.staff_notices (recipient_user_id, created_at desc) where read_at is null;
 comment on table public.staff_notices is
-  'In-app notices on the owner console: one row per other commerce administrator for every staff access change and every self-approval.';
+  'In-app notices on the owner console: one row per other commerce administrator for every staff access change.';
 
 alter table public.staff_notices enable row level security;
 alter table public.staff_notices force row level security;
@@ -406,7 +405,6 @@ create function public.notify_commerce_admins() returns trigger
 language plpgsql security definer set search_path = pg_catalog, public as $$
 begin
   if new.event_type in (
-    'approval.self_approved',
     'staff.invited', 'staff.reactivated', 'staff.deactivated',
     'staff.role_changed', 'staff.role_granted', 'staff.role_revoked'
   ) then

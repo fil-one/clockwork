@@ -56,7 +56,8 @@
     "release:benchmark": "node scripts/benchmark-release.mjs",
     "verify": "pnpm verify:static && pnpm verify:database && pnpm verify:build && pnpm verify:ui",
     "bootstrap:production": "tsx scripts/bootstrap-production.ts",
-    "generate:access-model": "tsx scripts/generate-access-model.ts"
+    "generate:access-model": "tsx scripts/generate-access-model.ts",
+    "test:db:permission-upgrade": "tsx scripts/qualify-permission-upgrade.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

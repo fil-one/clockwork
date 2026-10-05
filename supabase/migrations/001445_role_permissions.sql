@@ -212,7 +212,6 @@ insert into public.role_permissions (role, permission) values
   ('commerce_admin', 'collateral:manage'),
   ('commerce_admin', 'operations:read'),
   ('commerce_admin', 'staff:manage'),
-  ('commerce_admin', 'approval:self'),
   ('commerce_admin', 'operations:write'),
   ('commerce_admin', 'audit:read'),
   ('commerce_admin', 'audit:append');

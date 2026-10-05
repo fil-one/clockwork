@@ -70,7 +70,7 @@ export const roleDescriptions = {
   commerce_admin: {
     label: "Fil One commerce administrator",
     purpose:
-      "Every internal permission, plus staff, signatories and approving their own requests on the record.",
+      "Every internal permission, plus staff and who signs for Fil One.",
   },
 } as const satisfies Record<Role, { label: string; purpose: string }>;
 
@@ -107,7 +107,6 @@ export const permissionDescriptions = {
   "operations:read": "Use the operations workspace",
   "operations:write": "Work the operations queues and records",
   "staff:manage": "Invite staff, change their roles and deactivate them",
-  "approval:self": "Approve one's own request, with a reason, on the record",
   "audit:read": "Read the full activity history of reachable accounts",
   "audit:append": "Record activity beyond one's own finance decisions",
   "deal:register": "Register deals with Fil One",
