@@ -10,9 +10,23 @@ import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   markRead: vi.fn(),
   refresh: vi.fn(),
+  sendCoreCommand: vi.fn(),
+  approveOwnPaygOffer: vi.fn(),
+  decideException: vi.fn(),
+  approveOwnCapability: vi.fn(),
+  approveOwnChannelPolicy: vi.fn(),
 }));
 vi.mock("./actions", () => ({ markNoticesRead: mocks.markRead }));
 vi.mock("../team/actions", () => ({}));
+vi.mock("../self-approval/actions", () => ({
+  approveOwnCapability: mocks.approveOwnCapability,
+  approveOwnChannelPolicy: mocks.approveOwnChannelPolicy,
+}));
+vi.mock("@/src/features/contracts/commerce-client", () => ({
+  sendCoreCommand: mocks.sendCoreCommand,
+  approveOwnPaygOffer: mocks.approveOwnPaygOffer,
+  decideException: mocks.decideException,
+}));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh }),
 }));
@@ -27,6 +41,8 @@ const live: OwnerConsoleView = { ...demo, mode: "live" };
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.markRead.mockResolvedValue({ ok: true, marked: 1 });
+  mocks.sendCoreCommand.mockResolvedValue({});
+  mocks.approveOwnChannelPolicy.mockResolvedValue({ ok: true });
 });
 
 function section(name: string) {
@@ -72,7 +88,7 @@ it("marks every notice read at once and words a refusal", async () => {
   expect(mocks.markRead).toHaveBeenCalledWith({ noticeIds: "all" });
 });
 
-it("lists requests waiting for a second person, read only, with a link to decide each", () => {
+it("lists requests waiting for a second person with a link to decide each", () => {
   render(<OwnerConsole view={live} />);
   const approvals = section("Waiting for approval");
   const own = within(approvals)
@@ -81,19 +97,165 @@ it("lists requests waiting for a second person, read only, with a link to decide
   if (!own) throw new Error("No request row");
   expect(within(own).getByText("Price book activation")).toBeInTheDocument();
   expect(
-    within(own).getByText("Your request: needs a second approver"),
+    within(own).getByText("Your request: you can approve it yourself"),
   ).toBeInTheDocument();
   expect(within(own).getByText("Requested by Noor Haddad")).toBeVisible();
   expect(
     within(own).getByRole("link", { name: "Open request" }),
   ).toHaveAttribute("href", "/internal/price-books");
+  expect(
+    within(own).getByRole("button", { name: "Approve my own request" }),
+  ).toBeEnabled();
   const theirs = within(approvals).getByText("Partners").closest("li");
   if (!theirs) throw new Error("No request row");
+  expect(within(theirs).queryByText(/Your request/)).not.toBeInTheDocument();
+  // Someone else's request is decided on its own page, never here.
+  expect(within(theirs).queryByRole("button")).not.toBeInTheDocument();
+});
+
+it("approves the reader's own price book request from the console with a reason", async () => {
+  render(<OwnerConsole view={live} />);
+  const own = within(section("Waiting for approval"))
+    .getByText("North America standard, version 4")
+    .closest("li");
+  if (!own) throw new Error("No request row");
+  fireEvent.click(
+    within(own).getByRole("button", { name: "Approve my own request" }),
+  );
+  const dialog = screen.getByRole("dialog");
+  expect(dialog).toHaveTextContent(
+    "You raised this request: North America standard, version 4.",
+  );
+  fireEvent.change(
+    within(dialog).getByLabelText(/Why are you approving it yourself/),
+    { target: { value: "Second approver is away this week" } },
+  );
+  fireEvent.click(
+    within(dialog).getByRole("button", { name: "Approve my own request" }),
+  );
+  await waitFor(() =>
+    expect(mocks.sendCoreCommand).toHaveBeenCalledExactlyOnceWith({
+      resource: "price_books",
+      id: "demo-price-book-4",
+      action: "activate",
+      expectedVersion: 3,
+      payload: {
+        reason: "Second approver is away this week",
+        selfApproval: true,
+      },
+    }),
+  );
   expect(
-    within(theirs).queryByText("Your request: needs a second approver"),
-  ).not.toBeInTheDocument();
-  // Deciding happens on each control's page, never here.
-  expect(within(approvals).queryByRole("button")).not.toBeInTheDocument();
+    await within(own).findByText(/Approved. Your reason is recorded/),
+  ).toBeInTheDocument();
+  expect(mocks.refresh).toHaveBeenCalled();
+});
+
+it("asks for the approval evidence a channel policy needs and words a refusal", async () => {
+  mocks.approveOwnChannelPolicy.mockResolvedValueOnce({
+    ok: false,
+    message: "common.selfApproval.error.stale",
+  });
+  render(
+    <OwnerConsole
+      view={{
+        ...live,
+        approvals: {
+          unavailable: [],
+          items: [
+            {
+              id: "policy-1",
+              control: "channel_policy",
+              name: null,
+              version: 3,
+              detail: "2026-11-01",
+              requestedBy: "Noor Haddad",
+              requestedAt: "2026-10-01T12:00:00Z",
+              href: "/internal/channel-policy",
+              ownRequest: true,
+              selfApproval: { id: "policy-1", version: 2 },
+            },
+          ],
+        },
+      }}
+    />,
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Approve my own request" }),
+  );
+  const dialog = screen.getByRole("dialog");
+  const confirm = within(dialog).getByRole("button", {
+    name: "Approve my own request",
+  });
+  fireEvent.change(
+    within(dialog).getByLabelText(/Why are you approving it yourself/),
+    { target: { value: "Quarter start, approving alone" } },
+  );
+  expect(confirm).toBeDisabled();
+  fireEvent.change(within(dialog).getByLabelText(/Approval evidence/), {
+    target: { value: "Board minutes 2026-10" },
+  });
+  fireEvent.click(confirm);
+  await waitFor(() =>
+    expect(mocks.approveOwnChannelPolicy).toHaveBeenCalledExactlyOnceWith({
+      id: "policy-1",
+      expectedRowVersion: 2,
+      reason: "Quarter start, approving alone",
+      approvalEvidence: "Board minutes 2026-10",
+    }),
+  );
+  expect(
+    await within(dialog).findByText(
+      /changed or expired while you were looking/,
+    ),
+  ).toBeInTheDocument();
+});
+
+it("lists recent self-approvals with who, what and why", () => {
+  render(<OwnerConsole view={live} />);
+  const recent = section("Recent self-approvals");
+  expect(
+    within(recent).getByText(
+      "Noor Haddad approved their own request: Version 3, effective Oct 15, 2026",
+    ),
+  ).toBeInTheDocument();
+  expect(within(recent).getByText("Channel policy")).toBeInTheDocument();
+  expect(
+    within(recent).getByText(
+      "Reason: Quarter start; the second approver is on leave until Monday",
+    ),
+  ).toBeInTheDocument();
+});
+
+it("words a self-approval notice by its control", () => {
+  render(
+    <OwnerConsole
+      view={{
+        ...live,
+        notices: {
+          state: "ready",
+          items: [
+            {
+              noticeId: "notice-self",
+              id: "event-self",
+              type: "approval.self_approved",
+              at: "2026-10-05T09:00:00Z",
+              actor: { name: "R.W. Holleman", email: "rw@fil.one" },
+              subject: null,
+              role: null,
+              reason: "Launch day",
+              control: "payg_offer",
+            },
+          ],
+        },
+      }}
+    />,
+  );
+  expect(
+    within(section("Notices for you")).getByText(
+      "R.W. Holleman approved their own request: Pay-as-you-go offer",
+    ),
+  ).toBeInTheDocument();
 });
 
 it("words every control's request and says when one has no page", () => {
@@ -114,6 +276,7 @@ it("words every control's request and says when one has no page", () => {
               requestedAt: "2026-10-01T12:00:00Z",
               href: "/internal/payg-offers",
               ownRequest: false,
+              selfApproval: null,
             },
             {
               id: "b",
@@ -125,6 +288,7 @@ it("words every control's request and says when one has no page", () => {
               requestedAt: "2026-10-01T12:00:00Z",
               href: "/internal/queues/queue-legal-meridian",
               ownRequest: false,
+              selfApproval: null,
             },
             {
               id: "c",
@@ -136,6 +300,7 @@ it("words every control's request and says when one has no page", () => {
               requestedAt: "2026-10-01T12:00:00Z",
               href: "/internal/channel-policy",
               ownRequest: false,
+              selfApproval: null,
             },
             {
               id: "d",
@@ -147,6 +312,7 @@ it("words every control's request and says when one has no page", () => {
               requestedAt: "2026-10-01T12:00:00Z",
               href: null,
               ownRequest: false,
+              selfApproval: null,
             },
           ],
         },
@@ -207,6 +373,9 @@ it("shows the demo read-only", () => {
   expect(
     screen.queryByRole("button", { name: "Mark as read" }),
   ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Approve my own request" }),
+  ).toBeDisabled();
 });
 
 it("explains a section that could not be read and one that is empty", () => {

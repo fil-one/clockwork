@@ -6,18 +6,24 @@ import {
   pendingApprovalControls,
   StaffTeamRepository,
   type ConsoleAuditEvent,
+  type PendingApproval,
+  type PendingApprovalControl,
 } from "@clockwork/db";
 
 import { getCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
+import { mayApproveOwnRequests } from "../self-approval/model";
 import { teamMemberView } from "../team/server";
 import {
+  approvalControls,
   demoOwnerConsole,
+  type ApprovalControl,
   type ApprovalItemView,
   type ApprovalsView,
   type ConsoleEventView,
   type ConsoleSection,
+  type ConsoleSelfApprovalTarget,
   type OwnerConsoleView,
 } from "./model";
 
@@ -58,7 +64,29 @@ function eventSubject(event: ConsoleAuditEvent): string | null {
   }
 }
 
+/** The console's control for a self-approval event's `control`. */
+function selfApprovedControl(value: unknown): ApprovalControl | null {
+  const control = value === "termination_teardown" ? "termination" : value;
+  return typeof control === "string" &&
+    (approvalControls as readonly string[]).includes(control)
+    ? (control as ApprovalControl)
+    : null;
+}
+
 export function consoleEventView(event: ConsoleAuditEvent): ConsoleEventView {
+  if (event.eventType === "approval.self_approved")
+    return {
+      id: event.id,
+      type: event.eventType,
+      at: event.occurredAt.toISOString(),
+      actor: event.actor
+        ? { name: event.actor.name, email: event.actor.email }
+        : null,
+      subject: null,
+      role: null,
+      reason: text(field(event.after, "reason")),
+      control: selfApprovedControl(field(event.after, "control")),
+    };
   return {
     id: event.id,
     type: event.eventType,
@@ -91,12 +119,37 @@ async function section<T>(
 }
 
 /**
+ * What "Approve my own request" acts on for a request the reader raised, when
+ * the control is decided in the portal. A price book takes the approval its
+ * effective date allows: activation when it is in effect, a schedule when it
+ * starts later.
+ */
+export function selfApprovalTarget(
+  pending: Pick<PendingApproval, "control" | "target">,
+  today: string,
+): ConsoleSelfApprovalTarget | null {
+  const target = pending.target;
+  if (!target) return null;
+  const control: PendingApprovalControl = pending.control;
+  if (control !== "price_book_activation")
+    return { id: target.id, version: target.version };
+  if (!target.date) return null;
+  return {
+    id: target.id,
+    version: target.version,
+    priceBookAction: target.date > today ? "schedule_activation" : "activate",
+  };
+}
+
+/**
  * Every control's open requests, each read on its own: a control that cannot
  * be read is named as unavailable and the others still list theirs.
  */
 async function loadApprovals(
   reads: OwnerConsoleRepository,
   viewerUserId: string,
+  canApproveOwn: boolean,
+  today: string,
 ): Promise<ApprovalsView> {
   const results = await Promise.all(
     pendingApprovalControls.map(async (control) => ({
@@ -117,6 +170,10 @@ async function loadApprovals(
           requestedAt: pending.requestedAt.toISOString(),
           href: pending.href,
           ownRequest: pending.requestedBy?.userId === viewerUserId,
+          selfApproval:
+            canApproveOwn && pending.requestedBy?.userId === viewerUserId
+              ? selfApprovalTarget(pending, today)
+              : null,
         })),
       ),
     })),
@@ -152,6 +209,7 @@ export async function loadOwnerConsole(
     assistedSessions,
     approvals,
     securityEvents,
+    selfApprovals,
   ] = await Promise.all([
     section("notices", async () =>
       (
@@ -201,7 +259,12 @@ export async function loadOwnerConsole(
         expiresAt: open.expiresAt.toISOString(),
       })),
     ),
-    loadApprovals(reads, session.userId),
+    loadApprovals(
+      reads,
+      session.userId,
+      mayApproveOwnRequests(session),
+      now.toISOString().slice(0, 10),
+    ),
     section("security", async () =>
       (
         await reads.securityEvents({
@@ -209,6 +272,25 @@ export async function loadOwnerConsole(
           requestId: requestId("security"),
         })
       ).map(consoleEventView),
+    ),
+    section("selfApprovals", async () =>
+      (
+        await reads.selfApprovals({
+          limit: 20,
+          requestId: requestId("self-approvals"),
+        })
+      ).map((record) => ({
+        id: record.id,
+        at: record.occurredAt.toISOString(),
+        actor: record.actor
+          ? { name: record.actor.name, email: record.actor.email }
+          : null,
+        control: record.control,
+        name: record.name,
+        version: record.version,
+        detail: record.detail,
+        reason: record.reason,
+      })),
     ),
   ]);
   return {
@@ -220,5 +302,6 @@ export async function loadOwnerConsole(
     staff,
     assistedSessions,
     securityEvents,
+    selfApprovals,
   };
 }

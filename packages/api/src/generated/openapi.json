@@ -2168,6 +2168,13 @@
                           "decisionReason": {
                             "type": "string"
                           },
+                          "selfApproved": {
+                            "type": "boolean"
+                          },
+                          "selfApprovalReason": {
+                            "type": "string",
+                            "nullable": true
+                          },
                           "createdAt": {
                             "type": "string",
                             "format": "date-time"
@@ -2858,6 +2865,12 @@
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 255
+                      },
+                      "selfApproval": {
+                        "type": "boolean",
+                        "enum": [
+                          true
+                        ]
                       }
                     },
                     "required": [
@@ -3205,6 +3218,13 @@
                     },
                     "decisionReason": {
                       "type": "string"
+                    },
+                    "selfApproved": {
+                      "type": "boolean"
+                    },
+                    "selfApprovalReason": {
+                      "type": "string",
+                      "nullable": true
                     },
                     "createdAt": {
                       "type": "string",
@@ -6420,6 +6440,12 @@
                   "evidenceDocumentId": {
                     "type": "string",
                     "format": "uuid"
+                  },
+                  "selfApproval": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
                   }
                 },
                 "required": [
@@ -6525,6 +6551,12 @@
                   "evidenceDocumentId": {
                     "type": "string",
                     "format": "uuid"
+                  },
+                  "selfApproval": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
                   }
                 },
                 "required": [

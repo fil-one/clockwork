@@ -18,9 +18,12 @@ import {
 } from "./model";
 import styles from "./owner-console.module.css";
 import { Panel } from "./panel";
+import { SelfApprovalAction } from "./self-approval-action";
 
-/** What a request is about, worded for the reader. */
-function useApprovalSubject(): (item: ApprovalItemView) => string {
+/** What a request or a self-approval is about, worded for the reader. */
+export function useApprovalSubject(): (
+  item: Pick<ApprovalItemView, "control" | "name" | "version" | "detail">,
+) => string {
   const t = useTranslations();
   const locale = useFormattingLocale();
   return (item) => {
@@ -69,7 +72,13 @@ function useApprovalSubject(): (item: ApprovalItemView) => string {
   };
 }
 
-function ApprovalRow({ item }: { item: ApprovalItemView }) {
+function ApprovalRow({
+  item,
+  editable,
+}: {
+  item: ApprovalItemView;
+  editable: boolean;
+}) {
   const t = useTranslations();
   const subject = useApprovalSubject();
   const subjectId = useId();
@@ -82,7 +91,11 @@ function ApprovalRow({ item }: { item: ApprovalItemView }) {
           </StatusBadge>
           {item.ownRequest ? (
             <StatusBadge tone="warning">
-              {t("operations.owner.approvals.yours")}
+              {t(
+                item.selfApproval
+                  ? "operations.owner.approvals.yoursSelf"
+                  : "operations.owner.approvals.yours",
+              )}
             </StatusBadge>
           ) : null}
         </span>
@@ -100,29 +113,48 @@ function ApprovalRow({ item }: { item: ApprovalItemView }) {
           <LocalTimestamp value={item.requestedAt} />
         </p>
       </div>
-      {item.href ? (
-        <Link
-          className={styles.panelLink}
-          href={item.href as Route}
-          aria-describedby={subjectId}
-        >
-          {t("operations.owner.approvals.open")}
-        </Link>
-      ) : (
-        <span className={styles.muted}>
-          {t("operations.owner.approvals.noPage")}
-        </span>
-      )}
+      <div className={styles.rowActions}>
+        {item.selfApproval ? (
+          <SelfApprovalAction
+            item={item}
+            target={item.selfApproval}
+            subject={subject(item)}
+            editable={editable}
+          />
+        ) : null}
+        {item.href ? (
+          <Link
+            className={styles.panelLink}
+            href={item.href as Route}
+            aria-describedby={subjectId}
+          >
+            {t("operations.owner.approvals.open")}
+          </Link>
+        ) : (
+          <span className={styles.muted}>
+            {t("operations.owner.approvals.noPage")}
+          </span>
+        )}
+      </div>
     </li>
   );
 }
 
 /**
  * Everything waiting for a second person, from every control, oldest first.
- * Read only: each request is decided on its own page. A control that could
- * not be read says so on its own line; the rest of the list stands.
+ * Each request is decided on its own page; a commerce administrator's own
+ * request on a control decided in the portal can also be approved here, with
+ * a reason. A control that could not be read says so on its own line; the
+ * rest of the list stands.
  */
-export function ApprovalsPanel({ approvals }: { approvals: ApprovalsView }) {
+export function ApprovalsPanel({
+  approvals,
+  editable = true,
+}: {
+  approvals: ApprovalsView;
+  /** False in the demo, which changes nothing. */
+  editable?: boolean;
+}) {
   const t = useTranslations();
   return (
     <Panel
@@ -141,7 +173,11 @@ export function ApprovalsPanel({ approvals }: { approvals: ApprovalsView }) {
       {approvals.items.length > 0 ? (
         <ul className={styles.list}>
           {approvals.items.map((item) => (
-            <ApprovalRow key={`${item.control}:${item.id}`} item={item} />
+            <ApprovalRow
+              key={`${item.control}:${item.id}`}
+              item={item}
+              editable={editable}
+            />
           ))}
         </ul>
       ) : approvals.unavailable.length === 0 ? (

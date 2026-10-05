@@ -28,6 +28,8 @@ export interface ConsoleEventView {
   role: string | null;
   /** The reason written with the change, when there is one. */
   reason: string | null;
+  /** The control a self-approval was given on. */
+  control?: ApprovalControl | null;
 }
 
 export interface NoticeView extends ConsoleEventView {
@@ -64,9 +66,21 @@ export const approvalControls = [
 export type ApprovalControl = (typeof approvalControls)[number];
 
 /**
- * One request waiting for a second person, from any control. The console
- * only lists it: each is decided on its own page, by someone other than the
- * person who raised it.
+ * What "Approve my own request" sends for a request on the console: the
+ * record the control's own approval acts on and its current version. A price
+ * book is activated when it is already in effect and scheduled when it takes
+ * effect later.
+ */
+export interface ConsoleSelfApprovalTarget {
+  id: string;
+  version: number | null;
+  priceBookAction?: "activate" | "schedule_activation";
+}
+
+/**
+ * One request waiting for a second person, from any control. Each is decided
+ * on its own page by someone other than the person who raised it, or, for a
+ * commerce administrator's own request, approved here with a reason.
  */
 export interface ApprovalItemView {
   id: string;
@@ -82,6 +96,24 @@ export interface ApprovalItemView {
   href: string | null;
   /** The reader raised it, so someone else must decide it. */
   ownRequest: boolean;
+  /**
+   * The reader may approve it themselves here: their own request, they hold
+   * `approval:self`, and the control is decided in the portal. Null
+   * otherwise.
+   */
+  selfApproval: ConsoleSelfApprovalTarget | null;
+}
+
+/** One request a commerce administrator approved themselves. */
+export interface SelfApprovalView {
+  id: string;
+  at: string;
+  actor: { name: string; email: string } | null;
+  control: ApprovalControl | null;
+  name: string | null;
+  version: number | null;
+  detail: string | null;
+  reason: string;
 }
 
 /**
@@ -104,6 +136,8 @@ export interface OwnerConsoleView {
   staff: ConsoleSection<TeamMemberView>;
   assistedSessions: ConsoleSection<AssistedSessionSummary>;
   securityEvents: ConsoleSection<ConsoleEventView>;
+  /** Requests approved by the person who raised them, newest first. */
+  selfApprovals: ConsoleSection<SelfApprovalView>;
 }
 
 /** The sentence for each kind of event the console lists. */
@@ -120,6 +154,7 @@ export const eventMessages: Readonly<Record<string, MessageId>> = {
   "mnda.register_exported": "operations.owner.event.mndaExported",
   "workflow.report_exported": "operations.owner.event.reportExported",
   "security.assisted_action.started": "operations.owner.event.assistedStarted",
+  "approval.self_approved": "operations.owner.event.selfApproved",
 };
 
 export const capabilityLabels: Readonly<Record<string, MessageId>> = {
@@ -252,6 +287,11 @@ export function demoOwnerConsole(viewerUserId: string): OwnerConsoleView {
           href: "/internal/price-books",
           // The demo reader is the commerce administrator who raised it.
           ownRequest: true,
+          selfApproval: {
+            id: "demo-price-book-4",
+            version: 3,
+            priceBookAction: "activate",
+          },
         },
         {
           id: "demo-approval-2",
@@ -263,6 +303,7 @@ export function demoOwnerConsole(viewerUserId: string): OwnerConsoleView {
           requestedAt: "2026-10-04T09:30:00Z",
           href: "/internal/capabilities",
           ownRequest: false,
+          selfApproval: null,
         },
       ],
     },
@@ -298,5 +339,20 @@ export function demoOwnerConsole(viewerUserId: string): OwnerConsoleView {
       ],
     },
     securityEvents: { state: "ready", items: events },
+    selfApprovals: {
+      state: "ready",
+      items: [
+        {
+          id: "demo-self-approval-1",
+          at: "2026-10-01T17:40:00Z",
+          actor: person(demoAdmin),
+          control: "channel_policy",
+          name: null,
+          version: 3,
+          detail: "2026-10-15",
+          reason: "Quarter start; the second approver is on leave until Monday",
+        },
+      ],
+    },
   };
 }

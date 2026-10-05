@@ -525,6 +525,8 @@ export function decideException(
     decision: "approved" | "rejected";
     reason: string;
     evidenceDocumentId: string;
+    /** The requester approves their own case under `approval:self`. */
+    selfApproval?: true;
   },
   options: CommerceClientOptions = {},
 ) {
@@ -540,6 +542,39 @@ export function decideException(
         decision: input.decision,
         reason: input.reason,
         evidenceDocumentId: input.evidenceDocumentId,
+        ...(input.selfApproval ? { selfApproval: true as const } : {}),
+      },
+    }),
+  );
+}
+
+/**
+ * Approves a proposed PAYG offer version the reader wrote or proposed, under
+ * `approval:self`. The reason is also the self-approval reason.
+ */
+export function approveOwnPaygOffer(
+  input: {
+    id: string;
+    expectedRowVersion: number;
+    reason: string;
+    approvalEvidenceId: string;
+  },
+  options: CommerceClientOptions = {},
+) {
+  const mutation = mutationHeaders(options);
+  return generatedCall(() =>
+    client(options).POST("/v1/core/payg-offers", {
+      headers: {
+        ...mutation.headers,
+        "idempotency-key": mutation.idempotencyKey,
+      },
+      body: {
+        action: "approve",
+        id: input.id,
+        expectedRowVersion: input.expectedRowVersion,
+        reason: input.reason,
+        approvalEvidenceId: input.approvalEvidenceId,
+        selfApproval: true,
       },
     }),
   );

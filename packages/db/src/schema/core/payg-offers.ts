@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   integer,
   jsonb,
@@ -33,6 +34,9 @@ export const paygOfferVersions = pgTable(
     approvedBy: uuid("approved_by").references(() => commerceUsers.id),
     approvalEvidenceId: text("approval_evidence_id"),
     decisionReason: text("decision_reason").notNull().default(""),
+    /** The approver approved their own version under approval:self (001449). */
+    selfApproved: boolean("self_approved").notNull().default(false),
+    selfApprovalReason: text("self_approval_reason"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -57,7 +61,11 @@ export const paygOfferVersions = pgTable(
     ),
     check(
       "core_payg_offer_approval_check",
-      sql`${table.status} not in ('approved','retired') or (${table.approvedBy} is not null and ${table.proposedBy} is not null and ${table.approvedBy} <> ${table.proposedBy} and ${table.approvedBy} <> ${table.createdBy} and ${table.approvedBy} <> ${table.lastEditedBy} and ${table.approvalEvidenceId} is not null and length(trim(${table.approvalEvidenceId})) > 0)`,
+      sql`${table.status} not in ('approved','retired') or (${table.approvedBy} is not null and ${table.proposedBy} is not null and ${table.approvalEvidenceId} is not null and length(trim(${table.approvalEvidenceId})) > 0 and (${table.selfApproved} or (${table.approvedBy} <> ${table.proposedBy} and ${table.approvedBy} <> ${table.createdBy} and ${table.approvedBy} <> ${table.lastEditedBy})))`,
+    ),
+    check(
+      "core_payg_offer_self_approval_check",
+      sql`(not ${table.selfApproved} and ${table.selfApprovalReason} is null) or (${table.selfApproved} and ${table.status} in ('approved','retired') and ${table.approvedBy} in (${table.createdBy}, ${table.lastEditedBy}, ${table.proposedBy}) and length(trim(${table.selfApprovalReason})) between 8 and 500)`,
     ),
     check(
       "core_payg_offer_terms_binding_check",

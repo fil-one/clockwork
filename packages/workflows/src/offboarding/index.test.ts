@@ -1,3 +1,4 @@
+import type { CheckedSelfApproval } from "@clockwork/domain";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -86,6 +87,29 @@ describe("offboarding workflows", () => {
       validateDestructiveApprovals({
         requestedBy: "operator-1",
         approvals: [{ ...approvalOne, approvedBy: "operator-1" }, approvalTwo],
+      }),
+    ).toThrow("TEARDOWN_SELF_APPROVAL_FORBIDDEN");
+  });
+
+  it("lets one recorded self-approval by the requester fill both slots", () => {
+    const selfApproval = {
+      ...approvalOne,
+      approvalId: "approval-self",
+      approvedBy: "operator-1",
+      selfApproval: {
+        reason: "Customer asked twice; closing it myself",
+      } as CheckedSelfApproval,
+    };
+    expect(
+      validateDestructiveApprovals({
+        requestedBy: "operator-1",
+        approvals: [selfApproval],
+      }),
+    ).toEqual(["approval-self", "approval-self"]);
+    expect(() =>
+      validateDestructiveApprovals({
+        requestedBy: "operator-1",
+        approvals: [{ ...selfApproval, selfApproval: undefined }],
       }),
     ).toThrow("TEARDOWN_SELF_APPROVAL_FORBIDDEN");
   });

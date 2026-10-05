@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+import { selfApprovalReason, type CheckedSelfApproval } from "../self-approval";
+
 const sha256Pattern = /^[a-f0-9]{64}$/;
 const instantWithOffsetPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
@@ -152,16 +154,37 @@ export interface DestructiveApproval {
     authenticatedAt: string;
     evidenceHash: string;
   };
+  /**
+   * The requester approved their own termination under `approval:self`.
+   * Once final billing has settled, one self-approval fills every remaining
+   * approver slot, each entry marked and naming the same approval; before
+   * that it fills one slot, as a first ordinary approval does.
+   */
+  selfApproved?: boolean | undefined;
 }
 
 export function recordDestructiveApproval(
   plan: OffboardingPlan,
-  approval: DestructiveApproval,
+  approval: Omit<DestructiveApproval, "selfApproved">,
+  options: {
+    /**
+     * The requester approves their own termination under `approval:self`.
+     * The caller has checked the authority; this records it.
+     */
+    selfApproval?: CheckedSelfApproval;
+  } = {},
 ): OffboardingPlan {
   if (!approval.approvalId.trim() || !approval.approverId.trim())
     throw new Error("APPROVAL_IDENTITY_REQUIRED");
-  if (approval.approverId === plan.requestedBy)
+  const own = approval.approverId === plan.requestedBy;
+  if (own && !options.selfApproval)
     throw new Error("DESTRUCTIVE_SELF_APPROVAL_FORBIDDEN");
+  if (options.selfApproval) {
+    if (!own) throw new Error("SELF_APPROVAL_NOT_OWN_REQUEST");
+    if (approval.decision !== "approved")
+      throw new Error("SELF_APPROVAL_APPROVE_ONLY");
+    selfApprovalReason(approval.reason);
+  }
   if (!sha256Pattern.test(approval.evidenceHash))
     throw new Error("APPROVAL_EVIDENCE_HASH_INVALID");
   if (!sha256Pattern.test(approval.recentAuthentication.evidenceHash))
@@ -181,20 +204,37 @@ export function recordDestructiveApproval(
   if (
     plan.approvals.some(
       (item) =>
-        item.approverId === approval.approverId ||
-        item.approvalId === approval.approvalId,
+        item.approvalId === approval.approvalId ||
+        // The requester may come back for the slot a self-approval made
+        // before final billing settled; nobody else approves twice.
+        (item.approverId === approval.approverId &&
+          !(options.selfApproval && item.selfApproved)),
     )
   )
     throw new Error("APPROVER_MUST_BE_DISTINCT");
+  const entry = Object.freeze({
+    ...approval,
+    reason: approval.reason.trim(),
+    recentAuthentication: Object.freeze({
+      ...approval.recentAuthentication,
+    }),
+    ...(options.selfApproval ? { selfApproved: true } : {}),
+  });
+  // A self-approval fills both slots, or the one left open. Before final
+  // billing settles it fills one, as a first ordinary approval does, so the
+  // plan waits in pending approval rather than claiming it is ready.
+  const slots =
+    options.selfApproval && plan.finalBillingStatus === "settled"
+      ? Math.max(
+          1,
+          2 -
+            plan.approvals.filter((item) => item.decision === "approved")
+              .length,
+        )
+      : 1;
   const approvals = Object.freeze([
     ...plan.approvals,
-    Object.freeze({
-      ...approval,
-      reason: approval.reason.trim(),
-      recentAuthentication: Object.freeze({
-        ...approval.recentAuthentication,
-      }),
-    }),
+    ...Array.from({ length: slots }, () => entry),
   ]);
   return {
     ...plan,
@@ -237,7 +277,8 @@ export function requestTeardown(
   );
   if (
     approved.length < 2 ||
-    approved[0]?.approverId === approved[1]?.approverId
+    (approved[0]?.approverId === approved[1]?.approverId &&
+      !(approved[0]?.selfApproved && approved[1]?.selfApproved))
   )
     throw new Error("TWO_PERSON_APPROVAL_REQUIRED");
   if (plan.status !== "ready_for_teardown")

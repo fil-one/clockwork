@@ -213,6 +213,7 @@ describe("commerce authorization boundaries", () => {
       authorize(context, "operations:read", unscopedInternalOnly);
       authorize(context, "staff:manage", unscopedInternalOnly);
       authorize(context, "operations:write", unscopedInternalOnly);
+      authorize(context, "approval:self", unscopedInternalOnly);
     }
 
     // Runtime half: the list above is exactly the derived set, so a permission
@@ -236,6 +237,7 @@ describe("commerce authorization boundaries", () => {
         "operations:read",
         "staff:manage",
         "operations:write",
+        "approval:self",
       ].sort(),
     );
     expect(typeAdmitsTheSameSet).toBeInstanceOf(Function);

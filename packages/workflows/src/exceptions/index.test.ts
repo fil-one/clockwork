@@ -1,3 +1,4 @@
+import type { CheckedSelfApproval } from "@clockwork/domain";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -69,6 +70,53 @@ describe("exception workflows", () => {
         escalationLevel: 0,
       })?.payload,
     ).toMatchObject({ recipient: "backup-legal", escalationLevel: 1 });
+  });
+
+  it("lets a requester holding approval:self approve their own case with a reason", () => {
+    const own = { ...exceptionCase, requestedBy: "owner-legal" };
+    const decision = {
+      decision: "approved" as const,
+      decidedBy: "owner-legal",
+      decidedAt: "2026-08-01T16:00:00.000Z",
+      reason: "Approved alone while legal is out",
+      evidenceDocumentIds: ["document-1"],
+      actualActorId: "owner-legal",
+      effectiveActorId: "owner-legal",
+    };
+    const selfApproval = {
+      reason: "Approved alone while legal is out",
+    } as CheckedSelfApproval;
+    expect(
+      decideExceptionCase({
+        exceptionCase: own,
+        policy: legalPolicy,
+        decision,
+        selfApproval,
+      }).payload,
+    ).toMatchObject({ selfApproved: true });
+    expect(() =>
+      decideExceptionCase({
+        exceptionCase: own,
+        policy: legalPolicy,
+        decision,
+      }),
+    ).toThrow("EXCEPTION_SELF_APPROVAL_FORBIDDEN");
+    expect(() =>
+      decideExceptionCase({
+        exceptionCase: own,
+        policy: legalPolicy,
+        decision,
+        selfApproval: { reason: "short" } as CheckedSelfApproval,
+      }),
+    ).toThrow("SELF_APPROVAL_REASON_REQUIRED");
+    expect(() =>
+      decideExceptionCase({
+        exceptionCase: own,
+        policy: legalPolicy,
+        decision: { ...decision, decision: "rejected" },
+        selfApproval,
+      }),
+    ).toThrow("SELF_APPROVAL_APPROVE_ONLY");
   });
 
   it("forbids self-approval and requires immutable evidence", () => {

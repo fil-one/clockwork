@@ -26,7 +26,11 @@ import {
   type OrganizationSide,
   type TaxPort,
 } from "@clockwork/contracts";
-import type { AuthorizationContext } from "@clockwork/domain";
+import {
+  assertSelfApprovalSession,
+  type AuthorizationContext,
+  type CheckedSelfApproval,
+} from "@clockwork/domain";
 import {
   assertRecoverableOffboardingSourceStatus,
   derivePocPartnerAccountId,
@@ -141,6 +145,7 @@ import {
   withInternalTransaction,
 } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
+import { checkedSelfApproval } from "../self-approval";
 import { claimIdempotencyKey, completeIdempotencyKey } from "../idempotency";
 import {
   acceptPassThroughPayloadSchema,
@@ -393,6 +398,30 @@ function requireRecentAuthentication(
   if (!authorization.recentAuthenticationVerified)
     throw new Error("RECENT_AUTHENTICATION_REQUIRED");
   return authorization;
+}
+
+/**
+ * The self-approval a decision asks for, with both halves of the authority
+ * checked: the person's own MFA-verified session holding `approval:self` and
+ * their stored memberships. Undefined for an ordinary decision. The database
+ * checks again when the decision is written and records the audit event.
+ */
+async function lifecycleSelfApproval(
+  transaction: RuntimeTransaction,
+  context: LifecycleRepositoryOperationContext,
+  payload: { selfApproval?: true | undefined; reason: string },
+): Promise<CheckedSelfApproval | undefined> {
+  if (!payload.selfApproval) return undefined;
+  assertSelfApprovalSession(requireAuthorization(context));
+  if (
+    context.actor.kind !== "user" ||
+    context.actor.effectiveUserId ||
+    context.actor.impersonatedAccountId
+  )
+    throw new Error("SELF_APPROVAL_DIRECT_SESSION_REQUIRED");
+  return checkedSelfApproval(transaction, userId(context), {
+    reason: payload.reason,
+  });
 }
 
 function databaseAuthorization(context: LifecycleRepositoryOperationContext) {
@@ -661,6 +690,7 @@ const OffboardingPlanSchema: z.ZodType<OffboardingPlan> = z.object({
         authenticatedAt: z.string(),
         evidenceHash: z.string(),
       }),
+      selfApproved: z.boolean().optional(),
     }),
   ),
   teardownOperationId: z.string().nullable(),
@@ -4441,18 +4471,27 @@ export class DatabaseLifecycleCommandRepository {
       recentAuthenticationVerified: true,
       occurredAt: context.occurredAt,
     });
-    let plan = recordDestructiveApproval(currentPlan, {
-      approvalId,
-      approverId,
-      decision: payload.decision,
-      reason: payload.reason,
-      decidedAt: context.occurredAt,
-      evidenceHash: evidence.sha256,
-      recentAuthentication: {
-        authenticatedAt: context.occurredAt,
-        evidenceHash: authenticationEvidenceHash,
+    const selfApproval = await lifecycleSelfApproval(
+      transaction,
+      context,
+      payload,
+    );
+    let plan = recordDestructiveApproval(
+      currentPlan,
+      {
+        approvalId,
+        approverId,
+        decision: payload.decision,
+        reason: payload.reason,
+        decidedAt: context.occurredAt,
+        evidenceHash: evidence.sha256,
+        recentAuthentication: {
+          authenticatedAt: context.occurredAt,
+          evidenceHash: authenticationEvidenceHash,
+        },
       },
-    });
+      selfApproval ? { selfApproval } : {},
+    );
     const [approval] = await transaction
       .insert(approvals)
       .values({
@@ -4466,6 +4505,11 @@ export class DatabaseLifecycleCommandRepository {
         status: payload.decision,
         requestedAt: new Date(currentPlan.effectiveAt),
         decidedAt: new Date(context.occurredAt),
+        // One self-approval fills both approver slots of the plan; the
+        // database checks it again and writes its audit event and notices.
+        ...(selfApproval
+          ? { selfApproved: true, selfApprovalReason: selfApproval.reason }
+          : {}),
       })
       .returning();
     if (!approval) throw new Error("APPROVAL_INSERT_FAILED");
@@ -4487,6 +4531,7 @@ export class DatabaseLifecycleCommandRepository {
         requestedAt: approval.requestedAt.toISOString(),
         decidedAt: approval.decidedAt?.toISOString() ?? null,
         approverId,
+        selfApproved: approval.selfApproved,
       },
     });
     let provisioningCommandId: string | undefined;
@@ -4498,6 +4543,15 @@ export class DatabaseLifecycleCommandRepository {
       automatedTeardownAuthorized &&
       Date.parse(context.occurredAt) >= Date.parse(plan.retrievalEndsAt)
     ) {
+      // A self-approval stands only while its approver still holds
+      // approval:self; the database refuses the transition otherwise too.
+      if (plan.approvals.some((item) => item.selfApproved)) {
+        const [authority] = await transaction.execute<{ allowed: boolean }>(
+          sql`select public.member_can_self_approve(${plan.requestedBy}::uuid) as allowed`,
+        );
+        if (authority?.allowed !== true)
+          throw new Error("TEARDOWN_SELF_APPROVAL_REVOKED");
+      }
       const teardown = requestTeardown(plan, {
         automatedTeardownAuthorized: true,
         now: context.occurredAt,
@@ -4592,6 +4646,7 @@ export class DatabaseLifecycleCommandRepository {
         approvalId,
         decision: payload.decision,
         approverId,
+        selfApproved: approval.selfApproved,
         approvalCount: plan.approvals.length,
         evidenceDocumentId: evidence.documentId,
         evidenceHash: evidence.sha256,
@@ -4865,6 +4920,11 @@ export class DatabaseLifecycleCommandRepository {
       escalationLevel: 0,
       decisions: [],
     };
+    const selfApproval = await lifecycleSelfApproval(
+      transaction,
+      context,
+      payload,
+    );
     const decided = decideException(exceptionCase, {
       actorId: userId(context),
       outcome: payload.decision,
@@ -4872,12 +4932,19 @@ export class DatabaseLifecycleCommandRepository {
       evidenceDocumentId: evidence.documentId,
       evidenceBytes: Buffer.from(evidence.sha256, "hex"),
       decidedAt: context.occurredAt,
+      ...(selfApproval ? { selfApproval } : {}),
     });
+    const selfApproved = decided.decisions[0]?.selfApproved === true;
     const [updated] = await transaction
       .update(exceptionCases)
       .set({
         status: decided.status,
         decisionReason: payload.reason,
+        // The database checks a self-approval again and writes its audit
+        // event and notices.
+        ...(selfApproved && selfApproval
+          ? { selfApproved: true, selfApprovalReason: selfApproval.reason }
+          : {}),
         updatedAt: this.now(),
         rowVersion: row.rowVersion + 1,
       })
@@ -4908,6 +4975,7 @@ export class DatabaseLifecycleCommandRepository {
         evidenceDocumentId: evidence.documentId,
         evidenceHash: decision.evidenceHash,
         decidedAt: decision.decidedAt,
+        selfApproved,
       },
     });
     return result(row.id, updated.status, "exception_case.decided");

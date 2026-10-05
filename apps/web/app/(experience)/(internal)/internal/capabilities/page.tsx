@@ -18,6 +18,7 @@ import type { MessageId, Translator } from "@/src/i18n";
 import { getTranslations } from "@/src/i18n/server";
 import { richText } from "@/src/i18n/rich";
 import { CapabilityControls } from "./controls";
+import { mayApproveOwnRequests } from "@/src/features/internal-ops/self-approval/model";
 import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
@@ -144,6 +145,9 @@ async function Page() {
             </div>
             <CapabilityControls
               capability={capability}
+              viewerUserId={session.userId}
+              canApproveOwn={mayApproveOwnRequests(session)}
+              subject={keyLabel(t, capabilityLabels, capability.capabilityKey)}
               canOperate={contextHasPermission(session, "operations:write")}
               canApprove={contextHasPermission(
                 session,

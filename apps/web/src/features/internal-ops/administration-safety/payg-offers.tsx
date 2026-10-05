@@ -12,6 +12,11 @@ import type {
   PaygOfferTerms,
 } from "@clockwork/domain/core";
 
+import {
+  selfApprovalErrorMessage,
+  type SelfApprovalOutcome,
+} from "../self-approval/model";
+import { SelfApprovalDialog } from "../self-approval/self-approval-dialog";
 import { bookMoney } from "./price-book-presentation";
 import { AdministrationPage, styles } from "./ui";
 
@@ -178,6 +183,7 @@ const problemMessages: Readonly<Record<string, MessageId>> = {
 };
 
 function problemMessage(code: string, status: number): MessageId {
+  if (code.startsWith("SELF_APPROVAL_")) return selfApprovalErrorMessage(code);
   if (code.startsWith("PAYG_TAX_REVIEW_REQUIRED"))
     return "adminPricing.payg.error.taxReview";
   return (
@@ -1369,6 +1375,29 @@ export function PaygOfferAdministration({
     ![selected.createdBy, selected.lastEditedBy, selected.proposedBy].includes(
       userId,
     );
+  // A commerce administrator may approve a version they wrote or proposed.
+  const canSelfApprove = canManage && permissions.includes("approval:self");
+  const [selfEvidence, setSelfEvidence] = useState("");
+  async function approveOwn(reason: string): Promise<SelfApprovalOutcome> {
+    if (!selected) return { ok: false, message: "" };
+    try {
+      await run({
+        action: "approve",
+        id: selected.id,
+        expectedRowVersion: selected.rowVersion,
+        reason,
+        approvalEvidenceId: selfEvidence.trim(),
+        selfApproval: true,
+      });
+      setMessage(t("common.selfApproval.done"));
+      return { ok: true };
+    } catch (failure) {
+      return {
+        ok: false,
+        message: errorText(failure, t, "adminPricing.payg.error.changeFailed"),
+      };
+    }
+  }
   return (
     <AdministrationPage
       eyebrow={t("adminPricing.payg.eyebrow")}
@@ -1625,7 +1654,38 @@ export function PaygOfferAdministration({
                 ) : null}
               </div>
               {selected.status === "proposed" && !distinct ? (
-                <p>{t("adminPricing.payg.decision.distinctRequired")}</p>
+                canSelfApprove ? (
+                  <div className={styles.actions}>
+                    <p>{t("common.selfApproval.notice")}</p>
+                    <SelfApprovalDialog
+                      subject={t("adminPricing.payg.selfApprovalSubject", {
+                        name: selected.terms.name,
+                        version: selected.terms.version,
+                      })}
+                      disabled={busy || demo}
+                      ready={selfEvidence.trim().length > 0}
+                      onConfirm={approveOwn}
+                    >
+                      <label className={styles.field}>
+                        {t("common.selfApproval.evidence.offer")}
+                        <input
+                          value={selfEvidence}
+                          maxLength={255}
+                          required
+                          aria-describedby="payg-self-evidence-help"
+                          onChange={(event) =>
+                            setSelfEvidence(event.target.value)
+                          }
+                        />
+                        <span id="payg-self-evidence-help">
+                          {t("common.selfApproval.evidence.offerHelp")}
+                        </span>
+                      </label>
+                    </SelfApprovalDialog>
+                  </div>
+                ) : (
+                  <p>{t("adminPricing.payg.decision.distinctRequired")}</p>
+                )
               ) : null}
             </form>
           ) : null}

@@ -338,3 +338,16 @@
     min-width: 10rem;
   }
 }
+
+/* The approval actions on a request row; they wrap under the text on a phone. */
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+/* A field inside the self-approval dialog, below the reason. */
+.dialogField {
+  margin-block-start: 0.75rem;
+}

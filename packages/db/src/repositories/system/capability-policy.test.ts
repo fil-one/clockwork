@@ -1,3 +1,4 @@
+import type { CheckedSelfApproval } from "@clockwork/domain";
 import { hasPermission, roles } from "@clockwork/contracts";
 import { describe, expect, it } from "vitest";
 import { systemCapabilityKeys } from "./capabilities";
@@ -40,6 +41,32 @@ describe("capability activation safeguards", () => {
     expect(() =>
       assertCapabilityDecision({ ...valid, actorId: "operator" }),
     ).toThrow("CAPABILITY_DISTINCT_APPROVER_REQUIRED");
+  });
+  it("lets the requester approve their own request only as a recorded self-approval", () => {
+    const own = { ...valid, actorId: "operator" };
+    expect(
+      assertCapabilityDecision({
+        ...own,
+        selfApproval: {
+          reason: "Second approver is away this week",
+        } as CheckedSelfApproval,
+      }),
+    ).toBe(true);
+    expect(assertCapabilityDecision(valid)).toBe(false);
+    expect(() =>
+      assertCapabilityDecision({
+        ...own,
+        selfApproval: { reason: "short" } as CheckedSelfApproval,
+      }),
+    ).toThrow("SELF_APPROVAL_REASON_REQUIRED");
+    expect(() =>
+      assertCapabilityDecision({
+        ...valid,
+        selfApproval: {
+          reason: "Second approver is away this week",
+        } as CheckedSelfApproval,
+      }),
+    ).toThrow("SELF_APPROVAL_NOT_OWN_REQUEST");
   });
   it("rejects stale evidence, clock skew, and capabilities changed after proposal", () => {
     expect(() =>

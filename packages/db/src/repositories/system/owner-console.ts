@@ -101,6 +101,12 @@ export interface PendingApproval {
   requestedAt: Date;
   /** The portal page the request is decided on; null when it has none. */
   href: string | null;
+  /**
+   * What a decision on the portal targets: the record, its current version
+   * and, for a price book, the date it takes effect. Null for a control with
+   * no portal decision (tax rule books, terminations).
+   */
+  target: { id: string; version: number | null; date: string | null } | null;
 }
 
 interface PendingApprovalRow extends Record<string, unknown> {
@@ -113,17 +119,23 @@ interface PendingApprovalRow extends Record<string, unknown> {
   requester_email: string | null;
   requested_at: Date | string;
   record_key: string | null;
+  target_id: string | null;
+  target_version: number | null;
+  target_date: string | null;
 }
 
 /**
  * The open requests of each control, as rows of the same shape: id, name,
- * version, detail, requester, requested_at and record_key.
+ * version, detail, requester, requested_at, record_key, and the target a
+ * portal decision acts on (target_id, target_version, target_date).
  */
 const pendingApprovalSources: Readonly<Record<PendingApprovalControl, SQL>> = {
   price_book_activation: sql`
     select approval.id, book.name, book.version, null::text as detail,
       approval.requested_by as requester, approval.requested_at,
-      null::text as record_key
+      null::text as record_key, book.id as target_id,
+      book.row_version as target_version,
+      book.effective_from::text as target_date
     from public.approvals approval
     join public.price_books book on book.id = approval.object_id
     where approval.action = 'price_book_activation'
@@ -131,7 +143,9 @@ const pendingApprovalSources: Readonly<Record<PendingApprovalControl, SQL>> = {
   tax_rule_book_activation: sql`
     select approval.id, book.jurisdiction as name, book.version,
       null::text as detail, approval.requested_by as requester,
-      approval.requested_at, null::text as record_key
+      approval.requested_at, null::text as record_key,
+      null::uuid as target_id, null::int as target_version,
+      null::text as target_date
     from public.approvals approval
     join public.core_tax_rule_books book on book.id = approval.object_id
     where approval.action = 'tax_rule_book_activation'
@@ -140,8 +154,12 @@ const pendingApprovalSources: Readonly<Record<PendingApprovalControl, SQL>> = {
   capability_activation: sql`
     select request.id, request.capability_key as name, null::int as version,
       null::text as detail, request.requested_by as requester,
-      request.requested_at, null::text as record_key
+      request.requested_at, null::text as record_key,
+      request.id as target_id, capability.row_version as target_version,
+      null::text as target_date
     from public.system_capability_requests request
+    join public.system_capabilities capability
+      on capability.capability_key = request.capability_key
     where request.status = 'pending'
       and request.requested_at > now() - interval '24 hours'`,
   channel_policy: sql`
@@ -149,13 +167,15 @@ const pendingApprovalSources: Readonly<Record<PendingApprovalControl, SQL>> = {
       (policy.terms->>'version')::int as version,
       policy.terms->>'effectiveFrom' as detail,
       policy.proposed_by as requester, policy.updated_at as requested_at,
-      null::text as record_key
+      null::text as record_key, policy.id as target_id,
+      policy.row_version as target_version, null::text as target_date
     from public.core_channel_policy_versions policy
     where policy.status = 'proposed'`,
   payg_offer: sql`
     select offer.id, offer.sku as name, offer.version, offer.region as detail,
       offer.proposed_by as requester, offer.updated_at as requested_at,
-      null::text as record_key
+      null::text as record_key, offer.id as target_id,
+      offer.row_version as target_version, null::text as target_date
     from public.core_payg_offer_versions offer
     where offer.status = 'proposed'`,
   exception_case: sql`
@@ -169,7 +189,8 @@ const pendingApprovalSources: Readonly<Record<PendingApprovalControl, SQL>> = {
           and projection.aggregate_type = 'exception_case'
           and projection.aggregate_id = exception.id
         limit 1
-      ) as record_key
+      ) as record_key, exception.id as target_id,
+      exception.row_version as target_version, null::text as target_date
     from public.exception_cases exception
     left join public.accounts account on account.id = exception.account_id
     where exception.status = 'open'
@@ -181,7 +202,8 @@ const pendingApprovalSources: Readonly<Record<PendingApprovalControl, SQL>> = {
     select plan.termination_id as id, account.legal_name as name,
       null::int as version, null::text as detail,
       plan.requested_by as requester, plan.updated_at as requested_at,
-      null::text as record_key
+      null::text as record_key, null::uuid as target_id,
+      null::int as target_version, null::text as target_date
     from public.lifecycle_offboarding_plans plan
     join public.accounts account on account.id = plan.account_id
     where plan.plan->>'status' = 'pending_approval'`,
@@ -262,6 +284,54 @@ const eventColumns = {
   actorEmail: actorColumns.email,
   accountName: accounts.legalName,
 };
+
+/** The controls a self-approval event names, as the console groups them. */
+const selfApprovalControls: Readonly<Record<string, PendingApprovalControl>> = {
+  price_book_activation: "price_book_activation",
+  tax_rule_book_activation: "tax_rule_book_activation",
+  capability_activation: "capability_activation",
+  channel_policy: "channel_policy",
+  payg_offer: "payg_offer",
+  exception_case: "exception_case",
+  termination_teardown: "termination",
+};
+
+/**
+ * One self-approval from the audit trail: who approved their own request,
+ * on which control and record, when, and why.
+ */
+export interface SelfApprovalRecord {
+  id: string;
+  occurredAt: Date;
+  actor: { userId: string; name: string; email: string } | null;
+  control: PendingApprovalControl | null;
+  /** What it was about: a price book, jurisdiction, switch, SKU or account. */
+  name: string | null;
+  version: number | null;
+  detail: string | null;
+  reason: string;
+}
+
+interface SelfApprovalRow extends Record<string, unknown> {
+  id: string;
+  occurred_at: Date | string;
+  actor_id: string | null;
+  actor_name: string | null;
+  actor_email: string | null;
+  control: string | null;
+  reason: string | null;
+  name: string | null;
+  version: number | null;
+  detail: string | null;
+}
+
+/** An exception case as the self-approval action on its page needs it. */
+export interface ExceptionRequestFacts {
+  requesterUserId: string | null;
+  status: string;
+  queue: string;
+  accountName: string | null;
+}
 
 export class OwnerConsoleRepository {
   public constructor(private readonly database: RuntimeDatabase) {}
@@ -396,7 +466,142 @@ export class OwnerConsoleRepository {
               : null,
           requestedAt: new Date(row.requested_at),
           href: pendingApprovalHref(input.control, row.record_key),
+          target:
+            row.target_id && pendingApprovalHref(input.control, null)
+              ? {
+                  id: row.target_id,
+                  version:
+                    row.target_version === null
+                      ? null
+                      : Number(row.target_version),
+                  date: row.target_date,
+                }
+              : null,
         }));
+      },
+    );
+  }
+
+  /**
+   * The most recent self-approvals, newest first, read from their
+   * `approval.self_approved` audit events, with what each was about.
+   */
+  public selfApprovals(input: {
+    limit?: number;
+    requestId: string;
+  }): Promise<SelfApprovalRecord[]> {
+    return withInternalTransaction(
+      this.database,
+      input.requestId,
+      async (tx) => {
+        const rows = await tx.execute<SelfApprovalRow>(sql`
+          select event.id, event.occurred_at,
+            actor_user.id as actor_id, actor_user.name as actor_name,
+            actor_user.email as actor_email,
+            event.after->>'control' as control,
+            event.after->>'reason' as reason,
+            subject.name, subject.version, subject.detail
+          from public.audit_events event
+          left join public.commerce_users actor_user
+            on actor_user.id::text = event.actor->>'id'
+          left join lateral (
+            select book.name, book.version, null::text as detail
+            from public.price_books book
+            where event.after->>'subjectType' = 'price_book'
+              and book.id::text = event.after->>'subjectId'
+            union all
+            select book.jurisdiction, book.version, null::text
+            from public.core_tax_rule_books book
+            where event.after->>'subjectType' = 'tax_rule_book'
+              and book.id::text = event.after->>'subjectId'
+            union all
+            select request.capability_key, null::int, null::text
+            from public.system_capability_requests request
+            where event.after->>'subjectType' = 'system_capability_request'
+              and request.id::text = event.after->>'subjectId'
+            union all
+            select null::text, (policy.terms->>'version')::int,
+              policy.terms->>'effectiveFrom'
+            from public.core_channel_policy_versions policy
+            where event.after->>'subjectType' = 'channel_policy'
+              and policy.id::text = event.after->>'subjectId'
+            union all
+            select offer.sku, offer.version, offer.region
+            from public.core_payg_offer_versions offer
+            where event.after->>'subjectType' = 'payg_offer'
+              and offer.id::text = event.after->>'subjectId'
+            union all
+            select account.legal_name, null::int, exception.queue
+            from public.exception_cases exception
+            left join public.accounts account
+              on account.id = exception.account_id
+            where event.after->>'subjectType' = 'exception_case'
+              and exception.id::text = event.after->>'subjectId'
+            union all
+            select account.legal_name, null::int, null::text
+            from public.terminations termination
+            join public.accounts account on account.id = termination.account_id
+            where event.after->>'subjectType' = 'termination'
+              and termination.id::text = event.after->>'subjectId'
+            limit 1
+          ) subject on true
+          where event.event_type = 'approval.self_approved'
+            and event.aggregate_type = 'self_approval'
+          order by event.occurred_at desc, event.id desc
+          limit ${input.limit ?? 20}
+        `);
+        return [...rows].map((row) => ({
+          id: row.id,
+          occurredAt: new Date(row.occurred_at),
+          actor:
+            row.actor_id && row.actor_name !== null
+              ? {
+                  userId: row.actor_id,
+                  name: row.actor_name,
+                  email: row.actor_email ?? "",
+                }
+              : null,
+          control: row.control
+            ? (selfApprovalControls[row.control] ?? null)
+            : null,
+          name: row.name,
+          version: row.version === null ? null : Number(row.version),
+          detail: row.detail,
+          reason: row.reason ?? "",
+        }));
+      },
+    );
+  }
+
+  /** Who raised an exception case, for the self-approval action on its page. */
+  public async exceptionRequest(input: {
+    caseId: string;
+    requestId: string;
+  }): Promise<ExceptionRequestFacts | null> {
+    return withInternalTransaction(
+      this.database,
+      input.requestId,
+      async (tx) => {
+        const [row] = await tx.execute<{
+          requester_user_id: string | null;
+          status: string;
+          queue: string;
+          account_name: string | null;
+        }>(sql`
+          select exception.requester_user_id, exception.status,
+            exception.queue, account.legal_name as account_name
+          from public.exception_cases exception
+          left join public.accounts account on account.id = exception.account_id
+          where exception.id = ${input.caseId}::uuid
+        `);
+        return row
+          ? {
+              requesterUserId: row.requester_user_id,
+              status: row.status,
+              queue: row.queue,
+              accountName: row.account_name,
+            }
+          : null;
       },
     );
   }

@@ -1,7 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { DatabaseSystemCapabilityAdmin } from "@clockwork/db";
+import { SelfApprovalDialog } from "@/src/features/internal-ops/self-approval/self-approval-dialog";
+import { approveOwnCapability } from "@/src/features/internal-ops/self-approval/actions";
 import { changeCapability, type CapabilityActionResult } from "./actions";
 import { formatSurfaceTimestamp } from "@/src/features/customer-partner/formatting";
 import { useReaderTimeZone } from "@/src/features/internal-ops/local-timestamp";
@@ -16,12 +18,27 @@ export function CapabilityControls({
   capability,
   canOperate,
   canApprove,
+  viewerUserId,
+  canApproveOwn = false,
+  subject,
 }: {
   capability: Capability;
   canOperate: boolean;
   canApprove: boolean;
+  /** The reader, to tell their own request from someone else's. */
+  viewerUserId?: string;
+  /** The reader may approve their own request (`approval:self`). */
+  canApproveOwn?: boolean;
+  /** The switch's name, worded for the reader. */
+  subject?: string;
 }) {
   const t = useTranslations();
+  const [selfApproved, setSelfApproved] = useState(false);
+  const ownPending =
+    capability.pending !== null &&
+    viewerUserId !== undefined &&
+    capability.pending.requestedBy === viewerUserId;
+  const selfApprovable = canApprove && canApproveOwn && ownPending;
   const formattingLocale = useFormattingLocale();
   const readerTimeZone = useReaderTimeZone();
   const [message, action, pending] = useActionState<
@@ -119,14 +136,39 @@ export function CapabilityControls({
         ) : null}
         {canApprove && capability.pending ? (
           <>
-            <button
-              className={styles.button}
-              name="action"
-              value="approve"
-              disabled={pending}
-            >
-              {t("adminGovernance.capabilities.approveActivation")}
-            </button>
+            {selfApprovable ? (
+              <SelfApprovalDialog
+                subject={subject ?? capability.capabilityKey}
+                disabled={pending}
+                onConfirm={async (reason) => {
+                  const pendingRequest = capability.pending;
+                  if (!pendingRequest)
+                    return {
+                      ok: false,
+                      message: t("common.selfApproval.error.generic"),
+                    };
+                  const result = await approveOwnCapability({
+                    capabilityKey: capability.capabilityKey,
+                    expectedRowVersion: capability.rowVersion,
+                    proposalId: pendingRequest.id,
+                    reason,
+                  });
+                  if (!result.ok)
+                    return { ok: false, message: t(result.message) };
+                  setSelfApproved(true);
+                  return { ok: true };
+                }}
+              />
+            ) : (
+              <button
+                className={styles.button}
+                name="action"
+                value="approve"
+                disabled={pending}
+              >
+                {t("adminGovernance.capabilities.approveActivation")}
+              </button>
+            )}
             <button
               className={styles.button}
               name="action"
@@ -148,6 +190,12 @@ export function CapabilityControls({
           </button>
         ) : null}
       </div>
+      {selfApprovable && !selfApproved ? (
+        <p>{t("common.selfApproval.notice")}</p>
+      ) : null}
+      {selfApproved ? (
+        <p role="status">{t("common.selfApproval.done")}</p>
+      ) : null}
       {message ? <p role="status">{t(message)}</p> : null}
     </form>
   );

@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
 
+import {
+  assertDistinctOrSelfApproved,
+  type CheckedSelfApproval,
+} from "../self-approval";
+
 /**
  * The ten queues spec §16 tabulates. §16 is the source of truth for this half:
  * every row there has a named owner, a distinct backup and a response target,
@@ -303,6 +308,8 @@ export interface ExceptionDecision {
   evidenceDocumentId: string;
   evidenceHash: string;
   decidedAt: string;
+  /** The requester approved their own case under `approval:self`. */
+  selfApproved?: boolean | undefined;
 }
 
 export function openExceptionCase(input: {
@@ -336,17 +343,32 @@ export function openExceptionCase(input: {
 
 export function decideException(
   exceptionCase: ExceptionCase,
-  input: Omit<ExceptionDecision, "decisionId" | "evidenceHash"> & {
+  input: Omit<
+    ExceptionDecision,
+    "decisionId" | "evidenceHash" | "selfApproved"
+  > & {
     evidenceBytes: Uint8Array;
+    /**
+     * The requester approves their own case under `approval:self`. The
+     * caller has checked the authority; this records it.
+     */
+    selfApproval?: CheckedSelfApproval;
   },
 ): ExceptionCase {
   if (exceptionCase.status !== "open")
     throw new Error("EXCEPTION_ALREADY_DECIDED");
-  if (
-    exceptionCase.separationRequired &&
-    input.actorId === exceptionCase.requestedBy
-  )
-    throw new Error("EXCEPTION_SELF_APPROVAL_FORBIDDEN");
+  if (input.selfApproval && input.outcome !== "approved")
+    throw new Error("SELF_APPROVAL_APPROVE_ONLY");
+  const selfApproved = assertDistinctOrSelfApproved({
+    deciderId: input.actorId,
+    // Without separation a requester decides their own case as before.
+    requesterIds:
+      exceptionCase.separationRequired || input.selfApproval
+        ? [exceptionCase.requestedBy]
+        : [],
+    selfApproval: input.selfApproval,
+    distinctError: "EXCEPTION_SELF_APPROVAL_FORBIDDEN",
+  });
   if (
     ![
       exceptionCase.ownerId,
@@ -375,6 +397,7 @@ export function decideException(
     evidenceDocumentId: input.evidenceDocumentId,
     evidenceHash,
     decidedAt: input.decidedAt,
+    ...(selfApproved ? { selfApproved: true } : {}),
   };
   return {
     ...exceptionCase,

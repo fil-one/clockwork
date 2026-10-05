@@ -1,4 +1,8 @@
 import type { Permission, Role } from "@clockwork/contracts";
+import {
+  assertDistinctOrSelfApproved,
+  type CheckedSelfApproval,
+} from "@clockwork/domain";
 
 import type { SystemCapabilityKey } from "./capabilities";
 
@@ -22,6 +26,10 @@ export function capabilityApprovalPermission(
       : "quote:approve";
 }
 
+/**
+ * Whether an approval may turn the switch on. Returns true when it is the
+ * requester's own approval under `approval:self`, which the caller records.
+ */
 export function assertCapabilityDecision(input: {
   requestedBy: string;
   actorId: string;
@@ -29,12 +37,18 @@ export function assertCapabilityDecision(input: {
   now: Date;
   baseVersion: number;
   currentVersion: number;
-}) {
-  if (input.requestedBy === input.actorId)
-    throw new Error("CAPABILITY_DISTINCT_APPROVER_REQUIRED");
+  selfApproval?: CheckedSelfApproval;
+}): boolean {
+  const selfApproved = assertDistinctOrSelfApproved({
+    deciderId: input.actorId,
+    requesterIds: [input.requestedBy],
+    selfApproval: input.selfApproval,
+    distinctError: "CAPABILITY_DISTINCT_APPROVER_REQUIRED",
+  });
   const age = input.now.getTime() - input.requestedAt.getTime();
   if (!Number.isFinite(age) || age < 0 || age > 24 * 60 * 60 * 1000)
     throw new Error("CAPABILITY_REQUEST_EXPIRED");
   if (input.baseVersion !== input.currentVersion)
     throw new Error("CAPABILITY_VERSION_CONFLICT");
+  return selfApproved;
 }

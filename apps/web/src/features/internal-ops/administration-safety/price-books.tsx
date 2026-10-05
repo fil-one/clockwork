@@ -27,6 +27,11 @@ import {
 } from "@/src/features/contracts/commerce-client";
 import { formatDate } from "@/src/features/shared/format";
 import { useReaderTimeZone } from "../local-timestamp";
+import {
+  selfApprovalErrorMessage,
+  type SelfApprovalOutcome,
+} from "../self-approval/model";
+import { SelfApprovalDialog } from "../self-approval/self-approval-dialog";
 import type {
   PriceBookAvailability,
   PriceBookSource,
@@ -170,6 +175,27 @@ function decisionsFor(
   ];
 }
 
+/**
+ * The approval a commerce administrator may give their own activation
+ * request: activate an effective draft, or schedule a future one.
+ */
+function selfApprovalFor(
+  book: PriceBookAdministrationRecord,
+  userId: string,
+  today: string,
+): "activate" | "schedule_activation" | undefined {
+  if (
+    book.status !== "draft" ||
+    book.activationRequestedBy !== userId ||
+    book.activationSchedule?.status === "approved"
+  )
+    return undefined;
+  if (book.effectiveFrom > today) return "schedule_activation";
+  return !book.effectiveTo || book.effectiveTo >= today
+    ? "activate"
+    : undefined;
+}
+
 function bookTitle(
   book: Pick<PriceBookAdministrationRecord, "name" | "version">,
   t: Translator,
@@ -305,6 +331,8 @@ export function PriceBookAdministration({
   >([]);
   const [authoringMessage, setAuthoringMessage] = useState("");
   const permitted = canDecide(permissions, "finance");
+  // A commerce administrator may approve an activation they requested.
+  const canSelfApprove = permitted && permissions.includes("approval:self");
   const authoringAvailable =
     permitted && availability !== "unavailable" && !refreshPending && !pending;
   const today = readAt.slice(0, 10);
@@ -384,8 +412,20 @@ export function PriceBookAdministration({
       ? priceBookEconomicDiff(selected, incumbent, t, formattingLocale)
       : [];
   const cancelling = selected?.activationSchedule?.status === "approved";
+  const selfApproval =
+    selected && canSelfApprove && !otherSchedule
+      ? selfApprovalFor(selected, userId, today)
+      : undefined;
 
-  async function submit(action: Decision) {
+  /**
+   * Records a decision. With `selfApprovalReason` it is the requester
+   * approving their own request: the reason typed in the dialog is the
+   * decision's reason too, and the server records the self-approval.
+   */
+  async function submit(
+    action: Decision,
+    selfApprovalReason?: string,
+  ): Promise<SelfApprovalOutcome> {
     if (
       !selected ||
       !summary ||
@@ -394,7 +434,10 @@ export function PriceBookAdministration({
       refreshPending ||
       authoringPending
     )
-      return;
+      return {
+        ok: false,
+        message: t("adminPricing.priceBooks.activation.stale"),
+      };
     setPending(true);
     setOutcome(null);
     try {
@@ -403,26 +446,38 @@ export function PriceBookAdministration({
         id: selected.id,
         action,
         expectedVersion: summary.rowVersion,
-        payload: { reason: summary.value.reason },
+        payload:
+          selfApprovalReason === undefined
+            ? { reason: summary.value.reason }
+            : { reason: selfApprovalReason, selfApproval: true },
       });
-      setOutcome({ tone: "done", message: t(decisionCopy[action].outcome) });
+      setOutcome({
+        tone: "done",
+        message: t(
+          selfApprovalReason === undefined
+            ? decisionCopy[action].outcome
+            : "common.selfApproval.done",
+        ),
+      });
       setReason("");
       refreshAfterMutation(
         selected.id,
         saved?.record?.rowVersion ?? selected.rowVersion + 1,
       );
+      return { ok: true };
     } catch (error) {
-      setOutcome({
-        tone: "problem",
-        message:
-          error instanceof CommerceApiError && error.code === "conflict"
-            ? t("adminPricing.priceBooks.activation.stale")
+      const message =
+        error instanceof CommerceApiError && error.code === "conflict"
+          ? t("adminPricing.priceBooks.activation.stale")
+          : selfApprovalReason !== undefined
+            ? t(selfApprovalErrorMessage(error))
             : commerceErrorText(
                 error,
                 t,
                 "adminPricing.priceBooks.activation.failed",
-              ),
-      });
+              );
+      setOutcome({ tone: "problem", message });
+      return { ok: false, message };
     } finally {
       setPending(false);
     }
@@ -1491,7 +1546,9 @@ export function PriceBookAdministration({
                 <strong>
                   {t("adminPricing.priceBooks.activation.awaitingSecondTitle")}
                 </strong>
-                {t("adminPricing.priceBooks.activation.awaitingSecondBody")}
+                {canSelfApprove
+                  ? t("common.selfApproval.notice")
+                  : t("adminPricing.priceBooks.activation.awaitingSecondBody")}
               </div>
             ) : null}
             {otherSchedule ? (
@@ -1798,6 +1855,18 @@ export function PriceBookAdministration({
                     </p>
                   </div>
                 ))
+              ) : selfApproval ? (
+                <div className={styles.actions}>
+                  <SelfApprovalDialog
+                    subject={bookTitle(selected, t)}
+                    initialReason={summary.value.reason}
+                    disabled={!permitted || pending || authoringPending}
+                    onConfirm={(selfReason) => submit(selfApproval, selfReason)}
+                  />
+                  <p className={styles.resultMeta}>
+                    {t(decisionCopy[selfApproval].hint)}
+                  </p>
+                </div>
               ) : (
                 <p className={styles.resultMeta}>
                   {t("adminPricing.priceBooks.activation.noDecision")}

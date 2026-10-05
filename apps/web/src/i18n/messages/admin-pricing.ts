@@ -5960,4 +5960,14 @@ export const adminPricingMessages = defineMessages({
     zh: "演示环境无法记录此价目表更改。",
     ar: "تعذّر على العرض التوضيحي تسجيل هذا التغيير في قائمة الأسعار.",
   },
+  "adminPricing.payg.selfApprovalSubject": {
+    en: "{name}, version {version}",
+    es: "{name}, versión {version}",
+    fr: sameAsEnglish("{name}, version {version}"),
+    de: "{name}, Version {version}",
+    ja: "{name}（バージョン {version}）",
+    pt: "{name}, versão {version}",
+    zh: "{name}，版本 {version}",
+    ar: "{name}، الإصدار {version}",
+  },
 });

@@ -11,7 +11,9 @@ An internal operator requests activation of either new work or recovery work,
 with a reason and an evidence reference. The request freezes the capability
 version, scope, requester, and evidence. A different finance approver approves
 commercial capabilities; legal and teardown require a legal approver and a
-destructive-action approver respectively. Requests expire after 24 hours.
+destructive-action approver respectively. A commerce administrator may instead
+approve their own request with a written reason; see
+[approving your own request](self-approval.md). Requests expire after 24 hours.
 Rejected or canceled requests remain persisted; the audit/outbox ledger records
 proposals, decisions, and shutdowns. Refresh after a version conflict.
 

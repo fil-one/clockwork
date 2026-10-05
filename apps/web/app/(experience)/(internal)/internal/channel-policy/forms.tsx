@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useId } from "react";
+import { useActionState, useId, useState } from "react";
 import type {
   ChannelPolicyRecord,
   ChannelPolicyTerms,
@@ -8,7 +8,9 @@ import { Button } from "@clockwork/ui";
 import { styles } from "@/src/features/internal-ops/administration-safety/ui";
 import type { MessageId } from "@/src/i18n";
 import { useTranslations } from "@/src/i18n/client";
+import { SelfApprovalDialog } from "@/src/features/internal-ops/self-approval/self-approval-dialog";
 import layout from "./channel-policy.module.css";
+import { approveOwnChannelPolicy } from "@/src/features/internal-ops/self-approval/actions";
 import { changeChannelPolicy, type ChannelPolicyResult } from "./actions";
 const controls = [
   ["version", "adminGovernance.channelPolicy.field.version", 1, 1],
@@ -139,14 +141,68 @@ export function ChannelTermsForm({
     </form>
   );
 }
+/**
+ * "Approve my own request" for a version the reader wrote or proposed: a
+ * commerce administrator approves it with a reason and the approval evidence
+ * the ordinary approval needs.
+ */
+function OwnChannelPolicyApproval({ record }: { record: ChannelPolicyRecord }) {
+  const t = useTranslations();
+  const evidenceId = useId();
+  const [evidence, setEvidence] = useState("");
+  const [done, setDone] = useState(false);
+  return (
+    <div>
+      <p>{t("common.selfApproval.notice")}</p>
+      <SelfApprovalDialog
+        subject={t("adminGovernance.channelPolicy.selfApprovalSubject", {
+          version: record.terms.version,
+        })}
+        ready={evidence.trim().length >= 8}
+        onConfirm={async (reason) => {
+          const result = await approveOwnChannelPolicy({
+            id: record.id,
+            expectedRowVersion: record.rowVersion,
+            reason,
+            approvalEvidence: evidence.trim(),
+          });
+          if (!result.ok) return { ok: false, message: t(result.message) };
+          setDone(true);
+          return { ok: true };
+        }}
+      >
+        <label className={styles.field} htmlFor={evidenceId}>
+          {t("common.selfApproval.evidence.policy")}
+          <input
+            id={evidenceId}
+            value={evidence}
+            required
+            minLength={8}
+            maxLength={2000}
+            aria-describedby={`${evidenceId}-help`}
+            onChange={(event) => setEvidence(event.target.value)}
+          />
+          <span id={`${evidenceId}-help`}>
+            {t("common.selfApproval.evidence.policyHelp")}
+          </span>
+        </label>
+      </SelfApprovalDialog>
+      {done ? <p role="status">{t("common.selfApproval.done")}</p> : null}
+    </div>
+  );
+}
+
 export function ChannelDecisionForm({
   record,
   action: decision,
   allowed,
+  selfApprovable = false,
 }: {
   record: ChannelPolicyRecord;
   action: "propose" | "approve" | "reject";
   allowed: boolean;
+  /** The reader may approve this version, which is their own, themselves. */
+  selfApprovable?: boolean;
 }) {
   const t = useTranslations();
   const [message, action, pending] = useActionState<
@@ -210,7 +266,9 @@ export function ChannelDecisionForm({
           </Button>
         </div>
       </fieldset>
-      {!allowed ? (
+      {!allowed && decision === "approve" && selfApprovable ? (
+        <OwnChannelPolicyApproval record={record} />
+      ) : !allowed ? (
         <p>{t("adminGovernance.channelPolicy.decision.otherApprover")}</p>
       ) : null}
       {message ? <p role="status">{t(message)}</p> : null}
