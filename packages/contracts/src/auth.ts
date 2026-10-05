@@ -60,9 +60,23 @@ export const permissions = [
   // The operations workspace: queues, provisioning, billing, reports and the
   // platform tools. Sellers work in the sales workspace and do not hold it.
   "operations:read",
-  // Invite Fil One staff, change their role and deactivate them. Held by the
+  // Invite Fil One staff, change their roles and deactivate them. Held by the
   // commerce administrator only.
   "staff:manage",
+  // Decide a request one raised oneself, on the record: a written reason, a
+  // verified second factor, an `approval.self_approved` audit event and a
+  // notice to every other administrator. Everyone else needs a second person.
+  "approval:self",
+  // Work the operations queues and records: exceptions, provisioning,
+  // recovery and the operational projections.
+  "operations:write",
+  // The full activity history of the accounts a person can reach, and adding
+  // to it as their work requires. A finance approver holds neither: it reads
+  // and records only its own activity and the finance records it decides.
+  "audit:read",
+  "audit:append",
+  // Register a deal with Fil One. Referral and channel partners both do.
+  "deal:register",
 ] as const;
 
 export const PermissionSchema = z.enum(permissions);
@@ -83,6 +97,8 @@ export const rolePermissions = {
     "poc:manage",
     "report:read",
     "destructive:request",
+    "audit:read",
+    "audit:append",
   ],
   admin: [
     "account:read",
@@ -97,6 +113,8 @@ export const rolePermissions = {
     "poc:manage",
     "report:read",
     "destructive:request",
+    "audit:read",
+    "audit:append",
   ],
   billing: [
     "account:read",
@@ -105,6 +123,8 @@ export const rolePermissions = {
     "billing:read",
     "billing:write",
     "report:read",
+    "audit:read",
+    "audit:append",
   ],
   member: [
     "account:read",
@@ -112,6 +132,8 @@ export const rolePermissions = {
     "quote:read",
     "order:read",
     "billing:read",
+    "audit:read",
+    "audit:append",
   ],
   partner_admin: [
     "account:read",
@@ -125,6 +147,9 @@ export const rolePermissions = {
     "billing:read",
     "partner:portfolio:read",
     "poc:manage",
+    "deal:register",
+    "audit:read",
+    "audit:append",
   ],
   partner_seller: [
     "account:read",
@@ -132,6 +157,9 @@ export const rolePermissions = {
     "partner:quote:write",
     "order:read",
     "partner:portfolio:read",
+    "deal:register",
+    "audit:read",
+    "audit:append",
   ],
   internal_operator: [
     "account:read",
@@ -154,6 +182,9 @@ export const rolePermissions = {
     "contract:write",
     "sales:read",
     "operations:read",
+    "operations:write",
+    "audit:read",
+    "audit:append",
   ],
   finance_approver: [
     "account:read",
@@ -180,6 +211,8 @@ export const rolePermissions = {
     "contract:approve",
     "sales:read",
     "operations:read",
+    "audit:read",
+    "audit:append",
   ],
   destructive_action_approver: [
     "account:read",
@@ -187,6 +220,8 @@ export const rolePermissions = {
     "system:operate",
     "destructive:approve",
     "operations:read",
+    "audit:read",
+    "audit:append",
   ],
   revenue: [
     "account:read",
@@ -197,9 +232,13 @@ export const rolePermissions = {
     "contract:read",
     "contract:write",
     "sales:read",
+    "audit:read",
+    "audit:append",
   ],
+  // Every internal permission. The partner-only permissions stay with partners.
   commerce_admin: permissions.filter(
-    (permission) => permission !== "partner:quote:write",
+    (permission) =>
+      permission !== "partner:quote:write" && permission !== "deal:register",
   ),
 } as const satisfies Record<Role, readonly Permission[]>;
 
@@ -224,65 +263,134 @@ export const internalRoles = [
   "commerce_admin",
 ] as const satisfies readonly Role[];
 
+/**
+ * Which side of the business an organization is on. Fil One staff work in the
+ * `fil_one` organization; customers, channel partners (resale, MSP,
+ * distribution, white label and marketplace) and referral partners each have
+ * their own. The side decides which roles its members may hold and which
+ * portal they see.
+ */
+export const organizationSides = [
+  "fil_one",
+  "customer",
+  "channel_partner",
+  "referral_partner",
+] as const;
+export const OrganizationSideSchema = z.enum(organizationSides);
+export type OrganizationSide = z.infer<typeof OrganizationSideSchema>;
+
+/** The roles a member of an organization on each side may hold. */
+export const sideRoles = {
+  fil_one: internalRoles,
+  customer: ["owner", "admin", "billing", "member"],
+  channel_partner: ["partner_admin", "partner_seller"],
+  referral_partner: ["partner_admin", "partner_seller"],
+} as const satisfies Record<OrganizationSide, readonly Role[]>;
+
+/**
+ * Permissions a side never confers, whatever its roles carry. A referral
+ * partner introduces customers who then contract with Fil One directly, so it
+ * registers deals but never prices or resells: the partner quote belongs to
+ * channel partners.
+ */
+export const sideWithheldPermissions = {
+  fil_one: [],
+  customer: [],
+  channel_partner: [],
+  referral_partner: ["partner:quote:write"],
+} as const satisfies Record<OrganizationSide, readonly Permission[]>;
+
+/** Whether a role may be held by a member of an organization on `side`. */
+export function roleAllowedOnSide(role: Role, side: OrganizationSide): boolean {
+  return (sideRoles[side] as readonly Role[]).includes(role);
+}
+
+/**
+ * Permissions an assisted session never carries. Acting inside someone else's
+ * account is for helping them; deciding approvals, managing staff, changing
+ * who signs for Fil One and approving one's own request all wait until the
+ * staff member is back in their own session.
+ */
+export const assistedSessionWithheldPermissions = [
+  "agreement:approve",
+  "quote:approve",
+  "billing:approve",
+  "contract:approve",
+  "destructive:approve",
+  "signatory:manage",
+  "staff:manage",
+  "approval:self",
+] as const satisfies readonly Permission[];
+
 export function hasPermission(role: Role, permission: Permission): boolean {
   return (rolePermissions[role] as readonly Permission[]).includes(permission);
 }
 
 /**
- * The internal roles a commerce administrator acts as. A membership holds one
- * role, but much of the platform still asks for a role by name (a finance
- * approver approves a price book, an operator replays a webhook), and the
- * signed database claims test role names too. Expanding the administrator into
- * these roles where a session is built lets every one of those checks hold
- * without a second list to keep in step.
- *
- * Two-person rules are unaffected: they compare the requesting and deciding
- * users, never their roles, so one administrator still cannot approve their
- * own request.
+ * The permissions a set of roles confers: the union of the roles' bundles,
+ * less what the organization's side withholds and, inside an assisted
+ * session, less the approver permissions. Returned in the canonical order of
+ * `permissions`. Unknown role names confer nothing.
  */
-export const commerceAdminActsAs = [
-  "internal_operator",
-  "finance_approver",
-  "legal_approver",
-  "destructive_action_approver",
-] as const satisfies readonly Role[];
-
-/**
- * The roles a session carries for the roles its memberships grant. The granted
- * role stays first, so anything that records "the" role records the one the
- * person was given.
- */
-export function sessionRolesFor(granted: readonly Role[]): Role[] {
-  const expanded: Role[] = [];
-  const add = (role: Role) => {
-    if (!expanded.includes(role)) expanded.push(role);
-  };
-  for (const role of granted) {
-    add(role);
-    if (role === "commerce_admin") commerceAdminActsAs.forEach(add);
-  }
-  return expanded;
+export function permissionsForRoles(
+  grantedRoles: readonly string[],
+  options: { side?: OrganizationSide; assisted?: boolean } = {},
+): Permission[] {
+  const withheld = new Set<Permission>([
+    ...(options.side ? sideWithheldPermissions[options.side] : []),
+    ...(options.assisted ? assistedSessionWithheldPermissions : []),
+  ]);
+  return permissions.filter(
+    (permission) =>
+      !withheld.has(permission) &&
+      grantedRoles.some(
+        (role) =>
+          (roles as readonly string[]).includes(role) &&
+          hasPermission(role as Role, permission),
+      ),
+  );
 }
 
-/**
- * The stored membership roles that satisfy a check for `role`, for checks that
- * read a membership row rather than a session (for example "is the approver of
- * record still a finance approver").
- */
-export function membershipRolesActingAs(role: Role): Role[] {
-  return (commerceAdminActsAs as readonly Role[]).includes(role)
-    ? [role, "commerce_admin"]
-    : [role];
-}
-
-/** Whether any of a session's roles grants `permission`. */
+/** Whether any of a set of roles grants `permission`. */
 export function rolesHavePermission(
-  sessionRoles: readonly string[],
+  grantedRoles: readonly string[],
   permission: Permission,
 ): boolean {
-  return sessionRoles.some(
-    (role) =>
-      (roles as readonly string[]).includes(role) &&
-      hasPermission(role as Role, permission),
+  return permissionsForRoles(grantedRoles).includes(permission);
+}
+
+/**
+ * The permissions a session or authorization context holds. A context built
+ * by the server carries them; one that does not (an older test fixture, a
+ * local persona) gets the same answer from its roles, less the approver
+ * permissions when it is an assisted session.
+ */
+export function contextPermissions(context: {
+  readonly roles: readonly string[];
+  readonly permissions?: readonly Permission[] | undefined;
+  readonly impersonation?: unknown;
+}): readonly Permission[] {
+  return (
+    context.permissions ??
+    permissionsForRoles(context.roles, {
+      assisted: Boolean(context.impersonation),
+    })
   );
+}
+
+/** Whether a session or authorization context holds `permission`. */
+export function contextHasPermission(
+  context: Parameters<typeof contextPermissions>[0],
+  permission: Permission,
+): boolean {
+  return contextPermissions(context).includes(permission);
+}
+
+/** Whether a session or authorization context holds any of `candidates`. */
+export function contextHasAnyPermission(
+  context: Parameters<typeof contextPermissions>[0],
+  candidates: readonly Permission[],
+): boolean {
+  const held = contextPermissions(context);
+  return candidates.some((permission) => held.includes(permission));
 }
