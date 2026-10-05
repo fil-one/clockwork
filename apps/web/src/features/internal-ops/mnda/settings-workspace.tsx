@@ -65,6 +65,20 @@ export function MndaSettingsWorkspace({
         version: data.settings.version,
       });
       if (!result.ok) {
+        if (result.code === "settings_conflict") {
+          // Someone saved first: show their value and keep this draft typed in.
+          const latest = await loadMndaSettings();
+          if (latest.ok) {
+            setData(latest.value);
+            setMessage({
+              tone: "danger",
+              text: t("operations.mnda.settings.changedElsewhere", {
+                email: latest.value.settings.noticeEmail,
+              }),
+            });
+            return;
+          }
+        }
         setNoticeError(result.fields?.[0]?.code ?? result.code);
         return;
       }

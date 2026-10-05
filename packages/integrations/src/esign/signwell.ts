@@ -37,6 +37,10 @@ const documentSchema = z.object({
     ),
   ),
   apply_signing_order: z.boolean(),
+  copied_contacts: z
+    .array(z.object({ email: z.string() }))
+    .nullable()
+    .optional(),
 });
 export type SignWellDocument = z.infer<typeof documentSchema>;
 export interface MndaSigningProvider {
@@ -122,13 +126,7 @@ export class SignWellClient implements MndaSigningProvider {
         email: r.countersigner.email,
       },
     ];
-    // The sender gets the completed agreement by email. Recipients already
-    // receive it, so a sender who also countersigns is not copied twice.
-    const copied =
-      r.ownerEmail &&
-      !recipients.some((recipient) => recipient.email === r.ownerEmail)
-        ? [{ name: r.ownerName, email: r.ownerEmail }]
-        : [];
+    const copied = signWellCopiedContacts(r);
     return this.document("documents", "POST", {
       draft: true,
       test_mode: r.testMode,
@@ -156,6 +154,8 @@ export class SignWellClient implements MndaSigningProvider {
   get(id: string) {
     return this.document(`documents/${z.uuid().parse(id)}`);
   }
+  /** SignWell's update-and-send request has no copied-contacts field; the
+   * copy is set on the draft and checked before sending. */
   async send(id: string, testMode: boolean) {
     await this.request(`documents/${z.uuid().parse(id)}/send`, "POST", {
       test_mode: testMode,
@@ -188,6 +188,37 @@ export class SignWellClient implements MndaSigningProvider {
       throw new Error("SIGNWELL_INVALID_PDF");
     return bytes;
   }
+}
+/** The sender receives the completed agreement by email. Recipients already
+ * do, so a sender who also signs is not copied twice. */
+export function signWellCopiedContacts(r: MndaRecord) {
+  const recipients = [mndaSignerEmail(r), r.countersigner.email];
+  return r.ownerEmail && !recipients.includes(r.ownerEmail)
+    ? [{ name: r.ownerName, email: r.ownerEmail }]
+    : [];
+}
+/** Before delivery: the draft must copy exactly the expected contacts, so a
+ * sender is never silently left out of the completion email. */
+export function assertSignWellCopiedContacts(
+  doc: SignWellDocument,
+  record: MndaRecord,
+) {
+  const actual = (doc.copied_contacts ?? [])
+    .map((c) => c.email.toLowerCase())
+    .sort();
+  const expected = signWellCopiedContacts(record)
+    .map((c) => c.email)
+    .sort();
+  if (JSON.stringify(actual) !== JSON.stringify(expected))
+    throw new Error("SIGNWELL_COPIED_CONTACTS_MISMATCH");
+}
+/** Whether a failed call certainly changed nothing at SignWell: a 4xx refusal.
+ * Timeouts, 5xx and unreadable responses may have been applied. */
+export function signWellRefused(error: unknown): boolean {
+  const status = /^SIGNWELL_HTTP_(\d{3})$/.exec(
+    error instanceof Error ? error.message : "",
+  )?.[1];
+  return Boolean(status?.startsWith("4") && status !== "408");
 }
 /** Partner-facing. In the partner-completes mode the company field is only an
  * internal reference, so it is never shown to the partner. */
@@ -236,17 +267,20 @@ export function signWellState(
     (record.providerId && doc.id !== record.providerId)
   )
     throw new Error("SIGNWELL_BINDING_MISMATCH");
-  // A corrected partner email is written before SignWell confirms it, so
-  // either the original or the corrected address identifies the partner.
+  // A partner email change is recorded before SignWell confirms it, so the
+  // original, the last confirmed correction and a pending one all identify
+  // the partner until the next successful refresh settles it.
   const partnerEmail = doc.recipients
     .find((r) => r.id === "counterparty")
     ?.email.toLowerCase();
   if (
     doc.recipients.length !== 2 ||
     !partnerEmail ||
-    ![record.input.signerEmail, mndaSignerEmail(record)].includes(
-      partnerEmail,
-    ) ||
+    ![
+      record.input.signerEmail,
+      record.correctedSignerEmail,
+      record.pendingSignerEmail,
+    ].includes(partnerEmail) ||
     doc.recipients.find((r) => r.id === "fil-one")?.email.toLowerCase() !==
       record.countersigner.email
   )

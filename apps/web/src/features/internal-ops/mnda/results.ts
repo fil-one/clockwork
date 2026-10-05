@@ -18,8 +18,10 @@ const known: Record<string, { code: MndaErrorCode; field?: string }> = {
   MNDA_NOT_PENDING: { code: "not_pending" },
   MNDA_VOID_REQUIRED: { code: "not_pending" },
   MNDA_IDEMPOTENCY_CONFLICT: { code: "conflict" },
-  MNDA_SETTINGS_CHANGED: { code: "conflict" },
-  MNDA_SETTINGS_CONFLICT: { code: "conflict" },
+  MNDA_SETTINGS_CHANGED: { code: "settings_changed" },
+  MNDA_SETTINGS_CONFLICT: { code: "settings_conflict" },
+  MNDA_NOT_OWNER: { code: "not_owner" },
+  MNDA_NOT_VOIDABLE: { code: "not_voidable" },
   MNDA_DISTINCT_SIGNERS_REQUIRED: {
     code: "same_as_countersigner",
     field: "signerEmail",

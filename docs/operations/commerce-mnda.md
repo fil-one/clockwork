@@ -18,6 +18,12 @@ with MFA and no assisted, impersonated or demo context. A session without MFA
 sees a prompt to verify its sign-in; a session without the permission sees a
 named access page.
 
+Voiding, discarding or editing a draft, and fixing the partner email, are
+limited to the person who prepared the MNDA or a commerce administrator. Anyone
+with `mnda:send` can remind, refresh, download and duplicate. Every PDF download
+is audited as `mnda.pdf_downloaded` and every export as `mnda.register_exported`
+with its filters and row count.
+
 ## Preparing and previewing
 
 The form asks for the partner signer first, then the company, then **Known
@@ -34,12 +40,15 @@ countersigner's, or a malformed email), and the first problem receives focus.
 The preview lists the partner, countersigner, notice email, effective date and
 the details the partner will fill in. **Edit details** reopens the filled form.
 The next preview replaces the previous unsent draft, which moves to **Closed**
-as "Replaced by an edited draft". **Discard draft** closes a draft that will not
-be sent.
+as "Replaced by an edited draft". If the notice email changes while a seller is
+working, the preview is refused with a message to prepare it again. **Discard
+draft** closes a draft that will not be sent.
 
 When the legal name matches an existing MNDA that is not voided (ignoring case,
 accents, punctuation and a trailing suffix such as Inc. or LLC), the form and
 preview show the existing MNDA's status, date and preparer with a link to it.
+The database keeps the normalized name (`normalized_company`, computed by
+`commerce_mnda_normalize_company`) so stored names and lookups always agree.
 
 ## The agreement
 
@@ -84,15 +93,18 @@ Add `&mine=1` for the signed-in seller's own MNDAs, `q=` for a search and
 
 Each row shows the sent date and the days outstanding while the MNDA is open.
 **Needs attention** rows say why and what to do: a bounced partner email ("Fix
-the email and SignWell sends it again") or a request SignWell stopped ("Void it,
-then send it again"). A send that did not finish says so; **Continue** opens its
+the email and SignWell sends it again"), a request SignWell stopped ("Void it,
+then send it again"), or a document deleted directly in SignWell ("Void it here
+to close it"). A send that did not finish says so; **Continue** opens its
 preview and sending again never creates a second SignWell request.
 
 **Export CSV** downloads the filtered register (company, partner signer and
 email, status, countersigner, preparer, created, sent, days outstanding,
 completed, effective date, test mode, void reason, request ID). PDFs download as
 `Fil-One-MNDA_<Company>_<date>_draft.pdf` (effective date) or `..._signed.pdf`
-(completion date).
+(completion date). An export stops at the newest 10,000 matching MNDAs; the page
+says so above the register when more match, and the response carries
+`x-mnda-export-truncated: true`.
 
 The open page refreshes every 15 seconds while the tab is visible. **Refresh**
 on a row reconciles a missed callback. SignWell sends automatic reminders, and
@@ -104,17 +116,27 @@ countersigner once the partner has signed. Manual reminders are a minute apart.
 - **Fix email** replaces a bounced or mistyped partner email while the partner
   has not started signing. SignWell sends the request to the new address
   (`PATCH /documents/{id}/recipients`); the signer's name stays, because it may
-  be printed in the agreement. The change is audited as `mnda.signer_corrected`.
-- **Someone else will sign** voids the MNDA with that reason and opens a new
-  draft with the same company details and a blank signer.
-- **Void** asks for a reason, re-reads the request in SignWell, and deletes it
-  there (`DELETE /documents/{id}`), which stops signing. If both sides already
-  signed, nothing is voided and the signed copy is kept. Commerce keeps the
-  original PDF, the record and the reason, audited as `mnda.voided`.
+  be printed in the agreement. The new address is recorded as pending first. A
+  clear SignWell refusal (4xx) drops it. If the answer is lost (timeout or 5xx),
+  Commerce reads the document back and keeps whatever SignWell shows; if that
+  read also fails, the pending address stays accepted until the next successful
+  refresh settles it. Audited as `mnda.signer_correction_requested` and
+  `mnda.signer_corrected` (or `..._refused`, `..._dropped`).
+- **Someone else will sign** voids the MNDA (recorded as a signer change, shown
+  in each reader's language) and opens a new draft with the same company details
+  and a blank signer.
+- **Void** is available for drafts, sent and opened MNDAs and those needing
+  attention, never once the partner has signed. It asks for a reason, re-reads
+  the request in SignWell, and deletes it there (`DELETE /documents/{id}`),
+  which stops signing. If the partner signed in the meantime the void is
+  refused; if both sides signed, the signed copy is kept. When the delete's
+  answer is lost, Commerce reads the document back: gone means the void is
+  recorded with its reason. Commerce keeps the original PDF, the record and the
+  reason, audited as `mnda.voided`.
 - **Send again** (closed MNDAs) and **Duplicate** (open ones) start a new draft
   prefilled from the row, dated today.
-- A request deleted in SignWell directly closes as "Deleted in SignWell" on the
-  next refresh or callback, instead of failing every callback.
+- A document deleted directly in SignWell (404 on two reads) moves to **Needs
+  attention**; a person voids it. It is never closed automatically.
 
 ## Completion notices
 
@@ -122,7 +144,11 @@ The sender is a SignWell copied contact (`copied_contacts`) on every new
 request, so SignWell emails the sender the completed agreement when both sides
 have signed. The countersigner and partner receive it as recipients. A sender
 who is also the countersigner is not copied twice. No Commerce email is sent.
-Requests created before this change have no copied contact.
+Before sending, Commerce checks that the SignWell draft carries exactly the
+expected copied contact and refuses to send otherwise. SignWell's
+update-and-send request has no copied-contacts field, so the contact is set only
+when the draft is created. Requests created before this change have no copied
+contact.
 
 ## MNDA settings
 

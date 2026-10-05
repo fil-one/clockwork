@@ -142,9 +142,11 @@ function measure(text: string, fontSize: number): number {
 
 /**
  * Wraps a word too wide for its column (a long email, URL or single-word
- * name) at line feeds, preferring the points after @ . / _ and -, so it never
- * runs past the margin. Words that fit are left alone; react-pdf breaks only
- * at spaces, and a hyphenation break would add a hyphen to an email.
+ * name) at line feeds, preferring the points after @ . / and _, so it never
+ * runs past the margin. Words that fit are left alone. A line feed is the
+ * cleanest break react-pdf offers: a hyphenation point draws a hyphen into
+ * the address, and an invisible break character changes nothing in extracted
+ * text, which follows the printed lines either way.
  */
 export function mndaBreakable(
   value: string,
@@ -156,11 +158,13 @@ export function mndaBreakable(
     .split(" ")
     .map((word) => {
       if (measure(word, fontSize) <= room) return word;
+      const fits = (piece: string) => measure(piece, fontSize) <= room;
+      // A break after a hyphen is a last resort: text extraction (Poppler,
+      // viewers' copy) reads a line-final hyphen as hyphenation and drops it.
       const pieces = word
-        .split(/(?<=[@./_-])/)
-        .flatMap((piece) =>
-          measure(piece, fontSize) <= room ? [piece] : [...piece],
-        );
+        .split(/(?<=[@./_])/)
+        .flatMap((piece) => (fits(piece) ? [piece] : piece.split(/(?<=-)/)))
+        .flatMap((piece) => (fits(piece) ? [piece] : [...piece]));
       const lines = [""];
       for (const piece of pieces) {
         const line = lines.at(-1) ?? "";

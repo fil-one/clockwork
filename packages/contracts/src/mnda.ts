@@ -181,6 +181,8 @@ export interface MndaRecord {
   ownerEmail: string | null;
   /** Replaces the partner signer's email after a bounce or typo. */
   correctedSignerEmail: string | null;
+  /** Sent to SignWell but not yet confirmed by a refresh. */
+  pendingSignerEmail: string | null;
   state: MndaState;
   providerId: string | null;
   testMode: boolean;
@@ -190,6 +192,9 @@ export interface MndaRecord {
   sentAt: string | null;
   remindedAt: string | null;
   completedAt: string | null;
+  /** Why the request closed; translated by the interface. */
+  cancelCode: MndaCancelCode | null;
+  /** Typed by the person who voided it. */
   cancelReason: string | null;
   error: string | null;
   version: number;
@@ -213,6 +218,8 @@ export const mndaOpenStates: readonly MndaState[] = [
   "attention",
 ];
 
+/** Register exports stop at this many rows. */
+export const mndaExportLimit = 10_000;
 export const mndaRegisterPageSizes = [25, 50, 100] as const;
 export const MndaRegisterQuerySchema = z
   .object({
@@ -297,9 +304,30 @@ export interface MndaSettings extends MndaSettingsInput {
   updatedBy: string | null;
 }
 
-export const MndaCancelSchema = z
-  .object({ id: z.uuid(), reason: z.string().trim().min(3).max(500) })
-  .strict();
+export const mndaCancelCodes = [
+  "superseded",
+  "discarded",
+  "voided",
+  "signer_change",
+] as const;
+export type MndaCancelCode = (typeof mndaCancelCodes)[number];
+/** Voiding needs a typed reason, or the "a different person will sign"
+ * code, which every reader sees in their own language. */
+export const MndaVoidSchema = z.union([
+  z
+    .object({ id: z.uuid(), reason: z.string().trim().min(3).max(500) })
+    .strict(),
+  z.object({ id: z.uuid(), code: z.literal("signer_change") }).strict(),
+]);
+/** A sent request can be voided until the partner has signed. */
+export const mndaVoidableStates: readonly MndaState[] = [
+  "draft",
+  "preparing",
+  "ready",
+  "sent",
+  "viewed",
+  "attention",
+];
 export const MndaCorrectSignerSchema = z
   .object({
     id: z.uuid(),
@@ -328,6 +356,10 @@ export const mndaErrorCodes = [
   "not_configured",
   "not_found",
   "conflict",
+  "settings_changed",
+  "settings_conflict",
+  "not_owner",
+  "not_voidable",
   "not_pending",
   "signer_started",
   "not_correctable",
@@ -358,51 +390,4 @@ export function mndaSignerEmail(record: MndaRecord): string {
 }
 export function mndaNoticeEmail(record: MndaRecord): string {
   return record.noticeEmail ?? record.countersigner.email;
-}
-
-const entitySuffixes = new Set([
-  "ab",
-  "ag",
-  "as",
-  "bv",
-  "co",
-  "company",
-  "corp",
-  "corporation",
-  "gmbh",
-  "inc",
-  "incorporated",
-  "kk",
-  "limited",
-  "llc",
-  "llp",
-  "lp",
-  "ltd",
-  "nv",
-  "oy",
-  "plc",
-  "pte",
-  "pty",
-  "sa",
-  "sarl",
-  "sas",
-  "spa",
-  "srl",
-]);
-/** Compares legal names regardless of case, accents, punctuation and a
- * trailing entity suffix: "Acme, Inc." and "ACME Inc" are the same company. */
-export function normalizeMndaCompany(name: string): string {
-  const words = name
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/\b([a-z])\.(?=[a-z]\.)/g, "$1")
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim()
-    .split(" ")
-    .filter(Boolean);
-  while (words.length > 1 && entitySuffixes.has(words.at(-1) ?? ""))
-    words.pop();
-  return words.join(" ");
 }

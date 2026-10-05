@@ -51,11 +51,15 @@ countersigners and the Fil One notice email require `signatory:manage`, held
 only by commerce administrators. The notice email is a database setting,
 snapshotted on each draft like the countersigner.
 
-Staff may now void a provider-bound MNDA in Commerce. The workflow takes the
-request lease, re-reads the authoritative SignWell state, keeps a request that
-completed in the meantime (with its executed PDF), and only then deletes the
-SignWell document. The original PDF, the record and the stated reason remain in
-Commerce. A bound document SignWell no longer has closes as canceled instead of
-failing every callback. A bounced or wrong partner email may be replaced through
-SignWell's recipient update while the partner has not started signing; the
-corrected address is recorded beside the immutable input snapshot.
+Staff may now void a provider-bound MNDA in Commerce until the partner signs.
+Only the preparer or a commerce administrator may void. The workflow takes the
+request lease, re-reads the authoritative SignWell state, refuses once the
+partner has signed, keeps a request that completed in the meantime (with its
+executed PDF), and only then deletes the SignWell document. An unanswered delete
+is resolved by a re-read. The original PDF, the record and the reason remain in
+Commerce. A bound document SignWell no longer has moves to attention for a
+person to void; nothing is closed automatically. A bounced or wrong partner
+email may be replaced through SignWell's recipient update while the partner has
+not started signing. The new address is held as pending until SignWell confirms
+it or a refresh settles it, so an ambiguous provider answer never breaks the
+recipient binding.

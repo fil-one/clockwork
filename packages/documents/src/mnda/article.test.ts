@@ -49,7 +49,19 @@ it("wraps only words wider than their column, at email and URL separators", () =
   const lines = mndaBreakable(email, 196).split("\n");
   expect(lines.join("")).toBe(email);
   expect(lines.length).toBeGreaterThan(1);
-  for (const line of lines.slice(0, -1)) expect(line).toMatch(/[@./_-]$/);
+  for (const line of lines.slice(0, -1)) expect(line).toMatch(/[@./_]$/);
+  // A hyphen ends a line only when nothing else fits.
+  const domain =
+    "legal@notices-for-contracts.example-holdings-international-group.com";
+  expect(mndaBreakable(domain, 196).split("\n")).toEqual([
+    "legal@notices-for-contracts.",
+    "example-holdings-international-group.com",
+  ]);
+  const hyphenated =
+    "a".repeat(20) + "-" + "b".repeat(20) + "-" + "c".repeat(20);
+  const fallback = mndaBreakable(hyphenated, 196).split("\n");
+  expect(fallback.join("")).toBe(hyphenated);
+  expect(fallback[0]).toMatch(/-$/);
   // A body line holds the same address unbroken.
   expect(mndaBreakable(email, 516)).toBe(email);
   const word = "W".repeat(60);

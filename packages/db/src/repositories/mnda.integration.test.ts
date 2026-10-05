@@ -38,6 +38,7 @@ async function draft(
   patch: Partial<typeof fixtureInput> = {},
   ownerId = actor.id,
   supersedes?: string,
+  manageAll = false,
 ) {
   return repo.create(
     {
@@ -52,7 +53,7 @@ async function draft(
     Buffer.from("%PDF-original"),
     signer,
     await noticeEmail(),
-    supersedes,
+    { ...(supersedes ? { supersedes: [supersedes] } : {}), manageAll },
   );
 }
 
@@ -198,7 +199,7 @@ it("filters, searches and pages the register, hiding replaced drafts by default"
     first.id,
   );
   expect((await repo.get(first.id)).state).toBe("canceled");
-  expect((await repo.get(first.id)).cancelReason).toBe("superseded");
+  expect((await repo.get(first.id)).cancelCode).toBe("superseded");
   for (let i = 0; i < 3; i++)
     await draft(signer, { company: `Quasar ${tag} ${i} LLC` }, other);
   const sent = await draft(signer, { company: `Orbit ${tag} Ltd` }, other);
@@ -236,8 +237,11 @@ it("filters, searches and pages the register, hiding replaced drafts by default"
   const pageTwo = await repo.list({ q: tag, pageSize: 25, page: 2 }, mine);
   expect(pageTwo).toMatchObject({ total: 5, records: [] });
   expect(
-    (await repo.exportRows({ q: tag, mine: true }, mine)).map((r) => r.id),
+    (await repo.exportRows({ q: tag, mine: true }, mine)).records.map(
+      (r) => r.id,
+    ),
   ).toEqual([replacement.id]);
+  expect((await repo.exportRows({ q: tag }, mine)).truncated).toBe(false);
 
   const counts = await repo.countByState(mine);
   expect(counts.mine.draft).toBe(1);
@@ -306,7 +310,7 @@ it("records corrections and void reasons, and freezes them once closed", async (
   const voided = await repo.update(
     record.id,
     lease.token,
-    { state: "canceled", cancelReason: "Wrong entity" },
+    { state: "canceled", cancelCode: "voided", cancelReason: "Wrong entity" },
     actor,
     undefined,
     { eventType: "mnda.voided", detail: { reason: "Wrong entity" } },
@@ -329,4 +333,72 @@ it("records corrections and void reasons, and freezes them once closed", async (
   await expect(
     client`update commerce_mnda_requests set cancel_reason='edited' where id=${record.id}`,
   ).rejects.toThrow("immutable");
+}, 30000);
+
+it("replaces only the preparer's own drafts unless a signatory manager edits", async () => {
+  const signer = await newSigner();
+  const alice = randomUUID();
+  const bob = randomUUID();
+  const draftA = await draft(signer, {}, alice);
+  await expect(draft(signer, {}, bob, draftA.id)).rejects.toThrow("NOT_OWNER");
+  expect((await repo.get(draftA.id)).state).toBe("draft");
+  const byAdmin = await draft(signer, {}, bob, draftA.id, true);
+  expect((await repo.get(draftA.id)).cancelCode).toBe("superseded");
+  expect(byAdmin.state).toBe("draft");
+}, 30000);
+
+it("normalizes legal names in the database for duplicate lookups", async () => {
+  const rows = await client<{ name: string; key: string }[]>`
+    select name, public.commerce_mnda_normalize_company(name) as key
+    from unnest(${["Acme, Inc.", "ACME Inc", "Acme L.L.C.", "Société Générale SA", "Inc", "Acme Labs"]}::text[]) as name`;
+  expect(Object.fromEntries(rows.map((r) => [r.name, r.key]))).toEqual({
+    "Acme, Inc.": "acme",
+    "ACME Inc": "acme",
+    "Acme L.L.C.": "acme",
+    "Société Générale SA": "societe generale",
+    Inc: "inc",
+    "Acme Labs": "acme labs",
+  });
+  const signer = await newSigner();
+  const tag = randomUUID().slice(0, 8);
+  const record = await draft(signer, { company: `Ünïcode ${tag} GmbH` });
+  const [stored] = await client<{ normalized_company: string }[]>`
+    select normalized_company from commerce_mnda_requests where id=${record.id}`;
+  expect(stored?.normalized_company).toBe(`unicode ${tag}`);
+  expect(
+    (await repo.duplicates(`UNICODE ${tag}, gmbh`)).map((m) => m.id),
+  ).toEqual([record.id]);
+}, 30000);
+
+it("audits PDF downloads and register exports without touching the request's versions", async () => {
+  const signer = await newSigner();
+  const record = await draft(signer);
+  await repo.recordAccess(actor, {
+    kind: "pdf",
+    requestId: record.id,
+    artifact: "original",
+  });
+  await repo.recordAccess(actor, {
+    kind: "pdf",
+    requestId: record.id,
+    artifact: "original",
+  });
+  await repo.recordAccess(actor, {
+    kind: "export",
+    filters: { status: ["sent"], mine: true, q: "", page: 1, pageSize: 25 },
+    rows: 3,
+    truncated: false,
+  });
+  const events = await client<{ event_type: string; after: unknown }[]>`
+    select event_type, after from audit_events
+    where actor->>'id' = ${actor.id}
+      and event_type in ('mnda.pdf_downloaded', 'mnda.register_exported')
+      and (after->>'mndaId' = ${record.id} or event_type = 'mnda.register_exported')`;
+  expect(
+    events.filter((e) => e.event_type === "mnda.pdf_downloaded"),
+  ).toHaveLength(2);
+  expect(
+    events.find((e) => e.event_type === "mnda.register_exported")?.after,
+  ).toMatchObject({ rows: 3, truncated: false, filters: { status: ["sent"] } });
+  expect((await repo.get(record.id)).version).toBe(record.version);
 }, 30000);

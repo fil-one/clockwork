@@ -1,5 +1,5 @@
 {
-  "id": "3e7d4dfa-46ab-447a-a4cc-35202a40afda",
+  "id": "00b4857f-5847-4180-b3a5-505eefddffa4",
   "prevId": "2e9a7028-a584-491a-b18e-41ac68b7e8bf",
   "version": "7",
   "dialect": "postgresql",
@@ -24272,6 +24272,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "pending_signer_email": {
+          "name": "pending_signer_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "state": {
           "name": "state",
           "type": "text",
@@ -24329,11 +24335,27 @@
           "primaryKey": false,
           "notNull": false
         },
+        "cancel_code": {
+          "name": "cancel_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "cancel_reason": {
           "name": "cancel_reason",
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "normalized_company": {
+          "name": "normalized_company",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "as": "public.commerce_mnda_normalize_company(input->>'company')",
+            "type": "stored"
+          }
         },
         "lease_until": {
           "name": "lease_until",

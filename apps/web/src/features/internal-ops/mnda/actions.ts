@@ -2,12 +2,12 @@
 
 import { z } from "zod";
 import {
-  MndaCancelSchema,
   MndaCorrectSignerSchema,
   MndaInputSchema,
   MndaRegisterQuerySchema,
   MndaSettingsSchema,
   MndaSignerSchema,
+  MndaVoidSchema,
   type MndaRecord,
   type MndaRegisterPage,
   type MndaResult,
@@ -25,6 +25,7 @@ import {
   mndaSigners,
   mndaStaff,
   mndaWorkflow,
+  type MndaSession,
 } from "./server";
 
 export interface MndaWorkspaceData {
@@ -39,6 +40,14 @@ export interface MndaWorkspaceData {
 export interface MndaSettingsData {
   signers: MndaSigner[];
   settings: MndaSettings;
+}
+
+/** Voiding, discarding and fixing the partner email belong to the person who
+ * prepared the MNDA, or a signatory manager. */
+async function assertMndaOwner(session: MndaSession, id: string) {
+  if (mndaCanManage(session)) return;
+  const record = await mndaRepository().get(id);
+  if (record.ownerId !== session.userId) throw new Error("MNDA_NOT_OWNER");
 }
 
 async function attempt<T>(fn: () => Promise<T>): Promise<MndaResult<T>> {
@@ -73,11 +82,15 @@ export async function loadMndas(
 }
 
 const PrepareSchema = z
-  .object({ input: z.unknown(), supersedes: z.uuid().optional() })
+  .object({
+    input: z.unknown(),
+    supersedes: z.array(z.uuid()).max(2).optional(),
+  })
   .strict();
 /**
  * Renders and stores a draft for preview. Re-previewing after an edit passes
- * the previous draft as `supersedes`, which is discarded in the same step.
+ * the previous drafts as `supersedes`, which are discarded in the same step;
+ * only the preparer or a signatory manager may replace a draft.
  */
 export async function prepareMnda(
   raw: unknown,
@@ -109,7 +122,10 @@ export async function prepareMnda(
       pdf.bytes,
       signer,
       noticeEmail,
-      supersedes,
+      {
+        ...(supersedes ? { supersedes } : {}),
+        manageAll: mndaCanManage(session),
+      },
     );
     return { ok: true, value: record };
   } catch (error) {
@@ -146,6 +162,8 @@ export async function operateMnda(
       })
       .strict()
       .parse(raw);
+    // Discarding a draft is the preparer's call, or a signatory manager's.
+    if (operation === "cancel") await assertMndaOwner(session, id);
     return mndaWorkflow()[operation](id, mndaActor(session));
   });
 }
@@ -153,20 +171,18 @@ export async function operateMnda(
 export async function voidMnda(raw: unknown): Promise<MndaResult<MndaRecord>> {
   try {
     const session = await mndaStaff();
-    const parsed = MndaCancelSchema.safeParse(raw);
+    const parsed = MndaVoidSchema.safeParse(raw);
     if (!parsed.success)
       return {
         ok: false,
         code: "reason_required",
         fields: [{ field: "reason", code: "reason_required" }],
       };
+    const { id, ...why } = parsed.data;
+    await assertMndaOwner(session, id);
     return {
       ok: true,
-      value: await mndaWorkflow().void(
-        parsed.data.id,
-        mndaActor(session),
-        parsed.data.reason,
-      ),
+      value: await mndaWorkflow().void(id, mndaActor(session), why),
     };
   } catch (error) {
     return mndaFailure(error);
@@ -180,6 +196,7 @@ export async function correctMndaSigner(
     const session = await mndaStaff();
     const parsed = MndaCorrectSignerSchema.safeParse(raw);
     if (!parsed.success) return mndaInvalid(parsed.error);
+    await assertMndaOwner(session, parsed.data.id);
     return {
       ok: true,
       value: await mndaWorkflow().correctSigner(

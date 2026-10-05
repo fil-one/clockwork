@@ -13,20 +13,20 @@ import styles from "./workspace.module.css";
 
 /**
  * Voids a sent MNDA. SignWell stops the request and deletes its copy; the
- * original PDF and the history stay here. `then` runs after a successful void,
- * for "send to someone else".
+ * original PDF and the history stay here. With `signerChange` no reason is
+ * typed: the void is recorded as "a different person will sign".
  */
 export function VoidDialog({
   record,
   trigger,
-  defaultReason = "",
+  signerChange = false,
   open,
   onOpenChange,
   onDone,
 }: {
   record: MndaRecord;
   trigger: ReactNode;
-  defaultReason?: string;
+  signerChange?: boolean;
   open?: boolean | undefined;
   onOpenChange?: (open: boolean) => void;
   onDone: (record: MndaRecord) => void;
@@ -38,24 +38,28 @@ export function VoidDialog({
     onOpenChange?.(next);
     setOwnOpen(next);
   };
-  const [reason, setReason] = useState(defaultReason);
+  const [reason, setReason] = useState("");
   const [error, setError] = useState<MndaErrorCode | null>(null);
   useEffect(() => {
     if (!isOpen) return;
-    setReason(defaultReason);
+    setReason("");
     setError(null);
-  }, [isOpen, defaultReason]);
+  }, [isOpen]);
   const [busy, setBusy] = useState(false);
   const fieldId = `mnda-void-reason-${record.id}`;
   async function confirm() {
-    if (reason.trim().length < 3) {
+    if (!signerChange && reason.trim().length < 3) {
       setError("reason_required");
       document.getElementById(fieldId)?.focus();
       return;
     }
     setBusy(true);
     try {
-      const result = await voidMnda({ id: record.id, reason: reason.trim() });
+      const result = await voidMnda(
+        signerChange
+          ? { id: record.id, code: "signer_change" }
+          : { id: record.id, reason: reason.trim() },
+      );
       if (!result.ok) {
         setError(result.code);
         return;
@@ -88,17 +92,23 @@ export function VoidDialog({
       }
     >
       <p className={styles.muted}>{t("operations.mnda.void.evidence")}</p>
-      <ReasonField
-        id={fieldId}
-        value={reason}
-        onChange={(value) => {
-          setReason(value);
-          setError(null);
-        }}
-        error={
-          error === "reason_required" ? t(mndaErrorLabels[error]) : undefined
-        }
-      />
+      {signerChange ? (
+        <p className={styles.muted}>
+          {t("operations.mnda.void.signerChangeNote")}
+        </p>
+      ) : (
+        <ReasonField
+          id={fieldId}
+          value={reason}
+          onChange={(value) => {
+            setReason(value);
+            setError(null);
+          }}
+          error={
+            error === "reason_required" ? t(mndaErrorLabels[error]) : undefined
+          }
+        />
+      )}
       {error && error !== "reason_required" ? (
         <p className={styles.fieldError} role="alert">
           {t(mndaErrorLabels[error])}

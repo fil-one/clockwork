@@ -48,14 +48,20 @@ it("writes RFC 4180 CSV that spreadsheet apps cannot execute", () => {
           company: '=HYPERLINK("x"), Inc',
           signerName: "Line\nbreak",
         },
-        cancelReason: "superseded",
+        cancelCode: "superseded",
+      },
+      {
+        ...fixtureRecord,
+        state: "canceled",
+        cancelCode: "signer_change",
       },
     ],
-    () => "Draft",
+    { status: () => "Draft", signerChange: "A different person will sign." },
     now,
   );
   expect(csv.startsWith("\u{feff}Company,Partner signer,")).toBe(true);
   expect(csv).toContain(`"'=HYPERLINK(""x""), Inc","Line\nbreak"`);
-  expect(csv.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(csv.trimEnd().split("\r\n")).toHaveLength(3);
   expect(csv).not.toContain("superseded");
+  expect(csv).toContain("A different person will sign.");
 });

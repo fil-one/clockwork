@@ -52,7 +52,7 @@ const modeHints = {
 const draftStates = ["draft", "preparing", "ready", "sending"];
 
 export type ComposerStart =
-  | { kind: "form"; values: MndaFormValues; supersedes?: string }
+  | { kind: "form"; values: MndaFormValues }
   | { kind: "preview"; record: MndaRecord };
 
 function DuplicateWarning({ matches }: { matches: MndaRegisterMatch[] }) {
@@ -99,6 +99,7 @@ export function MndaComposer({
   signers,
   noticeEmail,
   ready,
+  canEdit,
   onClose,
   onChanged,
   onSent,
@@ -107,6 +108,7 @@ export function MndaComposer({
   signers: readonly MndaSigner[];
   noticeEmail: string;
   ready: boolean;
+  canEdit: (record: MndaRecord) => boolean;
   onClose: () => void;
   onChanged: () => void;
   onSent: (record: MndaRecord) => void;
@@ -119,9 +121,8 @@ export function MndaComposer({
   const [preview, setPreview] = useState<MndaRecord | null>(
     start.kind === "preview" ? start.record : null,
   );
-  const [supersedes, setSupersedes] = useState<string | undefined>(
-    start.kind === "form" ? start.supersedes : undefined,
-  );
+  // The draft this form replaces when it is previewed again.
+  const [supersedes, setSupersedes] = useState<string | undefined>(undefined);
   const [fieldErrors, setFieldErrors] = useState<MndaFieldError[]>([]);
   const [failure, setFailure] = useState<MndaErrorCode | null>(null);
   const [busy, setBusy] = useState<"preview" | "send" | "discard" | null>(null);
@@ -175,17 +176,17 @@ export function MndaComposer({
     try {
       let result = await prepareMnda({
         input: inputFromValues(formId.current, form),
-        ...(supersedes ? { supersedes } : {}),
+        ...(supersedes ? { supersedes: [supersedes] } : {}),
       });
       if (!result.ok && result.code === "conflict") {
         // A previous attempt with this id was stored before its response was
-        // lost. Prepare a fresh draft that replaces it.
+        // lost. Prepare a fresh draft that replaces both it and the draft
+        // this form was already replacing.
         const lost = formId.current;
         formId.current = crypto.randomUUID();
-        setSupersedes(lost);
         result = await prepareMnda({
           input: inputFromValues(formId.current, form),
-          supersedes: lost,
+          supersedes: supersedes ? [supersedes, lost] : [lost],
         });
       }
       if (!result.ok) {
@@ -250,7 +251,11 @@ export function MndaComposer({
 
   if (preview) {
     const record = preview;
-    const unsent = !record.providerId && draftStates.includes(record.state);
+    // Only the preparer or a signatory manager edits or discards a draft.
+    const unsent =
+      canEdit(record) &&
+      !record.providerId &&
+      draftStates.includes(record.state);
     const canSend = draftStates.includes(record.state);
     const completes = partnerCompletes(record.input);
     const recipientMode = record.input.detailsMode === "recipient";

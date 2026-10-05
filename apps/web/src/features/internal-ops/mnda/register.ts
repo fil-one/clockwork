@@ -82,7 +82,11 @@ const columns = [
 /** RFC 4180 CSV with a byte order mark so spreadsheet apps read UTF-8. */
 export function mndaRegisterCsv(
   records: readonly MndaRecord[],
-  statusLabel: (record: MndaRecord) => string,
+  labels: {
+    status: (record: MndaRecord) => string;
+    /** The void reason for a signer change, in the reader's language. */
+    signerChange: string;
+  },
   now = Date.now(),
 ): string {
   const rows = records.map((r) =>
@@ -90,7 +94,7 @@ export function mndaRegisterCsv(
       r.input.company,
       r.input.signerName,
       mndaSignerEmail(r),
-      statusLabel(r),
+      labels.status(r),
       r.state,
       r.countersigner.name,
       r.ownerName,
@@ -100,9 +104,7 @@ export function mndaRegisterCsv(
       r.completedAt?.slice(0, 10) ?? null,
       r.input.effectiveDate,
       r.testMode ? "yes" : "no",
-      r.cancelReason === "superseded" || r.cancelReason === "discarded"
-        ? null
-        : r.cancelReason,
+      r.cancelCode === "signer_change" ? labels.signerChange : r.cancelReason,
       r.id,
     ]
       .map(cell)

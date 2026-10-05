@@ -9,7 +9,12 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import type { MndaInput, MndaSigner, MndaState } from "@clockwork/contracts";
+import type {
+  MndaCancelCode,
+  MndaInput,
+  MndaSigner,
+  MndaState,
+} from "@clockwork/contracts";
 
 export const mndaSigners = pgTable(
   "commerce_mnda_signers",
@@ -37,6 +42,7 @@ export const mndaRequests = pgTable("commerce_mnda_requests", {
   ownerName: text("owner_name").notNull(),
   ownerEmail: text("owner_email"),
   correctedSignerEmail: text("corrected_signer_email"),
+  pendingSignerEmail: text("pending_signer_email"),
   state: text("state").$type<MndaState>().notNull().default("draft"),
   providerId: text("provider_id").unique(),
   templateHash: text("template_hash").notNull(),
@@ -50,7 +56,11 @@ export const mndaRequests = pgTable("commerce_mnda_requests", {
   sentAt: timestamp("sent_at", { withTimezone: true }),
   remindedAt: timestamp("reminded_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
+  cancelCode: text("cancel_code").$type<MndaCancelCode>(),
   cancelReason: text("cancel_reason"),
+  normalizedCompany: text("normalized_company").generatedAlwaysAs(
+    sql`public.commerce_mnda_normalize_company(input->>'company')`,
+  ),
   leaseUntil: timestamp("lease_until", { withTimezone: true }),
   leaseToken: uuid("lease_token"),
   error: text("error"),

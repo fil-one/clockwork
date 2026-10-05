@@ -1,13 +1,20 @@
 import {
   mndaSignerEmail,
+  mndaVoidableStates,
   type Actor,
   type MndaRecord,
 } from "@clockwork/contracts";
-import { type MndaRepository, terminalMndaStates } from "@clockwork/db";
 import {
-  signWellAttentionReason,
-  signWellState,
+  type MndaRepository,
+  type MndaUpdatePatch,
+  terminalMndaStates,
+} from "@clockwork/db";
+import {
+  assertSignWellCopiedContacts,
   assertSignWellSigningFields,
+  signWellAttentionReason,
+  signWellRefused,
+  signWellState,
   type MndaSigningProvider,
   type SignWellDocument,
 } from "@clockwork/integrations";
@@ -16,6 +23,13 @@ import {
 export const mndaReminderCooldownMs = 60_000;
 const notFound = (error: unknown) =>
   error instanceof Error && error.message === "SIGNWELL_HTTP_404";
+const httpStatus = (error: unknown) =>
+  error instanceof Error
+    ? /^SIGNWELL_HTTP_(\d{3})$/.exec(error.message)?.[1]
+    : undefined;
+
+/** How a void is explained: a typed reason, or the signer-change code. */
+export type MndaVoidReason = { reason: string } | { code: "signer_change" };
 
 /** Provider documents are created as unsent drafts. The binding must commit
  * before sending; retries always read that same document's authoritative state. */
@@ -27,6 +41,10 @@ export class MndaWorkflow {
     >,
     private readonly provider: MndaSigningProvider,
   ) {}
+  /**
+   * Applies SignWell's state. A partner email change still pending is settled
+   * here: kept when SignWell shows it, dropped otherwise.
+   */
   private async apply(
     record: MndaRecord,
     token: string,
@@ -35,30 +53,67 @@ export class MndaWorkflow {
   ) {
     const state = signWellState(doc, record);
     const error = state === "attention" ? signWellAttentionReason(doc) : null;
-    if (state === record.state && record.error === error) return record;
+    const patch: MndaUpdatePatch = {};
+    if (record.pendingSignerEmail) {
+      const partner = doc.recipients
+        .find((r) => r.id === "counterparty")
+        ?.email.toLowerCase();
+      patch.pendingSignerEmail = null;
+      if (partner === record.pendingSignerEmail)
+        patch.correctedSignerEmail = partner;
+    }
+    if (
+      state === record.state &&
+      record.error === error &&
+      !("pendingSignerEmail" in patch)
+    )
+      return record;
     const pdf =
       state === "completed"
         ? await this.provider.completedPdf(doc.id)
         : undefined;
-    return this.repo.update(record.id, token, { state, error }, actor, pdf);
-  }
-  /** A bound document that SignWell no longer has cannot be signed. */
-  private gone(record: MndaRecord, token: string, actor: Actor) {
     return this.repo.update(
       record.id,
       token,
-      { state: "canceled", error: "deleted_in_signwell" },
+      { ...patch, state, error },
+      actor,
+      pdf,
+      "pendingSignerEmail" in patch && state === record.state
+        ? {
+            eventType: patch.correctedSignerEmail
+              ? "mnda.signer_corrected"
+              : "mnda.signer_correction_dropped",
+            before: { signerEmail: mndaSignerEmail(record) },
+            detail: { signerEmail: patch.correctedSignerEmail ?? null },
+          }
+        : undefined,
+    );
+  }
+  /**
+   * SignWell no longer has a bound document. Signing cannot continue, but the
+   * request is not closed automatically: a person voids it with a reason.
+   */
+  private gone(record: MndaRecord, token: string, actor: Actor) {
+    if (record.state === "attention" && record.error === "deleted_in_signwell")
+      return Promise.resolve(record);
+    return this.repo.update(
+      record.id,
+      token,
+      { state: "attention", error: "deleted_in_signwell" },
       actor,
       undefined,
       { eventType: "mnda.deleted_in_signwell" },
     );
   }
+  /** The document, or null when SignWell answers 404 twice in a row. */
   private async fetch(providerId: string) {
-    try {
-      return await this.provider.get(providerId);
-    } catch (error) {
-      if (notFound(error)) return null;
-      throw error;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.provider.get(providerId);
+      } catch (error) {
+        if (!notFound(error)) throw error;
+        if (attempt > 0) return null;
+      }
     }
   }
   async send(id: string, actor: Actor) {
@@ -99,6 +154,7 @@ export class MndaWorkflow {
       if (signWellState(doc, current) !== "ready")
         return await this.apply(current, token, doc, actor);
       assertSignWellSigningFields(doc, record);
+      assertSignWellCopiedContacts(doc, current);
       await this.repo.update(
         id,
         token,
@@ -144,7 +200,10 @@ export class MndaWorkflow {
       if (!record.providerId || terminalMndaStates.includes(record.state))
         throw new Error("MNDA_NOT_PENDING");
       const doc = await this.fetch(record.providerId);
-      if (!doc) return await this.gone(record, token, actor);
+      if (!doc) {
+        await this.gone(record, token, actor);
+        throw new Error("MNDA_NOT_PENDING");
+      }
       const current = await this.apply(record, token, doc, actor);
       if (
         !["sent", "viewed", "awaiting_countersignature"].includes(current.state)
@@ -185,7 +244,7 @@ export class MndaWorkflow {
       return await this.repo.update(
         id,
         token,
-        { state: "canceled", error: null, cancelReason: "discarded" },
+        { state: "canceled", error: null, cancelCode: "discarded" },
         actor,
       );
     } finally {
@@ -193,47 +252,77 @@ export class MndaWorkflow {
     }
   }
   /**
-   * Voids a request in SignWell. The authoritative state is read first, so a
-   * request that completed in the meantime is kept, with its executed PDF,
-   * rather than deleted. SignWell's cancel deletes its copy of the document;
-   * the original PDF and the audit trail stay in Commerce.
+   * Voids a request the partner has not signed. The authoritative state is
+   * read first, so a request the partner signed in the meantime is refused
+   * and one that completed keeps its executed PDF. SignWell's cancel deletes
+   * its copy; the original PDF, the reason and the history stay in Commerce.
    */
-  async void(id: string, actor: Actor, reason: string) {
+  async void(id: string, actor: Actor, why: MndaVoidReason) {
     const { record, token } = await this.repo.claim(id);
     try {
-      if (terminalMndaStates.includes(record.state)) {
-        if (record.state === "completed")
-          throw new Error("MNDA_ALREADY_COMPLETED");
-        return record;
-      }
-      const voided = {
-        eventType: "mnda.voided",
-        detail: { reason },
-      };
+      if (record.state === "completed")
+        throw new Error("MNDA_ALREADY_COMPLETED");
+      if (terminalMndaStates.includes(record.state)) return record;
+      if (!mndaVoidableStates.includes(record.state))
+        throw new Error("MNDA_NOT_VOIDABLE");
+      let current = record;
       if (record.providerId) {
         const doc = await this.fetch(record.providerId);
         if (doc) {
-          const current = await this.apply(record, token, doc, actor);
+          current = await this.apply(record, token, doc, actor);
           if (current.state === "completed")
             throw new Error("MNDA_ALREADY_COMPLETED");
           if (terminalMndaStates.includes(current.state)) return current;
-          try {
-            await this.provider.cancel(record.providerId);
-          } catch (error) {
-            if (!notFound(error)) throw error;
-          }
+          if (!mndaVoidableStates.includes(current.state))
+            throw new Error("MNDA_NOT_VOIDABLE");
+          await this.deleteInSignWell(current, token, actor);
         }
       }
       return await this.repo.update(
         id,
         token,
-        { state: "canceled", error: null, cancelReason: reason },
+        {
+          state: "canceled",
+          error: null,
+          ...("code" in why
+            ? { cancelCode: why.code }
+            : { cancelCode: "voided", cancelReason: why.reason }),
+        },
         actor,
         undefined,
-        voided,
+        {
+          eventType: "mnda.voided",
+          detail:
+            "code" in why ? { cancelCode: why.code } : { reason: why.reason },
+        },
       );
     } finally {
       await this.repo.release(id, token);
+    }
+  }
+  /** Deletes the bound document. When the outcome is unknown (timeout, 5xx),
+   * a re-read decides: gone means the delete happened. */
+  private async deleteInSignWell(
+    record: MndaRecord,
+    token: string,
+    actor: Actor,
+  ) {
+    const providerId = record.providerId;
+    if (!providerId) return;
+    try {
+      await this.provider.cancel(providerId);
+    } catch (error) {
+      if (notFound(error)) return;
+      if (signWellRefused(error)) throw error;
+      let doc: SignWellDocument | null;
+      try {
+        doc = await this.fetch(providerId);
+      } catch {
+        throw error;
+      }
+      if (!doc) return;
+      await this.apply(record, token, doc, actor);
+      throw error;
     }
   }
   /**
@@ -248,8 +337,12 @@ export class MndaWorkflow {
         throw new Error("MNDA_NOT_CORRECTABLE");
       if (signerEmail === record.countersigner.email)
         throw new Error("MNDA_DISTINCT_SIGNERS_REQUIRED");
-      const doc = await this.fetch(record.providerId);
-      if (!doc) return await this.gone(record, token, actor);
+      const providerId = record.providerId;
+      const doc = await this.fetch(providerId);
+      if (!doc) {
+        await this.gone(record, token, actor);
+        throw new Error("MNDA_NOT_CORRECTABLE");
+      }
       const current = await this.apply(record, token, doc, actor);
       const counterparty = doc.recipients.find((r) => r.id === "counterparty");
       if (["signed", "completed"].includes(counterparty?.status ?? ""))
@@ -258,46 +351,81 @@ export class MndaWorkflow {
         throw new Error("MNDA_NOT_CORRECTABLE");
       const previous = mndaSignerEmail(current);
       if (signerEmail === previous) return current;
-      // Record the intended address first: a lost provider response then
-      // still matches on the next refresh. Restore it if SignWell refuses.
+      // Recorded first, so whatever SignWell does the binding still matches
+      // on the next refresh, which settles it.
       const pending = await this.repo.update(
         id,
         token,
-        { correctedSignerEmail: signerEmail, error: null },
+        { pendingSignerEmail: signerEmail, error: null },
         actor,
         undefined,
         {
-          eventType: "mnda.signer_corrected",
+          eventType: "mnda.signer_correction_requested",
           before: { signerEmail: previous },
           detail: { signerEmail },
         },
       );
+      const confirm = (updated: SignWellDocument) =>
+        this.repo
+          .update(
+            id,
+            token,
+            { correctedSignerEmail: signerEmail, pendingSignerEmail: null },
+            actor,
+            undefined,
+            {
+              eventType: "mnda.signer_corrected",
+              before: { signerEmail: previous },
+              detail: { signerEmail },
+            },
+          )
+          .then((corrected) => this.apply(corrected, token, updated, actor));
       let updated: SignWellDocument;
       try {
-        updated = await this.provider.updateRecipient(record.providerId, {
+        updated = await this.provider.updateRecipient(providerId, {
           id: "counterparty",
           name: record.input.signerName,
           email: signerEmail,
         });
       } catch (error) {
-        await this.repo.update(
-          id,
-          token,
-          { correctedSignerEmail: previous },
-          actor,
-          undefined,
-          {
-            eventType: "mnda.signer_correction_failed",
-            detail: { signerEmail: previous },
-          },
-        );
-        if (error instanceof Error && error.message === "SIGNWELL_HTTP_422")
-          throw new Error("MNDA_SIGNER_STARTED");
-        if (error instanceof Error && error.message === "SIGNWELL_HTTP_409")
-          throw new Error("MNDA_NOT_CORRECTABLE");
+        if (signWellRefused(error)) {
+          await this.repo.update(
+            id,
+            token,
+            { pendingSignerEmail: null },
+            actor,
+            undefined,
+            {
+              eventType: "mnda.signer_correction_refused",
+              detail: { signerEmail, status: httpStatus(error) },
+            },
+          );
+          if (httpStatus(error) === "422")
+            throw new Error("MNDA_SIGNER_STARTED");
+          if (httpStatus(error) === "409")
+            throw new Error("MNDA_NOT_CORRECTABLE");
+          throw error;
+        }
+        // The change may have been applied. Read back what SignWell shows; if
+        // that read fails too, the pending email stays for the next refresh.
+        let after: SignWellDocument | null;
+        try {
+          after = await this.fetch(providerId);
+        } catch {
+          throw error;
+        }
+        if (!after) {
+          await this.gone(pending, token, actor);
+          throw error;
+        }
+        const partner = after.recipients
+          .find((r) => r.id === "counterparty")
+          ?.email.toLowerCase();
+        if (partner === signerEmail) return await confirm(after);
+        await this.apply(pending, token, after, actor);
         throw error;
       }
-      return await this.apply(pending, token, updated, actor);
+      return await confirm(updated);
     } finally {
       await this.repo.release(id, token);
     }

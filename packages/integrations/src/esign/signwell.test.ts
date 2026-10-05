@@ -2,7 +2,9 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { fixtureRecord } from "../../../contracts/src/mnda-fixture";
 import {
+  assertSignWellCopiedContacts,
   assertSignWellSigningFields,
+  signWellRefused,
   SignWellClient,
   signWellAttentionReason,
   signWellState,
@@ -288,5 +290,52 @@ describe("partner-facing details and after-send corrections", () => {
     expect(signWellAttentionReason({ ...doc(), status: "Error" })).toBe(
       "provider_stopped",
     );
+  });
+});
+
+describe("after-send safety checks", () => {
+  it("accepts the original, confirmed and pending partner emails until a refresh settles them", () => {
+    const pending = {
+      ...fixtureRecord,
+      correctedSignerEmail: "second@example.com",
+      pendingSignerEmail: "third@example.com",
+    };
+    for (const email of [
+      fixtureRecord.input.signerEmail,
+      "second@example.com",
+      "third@example.com",
+    ]) {
+      const document = doc();
+      const partner = document.recipients[0];
+      if (partner) partner.email = email;
+      expect(signWellState(document, pending)).toBe("ready");
+    }
+  });
+  it("requires exactly the expected copied contacts before sending", () => {
+    expect(() =>
+      assertSignWellCopiedContacts(
+        { ...doc(), copied_contacts: [{ email: "Seller@Example.com" }] },
+        fixtureRecord,
+      ),
+    ).not.toThrow();
+    expect(() => assertSignWellCopiedContacts(doc(), fixtureRecord)).toThrow(
+      "COPIED_CONTACTS",
+    );
+    expect(() =>
+      assertSignWellCopiedContacts(doc(), {
+        ...fixtureRecord,
+        ownerEmail: null,
+      }),
+    ).not.toThrow();
+  });
+  it("treats only a 4xx answer as a definite refusal", () => {
+    expect(signWellRefused(new Error("SIGNWELL_HTTP_422"))).toBe(true);
+    expect(signWellRefused(new Error("SIGNWELL_HTTP_408"))).toBe(false);
+    expect(signWellRefused(new Error("SIGNWELL_HTTP_502"))).toBe(false);
+    expect(
+      signWellRefused(
+        Object.assign(new Error("aborted"), { name: "AbortError" }),
+      ),
+    ).toBe(false);
   });
 });

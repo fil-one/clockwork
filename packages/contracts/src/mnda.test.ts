@@ -1,6 +1,8 @@
 import { expect, it } from "vitest";
 import {
   defaultMndaNoticeEmail,
+  MndaVoidSchema,
+  mndaVoidableStates,
   MndaInputSchema,
   MndaSettingsSchema,
   mndaNoticeEmail,
@@ -8,7 +10,6 @@ import {
   mndaSignerEmail,
   mndaSigningFields,
   mndaStatusGroups,
-  normalizeMndaCompany,
   parseMndaRegisterParams,
 } from "./mnda";
 import { fixtureInput, fixtureRecord } from "./mnda-fixture";
@@ -60,17 +61,6 @@ it("reads register filters from the URL leniently and writes them back", () => {
     expect(
       parseMndaRegisterParams({ status: states.join(",") }).status,
     ).toEqual(states);
-});
-
-it("matches the same company across case, accents, punctuation and entity suffixes", () => {
-  expect(normalizeMndaCompany("Acme, Inc.")).toBe("acme");
-  expect(normalizeMndaCompany("ACME Inc")).toBe("acme");
-  expect(normalizeMndaCompany("Acme L.L.C.")).toBe("acme");
-  expect(normalizeMndaCompany("Société Générale SA")).toBe("societe generale");
-  expect(normalizeMndaCompany("Acme Labs")).not.toBe(
-    normalizeMndaCompany("Acme"),
-  );
-  expect(normalizeMndaCompany("Inc")).toBe("inc");
 });
 
 it("snapshots the notice email and prefers a corrected partner email", () => {
@@ -158,4 +148,19 @@ it("requires only missing details in mixed mode, preserving each known part of a
   expect(MndaInputSchema.safeParse({ ...input, signerEmail: "" }).success).toBe(
     false,
   );
+});
+
+it("voids with a typed reason or the signer-change code, never with neither", () => {
+  const id = fixtureRecord.id;
+  expect(MndaVoidSchema.safeParse({ id, reason: "Wrong entity" }).success).toBe(
+    true,
+  );
+  expect(MndaVoidSchema.safeParse({ id, code: "signer_change" }).success).toBe(
+    true,
+  );
+  expect(MndaVoidSchema.safeParse({ id, reason: " " }).success).toBe(false);
+  expect(MndaVoidSchema.safeParse({ id, code: "superseded" }).success).toBe(
+    false,
+  );
+  expect(mndaVoidableStates).not.toContain("awaiting_countersignature");
 });

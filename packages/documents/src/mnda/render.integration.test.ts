@@ -37,6 +37,7 @@ async function extract(
       pdf,
       text: run("pdftotext", "-layout"),
       raw: run("pdftotext", "-raw"),
+      plain: run("pdftotext"),
       bbox: run("pdftotext", "-bbox"),
       fonts: execFileSync("pdffonts", [path], { encoding: "utf8" }),
     };
@@ -325,6 +326,46 @@ it.each([
       locality: "",
     });
     expect(normalize(text)).toContain(normalize(`, ${expected} (ATTN:`));
+  },
+  30000,
+);
+
+it.each([
+  long.noticesEmail,
+  "legal@notices-for-contracts.example-holdings-international-group.com",
+])(
+  "wraps a long notice email in its column without adding or losing characters: %s",
+  async (email) => {
+    const { plain, raw, bbox } = await extract({
+      ...fixtureInput,
+      ...long,
+      noticesEmail: email,
+      detailsMode: "team",
+    });
+    // Text extraction follows the printed lines, so a wrapped address comes
+    // back with a line feed between its pieces. Nothing else may differ: no
+    // hyphen drawn at the break, and no line ending on a real hyphen, which
+    // extraction drops as if it were hyphenation.
+    const start = email.slice(0, 8).replace(/[.@-]/g, "\\$&");
+    for (const text of [plain, raw]) {
+      const pieces = [
+        ...text.matchAll(new RegExp(`${start}\\S*(?:\\n\\S+)*`, "g")),
+      ]
+        .map((m) => m[0])
+        .filter((m) => m.replaceAll("\n", "").startsWith(email));
+      expect(pieces).toHaveLength(2);
+      for (const piece of pieces) {
+        const address = piece.slice(0, piece.indexOf(email.slice(-12)) + 12);
+        expect(address.replaceAll("\n", "")).toBe(email);
+        expect(address).not.toMatch(/-\n/);
+      }
+    }
+    const lines = words(bbox).filter(
+      (w) => w.page === 4 && w.xMin >= 366 && email.includes(w.text),
+    );
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    for (const word of lines)
+      expect(word.xMax, word.text).toBeLessThan(368 + 196 + 0.5);
   },
   30000,
 );

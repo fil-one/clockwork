@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
     exportRows: vi.fn(),
     get: vi.fn(),
     readArtifact: vi.fn(),
+    recordAccess: vi.fn(),
   },
   workflow: {
     send: vi.fn(),
@@ -97,6 +98,11 @@ beforeEach(() => {
     pageSize: 25,
   });
   mocks.repository.create.mockResolvedValue(fixtureRecord);
+  // By default the signed-in seller prepared the MNDA being acted on.
+  mocks.repository.get.mockResolvedValue({
+    ...fixtureRecord,
+    ownerId: "019a44ac-0000-7000-8000-000000000006",
+  });
   mocks.render.mockResolvedValue({ bytes: Buffer.from("%PDF-x") });
 });
 
@@ -181,7 +187,7 @@ describe("sending requires mnda:send", () => {
     expect(mocks.workflow.void).toHaveBeenCalledWith(
       fixtureRecord.id,
       expect.objectContaining({ kind: "user" }),
-      "Wrong entity",
+      { reason: "Wrong entity" },
     );
   });
 });
@@ -244,9 +250,12 @@ describe("routes re-check the session", () => {
   });
   it("exports the filtered register and names PDFs for a deal folder", async () => {
     as("revenue");
-    mocks.repository.exportRows.mockResolvedValue([
-      { ...fixtureRecord, state: "sent", sentAt: "2026-10-01T00:00:00Z" },
-    ]);
+    mocks.repository.exportRows.mockResolvedValue({
+      records: [
+        { ...fixtureRecord, state: "sent", sentAt: "2026-10-01T00:00:00Z" },
+      ],
+      truncated: false,
+    });
     const csv = await exportCsv(
       new Request("http://x/internal/mndas/export?status=sent,viewed&mine=1"),
     );
@@ -271,5 +280,111 @@ describe("routes re-check the session", () => {
     expect(response.headers.get("content-disposition")).toContain(
       'attachment; filename="Fil-One-MNDA_Example-Corporation_2026-10-03_signed.pdf"',
     );
+  });
+});
+
+describe("only the preparer or a signatory manager changes a sent MNDA", () => {
+  const others = {
+    ...fixtureRecord,
+    ownerId: "019a44ac-0000-7000-8000-0000000000ff",
+  };
+  it("refuses void, discard and email fixes on a colleague's MNDA but allows reminders", async () => {
+    as("revenue");
+    mocks.repository.get.mockResolvedValue(others);
+    for (const result of [
+      await voidMnda({ id: others.id, reason: "Wrong entity" }),
+      await voidMnda({ id: others.id, code: "signer_change" }),
+      await correctMndaSigner({ id: others.id, signerEmail: "a@b.co" }),
+      await operateMnda({ id: others.id, operation: "cancel" }),
+    ])
+      expect(result).toEqual({ ok: false, code: "not_owner" });
+    expect(mocks.workflow.void).not.toHaveBeenCalled();
+    expect(mocks.workflow.correctSigner).not.toHaveBeenCalled();
+    expect(mocks.workflow.cancel).not.toHaveBeenCalled();
+    mocks.workflow.remind.mockResolvedValueOnce(others);
+    expect(
+      await operateMnda({ id: others.id, operation: "remind" }),
+    ).toMatchObject({ ok: true });
+  });
+  it("lets the preparer and a commerce administrator act", async () => {
+    mocks.workflow.void.mockResolvedValue(fixtureRecord);
+    as("revenue", { userId: fixtureRecord.ownerId });
+    mocks.repository.get.mockResolvedValue(fixtureRecord);
+    expect(
+      await voidMnda({ id: fixtureRecord.id, code: "signer_change" }),
+    ).toMatchObject({ ok: true });
+    expect(mocks.workflow.void).toHaveBeenLastCalledWith(
+      fixtureRecord.id,
+      expect.anything(),
+      { code: "signer_change" },
+    );
+    as("commerce_admin");
+    mocks.repository.get.mockResolvedValue(others);
+    expect(
+      await voidMnda({ id: others.id, reason: "Wrong entity" }),
+    ).toMatchObject({ ok: true });
+  });
+  it("lets only a signatory manager replace a colleague's draft", async () => {
+    as("revenue");
+    await prepareMnda({ input: fixtureInput, supersedes: [others.id] });
+    expect(mocks.repository.create.mock.calls.at(-1)?.[7]).toEqual({
+      supersedes: [others.id],
+      manageAll: false,
+    });
+    as("commerce_admin");
+    await prepareMnda({ input: fixtureInput, supersedes: [others.id] });
+    expect(mocks.repository.create.mock.calls.at(-1)?.[7]).toMatchObject({
+      manageAll: true,
+    });
+    mocks.repository.create.mockRejectedValueOnce(
+      new Error("MNDA_SETTINGS_CHANGED"),
+    );
+    expect(await prepareMnda({ input: fixtureInput })).toEqual({
+      ok: false,
+      code: "settings_changed",
+    });
+  });
+});
+
+describe("downloads and exports are audited", () => {
+  it("records PDF downloads and register exports, and flags a truncated export", async () => {
+    as("revenue");
+    mocks.repository.get.mockResolvedValue(fixtureRecord);
+    mocks.repository.readArtifact.mockResolvedValue(Buffer.from("%PDF-1"));
+    await pdf(new Request("http://x/pdf?kind=original"), {
+      params: Promise.resolve({ id: fixtureRecord.id }),
+    });
+    expect(mocks.repository.recordAccess).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "019a44ac-0000-7000-8000-000000000006" }),
+      { kind: "pdf", requestId: fixtureRecord.id, artifact: "original" },
+    );
+    mocks.repository.exportRows.mockResolvedValue({
+      records: [fixtureRecord],
+      truncated: true,
+    });
+    const csv = await exportCsv(
+      new Request("http://x/internal/mndas/export?status=completed"),
+    );
+    expect(csv.headers.get("x-mnda-export-truncated")).toBe("true");
+    expect(mocks.repository.recordAccess).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        kind: "export",
+        rows: 1,
+        truncated: true,
+      }),
+    );
+    const exported = mocks.repository.recordAccess.mock.calls.at(-1)?.[1] as
+      { filters: { status: string[] } } | undefined;
+    expect(exported?.filters.status).toEqual(["completed"]);
+  });
+  it("answers a failed export with a plain message instead of a broken file", async () => {
+    as("revenue");
+    mocks.repository.exportRows.mockRejectedValue(new Error("db down"));
+    const response = await exportCsv(
+      new Request("http://x/internal/mndas/export"),
+    );
+    expect(response.status).toBe(500);
+    expect(await response.text()).toContain("could not be prepared");
   });
 });

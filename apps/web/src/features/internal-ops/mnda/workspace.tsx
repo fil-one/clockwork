@@ -1,7 +1,9 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  mndaExportLimit,
   mndaRegisterSearchParams,
+  mndaVoidableStates,
   mndaSignerEmail,
   mndaStatusGroups,
   type MndaRecord,
@@ -63,14 +65,19 @@ function rowNote(
   r: MndaRecord,
 ): { reason: MessageId; next?: MessageId } | null {
   if (r.state === "canceled") {
-    if (r.error === "deleted_in_signwell")
-      return { reason: "operations.mnda.note.deletedInSignWell" };
-    if (r.cancelReason === "superseded")
+    if (r.cancelCode === "superseded")
       return { reason: "operations.mnda.note.superseded" };
-    if (r.cancelReason === "discarded")
+    if (r.cancelCode === "discarded")
       return { reason: "operations.mnda.note.discarded" };
+    if (r.cancelCode === "signer_change")
+      return { reason: "operations.mnda.note.signerChange" };
     return null;
   }
+  if (r.state === "attention" && r.error === "deleted_in_signwell")
+    return {
+      reason: "operations.mnda.note.deletedInSignWell",
+      next: "operations.mnda.note.deletedNext",
+    };
   if (r.state === "attention")
     return r.error === "recipient_bounced"
       ? {
@@ -285,6 +292,9 @@ export function MndaWorkspace({
             signers={data.signers}
             noticeEmail={data.noticeEmail}
             ready={data.ready}
+            canEdit={(record) =>
+              data.canManage || record.ownerId === data.viewerId
+            }
             onClose={() => setComposer(null)}
             onChanged={refresh}
             onSent={(record) => {
@@ -309,6 +319,13 @@ export function MndaWorkspace({
               : t("operations.mnda.count", { count: total })}
           </p>
         </div>
+        {total > mndaExportLimit ? (
+          <p className={styles.muted}>
+            {t("operations.mnda.exportTruncated", {
+              limit: mndaExportLimit.toLocaleString(locale),
+            })}
+          </p>
+        ) : null}
         <div className={styles.toolbar} role="search">
           <label className={styles.search}>
             <span className={styles.srOnly}>
@@ -414,8 +431,14 @@ export function MndaWorkspace({
                   const days = mndaDaysOutstanding(r);
                   const busy = rowBusy === r.id;
                   const bound = Boolean(r.providerId);
+                  // Voiding, discarding and fixing the email belong to the
+                  // preparer or a signatory manager; anyone may remind.
+                  const mine = data.canManage || r.ownerId === data.viewerId;
+                  const voidable =
+                    mine && bound && mndaVoidableStates.includes(r.state);
                   // A stopped request needs a void; only a bounce is fixed in place.
                   const correctable =
+                    mine &&
                     bound &&
                     (["sent", "viewed"].includes(r.state) ||
                       (r.state === "attention" &&
@@ -446,11 +469,7 @@ export function MndaWorkspace({
                               {note.next ? <> {t(note.next)}</> : null}
                             </p>
                           ) : null}
-                          {r.state === "canceled" &&
-                          r.cancelReason &&
-                          !["superseded", "discarded"].includes(
-                            r.cancelReason,
-                          ) ? (
+                          {r.state === "canceled" && r.cancelReason ? (
                             <p className={styles.note}>
                               {t("operations.mnda.note.voided", {
                                 reason: r.cancelReason,
@@ -562,7 +581,7 @@ export function MndaWorkspace({
                               onSendToSomeoneElse={() => setResendAfterVoid(r)}
                             />
                           ) : null}
-                          {bound && !terminal(r) ? (
+                          {voidable ? (
                             <VoidDialog
                               record={r}
                               open={
@@ -571,11 +590,7 @@ export function MndaWorkspace({
                               onOpenChange={(next) => {
                                 if (!next) setResendAfterVoid(null);
                               }}
-                              defaultReason={
-                                resendAfterVoid?.id === r.id
-                                  ? t("operations.mnda.void.someoneElseReason")
-                                  : ""
-                              }
+                              signerChange={resendAfterVoid?.id === r.id}
                               trigger={
                                 <Button
                                   variant="quiet"
@@ -609,7 +624,7 @@ export function MndaWorkspace({
                               }}
                             />
                           ) : null}
-                          {!bound && !terminal(r) ? (
+                          {mine && !bound && !terminal(r) ? (
                             <DiscardDialog
                               record={r}
                               trigger={

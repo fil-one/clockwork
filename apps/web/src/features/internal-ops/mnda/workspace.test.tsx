@@ -96,9 +96,9 @@ it("previews before sending, then edits the same details into a replacement draf
   await waitFor(() => expect(mocks.prepare).toHaveBeenCalledTimes(2));
   const second = mocks.prepare.mock.calls[1]?.[0] as {
     input: { id: string; company: string };
-    supersedes: string;
+    supersedes: string[];
   };
-  expect(second.supersedes).toBe(fixtureRecord.id);
+  expect(second.supersedes).toEqual([fixtureRecord.id]);
   expect(second.input.company).toBe("Example Holdings LLC");
   expect(second.input.id).not.toBe(fixtureRecord.id);
   await screen.findByRole("heading", { name: "Review before sending" });
@@ -272,4 +272,40 @@ it("keeps sending disabled when the provider is not configured", async () => {
   expect(
     await screen.findByRole("button", { name: "Confirm and send" }),
   ).toBeDisabled();
+});
+
+it("offers void and email fixes only to the preparer, and never after the partner signed", () => {
+  const colleague = {
+    ...sent,
+    id: "019a44ac-0000-7000-8000-0000000000aa",
+    ownerId: "019a44ac-0000-7000-8000-0000000000bb",
+    input: { ...sent.input, company: "Colleague Co" },
+  };
+  const signed = {
+    ...sent,
+    id: "019a44ac-0000-7000-8000-0000000000cc",
+    state: "awaiting_countersignature" as const,
+    input: { ...sent.input, company: "Signed Co" },
+  };
+  render(
+    <MndaWorkspace
+      initial={data([sent, colleague, signed])}
+      initialQuery={query}
+    />,
+  );
+  const row = (company: string) =>
+    within(screen.getByText(company).closest("tr") as HTMLElement);
+  expect(
+    row("Example Corporation").getByRole("button", { name: "Void" }),
+  ).toBeVisible();
+  expect(
+    row("Colleague Co").queryByRole("button", { name: "Void" }),
+  ).toBeNull();
+  expect(
+    row("Colleague Co").queryByRole("button", { name: "Fix email" }),
+  ).toBeNull();
+  expect(
+    row("Colleague Co").getByRole("button", { name: /^Remind/ }),
+  ).toBeVisible();
+  expect(row("Signed Co").queryByRole("button", { name: "Void" })).toBeNull();
 });

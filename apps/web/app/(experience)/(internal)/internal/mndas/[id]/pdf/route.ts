@@ -1,7 +1,9 @@
 import { z } from "zod";
 import {
+  mndaActor,
   mndaRepository,
   mndaStaff,
+  type MndaSession,
 } from "@/src/features/internal-ops/mnda/server";
 import {
   contentDisposition,
@@ -11,13 +13,14 @@ import {
 export const dynamic = "force-dynamic";
 
 /** Original or executed PDF, named for a deal folder. Opens in the browser
- * unless `download=1`. */
+ * unless `download=1`. Every access is audited. */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  let session: MndaSession;
   try {
-    await mndaStaff();
+    session = await mndaStaff();
   } catch {
     return new Response(null, { status: 403 });
   }
@@ -31,6 +34,11 @@ export async function GET(
     const repository = mndaRepository();
     const record = await repository.get(id.data);
     const bytes = await repository.readArtifact(id.data, kind.data);
+    await repository.recordAccess(mndaActor(session), {
+      kind: "pdf",
+      requestId: id.data,
+      artifact: kind.data,
+    });
     return new Response(new Uint8Array(bytes), {
       headers: {
         "content-type": "application/pdf",
