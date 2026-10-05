@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import type { DatabaseSystemCapabilityAdmin } from "@clockwork/db";
 import { changeCapability, type CapabilityActionResult } from "./actions";
 import { formatSurfaceTimestamp } from "@/src/features/customer-partner/formatting";
+import { useReaderTimeZone } from "@/src/features/internal-ops/local-timestamp";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 
@@ -22,6 +23,7 @@ export function CapabilityControls({
 }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
+  const readerTimeZone = useReaderTimeZone();
   const [message, action, pending] = useActionState<
     CapabilityActionResult,
     FormData
@@ -59,7 +61,7 @@ export function CapabilityControls({
               actor: capability.pending.requestedBy,
               time: formatSurfaceTimestamp(
                 capability.pending.requestedAt.toISOString(),
-                { locale: formattingLocale, timeZone: "UTC" },
+                { locale: formattingLocale, timeZone: readerTimeZone },
               ),
             })}
           </p>

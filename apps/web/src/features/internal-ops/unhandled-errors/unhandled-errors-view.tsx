@@ -10,7 +10,7 @@ import type { Translator } from "@/src/i18n";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { richText } from "@/src/i18n/rich";
 
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import {
   causeDiscardText,
   incidentDecisionLabels,
@@ -272,22 +272,18 @@ export function UnhandledErrorsView({
                 </strong>,
                 <div className={styles.primaryCell}>
                   <strong>
-                    <time dateTime={signature.lastSeenAt}>
-                      {formatOperationalTimestamp(
-                        signature.lastSeenAt,
-                        formattingLocale,
-                      )}
-                    </time>
+                    <LocalTimestamp
+                      value={signature.lastSeenAt}
+                      locale={formattingLocale}
+                    />
                   </strong>
                   <span className={styles.secondary}>
                     {richText(t, "operations.incidents.row.firstSeen", {
                       time: (
-                        <time dateTime={signature.firstSeenAt}>
-                          {formatOperationalTimestamp(
-                            signature.firstSeenAt,
-                            formattingLocale,
-                          )}
-                        </time>
+                        <LocalTimestamp
+                          value={signature.firstSeenAt}
+                          locale={formattingLocale}
+                        />
                       ),
                     })}
                   </span>

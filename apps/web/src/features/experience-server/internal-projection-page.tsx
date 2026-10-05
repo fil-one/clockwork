@@ -5,7 +5,7 @@ import { loadPortalRecords } from "./portal-view-loader";
 import type { ProjectionChannel, ProjectionRecord } from "./model";
 import { EvidenceUploadControl } from "./evidence-upload-control";
 import { getRouteRoles } from "@/src/features/shell/route-session";
-import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
+import { LocalTimestamp } from "@/src/features/internal-ops/local-timestamp";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { richText } from "@/src/i18n/rich";
 import styles from "./internal-projection-page.module.css";
@@ -61,12 +61,10 @@ export async function InternalProjectionPage({
               : "experience.internal.freshness.current",
             {
               time: (
-                <time dateTime={projection.generatedAt}>
-                  {formatOperationalTimestamp(
-                    projection.generatedAt,
-                    formattingLocale,
-                  )}
-                </time>
+                <LocalTimestamp
+                  value={projection.generatedAt}
+                  locale={formattingLocale}
+                />
               ),
             },
           )}

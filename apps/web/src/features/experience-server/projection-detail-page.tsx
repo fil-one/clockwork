@@ -9,7 +9,7 @@ import type { Route } from "next";
 import type { ReactNode } from "react";
 import { EvidenceUploadControl } from "./evidence-upload-control";
 import { getRouteRoles } from "@/src/features/shell/route-session";
-import { formatOperationalTimestamp } from "@/src/features/internal-ops/presentation";
+import { LocalTimestamp } from "@/src/features/internal-ops/local-timestamp";
 import styles from "./projection-detail-page.module.css";
 import {
   ArtifactDeliveryList,
@@ -314,12 +314,10 @@ export async function ProjectionDetailPage({
             {" "}
             {richText(t, "common.asOf", {
               time: (
-                <time dateTime={projection.generatedAt}>
-                  {formatOperationalTimestamp(
-                    projection.generatedAt,
-                    formattingLocale,
-                  )}
-                </time>
+                <LocalTimestamp
+                  value={projection.generatedAt}
+                  locale={formattingLocale}
+                />
               ),
             })}
           </span>
@@ -506,12 +504,10 @@ export async function ProjectionDetailPage({
                   <p>
                     {richText(t, "common.updatedAt", {
                       time: (
-                        <time dateTime={record.sourceUpdatedAt}>
-                          {formatOperationalTimestamp(
-                            record.sourceUpdatedAt,
-                            formattingLocale,
-                          )}
-                        </time>
+                        <LocalTimestamp
+                          value={record.sourceUpdatedAt}
+                          locale={formattingLocale}
+                        />
                       ),
                     })}
                   </p>

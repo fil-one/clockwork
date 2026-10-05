@@ -226,6 +226,11 @@ function instant(value: string | null): Date | null {
   return Number.isFinite(parsed) ? new Date(parsed) : null;
 }
 
+/**
+ * A calendar date (invoice, due, notice, term). These carry contractual or
+ * accounting meaning and are dated in UTC, so they are not moved into the
+ * reader's zone.
+ */
 function day(value: string | null, context: DisplayContext): string | null {
   const date = instant(value);
   return date

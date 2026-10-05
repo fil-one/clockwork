@@ -25,6 +25,7 @@ import {
   sendCoreCommand,
 } from "@/src/features/contracts/commerce-client";
 import { formatDate } from "@/src/features/shared/format";
+import { useReaderTimeZone } from "../local-timestamp";
 import type {
   PriceBookAvailability,
   PriceBookSource,
@@ -236,6 +237,7 @@ export function PriceBookAdministration({
 }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
+  const readerTimeZone = useReaderTimeZone();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [currency, setCurrency] = useState("all");
@@ -311,7 +313,7 @@ export function PriceBookAdministration({
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-    timeZone: "UTC",
+    timeZone: readerTimeZone,
     timeZoneName: "short",
   }).format(new Date(readAt));
   const date = (value: string) => formatDate(value, formattingLocale);

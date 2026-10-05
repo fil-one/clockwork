@@ -282,8 +282,8 @@ describe("operator queue hydration", () => {
       document.body.innerHTML = `<div id="hydration-root">${serverHtml}</div>`;
 
       // Hydration happens later and west of UTC: without a request-stable
-      // clock and an explicit display zone, both the SLA and calendar day can
-      // disagree with the server markup.
+      // clock, the SLA could disagree with the server markup. The due day
+      // hydrates as the server wrote it, then moves to the reader's zone.
       process.env.TZ = "America/New_York";
       vi.setSystemTime(new Date("2026-08-19T01:00:00.000Z"));
       const container = document.querySelector<HTMLElement>("#hydration-root");
@@ -297,7 +297,8 @@ describe("operator queue hydration", () => {
 
       expect(onRecoverableError).not.toHaveBeenCalled();
       expect(within(container).getAllByText("Due soon")).toHaveLength(2);
-      expect(within(container).getByText("Aug 19")).toBeVisible();
+      const due = within(container).getByText("Aug 18");
+      expect(due).toHaveAttribute("title", "Aug 18, 2026, 8:30 PM EDT");
     } finally {
       if (root)
         act(() => {

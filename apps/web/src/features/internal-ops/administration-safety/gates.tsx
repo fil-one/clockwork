@@ -39,15 +39,13 @@ import {
 } from "./copy";
 import type { DemoGateText, GateGroup, GateRecord } from "./data";
 import { canDecide, gateGroups, gateSeverities, gateStates } from "./policy";
+import { useReaderTimeZone } from "../local-timestamp";
 import {
   AdministrationPage,
   StatusPill,
   TechnicalEvidence,
   styles,
 } from "./ui";
-
-/** Registry timestamps are shown on the operations desk's clock, labelled. */
-const operationsTimeZone = "America/New_York";
 
 const groupOrder: readonly GateGroup[] = [
   gateGroups.provider,
@@ -121,9 +119,11 @@ export function presentGeneratedGate(
     activationTestedAt: gate.lastActivationTestAt,
     severity: severityLabel(gate.severity),
     state: stateLabel(gate.effectiveStatus),
+    // Formatted on the server, before the reader's zone is known, so it
+    // names UTC; the register itself shows `updatedAt` in the reader's zone.
     freshness: formatSurfaceTimestamp(gate.updatedAt, {
       locale,
-      timeZone: operationsTimeZone,
+      timeZone: "UTC",
     }),
     updatedAt: gate.updatedAt,
     reason: gate.statusReason,
@@ -418,11 +418,9 @@ export function GateRegister({
   const reasons = new Intl.ListFormat(formattingLocale, {
     type: "conjunction",
   });
+  const timeZone = useReaderTimeZone();
   const timestamp = (value: string) =>
-    formatSurfaceTimestamp(value, {
-      locale: formattingLocale,
-      timeZone: operationsTimeZone,
-    });
+    formatSurfaceTimestamp(value, { locale: formattingLocale, timeZone });
 
   return (
     <AdministrationPage

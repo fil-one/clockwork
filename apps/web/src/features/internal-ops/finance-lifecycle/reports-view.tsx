@@ -12,7 +12,7 @@ import {
   reportNames,
   type ReportName,
 } from "@/src/features/contracts/commerce-client";
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 
 import { lifecycleCopy } from "./copy";
 import { FinancePageFrame, IdentifierLine, RecordEvidence } from "./page-frame";
@@ -206,9 +206,10 @@ export function ReportsView({
               ) : (
                 t(copy.documentPending)
               ),
-              <time dateTime={record.updatedAt}>
-                {formatOperationalTimestamp(record.updatedAt, formattingLocale)}
-              </time>,
+              <LocalTimestamp
+                value={record.updatedAt}
+                locale={formattingLocale}
+              />,
             ])}
           />
         )}

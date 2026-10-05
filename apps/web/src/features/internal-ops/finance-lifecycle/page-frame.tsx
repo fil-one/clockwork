@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { lifecycleCopy } from "./copy";
 import type { EvidenceEntry } from "./projection-fields";
 import type { SurfaceProvenance } from "./provenance";
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import styles from "./finance-lifecycle.module.css";
 
 export type { SurfaceProvenance };
@@ -19,9 +19,7 @@ function ProvenanceLine({ provenance }: { provenance: SurfaceProvenance }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
   const at = (instant: string) => (
-    <time dateTime={instant}>
-      {formatOperationalTimestamp(instant, formattingLocale)}
-    </time>
+    <LocalTimestamp value={instant} locale={formattingLocale} />
   );
   if (provenance.kind === "projection")
     return (
@@ -111,11 +109,7 @@ export function RecordEvidence({
       <p>
         {richText(t, lifecycleCopy.evidence.sourceRecord, {
           version: String(version),
-          time: (
-            <time dateTime={updatedAt}>
-              {formatOperationalTimestamp(updatedAt, formattingLocale)}
-            </time>
-          ),
+          time: <LocalTimestamp value={updatedAt} locale={formattingLocale} />,
         })}
       </p>
     </>

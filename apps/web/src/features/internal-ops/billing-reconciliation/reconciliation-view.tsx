@@ -14,7 +14,7 @@ import { use } from "react";
 import type { Translator } from "@/src/i18n";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import { reconciliationCopy } from "./copy";
 import {
   blockingVariances,
@@ -46,7 +46,7 @@ function subjectText(t: Translator, variance: ReconciliationVariance): string {
   });
 }
 
-/** `YYYY-MM` as the reader's language names the month. */
+/** `YYYY-MM` as the reader's language names the month. Accounting periods are UTC months, so the zone stays UTC. */
 function monthText(period: string, locale: string): string {
   const date = new Date(`${period}-01T00:00:00.000Z`);
   return Number.isNaN(date.getTime())
@@ -210,18 +210,14 @@ export function ReconciliationView({
                 </span>
               </div>,
               variance.ownerEmail ?? shortId(variance.ownerUserId),
-              <time dateTime={variance.openedAt}>
-                {formatOperationalTimestamp(
-                  variance.openedAt,
-                  formattingLocale,
-                )}
-              </time>,
-              <time dateTime={variance.targetAt}>
-                {formatOperationalTimestamp(
-                  variance.targetAt,
-                  formattingLocale,
-                )}
-              </time>,
+              <LocalTimestamp
+                value={variance.openedAt}
+                locale={formattingLocale}
+              />,
+              <LocalTimestamp
+                value={variance.targetAt}
+                locale={formattingLocale}
+              />,
               variance.latestClassification ? (
                 <div className={styles.primaryCell}>
                   <strong>

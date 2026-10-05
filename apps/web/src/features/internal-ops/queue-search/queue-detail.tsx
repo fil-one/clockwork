@@ -1,12 +1,13 @@
 "use client";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 
 import type { Route } from "next";
 import Link from "next/link";
 
 import type { MessageId } from "@/src/i18n";
 
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import styles from "./queue-search.module.css";
 import {
   actionLabels,
@@ -37,11 +38,7 @@ function Moment({ value }: { value: string | null }) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
   if (!value) return <>{t("common.notRecorded")}</>;
-  return (
-    <time dateTime={value}>
-      {formatOperationalTimestamp(value, formattingLocale)}
-    </time>
-  );
+  return <LocalTimestamp value={value} locale={formattingLocale} />;
 }
 
 export function QueueDetail({
@@ -201,11 +198,13 @@ export function QueueDetail({
             <div>
               <dt>{t("operations.queue.detail.sourceRecord")}</dt>
               <dd>
-                {t("operations.queue.detail.sourceVersion", {
+                {richText(t, "operations.queue.detail.sourceVersion", {
                   version: item.sourceRecord.version,
-                  time: formatOperationalTimestamp(
-                    item.sourceRecord.updatedAt,
-                    formattingLocale,
+                  time: (
+                    <LocalTimestamp
+                      value={item.sourceRecord.updatedAt}
+                      locale={formattingLocale}
+                    />
                   ),
                 })}
                 <details className={styles.technicalDisclosure}>

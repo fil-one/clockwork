@@ -107,6 +107,7 @@ export function methodologyLabel(value: string, t: Translator): string {
     : t(id);
 }
 
+/** A revenue month. Revenue is booked in UTC months, so the zone stays UTC. */
 export function monthLabel(value: string, locale: string): string {
   const date = new Date(`${value.slice(0, 7)}-01T00:00:00.000Z`);
   return Number.isNaN(date.getTime())

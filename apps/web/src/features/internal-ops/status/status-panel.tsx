@@ -1,5 +1,6 @@
 "use client";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { richText } from "@/src/i18n/rich";
 
 import { useEffect, useState } from "react";
 
@@ -12,7 +13,7 @@ import {
 } from "@/src/features/contracts/status-client";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import {
   detailLabels,
   detailValueLabels,
@@ -132,10 +133,12 @@ export function StatusPanel() {
                       {t("operations.status.lanes.unavailable")}
                     </p>
                     <p>
-                      {t("common.readAt", {
-                        time: formatOperationalTimestamp(
-                          result.readAt,
-                          formattingLocale,
+                      {richText(t, "common.readAt", {
+                        time: (
+                          <LocalTimestamp
+                            value={result.readAt}
+                            locale={formattingLocale}
+                          />
                         ),
                       })}
                     </p>
@@ -154,10 +157,12 @@ export function StatusPanel() {
                       ))}
                     </dl>
                     <p>
-                      {t("common.readAt", {
-                        time: formatOperationalTimestamp(
-                          result.readAt,
-                          formattingLocale,
+                      {richText(t, "common.readAt", {
+                        time: (
+                          <LocalTimestamp
+                            value={result.readAt}
+                            locale={formattingLocale}
+                          />
                         ),
                       })}
                     </p>
