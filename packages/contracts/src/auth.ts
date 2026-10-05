@@ -57,6 +57,12 @@ export const permissions = [
   "signatory:manage",
   "sales:read",
   "collateral:manage",
+  // The operations workspace: queues, provisioning, billing, reports and the
+  // platform tools. Sellers work in the sales workspace and do not hold it.
+  "operations:read",
+  // Invite Fil One staff, change their role and deactivate them. Held by the
+  // commerce administrator only.
+  "staff:manage",
 ] as const;
 
 export const PermissionSchema = z.enum(permissions);
@@ -147,6 +153,7 @@ export const rolePermissions = {
     "contract:read",
     "contract:write",
     "sales:read",
+    "operations:read",
   ],
   finance_approver: [
     "account:read",
@@ -159,6 +166,7 @@ export const rolePermissions = {
     "contract:read",
     "contract:approve",
     "sales:read",
+    "operations:read",
   ],
   legal_approver: [
     "account:read",
@@ -171,12 +179,14 @@ export const rolePermissions = {
     "contract:write",
     "contract:approve",
     "sales:read",
+    "operations:read",
   ],
   destructive_action_approver: [
     "account:read",
     "order:read",
     "system:operate",
     "destructive:approve",
+    "operations:read",
   ],
   revenue: [
     "account:read",
@@ -216,4 +226,63 @@ export const internalRoles = [
 
 export function hasPermission(role: Role, permission: Permission): boolean {
   return (rolePermissions[role] as readonly Permission[]).includes(permission);
+}
+
+/**
+ * The internal roles a commerce administrator acts as. A membership holds one
+ * role, but much of the platform still asks for a role by name (a finance
+ * approver approves a price book, an operator replays a webhook), and the
+ * signed database claims test role names too. Expanding the administrator into
+ * these roles where a session is built lets every one of those checks hold
+ * without a second list to keep in step.
+ *
+ * Two-person rules are unaffected: they compare the requesting and deciding
+ * users, never their roles, so one administrator still cannot approve their
+ * own request.
+ */
+export const commerceAdminActsAs = [
+  "internal_operator",
+  "finance_approver",
+  "legal_approver",
+  "destructive_action_approver",
+] as const satisfies readonly Role[];
+
+/**
+ * The roles a session carries for the roles its memberships grant. The granted
+ * role stays first, so anything that records "the" role records the one the
+ * person was given.
+ */
+export function sessionRolesFor(granted: readonly Role[]): Role[] {
+  const expanded: Role[] = [];
+  const add = (role: Role) => {
+    if (!expanded.includes(role)) expanded.push(role);
+  };
+  for (const role of granted) {
+    add(role);
+    if (role === "commerce_admin") commerceAdminActsAs.forEach(add);
+  }
+  return expanded;
+}
+
+/**
+ * The stored membership roles that satisfy a check for `role`, for checks that
+ * read a membership row rather than a session (for example "is the approver of
+ * record still a finance approver").
+ */
+export function membershipRolesActingAs(role: Role): Role[] {
+  return (commerceAdminActsAs as readonly Role[]).includes(role)
+    ? [role, "commerce_admin"]
+    : [role];
+}
+
+/** Whether any of a session's roles grants `permission`. */
+export function rolesHavePermission(
+  sessionRoles: readonly string[],
+  permission: Permission,
+): boolean {
+  return sessionRoles.some(
+    (role) =>
+      (roles as readonly string[]).includes(role) &&
+      hasPermission(role as Role, permission),
+  );
 }

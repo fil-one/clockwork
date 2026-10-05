@@ -40,18 +40,42 @@ Terraform injects credentials and runs staging in non-binding test mode;
 production uses live mode. SignWell API pay-as-you-go billing must be active for
 volume above the free allowance. Plan/billing changes remain in SignWell.
 
-An optional protected `CLOCKWORK_STAFF_PROVISIONING` secret contains one
-explicit `{email,name,title,role:"internal_operator"}` request. The migration
-task checks the bootstrapped environment, database host, organization,
-authorizing operator and approved email domain before creating the WorkOS
-identity and local role. Existing conflicting identities fail closed. It records
-an audit event/outbox entry, preserves the actual WorkOS binding and is safe to
-rerun. It does not email invitations, generate passwords, claim email
-verification or enroll another person's MFA. Remove the secret after successful
-provisioning and deploy again. Staff domain configuration includes
-`fil.org,fil.one`. The user must verify their email and enroll their own
-authenticator through the organization's required MFA policy on first login. A
-verified in-app MFA challenge may also be requested.
+### Staff roles and access
+
+Staff hold one of three roles:
+
+- `revenue`: sellers. Home, MNDAs and indicative pricing. No operations,
+  billing, provisioning or platform tools.
+- `commerce_admin`: everything every internal role can do, plus MNDA signatory
+  and notice settings and the **Team** page. Migration 001441 made the Fil One
+  staff who held `internal_operator` in staging and production (James Kurz and
+  R.W. Holleman on 4 October 2026) commerce administrators.
+- `internal_operator`: the operations workspace for the platform team.
+
+A commerce administrator adds, re-roles and removes staff at `/internal/team`.
+The page creates the WorkOS identity and organization membership with the server
+WorkOS key and records every change in the audit log. It sends no email: tell
+the person to sign in with their work address. Removing access deletes the
+person's staff membership and deactivates their WorkOS organization membership;
+their history stays.
+
+The deployment path remains for a first administrator or when the page is not
+available. An optional protected `CLOCKWORK_STAFF_PROVISIONING` secret contains
+one explicit `{email,name,title,role}` request. `role` is `revenue` (the
+default), `commerce_admin` or `internal_operator`. To change an existing staff
+member's role, add `"updateRole": true`; without it a different role fails
+closed. The migration task checks the bootstrapped environment, database host,
+organization, authorizing operator (an internal operator or commerce
+administrator) and approved email domain before creating the WorkOS identity and
+local role. Existing conflicting identities fail closed. It records an audit
+event/outbox entry, preserves the actual WorkOS binding and is safe to rerun. It
+does not email invitations, generate passwords, claim email verification or
+enroll another person's MFA. Remove the secret after successful provisioning and
+deploy again. Staff domain configuration includes `fil.org,fil.one`. The user
+must verify their email and enroll their own authenticator through the
+organization's required MFA policy on first login. A verified in-app MFA
+challenge may also be requested. The [revenue team guide](revenue-team-guide.md)
+walks a new seller through it.
 
 ## Recovery and verification
 

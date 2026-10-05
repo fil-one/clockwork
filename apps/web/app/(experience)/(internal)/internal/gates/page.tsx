@@ -9,6 +9,7 @@ import { getRouteRoles } from "@/src/features/shell/route-session";
 import { getLocale, getTranslations } from "@/src/i18n/server";
 
 import { loadConfiguredGateRecords } from "@/src/features/internal-ops/gates/server-gate-loader";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t(adminSafetyCopy.gates.title) };
 }
 
-export default async function Page() {
+async function Page() {
   const [roles, configured, locale] = await Promise.all([
     getRouteRoles("internal"),
     loadConfiguredGateRecords(gateService),
@@ -39,3 +40,5 @@ export default async function Page() {
     />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

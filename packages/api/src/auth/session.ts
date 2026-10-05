@@ -1,4 +1,9 @@
-import { ids, RoleSchema } from "@clockwork/contracts";
+import {
+  ids,
+  internalRoles,
+  RoleSchema,
+  sessionRolesFor,
+} from "@clockwork/contracts";
 import type { Role } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import { createMiddleware } from "hono/factory";
@@ -68,10 +73,7 @@ export class LocalSessionResolver implements SessionResolver {
       request.headers.get("x-clockwork-persona"),
     );
     const role = parsedRole.success ? parsedRole.data : "member";
-    const internal =
-      role.startsWith("internal_") ||
-      role.endsWith("_approver") ||
-      role === "destructive_action_approver";
+    const internal = (internalRoles as readonly Role[]).includes(role);
     return Promise.resolve({
       userId: internal
         ? "20000000-0000-4000-8000-000000000001"
@@ -85,7 +87,7 @@ export class LocalSessionResolver implements SessionResolver {
             request.headers.get("x-clockwork-account") ??
               "10000000-0000-4000-8000-000000000001",
           ],
-      roles: [role],
+      roles: sessionRolesFor([role]),
       isInternalStaff: internal,
       mfaVerified: request.headers.get("x-clockwork-mfa") !== "false",
       recentAuthenticationVerified:

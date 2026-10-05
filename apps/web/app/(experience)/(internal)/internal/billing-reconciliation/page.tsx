@@ -4,6 +4,7 @@ import { getTranslations } from "@/src/i18n/server";
 import { loadReconciliationWorkspace } from "@/src/features/internal-ops/billing-reconciliation/reconciliation-loader";
 import { ReconciliationView } from "@/src/features/internal-ops/billing-reconciliation/reconciliation-view";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("operations.finance.reconciliation.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const workspace = await loadReconciliationWorkspace({
     requestId: `experience:billing-reconciliation:${crypto.randomUUID()}`,
   });
@@ -22,3 +23,5 @@ export default async function Page() {
     </SurfacePermissionGate>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

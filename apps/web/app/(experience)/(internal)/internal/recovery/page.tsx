@@ -4,6 +4,7 @@ import { loadDeadLetterOperations } from "@/src/features/internal-ops/recovery/d
 import { RecoveryView } from "@/src/features/internal-ops/recovery/recovery-view";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getTranslations } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("operations.recovery.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const result = await loadDeadLetterOperations({
     requestId: `experience:recovery-queue:${crypto.randomUUID()}`,
   });
@@ -25,3 +26,5 @@ export default async function Page() {
     </SurfacePermissionGate>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

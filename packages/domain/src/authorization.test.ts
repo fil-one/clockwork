@@ -1,4 +1,11 @@
-import { hasPermission, ids, permissions, roles } from "@clockwork/contracts";
+import {
+  hasPermission,
+  ids,
+  internalRoles,
+  permissions,
+  roles,
+  sessionRolesFor,
+} from "@clockwork/contracts";
 import type { Permission, Role } from "@clockwork/contracts";
 import { describe, expect, it } from "vitest";
 
@@ -167,14 +174,8 @@ describe("commerce authorization boundaries", () => {
 
   it("derives the internal-only permission set from the live role table", () => {
     const tenantRoles = roles.filter(
-      (role) =>
-        ![
-          "internal_operator",
-          "finance_approver",
-          "legal_approver",
-          "destructive_action_approver",
-        ].includes(role),
-    ) as readonly Role[];
+      (role) => !(internalRoles as readonly Role[]).includes(role),
+    );
     for (const permission of permissions) {
       const heldByTenant = tenantRoles.some((role) =>
         hasPermission(role, permission),
@@ -201,6 +202,15 @@ describe("commerce authorization boundaries", () => {
       authorize(context, "impersonation:assume", unscopedInternalOnly);
       authorize(context, "destructive:approve", unscopedInternalOnly);
       authorize(context, "migration:execute", unscopedInternalOnly);
+      authorize(context, "mnda:send", unscopedInternalOnly);
+      authorize(context, "contract:read", unscopedInternalOnly);
+      authorize(context, "contract:write", unscopedInternalOnly);
+      authorize(context, "contract:approve", unscopedInternalOnly);
+      authorize(context, "signatory:manage", unscopedInternalOnly);
+      authorize(context, "sales:read", unscopedInternalOnly);
+      authorize(context, "collateral:manage", unscopedInternalOnly);
+      authorize(context, "operations:read", unscopedInternalOnly);
+      authorize(context, "staff:manage", unscopedInternalOnly);
     }
 
     // Runtime half: the list above is exactly the derived set, so a permission
@@ -214,9 +224,53 @@ describe("commerce authorization boundaries", () => {
         "migration:execute",
         "quote:approve",
         "system:operate",
+        "mnda:send",
+        "contract:read",
+        "contract:write",
+        "contract:approve",
+        "signatory:manage",
+        "sales:read",
+        "collateral:manage",
+        "operations:read",
+        "staff:manage",
       ].sort(),
     );
     expect(typeAdmitsTheSameSet).toBeInstanceOf(Function);
+  });
+
+  it("keeps a seller to sales permissions when reading across accounts", () => {
+    const seller = internalContext({ roles: ["revenue"] });
+    for (const permission of [
+      "account:read",
+      "agreement:read",
+      "quote:read",
+      "partner:portfolio:read",
+    ] as const)
+      expect(() =>
+        authorize(seller, permission, unscopedInternalStaff),
+      ).toThrow(new AuthorizationError("FORBIDDEN"));
+    expect(() =>
+      authorize(seller, "contract:read", unscopedInternalStaff),
+    ).not.toThrow();
+    expect(() =>
+      authorize(seller, "mnda:send", unscopedInternalOnly),
+    ).not.toThrow();
+  });
+
+  it("lets every operations role and the expanded administrator read across accounts", () => {
+    for (const roles of [
+      ["internal_operator"],
+      ["finance_approver"],
+      ["legal_approver"],
+      sessionRolesFor(["commerce_admin"]),
+    ] as const)
+      expect(() =>
+        authorize(
+          internalContext({ roles }),
+          "account:read",
+          unscopedInternalStaff,
+        ),
+      ).not.toThrow();
   });
 
   it("restricts a cross-account read to internal staff inside the control", () => {

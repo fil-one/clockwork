@@ -299,16 +299,23 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/migrations",
       // Standalone pre-sales MNDA repository, not an account projection channel.
       "/internal/mndas",
+      // The operations board moved here from the staff landing page; it reads
+      // the same projections the landing page read before.
+      "/internal/operations",
       "/internal/payg-offers",
       // Finance reads verified customer handoff requests directly.
       "/internal/payg-requests",
       "/internal/price-books",
+      // Indicative pricing reads the price book registry, as price-books does.
+      "/internal/pricing",
       // Service-only operating-reference registry and bootstrap fallback.
       "/internal/providers",
       "/internal/recovery",
       "/internal/revenue",
       "/internal/search",
       "/internal/status",
+      // Staff memberships, read from the identity tables and WorkOS.
+      "/internal/team",
       "/internal/unhandled-errors",
       "/internal/webhook-replay",
     ],

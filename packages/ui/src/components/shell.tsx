@@ -28,6 +28,14 @@ export interface NavigationGroup {
   id: string;
   label?: string;
   items: readonly NavigationItem[];
+  /**
+   * A secondary group the reader opens when they need it. A labelled group
+   * renders as a native disclosure in the comfortable rail; the compact rail
+   * has no room for a heading, so it lists the items as usual.
+   */
+  collapsible?: boolean;
+  /** Whether a collapsible group starts open, for example when it holds the current page. */
+  defaultOpen?: boolean;
 }
 
 export interface NavigationProps {
@@ -130,22 +138,8 @@ export function Navigation({
        * walks when they browse by heading. The section takes its accessible
        * name from the label instead.
        */}
-      {groups.map((group) => (
-        <section
-          className="cw-navigation__group"
-          key={group.id}
-          {...(group.label
-            ? { "aria-labelledby": `${groupLabelPrefix}-${group.id}` }
-            : {})}
-        >
-          {group.label ? (
-            <p
-              className="cw-navigation__label"
-              id={`${groupLabelPrefix}-${group.id}`}
-            >
-              {group.label}
-            </p>
-          ) : null}
+      {groups.map((group) => {
+        const list = (
           <ul className="cw-navigation__list">
             {group.items.map((item) => {
               const content = (
@@ -206,8 +200,42 @@ export function Navigation({
               );
             })}
           </ul>
-        </section>
-      ))}
+        );
+        // A disclosure names its own contents through the summary, so a
+        // screen reader announces the group and whether it is open.
+        if (group.collapsible && group.label && density !== "compact")
+          return (
+            <details
+              className="cw-navigation__group cw-navigation__group--collapsible"
+              key={group.id}
+              open={group.defaultOpen ?? false}
+            >
+              <summary className="cw-navigation__label cw-navigation__summary">
+                {group.label}
+              </summary>
+              {list}
+            </details>
+          );
+        return (
+          <section
+            className="cw-navigation__group"
+            key={group.id}
+            {...(group.label
+              ? { "aria-labelledby": `${groupLabelPrefix}-${group.id}` }
+              : {})}
+          >
+            {group.label ? (
+              <p
+                className="cw-navigation__label"
+                id={`${groupLabelPrefix}-${group.id}`}
+              >
+                {group.label}
+              </p>
+            ) : null}
+            {list}
+          </section>
+        );
+      })}
     </nav>
   );
 }

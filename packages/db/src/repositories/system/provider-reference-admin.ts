@@ -86,7 +86,11 @@ async function requireAuthority(tx: RuntimeTransaction, actor: Actor) {
         eq(commerceUsers.id, actor.id),
         eq(commerceUsers.isInternalStaff, true),
         eq(commerceUsers.mfaEnrolled, true),
-        inArray(memberships.role, ["internal_operator", "finance_approver"]),
+        inArray(memberships.role, [
+          "internal_operator",
+          "finance_approver",
+          "commerce_admin",
+        ]),
       ),
     )
     .limit(1)

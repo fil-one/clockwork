@@ -655,16 +655,6 @@ export const commonMessages = defineMessages({
     zh: "请求 {id}",
     ar: "معرّف الطلب {id}",
   },
-  "app.footer": {
-    en: "Fil One commerce records are synchronized from the operating ledger.",
-    es: "Los registros comerciales de Fil One se sincronizan desde el registro operativo.",
-    fr: "Les enregistrements commerciaux de Fil One sont synchronisés à partir du registre opérationnel.",
-    de: "Die Commerce-Datensätze von Fil One werden aus dem Betriebsregister synchronisiert.",
-    ja: "Fil One の取引記録は業務台帳から同期されています。",
-    pt: "Os registros comerciais da Fil One são sincronizados a partir do registro operacional.",
-    zh: "Fil One 商务记录同步自运营台账。",
-    ar: "تُزامَن سجلات Fil One التجارية من السجل التشغيلي.",
-  },
   "nav.account": {
     en: "Account",
     es: "Cuenta",

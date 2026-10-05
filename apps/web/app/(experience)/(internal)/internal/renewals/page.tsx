@@ -4,6 +4,7 @@ import { getTranslations } from "@/src/i18n/server";
 import { RenewalsView } from "@/src/features/internal-ops/finance-lifecycle/renewals-view";
 import { loadRenewalsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * narrow would take the page away from the role that plans renewals. Row
  * visibility is enforced by the projection read itself, not by this gate.
  */
-export default async function Page() {
+async function Page() {
   const workspace = await loadRenewalsWorkspace();
   return (
     <SurfacePermissionGate audience="internal" requiredPermission="report:read">
@@ -35,3 +36,5 @@ export default async function Page() {
     </SurfacePermissionGate>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

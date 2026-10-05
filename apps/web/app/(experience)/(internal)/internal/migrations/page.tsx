@@ -5,13 +5,14 @@ import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { MigrationsView } from "@/src/features/internal-ops/finance-lifecycle/migrations-view";
 import { readDemoMigrationDecisions } from "@/src/features/internal-ops/demo-operator-state";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
   return { title: t("operations.finance.migrations.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const guidedDemo = demoDeployIdentityEnabled(process.env);
   const decisions = guidedDemo ? await readDemoMigrationDecisions() : [];
   return (
@@ -23,3 +24,5 @@ export default async function Page() {
     </SurfacePermissionGate>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

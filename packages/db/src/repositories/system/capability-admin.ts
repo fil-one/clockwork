@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import { uuidV7, type Actor } from "@clockwork/contracts";
+import { uuidV7, type Actor, type Role } from "@clockwork/contracts";
 import { sanitizeActivationEvidenceReference } from "@clockwork/domain/system";
 
 import type { RuntimeDatabase, RuntimeTransaction } from "../../client";
@@ -10,6 +10,7 @@ import {
 } from "../../schema/system";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
+import { membershipActsAs } from "../membership-roles";
 import { systemCapabilityKeys, type SystemCapabilityKey } from "./capabilities";
 import {
   assertCapabilityDecision,
@@ -28,7 +29,7 @@ interface ControlInput {
 async function requireAuthority(
   tx: RuntimeTransaction,
   actor: Actor,
-  role: string,
+  role: Role,
 ) {
   if (
     actor.kind !== "user" ||
@@ -45,7 +46,7 @@ async function requireAuthority(
         eq(commerceUsers.id, actor.id),
         eq(commerceUsers.isInternalStaff, true),
         eq(commerceUsers.mfaEnrolled, true),
-        eq(memberships.role, role),
+        membershipActsAs(role),
       ),
     )
     .limit(1);

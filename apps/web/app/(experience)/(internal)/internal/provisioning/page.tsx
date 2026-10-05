@@ -8,6 +8,7 @@ import { DemoOrderHandoff } from "@/src/features/internal-ops/finance-lifecycle/
 import { ProvisioningView } from "@/src/features/internal-ops/finance-lifecycle/provisioning-view";
 import { loadProvisioningWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("operations.finance.provisioning.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const workspace = await loadProvisioningWorkspace();
   const orders = demoDeployIdentityEnabled(process.env)
     ? Object.values(
@@ -46,3 +47,5 @@ export default async function Page() {
     </SurfacePermissionGate>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

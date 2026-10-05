@@ -76,6 +76,10 @@ export const demoPersonaCopy = {
     jobTitle: "demo.persona.billingUser.jobTitle",
     intent: "demo.persona.billingUser.intent",
   },
+  commerceAdmin: {
+    jobTitle: "demo.persona.commerceAdmin.jobTitle",
+    intent: "demo.persona.commerceAdmin.intent",
+  },
   directBuyer: {
     jobTitle: "demo.persona.directBuyer.jobTitle",
     intent: "demo.persona.directBuyer.intent",
@@ -107,6 +111,10 @@ export const demoPersonaCopy = {
   reseller: {
     jobTitle: "demo.persona.reseller.jobTitle",
     intent: "demo.persona.reseller.intent",
+  },
+  revenueSeller: {
+    jobTitle: "demo.persona.revenueSeller.jobTitle",
+    intent: "demo.persona.revenueSeller.intent",
   },
 } as const satisfies Record<
   DemoPersonaKey,
@@ -258,6 +266,24 @@ export const demoJourneyCopy: DemoJourneyCopy = {
       },
     },
   },
+  revenueFirstMnda: {
+    title: "demo.journey.revenueFirstMnda.title",
+    steps: {
+      "/internal": { message: "demo.journey.revenueFirstMnda.readGuide" },
+      "/internal/pricing": {
+        message: "demo.journey.revenueFirstMnda.checkPricing",
+      },
+    },
+  },
+  commerceAdminReview: {
+    title: "demo.journey.commerceAdminReview.title",
+    steps: {
+      "/internal": { message: "demo.journey.commerceAdminReview.reviewWork" },
+      "/internal/team": {
+        message: "demo.journey.commerceAdminReview.reviewTeam",
+      },
+    },
+  },
 };
 
 /**
@@ -291,6 +317,7 @@ export function demoJourneyView(
  */
 export const demoPersonaStartRoutes = {
   billingUser: "/billing",
+  commerceAdmin: "/internal",
   directBuyer: "/dashboard",
   distributor: "/partner/portfolio",
   endClient: "/services",
@@ -299,6 +326,7 @@ export const demoPersonaStartRoutes = {
   legalApprover: "/internal/approvals",
   referralPartner: "/partner/registrations",
   reseller: "/partner",
+  revenueSeller: "/internal",
 } as const satisfies Record<DemoPersonaKey, `/${string}`>;
 
 export function demoPersonaStartRoute(

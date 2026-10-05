@@ -31,7 +31,9 @@ const INTERNAL_VIEWPORTS = [
 ] as const;
 
 const INTERNAL_DESTINATIONS = [
-  "Operations",
+  "Home",
+  "Pricing",
+  "Operations health",
   "Global search",
   "Queues & approvals",
   "Renewals desk",
@@ -241,6 +243,12 @@ test.describe("internal operator operations journey", () => {
     await trigger.click();
     const drawer = page.getByRole("dialog", { name: "Navigation" });
     await expect(drawer).toBeVisible();
+    // Operations groups sit closed behind the sales workspace; open each one.
+    const openOperationsGroups = async () => {
+      for (const group of await drawer.locator("details:not([open])").all())
+        await group.locator("summary").click();
+    };
+    await openOperationsGroups();
     for (const destination of INTERNAL_DESTINATIONS) {
       await expectTargetSize(
         drawer.getByRole("link", { name: destination, exact: true }),
@@ -250,6 +258,7 @@ test.describe("internal operator operations journey", () => {
     await expect(drawer).toBeHidden();
     await expect(trigger).toBeFocused();
     await trigger.click();
+    await openOperationsGroups();
     await drawer
       .getByRole("link", { name: "Global search", exact: true })
       .click();
@@ -436,7 +445,8 @@ test.describe("internal responsive and accessibility coverage", () => {
     page,
   }) => {
     const surfaces = [
-      { path: "/internal", heading: "Operational health" },
+      { path: "/internal", heading: "My work" },
+      { path: "/internal/operations", heading: "Operational health" },
       {
         path: "/internal/queues?view=sla-breached",
         heading: "Operational queues",
@@ -482,6 +492,8 @@ test.describe("internal responsive and accessibility coverage", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     for (const path of [
       "/internal",
+      "/internal/operations",
+      "/internal/pricing",
       "/internal/queues",
       "/internal/reports",
       "/internal/revenue",

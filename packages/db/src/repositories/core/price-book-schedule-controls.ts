@@ -1,4 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
+import { membershipActsAs } from "../membership-roles";
 import type { Actor } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import type { RuntimeTransaction } from "../../client";
@@ -44,7 +45,7 @@ export async function assertPersistedPriceScheduleFinance(
         eq(commerceUsers.id, userId),
         eq(commerceUsers.isInternalStaff, true),
         eq(commerceUsers.mfaEnrolled, true),
-        eq(memberships.role, "finance_approver"),
+        membershipActsAs("finance_approver"),
       ),
     )
     .limit(1)

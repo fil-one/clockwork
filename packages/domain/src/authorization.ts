@@ -73,6 +73,21 @@ export const internalOnlyPermissions: ReadonlySet<Permission> = new Set(
   ),
 );
 
+/**
+ * The permissions of the sales workspace: MNDAs, contracts and sales
+ * references. They are the only staff-wide reads open to a staff member who
+ * does not hold `operations:read`.
+ */
+export const salesWorkspacePermissions: ReadonlySet<Permission> = new Set([
+  "mnda:send",
+  "contract:read",
+  "contract:write",
+  "contract:approve",
+  "signatory:manage",
+  "sales:read",
+  "collateral:manage",
+]);
+
 const unscopedMarker = "clockwork.authorization.unscoped" as const;
 
 interface UnscopedInternalOnlyScope {
@@ -229,6 +244,17 @@ export function authorize(
   }
   if (decision.kind === "internal-staff" && !context.isInternalStaff) {
     throw new AuthorizationError("ACCOUNT_SCOPE_REQUIRED");
+  }
+  // A seller is internal staff without the operations workspace. Reading
+  // commercial records across every account is operations work, so the
+  // staff-wide scope admits a seller only for the sales workspace's own
+  // permissions, whatever tenant-style read permissions the role carries.
+  if (
+    decision.kind === "internal-staff" &&
+    !salesWorkspacePermissions.has(permission) &&
+    !context.roles.some((role) => hasPermission(role, "operations:read"))
+  ) {
+    throw new AuthorizationError("FORBIDDEN");
   }
   if (
     decision.kind === "account" &&

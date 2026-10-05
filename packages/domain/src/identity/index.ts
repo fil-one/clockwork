@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
-import type { Role } from "@clockwork/contracts";
+import {
+  internalRoles,
+  privilegedRoles,
+  type Role,
+} from "@clockwork/contracts";
 
 export type RelationshipRole = "direct_client" | "partner" | "end_client";
 export type RegistrationStatus =
@@ -119,21 +123,10 @@ export interface MembershipPolicyInput {
   internalStaff: boolean;
 }
 
-const privileged = new Set<Role>([
-  "owner",
-  "admin",
-  "partner_admin",
-  "internal_operator",
-  "finance_approver",
-  "legal_approver",
-  "destructive_action_approver",
-]);
-const internal = new Set<Role>([
-  "internal_operator",
-  "finance_approver",
-  "legal_approver",
-  "destructive_action_approver",
-]);
+// The contract's lists, so a new staff role is privileged and internal here
+// the moment it is added there.
+const privileged = new Set<Role>(privilegedRoles);
+const internal = new Set<Role>(internalRoles);
 
 /** WorkOS slugs are deliberately informational; commerce approval grants roles. */
 export function evaluateMembershipPolicy(input: MembershipPolicyInput): {
