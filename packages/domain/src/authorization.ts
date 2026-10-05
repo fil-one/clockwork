@@ -9,6 +9,7 @@ import {
 import type {
   AccountId,
   Actor,
+  OrganizationSide,
   Permission,
   Role,
   rolePermissions,
@@ -26,6 +27,11 @@ export interface AuthorizationContext {
    * `contextPermissions`).
    */
   permissions?: readonly Permission[];
+  /**
+   * The side of the organization the session acts in. Lets permissions
+   * derived from the roles apply the side's withholding.
+   */
+  side?: OrganizationSide;
   isInternalStaff: boolean;
   mfaVerified: boolean;
   recentAuthenticationVerified: boolean;

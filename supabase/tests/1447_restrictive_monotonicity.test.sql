@@ -1,5 +1,5 @@
 begin;
-select plan(14);
+select plan(16);
 set local search_path = public, extensions;
 
 -- Gaining a grant must never turn an allow into a deny (001447). For a fixed
@@ -76,7 +76,13 @@ insert into audit_events (
   ('b1447000-0000-4000-8000-0000000000a3','10000000-0000-4000-8000-000000000002',
    'invoice','b1447000-0000-4000-8000-0000000000a4',1,'core.invoices.void',1,
    '{"kind":"user","id":"20000000-0000-4000-8000-000000000001"}',
-   clock_timestamp(),'pgtap-1447-own-invoice');
+   clock_timestamp(),'pgtap-1447-own-invoice'),
+  -- A dispute (seeded case 92..01) recorded by somebody else: a finance
+  -- approver may read it, so only the outbox guard stops it queueing it.
+  ('b1447000-0000-4000-8000-0000000000a5','10000000-0000-4000-8000-000000000002',
+   'dispute_case','92000000-0000-4000-8000-000000000001',1447,'core.disputes.update',1,
+   '{"kind":"user","id":"20000000-0000-4000-8000-000000000006"}',
+   clock_timestamp(),'pgtap-1447-foreign-dispute');
 
 insert into monotonicity_commands values
   ('audit a report export', $c$
@@ -110,6 +116,13 @@ insert into monotonicity_commands values
         'eventType','core.invoices.void','aggregateType','invoice',
         'aggregateId','b1447000-0000-4000-8000-0000000000a4',
         'requestId','pgtap-1447-own-invoice'))$c$, false),
+  ('queue another user''s dispute event', $c$
+    insert into outbox_messages (event_id, topic, payload)
+    values ('b1447000-0000-4000-8000-0000000000a5','core.disputes.update',
+      jsonb_build_object('eventId','b1447000-0000-4000-8000-0000000000a5',
+        'eventType','core.disputes.update','aggregateType','dispute_case',
+        'aggregateId','92000000-0000-4000-8000-000000000001',
+        'requestId','pgtap-1447-foreign-dispute'))$c$, false),
   ('request a report export', $c$
     insert into report_exports (requested_by, report, parameters, status)
     values ('20000000-0000-4000-8000-000000000001','weekly_scorecard','{}','pending')$c$, false);
@@ -170,6 +183,12 @@ select ok(
   (select admitted from monotonicity_results where name = 'read one''s own invoice audit row'
      and granted = array['finance_approver']),
   'a finance approver alone reads its own finance record');
+select ok(
+  not (select admitted from monotonicity_results where name = 'queue another user''s dispute event'
+     and granted = array['finance_approver'])
+  and (select admitted from monotonicity_results where name = 'queue another user''s dispute event'
+     and granted = array['internal_operator']),
+  'a finance approver alone cannot queue a dispute event another user recorded');
 
 -- Static half of the rule: no restrictive policy negates a permission.
 select is(

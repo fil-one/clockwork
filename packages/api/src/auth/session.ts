@@ -4,7 +4,7 @@ import {
   permissionsForRoles,
   RoleSchema,
 } from "@clockwork/contracts";
-import type { Permission, Role } from "@clockwork/contracts";
+import type { OrganizationSide, Permission, Role } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import { createMiddleware } from "hono/factory";
 
@@ -22,6 +22,8 @@ export interface SessionClaims {
    * approver permissions. Every authorization check reads this.
    */
   permissions: readonly Permission[];
+  /** The side of the organization the permissions were computed for. */
+  side?: OrganizationSide;
   isInternalStaff: boolean;
   mfaVerified: boolean;
   recentAuthenticationVerified: boolean;
@@ -120,6 +122,7 @@ export const sessionMiddleware = (resolver: SessionResolver) =>
         ),
         roles: session.roles,
         permissions: session.permissions,
+        ...(session.side ? { side: session.side } : {}),
         isInternalStaff: session.isInternalStaff,
         mfaVerified: session.mfaVerified,
         recentAuthenticationVerified: session.recentAuthenticationVerified,

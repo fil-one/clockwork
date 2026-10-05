@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { eq, inArray, like } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { ids } from "@clockwork/contracts";
+import { ids, permissionsForRoles } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
 import { exceptionQueues } from "@clockwork/domain/lifecycle";
 
@@ -206,6 +206,7 @@ describe.sequential("the exception queue's staff boundary", () => {
           userId: ids.user.parse(tenantUserId),
           accountIds: [accountId],
           roles: ["owner"],
+          permissions: permissionsForRoles(["owner"]),
           isInternalStaff: false,
           requestId: `${requestPrefix}-tenant-open`,
         },
@@ -254,6 +255,7 @@ describe.sequential("the exception queue's staff boundary", () => {
         userId: ids.user.parse(tenantUserId),
         accountIds: [accountId],
         roles: ["owner"],
+        permissions: permissionsForRoles(["owner"]),
         isInternalStaff: false,
         requestId: `${requestPrefix}-forged`,
       },

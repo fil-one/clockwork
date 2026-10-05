@@ -938,6 +938,7 @@ describe("WorkOS commerce session mapping", () => {
     const assisted = await getCommerceSession();
 
     expect(assisted.roles).toEqual(["commerce_admin"]);
+    expect(assisted.side).toBe("fil_one");
     expect(assisted.permissions).toContain("impersonation:assume");
     expect(assisted.permissions).toContain("operations:write");
     for (const withheld of [
@@ -953,6 +954,82 @@ describe("WorkOS commerce session mapping", () => {
 
     authMocks.assistedCookie = undefined;
     const own = await getCommerceSession();
+    expect(own.permissions).toEqual(
+      expect.arrayContaining(["quote:approve", "staff:manage"]),
+    );
+  });
+
+  it("drops approver permissions inside a release-proof assisted session", async () => {
+    const secret = "proof-assisted-secret-at-least-thirty-two-bytes";
+    const origin = "http://localhost:3200";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("WORKOS_API_KEY", "");
+    vi.stubEnv("WORKOS_CLIENT_ID", "");
+    vi.stubEnv("WORKOS_COOKIE_PASSWORD", "");
+    vi.stubEnv("CLOCKWORK_RELEASE_PROOF", "1");
+    vi.stubEnv("CLOCKWORK_PROOF_AUTH_SECRET", secret);
+    vi.stubEnv("APP_ORIGIN", origin);
+    const payload = {
+      sessionId: "12000000-0000-4000-8000-000000000002",
+      expiresAt: "2030-07-31T16:15:00.000Z",
+      nonce: "0123456789abcdef0123456789abcdef",
+    };
+    authMocks.requestCookies.set(
+      releaseProofCookieName,
+      createReleaseProofCookieValue(payload, secret),
+    );
+    authMocks.requestHeaders.set("x-clockwork-proof-origin", origin);
+    const staff = membership({
+      ...staffMembership(),
+      role: "commerce_admin",
+      roles: ["commerce_admin"],
+    });
+    authMocks.resolveReleaseProofIdentity.mockResolvedValue({
+      sessionId: payload.sessionId,
+      selected: staff,
+      memberships: [staff],
+      mfaVerified: true,
+      recentAuthenticationVerified: true,
+    });
+    authMocks.assistedCookie = "12000000-0000-4000-8000-000000000003";
+    authMocks.resolveAssistedSession.mockResolvedValue({
+      id: authMocks.assistedCookie,
+      authenticationSessionId: payload.sessionId,
+      actualUserId: fixture.commerceUserId,
+      actualActorName: "Iris Operator",
+      actualActorEmail: "iris@filone.com",
+      actualRoles: ["commerce_admin"],
+      targetAccountId: "10000000-0000-4000-8000-000000000001",
+      targetAccountName: "Authorized customer",
+      reason: "Customer requested quote correction in case CASE-4813",
+      startedAt: new Date("2030-07-31T16:00:00.000Z"),
+      expiresAt: new Date("2030-07-31T16:15:00.000Z"),
+    });
+
+    const assisted = await getCommerceSession();
+
+    expect(assisted.authenticationSource).toBe("release-proof");
+    expect(assisted.impersonation?.sessionId).toBe(authMocks.assistedCookie);
+    expect(assisted.accountIds).toEqual([
+      "10000000-0000-4000-8000-000000000001",
+    ]);
+    expect(assisted.side).toBe("fil_one");
+    expect(assisted.permissions).toContain("impersonation:assume");
+    expect(assisted.permissions).toContain("operations:write");
+    for (const withheld of [
+      "quote:approve",
+      "billing:approve",
+      "agreement:approve",
+      "contract:approve",
+      "destructive:approve",
+      "signatory:manage",
+      "staff:manage",
+    ] as const)
+      expect(assisted.permissions).not.toContain(withheld);
+
+    authMocks.assistedCookie = undefined;
+    const own = await getCommerceSession();
+    expect(own).not.toHaveProperty("impersonation");
     expect(own.permissions).toEqual(
       expect.arrayContaining(["quote:approve", "staff:manage"]),
     );

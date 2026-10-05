@@ -325,8 +325,9 @@ async function getReleaseProofCommerceSession(input: {
     }
   }
   const roles = assistedSession?.actualRoles ?? proof.selected.roles;
+  const side = assistedSession ? "fil_one" : proof.selected.side;
   const permissions = permissionsForRoles(roles, {
-    side: assistedSession ? "fil_one" : proof.selected.side,
+    side,
     assisted: Boolean(assistedSession),
   });
   const actorEmail =
@@ -348,6 +349,7 @@ async function getReleaseProofCommerceSession(input: {
       : [proof.selected.accountId],
     roles,
     permissions,
+    side,
     isInternalStaff,
     mfaVerified: proof.mfaVerified,
     recentAuthenticationVerified: proof.recentAuthenticationVerified,
@@ -389,6 +391,7 @@ function demoPersonaSession(persona: DemoPersona): CommerceSession {
     permissions: permissionsForRoles(membership.roles, {
       side: membership.side,
     }),
+    side: membership.side,
     isInternalStaff: persona.isInternalStaff,
     mfaVerified: persona.mfaVerified,
     recentAuthenticationVerified: true,
@@ -491,6 +494,7 @@ export async function getCommerceSession(): Promise<CommerceSession> {
       accountIds: isInternalStaff ? [] : [selectedAccountId],
       roles: [role],
       permissions: permissionsForRoles([role], { side }),
+      side,
       isInternalStaff,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -598,8 +602,9 @@ async function workosCommerceSession(
   // permissions: those decisions wait until they are back in their own
   // session.
   const normalizedRoles = activeAssistedSession?.actualRoles ?? selected.roles;
+  const side = activeAssistedSession ? "fil_one" : selected.side;
   const permissions = permissionsForRoles(normalizedRoles, {
-    side: activeAssistedSession ? "fil_one" : selected.side,
+    side,
     assisted: Boolean(activeAssistedSession),
   });
   const actorEmail =
@@ -661,6 +666,7 @@ async function workosCommerceSession(
     accountIds,
     roles: normalizedRoles,
     permissions,
+    side,
     isInternalStaff,
     mfaVerified,
     recentAuthenticationVerified,

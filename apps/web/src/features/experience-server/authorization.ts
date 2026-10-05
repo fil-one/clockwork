@@ -131,6 +131,7 @@ export function authorizationContext(session: SessionClaims, id: string) {
     accountIds: effectiveAccountIds,
     roles: session.roles,
     permissions: session.permissions,
+    ...(session.side ? { side: session.side } : {}),
     isInternalStaff: session.isInternalStaff,
 
     requestId: id,

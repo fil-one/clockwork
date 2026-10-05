@@ -233,6 +233,52 @@ describe("context permissions", () => {
       ]),
     ).toBe(false);
   });
+
+  it("applies the side's withholding when derived from the roles", () => {
+    expect(
+      contextHasPermission(
+        { roles: ["partner_seller"], side: "channel_partner" },
+        "partner:quote:write",
+      ),
+    ).toBe(true);
+    expect(
+      contextHasPermission(
+        { roles: ["partner_seller"], side: "referral_partner" },
+        "partner:quote:write",
+      ),
+    ).toBe(false);
+    // Without a known side, least privilege: whatever any side withholds.
+    expect(
+      contextHasPermission(
+        { roles: ["partner_seller"] },
+        "partner:quote:write",
+      ),
+    ).toBe(false);
+    expect(
+      contextHasPermission({ roles: ["partner_seller"] }, "deal:register"),
+    ).toBe(true);
+    // Signed permissions win over the side.
+    expect(
+      contextHasPermission(
+        {
+          roles: ["partner_seller"],
+          side: "referral_partner",
+          permissions: ["partner:quote:write"],
+        },
+        "partner:quote:write",
+      ),
+    ).toBe(true);
+  });
+
+  it("withholds both side and assisted permissions together", () => {
+    const held = contextPermissions({
+      roles: ["commerce_admin"],
+      side: "fil_one",
+      impersonation: { reason: "help" },
+    });
+    expect(held).not.toContain("quote:approve");
+    expect(held).toContain("operations:write");
+  });
 });
 
 describe("organization sides", () => {
