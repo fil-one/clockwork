@@ -348,8 +348,10 @@ test.describe("demo landing", () => {
     await expect(
       page.getByRole("heading", { level: 2, name: "For Fil One teams" }),
     ).toBeVisible();
-    // Nine personas, each its own card with a start link.
-    await expect(page.getByRole("link", { name: /^Start as / })).toHaveCount(9);
+    // Eleven personas, each its own card with a start link.
+    await expect(page.getByRole("link", { name: /^Start as / })).toHaveCount(
+      11,
+    );
     await expectAxeClean(page);
 
     const start = page.getByRole("link", { name: /^Start as / }).first();
@@ -1107,7 +1109,9 @@ for (const viewport of [
     const runtimeReady = nextDevRuntimeReady(page);
     await page.setViewportSize(viewport);
     await passGate(page);
-    await expect(page.getByRole("link", { name: /^Start as / })).toHaveCount(9);
+    await expect(page.getByRole("link", { name: /^Start as / })).toHaveCount(
+      11,
+    );
     await runtimeReady;
     await hideDevOverlay(page);
     await expectVisualLayoutReady(page, viewport.width);

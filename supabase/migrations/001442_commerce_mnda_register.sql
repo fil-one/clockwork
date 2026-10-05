@@ -4,7 +4,7 @@
 -- administrator setting, independent of who countersigns. Each draft keeps the
 -- value it was rendered with, like the countersigner snapshot.
 create table public.commerce_mnda_settings (
-  id boolean primary key default true check (id),
+  singleton boolean primary key default true check (singleton),
   notice_email text not null check (
     notice_email = lower(notice_email)
     and length(notice_email) <= 254
@@ -14,7 +14,7 @@ create table public.commerce_mnda_settings (
   updated_at timestamptz not null default now(),
   updated_by uuid
 );
-insert into public.commerce_mnda_settings (id, notice_email) values (true, 'james@fil.one');
+insert into public.commerce_mnda_settings (singleton, notice_email) values (true, 'james@fil.one');
 
 alter table public.commerce_mnda_settings enable row level security;
 alter table public.commerce_mnda_settings force row level security;

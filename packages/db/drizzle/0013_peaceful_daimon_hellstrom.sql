@@ -1,3 +1,11 @@
+CREATE TABLE "commerce_mnda_settings" (
+	"singleton" boolean PRIMARY KEY DEFAULT true NOT NULL,
+	"notice_email" text NOT NULL,
+	"version" integer DEFAULT 1 NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_by" uuid
+);
+--> statement-breakpoint
 CREATE TABLE "commerce_contracts" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"counterparty_name" text NOT NULL,
@@ -113,6 +121,15 @@ CREATE TABLE "commerce_stored_documents" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "commerce_mnda_requests" ADD COLUMN "notice_email" text;--> statement-breakpoint
+ALTER TABLE "commerce_mnda_requests" ADD COLUMN "owner_email" text;--> statement-breakpoint
+ALTER TABLE "commerce_mnda_requests" ADD COLUMN "corrected_signer_email" text;--> statement-breakpoint
+ALTER TABLE "commerce_mnda_requests" ADD COLUMN "pending_signer_email" text;--> statement-breakpoint
+ALTER TABLE "commerce_mnda_requests" ADD COLUMN "sent_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "commerce_mnda_requests" ADD COLUMN "reminded_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "commerce_mnda_requests" ADD COLUMN "cancel_code" text;--> statement-breakpoint
+ALTER TABLE "commerce_mnda_requests" ADD COLUMN "cancel_reason" text;--> statement-breakpoint
+ALTER TABLE "commerce_mnda_requests" ADD COLUMN "normalized_company" text GENERATED ALWAYS AS (public.commerce_mnda_normalize_company(input->>'company')) STORED;--> statement-breakpoint
 ALTER TABLE "commerce_contract_events" ADD CONSTRAINT "commerce_contract_events_contract_id_commerce_contracts_id_fk" FOREIGN KEY ("contract_id") REFERENCES "public"."commerce_contracts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "commerce_contract_files" ADD CONSTRAINT "commerce_contract_files_contract_id_commerce_contracts_id_fk" FOREIGN KEY ("contract_id") REFERENCES "public"."commerce_contracts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "commerce_contract_signing" ADD CONSTRAINT "commerce_contract_signing_contract_id_commerce_contracts_id_fk" FOREIGN KEY ("contract_id") REFERENCES "public"."commerce_contracts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

@@ -84,7 +84,7 @@ export const mndaArtifacts = pgTable(
 );
 /** Single row (`id` is always true): settings that bind new drafts. */
 export const mndaSettings = pgTable("commerce_mnda_settings", {
-  id: boolean("id").primaryKey().default(true),
+  singleton: boolean("singleton").primaryKey().default(true),
   noticeEmail: text("notice_email").notNull(),
   version: integer("version").notNull().default(1),
   updatedAt: timestamp("updated_at", { withTimezone: true })
