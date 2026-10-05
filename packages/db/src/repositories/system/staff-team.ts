@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, ne, sql } from "drizzle-orm";
 
 import {
   planStaffProvisioning,
@@ -75,6 +75,49 @@ function userActor(actorUserId: string): Actor {
   return { kind: "user", id: actorUserId };
 }
 
+/**
+ * Locks every staff membership of the organization. Every team change takes
+ * it before it checks the acting administrator, so two administrators
+ * changing each other run one after the other and the second sees the first's
+ * result: an administrator demoted a moment ago is refused, and the
+ * organization never loses its last administrator.
+ */
+export async function lockStaffOrganization(
+  tx: RuntimeTransaction,
+  organizationId: string,
+): Promise<void> {
+  await tx
+    .select({ id: memberships.id })
+    .from(memberships)
+    .where(eq(memberships.organizationId, organizationId))
+    .for("update");
+}
+
+/**
+ * Refuses a change that would leave the organization without a commerce
+ * administrator. Call it under {@link lockStaffOrganization}.
+ */
+export async function assertAnotherStaffAdmin(
+  tx: RuntimeTransaction,
+  organizationId: string,
+  targetUserId: string,
+): Promise<void> {
+  const [row] = await tx
+    .select({ total: sql<number>`count(*)::int` })
+    .from(memberships)
+    .innerJoin(commerceUsers, eq(commerceUsers.id, memberships.userId))
+    .where(
+      and(
+        eq(memberships.organizationId, organizationId),
+        eq(memberships.role, "commerce_admin"),
+        eq(commerceUsers.isInternalStaff, true),
+        ne(memberships.userId, targetUserId),
+      ),
+    );
+  if (!row || Number(row.total) === 0)
+    throw new StaffTeamError("STAFF_TEAM_LAST_ADMIN");
+}
+
 export class StaffTeamRepository {
   public constructor(private readonly database: RuntimeDatabase) {}
 
@@ -129,6 +172,7 @@ export class StaffTeamRepository {
       this.database,
       input.requestId,
       async (tx) => {
+        await lockStaffOrganization(tx, input.organizationId);
         await this.requireAdmin(tx, input.actorUserId, input.organizationId);
         await tx.execute(
           sql`select pg_advisory_xact_lock(hashtext(${`staff:${email}`}))`,
@@ -197,6 +241,7 @@ export class StaffTeamRepository {
       this.database,
       input.requestId,
       async (tx) => {
+        await lockStaffOrganization(tx, input.organizationId);
         await this.requireAdmin(tx, input.actorUserId, input.organizationId);
         const target = await this.lockedTarget(tx, input);
         if (!managedRoles.includes(target.role))
@@ -204,7 +249,11 @@ export class StaffTeamRepository {
         if (target.role === input.role)
           throw new StaffTeamError("STAFF_TEAM_ROLE_UNCHANGED");
         if (target.role === "commerce_admin")
-          await this.assertAnotherAdmin(tx, input.organizationId, target);
+          await assertAnotherStaffAdmin(
+            tx,
+            input.organizationId,
+            target.userId,
+          );
         const [updated] = await tx
           .update(memberships)
           .set({ role: input.role })
@@ -246,6 +295,7 @@ export class StaffTeamRepository {
       this.database,
       input.requestId,
       async (tx) => {
+        await lockStaffOrganization(tx, input.organizationId);
         const workosOrganizationId = await this.requireAdmin(
           tx,
           input.actorUserId,
@@ -270,6 +320,7 @@ export class StaffTeamRepository {
       this.database,
       input.requestId,
       async (tx) => {
+        await lockStaffOrganization(tx, input.organizationId);
         await this.requireAdmin(tx, input.actorUserId, input.organizationId);
         const target = await this.deactivationTarget(tx, input);
         await tx
@@ -310,7 +361,7 @@ export class StaffTeamRepository {
     if (target.rowVersion !== input.expectedRowVersion)
       throw new StaffTeamError("STAFF_TEAM_STALE");
     if (target.role === "commerce_admin")
-      await this.assertAnotherAdmin(tx, input.organizationId, target);
+      await assertAnotherStaffAdmin(tx, input.organizationId, target.userId);
     return target;
   }
 
@@ -320,30 +371,11 @@ export class StaffTeamRepository {
   ): Promise<StaffTeamMember> {
     if (input.userId === input.actorUserId)
       throw new StaffTeamError("STAFF_TEAM_SELF_CHANGE");
-    // Locking every staff membership of the organization serializes the
-    // last-administrator check against a concurrent change to another one.
-    await tx
-      .select({ id: memberships.id })
-      .from(memberships)
-      .where(eq(memberships.organizationId, input.organizationId))
-      .for("update");
     const target = (await this.members(tx, input.organizationId)).find(
       (member) => member.userId === input.userId,
     );
     if (!target) throw new StaffTeamError("STAFF_TEAM_MEMBER_NOT_FOUND");
     return target;
-  }
-
-  private async assertAnotherAdmin(
-    tx: RuntimeTransaction,
-    organizationId: string,
-    target: StaffTeamMember,
-  ): Promise<void> {
-    const others = (await this.members(tx, organizationId)).filter(
-      (member) =>
-        member.role === "commerce_admin" && member.userId !== target.userId,
-    );
-    if (others.length === 0) throw new StaffTeamError("STAFF_TEAM_LAST_ADMIN");
   }
 
   /**

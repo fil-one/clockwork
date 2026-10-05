@@ -120,3 +120,21 @@ export function planStaffProvisioning(input: {
     throw new Error("STAFF_PROVISIONING_ROLE_CHANGE_NOT_REQUESTED");
   return { kind: "update_role", ...identity, from: row.role };
 }
+
+/**
+ * A role change may not leave the staff organization without a commerce
+ * administrator. `otherAdministrators` counts the organization's other
+ * commerce administrators, read under a lock on its memberships.
+ */
+export function assertStaffAdministratorRemains(input: {
+  from: string;
+  to: string;
+  otherAdministrators: number;
+}): void {
+  if (
+    input.from === "commerce_admin" &&
+    input.to !== "commerce_admin" &&
+    input.otherAdministrators < 1
+  )
+    throw new Error("STAFF_PROVISIONING_LAST_ADMIN");
+}

@@ -7,24 +7,25 @@
 --
 -- 2. A commerce administrator acts as every internal role. The application
 --    expands the role where a session is built, so signed database claims
---    already carry internal_operator, finance_approver, legal_approver and
---    destructive_action_approver for an administrator, and every policy that
---    tests a claimed role (app_has_role, app_has_any_role,
---    experience_session_has_role) holds without change here. Two trigger
---    functions instead read the STORED membership of the approver of record,
---    so they are restated below with exactly one change each: the membership
---    test accepts commerce_admin wherever it accepted finance_approver. The
---    function bodies are otherwise copied verbatim from 001436 and 001430.
---    Two-person rules compare users, not roles, and are untouched.
+--    carry internal_operator, finance_approver, legal_approver and
+--    destructive_action_approver for an administrator. Allow-list policies
+--    (app_has_any_role, and the positive app_has_role and
+--    experience_session_has_role tests) admit that composite claim unchanged.
+--    The three restrictive policies that CONFINE a finance approver would also
+--    confine the administrator's operator work, so two are restated below;
+--    see "Restrictive policies keyed on finance_approver alone".
+--    Two trigger functions read the STORED membership of the approver of
+--    record, so they are restated with exactly one change each: the
+--    membership test accepts commerce_admin wherever it accepted
+--    finance_approver. Their bodies are otherwise copied verbatim from 001436
+--    and 001430. Two-person rules compare users, not roles, and are untouched.
 --
--- 3. Fil One staff who operate the portal today become commerce
---    administrators. The scope is the Fil One staff organization in staging
---    and production, by its identity-provider binding exactly as 001440 does,
---    and only internal-staff users who currently hold internal_operator. On
---    4 October 2026 that is James Kurz and R.W. Holleman. A fresh or local
---    database has neither organization, so nothing changes there, and a second
---    run finds no internal_operator membership left to promote. Each change is
---    recorded in audit_events.
+-- 3. A verified MFA receipt marks the user's authenticator as enrolled, so
+--    the staff authority checks that require mfa_enrolled can pass for staff
+--    who were not bootstrapped.
+--
+-- 4. James Kurz becomes the first commerce administrator. Everyone else keeps
+--    their role until an administrator changes it on the Team page.
 
 alter table public.memberships drop constraint memberships_role_check;
 alter table public.memberships add constraint memberships_role_check check (role in (
@@ -160,34 +161,228 @@ begin
   return new;
 end $$;
 
-with promoted as (
-  update public.memberships membership
-  set role = 'commerce_admin'
-  from public.organizations staff_organization, public.commerce_users staff_user
-  where membership.organization_id = staff_organization.id
-    and membership.user_id = staff_user.id
-    and staff_organization.workos_organization_id in (
-      'org_01M21Q2N3ER4KWVJ30VRN8G0PV', -- staging
-      'org_01M21RDQDM5NHYD4CEHWJZFG3J'  -- production
+-- ---------------------------------------------------------------------------
+-- Restrictive policies keyed on finance_approver alone.
+-- ---------------------------------------------------------------------------
+-- Three restrictive policies confine a finance approver on the tenant pool:
+-- what audit rows it may read, and what audit rows it may append. They fire on
+-- anyone whose claim CARRIES finance_approver, so a composite claim that also
+-- carries internal_operator (an administrator, or a person given both roles)
+-- lost operator rights the moment the finance role was added: the class of
+-- defect 001401 documents for ['owner','finance_approver']. Measured before
+-- this change: a report export audited by ['internal_operator'] on the tenant
+-- pool was admitted and the same row under the administrator's expanded claim
+-- was refused 42501.
+--
+-- Where the claim also carries internal_operator, the operator's rights
+-- apply. Attribution does NOT relax: a finance holder still appends audit rows
+-- only under its own user id, operator or not, because that conjunct is what
+-- stops a forged four-eyes trail and every tenant-pool append in the tree is
+-- already attributed to the acting user. A pure finance approver is confined
+-- exactly as before.
+--
+-- `outbox_messages_finance_insert_guard` (001000) is attribution only (the
+-- event it queues must be attributed to the caller), so it already holds for
+-- operator work and is left as it is. Every other restrictive policy that
+-- names a role is an allow-list (000900): more roles in a claim can only
+-- satisfy it, never refuse it. The positive role tests in functions
+-- (core_create_stripe_adjustment_operation, order acceptance) likewise only
+-- admit.
+
+drop policy if exists audit_events_finance_visibility_guard on public.audit_events;
+create policy audit_events_finance_visibility_guard
+on public.audit_events as restrictive for select to clockwork_runtime
+using (
+  not app_has_role('finance_approver')
+  or app_has_role('internal_operator')
+  or actor ->> 'id' = public.app_current_user_id()::text
+  or (aggregate_type = 'credit_note' and exists (
+    select 1 from public.credit_notes adjustment where adjustment.id = aggregate_id
+  ))
+  or (aggregate_type = 'refund' and exists (
+    select 1 from public.refunds adjustment where adjustment.id = aggregate_id
+  ))
+  or (aggregate_type in ('dispute','dispute_case') and exists (
+    select 1 from public.dispute_cases adjustment where adjustment.id = aggregate_id
+  ))
+  or (aggregate_type = 'collection_case' and exists (
+    select 1 from public.core_collection_cases collection_case
+    where collection_case.id = aggregate_id
+      and collection_case.owner_user_id = public.app_current_user_id()
+  ))
+);
+
+drop policy if exists audit_events_finance_insert_guard on public.audit_events;
+create policy audit_events_finance_insert_guard
+on public.audit_events as restrictive for insert to clockwork_runtime
+with check (
+  not app_has_role('finance_approver')
+  or (
+    -- Attribution stays unconditional for every finance holder (001401).
+    actor ->> 'id' = public.app_current_user_id()::text
+    and (
+      app_has_account(account_id)
+      -- An operator's appends are bounded by the permissive policies that
+      -- admit them, as they are for an operator without the finance role.
+      or app_has_role('internal_operator')
+      or aggregate_type in (
+        'invoice','credit_note','refund','dispute',
+        'dispute_case','collection_case','collection_action'
+      )
     )
-    and staff_user.is_internal_staff
-    and membership.role = 'internal_operator'
-  returning membership.id, membership.row_version, membership.user_id,
-    membership.organization_id
-)
-insert into public.audit_events (
-  id, account_id, aggregate_type, aggregate_id, aggregate_version,
-  event_type, event_version, actor, occurred_at, request_id, after, metadata
-)
-select gen_random_uuid(), null, 'membership', promoted.id, promoted.row_version,
-       'staff.role_changed', 1,
-       jsonb_build_object('kind', 'system', 'id', 'migration:001441_revenue_roles'),
-       now(), 'migration:001441_revenue_roles',
-       jsonb_build_object(
-         'userId', promoted.user_id,
-         'organizationId', promoted.organization_id,
-         'previousRole', 'internal_operator',
-         'role', 'commerce_admin'
-       ),
-       jsonb_build_object('migration', '001441_revenue_roles')
-from promoted;
+  )
+);
+
+-- Revenue staff are internal staff, so their signed claims say
+-- isInternalStaff = true. Internal status alone therefore does not mean
+-- "operations staff"; a policy must test role names or permissions.
+comment on function public.experience_session_is_internal() is
+  'True for every internal staff claim, including the revenue role. Policies must test role names (experience_session_has_role) or permissions, never internal status alone.';
+
+-- ---------------------------------------------------------------------------
+-- Authenticator enrollment follows a verified challenge.
+-- ---------------------------------------------------------------------------
+-- `commerce_users.mfa_enrolled` gates the staff authority checks (capability,
+-- catalog, provider reference, price book and finance decisions), but only
+-- the bootstrap ever set it. A receipt in experience_mfa_receipts exists only
+-- after WorkOS verified a live challenge against the user's own factor, which
+-- is proof the factor is enrolled. Recording one marks the user enrolled once,
+-- with an audit row and outbox message; later receipts change nothing. The
+-- authority checks themselves are unchanged.
+create function public.mark_mfa_enrolled(
+  candidate_workos_user_id text,
+  candidate_challenge_id text,
+  candidate_verified_at timestamptz
+) returns void
+language plpgsql security definer set search_path = pg_catalog, public as $$
+declare
+  enrolled public.commerce_users%rowtype;
+  event_id uuid := gen_random_uuid();
+  event_actor jsonb;
+  event_after jsonb := jsonb_build_object('mfaEnrolled', true);
+  event_request text := 'mfa-receipt:' || candidate_challenge_id;
+begin
+  update public.commerce_users
+  set mfa_enrolled = true
+  where workos_user_id = candidate_workos_user_id and not mfa_enrolled
+  returning * into enrolled;
+  if not found then return; end if;
+  event_actor := jsonb_build_object('kind', 'user', 'id', enrolled.id::text);
+  insert into public.audit_events (
+    id, account_id, aggregate_type, aggregate_id, aggregate_version,
+    event_type, event_version, actor, occurred_at, request_id, before, after,
+    metadata
+  ) values (
+    event_id, null, 'commerce_user', enrolled.id, enrolled.row_version,
+    'identity.mfa_enrolled', 1, event_actor, candidate_verified_at,
+    event_request, jsonb_build_object('mfaEnrolled', false), event_after,
+    jsonb_build_object('source', 'mfa_receipt')
+  );
+  insert into public.outbox_messages (id, event_id, topic, payload)
+  values (gen_random_uuid(), event_id, 'identity.mfa_enrolled',
+    jsonb_build_object(
+      'eventId', event_id, 'eventType', 'identity.mfa_enrolled',
+      'aggregateType', 'commerce_user', 'aggregateId', enrolled.id,
+      'aggregateVersion', enrolled.row_version,
+      'occurredAt', to_char(candidate_verified_at at time zone 'UTC',
+        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+      'requestId', event_request, 'actor', event_actor,
+      'data', event_after));
+end $$;
+revoke all on function public.mark_mfa_enrolled(text, text, timestamptz)
+  from public, anon, authenticated, clockwork_runtime, clockwork_service;
+
+create function public.record_mfa_enrollment() returns trigger
+language plpgsql security definer set search_path = pg_catalog, public as $$
+begin
+  perform public.mark_mfa_enrolled(
+    new.workos_user_id, new.challenge_id, new.verified_at);
+  return new;
+end $$;
+revoke all on function public.record_mfa_enrollment()
+  from public, anon, authenticated, clockwork_runtime, clockwork_service;
+create trigger record_mfa_enrollment
+after insert on public.experience_mfa_receipts
+for each row execute function public.record_mfa_enrollment();
+
+-- Users who verified a challenge before this migration: their earliest
+-- receipt goes through the same function, so the backfill writes the same
+-- audit trail a new receipt would.
+select public.mark_mfa_enrolled(
+  first_receipt.workos_user_id, first_receipt.challenge_id,
+  first_receipt.verified_at)
+from (
+  select distinct on (receipt.workos_user_id) receipt.*
+  from public.experience_mfa_receipts receipt
+  order by receipt.workos_user_id, receipt.verified_at
+) first_receipt;
+
+-- ---------------------------------------------------------------------------
+-- The first commerce administrator.
+-- ---------------------------------------------------------------------------
+-- Exactly one person is promoted here: James Kurz (james@fil.one), and only
+-- while he is internal staff holding internal_operator in the Fil One staff
+-- organization of staging or production, identified by its identity-provider
+-- binding exactly as 001440 does. Every other staff member keeps their role;
+-- James promotes R.W. Holleman and anyone else on the Team page after deploy,
+-- where the change is made by a named person and audited as theirs. A fresh
+-- or local database has neither organization and changes nothing, and a
+-- second run finds no internal_operator membership left to promote. The audit
+-- row and outbox message match the Team page's `staff.role_changed`.
+--
+-- A function rather than a bare statement, so pgTAP can run the exact
+-- promotion against a staff-organization fixture.
+create function private.promote_first_commerce_admin() returns integer
+language plpgsql security definer set search_path = pg_catalog, public as $fn$
+declare promoted_count integer;
+begin
+  with promoted as (
+    update public.memberships membership
+    set role = 'commerce_admin'
+    from public.organizations staff_organization, public.commerce_users staff_user
+    where membership.organization_id = staff_organization.id
+      and membership.user_id = staff_user.id
+      and staff_organization.workos_organization_id in (
+        'org_01M21Q2N3ER4KWVJ30VRN8G0PV', -- staging
+        'org_01M21RDQDM5NHYD4CEHWJZFG3J'  -- production
+      )
+      and lower(staff_user.email) = 'james@fil.one'
+      and staff_user.is_internal_staff
+      and membership.role = 'internal_operator'
+    returning membership.id, membership.row_version, staff_user.email
+  ),
+  events as (
+    insert into public.audit_events (
+      id, account_id, aggregate_type, aggregate_id, aggregate_version,
+      event_type, event_version, actor, occurred_at, request_id, before, after,
+      metadata
+    )
+    select gen_random_uuid(), null, 'membership', promoted.id,
+           promoted.row_version, 'staff.role_changed', 1,
+           jsonb_build_object('kind', 'system', 'id', 'migration:001441_revenue_roles'),
+           now(), 'migration:001441_revenue_roles',
+           jsonb_build_object('email', promoted.email, 'role', 'internal_operator'),
+           jsonb_build_object('email', promoted.email, 'role', 'commerce_admin'),
+           jsonb_build_object('migration', '001441_revenue_roles')
+    from promoted
+    returning id, aggregate_id, aggregate_version, actor, occurred_at,
+      request_id, after
+  )
+  insert into public.outbox_messages (id, event_id, topic, payload)
+  select gen_random_uuid(), events.id, 'staff.role_changed',
+         jsonb_build_object(
+           'eventId', events.id, 'eventType', 'staff.role_changed',
+           'aggregateType', 'membership', 'aggregateId', events.aggregate_id,
+           'aggregateVersion', events.aggregate_version,
+           'occurredAt', to_char(events.occurred_at at time zone 'UTC',
+             'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+           'requestId', events.request_id, 'actor', events.actor,
+           'data', events.after)
+  from events;
+  get diagnostics promoted_count = row_count;
+  return promoted_count;
+end $fn$;
+revoke all on function private.promote_first_commerce_admin()
+  from public, anon, authenticated, clockwork_runtime, clockwork_service;
+
+select private.promote_first_commerce_admin();

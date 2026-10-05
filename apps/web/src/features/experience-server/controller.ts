@@ -17,6 +17,7 @@ import type { SessionResolver } from "@clockwork/api";
 import {
   idempotencyKey,
   requestId,
+  requireAudience,
   requireAuthenticatedSession,
   resolveScopedAccount,
 } from "./authorization";
@@ -718,6 +719,11 @@ export async function handleExperienceRequest(
             "Evidence retention is server managed",
           );
         const requestedAccountId = optionalString(value, "accountId");
+        // Staff evidence is operations evidence: a seller is internal staff
+        // but holds no operations role, and is refused here as on every
+        // other internal experience route.
+        if (session.isInternalStaff && !session.impersonation)
+          requireAudience(session, "internal");
         const accountId =
           session.isInternalStaff && !session.impersonation
             ? null

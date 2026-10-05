@@ -337,20 +337,11 @@ function simulationOutcome(
   ];
 }
 
-/** The book facts the simulation prices with, and nothing about its review. */
-export type SimulatedPriceBook = Pick<
-  PriceBookAdministrationRecord,
-  | "id"
-  | "name"
-  | "version"
-  | "effectiveFrom"
-  | "currency"
-  | "rateCards"
-  | "discountMatrix"
->;
-
-/** Prices one line against a book in the browser; it saves and sends nothing. */
-export function PriceBookSimulation({ book }: { book: SimulatedPriceBook }) {
+function PriceBookSimulation({
+  book,
+}: {
+  book: PriceBookAdministrationRecord;
+}) {
   const t = useTranslations();
   const formattingLocale = useFormattingLocale();
   const [result, setResult] = useState<readonly string[]>([]);

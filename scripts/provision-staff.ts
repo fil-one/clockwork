@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
+  assertStaffAdministratorRemains,
   assertStaffProvisioningTarget,
   planStaffProvisioning,
   staffEmailDomainAllowed,
@@ -76,6 +77,17 @@ async function main() {
     if (plan.kind === "update_role") {
       await client.begin(async (tx) => {
         await tx`select pg_advisory_xact_lock(hashtext(${person.email}))`;
+        // The same lock the Team page takes, so the administrator count below
+        // cannot change underneath this update.
+        await tx`select id from memberships where organization_id=${manifest.organization.id} for update`;
+        const [administrators] = await tx<
+          { total: number }[]
+        >`select count(*)::int as total from memberships m join commerce_users u on u.id=m.user_id where m.organization_id=${manifest.organization.id} and m.role='commerce_admin' and u.is_internal_staff and m.user_id<>${plan.userId}`;
+        assertStaffAdministratorRemains({
+          from: plan.from,
+          to: person.role,
+          otherAdministrators: administrators?.total ?? 0,
+        });
         const updated =
           await tx`update memberships set role=${person.role} where user_id=${plan.userId} and organization_id=${manifest.organization.id} and role=${plan.from} returning id`;
         if (updated.length !== 1)

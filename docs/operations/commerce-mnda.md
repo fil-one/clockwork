@@ -47,17 +47,28 @@ Staff hold one of three roles:
 - `revenue`: sellers. Home, MNDAs and indicative pricing. No operations,
   billing, provisioning or platform tools.
 - `commerce_admin`: everything every internal role can do, plus MNDA signatory
-  and notice settings and the **Team** page. Migration 001441 made the Fil One
-  staff who held `internal_operator` in staging and production (James Kurz and
-  R.W. Holleman on 4 October 2026) commerce administrators.
+  and notice settings and the **Team** page. Migration 001441 promotes one
+  person: James Kurz (`james@fil.one`), while he holds `internal_operator` in
+  the Fil One staff organization in staging or production. Every other staff
+  member keeps their role.
 - `internal_operator`: the operations workspace for the platform team.
+
+After the deploy that carries 001441, James signs in, opens **Team** and changes
+R.W. Holleman's role to commerce administrator. That change is made and audited
+under James's name.
 
 A commerce administrator adds, re-roles and removes staff at `/internal/team`.
 The page creates the WorkOS identity and organization membership with the server
 WorkOS key and records every change in the audit log. It sends no email: tell
 the person to sign in with their work address. Removing access deletes the
 person's staff membership and deactivates their WorkOS organization membership;
-their history stays.
+their history stays. Neither the page nor the provisioning secret can remove the
+last commerce administrator.
+
+A person's authenticator counts as enrolled from their first verified in-app MFA
+check (`/access/mfa`). Staff authority checks that require an enrolled
+authenticator (capabilities, catalog, provider references, finance decisions)
+pass from then on; the enrollment is recorded in the audit log.
 
 The deployment path remains for a first administrator or when the page is not
 available. An optional protected `CLOCKWORK_STAFF_PROVISIONING` secret contains

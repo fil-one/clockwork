@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  assertStaffAdministratorRemains,
   assertStaffProvisioningTarget,
   planStaffProvisioning,
   staffEmailDomainAllowed,
@@ -158,5 +159,37 @@ describe("staff provisioning plan", () => {
         organizationId,
       }),
     ).toThrow("STAFF_PROVISIONING_EXISTING_IDENTITY_CONFLICT");
+  });
+});
+
+describe("last commerce administrator", () => {
+  it("refuses to demote the only administrator", () => {
+    expect(() =>
+      assertStaffAdministratorRemains({
+        from: "commerce_admin",
+        to: "revenue",
+        otherAdministrators: 0,
+      }),
+    ).toThrow("STAFF_PROVISIONING_LAST_ADMIN");
+  });
+
+  it("allows the change while another administrator remains", () => {
+    expect(() =>
+      assertStaffAdministratorRemains({
+        from: "commerce_admin",
+        to: "internal_operator",
+        otherAdministrators: 1,
+      }),
+    ).not.toThrow();
+  });
+
+  it("ignores changes that do not remove an administrator", () => {
+    expect(() =>
+      assertStaffAdministratorRemains({
+        from: "revenue",
+        to: "commerce_admin",
+        otherAdministrators: 0,
+      }),
+    ).not.toThrow();
   });
 });

@@ -1459,4 +1459,32 @@ describe("evidence request policy", () => {
       expect(reserveEvidence).not.toHaveBeenCalled();
     },
   );
+
+  it("refuses staff evidence from a seller, who holds no operations role", async () => {
+    const reserveEvidence = vi.fn();
+    const response = await handleExperienceRequest(
+      mutationRequest("/api/experience/evidence/uploads", {
+        journey: "customer_paper",
+        targetId: agreementId,
+        kind: "agreement",
+        contentHash: "a".repeat(64),
+        mimeType: "application/pdf",
+        byteLength: 1024,
+      }),
+      ["evidence", "uploads"],
+      {
+        repository: repository({ reserveEvidence }),
+        sessionResolver: resolver({
+          userId: "20000000-0000-4000-8000-000000000010",
+          accountIds: [],
+          roles: ["revenue"],
+          isInternalStaff: true,
+          mfaVerified: true,
+          recentAuthenticationVerified: true,
+        }),
+      },
+    );
+    expect(response.status).toBe(403);
+    expect(reserveEvidence).not.toHaveBeenCalled();
+  });
 });

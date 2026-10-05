@@ -15,6 +15,7 @@ import {
   disputeCases,
   entitlements,
   invoices,
+  memberships,
   orderLines,
   orders,
   payments,
@@ -761,10 +762,21 @@ export class DatabaseCoreWorkflowDispatchStore {
       transaction.query.accounts.findFirst({
         where: eq(accounts.id, order.partnerAccountId),
       }),
-      transaction.query.commerceUsers.findFirst({
-        where: eq(commerceUsers.isInternalStaff, true),
-        orderBy: [asc(commerceUsers.id)],
-      }),
+      // The accrual is attributed to an operator, never to a seller or an
+      // approver who happens to sort first.
+      transaction
+        .select({ id: commerceUsers.id })
+        .from(commerceUsers)
+        .innerJoin(memberships, eq(memberships.userId, commerceUsers.id))
+        .where(
+          and(
+            eq(commerceUsers.isInternalStaff, true),
+            inArray(memberships.role, ["internal_operator", "commerce_admin"]),
+          ),
+        )
+        .orderBy(asc(commerceUsers.id))
+        .limit(1)
+        .then(([user]) => user),
     ]);
     if (
       !partner ||
