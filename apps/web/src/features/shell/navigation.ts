@@ -147,6 +147,22 @@ export const navigation: Readonly<
       providerBackedOnly: true,
       allowedRoles: ["internal_operator", "finance_approver", "legal_approver"],
     },
+    {
+      href: "/internal/contracts",
+      label: "platform.nav.internal.contracts",
+      // i18n-exempt: search aliases matched in addition to the translated label; never displayed
+      keywords: ["agreements", "msa", "renewals", "notice"],
+      providerBackedOnly: true,
+      requiredPermission: "contract:read",
+    },
+    {
+      href: "/internal/sales-library",
+      label: "platform.nav.internal.salesLibrary",
+      // i18n-exempt: search aliases matched in addition to the translated label; never displayed
+      keywords: ["deck", "collateral", "case study", "one-pager"],
+      providerBackedOnly: true,
+      requiredPermission: "sales:read",
+    },
     { href: "/internal/search", label: "nav.internal.search" },
     { href: "/internal/queues", label: "nav.internal.queues" },
     {

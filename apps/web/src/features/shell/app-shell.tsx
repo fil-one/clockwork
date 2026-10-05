@@ -126,6 +126,8 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/internal/unhandled-errors": <TriangleAlert size={19} strokeWidth={1.8} />,
   "/internal/agreements": <FileText size={19} strokeWidth={1.8} />,
   "/internal/mndas": <FileText size={19} strokeWidth={1.8} />,
+  "/internal/contracts": <ScrollText size={19} strokeWidth={1.8} />,
+  "/internal/sales-library": <BookOpen size={19} strokeWidth={1.8} />,
   "/internal/approvals": <Stamp size={19} strokeWidth={1.8} />,
   "/internal/price-books": <WalletCards size={19} strokeWidth={1.8} />,
   "/internal/payg-requests": <Inbox size={19} strokeWidth={1.8} />,
@@ -212,6 +214,8 @@ const navigationSections: Readonly<
       hrefs: [
         "/internal",
         "/internal/mndas",
+        "/internal/contracts",
+        "/internal/sales-library",
         "/internal/search",
         "/internal/assisted",
       ],

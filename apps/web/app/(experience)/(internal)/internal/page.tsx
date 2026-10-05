@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { OperationsHome } from "@/src/features/internal-ops/operations-home/operations-home";
 import { loadOperationsHome } from "@/src/features/internal-ops/operations-home/server-loader";
+import { RenewalNoticesCard } from "@/src/features/internal-ops/contracts/renewal-notices-card";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function Page() {
         await getTranslations(),
         await getFormattingLocale(),
       )}
+      renewals={<RenewalNoticesCard />}
     />
   );
 }
