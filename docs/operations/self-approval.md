@@ -46,13 +46,20 @@ are unchanged.
    The tenant pool can neither mark a row self-approved nor write the event.
    Once recorded, the marker and reason cannot change.
 
-5. Teardown: one self-approval fills both approver slots. The plan records two
-   entries marked `selfApproved`, both naming the one self-approved approval. If
-   a second person already approved, the self-approval fills the remaining slot.
+5. Teardown: once final billing has settled, one self-approval fills both
+   approver slots. The plan records two entries marked `selfApproved`, both
+   naming the one self-approved approval. If a second person already approved,
+   the self-approval fills the remaining slot. Before final billing settles, a
+   self-approval fills one slot and the plan waits in pending approval, as after
+   a first ordinary approval; the requester or a second person fills the other
+   slot later.
 
-A self-approved tax rule book publishes, and a self-approved price book schedule
-executes, only while the approver still holds `approval:self`; otherwise
-publishing or execution refuses and a new approval is needed.
+A self-approved tax rule book publishes, a self-approved price book schedule
+executes, and a self-approved teardown is requested only while the approver
+still holds `approval:self`. Otherwise publishing, execution or teardown refuses
+(`PRICE_SCHEDULE_APPROVAL_CHANGED`, `TEARDOWN_SELF_APPROVAL_REVOKED`) and a new
+approval is needed. A recorded self-approval cannot be changed, rejected after
+the fact or moved to another person or subject.
 
 ### Tax rule books
 

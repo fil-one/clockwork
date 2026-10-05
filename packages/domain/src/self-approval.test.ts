@@ -22,6 +22,7 @@ import {
   assertDistinctOrSelfApproved,
   assertSelfApprovalSession,
   selfApprovalReason,
+  type CheckedSelfApproval,
 } from "./self-approval";
 import {
   planOffboarding,
@@ -32,6 +33,8 @@ import {
 const admin = "20000000-0000-4000-8000-000000000001";
 const other = "20000000-0000-4000-8000-000000000002";
 const reason = "Second approver is away this week";
+/** What the repository hands the domain after checking the authority. */
+const checked = (text: string) => ({ reason: text }) as CheckedSelfApproval;
 
 function session(
   roles: AuthorizationContext["roles"],
@@ -168,7 +171,7 @@ describe("channel policy self-approval", () => {
         command: approve,
         userId: admin,
         now,
-        selfApproval: { reason },
+        selfApproval: checked(reason),
       }),
     ).toMatchObject({
       status: "approved",
@@ -197,7 +200,7 @@ describe("channel policy self-approval", () => {
         },
         userId: admin,
         now,
-        selfApproval: { reason },
+        selfApproval: checked(reason),
       }),
     ).toThrow("SELF_APPROVAL_APPROVE_ONLY");
     expect(
@@ -272,7 +275,7 @@ describe("PAYG offer self-approval", () => {
         command: approve,
         userId: admin,
         now,
-        selfApproval: { reason },
+        selfApproval: checked(reason),
       }),
     ).toMatchObject({ status: "approved", selfApproved: true });
     expect(() =>
@@ -289,7 +292,7 @@ describe("PAYG offer self-approval", () => {
         command: approve,
         userId: admin,
         now,
-        selfApproval: { reason: "short" },
+        selfApproval: checked("short"),
       }),
     ).toThrow("SELF_APPROVAL_REASON_REQUIRED");
   });
@@ -329,7 +332,7 @@ describe("exception self-approval", () => {
     );
     const decided = decideException(open, {
       ...decision,
-      selfApproval: { reason },
+      selfApproval: checked(reason),
     });
     expect(decided.status).toBe("approved");
     expect(decided.decisions[0]?.selfApproved).toBe(true);
@@ -337,7 +340,7 @@ describe("exception self-approval", () => {
       decideException(open, {
         ...decision,
         outcome: "rejected",
-        selfApproval: { reason },
+        selfApproval: checked(reason),
       }),
     ).toThrow("SELF_APPROVAL_APPROVE_ONLY");
   });
@@ -374,7 +377,7 @@ describe("termination and teardown self-approval", () => {
       "DESTRUCTIVE_SELF_APPROVAL_FORBIDDEN",
     );
     const approved = recordDestructiveApproval(plan, approval(admin), {
-      selfApproval: { reason },
+      selfApproval: checked(reason),
     });
     expect(approved.status).toBe("ready_for_teardown");
     expect(approved.approvals).toHaveLength(2);
@@ -389,7 +392,7 @@ describe("termination and teardown self-approval", () => {
   it("fills only the open slot after a second person approved", () => {
     const once = recordDestructiveApproval(plan, approval(other, "approval-0"));
     const both = recordDestructiveApproval(once, approval(admin), {
-      selfApproval: { reason },
+      selfApproval: checked(reason),
     });
     expect(both.approvals.map((item) => item.selfApproved ?? false)).toEqual([
       false,
@@ -397,10 +400,33 @@ describe("termination and teardown self-approval", () => {
     ]);
     expect(both.status).toBe("ready_for_teardown");
   });
+  it("fills one slot before final billing settles, and the requester comes back for the other", () => {
+    const unsettled = { ...plan, finalBillingStatus: "pending" as const };
+    const once = recordDestructiveApproval(unsettled, approval(admin), {
+      selfApproval: checked(reason),
+    });
+    expect(once.status).toBe("pending_approval");
+    expect(once.approvals).toHaveLength(1);
+    const settled = { ...once, finalBillingStatus: "settled" as const };
+    const both = recordDestructiveApproval(
+      settled,
+      approval(admin, "approval-2"),
+      { selfApproval: checked(reason) },
+    );
+    expect(both.status).toBe("ready_for_teardown");
+    expect(both.approvals.map((item) => item.approvalId)).toEqual([
+      "approval-1",
+      "approval-2",
+    ]);
+    expect(() =>
+      recordDestructiveApproval(once, approval(other, "approval-3")),
+    ).not.toThrow();
+  });
+
   it("refuses a self-approval on someone else's termination", () => {
     expect(() =>
       recordDestructiveApproval(plan, approval(other), {
-        selfApproval: { reason },
+        selfApproval: checked(reason),
       }),
     ).toThrow("SELF_APPROVAL_NOT_OWN_REQUEST");
   });

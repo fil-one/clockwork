@@ -24,11 +24,22 @@ export const SelfApprovalReasonSchema = z
   .min(selfApprovalReasonLength.min)
   .max(selfApprovalReasonLength.max);
 
-/** A self-approval the caller has already checked the authority for. */
+/** A request to approve one's own request, with its reason. */
 export interface SelfApproval {
   /** Trimmed, 8 to 500 characters. */
   readonly reason: string;
 }
+
+declare const checkedSelfApprovalBrand: unique symbol;
+
+/**
+ * A self-approval whose authority has been confirmed against the session and
+ * the stored memberships. Only `checkedSelfApproval` in `@clockwork/db`
+ * makes one, so a decision function cannot be handed a bare client flag.
+ */
+export type CheckedSelfApproval = SelfApproval & {
+  readonly [checkedSelfApprovalBrand]: true;
+};
 
 /** The reason, trimmed, or `SELF_APPROVAL_REASON_REQUIRED`. */
 export function selfApprovalReason(reason: unknown): string {

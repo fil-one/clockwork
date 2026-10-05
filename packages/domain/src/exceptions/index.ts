@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import {
   assertDistinctOrSelfApproved,
-  type SelfApproval,
+  type CheckedSelfApproval,
 } from "../self-approval";
 
 /**
@@ -352,7 +352,7 @@ export function decideException(
      * The requester approves their own case under `approval:self`. The
      * caller has checked the authority; this records it.
      */
-    selfApproval?: SelfApproval;
+    selfApproval?: CheckedSelfApproval;
   },
 ): ExceptionCase {
   if (exceptionCase.status !== "open")

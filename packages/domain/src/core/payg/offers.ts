@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   assertDistinctOrSelfApproved,
-  type SelfApproval,
+  type CheckedSelfApproval,
 } from "../../self-approval";
 import { CustomerAcquisitionPolicySchema } from "./acquisition-policy";
 
@@ -124,7 +124,7 @@ export function applyPaygOfferCommand(input: {
    * The approver's own version, approved under `approval:self`. The caller
    * has checked the authority; this records it.
    */
-  selfApproval?: SelfApproval;
+  selfApproval?: CheckedSelfApproval;
 }): PaygOfferRecord {
   const { current, command, userId } = input;
   if (input.selfApproval && command.action !== "approve")

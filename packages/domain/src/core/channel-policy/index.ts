@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import {
   assertDistinctOrSelfApproved,
-  type SelfApproval,
+  type CheckedSelfApproval,
 } from "../../self-approval";
 
 export const ChannelPolicyTermsSchema = z
@@ -128,7 +128,7 @@ export function applyChannelPolicyCommand(input: {
    * The approver's own version, approved under `approval:self`. The caller
    * has checked the authority; this records it.
    */
-  selfApproval?: SelfApproval;
+  selfApproval?: CheckedSelfApproval;
 }): ChannelPolicyRecord {
   const { current, command, userId, now } = input;
   if (input.selfApproval && command.action !== "approve")

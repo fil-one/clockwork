@@ -1,3 +1,4 @@
+import type { CheckedSelfApproval } from "@clockwork/domain";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -95,7 +96,9 @@ describe("offboarding workflows", () => {
       ...approvalOne,
       approvalId: "approval-self",
       approvedBy: "operator-1",
-      selfApproved: true,
+      selfApproval: {
+        reason: "Customer asked twice; closing it myself",
+      } as CheckedSelfApproval,
     };
     expect(
       validateDestructiveApprovals({
@@ -106,7 +109,7 @@ describe("offboarding workflows", () => {
     expect(() =>
       validateDestructiveApprovals({
         requestedBy: "operator-1",
-        approvals: [{ ...selfApproval, selfApproved: false }],
+        approvals: [{ ...selfApproval, selfApproval: undefined }],
       }),
     ).toThrow("TEARDOWN_SELF_APPROVAL_FORBIDDEN");
   });

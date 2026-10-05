@@ -1,5 +1,5 @@
 {
-  "id": "44c4058e-5c22-4263-a2a3-f85c45692273",
+  "id": "103c1d36-e1ba-413f-9db4-42ffa084c404",
   "prevId": "263848b2-fbea-4412-8760-51f35639fa39",
   "version": "7",
   "dialect": "postgresql",
@@ -1080,7 +1080,7 @@
         },
         "approvals_self_approval_check": {
           "name": "approvals_self_approval_check",
-          "value": "(not \"approvals\".\"self_approved\" and \"approvals\".\"self_approval_reason\" is null) or (\"approvals\".\"self_approved\" and \"approvals\".\"approved_by\" = \"approvals\".\"requested_by\" and \"approvals\".\"status\" <> 'pending' and length(trim(\"approvals\".\"self_approval_reason\")) between 8 and 500)"
+          "value": "(not \"approvals\".\"self_approved\" and \"approvals\".\"self_approval_reason\" is null) or (\"approvals\".\"self_approved\" and \"approvals\".\"approved_by\" = \"approvals\".\"requested_by\" and \"approvals\".\"status\" = 'approved' and length(trim(\"approvals\".\"self_approval_reason\")) between 8 and 500)"
         },
         "approvals_decision_check": {
           "name": "approvals_decision_check",

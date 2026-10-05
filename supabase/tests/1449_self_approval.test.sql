@@ -4,7 +4,7 @@
 -- commerce administrator gets a notice. Everyone else keeps the
 -- distinct-approver rule exactly.
 begin;
-select plan(46);
+select plan(58);
 set local search_path = public, extensions;
 
 -- Fixture: two commerce administrators (Ada, Ben) and a finance approver
@@ -126,6 +126,30 @@ select throws_ok($$
   update approvals set self_approval_reason = 'A different reason entirely'
   where id = 'c1449000-0000-4000-8000-000000000011'
 $$, '55000', null, 'a recorded self-approval cannot be rewritten');
+select throws_ok($$
+  update approvals set status = 'rejected'
+  where id = 'c1449000-0000-4000-8000-000000000011'
+$$, '55000', 'SELF_APPROVAL_IMMUTABLE: a self-approved decision cannot change',
+  'a self-approved decision cannot be flipped to a rejection');
+select throws_ok($$
+  update approvals set requested_by = 'a1449000-0000-4000-8000-000000000002',
+    approved_by = 'a1449000-0000-4000-8000-000000000002'
+  where id = 'c1449000-0000-4000-8000-000000000011'
+$$, '55000', 'SELF_APPROVAL_IMMUTABLE: a self-approved decision cannot change',
+  'a self-approved decision cannot be relabelled to another person');
+select throws_ok($$
+  update approvals set object_id = 'c1449000-0000-4000-8000-000000000098'
+  where id = 'c1449000-0000-4000-8000-000000000011'
+$$, '55000', 'SELF_APPROVAL_IMMUTABLE: a self-approved decision cannot change',
+  'a self-approved decision cannot be moved to another subject');
+insert into approvals (id, action, object_type, object_id, requested_by, status, requested_at) values
+  ('c1449000-0000-4000-8000-000000000013','tax_rule_book_activation','tax_rule_book',
+   'c1449000-0000-4000-8000-000000000097','a1449000-0000-4000-8000-000000000001','pending',now());
+select throws_ok($$
+  update approvals set status = 'rejected', approved_by = requested_by, decided_at = now(),
+    self_approved = true, self_approval_reason = 'Withdrawing my own request'
+  where id = 'c1449000-0000-4000-8000-000000000013'
+$$, '23514', null, 'a self-approval marker is only ever on an approval, never a rejection');
 select lives_ok($$
   update core_tax_rule_books set status = 'active'
   where id = 'c1449000-0000-4000-8000-000000000001'
@@ -287,6 +311,11 @@ select lives_ok($$
 $$, 'the requester approves their own pricing exception');
 select is(pg_temp.events('c1449000-0000-4000-8000-000000000051'), 1::bigint,
   'the exception self-approval is audited');
+select throws_ok($$
+  update exception_cases set requester_user_id = 'a1449000-0000-4000-8000-000000000002'
+  where id = 'c1449000-0000-4000-8000-000000000051'
+$$, '55000', 'SELF_APPROVAL_IMMUTABLE: a self-approved case cannot change hands',
+  'the requester of a self-approved case cannot be relabelled');
 
 -- =========================================================================
 -- 6. Terminations and teardown: one self-approval fills both slots.
@@ -345,6 +374,75 @@ select is(
    where termination_id = 'c1449000-0000-4000-8000-000000000061'),
   '[true, true]'::jsonb, 'both slots are recorded as self-approved');
 
+-- Teardown is requested only while the self-approver still may.
+reset role;
+update memberships set role = 'internal_operator'
+where user_id = 'a1449000-0000-4000-8000-000000000001';
+set local role clockwork_service;
+select throws_ok($$
+  update lifecycle_offboarding_plans set row_version = row_version + 1,
+    plan = plan || jsonb_build_object('status','teardown_requested')
+  where termination_id = 'c1449000-0000-4000-8000-000000000061'
+$$, '42501',
+  'TEARDOWN_SELF_APPROVAL_REVOKED: the self-approver no longer holds approval:self; obtain a new approval',
+  'teardown fails closed once the self-approver loses approval:self');
+reset role;
+update memberships set role = 'commerce_admin'
+where user_id = 'a1449000-0000-4000-8000-000000000001';
+
+-- Before final billing settles a self-approval fills one slot and the plan
+-- waits in pending approval; the requester fills the other once it settles.
+insert into terminations (id, account_id, order_id, effective_at, final_billing_status, teardown_status)
+values ('c1449000-0000-4000-8000-000000000063','10000000-0000-4000-8000-000000000001',
+  '80000000-0000-4000-8000-000000000001','2027-01-01T00:00:00Z','pending','pending_final_billing');
+insert into lifecycle_offboarding_plans (termination_id, account_id, organization_id, requested_by, reason, plan)
+values ('c1449000-0000-4000-8000-000000000063','10000000-0000-4000-8000-000000000001',
+  '30000000-0000-4000-8000-000000000001','a1449000-0000-4000-8000-000000000001','customer_request',
+  jsonb_build_object('terminationId','c1449000-0000-4000-8000-000000000063',
+    'accountId','10000000-0000-4000-8000-000000000001',
+    'orderId','80000000-0000-4000-8000-000000000001',
+    'organizationId','30000000-0000-4000-8000-000000000001','reason','customer_request',
+    'requestedBy','a1449000-0000-4000-8000-000000000001','finalBillingStatus','pending',
+    'status','pending_final_billing','lockedExclusions',jsonb_build_array(),
+    'approvals',jsonb_build_array(),'teardownOperationId',null,'teardownConfirmedAt',null));
+set local role clockwork_service;
+insert into approvals (id, account_id, action, object_type, object_id, requested_by, approved_by,
+  status, requested_at, decided_at, self_approved, self_approval_reason)
+values
+  ('c1449000-0000-4000-8000-000000000064','10000000-0000-4000-8000-000000000001',
+   'termination_teardown','termination','c1449000-0000-4000-8000-000000000063',
+   'a1449000-0000-4000-8000-000000000001','a1449000-0000-4000-8000-000000000001','approved',
+   now(), now(), true, 'Approving now; billing still closing'),
+  ('c1449000-0000-4000-8000-000000000065','10000000-0000-4000-8000-000000000001',
+   'termination_teardown','termination','c1449000-0000-4000-8000-000000000063',
+   'a1449000-0000-4000-8000-000000000001','a1449000-0000-4000-8000-000000000001','approved',
+   now(), now(), true, 'Billing settled; second slot');
+create function pg_temp.self_entry(approval uuid) returns jsonb language sql as $$
+  select jsonb_build_object('approvalId', approval,
+    'approverId','a1449000-0000-4000-8000-000000000001','decision','approved',
+    'reason','Approving my own termination','selfApproved', true)
+$$;
+select lives_ok($$
+  update lifecycle_offboarding_plans set row_version = row_version + 1,
+    plan = plan || jsonb_build_object('status','pending_approval',
+      'approvals', jsonb_build_array(pg_temp.self_entry('c1449000-0000-4000-8000-000000000064')))
+  where termination_id = 'c1449000-0000-4000-8000-000000000063'
+$$, 'before billing settles a self-approval fills one slot and waits in pending approval');
+select throws_ok($$
+  update lifecycle_offboarding_plans set row_version = row_version + 1,
+    plan = plan || jsonb_build_object('status','ready_for_teardown',
+      'approvals', jsonb_build_array(pg_temp.self_entry('c1449000-0000-4000-8000-000000000064'),
+        pg_temp.self_entry('c1449000-0000-4000-8000-000000000065')))
+  where termination_id = 'c1449000-0000-4000-8000-000000000063'
+$$, '23514', null, 'teardown stays unready while final billing is unsettled');
+select lives_ok($$
+  update lifecycle_offboarding_plans set row_version = row_version + 1,
+    plan = plan || jsonb_build_object('status','ready_for_teardown','finalBillingStatus','settled',
+      'approvals', jsonb_build_array(pg_temp.self_entry('c1449000-0000-4000-8000-000000000064'),
+        pg_temp.self_entry('c1449000-0000-4000-8000-000000000065')))
+  where termination_id = 'c1449000-0000-4000-8000-000000000063'
+$$, 'once billing settles the requester fills the second slot');
+
 -- A non-holder's own teardown approval stays refused at the approval itself.
 select throws_ok($$
   insert into approvals (account_id, action, object_type, object_id, requested_by, approved_by,
@@ -372,6 +470,13 @@ begin
     (select secret from private.authorization_secrets where active
      order by created_at desc limit 1), 'sha256'),'hex'), true);
 end $$;
+select ok(exists (
+  select 1 from pg_policies
+  where schemaname = 'public' and tablename = 'audit_events'
+    and policyname = 'audit_events_self_approval_service_only'
+    and permissive = 'RESTRICTIVE' and cmd = 'INSERT'
+    and roles @> array['clockwork_runtime']::name[]
+), 'audit_events_self_approval_service_only restricts tenant inserts');
 select pg_temp.sign();
 set local role clockwork_runtime;
 select throws_ok($$
@@ -381,11 +486,50 @@ select throws_ok($$
     '{"kind":"user","id":"a1449000-0000-4000-8000-000000000001"}', now(), 'pgtap', '{}')
 $$, '42501', null, 'a tenant session cannot write a self-approval event');
 reset role;
+-- The same row with another event type is admitted, so the refusal above is
+-- this policy's, not a missing account grant.
+create function pg_temp.sign_account() returns void language plpgsql as $$
+begin
+  perform set_config('app.authorization_context', jsonb_build_object(
+    'userId','a1449000-0000-4000-8000-000000000001',
+    'accountIds',jsonb_build_array('10000000-0000-4000-8000-000000000001'),
+    'roles',jsonb_build_array('commerce_admin'),
+    'permissions',jsonb_build_array('account:write','operations:read','approval:self',
+      'audit:read','audit:append'),
+    'side','fil_one','isInternalStaff',true,'requestId','pgtap-1449',
+    'expiresAt',(clock_timestamp() + interval '5 minutes')::text)::text, true);
+  perform set_config('app.authorization_signature', encode(extensions.hmac(
+    current_setting('app.authorization_context'),
+    (select secret from private.authorization_secrets where active
+     order by created_at desc limit 1), 'sha256'),'hex'), true);
+end $$;
+select pg_temp.sign_account();
+set local role clockwork_runtime;
+select lives_ok($$
+  insert into audit_events (account_id, aggregate_type, aggregate_id, aggregate_version,
+    event_type, event_version, actor, occurred_at, request_id, after)
+  values ('10000000-0000-4000-8000-000000000001', 'account', gen_random_uuid(), 1,
+    'pgtap.self_approval_control', 1,
+    '{"kind":"user","id":"a1449000-0000-4000-8000-000000000001"}', now(), 'pgtap', '{}')
+$$, 'the tenant session may write an ordinary event on its own account');
+select throws_ok($$
+  insert into audit_events (account_id, aggregate_type, aggregate_id, aggregate_version,
+    event_type, event_version, actor, occurred_at, request_id, after)
+  values ('10000000-0000-4000-8000-000000000001', 'account', gen_random_uuid(), 1,
+    'approval.self_approved', 1,
+    '{"kind":"user","id":"a1449000-0000-4000-8000-000000000001"}', now(), 'pgtap', '{}')
+$$, '42501', null, 'but not the same row as a self-approval event');
+reset role;
+-- Even reached directly, the recorder refuses the tenant pool by name.
+grant usage on schema private to clockwork_runtime;
+grant execute on function private.record_self_approval(text, text, uuid, uuid, text, text)
+  to clockwork_runtime;
+set local role clockwork_runtime;
 select throws_ok($$
   select private.record_self_approval('price_book_activation','price_book',
     gen_random_uuid(),'a1449000-0000-4000-8000-000000000001','Recorded from a tenant','approved')
-  from (select set_config('role', 'clockwork_runtime', true)) entered
-$$, '42501', null, 'the recorder refuses the tenant pool');
+$$, '42501', 'SELF_APPROVAL_SERVICE_ONLY: a self-approval is recorded on the service pool only',
+  'the recorder refuses the tenant pool');
 reset role;
 
 -- =========================================================================

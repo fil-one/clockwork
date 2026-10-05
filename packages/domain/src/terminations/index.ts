@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { selfApprovalReason, type SelfApproval } from "../self-approval";
+import { selfApprovalReason, type CheckedSelfApproval } from "../self-approval";
 
 const sha256Pattern = /^[a-f0-9]{64}$/;
 const instantWithOffsetPattern =
@@ -156,8 +156,9 @@ export interface DestructiveApproval {
   };
   /**
    * The requester approved their own termination under `approval:self`.
-   * One self-approval fills every remaining approver slot, each entry
-   * marked and naming the same approval.
+   * Once final billing has settled, one self-approval fills every remaining
+   * approver slot, each entry marked and naming the same approval; before
+   * that it fills one slot, as a first ordinary approval does.
    */
   selfApproved?: boolean | undefined;
 }
@@ -170,7 +171,7 @@ export function recordDestructiveApproval(
      * The requester approves their own termination under `approval:self`.
      * The caller has checked the authority; this records it.
      */
-    selfApproval?: SelfApproval;
+    selfApproval?: CheckedSelfApproval;
   } = {},
 ): OffboardingPlan {
   if (!approval.approvalId.trim() || !approval.approverId.trim())
@@ -203,8 +204,11 @@ export function recordDestructiveApproval(
   if (
     plan.approvals.some(
       (item) =>
-        item.approverId === approval.approverId ||
-        item.approvalId === approval.approvalId,
+        item.approvalId === approval.approvalId ||
+        // The requester may come back for the slot a self-approval made
+        // before final billing settled; nobody else approves twice.
+        (item.approverId === approval.approverId &&
+          !(options.selfApproval && item.selfApproved)),
     )
   )
     throw new Error("APPROVER_MUST_BE_DISTINCT");
@@ -216,14 +220,18 @@ export function recordDestructiveApproval(
     }),
     ...(options.selfApproval ? { selfApproved: true } : {}),
   });
-  // A self-approval fills both slots, or the one a second person left open.
-  const slots = options.selfApproval
-    ? Math.max(
-        1,
-        2 -
-          plan.approvals.filter((item) => item.decision === "approved").length,
-      )
-    : 1;
+  // A self-approval fills both slots, or the one left open. Before final
+  // billing settles it fills one, as a first ordinary approval does, so the
+  // plan waits in pending approval rather than claiming it is ready.
+  const slots =
+    options.selfApproval && plan.finalBillingStatus === "settled"
+      ? Math.max(
+          1,
+          2 -
+            plan.approvals.filter((item) => item.decision === "approved")
+              .length,
+        )
+      : 1;
   const approvals = Object.freeze([
     ...plan.approvals,
     ...Array.from({ length: slots }, () => entry),

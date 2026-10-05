@@ -1,3 +1,4 @@
+import type { CheckedSelfApproval } from "@clockwork/domain";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -81,17 +82,31 @@ describe("exception workflows", () => {
       evidenceDocumentIds: ["document-1"],
       actualActorId: "owner-legal",
       effectiveActorId: "owner-legal",
-      selfApproved: true,
     };
+    const selfApproval = {
+      reason: "Approved alone while legal is out",
+    } as CheckedSelfApproval;
     expect(
-      decideExceptionCase({ exceptionCase: own, policy: legalPolicy, decision })
-        .payload,
+      decideExceptionCase({
+        exceptionCase: own,
+        policy: legalPolicy,
+        decision,
+        selfApproval,
+      }).payload,
     ).toMatchObject({ selfApproved: true });
     expect(() =>
       decideExceptionCase({
         exceptionCase: own,
         policy: legalPolicy,
-        decision: { ...decision, reason: "short" },
+        decision,
+      }),
+    ).toThrow("EXCEPTION_SELF_APPROVAL_FORBIDDEN");
+    expect(() =>
+      decideExceptionCase({
+        exceptionCase: own,
+        policy: legalPolicy,
+        decision,
+        selfApproval: { reason: "short" } as CheckedSelfApproval,
       }),
     ).toThrow("SELF_APPROVAL_REASON_REQUIRED");
     expect(() =>
@@ -99,6 +114,7 @@ describe("exception workflows", () => {
         exceptionCase: own,
         policy: legalPolicy,
         decision: { ...decision, decision: "rejected" },
+        selfApproval,
       }),
     ).toThrow("SELF_APPROVAL_APPROVE_ONLY");
   });

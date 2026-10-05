@@ -29,7 +29,7 @@ import {
 import {
   assertSelfApprovalSession,
   type AuthorizationContext,
-  type SelfApproval,
+  type CheckedSelfApproval,
 } from "@clockwork/domain";
 import {
   assertRecoverableOffboardingSourceStatus,
@@ -410,7 +410,7 @@ async function lifecycleSelfApproval(
   transaction: RuntimeTransaction,
   context: LifecycleRepositoryOperationContext,
   payload: { selfApproval?: true | undefined; reason: string },
-): Promise<SelfApproval | undefined> {
+): Promise<CheckedSelfApproval | undefined> {
   if (!payload.selfApproval) return undefined;
   assertSelfApprovalSession(requireAuthorization(context));
   if (
@@ -4543,6 +4543,15 @@ export class DatabaseLifecycleCommandRepository {
       automatedTeardownAuthorized &&
       Date.parse(context.occurredAt) >= Date.parse(plan.retrievalEndsAt)
     ) {
+      // A self-approval stands only while its approver still holds
+      // approval:self; the database refuses the transition otherwise too.
+      if (plan.approvals.some((item) => item.selfApproved)) {
+        const [authority] = await transaction.execute<{ allowed: boolean }>(
+          sql`select public.member_can_self_approve(${plan.requestedBy}::uuid) as allowed`,
+        );
+        if (authority?.allowed !== true)
+          throw new Error("TEARDOWN_SELF_APPROVAL_REVOKED");
+      }
       const teardown = requestTeardown(plan, {
         automatedTeardownAuthorized: true,
         now: context.occurredAt,

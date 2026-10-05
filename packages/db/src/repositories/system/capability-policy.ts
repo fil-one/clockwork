@@ -1,7 +1,7 @@
 import type { Permission, Role } from "@clockwork/contracts";
 import {
   assertDistinctOrSelfApproved,
-  type SelfApproval,
+  type CheckedSelfApproval,
 } from "@clockwork/domain";
 
 import type { SystemCapabilityKey } from "./capabilities";
@@ -37,7 +37,7 @@ export function assertCapabilityDecision(input: {
   now: Date;
   baseVersion: number;
   currentVersion: number;
-  selfApproval?: SelfApproval;
+  selfApproval?: CheckedSelfApproval;
 }): boolean {
   const selfApproved = assertDistinctOrSelfApproved({
     deciderId: input.actorId,

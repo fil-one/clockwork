@@ -1,3 +1,5 @@
+import type { CheckedSelfApproval } from "@clockwork/domain";
+
 import {
   durableHumanWait,
   type DurableHumanWait,
@@ -148,8 +150,11 @@ export interface DestructiveApproval {
   approvedBy: string;
   status: "approved" | "rejected" | "pending" | "expired";
   action: string;
-  /** The requester approved their own teardown under `approval:self`. */
-  selfApproved?: boolean | undefined;
+  /**
+   * The requester approved their own teardown under `approval:self`, as
+   * confirmed against the stored record (never a client flag).
+   */
+  selfApproval?: CheckedSelfApproval | undefined;
 }
 
 export function validateDestructiveApprovals(input: {
@@ -165,7 +170,8 @@ export function validateDestructiveApprovals(input: {
   // One self-approval by the requester satisfies both approver slots.
   const selfApproval = approved.find(
     (approval) =>
-      approval.selfApproved && approval.approvedBy === input.requestedBy,
+      approval.selfApproval !== undefined &&
+      approval.approvedBy === input.requestedBy,
   );
   if (selfApproval) return [selfApproval.approvalId, selfApproval.approvalId];
   const approvers = [

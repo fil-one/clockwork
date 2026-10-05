@@ -26,6 +26,10 @@
 -- Production bootstrap and MNDA countersigner distinctness are not approval
 -- controls and are unchanged.
 
+-- The table changes below take short exclusive locks on live decision tables;
+-- fail fast rather than queue behind a long transaction.
+set lock_timeout = '5s';
+
 -- ---------------------------------------------------------------------------
 -- 1. Who may approve their own request, from stored state.
 -- ---------------------------------------------------------------------------
@@ -153,7 +157,7 @@ alter table public.approvals add constraint approvals_two_person_check check (
 );
 alter table public.approvals add constraint approvals_self_approval_check check (
   (not self_approved and self_approval_reason is null)
-  or (self_approved and approved_by = requested_by and status <> 'pending'
+  or (self_approved and approved_by = requested_by and status = 'approved'
     and length(trim(self_approval_reason)) between 8 and 500)
 );
 comment on column public.approvals.self_approved is
@@ -166,6 +170,18 @@ begin
     perform private.assert_self_approval_unchanged(
       old.self_approved, new.self_approved,
       old.self_approval_reason, new.self_approval_reason);
+    -- A self-approved decision is the record the audit event points at: it
+    -- cannot be relabelled to another decision, person or subject.
+    if old.self_approved and (
+      (new.status, new.requested_by, new.approved_by, new.action,
+       new.object_type, new.object_id, new.decided_at)
+      is distinct from
+      (old.status, old.requested_by, old.approved_by, old.action,
+       old.object_type, old.object_id, old.decided_at)
+    ) then
+      raise exception using errcode = '55000',
+        message = 'SELF_APPROVAL_IMMUTABLE: a self-approved decision cannot change';
+    end if;
   end if;
   if new.self_approved and (tg_op = 'INSERT' or not old.self_approved) then
     if tg_op = 'UPDATE' and old.status <> 'pending' then
@@ -397,6 +413,14 @@ begin
     perform private.assert_self_approval_unchanged(
       old.self_approved, new.self_approved,
       old.self_approval_reason, new.self_approval_reason);
+    -- The self-approver is the requester; once recorded, neither moves.
+    if old.self_approved and (
+      new.requester_user_id is distinct from old.requester_user_id
+      or new.status is distinct from old.status
+    ) then
+      raise exception using errcode = '55000',
+        message = 'SELF_APPROVAL_IMMUTABLE: a self-approved case cannot change hands';
+    end if;
   end if;
   if new.self_approved and (tg_op = 'INSERT' or not old.self_approved) then
     if tg_op = 'INSERT' or old.status <> 'open' then
@@ -417,10 +441,13 @@ for each row execute function public.guard_exception_self_approval();
 
 -- ---------------------------------------------------------------------------
 -- 7. Terminations and teardown (001000). Two approvals, neither the
---    requester's and from distinct people, or a self-approval: the requester,
+--    requester's and from distinct people, or self-approvals: the requester,
 --    holding approval:self, fills every remaining approver slot at once with
---    entries marked `selfApproved` that all name the one self-approved
---    durable approval row.
+--    entries marked `selfApproved` that name a self-approved durable approval
+--    row. Before final billing settles a self-approval fills one slot, as a
+--    first ordinary approval does, and the requester or a second person fills
+--    the other later. Teardown is requested only while the self-approver
+--    still holds approval:self.
 -- ---------------------------------------------------------------------------
 create or replace function public.core_validate_offboarding_plan_transition()
 returns trigger
@@ -459,8 +486,8 @@ begin
   end if;
   approval_count := jsonb_array_length(new.plan -> 'approvals');
   -- Approvals by other people are distinct and never the requester's. The
-  -- requester's own entries are self-approvals: marked, approved, and all
-  -- naming the one durable self-approved approval.
+  -- requester's own entries are self-approvals: marked, approved, naming a
+  -- durable self-approved approval, and at most the two slots.
   if (
     select count(*) <> count(distinct approval ->> 'approverId')
     from jsonb_array_elements(new.plan -> 'approvals') approval
@@ -482,10 +509,10 @@ begin
         )
       )
   ) or (
-    select count(distinct approval ->> 'approvalId')
+    select count(*)
     from jsonb_array_elements(new.plan -> 'approvals') approval
     where coalesce((approval ->> 'selfApproved')::boolean, false)
-  ) > 1 then
+  ) > 2 then
     raise exception using errcode = '23514', message = 'offboarding requires distinct non-requester approvals or one recorded self-approval';
   end if;
   if tg_op = 'INSERT' and not (
@@ -598,6 +625,17 @@ begin
       end if;
     end if;
   end if;
+  if new.plan ->> 'status' = 'teardown_requested'
+    and new.plan ->> 'status' is distinct from (case when tg_op = 'UPDATE' then old.plan ->> 'status' end)
+    and exists (
+      select 1 from jsonb_array_elements(new.plan -> 'approvals') approval
+      where coalesce((approval ->> 'selfApproved')::boolean, false)
+    )
+    and not public.member_can_self_approve(new.requested_by)
+  then
+    raise exception using errcode = '42501',
+      message = 'TEARDOWN_SELF_APPROVAL_REVOKED: the self-approver no longer holds approval:self; obtain a new approval';
+  end if;
   if new.plan ->> 'status' = 'teardown_requested' and (
     new.plan ->> 'teardownOperationId' is not null
     or new.plan ->> 'teardownConfirmedAt' is not null
@@ -705,3 +743,5 @@ end $$;
 create policy audit_events_self_approval_service_only
 on public.audit_events as restrictive for insert to clockwork_runtime
 with check (event_type <> 'approval.self_approved');
+
+reset lock_timeout;

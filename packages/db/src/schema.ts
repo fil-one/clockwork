@@ -1419,7 +1419,7 @@ export const approvals = pgTable(
     ),
     check(
       "approvals_self_approval_check",
-      sql`(not ${table.selfApproved} and ${table.selfApprovalReason} is null) or (${table.selfApproved} and ${table.approvedBy} = ${table.requestedBy} and ${table.status} <> 'pending' and length(trim(${table.selfApprovalReason})) between 8 and 500)`,
+      sql`(not ${table.selfApproved} and ${table.selfApprovalReason} is null) or (${table.selfApproved} and ${table.approvedBy} = ${table.requestedBy} and ${table.status} = 'approved' and length(trim(${table.selfApprovalReason})) between 8 and 500)`,
     ),
     check(
       "approvals_decision_check",

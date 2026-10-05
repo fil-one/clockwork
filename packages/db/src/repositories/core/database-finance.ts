@@ -18,7 +18,7 @@ import {
 import {
   assertSelfApprovalSession,
   type AuthorizationContext,
-  type SelfApproval,
+  type CheckedSelfApproval,
 } from "@clockwork/domain";
 import {
   applyRenewalPriceProtection,
@@ -1301,7 +1301,7 @@ async function priceBookSelfApproval(
   transaction: RuntimeTransaction,
   input: CoreMutation,
   command: z.output<typeof PriceBookApprovalCommandSchema>,
-): Promise<SelfApproval | undefined> {
+): Promise<CheckedSelfApproval | undefined> {
   if (!command.selfApproval) return undefined;
   try {
     assertSelfApprovalSession(input.authorization);

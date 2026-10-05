@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { and, eq, sql } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ids, permissionsForRoles, type Role } from "@clockwork/contracts";
 import type { AuthorizationContext } from "@clockwork/domain";
@@ -15,14 +15,18 @@ import {
   exceptionCases,
   memberships,
   orders,
+  priceBooks,
   quotes,
+  rateCards,
 } from "../schema";
+import { priceBookSchedules } from "../schema/core/price-book-schedules";
 import { staffNotices } from "../schema/access";
-import { systemCapabilityRequests } from "../schema/system";
+import { systemCapabilities, systemCapabilityRequests } from "../schema/system";
 import { withInternalTransaction } from "../transaction";
 import { DatabaseChannelPolicyRepository } from "./core/channel-policy";
 import { DatabaseCoreFinanceRepository } from "./core/database-finance";
 import { DatabasePaygOfferRepository } from "./core/payg-offers";
+import { DatabasePriceBookScheduleRepository } from "./core/price-book-schedules";
 import { FixtureTaxPort } from "./core/tax-fixture";
 import { DatabaseLifecycleCommandRepository } from "./lifecycle/command-repository";
 import { DatabaseSystemCapabilityAdmin } from "./system/capability-admin";
@@ -583,6 +587,149 @@ describe("price books", () => {
       }),
     ).rejects.toThrow();
     expect(await selfApprovalEvents(id)).toHaveLength(0);
+  });
+});
+
+describe("price book schedules", () => {
+  it("schedules a commerce administrator's own request and stops it once the right is gone", async () => {
+    const rollback = new Error("ROLLBACK_SELF_SCHEDULE_FIXTURE");
+    await db
+      .transaction(async (outer) => {
+        await outer.execute(sql`set local role clockwork_service`);
+        const admin = randomUUID();
+        await outer.insert(commerceUsers).values({
+          id: admin,
+          workosUserId: `self-schedule-${admin}`,
+          email: `self-schedule-${admin}@fil-one.test`,
+          name: "Self schedule admin",
+          isInternalStaff: true,
+          mfaEnrolled: true,
+        });
+        await outer.insert(memberships).values({
+          userId: admin,
+          organizationId: staffOrganization,
+          role: "commerce_admin",
+        });
+        const [template] = await outer.select().from(rateCards).limit(1);
+        const [version] = await outer.execute<{ next: number }>(
+          sql`select coalesce(max(version),0)+1 as next from price_books where currency='USD'`,
+        );
+        if (!template || !version) throw new Error("Missing price fixtures");
+        const nested = vi
+          .spyOn(db, "transaction")
+          .mockImplementation(outer.transaction.bind(outer));
+        try {
+          const core = new DatabaseCoreFinanceRepository({
+            database: db,
+            pricingDatabase: db,
+            authorizationSecret,
+            tax: new FixtureTaxPort(),
+          });
+          const authority = staffAuthorization(admin, "commerce_admin");
+          const command = (
+            id: string,
+            action: string,
+            payload: Record<string, unknown>,
+          ) =>
+            core.mutate({
+              resource: "price_books",
+              id,
+              action,
+              payload,
+              actor: { kind: "user", id: admin },
+              authorization: authority,
+              requestId: randomUUID(),
+              idempotencyKey: randomUUID(),
+              occurredAt: "2026-09-06T12:00:00Z",
+            });
+          const id = randomUUID();
+          await command(id, "create", {
+            name: "Self-scheduled USD",
+            currency: "USD",
+            version: version.next,
+            effectiveFrom: "2026-09-08",
+            effectiveTo: "2026-09-09",
+          });
+          await withInternalTransaction(db, randomUUID(), (tx) =>
+            tx
+              .insert(rateCards)
+              .values({ ...template, id: randomUUID(), priceBookId: id }),
+          );
+          await command(id, "request_activation", {
+            reason: "Future economics for September",
+          });
+          await expect(
+            command(id, "schedule_activation", { reason }),
+          ).rejects.toThrow("different finance approver");
+          await command(id, "schedule_activation", {
+            reason,
+            selfApproval: true,
+          });
+          const read = <T>(
+            run: (
+              tx: Parameters<Parameters<typeof withInternalTransaction>[2]>[0],
+            ) => Promise<T>,
+          ) => withInternalTransaction(db, randomUUID(), run);
+          const schedule = await read((tx) =>
+            tx.query.priceBookSchedules.findFirst({
+              where: and(
+                eq(priceBookSchedules.priceBookId, id),
+                eq(priceBookSchedules.status, "approved"),
+              ),
+            }),
+          );
+          if (!schedule) throw new Error("Missing schedule");
+          expect(
+            await read((tx) =>
+              tx.query.approvals.findFirst({
+                where: eq(approvals.id, schedule.approvalId),
+              }),
+            ),
+          ).toMatchObject({
+            requestedBy: admin,
+            approvedBy: admin,
+            selfApproved: true,
+            selfApprovalReason: reason,
+          });
+          expect(await selfApprovalEvents(id)).toHaveLength(1);
+
+          const worker = new DatabasePriceBookScheduleRepository(db);
+          await read(async (tx) => {
+            await tx
+              .update(systemCapabilities)
+              .set({ enabled: true })
+              .where(eq(systemCapabilities.capabilityKey, "new_business"));
+            // Still a finance approver, no longer allowed to self-approve.
+            await tx
+              .update(memberships)
+              .set({ role: "finance_approver" })
+              .where(eq(memberships.userId, admin));
+          });
+          await expect(
+            worker.execute(schedule.id, "2026-09-08T00:00:00Z"),
+          ).rejects.toThrow("PRICE_SCHEDULE_APPROVAL_CHANGED");
+          expect(
+            await read((tx) =>
+              tx.query.priceBooks.findFirst({ where: eq(priceBooks.id, id) }),
+            ),
+          ).toMatchObject({ status: "draft" });
+          await read((tx) =>
+            tx
+              .update(memberships)
+              .set({ role: "commerce_admin" })
+              .where(eq(memberships.userId, admin)),
+          );
+          await expect(
+            worker.execute(schedule.id, "2026-09-08T00:00:00Z"),
+          ).resolves.toMatchObject({ status: "executed" });
+        } finally {
+          nested.mockRestore();
+        }
+        throw rollback;
+      })
+      .catch((error: unknown) => {
+        if (error !== rollback) throw error;
+      });
   });
 });
 

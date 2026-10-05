@@ -34,7 +34,7 @@ export function mayApproveOwnRequests(session: {
     !session.impersonation &&
     !session.assistedSession &&
     !session.authenticationProviderImpersonator &&
-    session.mfaVerified !== false &&
+    session.mfaVerified === true &&
     contextHasPermission(session, "approval:self")
   );
 }
