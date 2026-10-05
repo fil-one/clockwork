@@ -4,6 +4,7 @@ import { loadOperationalQueueStatus } from "@/src/features/internal-ops/status/s
 import { IntegrationStatusView } from "@/src/features/internal-ops/status/status-view";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getTranslations } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("operations.status.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const queues = await loadOperationalQueueStatus({
     requestId: `experience:status:${crypto.randomUUID()}`,
   });
@@ -25,3 +26,5 @@ export default async function Page() {
     </SurfacePermissionGate>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

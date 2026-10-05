@@ -9,13 +9,14 @@ import { getRouteSession } from "@/src/features/shell/route-session";
 import { getServiceDatabase } from "@/src/db/service";
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { getLocale, getTranslations } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
   return { title: t(adminSafetyCopy.assisted.title) };
 }
 
-export default async function Page() {
+async function Page() {
   const session = await getRouteSession("internal");
   const accounts = session.providerBacked
     ? await loadAssistedAccountOptions(getServiceDatabase(), {
@@ -33,3 +34,5 @@ export default async function Page() {
     />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

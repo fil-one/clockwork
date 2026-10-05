@@ -82,7 +82,7 @@ describe("demo persona surfaces flag", () => {
 
 describe("demo persona identity", () => {
   it("gives every catalog persona a start route and a membership", () => {
-    expect(demoPersonaCatalog).toHaveLength(9);
+    expect(demoPersonaCatalog).toHaveLength(11);
     for (const persona of demoPersonaCatalog) {
       expect(demoPersonaStartRoute(persona.key)).toMatch(/^\//);
       const membership = demoPersonaMembership(persona);

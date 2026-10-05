@@ -419,8 +419,6 @@ export const legacyEnglish: Readonly<Record<string, string>> = {
     "This identity has no active commerce membership. An organization administrator can grant access, or you can sign out and use a different identity.",
   "app.profile": "Open profile menu",
   "app.requestId": "Request {id}",
-  "app.footer":
-    "Fil One commerce records are synchronized from the operating ledger.",
   "app.offline":
     "You are offline. Saved information remains available; changes will wait for a connection.",
   "app.online": "Connection restored. Pending changes can now be submitted.",

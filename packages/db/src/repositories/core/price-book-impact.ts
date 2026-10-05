@@ -56,7 +56,7 @@ export class DatabasePriceBookImpactReader {
           select u.id from commerce_users u
           where u.id = ${userId}::uuid and u.is_internal_staff
           and exists (select 1 from memberships m where m.user_id=u.id
-            and m.role in ('finance_approver','internal_operator'))
+            and m.role in ('finance_approver','internal_operator','commerce_admin'))
         `);
         if (!authorized.length)
           throw new Error("PRICE_BOOK_IMPACT_ACCESS_DENIED");

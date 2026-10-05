@@ -12,6 +12,7 @@ import { getLocale, getTranslations } from "@/src/i18n/server";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import { getCommerceSession } from "@/src/auth/session";
 import { PaygOfferAdministration } from "@/src/features/internal-ops/administration-safety/payg-offers";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("adminPricing.payg.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const session = await getCommerceSession();
   if (!session.isInternalStaff)
     throw new Error("Internal staff authority is required"); // i18n-exempt: server-side guard; Next.js masks thrown server errors and the shell shows its own translated error page
@@ -60,3 +61,5 @@ export default async function Page() {
     />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

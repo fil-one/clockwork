@@ -6,7 +6,11 @@ import { cookies, headers } from "next/headers";
 import { connection } from "next/server";
 import { cache } from "react";
 
-import { roles as commerceRoles, type Role } from "@clockwork/contracts";
+import {
+  roles as commerceRoles,
+  sessionRolesFor,
+  type Role,
+} from "@clockwork/contracts";
 import { demoAccountIds } from "@clockwork/testing/personas";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 
@@ -177,7 +181,7 @@ export async function getRouteSession(
     if (persona) {
       const membership = demoPersonaMembership(persona);
       return {
-        roles: [persona.role],
+        roles: sessionRolesFor([persona.role]),
         profile: { name: membership.userName, email: membership.userEmail },
         // The catalog has carried a locale and a zone per persona all along --
         // `en-GB`/`Europe/London` for the reseller and the distributor,
@@ -198,7 +202,9 @@ export async function getRouteSession(
       : null;
     const selected = demoMemberships[audience];
     return {
-      roles: isCommerceRole(demoRole) ? [demoRole] : demoRoles[audience],
+      roles: isCommerceRole(demoRole)
+        ? sessionRolesFor([demoRole])
+        : demoRoles[audience],
       profile: { name: selected.userName, email: selected.userEmail },
       ...formatting,
       memberships: Object.values(demoMemberships),

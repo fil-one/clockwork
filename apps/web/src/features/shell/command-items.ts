@@ -75,6 +75,7 @@ const actionsFor = (
       description: t("app.command.action.globalSearch"),
       href: "/internal/search",
       keywords: ["find", "lookup", "account"],
+      requiredPermission: "operations:read",
     },
     {
       id: "review-approvals",
@@ -82,6 +83,7 @@ const actionsFor = (
       description: t("app.command.action.reviewApprovals"),
       href: "/internal/approvals",
       keywords: ["queue", "exception", "resolve"],
+      requiredPermission: "operations:read",
       allowedRoles: [
         "finance_approver",
         "legal_approver",

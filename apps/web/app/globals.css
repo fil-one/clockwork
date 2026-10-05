@@ -269,16 +269,6 @@ input {
   color: var(--web-muted);
   font-size: var(--cw-text-xs);
 }
-.shell-footer-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.shell-footer-content p {
-  margin: 0;
-  text-align: end;
-}
 .shell-content {
   min-width: 0;
 }
@@ -424,6 +414,11 @@ input {
 }
 .state-card > :last-child {
   margin-top: auto;
+}
+.state-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 .loading-page {
   max-width: 80rem;
@@ -625,13 +620,6 @@ input {
   }
   .header-actions > .cw-badge {
     display: none;
-  }
-  .shell-footer-content {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-  .shell-footer-content p {
-    text-align: start;
   }
   .experience-main {
     padding: 1.4rem 1rem 2.5rem;

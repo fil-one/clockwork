@@ -1,4 +1,7 @@
 import { render, screen } from "@testing-library/react";
+vi.mock("@/src/features/shell/staff-access", () => ({
+  withStaffPermission: (_permission: string, page: unknown) => page,
+}));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(

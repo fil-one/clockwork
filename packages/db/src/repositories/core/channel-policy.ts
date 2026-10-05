@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { membershipActsAs } from "../membership-roles";
 import { sql, and, eq } from "drizzle-orm";
 import type { Actor } from "@clockwork/contracts";
 import {
@@ -60,7 +61,7 @@ export class DatabaseChannelPolicyRepository {
               eq(commerceUsers.id, input.actor.id),
               eq(commerceUsers.isInternalStaff, true),
               eq(commerceUsers.mfaEnrolled, true),
-              eq(memberships.role, "finance_approver"),
+              membershipActsAs("finance_approver"),
             ),
           )
           .limit(1);

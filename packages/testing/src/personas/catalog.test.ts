@@ -23,6 +23,8 @@ describe("demo persona catalog", () => {
         "legal_approver",
         "finance_approver",
         "internal_operator",
+        "revenue",
+        "commerce_admin",
       ]),
     );
   });

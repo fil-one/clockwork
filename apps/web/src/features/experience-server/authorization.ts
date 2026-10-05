@@ -1,13 +1,14 @@
 // i18n-exempt-file: HTTP API problem+json titles are the integrator contract (stable English, logged); an interface shows the reader a sentence chosen from `code`/`status` (contracts/error-text.ts), never this title.
 import type { SessionClaims } from "@clockwork/api";
-import { uuidV7 } from "@clockwork/contracts";
+import { rolesHavePermission, uuidV7 } from "@clockwork/contracts";
 
 import { ExperienceProblem, type ExperienceAudience } from "./model";
 
+// Internal projections are operations data. A seller is internal staff but
+// works in the sales workspace, so the audience follows the operations
+// permission rather than the staff flag alone.
 const internalRole = (role: string) =>
-  role.startsWith("internal_") ||
-  role.endsWith("_approver") ||
-  role === "destructive_action_approver";
+  rolesHavePermission([role], "operations:read");
 
 export function requireAuthenticatedSession(
   session: SessionClaims | null,

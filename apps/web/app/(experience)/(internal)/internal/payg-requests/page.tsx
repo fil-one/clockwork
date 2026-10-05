@@ -7,12 +7,13 @@ import { getOptionalServiceDatabase } from "@/src/db/service";
 import { DemoCustomerAcquisitionRepository } from "@/src/features/customer-partner/acquisition/demo";
 import { AcquisitionFinance } from "@/src/features/customer-partner/acquisition/finance";
 import { getTranslations } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
   return { title: t("adminPricing.payg.requestsPageTitle") };
 }
-export default async function Page() {
+async function Page() {
   const session = await getCommerceSession();
   const demo = demoDeployIdentityEnabled(process.env);
   let requests: CustomerAcquisitionRequest[] = [];
@@ -46,3 +47,5 @@ export default async function Page() {
     <AcquisitionFinance requests={requests} demo={demo} available={available} />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

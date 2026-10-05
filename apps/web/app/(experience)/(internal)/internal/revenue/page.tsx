@@ -4,6 +4,7 @@ import { getTranslations } from "@/src/i18n/server";
 import { loadRevenueWorkspace } from "@/src/features/internal-ops/revenue/revenue-loader";
 import { RevenueView } from "@/src/features/internal-ops/revenue/revenue-view";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("operations.finance.revenue.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const workspace = await loadRevenueWorkspace({
     requestId: `experience:revenue:${crypto.randomUUID()}`,
   });
@@ -22,3 +23,5 @@ export default async function Page() {
     </SurfacePermissionGate>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

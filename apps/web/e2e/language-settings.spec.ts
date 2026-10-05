@@ -32,7 +32,7 @@ for (const language of locales) {
     });
     await page.reload();
     await expect(page.locator('select[name="language"]')).toHaveValue(language);
-    await page.goto("/internal");
+    await page.goto("/internal/operations");
     await expect(
       page.getByRole("heading", {
         name: t("operations.home.title"),

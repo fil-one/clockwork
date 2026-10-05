@@ -1,4 +1,8 @@
-import { internalRoles, privilegedRoles } from "@clockwork/contracts";
+import {
+  internalRoles,
+  privilegedRoles,
+  sessionRolesFor,
+} from "@clockwork/contracts";
 import {
   LocalSessionResolver,
   type SessionClaims,
@@ -318,7 +322,9 @@ async function getReleaseProofCommerceSession(input: {
       // Invalid or expired assisted proof never establishes effective scope.
     }
   }
-  const roles = assistedSession?.actualRoles ?? [proof.selected.role];
+  const roles = sessionRolesFor(
+    assistedSession?.actualRoles ?? [proof.selected.role],
+  );
   const actorEmail =
     assistedSession?.actualActorEmail ?? proof.selected.userEmail;
   const isInternalStaff = assistedSession
@@ -373,7 +379,7 @@ function demoPersonaSession(persona: DemoPersona): CommerceSession {
     userId: persona.userId,
     organizationId: persona.organizationId,
     accountIds: persona.isInternalStaff ? [] : [persona.selectedAccountId],
-    roles: [persona.role],
+    roles: sessionRolesFor([persona.role]),
     isInternalStaff: persona.isInternalStaff,
     mfaVerified: persona.mfaVerified,
     recentAuthenticationVerified: true,
@@ -468,7 +474,7 @@ export async function getCommerceSession(): Promise<CommerceSession> {
         ? "30000000-0000-4000-8000-000000000008"
         : "30000000-0000-4000-8000-000000000001",
       accountIds: isInternalStaff ? [] : [selectedAccountId],
-      roles: [role],
+      roles: sessionRolesFor([role]),
       isInternalStaff,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -569,7 +575,11 @@ async function workosCommerceSession(
     // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
     throw new Error("Provider assisted actor membership is unavailable");
   const activeAssistedSession = assistedSession ?? providerAssistedSession;
-  const normalizedRoles = activeAssistedSession?.actualRoles ?? [identity.role];
+  // A commerce administrator acts as every internal role, so the role checks
+  // here, in the domain and in the signed database claims all see them.
+  const normalizedRoles = sessionRolesFor(
+    activeAssistedSession?.actualRoles ?? [identity.role],
+  );
   const actorEmail =
     activeAssistedSession?.actualActorEmail ?? selected.userEmail;
   const isInternalStaff = activeAssistedSession

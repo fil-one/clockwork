@@ -1,6 +1,8 @@
+import type { Role } from "@clockwork/contracts";
+
 import type { SystemCapabilityKey } from "./capabilities";
 
-export function capabilityApprovalRole(key: SystemCapabilityKey): string {
+export function capabilityApprovalRole(key: SystemCapabilityKey): Role {
   return key === "legal"
     ? "legal_approver"
     : key === "teardown"

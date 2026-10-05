@@ -341,6 +341,48 @@ export interface PriceQuoteInput {
   quotedAt: string;
 }
 
+/**
+ * An indicative figure for one direct line, priced with the same rounding a
+ * quote uses. It knows nothing of floors, discount authority or partner
+ * transfer prices, so it can run in a seller's browser on list prices alone;
+ * whether a discount is authorized is decided when a real quote is priced.
+ */
+export function indicativeLinePrice(input: {
+  unitPrice: Money;
+  minimumQuantity: string;
+  quantity: string;
+  termMonths: number;
+  discountBps: number;
+}): {
+  unitPrice: Money;
+  monthly: Money;
+  total: Money;
+  belowMinimum: boolean;
+} {
+  if (!Number.isInteger(input.termMonths) || input.termMonths < 1)
+    throw new Error("Term months must be a positive integer");
+  assertDiscountBps(input.discountBps, "Discount");
+  if (compareQuantities(input.quantity, "0") <= 0)
+    throw new Error("Quantity must be positive");
+  const unitMinor = discountedUnitMinor(
+    BigInt(input.unitPrice.minor),
+    input.discountBps,
+  );
+  const monthlyMinor = multiplyMinorByQuantity(unitMinor, input.quantity);
+  const totalMinor = multiplyMinorByQuantity(
+    unitMinor,
+    input.quantity,
+    BigInt(input.termMonths),
+  );
+  const currency = input.unitPrice.currency;
+  return {
+    unitPrice: bookMoney(currency, unitMinor),
+    monthly: bookMoney(currency, monthlyMinor),
+    total: bookMoney(currency, totalMinor),
+    belowMinimum: compareQuantities(input.quantity, input.minimumQuantity) < 0,
+  };
+}
+
 export function priceQuote(input: PriceQuoteInput): {
   currency: Currency;
   lines: PricedQuoteLine[];

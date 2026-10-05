@@ -1,4 +1,7 @@
 import { render, screen } from "@testing-library/react";
+vi.mock("@/src/features/shell/staff-access", () => ({
+  withStaffPermission: (_permission: string, page: unknown) => page,
+}));
 import { expect, it, vi } from "vitest";
 vi.mock("@/src/features/experience-server/internal-projection-page", () => ({
   InternalProjectionPage: ({ channel }: { channel: string }) => (

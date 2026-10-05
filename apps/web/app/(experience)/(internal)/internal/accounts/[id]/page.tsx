@@ -10,17 +10,14 @@ import { loadPortalRecords } from "@/src/features/experience-server/portal-view-
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 import { getTranslations } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
   return { title: t("operations.account.title") };
 }
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const t = await getTranslations();
   // A report run from an account's page is a report about that account. The
@@ -69,3 +66,5 @@ export default async function Page({
     />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

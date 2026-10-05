@@ -16,6 +16,7 @@ import type { MessageId, Translator } from "@/src/i18n";
 import { getTranslations } from "@/src/i18n/server";
 import { richText } from "@/src/i18n/rich";
 import { CapabilityControls } from "./controls";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("adminGovernance.capabilities.title") };
 }
 
-export default async function Page() {
+async function Page() {
   const session = await getCommerceSession();
   if (!session.isInternalStaff)
     // i18n-exempt: thrown to the route's error boundary, which shows its own copy
@@ -156,3 +157,5 @@ export default async function Page() {
     </AdministrationPage>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

@@ -6,17 +6,14 @@ import { loadPortalRecords } from "@/src/features/experience-server/portal-view-
 import { SurfaceActionGate } from "@/src/features/shell/permission-gate";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 import { getTranslations } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
   return { title: t("operations.queueRecord.title") };
 }
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const t = await getTranslations();
   // The queues channel projects the `exception_case` aggregate, so the record
@@ -55,3 +52,5 @@ export default async function Page({
     />
   );
 }
+
+export default withStaffPermission("operations:read", Page);

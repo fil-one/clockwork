@@ -13,10 +13,13 @@ export type DemoPersonaKind =
   | "billing_user"
   | "legal_approver"
   | "finance_approver"
-  | "internal_operator";
+  | "internal_operator"
+  | "revenue"
+  | "commerce_admin";
 
 export type DemoPersonaKey =
   | "billingUser"
+  | "commerceAdmin"
   | "directBuyer"
   | "distributor"
   | "endClient"
@@ -24,7 +27,8 @@ export type DemoPersonaKey =
   | "internalOperator"
   | "legalApprover"
   | "referralPartner"
-  | "reseller";
+  | "reseller"
+  | "revenueSeller";
 
 /**
  * A demo identity. Only facts live here: names, ids, role and regional
@@ -61,6 +65,8 @@ const userIds = {
   legalApprover: "21000000-0000-4000-8000-000000000007",
   financeApprover: "21000000-0000-4000-8000-000000000008",
   internalOperator: "21000000-0000-4000-8000-000000000009",
+  revenueSeller: "21000000-0000-4000-8000-000000000010",
+  commerceAdmin: "21000000-0000-4000-8000-000000000011",
 } as const;
 
 export const demoAccountIds = {
@@ -243,6 +249,40 @@ export const demoPersonas = {
     mfaVerified: true,
     isInternalStaff: true,
     assistedAccountId: demoAccountIds.reseller,
+  },
+  revenueSeller: {
+    key: "revenueSeller",
+    kind: "revenue",
+    displayName: "Priya Raman",
+    email: "priya.raman@fil-one-internal.test",
+    userId: userIds.revenueSeller,
+    organizationId: organizationIds.internal,
+    selectedAccountId: demoAccountIds.direct,
+    accessibleAccountIds: [],
+    role: "revenue",
+    startRoute: "/internal",
+    locale: "en-US",
+    timeZone: "America/New_York",
+    currency: "USD",
+    mfaVerified: true,
+    isInternalStaff: true,
+  },
+  commerceAdmin: {
+    key: "commerceAdmin",
+    kind: "commerce_admin",
+    displayName: "Elena Brooks",
+    email: "elena.brooks@fil-one-internal.test",
+    userId: userIds.commerceAdmin,
+    organizationId: organizationIds.internal,
+    selectedAccountId: demoAccountIds.direct,
+    accessibleAccountIds: [],
+    role: "commerce_admin",
+    startRoute: "/internal",
+    locale: "en-US",
+    timeZone: "America/New_York",
+    currency: "USD",
+    mfaVerified: true,
+    isInternalStaff: true,
   },
 } as const satisfies Record<DemoPersonaKey, DemoPersona>;
 

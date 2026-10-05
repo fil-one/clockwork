@@ -5,6 +5,7 @@ import {
   ActorSchema,
   privilegedRoles,
   RoleSchema,
+  sessionRolesFor,
   type Actor,
   type Permission,
   type Role,
@@ -261,7 +262,7 @@ export class DatabaseAuthoritativePortalCommandExecutor {
         const identity = IdentityRowSchema.safeParse(identityRows[0]);
         if (!identity.success || identity.data.roles.length === 0) return null;
 
-        const roles = [...new Set(identity.data.roles)] as Role[];
+        const roles = sessionRolesFor(identity.data.roles);
         if (
           !input.recentAuthenticationVerified ||
           (roles.some((role) =>
@@ -667,7 +668,7 @@ export class DatabaseSystemRecoveryCommandExecutor {
           !input.recentAuthenticationVerified
         )
           return null;
-        const roles = [...new Set(identity.data.roles)] as Role[];
+        const roles = sessionRolesFor(identity.data.roles);
         if (
           roles.some((role) =>
             privilegedRoles.includes(role as (typeof privilegedRoles)[number]),

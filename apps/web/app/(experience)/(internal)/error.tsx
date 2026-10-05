@@ -1,9 +1,10 @@
 "use client";
 import { useTranslations } from "@/src/i18n/client";
 
+import Link from "next/link";
 import { useEffect } from "react";
 
-import { Button } from "@clockwork/ui";
+import { Button, buttonClassName } from "@clockwork/ui";
 
 /**
  * The internal group's error boundary.
@@ -31,12 +32,23 @@ export default function InternalExperienceError({
       <section className="state-card state-card--danger" role="alert">
         <h1>{t("state.fatal.title")}</h1>
         <p>{t("state.fatal.description")}</p>
+        {/* Staff pages need a current sign-in check. When it lapses while a
+            page is open, the next request fails here, so name the fix. */}
+        <p>{t("operations.staff.error.mfaHint")}</p>
         {error.digest ? (
           <p className="eyebrow">
             <code>{t("app.requestId", { id: error.digest })}</code>
           </p>
         ) : null}
-        <Button onClick={reset}>{t("action.retry")}</Button>
+        <div className="state-card__actions">
+          <Button onClick={reset}>{t("action.retry")}</Button>
+          <Link
+            className={buttonClassName({ variant: "secondary" })}
+            href="/access/mfa"
+          >
+            {t("operations.staff.error.verify")}
+          </Link>
+        </div>
       </section>
     </main>
   );

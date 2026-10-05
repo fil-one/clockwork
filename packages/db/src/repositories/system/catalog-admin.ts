@@ -135,6 +135,7 @@ export class DatabaseCatalogAdmin {
             inArray(memberships.role, [
               "internal_operator",
               "finance_approver",
+              "commerce_admin",
             ]),
           ),
         )

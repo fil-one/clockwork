@@ -14,6 +14,7 @@ import styles from "@/src/features/internal-ops/administration-safety/administra
 import { richText } from "@/src/i18n/rich";
 import { getTranslations } from "@/src/i18n/server";
 import { CatalogMappingControls } from "./controls";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ function isPriceBookStatus(value: string): value is PriceBookStatus {
   return value === "draft" || value === "active" || value === "retired";
 }
 
-export default async function Page() {
+async function Page() {
   const session = await getCommerceSession();
   if (!session.isInternalStaff)
     // i18n-exempt: server-side guard; Next.js masks server errors, the reader never sees this text
@@ -143,3 +144,5 @@ export default async function Page() {
     </AdministrationPage>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

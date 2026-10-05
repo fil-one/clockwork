@@ -10,7 +10,9 @@ export type DemoJourneyKey =
   | "internalProvisioningRecovery"
   | "legalCustomerPaper"
   | "referralDispute"
-  | "resellerAgreementAndQuote";
+  | "resellerAgreementAndQuote"
+  | "revenueFirstMnda"
+  | "commerceAdminReview";
 
 export interface DemoJourneyStep {
   readonly route: `/${string}`;
@@ -137,6 +139,20 @@ export const demoJourneys = {
         route: "/internal/accounts/cobalt-orchard",
         expectedFixtureId: "timeline-cobalt-1",
       },
+    ],
+  },
+  revenueFirstMnda: {
+    persona: "revenueSeller",
+    steps: [
+      { route: "/internal", expectedFixtureId: "sales-home-start-guide" },
+      { route: "/internal/pricing", expectedFixtureId: "indicative-pricing" },
+    ],
+  },
+  commerceAdminReview: {
+    persona: "commerceAdmin",
+    steps: [
+      { route: "/internal", expectedFixtureId: "sales-home-team-counts" },
+      { route: "/internal/team", expectedFixtureId: "staff-team" },
     ],
   },
 } as const satisfies Record<DemoJourneyKey, DemoJourney>;

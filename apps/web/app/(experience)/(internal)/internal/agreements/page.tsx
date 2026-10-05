@@ -29,6 +29,7 @@ import {
   getLocale,
   getTranslations,
 } from "@/src/i18n/server";
+import { withStaffPermission } from "@/src/features/shell/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ function storedLabel(
   return id ? t(id) : value;
 }
 
-export default async function Page() {
+async function Page() {
   if (explicitDemoIdentityEnabled()) {
     const locale = await getLocale();
     return (
@@ -175,3 +176,5 @@ export default async function Page() {
     </AdministrationPage>
   );
 }
+
+export default withStaffPermission("operations:read", Page);

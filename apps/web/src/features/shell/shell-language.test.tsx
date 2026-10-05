@@ -69,7 +69,7 @@ function renderShell(locale: Locale) {
 }
 
 describe("shell chrome in the reader's language", () => {
-  it("names the product and translates every landmark, footer and shortcut in Portuguese", async () => {
+  it("names the product and translates every landmark and shortcut in Portuguese", async () => {
     renderShell("pt");
     // The product name is never translated ("Comércio" was the defect).
     expect(
@@ -78,12 +78,6 @@ describe("shell chrome in the reader's language", () => {
     expect(document.body.textContent).not.toMatch(/Comércio/u);
     expect(
       screen.getByRole("region", { name: "Status da aplicação" }),
-    ).toBeInTheDocument();
-    // The company takes the feminine article in Portuguese.
-    expect(
-      screen.getByText(
-        "Os registros comerciais da Fil One são sincronizados a partir do registro operacional.",
-      ),
     ).toBeInTheDocument();
     expect(
       screen.getByText("Atalho de teclado: ⌘K ou Ctrl+K"),

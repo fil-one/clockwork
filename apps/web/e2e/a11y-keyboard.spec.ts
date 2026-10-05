@@ -77,10 +77,10 @@ test.describe("keyboard wayfinding", () => {
 
     await page
       .getByRole("navigation", { name: "Primary" })
-      .getByRole("link", { name: "Reports", exact: true })
+      .getByRole("link", { name: "Pricing", exact: true })
       .click();
 
-    await expect(page).toHaveURL(/\/internal\/reports$/);
+    await expect(page).toHaveURL(/\/internal\/pricing$/);
     await expect(live).toHaveText(/Page loaded\./);
   });
 });
