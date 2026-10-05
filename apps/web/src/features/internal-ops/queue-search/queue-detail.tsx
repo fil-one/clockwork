@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import type { MessageId } from "@/src/i18n";
 
+import { CopyableId } from "../copyable-id";
 import { LocalTimestamp } from "../local-timestamp";
 import styles from "./queue-search.module.css";
 import {
@@ -64,22 +65,20 @@ export function QueueDetail({
     >
       <header className={styles.detailHeader}>
         <div>
-          <p className={styles.eyebrow}>
-            {item.type
-              ? t("common.join.labels", {
-                  first: t("operations.queue.detail.queue", {
-                    queue: codeLabel(queueLabels, item.type, t),
-                  }),
-                  second: item.id,
-                })
-              : item.id}
-          </p>
+          {item.type ? (
+            <p className={styles.eyebrow}>
+              {t("operations.queue.detail.queue", {
+                queue: codeLabel(queueLabels, item.type, t),
+              })}
+            </p>
+          ) : null}
           <h2 id={`detail-title-${item.id}`}>{item.title}</h2>
           {item.entity ? (
             <p className={styles.entity}>
               {codeLabel(subjectLabels, item.entity, t)}
             </p>
           ) : null}
+          <CopyableId value={item.id} label={t("common.referenceLabel")} />
         </div>
         {sla ? (
           <span className={`${styles.sla} ${styles[`sla_${sla}`]}`}>

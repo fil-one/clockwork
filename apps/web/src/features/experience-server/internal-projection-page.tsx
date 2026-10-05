@@ -5,6 +5,7 @@ import { loadPortalRecords } from "./portal-view-loader";
 import type { ProjectionChannel, ProjectionRecord } from "./model";
 import { EvidenceUploadControl } from "./evidence-upload-control";
 import { getRouteRoles } from "@/src/features/shell/route-session";
+import { CopyableId } from "@/src/features/internal-ops/copyable-id";
 import { LocalTimestamp } from "@/src/features/internal-ops/local-timestamp";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { richText } from "@/src/i18n/rich";
@@ -95,7 +96,12 @@ export async function InternalProjectionPage({
                 ["title", "name", "label", "account"],
                 record.recordKey,
               )}
-              <small className={styles.recordKey}>{record.recordKey}</small>
+              <span className={styles.recordKey}>
+                <CopyableId
+                  value={record.recordKey}
+                  label={t("experience.internal.column.record")}
+                />
+              </span>
             </>,
             value(record, ["statusLabel"], notRecorded),
             value(record, ["owner", "assignee", "requestedBy"], notRecorded),

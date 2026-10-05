@@ -149,11 +149,14 @@ export function FinancePageFrame({
   title,
   description,
   provenance,
+  notice,
   children,
 }: {
   title: string;
   description: string;
   provenance: SurfaceProvenance;
+  /** A page-wide notice the route supplies, shown under the header. */
+  notice?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -165,6 +168,7 @@ export function FinancePageFrame({
         </div>
         <ProvenanceLine provenance={provenance} />
       </header>
+      {notice}
       {children}
     </main>
   );

@@ -60,7 +60,9 @@ export function queueItemKind(item: QueueItem, t: Translator): string {
   const queue = item.type ? codeLabel(queueLabels, item.type, t) : null;
   if (entity && queue)
     return t("common.join.labels", { first: entity, second: queue });
-  return entity ?? queue ?? item.id;
+  // The case reference is in the detail panel's technical identifier; the
+  // row names what kind of work it is.
+  return entity ?? queue ?? t("operations.queue.kind.fallback");
 }
 
 /** What the active-filter summary calls each filter. */

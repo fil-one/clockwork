@@ -14,6 +14,7 @@ import {
   type MinorAmount,
   type ProjectionRisk,
 } from "./projection-fields";
+import { accountName } from "./account-names";
 
 /**
  * One invoice as collections work.
@@ -51,6 +52,8 @@ export interface CollectionCase {
    * correction can be bound to the invoice.
    */
   billingAccountId: string | null;
+  /** The billed account's name, when the session can read the account. */
+  accountName: string | null;
   reference: string;
   amountMinor: bigint | null;
   currency: string | null;
@@ -102,6 +105,7 @@ export function collectionCaseFromProjection(
   record: ProjectionRecord,
   billingAccounts: ReadonlyMap<string, string> = new Map(),
   now: Date = new Date(),
+  accountNames: ReadonlyMap<string, string> = new Map(),
 ): CollectionCase {
   const data = record.data;
   const invoice = authoritative(record);
@@ -111,13 +115,15 @@ export function collectionCaseFromProjection(
   const paidAt = text(invoice, "paidAt");
   const dueDays = daysSince(dueAt, now);
   const orderId = text(invoice, "orderId");
+  const billingAccountId =
+    (orderId ? billingAccounts.get(orderId) : undefined) ?? null;
   return {
     id: record.recordKey,
     projectionId: record.id,
     invoiceId: record.aggregateId,
     orderId,
-    billingAccountId:
-      (orderId ? billingAccounts.get(orderId) : undefined) ?? null,
+    billingAccountId,
+    accountName: accountName(accountNames, billingAccountId, record.accountId),
     reference,
     amountMinor: minorUnits(text(invoice, "amountMinor")),
     currency: text(invoice, "currency"),

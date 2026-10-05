@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { getTranslations } from "@/src/i18n/server";
 import { RenewalsView } from "@/src/features/internal-ops/finance-lifecycle/renewals-view";
 import { loadRenewalsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
+import { getCapabilityState } from "@/src/features/internal-ops/capability-state";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
+import { getRouteSession } from "@/src/features/shell/route-session";
 
 export const dynamic = "force-dynamic";
 
@@ -24,13 +26,18 @@ export async function generateMetadata(): Promise<Metadata> {
  * visibility is enforced by the projection read itself, not by this gate.
  */
 export default async function Page() {
-  const workspace = await loadRenewalsWorkspace();
+  const [workspace, session] = await Promise.all([
+    loadRenewalsWorkspace(),
+    getRouteSession("internal"),
+  ]);
+  const capabilities = await getCapabilityState(session);
   return (
     <SurfacePermissionGate audience="internal" requiredPermission="report:read">
       <RenewalsView
         windows={workspace.items}
         provenance={workspace.provenance}
         invoiceProvenance={workspace.invoiceProvenance}
+        billingLive={capabilities.isEnabled("billing")}
       />
     </SurfacePermissionGate>
   );

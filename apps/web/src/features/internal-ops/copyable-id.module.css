@@ -1,0 +1,47 @@
+.root {
+  display: inline-flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--web-muted);
+  font-size: var(--cw-text-xs);
+}
+
+.value {
+  overflow-wrap: anywhere;
+  font-family: var(--cw-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.copy {
+  min-height: 1.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--cw-radius-sm, 0.375rem);
+  background: transparent;
+  padding: 0 0.375rem;
+  color: var(--cw-action);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+}
+
+.copy:hover {
+  background: var(--cw-action-soft);
+  color: var(--cw-action-strong);
+}
+
+.copy:focus-visible {
+  outline: 2px solid var(--cw-focus, var(--cw-action));
+  outline-offset: 1px;
+}
+
+/* Announced to assistive technology; the button's own label shows "Copied". */
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

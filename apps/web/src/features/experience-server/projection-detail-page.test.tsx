@@ -6,10 +6,24 @@ import type { ProjectionChannel, ProjectionRecord } from "./model";
 const mocks = vi.hoisted(() => ({
   getRouteRoles: vi.fn(),
   loadPortalRecords: vi.fn(),
+  billingEnabled: { value: true },
+}));
+
+vi.mock("@/src/features/internal-ops/capability-state", () => ({
+  allCapabilitiesEnabled: { isEnabled: () => true },
+  getCapabilityState: () =>
+    Promise.resolve({
+      isEnabled: (key: string) =>
+        key === "billing" ? mocks.billingEnabled.value : true,
+    }),
 }));
 
 vi.mock("@/src/features/shell/route-session", () => ({
   getRouteRoles: mocks.getRouteRoles,
+  getRouteSession: async (audience: string) => ({
+    roles: (await mocks.getRouteRoles(audience)) as readonly string[],
+    providerBacked: false,
+  }),
 }));
 
 vi.mock("./portal-view-loader", () => ({
@@ -88,6 +102,7 @@ function record(
 
 beforeEach(() => {
   mocks.getRouteRoles.mockResolvedValue(["owner"]);
+  mocks.billingEnabled.value = true;
 });
 
 describe("projection detail task hierarchy", () => {
@@ -207,5 +222,125 @@ describe("projection detail task hierarchy", () => {
     expect(screen.getByText("Owner")).toBeVisible();
     expect(screen.queryByText("valueSort")).toBeNull();
     expect(screen.queryByText("tone")).toBeNull();
+  });
+
+  describe("a staff account record", () => {
+    function account(overrides: Partial<ProjectionRecord["data"]> = {}) {
+      const base = record("dashboard", {
+        key: "meridian-archive",
+        title: "Meridian Archive Labs, Inc.",
+        nextAction: "Evaluate dunning",
+        allowedActions: ["evaluate_dunning"],
+      });
+      return {
+        ...base,
+        audience: "internal" as const,
+        data: {
+          ...base.data,
+          reference: "Meridian Archive Labs, Inc.",
+          owner: "Ada Mercer",
+          ...overrides,
+        },
+      };
+    }
+
+    async function renderAccount(data: ProjectionRecord) {
+      mocks.getRouteRoles.mockResolvedValue(["internal_operator"]);
+      mocks.loadPortalRecords.mockResolvedValue({
+        records: [data],
+        generatedAt: "2026-08-01T12:00:00.000Z",
+        stale: false,
+      });
+      render(
+        await ProjectionDetailPage({
+          audience: "internal",
+          channel: "dashboard",
+          recordKey: "meridian-archive",
+          title: "Account operations",
+          description: "Owner, relationship, value and documents.",
+        }),
+      );
+    }
+
+    it("leaves out a fact that only repeats the account's name", async () => {
+      await renderAccount(account());
+
+      expect(screen.queryByText("Reference")).toBeNull();
+      expect(screen.getByText("Owner")).toBeVisible();
+      expect(screen.getByText("Ada Mercer")).toBeVisible();
+      // Staff pages carry no workspace eyebrow.
+      expect(screen.queryByText("Operator workspace")).toBeNull();
+    });
+
+    it("shows a billing next step while billing is switched on", async () => {
+      await renderAccount(account());
+
+      expect(screen.getByText("Next step")).toBeVisible();
+      expect(screen.getByText("Evaluate dunning")).toBeVisible();
+    });
+
+    it("hides a billing next step and its action while billing is switched off", async () => {
+      mocks.billingEnabled.value = false;
+      await renderAccount(account());
+
+      expect(screen.queryByText("Next step")).toBeNull();
+      expect(screen.queryByText("Evaluate dunning")).toBeNull();
+      expect(screen.queryByText(/evaluate_dunning/)).toBeNull();
+    });
+
+    it("keeps a next step that needs no switched-off capability", async () => {
+      mocks.billingEnabled.value = false;
+      await renderAccount(
+        account({
+          nextAction: "Prepare the order form",
+          allowedActions: ["prepare_artifact"],
+        }),
+      );
+
+      expect(screen.getByText("Next step")).toBeVisible();
+      expect(screen.getByText("Prepare the order form")).toBeVisible();
+    });
+
+    it("hides a written step that names a switched-off capability", async () => {
+      mocks.billingEnabled.value = false;
+      await renderAccount(
+        account({
+          nextAction: "Confirm the ACH retry before the renewal notice opens",
+          nextActionCapability: "billing",
+          allowedActions: [],
+        }),
+      );
+
+      expect(screen.queryByText("Next step")).toBeNull();
+      expect(screen.queryByText(/ACH retry/)).toBeNull();
+      // The tag is not shown as a fact of its own.
+      expect(screen.queryByText("nextActionCapability")).toBeNull();
+    });
+
+    it("shows that written step while its capability is on", async () => {
+      await renderAccount(
+        account({
+          nextAction: "Confirm the ACH retry before the renewal notice opens",
+          nextActionCapability: "billing",
+          allowedActions: [],
+        }),
+      );
+
+      expect(
+        screen.getByText(
+          "Confirm the ACH retry before the renewal notice opens",
+        ),
+      ).toBeVisible();
+    });
+
+    it("names the first available action when the step's own action is switched off", async () => {
+      mocks.billingEnabled.value = false;
+      await renderAccount(
+        account({ allowedActions: ["evaluate_dunning", "prepare_artifact"] }),
+      );
+
+      expect(screen.getByText("Next step")).toBeVisible();
+      expect(screen.getByText("Prepare document")).toBeVisible();
+    });
   });
 });

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { buttonClassName } from "@clockwork/ui";
+
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
 import { AccountDerivationSection } from "@/src/features/experience-server/account-derivation-section";
 import { ProjectionDetailPage } from "@/src/features/experience-server/projection-detail-page";
@@ -41,9 +43,17 @@ export default async function Page({
       actions={
         <SurfaceActionGate audience="internal" requiredPermission="report:read">
           {guidedDemo ? (
-            <Link href="/internal/reports">
-              {t("operations.account.openReports")}
-            </Link>
+            <p>
+              <Link
+                className={buttonClassName({
+                  variant: "secondary",
+                  size: "small",
+                })}
+                href="/internal/reports"
+              >
+                {t("operations.account.openReports")}
+              </Link>
+            </p>
           ) : (
             <WorkflowPanel
               context={

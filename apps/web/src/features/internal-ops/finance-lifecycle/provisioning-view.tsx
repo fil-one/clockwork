@@ -39,8 +39,11 @@ function riskTone(
 export function ProvisioningView({
   work,
   provenance,
+  notice,
   children,
 }: {
+  /** A page-wide notice the route supplies, shown under the header. */
+  notice?: ReactNode;
   children?: ReactNode;
   work: readonly ProvisioningWork[];
   provenance: SurfaceProvenance;
@@ -67,6 +70,7 @@ export function ProvisioningView({
       title={t(copy.title)}
       description={t(copy.description)}
       provenance={provenance}
+      notice={notice}
     >
       {children}
       <section className={styles.summaryGrid} aria-label={t(copy.summaryLabel)}>
@@ -94,7 +98,7 @@ export function ProvisioningView({
       </div>
 
       {summary.unclassified > 0 ? (
-        <div className={styles.notice} role="note">
+        <div className={styles.warningNotice} role="note">
           <strong>
             {t(copy.unclassified, { count: summary.unclassified })}
           </strong>

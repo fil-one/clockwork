@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { BillingOffNotice } from "@/src/features/internal-ops/billing-off-notice";
+
 import { getTranslations } from "@/src/i18n/server";
 import { CollectionsView } from "@/src/features/internal-ops/finance-lifecycle/collections-view";
 import { loadCollectionsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
@@ -34,6 +36,7 @@ export default async function Page() {
         cases={workspace.items}
         roles={roles}
         provenance={workspace.provenance}
+        notice={<BillingOffNotice />}
       />
     </SurfacePermissionGate>
   );

@@ -1,0 +1,29 @@
+.notice {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid var(--cw-border, rgb(9 9 11 / 0.12));
+  border-inline-start: 3px solid var(--cw-action);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-action-soft);
+  padding: 0.75rem 1rem;
+  color: var(--web-ink);
+  font-size: var(--cw-text-sm);
+  line-height: 1.5;
+}
+
+.notice strong {
+  font-weight: 600;
+}
+
+.notice p {
+  margin: 0;
+  color: var(--web-muted);
+}
+
+.notice a {
+  width: max-content;
+  max-width: 100%;
+  color: var(--cw-action-strong);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}

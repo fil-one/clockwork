@@ -9,7 +9,7 @@ import {
   formatCount,
   formatMinorAmount,
 } from "../finance-lifecycle/projection-fields";
-import { use } from "react";
+import { use, type ReactNode } from "react";
 
 import type { Translator } from "@/src/i18n";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
@@ -61,9 +61,12 @@ function monthText(period: string, locale: string): string {
 export function ReconciliationView({
   workspace,
   now = new Date(),
+  notice,
 }: {
   workspace: ReconciliationWorkspace;
   now?: Date;
+  /** A page-wide notice the route supplies, shown under the header. */
+  notice?: ReactNode;
 }) {
   const { readable, source } = workspace;
   const t = use(getTranslations());
@@ -82,6 +85,7 @@ export function ReconciliationView({
           ? { kind: "read", source, readAt: now.toISOString() }
           : { kind: "unreadable", source }
       }
+      notice={notice}
     >
       <section className={styles.summaryGrid} aria-label={t(summary.label)}>
         <article className={styles.summaryCard}>

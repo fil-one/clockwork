@@ -50,6 +50,11 @@ vi.mock("@/src/features/experience-server/portal-view-loader", () => ({
   }),
 }));
 
+vi.mock("@/src/features/shell/route-session", () => ({
+  getRouteSession: vi.fn(() => Promise.resolve({ providerBacked: false })),
+}));
+
+import { capabilityStateFrom } from "../capability-state-model";
 import { loadOperationsHome } from "./server-loader";
 
 const now = new Date("2026-08-15T09:20:00.000Z");
@@ -104,5 +109,31 @@ describe("operations home signals", () => {
       expect(signal.action).not.toBe(source?.action);
       expect(signal.detail).not.toBe(source?.detail);
     }
+  });
+
+  it("lists billing work only while billing is switched on", async () => {
+    const channels = (data: Awaited<ReturnType<typeof loadOperationsHome>>) =>
+      data.signals.map((signal) => signal.channel);
+    const billingOff = await loadOperationsHome(
+      now,
+      translatorFor("en"),
+      "en-US",
+      capabilityStateFrom([{ capabilityKey: "billing", enabled: false }]),
+    );
+    expect(channels(billingOff)).toEqual(["queues", "orders", "reports"]);
+
+    const billingOn = await loadOperationsHome(
+      now,
+      translatorFor("en"),
+      "en-US",
+      capabilityStateFrom([{ capabilityKey: "billing", enabled: true }]),
+    );
+    expect(channels(billingOn)).toEqual([
+      "queues",
+      "provisioning",
+      "collections",
+      "orders",
+      "reports",
+    ]);
   });
 });

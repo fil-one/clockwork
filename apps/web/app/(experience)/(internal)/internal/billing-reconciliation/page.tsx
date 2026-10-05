@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { BillingOffNotice } from "@/src/features/internal-ops/billing-off-notice";
+
 import { getTranslations } from "@/src/i18n/server";
 import { loadReconciliationWorkspace } from "@/src/features/internal-ops/billing-reconciliation/reconciliation-loader";
 import { ReconciliationView } from "@/src/features/internal-ops/billing-reconciliation/reconciliation-view";
@@ -18,7 +20,7 @@ export default async function Page() {
   });
   return (
     <SurfacePermissionGate audience="internal" requiredPermission="report:read">
-      <ReconciliationView workspace={workspace} />
+      <ReconciliationView workspace={workspace} notice={<BillingOffNotice />} />
     </SurfacePermissionGate>
   );
 }
