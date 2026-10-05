@@ -26,6 +26,7 @@ const guardCalls = [
   "requirePermission(",
   "requireAudience(",
   "mndaStaff(",
+  "contractStaff(",
   "roles.includes(",
   "roles.some(",
 ] as const;

@@ -295,6 +295,11 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/capabilities",
       "/internal/catalog",
       "/internal/channel-policy",
+      // Standalone staff contract register and its pages; no projection channel.
+      "/internal/contracts",
+      "/internal/contracts/new",
+      "/internal/contracts/notices",
+      "/internal/contracts/templates",
       "/internal/gates",
       "/internal/migrations",
       // Standalone pre-sales MNDA repository, not an account projection channel.
@@ -313,6 +318,8 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/providers",
       "/internal/recovery",
       "/internal/revenue",
+      // Sales collateral read from its own table.
+      "/internal/sales-library",
       "/internal/search",
       "/internal/status",
       // Staff memberships, read from the identity tables and WorkOS.

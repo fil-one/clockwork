@@ -3,7 +3,7 @@ import {
   getLocale,
   getTranslations,
 } from "@/src/i18n/server";
-import { use } from "react";
+import { use, type ReactNode } from "react";
 import Link from "next/link";
 
 import { rtlLocales, type MessageId } from "@/src/i18n";
@@ -77,7 +77,14 @@ function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
 const MY_QUEUE_HREF =
   "/internal/queues?view=assigned-to-me&sort=sla-risk-age&page=1&pageSize=25" as const;
 
-export function OperationsHome({ data }: { data: OperationsHomeData }) {
+export function OperationsHome({
+  data,
+  renewals,
+}: {
+  data: OperationsHomeData;
+  /** The contract renewal notices card, when the page supplies one. */
+  renewals?: ReactNode;
+}) {
   const t = use(getTranslations());
   const locale = use(getFormattingLocale());
   const staleAreas = data.staleChannels.map((channel) => {
@@ -108,6 +115,8 @@ export function OperationsHome({ data }: { data: OperationsHomeData }) {
           })}
         </p>
       ) : null}
+
+      {renewals}
 
       <section aria-labelledby="action-health-title">
         <div className={styles.sectionHeading}>

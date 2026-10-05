@@ -3,6 +3,10 @@ import {
   mndaRepository,
   mndaWorkflow,
 } from "@/src/features/internal-ops/mnda/server";
+import {
+  contractSigningRepository,
+  contractSigningWorkflow,
+} from "@/src/features/internal-ops/contracts/server";
 
 export async function POST(request: Request) {
   if (!process.env.SIGNWELL_WEBHOOK_ID)
@@ -38,6 +42,15 @@ export async function POST(request: Request) {
         kind: "provider",
         id: "signwell",
       });
+    else {
+      // Template contracts share the SignWell account; same wakeup rule.
+      const contract = await contractSigningRepository().byProvider(providerId);
+      if (contract)
+        await contractSigningWorkflow("sync").sync(contract.contractId, {
+          kind: "provider",
+          id: "signwell",
+        });
+    }
     return Response.json({ received: true });
   } catch {
     return new Response(null, { status: 503 });

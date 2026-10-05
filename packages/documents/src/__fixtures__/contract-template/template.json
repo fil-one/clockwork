@@ -1,0 +1,53 @@
+{
+  "id": "test-fixture",
+  "contractType": "other",
+  "name": "Engine Test Fixture",
+  "version": "fixture-1",
+  "requiresApproval": true,
+  "source": {
+    "path": "packages/documents/src/__fixtures__/contract-template/source.txt",
+    "sha256": "9b751e680368707f62a6baf50b45da61801e9849e49c596c3776a36c433c1afd",
+    "counselApprovedBy": "Not applicable (test fixture)",
+    "counselApprovedOn": "2026-10-04"
+  },
+  "fields": [
+    {
+      "id": "fixture_reference",
+      "kind": "text",
+      "required": true,
+      "maxLength": 80,
+      "label": { "en": "Fixture reference" }
+    },
+    {
+      "id": "fixture_tier",
+      "kind": "choice",
+      "required": true,
+      "label": { "en": "Fixture tier" },
+      "options": [
+        { "value": "alpha", "label": { "en": "Alpha" } },
+        { "value": "beta", "label": { "en": "Beta" } }
+      ]
+    },
+    {
+      "id": "fixture_note",
+      "kind": "text",
+      "required": false,
+      "maxLength": 120,
+      "label": { "en": "Fixture note" }
+    }
+  ],
+  "document": {
+    "title": "ENGINE TEST FIXTURE",
+    "blocks": [
+      { "type": "heading", "text": "Test document" },
+      {
+        "type": "paragraph",
+        "text": "This document exists only to test the contract engine. It is not an agreement. Counterparty: [[counterparty_name]]. Date: [[effective_date]]."
+      },
+      {
+        "type": "paragraph",
+        "text": "Reference [[fixture_reference]], tier [[fixture_tier]], note [[fixture_note]]."
+      }
+    ]
+  }
+}

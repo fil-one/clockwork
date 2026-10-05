@@ -28,6 +28,8 @@ describe("staff navigation by role", () => {
     expect(visibleHrefs("revenue")).toEqual([
       "/internal",
       "/internal/mndas",
+      "/internal/contracts",
+      "/internal/sales-library",
       "/internal/pricing",
     ]);
   });

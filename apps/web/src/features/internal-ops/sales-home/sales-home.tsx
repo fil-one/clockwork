@@ -1,4 +1,4 @@
-import { use } from "react";
+import { use, type ReactNode } from "react";
 import type { Route } from "next";
 import Link from "next/link";
 
@@ -96,11 +96,14 @@ export function SalesHome({
   userId,
   sections,
   canSendMnda,
+  cards,
 }: {
   userId: string;
   sections: readonly SalesHomeSection[];
   /** Whether the MNDA register exists here and the reader may send. */
   canSendMnda: boolean;
+  /** Self-contained cards from other workspaces, shown after the sections. */
+  cards?: ReactNode;
 }) {
   const t = use(getTranslations());
   return (
@@ -131,6 +134,7 @@ export function SalesHome({
       {sections.map((section) => (
         <WorkSection key={section.id} section={section} />
       ))}
+      {cards}
     </main>
   );
 }

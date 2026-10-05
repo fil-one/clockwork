@@ -139,6 +139,13 @@ describe("every staff route is guarded", () => {
     // The MNDA workspace checks `mnda:send` and `signatory:manage` in its own
     // server module for every page and action under /internal/mndas.
     if (path.startsWith("mndas/")) return;
+    // Contract and sales library pages load through the contracts loaders,
+    // which check `contract:*`, `sales:read` or `collateral:manage` before
+    // any read.
+    if (path.startsWith("contracts/") || path.startsWith("sales-library/")) {
+      expect(source).toContain("@/src/features/internal-ops/contracts/loaders");
+      return;
+    }
     // A new sales page is listed above with the permission it requires;
     // anything unlisted is an operations page.
     expect(source).toContain(

@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./mnda": "./src/mnda.ts",
+    "./contracts": "./src/contracts.ts",
     ".": "./src/index.ts",
     "./core": "./src/core/index.ts",
     "./lifecycle": "./src/lifecycle/index.ts",

@@ -4,6 +4,7 @@
   "include": [
     "*.ts",
     "scripts/bootstrap-production.ts",
-    "scripts/provision-staff.ts"
+    "scripts/provision-staff.ts",
+    "scripts/render-contract-specimen.ts"
   ]
 }
