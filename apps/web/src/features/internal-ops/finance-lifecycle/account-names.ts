@@ -37,3 +37,19 @@ export function accountName(
   }
   return null;
 }
+
+/**
+ * Who a staff row names: the end customer first, and the paying account
+ * beneath it only when someone else pays (a reseller or distributor). With no
+ * nameable customer the payer leads, so the row still carries a name.
+ */
+export function partyNames(
+  names: ReadonlyMap<string, string>,
+  customerIds: readonly (string | null | undefined)[],
+  payerId: string | null | undefined,
+): { customer: string | null; payer: string | null } {
+  const customer = accountName(names, ...customerIds);
+  const payer = accountName(names, payerId);
+  if (!customer) return { customer: payer, payer: null };
+  return { customer, payer: payer && payer !== customer ? payer : null };
+}

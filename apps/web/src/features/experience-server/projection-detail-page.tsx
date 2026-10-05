@@ -16,6 +16,7 @@ import {
 } from "@/src/features/internal-ops/capability-state";
 import {
   availableActions,
+  isActive,
   isCapabilityKey,
   type CapabilityState,
 } from "@/src/features/internal-ops/capability-state-model";
@@ -44,9 +45,15 @@ function label(record: ProjectionRecord): string {
 }
 
 /**
- * The record's next step, or `null` when there is none to show. A step derived
- * from an action whose capability is switched off is not shown: the action
- * would be refused, so the step is not work anyone can do yet.
+ * The record's next step, or `null` when there is none to show.
+ *
+ * - A step derived from actions that are all switched off is not shown: the
+ *   server would refuse them, so the step is not work anyone can do yet.
+ * - A written step can name the capability it belongs to
+ *   (`nextActionCapability`); it is not shown while no work for that
+ *   capability can run.
+ * - A production row with no action and nothing overdue carries only the
+ *   neutral fallback (`nextActionFallback`), which is not worth a panel.
  */
 function nextStepText(
   record: ProjectionRecord,
@@ -56,14 +63,14 @@ function nextStepText(
   t: Translator,
 ): string | null {
   if (actions.length > 0 && available.length === 0) return null;
-  // A written step ("Confirm the ACH retry") can name the capability it
-  // belongs to, for a step no action carries.
   const stepCapability = text(record, "nextActionCapability");
   if (
     stepCapability &&
     isCapabilityKey(stepCapability) &&
-    !capabilities.isEnabled(stepCapability)
+    !isActive(capabilities, stepCapability)
   )
+    return null;
+  if (record.data.nextActionFallback === true && available.length === 0)
     return null;
   const [first] = actions;
   if (first !== undefined && !available.includes(first))
@@ -100,6 +107,7 @@ const presentedElsewhere = new Set([
   "risk",
   "nextAction",
   "nextActionCapability",
+  "nextActionFallback",
   "nextActionHref",
   "href",
   "valueSort",
@@ -346,6 +354,10 @@ export async function ProjectionDetailPage({
     ? projection.records.filter((record) => record.recordKey === recordKey)
     : projection.records;
   const commercial = isCommercialDecision(audience, channel);
+  // A single staff record has no ledger heading above it, so its title is the
+  // page's second-level heading.
+  const ledgerHeaderHidden = Boolean(recordKey) && !commercial;
+  const RecordHeading = ledgerHeaderHidden ? "h2" : "h3";
   const visibleRecords = commercial
     ? [...records].sort(
         (left, right) =>
@@ -424,10 +436,7 @@ export async function ProjectionDetailPage({
           }
           className={styles.recordLedger}
         >
-          <header
-            className={styles.ledgerHeader}
-            hidden={Boolean(recordKey) && !commercial}
-          >
+          <header className={styles.ledgerHeader} hidden={ledgerHeaderHidden}>
             <div>
               <h2>
                 {commercial
@@ -452,7 +461,11 @@ export async function ProjectionDetailPage({
           <div className={styles.recordList}>
             {visibleRecords.map((record) => {
               const actions = allowedActions(record);
-              const available = availableActions(actions, capabilities);
+              const available = availableActions(
+                record.aggregateType,
+                actions,
+                capabilities,
+              );
               const nextStep = nextStepText(
                 record,
                 actions,
@@ -480,7 +493,7 @@ export async function ProjectionDetailPage({
                           })}
                         </p>
                       )}
-                      <h3>{label(record)}</h3>
+                      <RecordHeading>{label(record)}</RecordHeading>
                       {text(record, "description") ? (
                         <p className={styles.recordDescription}>
                           {text(record, "description")}
@@ -510,29 +523,36 @@ export async function ProjectionDetailPage({
                     ))}
                   </dl>
 
-                  {nextStep ? (
-                    <div className={styles.recordDecision}>
+                  {/*
+                   * The actions stay mounted when there is no step to show: a
+                   * receipt has to outlive the refresh that spends the
+                   * record's last action.
+                   */}
+                  <div
+                    className={
+                      nextStep
+                        ? styles.recordDecision
+                        : styles.recordActionsOnly
+                    }
+                  >
+                    {nextStep ? (
                       <div>
                         <p>{t("experience.detail.nextStep")}</p>
                         <strong>{nextStep}</strong>
                       </div>
-                      {/*
-                       * Kept mounted with no actions: a receipt has to outlive
-                       * the refresh that spends the record's last action.
-                       */}
-                      <div className={styles.recordActions}>
-                        <ProjectionActionButtons
-                          audience={audience}
-                          channel={channel}
-                          recordKey={record.recordKey}
-                          projectionId={record.id}
-                          version={record.version}
-                          actions={available}
-                          roles={roles}
-                        />
-                      </div>
+                    ) : null}
+                    <div className={styles.recordActions}>
+                      <ProjectionActionButtons
+                        audience={audience}
+                        channel={channel}
+                        recordKey={record.recordKey}
+                        projectionId={record.id}
+                        version={record.version}
+                        actions={available}
+                        roles={roles}
+                      />
                     </div>
-                  ) : null}
+                  </div>
 
                   <div className={styles.recordEvidence}>
                     <ArtifactDeliveryList artifacts={artifacts(record)} />

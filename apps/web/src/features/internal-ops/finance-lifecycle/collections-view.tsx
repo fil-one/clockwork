@@ -160,6 +160,13 @@ export function CollectionsView({
                   {t(copy.priorityRank, { rank: String(index + 1) })}
                 </span>
                 <strong>{entry.accountName ?? entry.reference}</strong>
+                {entry.payerName ? (
+                  <span className={styles.secondary}>
+                    {t("operations.finance.billedTo", {
+                      name: entry.payerName,
+                    })}
+                  </span>
+                ) : null}
                 {entry.accountName ? (
                   <CopyableId
                     value={entry.reference}

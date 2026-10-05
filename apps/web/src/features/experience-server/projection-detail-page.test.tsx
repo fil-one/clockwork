@@ -6,15 +6,20 @@ import type { ProjectionChannel, ProjectionRecord } from "./model";
 const mocks = vi.hoisted(() => ({
   getRouteRoles: vi.fn(),
   loadPortalRecords: vi.fn(),
-  billingEnabled: { value: true },
+  billing: { enabled: true, recovery: true },
 }));
 
 vi.mock("@/src/features/internal-ops/capability-state", () => ({
-  allCapabilitiesEnabled: { isEnabled: () => true },
+  allCapabilitiesEnabled: {
+    isEnabled: () => true,
+    isRecoveryEnabled: () => true,
+  },
   getCapabilityState: () =>
     Promise.resolve({
       isEnabled: (key: string) =>
-        key === "billing" ? mocks.billingEnabled.value : true,
+        key === "billing" ? mocks.billing.enabled : true,
+      isRecoveryEnabled: (key: string) =>
+        key === "billing" ? mocks.billing.recovery : true,
     }),
 }));
 
@@ -102,7 +107,8 @@ function record(
 
 beforeEach(() => {
   mocks.getRouteRoles.mockResolvedValue(["owner"]);
-  mocks.billingEnabled.value = true;
+  mocks.billing.enabled = true;
+  mocks.billing.recovery = true;
 });
 
 describe("projection detail task hierarchy", () => {
@@ -224,17 +230,19 @@ describe("projection detail task hierarchy", () => {
     expect(screen.queryByText("tone")).toBeNull();
   });
 
-  describe("a staff account record", () => {
-    function account(overrides: Partial<ProjectionRecord["data"]> = {}) {
+  describe("a staff record", () => {
+    function staffRecord(
+      aggregateType: string,
+      overrides: Partial<ProjectionRecord["data"]> = {},
+    ): ProjectionRecord {
       const base = record("dashboard", {
         key: "meridian-archive",
         title: "Meridian Archive Labs, Inc.",
-        nextAction: "Evaluate dunning",
-        allowedActions: ["evaluate_dunning"],
       });
       return {
         ...base,
-        audience: "internal" as const,
+        aggregateType,
+        audience: "internal",
         data: {
           ...base.data,
           reference: "Meridian Archive Labs, Inc.",
@@ -244,7 +252,7 @@ describe("projection detail task hierarchy", () => {
       };
     }
 
-    async function renderAccount(data: ProjectionRecord) {
+    async function renderRecord(data: ProjectionRecord) {
       mocks.getRouteRoles.mockResolvedValue(["internal_operator"]);
       mocks.loadPortalRecords.mockResolvedValue({
         records: [data],
@@ -262,67 +270,99 @@ describe("projection detail task hierarchy", () => {
       );
     }
 
-    it("leaves out a fact that only repeats the account's name", async () => {
-      await renderAccount(account());
+    const dunning = {
+      nextAction: "Evaluate dunning",
+      allowedActions: ["evaluate_dunning"],
+    };
+
+    it("leaves out a fact that only repeats the record's name, and titles it h2", async () => {
+      await renderRecord(staffRecord("account"));
 
       expect(screen.queryByText("Reference")).toBeNull();
-      expect(screen.getByText("Owner")).toBeVisible();
       expect(screen.getByText("Ada Mercer")).toBeVisible();
-      // Staff pages carry no workspace eyebrow.
       expect(screen.queryByText("Operator workspace")).toBeNull();
+      // No ledger heading sits above a single record, so no level is skipped.
+      expect(
+        screen.getByRole("heading", {
+          level: 2,
+          name: "Meridian Archive Labs, Inc.",
+        }),
+      ).toBeVisible();
     });
 
-    it("shows a billing next step while billing is switched on", async () => {
-      await renderAccount(account());
+    it("offers dunning evaluation while billing recovery is on, even with new billing off", async () => {
+      mocks.billing.enabled = false;
+      await renderRecord(staffRecord("invoice", dunning));
 
       expect(screen.getByText("Next step")).toBeVisible();
-      expect(screen.getByText("Evaluate dunning")).toBeVisible();
+      expect(
+        screen.getByText("evaluate_dunning · meridian-archive · version 3"),
+      ).toBeVisible();
     });
 
-    it("hides a billing next step and its action while billing is switched off", async () => {
-      mocks.billingEnabled.value = false;
-      await renderAccount(account());
+    it("withholds dunning evaluation once billing recovery is off, as the server would", async () => {
+      mocks.billing.enabled = true;
+      mocks.billing.recovery = false;
+      await renderRecord(staffRecord("invoice", dunning));
 
       expect(screen.queryByText("Next step")).toBeNull();
-      expect(screen.queryByText("Evaluate dunning")).toBeNull();
       expect(screen.queryByText(/evaluate_dunning/)).toBeNull();
     });
 
-    it("keeps a next step that needs no switched-off capability", async () => {
-      mocks.billingEnabled.value = false;
-      await renderAccount(
-        account({
+    it("withholds order work while new billing is off", async () => {
+      mocks.billing.enabled = false;
+      await renderRecord(
+        staffRecord("order", {
           nextAction: "Prepare the order form",
           allowedActions: ["prepare_artifact"],
         }),
       );
 
-      expect(screen.getByText("Next step")).toBeVisible();
-      expect(screen.getByText("Prepare the order form")).toBeVisible();
+      expect(screen.queryByText("Prepare the order form")).toBeNull();
+      expect(screen.queryByText(/prepare_artifact/)).toBeNull();
     });
 
-    it("hides a written step that names a switched-off capability", async () => {
-      mocks.billingEnabled.value = false;
-      await renderAccount(
-        account({
+    it("keeps quote work, which needs no billing, while billing is off", async () => {
+      mocks.billing.enabled = false;
+      mocks.billing.recovery = false;
+      await renderRecord(
+        staffRecord("quote", {
+          nextAction: "Issue the quote",
+          allowedActions: ["issue"],
+        }),
+      );
+
+      expect(screen.getByText("Issue the quote")).toBeVisible();
+      expect(
+        screen.getByText("issue · meridian-archive · version 3"),
+      ).toBeVisible();
+    });
+
+    it("hides a written step tagged with a switched-off capability but keeps the actions", async () => {
+      mocks.billing.enabled = false;
+      mocks.billing.recovery = false;
+      await renderRecord(
+        staffRecord("quote", {
           nextAction: "Confirm the ACH retry before the renewal notice opens",
           nextActionCapability: "billing",
-          allowedActions: [],
+          allowedActions: ["issue"],
         }),
       );
 
       expect(screen.queryByText("Next step")).toBeNull();
       expect(screen.queryByText(/ACH retry/)).toBeNull();
-      // The tag is not shown as a fact of its own.
       expect(screen.queryByText("nextActionCapability")).toBeNull();
+      expect(
+        screen.getByText("issue · meridian-archive · version 3"),
+      ).toBeVisible();
     });
 
-    it("shows that written step while its capability is on", async () => {
-      await renderAccount(
-        account({
+    it("shows that written step while billing recovery is on", async () => {
+      mocks.billing.enabled = false;
+      await renderRecord(
+        staffRecord("account", {
           nextAction: "Confirm the ACH retry before the renewal notice opens",
           nextActionCapability: "billing",
-          allowedActions: [],
         }),
       );
 
@@ -333,14 +373,31 @@ describe("projection detail task hierarchy", () => {
       ).toBeVisible();
     });
 
-    it("names the first available action when the step's own action is switched off", async () => {
-      mocks.billingEnabled.value = false;
-      await renderAccount(
-        account({ allowedActions: ["evaluate_dunning", "prepare_artifact"] }),
+    it("names the first available action when the step's own action is withheld", async () => {
+      mocks.billing.enabled = false;
+      await renderRecord(
+        staffRecord("invoice", {
+          nextAction: "Create the invoice",
+          allowedActions: ["create", "evaluate_dunning"],
+        }),
       );
 
       expect(screen.getByText("Next step")).toBeVisible();
-      expect(screen.getByText("Prepare document")).toBeVisible();
+      expect(screen.queryByText("Create the invoice")).toBeNull();
+      expect(screen.getByText("Evaluate dunning")).toBeVisible();
+    });
+
+    it("leaves out the neutral fallback step when there is nothing to do", async () => {
+      await renderRecord(
+        staffRecord("account", {
+          nextAction: "No next step recorded",
+          nextActionFallback: true,
+        }),
+      );
+
+      expect(screen.queryByText("Next step")).toBeNull();
+      expect(screen.queryByText("No next step recorded")).toBeNull();
+      expect(screen.queryByText("nextActionFallback")).toBeNull();
     });
   });
 });

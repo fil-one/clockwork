@@ -101,11 +101,10 @@ test.describe("internal operator operations journey", () => {
     // reads the session-scoped queue projection, so a fixture never adds rows.
     await expect(table.getByRole("row")).toHaveCount(7);
     await expect(page.getByText("6 results")).toBeVisible();
-    // Rows lead with the work item; the case reference is in the detail.
     await expect(
       table.getByText("Collections aging decision").first(),
     ).toBeVisible();
-    await expect(table.getByText("EXC-COL-008")).toHaveCount(0);
+    await expect(table.getByText("EXC-COL-008").first()).toBeVisible();
     // The projection carries no risk, age, or backup for these records, and the
     // surface says so instead of filling in a plausible value.
     await expect(table.getByText("Not recorded").first()).toBeVisible();
@@ -288,8 +287,9 @@ test.describe("internal operator operations journey", () => {
       page.getByRole("heading", { level: 1, name: "Queue record" }),
     ).toBeVisible();
     await expect(
+      // A single record's title follows the page title, with no level skipped.
       page.getByRole("heading", {
-        level: 3,
+        level: 2,
         name: "Collections aging decision",
       }),
     ).toBeVisible();

@@ -13,7 +13,7 @@ import {
   type MinorAmount,
   type ProjectionRisk,
 } from "./projection-fields";
-import { accountName } from "./account-names";
+import { partyNames } from "./account-names";
 
 /**
  * Renewal work, read from the internal `orders` channel.
@@ -66,8 +66,10 @@ export interface RenewalOrder {
   id: string;
   orderId: string;
   accountId: string | null;
-  /** The customer's name, when the session can read the account. */
+  /** The end customer's name, when the session can read the account. */
   accountName: string | null;
+  /** The paying account's name, only when it is not the end customer. */
+  payerName: string | null;
   reference: string;
   window: RenewalWindow;
   /** Days until the notice date; negative once it has passed. */
@@ -149,18 +151,17 @@ export function renewalOrderFromProjection(
   const daysToNotice = elapsed === null ? null : -elapsed;
   const invoiced = invoiceTotals.get(record.aggregateId);
   const route = text(order, "sourcing");
+  const parties = partyNames(
+    accountNames,
+    [text(order, "accountId"), record.accountId],
+    text(order, "invoicingAccountId"),
+  );
   return {
     id: record.recordKey,
     orderId: record.aggregateId,
     accountId: record.accountId,
-    // The customer is the order's account; the invoicing account (a reseller
-    // on a resale order) only when the customer cannot be named.
-    accountName: accountName(
-      accountNames,
-      text(order, "accountId"),
-      record.accountId,
-      text(order, "invoicingAccountId"),
-    ),
+    accountName: parties.customer,
+    payerName: parties.payer,
     reference: text(data, "reference") ?? record.recordKey,
     window: windowFor(daysToNotice),
     daysToNotice,

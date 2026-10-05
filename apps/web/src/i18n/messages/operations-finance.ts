@@ -867,6 +867,16 @@ export const operationsFinanceMessages = defineMessages({
     zh: "客户",
     ar: "العميل",
   },
+  "operations.finance.billedTo": {
+    en: "Billed to {name}",
+    es: "Facturado a {name}",
+    fr: "Facturé à {name}",
+    de: "Rechnung an {name}",
+    ja: "請求先：{name}",
+    pt: "Faturado para {name}",
+    zh: "开票对象：{name}",
+    ar: "تُرسَل الفاتورة إلى {name}",
+  },
   "operations.finance.collections.column.age": {
     en: "Age",
     es: "Antigüedad",

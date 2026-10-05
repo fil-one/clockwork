@@ -111,29 +111,27 @@ describe("operations home signals", () => {
     }
   });
 
-  it("lists billing work only while billing is switched on", async () => {
-    const channels = (data: Awaited<ReturnType<typeof loadOperationsHome>>) =>
-      data.signals.map((signal) => signal.channel);
-    const billingOff = await loadOperationsHome(
-      now,
-      translatorFor("en"),
-      "en-US",
-      capabilityStateFrom([{ capabilityKey: "billing", enabled: false }]),
-    );
-    expect(channels(billingOff)).toEqual(["queues", "orders", "reports"]);
+  it("lists billing work while any billing work can run", async () => {
+    const channels = async (enabled: boolean, recoveryEnabled: boolean) =>
+      (
+        await loadOperationsHome(
+          now,
+          translatorFor("en"),
+          "en-US",
+          capabilityStateFrom([
+            { capabilityKey: "billing", enabled, recoveryEnabled },
+          ]),
+        )
+      ).signals.map((signal) => signal.channel);
+    const all = ["queues", "provisioning", "collections", "orders", "reports"];
 
-    const billingOn = await loadOperationsHome(
-      now,
-      translatorFor("en"),
-      "en-US",
-      capabilityStateFrom([{ capabilityKey: "billing", enabled: true }]),
-    );
-    expect(channels(billingOn)).toEqual([
+    expect(await channels(false, false)).toEqual([
       "queues",
-      "provisioning",
-      "collections",
       "orders",
       "reports",
     ]);
+    // Recovery alone keeps the work listed: invoices in flight still finish.
+    expect(await channels(false, true)).toEqual(all);
+    expect(await channels(true, false)).toEqual(all);
   });
 });

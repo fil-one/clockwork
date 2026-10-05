@@ -12,12 +12,14 @@ import { getOptionalServiceDatabase } from "@/src/db/service";
 import {
   allCapabilitiesEnabled,
   capabilityStateFrom,
+  isActive,
   type CapabilityState,
 } from "./capability-state-model";
 
 export {
   allCapabilitiesEnabled,
   capabilityStateFrom,
+  isActive,
   type CapabilityState,
   type SystemCapabilityKey,
 };
@@ -29,8 +31,9 @@ export {
  * presentation only.
  *
  * - A session backed by the identity provider reads the `system_capabilities`
- *   table. A missing row, or a read that fails, counts as off: a screen must not
- *   present billing work as live on a guess.
+ *   table, both its `enabled` and `recovery_enabled` columns. A missing row, or
+ *   a read that fails, counts as off: a screen must not present billing work as
+ *   live on a guess.
  * - The no-database demo has no switch table. It simulates a running platform
  *   (its customer journeys pay invoices), so every capability counts as on.
  */

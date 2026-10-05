@@ -20,6 +20,7 @@
 
 .pageHeader h1,
 .ledgerHeader h2,
+.recordHeader h2,
 .recordHeader h3 {
   margin: 0;
 }
@@ -194,6 +195,7 @@
   overflow-wrap: anywhere;
 }
 
+.recordHeader h2,
 .recordHeader h3 {
   font-family: var(--cw-font-display);
   font-size: var(--cw-text-lg);
@@ -310,7 +312,8 @@
 }
 
 /* A record with nothing to press leaves no gap where the buttons would be. */
-.recordActions:empty {
+.recordActions:empty,
+.recordActionsOnly:has(> .recordActions:empty) {
   display: none;
 }
 

@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { accountName, accountNamesFromProjection } from "./account-names";
-import { collectionCaseFromProjection } from "./collections-projection";
+import {
+  accountName,
+  accountNamesFromProjection,
+  partyNames,
+} from "./account-names";
+import {
+  billingAccountsByOrder,
+  collectionCaseFromProjection,
+  customerAccountsByOrder,
+} from "./collections-projection";
 import { projectionRecord } from "./projection-test-support";
 import { renewalOrderFromProjection } from "./renewals-projection";
 
@@ -66,10 +74,20 @@ describe("account names for staff tables", () => {
       names,
     );
     expect(order.accountName).toBe("Meridian Archive Labs, Inc.");
+    expect(order.payerName).toBe("Harborline Distribution Ltd");
     expect(order.reference).toBe("ORD-2026-0098");
   });
 
-  it("names a collections case by the account it bills", () => {
+  it("names a collections case by the same end customer, with the payer beneath", () => {
+    const orders = [
+      projectionRecord({
+        recordKey: "ORD-2026-0098",
+        aggregateType: "order",
+        aggregateId: ORDER,
+        channel: "orders",
+        authoritative: { accountId: CUSTOMER, invoicingAccountId: RESELLER },
+      }),
+    ];
     const entry = collectionCaseFromProjection(
       projectionRecord({
         recordKey: "INV-2026-0781",
@@ -79,12 +97,26 @@ describe("account names for staff tables", () => {
         authoritative: { orderId: ORDER, status: "open" },
         data: { reference: "INV-2026-0781" },
       }),
-      new Map([[ORDER, CUSTOMER]]),
+      billingAccountsByOrder(orders),
       new Date("2026-10-04T00:00:00.000Z"),
       names,
+      customerAccountsByOrder(orders),
     );
     expect(entry.accountName).toBe("Meridian Archive Labs, Inc.");
+    expect(entry.payerName).toBe("Harborline Distribution Ltd");
+    expect(entry.billingAccountId).toBe(RESELLER);
     expect(entry.reference).toBe("INV-2026-0781");
+  });
+
+  it("names the payer alone when it is also the customer", () => {
+    expect(partyNames(names, [CUSTOMER], CUSTOMER)).toEqual({
+      customer: "Meridian Archive Labs, Inc.",
+      payer: null,
+    });
+    expect(partyNames(names, [null], RESELLER)).toEqual({
+      customer: "Harborline Distribution Ltd",
+      payer: null,
+    });
   });
 
   it("falls back to the record's own reference when no account can be read", () => {

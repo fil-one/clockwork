@@ -1068,6 +1068,16 @@ export const experienceMessages = defineMessages({
     zh: "系统记录 {reference}",
     ar: "سجل النظام {reference}",
   },
+  "experience.display.noStep": {
+    en: "No next step recorded",
+    es: "No hay un siguiente paso registrado",
+    fr: "Aucune étape suivante enregistrée",
+    de: "Kein nächster Schritt erfasst",
+    ja: "次のステップは記録されていません",
+    pt: "Nenhum próximo passo registrado",
+    zh: "未记录下一步",
+    ar: "لم تُسجَّل خطوة تالية",
+  },
 
   // Internal queue table (approvals, queues).
   "experience.internal.freshness.current": {
@@ -2017,16 +2027,6 @@ export const experienceMessages = defineMessages({
   // Production projection labels, rendered at read time from the
   // `authoritative` facts every materialized row carries. The materializer's
   // English strings stay in the row as the fallback for rows without facts.
-  "experience.display.readOnly": {
-    en: "No action needed",
-    es: "No hace falta ninguna acción",
-    fr: "Aucune action requise",
-    de: "Keine Aktion erforderlich",
-    ja: "対応は不要です",
-    pt: "Nenhuma ação necessária",
-    zh: "无需操作",
-    ar: "لا يلزم أي إجراء",
-  },
   "experience.display.expires.future": {
     en: "Expires {date} · {relative}",
     es: "Caduca el {date} · {relative}",

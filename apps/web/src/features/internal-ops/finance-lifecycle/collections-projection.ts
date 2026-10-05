@@ -14,7 +14,7 @@ import {
   type MinorAmount,
   type ProjectionRisk,
 } from "./projection-fields";
-import { accountName } from "./account-names";
+import { partyNames } from "./account-names";
 
 /**
  * One invoice as collections work.
@@ -52,8 +52,10 @@ export interface CollectionCase {
    * correction can be bound to the invoice.
    */
   billingAccountId: string | null;
-  /** The billed account's name, when the session can read the account. */
+  /** The end customer's name, when the session can read the account. */
   accountName: string | null;
+  /** The billed account's name, only when it is not the end customer. */
+  payerName: string | null;
   reference: string;
   amountMinor: bigint | null;
   currency: string | null;
@@ -101,11 +103,27 @@ export function billingAccountsByOrder(
   return accounts;
 }
 
+/**
+ * End customer per order, from the order's own `accountId`, so a collections
+ * row names the same party the renewals desk does.
+ */
+export function customerAccountsByOrder(
+  orderRecords: readonly ProjectionRecord[],
+): ReadonlyMap<string, string> {
+  const accounts = new Map<string, string>();
+  for (const record of orderRecords) {
+    const accountId = text(authoritative(record), "accountId");
+    if (accountId) accounts.set(record.aggregateId, accountId);
+  }
+  return accounts;
+}
+
 export function collectionCaseFromProjection(
   record: ProjectionRecord,
   billingAccounts: ReadonlyMap<string, string> = new Map(),
   now: Date = new Date(),
   accountNames: ReadonlyMap<string, string> = new Map(),
+  customerAccounts: ReadonlyMap<string, string> = new Map(),
 ): CollectionCase {
   const data = record.data;
   const invoice = authoritative(record);
@@ -117,13 +135,19 @@ export function collectionCaseFromProjection(
   const orderId = text(invoice, "orderId");
   const billingAccountId =
     (orderId ? billingAccounts.get(orderId) : undefined) ?? null;
+  const parties = partyNames(
+    accountNames,
+    [orderId ? customerAccounts.get(orderId) : undefined],
+    billingAccountId ?? record.accountId,
+  );
   return {
     id: record.recordKey,
     projectionId: record.id,
     invoiceId: record.aggregateId,
     orderId,
     billingAccountId,
-    accountName: accountName(accountNames, billingAccountId, record.accountId),
+    accountName: parties.customer,
+    payerName: parties.payer,
     reference,
     amountMinor: minorUnits(text(invoice, "amountMinor")),
     currency: text(invoice, "currency"),

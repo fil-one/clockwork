@@ -54,15 +54,20 @@ import { QueueDetail } from "./queue-detail";
  */
 const SEARCH_COMMIT_DELAY_MS = 180;
 
-/** The subject and queue under a row's title, or its reference when neither is known. */
+/**
+ * The line under a row's title: the subject and queue where the source names
+ * them, then the case reference, which the search box also matches.
+ */
 export function queueItemKind(item: QueueItem, t: Translator): string {
   const entity = item.entity ? codeLabel(subjectLabels, item.entity, t) : null;
   const queue = item.type ? codeLabel(queueLabels, item.type, t) : null;
-  if (entity && queue)
-    return t("common.join.labels", { first: entity, second: queue });
-  // The case reference is in the detail panel's technical identifier; the
-  // row names what kind of work it is.
-  return entity ?? queue ?? t("operations.queue.kind.fallback");
+  const kind =
+    entity && queue
+      ? t("common.join.labels", { first: entity, second: queue })
+      : (entity ?? queue);
+  return kind
+    ? t("common.join.labels", { first: kind, second: item.id })
+    : item.id;
 }
 
 /** What the active-filter summary calls each filter. */

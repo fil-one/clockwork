@@ -27,7 +27,11 @@ import {
   risk,
   totalInDominantCurrency,
 } from "../finance-lifecycle/projection-fields";
-import { getCapabilityState, type CapabilityState } from "../capability-state";
+import {
+  getCapabilityState,
+  isActive,
+  type CapabilityState,
+} from "../capability-state";
 
 /**
  * The operations home used to be six hand-written signals with hand-written
@@ -115,9 +119,10 @@ export async function loadOperationsHome(
   const capabilities =
     capabilityState ??
     (await getCapabilityState(await getRouteSession("internal")));
-  // Provisioning and collections are billing work. While billing is off they
-  // are not work anyone can do, so the home page does not list them.
-  const billingLive = capabilities.isEnabled("billing");
+  // Provisioning and collections are billing work. They stay listed while
+  // billing recovery is on, because work in flight is still being finished;
+  // with billing fully off they are not work anyone can do.
+  const billingLive = isActive(capabilities, "billing");
   const number = (count: number) => new Intl.NumberFormat(locale).format(count);
   const countText = (count: number, key: keyof typeof countMessages) =>
     t(countMessages[key], { count });

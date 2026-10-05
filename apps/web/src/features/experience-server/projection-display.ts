@@ -1033,7 +1033,12 @@ export function localizedProductionRecord(
           ? actionLabel(actions[0] as string, context.t)
           : display.overdue
             ? context.t("status.review")
-            : context.t("experience.display.readOnly"),
+            : context.t("experience.display.noStep"),
+      // The row offers no action and nothing is overdue, so the step above is
+      // the neutral fallback. It claims nothing about what is due (a signature
+      // or a payment can still be outstanding through another surface), and a
+      // page may leave it out.
+      nextActionFallback: actions.length === 0 && !display.overdue,
     },
   };
 }

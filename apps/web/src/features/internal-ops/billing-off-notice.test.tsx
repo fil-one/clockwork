@@ -10,6 +10,7 @@ vi.mock("./capability-state", () => ({
   getCapabilityState: () =>
     Promise.resolve({
       isEnabled: (key: string) => key !== "billing" || billing.enabled,
+      isRecoveryEnabled: () => true,
     }),
 }));
 
@@ -25,7 +26,9 @@ describe("BillingOffNotice", () => {
 
     const note = screen.getByRole("note");
     expect(note).toHaveTextContent("Billing and provisioning are switched off");
-    expect(note).toHaveTextContent("No invoice is sent");
+    expect(note).toHaveTextContent(
+      "New invoices are not issued and no new service is started while billing is off.",
+    );
     expect(
       screen.getByRole("link", { name: "Review capability switches" }),
     ).toHaveAttribute("href", "/internal/capabilities");

@@ -1,4 +1,8 @@
-import type { SystemCapabilityKey } from "@clockwork/db";
+import {
+  coreCommandCapabilities,
+  type CoreCapabilityRequirement,
+  type SystemCapabilityKey,
+} from "@clockwork/db";
 
 const capabilityKeys: readonly string[] = [
   "new_business",
@@ -14,51 +18,99 @@ export function isCapabilityKey(value: string): value is SystemCapabilityKey {
 }
 
 /**
- * The capability switches as a screen sees them. Pure, so client components
- * and tests can build one without reaching the database; the server read lives
- * in `capability-state.ts`.
+ * The capability switches as a screen sees them, with no database access, so
+ * tests can build one; the server read lives in `capability-state.ts`.
+ *
+ * Each switch has two halves, as `system_capabilities` stores them: `enabled`
+ * lets new work start, `recovery_enabled` lets work already in flight finish
+ * (dunning evaluation, credit notes, refunds, disputes, report exports).
  */
 export interface CapabilityState {
+  /** New work may start. */
   isEnabled(key: SystemCapabilityKey): boolean;
+  /** Work already in flight may finish. */
+  isRecoveryEnabled(key: SystemCapabilityKey): boolean;
 }
 
 export const allCapabilitiesEnabled: CapabilityState = {
   isEnabled: () => true,
+  isRecoveryEnabled: () => true,
+};
+
+/** Some work for this capability can run: new work, or recovery of old work. */
+export function isActive(
+  capabilities: CapabilityState,
+  key: SystemCapabilityKey,
+): boolean {
+  return capabilities.isEnabled(key) || capabilities.isRecoveryEnabled(key);
+}
+
+/**
+ * Whether a requirement is met, read the way the server reads it
+ * (`system_capability_is_enabled(key, recovery)`): recovery work needs each
+ * switch's recovery half, new work its enabled half.
+ */
+export function meetsRequirement(
+  capabilities: CapabilityState,
+  requirement: CoreCapabilityRequirement,
+): boolean {
+  return requirement.capabilities.every((key) =>
+    requirement.recovery
+      ? capabilities.isRecoveryEnabled(key)
+      : capabilities.isEnabled(key),
+  );
+}
+
+/**
+ * The core command resource behind each projected aggregate, as the
+ * projection materializer binds them (`projectableResources` in
+ * `@clockwork/workflows`). An aggregate outside this map is not a core command
+ * and needs no switch here.
+ */
+const commandResources: Readonly<Record<string, string>> = {
+  account: "accounts",
+  quote: "quotes",
+  order: "orders",
+  amendment: "amendments",
+  invoice: "invoices",
 };
 
 /**
- * The capability a record action needs before the command layer will run it.
- * Billing covers provisioning and invoicing together, as the workflow runtime
- * maps it; an action not listed here needs no switch.
+ * The actions on a record the server would accept with the switches as they
+ * are, in their original order. Requirements come from
+ * `coreCommandCapabilities`, the function the command transaction enforces.
  */
-const actionCapabilities: Readonly<Record<string, SystemCapabilityKey>> = {
-  evaluate_dunning: "billing",
-  mark_uncollectible: "billing",
-  open: "billing",
-  pay: "billing",
-  set_payment_terms: "billing",
-  void: "billing",
-  replay_provider_event: "billing",
-  request_teardown: "teardown",
-};
-
-/** The actions whose capability is on, in their original order. */
 export function availableActions(
+  aggregateType: string,
   actions: readonly string[],
   capabilities: CapabilityState,
 ): readonly string[] {
-  return actions.filter((action) => {
-    const key = actionCapabilities[action];
-    return !key || capabilities.isEnabled(key);
-  });
+  const resource = commandResources[aggregateType];
+  if (!resource) return actions;
+  return actions.filter((action) =>
+    meetsRequirement(
+      capabilities,
+      coreCommandCapabilities({ resource, action }),
+    ),
+  );
 }
 
-/** Only a row that says enabled counts; a missing key is off. */
+/** Only a row that says so counts; a missing key is off for both halves. */
 export function capabilityStateFrom(
-  rows: readonly { capabilityKey: string; enabled: boolean }[],
+  rows: readonly {
+    capabilityKey: string;
+    enabled: boolean;
+    recoveryEnabled: boolean;
+  }[],
 ): CapabilityState {
   const enabled = new Set(
     rows.filter((row) => row.enabled).map((row) => row.capabilityKey),
   );
-  return { isEnabled: (key) => enabled.has(key) };
+  const recovery = new Set(
+    rows.filter((row) => row.recoveryEnabled).map((row) => row.capabilityKey),
+  );
+  return {
+    isEnabled: (key) => enabled.has(key),
+    isRecoveryEnabled: (key) => recovery.has(key),
+  };
 }

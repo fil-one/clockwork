@@ -49,8 +49,9 @@ export function RenewalsView({
   provenance: SurfaceProvenance;
   invoiceProvenance: SurfaceProvenance;
   /**
-   * Whether the billing capability is on. Invoiced-to-date only means
-   * something once invoices are issued, so the column is left out until then.
+   * Whether any billing work can run (new work or recovery). Invoiced-to-date
+   * only means something once invoices exist, so with billing fully off the
+   * column is left out.
    */
   billingLive?: boolean;
 }) {
@@ -125,6 +126,13 @@ export function RenewalsView({
                 rows={orders.map((order) => [
                   <div className={styles.primaryCell}>
                     <strong>{order.accountName ?? order.reference}</strong>
+                    {order.payerName ? (
+                      <span className={styles.secondary}>
+                        {t("operations.finance.billedTo", {
+                          name: order.payerName,
+                        })}
+                      </span>
+                    ) : null}
                     {order.accountName ? (
                       <CopyableId
                         value={order.reference}

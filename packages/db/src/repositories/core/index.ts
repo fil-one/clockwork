@@ -1,4 +1,5 @@
 export * from "./database-finance";
+export * from "./capability-requirements";
 export * from "./commissions";
 export * from "./commercial-artifacts";
 export * from "./finance";

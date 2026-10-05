@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import { getTranslations } from "@/src/i18n/server";
 import { RenewalsView } from "@/src/features/internal-ops/finance-lifecycle/renewals-view";
 import { loadRenewalsWorkspace } from "@/src/features/internal-ops/finance-lifecycle/server-loader";
-import { getCapabilityState } from "@/src/features/internal-ops/capability-state";
+import {
+  getCapabilityState,
+  isActive,
+} from "@/src/features/internal-ops/capability-state";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import { getRouteSession } from "@/src/features/shell/route-session";
 
@@ -37,7 +40,7 @@ export default async function Page() {
         windows={workspace.items}
         provenance={workspace.provenance}
         invoiceProvenance={workspace.invoiceProvenance}
-        billingLive={capabilities.isEnabled("billing")}
+        billingLive={isActive(capabilities, "billing")}
       />
     </SurfacePermissionGate>
   );
