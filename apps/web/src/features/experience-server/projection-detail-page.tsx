@@ -516,6 +516,10 @@ export async function ProjectionDetailPage({
                         <p>{t("experience.detail.nextStep")}</p>
                         <strong>{nextStep}</strong>
                       </div>
+                      {/*
+                       * Kept mounted with no actions: a receipt has to outlive
+                       * the refresh that spends the record's last action.
+                       */}
                       <div className={styles.recordActions}>
                         <ProjectionActionButtons
                           audience={audience}

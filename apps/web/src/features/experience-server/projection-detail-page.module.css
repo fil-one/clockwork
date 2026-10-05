@@ -309,6 +309,11 @@
   gap: 0.55rem;
 }
 
+/* A record with nothing to press leaves no gap where the buttons would be. */
+.recordActions:empty {
+  display: none;
+}
+
 .recordActions button {
   min-height: var(--cw-control-height);
 }
