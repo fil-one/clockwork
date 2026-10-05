@@ -245,9 +245,10 @@ test.describe("internal operator operations journey", () => {
     const drawer = page.getByRole("dialog", { name: "Navigation" });
     await expect(drawer).toBeVisible();
     // Operations groups sit closed behind the sales workspace; open each one.
+    // Opening a group changes which groups match, so always take the first.
     const openOperationsGroups = async () => {
-      for (const group of await drawer.locator("details:not([open])").all())
-        await group.locator("summary").click();
+      const closed = drawer.locator("details:not([open]) > summary");
+      while ((await closed.count()) > 0) await closed.first().click();
     };
     await openOperationsGroups();
     for (const destination of INTERNAL_DESTINATIONS) {
@@ -277,9 +278,10 @@ test.describe("internal operator operations journey", () => {
         page.getByRole("heading", { level: 3, name: lane }),
       ).toBeVisible();
     }
-    // Each lane states when it was read ("Read Sep 24, 2026, 11:31 AM UTC").
+    // Each lane states when it was read, in the reader's zone ("Read Sep 24,
+    // 2026, 11:31 AM EDT").
     await expect(
-      page.getByText(/^Read \w{3} \d{1,2}, \d{4}, \d{1,2}:\d{2} [AP]M UTC$/),
+      page.getByText(/^Read \w{3} \d{1,2}, \d{4}, \d{1,2}:\d{2} [AP]M \S+$/),
     ).toHaveCount(3);
     await expect(
       page.getByText("This status endpoint did not return a readable result."),

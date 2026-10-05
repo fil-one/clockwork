@@ -176,7 +176,8 @@ begin
     return null;
   end if;
   first_boundary := (effective_date + make_interval(months => initial_term_months))::date;
-  if not auto_renew or renewal_term_months is null or first_boundary > as_of then
+  if not auto_renew or renewal_term_months is null or renewal_term_months < 1
+     or first_boundary > as_of then
     return first_boundary;
   end if;
   renewals := greatest(0, ((extract(year from as_of)::integer - extract(year from first_boundary)::integer) * 12
@@ -188,6 +189,7 @@ begin
     end if;
     renewals := renewals + 1;
   end loop;
+  return null; -- unreachable: each pass moves the candidate forward
 end $$;
 
 create function public.protect_commerce_contract_file() returns trigger language plpgsql set search_path = public as $$

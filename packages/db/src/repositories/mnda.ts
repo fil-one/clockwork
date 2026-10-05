@@ -329,7 +329,7 @@ export class MndaRepository {
           updatedAt: new Date(),
           updatedBy: actor.kind === "user" ? actor.id : null,
         })
-        .where(eq(mndaSettings.id, true));
+        .where(eq(mndaSettings.singleton, true));
       await appendAuditAndOutbox(tx, {
         aggregateType: "agreement_template",
         aggregateId: settingsAggregateId,

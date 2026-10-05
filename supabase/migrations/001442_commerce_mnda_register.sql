@@ -4,7 +4,7 @@
 -- administrator setting, independent of who countersigns. Each draft keeps the
 -- value it was rendered with, like the countersigner snapshot.
 create table public.commerce_mnda_settings (
-  id boolean primary key default true check (id),
+  singleton boolean primary key default true check (singleton),
   notice_email text not null check (
     notice_email = lower(notice_email)
     and length(notice_email) <= 254
@@ -14,7 +14,7 @@ create table public.commerce_mnda_settings (
   updated_at timestamptz not null default now(),
   updated_by uuid
 );
-insert into public.commerce_mnda_settings (id, notice_email) values (true, 'james@fil.one');
+insert into public.commerce_mnda_settings (singleton, notice_email) values (true, 'james@fil.one');
 
 alter table public.commerce_mnda_settings enable row level security;
 alter table public.commerce_mnda_settings force row level security;
@@ -68,6 +68,7 @@ create function public.commerce_mnda_normalize_company(name text) returns text
 language plpgsql immutable strict parallel safe set search_path = pg_catalog as $$
 declare
   words text[];
+  joined text;
   suffixes constant text[] := array['ab','ag','as','bv','co','company','corp','corporation','gmbh','inc','incorporated','kk','limited','llc','llp','lp','ltd','nv','oy','plc','pte','pty','sa','sarl','sas','spa','srl'];
 begin
   name := lower(regexp_replace(normalize(name, NFKD), '[\u0300-\u036f]', '', 'g'));
@@ -81,7 +82,13 @@ begin
   while cardinality(words) > 1 and words[cardinality(words)] = any(suffixes) loop
     words := words[1:cardinality(words) - 1];
   end loop;
-  return array_to_string(words, ' ');
+  -- array_to_string is only STABLE; join by hand so the generated column's
+  -- expression stays IMMUTABLE.
+  joined := words[1];
+  for i in 2..cardinality(words) loop
+    joined := joined || ' ' || words[i];
+  end loop;
+  return joined;
 end $$;
 revoke all on function public.commerce_mnda_normalize_company(text) from public;
 grant execute on function public.commerce_mnda_normalize_company(text) to clockwork_service;
