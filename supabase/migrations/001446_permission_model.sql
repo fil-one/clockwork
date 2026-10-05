@@ -65,7 +65,7 @@ language plpgsql stable security definer
 set search_path = pg_catalog, public as $$
 declare claims jsonb;
 begin
-  if not public.app_context_is_valid() then return '{}'; end if;
+  if not public.app_context_is_valid() then return '{}'::text[]; end if;
   claims := public.app_context_claims();
   if jsonb_typeof(claims->'permissions') = 'array' then
     return array(select jsonb_array_elements_text(claims->'permissions'));
