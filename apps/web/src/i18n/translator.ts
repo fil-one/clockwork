@@ -39,7 +39,7 @@ const PDI = "\u2069";
  * format amounts and quantities before passing them.
  */
 export function createTranslator<Id extends string>(
-  catalog: Readonly<Record<Id, CatalogEntry>>,
+  catalog: Readonly<Partial<Record<Id, CatalogEntry>>>,
   locale: Locale,
 ): (id: Id, values?: MessageValues) => string {
   const isolate = rtlLocales.has(locale);
@@ -62,8 +62,9 @@ export function createTranslator<Id extends string>(
     return value;
   };
   return (id, values = {}) => {
-    const entry = catalog[id] as CatalogEntry | undefined;
-    // A typed ID cannot miss; a cast one can. Showing the ID is visible in
+    const entry = catalog[id];
+    // A typed ID misses only when cast, or when a reader catalog without
+    // staff-only entries is asked for a staff ID. Showing the ID is visible in
     // review and in tests, where falling back to English would not be.
     if (entry === undefined) return id;
     let template: string;

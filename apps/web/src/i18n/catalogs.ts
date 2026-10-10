@@ -162,12 +162,61 @@ function compose(locale: Locale): MessageCatalog {
 }
 
 /**
- * One flat catalog per language. The server sends only the selected one to the
- * browser; this module is never imported by client code.
+ * One flat catalog per language. The browser receives only the selected one,
+ * from `browserCatalogs`; this module is never imported by client code.
  */
 export const catalogs: Readonly<Record<Locale, MessageCatalog>> = Object.freeze(
   Object.fromEntries(locales.map((locale) => [locale, compose(locale)])),
 ) as Readonly<Record<Locale, MessageCatalog>>;
+
+type StaffModuleName = {
+  [M in MessageModuleName]: Modules[M] extends { staffOnly: true } ? M : never;
+}[MessageModuleName];
+export type StaffMessageId = {
+  [M in StaffModuleName]: keyof Modules[M]["messages"] & string;
+}[StaffModuleName];
+
+/**
+ * A catalog as the browser receives it outside staff routes. Staff-only
+ * entries are left out: no customer, partner or demo surface uses a staff ID
+ * (`catalogs.test.ts` lane boundaries, dependency-cruiser), and a staff page
+ * gets the English catalog from `StaffLanguage`.
+ */
+export type ReaderCatalog = Readonly<
+  Omit<MessageCatalog, StaffMessageId> &
+    Partial<Pick<MessageCatalog, StaffMessageId>>
+>;
+
+const staffIds: ReadonlySet<string> = new Set(
+  Object.values(messageModules).flatMap((module) =>
+    "staffOnly" in module ? Object.keys(module.messages) : [],
+  ),
+);
+
+/**
+ * The catalog the root layout sends for each reader language. English keeps
+ * every entry because an English reader's staff pages use the root provider
+ * (`./staff-language.tsx`); every other language leaves the staff-only English
+ * text out. Server translators keep the full catalogs.
+ */
+export const browserCatalogs: Readonly<
+  Record<Locale, MessageCatalog | ReaderCatalog>
+> = Object.freeze(
+  Object.fromEntries(
+    locales.map((locale) => [
+      locale,
+      locale === "en"
+        ? catalogs.en
+        : Object.freeze(
+            Object.fromEntries(
+              Object.entries(catalogs[locale]).filter(
+                ([id]) => !staffIds.has(id),
+              ),
+            ),
+          ),
+    ]),
+  ),
+) as Readonly<Record<Locale, MessageCatalog | ReaderCatalog>>;
 
 export function translatorFor(locale: string): Translator {
   const resolved = resolveLocale(locale);

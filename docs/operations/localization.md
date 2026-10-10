@@ -20,7 +20,9 @@ with `lang="en" dir="ltr"`. `proxy.ts` marks each request's route audience in a
 request header for server components; requests the proxy does not see (server
 actions, form posts, API calls) take the audience of the page that sent them.
 `StaffLanguage` in the internal layout gives client components the English
-catalog and keeps `<html lang dir>` English while a staff page is shown.
+catalog and keeps `<html lang dir>` English while a staff page is shown. For an
+English reader it reuses the root layout's catalog rather than sending a second
+copy.
 
 ## What is translated, and what is not
 
@@ -59,18 +61,20 @@ The staff-only modules (`operations*.ts`, `admin-pricing.ts`,
 `admin-governance.ts`) are the exception: they are English only, written with
 `defineStaffMessages` and registered with `staffOnly: true`. A staff message
 cannot name another language, so a translated module cannot be registered as
-staff-only. Every language's catalog carries their English text with English
-plural rules, and dependency-cruiser stops customer, partner and demo code
-importing `src/features/internal-ops/`. `apps/web/src/i18n/catalogs.ts` composes
-one flat catalog per language from the modules; `apps/web/src/i18n/ownership.ts`
-maps source paths to lanes.
+staff-only. On the server every language's catalog carries their English text
+with English plural rules; the catalog sent to a browser leaves it out for every
+language but English, because only staff pages render it. Dependency-cruiser
+stops customer, partner and demo code importing `src/features/internal-ops/`,
+and the lane-boundary test keeps staff IDs out of their source.
+`apps/web/src/i18n/catalogs.ts` composes one flat catalog per language from the
+modules; `apps/web/src/i18n/ownership.ts` maps source paths to lanes.
 
 Server code gets a translator from `getTranslations()` in `@/src/i18n/server`
 and the reader's formatting tag from `getFormattingLocale()`. Client components
 use `useTranslations()` and `useFormattingLocale()` from `@/src/i18n/client`.
-The root layout sends only the selected catalog to the browser; client code
-never imports the all-language catalogs. There is no English fallback: a
-translator is a required parameter wherever one is needed.
+The root layout sends only the selected catalog (`browserCatalogs`) to the
+browser; client code never imports the all-language catalogs. There is no
+English fallback: a translator is a required parameter wherever one is needed.
 
 Interpolation is single-pass, so braces inside record values remain literal. In
 Arabic every inserted value is wrapped in Unicode directional isolates, so an
