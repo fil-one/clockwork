@@ -517,7 +517,7 @@ it("lists the demo examples to open and download, with no save", () => {
   expect(screen.queryByRole("button", { name: "Save as scenario" })).toBeNull();
 });
 
-it("reads amounts strictly, warns on a negative margin and names what blocks a save", async () => {
+it("reads amounts strictly, refuses a buy price above the customer price and names what blocks a save", async () => {
   const user = userEvent.setup();
   render(<ScenarioBuilder books={books} state={ready()} />);
   const panel = screen.getByRole("group", { name: "Partner economics" });
@@ -562,9 +562,14 @@ it("reads amounts strictly, warns on a negative margin and names what blocks a s
     ),
     "5.99",
   );
+  // A buy price above the partner's own price is refused, not shown as a loss.
   expect(
-    within(panel).getByText(/the partner would lose money on every TB/u),
-  ).toBeInTheDocument();
+    within(panel).getByLabelText(
+      "Fil One's price to the partner, per TB-month",
+    ),
+  ).toHaveAccessibleDescription(
+    "Enter a price to the partner no higher than the partner's own price to its customer.",
+  );
 });
 
 it("says a resale scenario's summary is the partner's quote", () => {
@@ -598,6 +603,50 @@ it("says a resale scenario's summary is the partner's quote", () => {
   expect(
     screen.getByText(
       /^On a resale, the summary is the partner's quote to its customer/u,
+    ),
+  ).toBeInTheDocument();
+});
+
+it("ignores line discounts on a resale and refuses partner earnings above spend", async () => {
+  const user = userEvent.setup();
+  render(<ScenarioBuilder books={books} state={ready()} />);
+  const panel = screen.getByRole("group", { name: "Partner economics" });
+  await user.selectOptions(
+    within(panel).getByLabelText("Partner model"),
+    "resale",
+  );
+  expect(
+    within(screen.getByRole("group", { name: "Line 1" })).getByLabelText(
+      "Discount (%)",
+    ),
+  ).toHaveAccessibleDescription(
+    "Ignored on a resale: the summaries use the partner's price.",
+  );
+  expect(
+    within(panel).getByText(
+      /^On a resale, both summaries price every line at the partner's price/u,
+    ),
+  ).toBeInTheDocument();
+  await user.selectOptions(
+    within(panel).getByLabelText("Partner model"),
+    "other",
+  );
+  // 100 TB at 15.00 is 1,500.00 a month; a 2,000.00 fixed amount is more.
+  const monthly = within(panel).getByLabelText("Fixed amount per month");
+  await user.clear(monthly);
+  await user.type(monthly, "2000");
+  expect(
+    within(panel).getByLabelText("Share of what the customer pays (%)"),
+  ).toHaveAccessibleDescription(
+    "The partner would earn more than the customer pays. Lower the share, fee or fixed amount.",
+  );
+  await user.type(screen.getByLabelText("Scenario name"), "Other");
+  await user.type(screen.getByLabelText("Prospect or company"), "Acme");
+  await user.click(screen.getByRole("button", { name: "Save as scenario" }));
+  expect(mocks.save).not.toHaveBeenCalled();
+  expect(
+    screen.getByText(
+      /^The partner would earn more than the customer pays in some month/u,
     ),
   ).toBeInTheDocument();
 });

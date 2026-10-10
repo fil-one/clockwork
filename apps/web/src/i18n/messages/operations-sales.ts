@@ -279,6 +279,9 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.pricing.scenario.error.notFound": {
     en: "This scenario no longer exists.",
   },
+  "operations.sales.pricing.scenario.error.partnerAboveSpend": {
+    en: "The partner would earn more than the customer pays in some month. Lower the partner's share, fee or fixed amount.",
+  },
   "operations.sales.pricing.scenario.error.unit": {
     en: "A line's capacity unit does not convert exactly to its rate's unit. Enter it in the rate's unit.",
   },
@@ -362,8 +365,17 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.pricing.partner.error.label": {
     en: "Enter up to 80 Latin letters, numbers or punctuation.",
   },
-  "operations.sales.pricing.partner.negativeMargin": {
-    en: "Fil One's price to the partner is above the partner's own price, so the partner would lose money on every TB.",
+  "operations.sales.pricing.partner.error.buyAbove": {
+    en: "Enter a price to the partner no higher than the partner's own price to its customer.",
+  },
+  "operations.sales.pricing.partner.error.aboveSpend": {
+    en: "The partner would earn more than the customer pays. Lower the share, fee or fixed amount.",
+  },
+  "operations.sales.pricing.partner.resaleNote": {
+    en: "On a resale, both summaries price every line at the partner's price to its customer. The list prices and discounts on the lines above are ignored there.",
+  },
+  "operations.sales.pricing.discountResale": {
+    en: "Ignored on a resale: the summaries use the partner's price.",
   },
   "operations.sales.pricing.partner.error.save": {
     en: "Complete the partner inputs, or choose Direct, before you save.",

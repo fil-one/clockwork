@@ -10,6 +10,7 @@ import {
 } from "@react-pdf/renderer";
 import {
   PricingPartnerEconomicsSchema,
+  pricingPartnerSummaryAvailable,
   PricingScenarioLinesSchema,
   pricingSummaryPrintable,
   type Money,
@@ -17,6 +18,8 @@ import {
   type PricingScenarioLine,
 } from "@clockwork/contracts";
 import {
+  compareQuantities,
+  convertCapacity,
   indicativeScenarioPrice,
   scenarioPartnerEconomics,
   type ScenarioPartnerEconomics,
@@ -74,7 +77,7 @@ export function pricingSummaryNotes(input: {
   date: string;
   decimalTb: boolean;
   converted: boolean;
-  /** False when a line prices egress, so the summary cannot say it is free. */
+  /** True only when every line's rate card includes egress at no charge. */
   freeEgress: boolean;
   /** The partner's quote to its customer, not Fil One's list. */
   partnerQuote?: boolean;
@@ -214,17 +217,54 @@ function money(value: Money) {
   }).format(`${sign}${abs / 100n}.${cents}` as `${number}`);
 }
 
-const quantity = (value: string) =>
-  // Up to 18 places, so a quantity converted from PiB prints exactly.
-  new Intl.NumberFormat("en-US", { maximumFractionDigits: 18 }).format(
+const format = (value: string, digits: number) =>
+  new Intl.NumberFormat("en-US", { maximumFractionDigits: digits }).format(
     value as `${number}`,
   );
+const decimals = (value: string) =>
+  (value.split(".")[1] ?? "").replace(/0+$/u, "").length;
+
+/** A quantity to six places, as rate cards hold them; "about" if rounded. */
+const quantity = (value: string) =>
+  `${decimals(value) > 6 ? "about " : ""}${format(value, 6)}`;
+
+/**
+ * A capacity cell: the quantity in the rate's unit or, when it was entered in
+ * another unit that converts to it exactly, the entry with the converted
+ * figure beneath it, rounded to whole units from 1,000 up and to three
+ * places below ("10 PiB" over "about 11,259 TB"). The price uses the exact
+ * quantity either way.
+ */
+function capacity(
+  stored: string,
+  rateUnit: string,
+  entered?: { quantity: string; unit: string },
+): readonly [string, string] | string {
+  const unit = rateUnit.replace(/-month$/u, "");
+  const converted = entered
+    ? convertCapacity(entered.quantity, entered.unit, unit)
+    : null;
+  if (!entered || converted === null || compareQuantities(converted, stored))
+    return `${quantity(stored)} ${entered ? unit : rateUnit}`;
+  const digits = Number(stored) >= 1_000 ? 0 : 3;
+  return [
+    `${format(entered.quantity, 6)} ${entered.unit}`,
+    `${decimals(stored) > digits ? "about" : "="} ${format(stored, digits)} ${unit}`,
+  ];
+}
 
 const percent = (bps: number) =>
   `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(bps / 100)}%`;
 
 /** The summary's faces and figure formats, shared with contract line items. */
-export const pricingSummaryPrint = { serif, sans, money, quantity, percent };
+export const pricingSummaryPrint = {
+  serif,
+  sans,
+  money,
+  quantity,
+  capacity,
+  percent,
+};
 
 function longDate(iso: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso))
@@ -420,7 +460,7 @@ function PartnerSection({
           </View>
         ))}
       </View>
-      <View style={style.head} wrap={false}>
+      <View style={style.head} fixed>
         <Cells
           layout={partnerColumns}
           values={partnerColumns.map(({ label }, index) =>
@@ -469,22 +509,23 @@ export async function renderIndicativePricingSummary(
   ];
   if (!printed.every((value) => pricingSummaryPrintable.test(value)))
     throw new Error("PRICING_SUMMARY_UNPRINTABLE");
-  const capacity = (unit: string) => unit.replace(/-month$/u, "");
-  const sharedUnit = lines.every((l) => l.unit === lines[0]?.unit)
-    ? lines[0]?.unit
-    : undefined;
-  // A resale customer pays the partner, so their summary is the partner's
-  // quote: one customer price per unit, which needs every line in one unit.
-  const quote =
-    input.audience !== "partner" && saved?.model === "resale" && sharedUnit
-      ? saved
-      : null;
-  const shown = quote
+  const shared = pricingPartnerSummaryAvailable({
+    lines,
+    partnerEconomics: saved,
+  });
+  const sharedUnit = shared ? lines[0]?.unit : undefined;
+  // On a resale the customer pays the partner, so both summaries price every
+  // line at the partner's customer price, with no list price or discount.
+  // One price per unit needs every line in one unit.
+  const resale = shared && saved?.model === "resale" ? saved : null;
+  // The customer's copy of a resale is the partner's quote to its customer.
+  const quote = input.audience !== "partner" ? resale : null;
+  const shown = resale
     ? lines.map((line) => ({
         ...line,
         unitPrice: {
           currency: line.unitPrice.currency,
-          minor: quote.customerPriceMinor,
+          minor: resale.customerPriceMinor,
         } as Money,
         discountBps: 0,
       }))
@@ -494,7 +535,7 @@ export async function renderIndicativePricingSummary(
   // Partner figures apply one price per unit to every line, so they print
   // only when every line is in the same unit, as the builder shows them.
   const partner =
-    economics && sharedUnit ? scenarioPartnerEconomics(lines, economics) : null;
+    economics && shared ? scenarioPartnerEconomics(lines, economics) : null;
   const date = longDate(input.asOf);
   const reference = `Ref ${input.scenarioId.slice(0, 8)}`;
   const fixedDate = new Date(`${input.asOf}T00:00:00Z`);
@@ -542,41 +583,45 @@ export async function renderIndicativePricingSummary(
             </View>
           ))}
         </View>
-        <View style={style.head} fixed>
-          <Cells
-            layout={quote ? quoteColumns : columns}
-            values={(quote ? quoteColumns : columns).map(({ label }) => label)}
-          />
+        {/* The head repeats on every page the line table runs onto, and
+            only on those. */}
+        <View>
+          <View style={style.head} fixed>
+            <Cells
+              layout={resale ? quoteColumns : columns}
+              values={(resale ? quoteColumns : columns).map(
+                ({ label }) => label,
+              )}
+            />
+          </View>
+          {shown.map((line, index) => {
+            const result = priced.lines[index];
+            return (
+              <View key={index} style={style.row} wrap={false}>
+                <Cells
+                  layout={resale ? quoteColumns : columns}
+                  values={[
+                    [productOf(line.sku), regionOf(line.region)],
+                    `${money(line.unitPrice)} / ${line.unit}`,
+                    capacity(
+                      line.quantity,
+                      line.unit.replace(/-month$/u, ""),
+                      line.entered,
+                    ),
+                    months(line.termMonths),
+                    percent(line.discountBps),
+                    result ? money(result.monthly) : "",
+                    result ? money(result.total) : "",
+                  ]}
+                />
+              </View>
+            );
+          })}
         </View>
-        {shown.map((line, index) => {
-          const result = priced.lines[index];
-          const unit = capacity(line.unit);
-          const stored = `${quantity(line.quantity)} ${unit}`;
-          return (
-            <View key={index} style={style.row} wrap={false}>
-              <Cells
-                values={[
-                  [productOf(line.sku), regionOf(line.region)],
-                  `${money(line.unitPrice)} / ${line.unit}`,
-                  line.entered
-                    ? [
-                        `${quantity(line.entered.quantity)} ${line.entered.unit}`,
-                        `= ${stored}`,
-                      ]
-                    : stored,
-                  months(line.termMonths),
-                  percent(line.discountBps),
-                  result ? money(result.monthly) : "",
-                  result ? money(result.total) : "",
-                ]}
-              />
-            </View>
-          );
-        })}
         <View style={style.totals} wrap={false}>
           {total("Per month", money(priced.monthly))}
           {total("Year 1", money(priced.annual))}
-          {quote ? null : (
+          {resale ? null : (
             <>
               {total("Subtotal at list price", money(priced.subtotal))}
               {total(
@@ -594,7 +639,8 @@ export async function renderIndicativePricingSummary(
             date,
             decimalTb: lines.every((l) => l.unit === "TB-month"),
             converted: lines.some((l) => l.entered),
-            freeEgress: !lines.some((l) => /egress/iu.test(l.sku)),
+            // Only when the price book says so for every line.
+            freeEgress: lines.every((l) => l.egressTreatment === "included"),
             partnerQuote: Boolean(quote),
           }).map((note) => (
             <Text key={note} style={style.note}>

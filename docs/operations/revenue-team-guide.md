@@ -188,13 +188,16 @@ offer; the price that applies is the one in a signed order form.
     on what the customer pays. Add step-downs for a rate that changes later, for
     example 30% from month 1, 20% from month 13 and 10% from month 25.
   - Resale: enter the partner's price to its customer and either the partner's
-    margin or Fil One's price to the partner; the page works out the other. At
-    $6.50 and a 32% margin, Fil One's price to the partner is $4.42.
+    margin or Fil One's price to the partner, which cannot be higher than the
+    partner's price; the page works out the other. For example, a 32% margin on
+    $6.50 is a price to the partner of $4.42. Line discounts do not apply: both
+    summaries price every line at the partner's price.
   - Other: a share of what the customer pays, a fee per TB-month and a fixed
     monthly amount, in any mix.
 
   The panel shows what the customer pays, what the partner earns and Fil One's
-  net revenue for month 1, year 1, the term and per TB-month. No cap or floor is
+  net revenue for month 1, year 1, the term and per TB-month. The partner cannot
+  earn more than the customer pays in a month; otherwise no cap or floor is
   applied, and the figures commit nobody to a commission or margin.
 
 - **Summary PDF.** Save the scenario, then download the summary for the customer

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { contractTypes } from "./contract-register";
 import {
+  PricingCapacityUnitSchema,
   pricingEntrySchemas,
   pricingScenarioLineLimit,
   pricingSummaryPrintable,
@@ -101,6 +102,14 @@ export const TemplateLineItemSchema = z
     unit: requiredCell(60),
     // In the rate's unit, so a scenario entered in PiB imports exactly.
     quantity: pricingEntrySchemas.canonicalQuantity,
+    /** The capacity as entered in another unit, printed beside the quantity. */
+    entered: z
+      .object({
+        quantity: pricingEntrySchemas.quantity,
+        unit: PricingCapacityUnitSchema,
+      })
+      .strict()
+      .optional(),
     termMonths: pricingEntrySchemas.termMonths,
     unitPriceMinor: minor,
     minimumQuantity: z

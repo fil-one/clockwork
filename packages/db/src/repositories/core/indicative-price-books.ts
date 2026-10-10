@@ -20,6 +20,8 @@ export interface IndicativeRateCardRecord {
   overageRate: Money;
   minimumQuantity: string;
   commitType: RateCard["commitType"];
+  /** How egress is charged, such as "included"; a summary says it is free only then. */
+  egressTreatment?: string;
 }
 
 /**
@@ -53,6 +55,7 @@ export interface IndicativePriceBookRow {
   overageRateMinor: bigint;
   minimumQuantity: string;
   commitType: string;
+  egressTreatment?: string;
 }
 
 /**
@@ -96,6 +99,9 @@ export function indicativePriceBookRecords(
       }),
       minimumQuantity: row.minimumQuantity,
       commitType: row.commitType as RateCard["commitType"],
+      ...(row.egressTreatment === undefined
+        ? {}
+        : { egressTreatment: row.egressTreatment }),
     });
   }
   return [...books.values()];
@@ -131,6 +137,7 @@ export class DatabaseIndicativePriceBookReader {
               overageRateMinor: rateCards.overageRateMinor,
               minimumQuantity: rateCards.minimumQuantity,
               commitType: rateCards.commitType,
+              egressTreatment: rateCards.egressTreatment,
             })
             .from(priceBooks)
             .innerJoin(rateCards, eq(rateCards.priceBookId, priceBooks.id))

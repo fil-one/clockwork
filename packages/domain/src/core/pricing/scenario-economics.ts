@@ -59,7 +59,11 @@ export interface PartnerPeriod {
   toMonth: number;
   /** Referral only: the commission in force over the period. */
   commissionBps?: number;
-  /** One month of the period. */
+  /**
+   * Any one month of the period, each line rounded once for that month. The
+   * months of a period can differ from it by a cent where they are summed
+   * into years and the term.
+   */
   monthly: PartnerFigures;
   /** One capacity unit for one month of the period. */
   perUnit: PartnerFigures;
@@ -116,11 +120,13 @@ export function resaleTerms(input: {
   const margin = input.marginBps ?? 0;
   if (!Number.isInteger(margin) || margin < 0 || margin > 10_000)
     throw new Error("Margin must be between 0 and 10000 basis points");
-  return {
-    customerPriceMinor: customer,
-    buyPriceMinor: divideRound(customer * BigInt(10_000 - margin), 10_000n),
-    marginBps: margin,
-  };
+  const buy = divideRound(customer * BigInt(10_000 - margin), 10_000n);
+  // The margin shown is the one the rounded buy price gives, so the two
+  // printed figures always agree.
+  return resaleTerms({
+    customerPriceMinor: input.customerPriceMinor,
+    buyPriceMinor: buy.toString(),
+  });
 }
 
 /**
@@ -208,6 +214,43 @@ export function scenarioPartnerEconomics(
     return { spend, partner };
   }
 
+  /** One month on its own, each line's figure rounded once. */
+  function monthAt(month: number): PartnerFigures {
+    let spend = 0n;
+    let partner = 0n;
+    for (const line of priced) {
+      if (line.termMonths < month) continue;
+      if (resale) {
+        const lineSpend = divideRound(
+          resale.customerPriceMinor * line.quantity,
+          QUANTITY_SCALE,
+        );
+        spend += lineSpend;
+        partner +=
+          lineSpend -
+          divideRound(resale.buyPriceMinor * line.quantity, QUANTITY_SCALE);
+        continue;
+      }
+      const exact = line.unitMinor * line.quantity;
+      spend += divideRound(exact, QUANTITY_SCALE);
+      if (economics.model === "referral")
+        partner += divideRound(exact * BigInt(commissionAt(month)), scale);
+      else if (economics.model === "other")
+        partner += divideRound(
+          exact * BigInt(economics.partnerShareBps) +
+            BigInt(economics.partnerPerUnitMinor) * line.quantity * 10_000n,
+          scale,
+        );
+    }
+    if (economics.model === "other" && month <= months)
+      partner += BigInt(economics.partnerMonthlyMinor);
+    return {
+      customerSpend: money(spend),
+      partnerEarnings: money(partner),
+      filOneNet: money(spend - partner),
+    };
+  }
+
   /**
    * Months `from` to `to`, inclusive, as the difference of two cumulative
    * figures: months add up to years and years to the term to the cent.
@@ -280,7 +323,7 @@ export function scenarioPartnerEconomics(
       ...(economics.model === "referral"
         ? { commissionBps: commissionAt(fromMonth) }
         : {}),
-      monthly: window(fromMonth, fromMonth),
+      monthly: monthAt(fromMonth),
       perUnit: perUnit(fromMonth),
     };
   });

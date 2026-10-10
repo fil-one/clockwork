@@ -209,7 +209,7 @@ function LineItemsTable({
   table: ReturnType<typeof pricedLineItems>;
 }) {
   const { items, priced } = table;
-  const { money, quantity, percent } = pricingSummaryPrint;
+  const { money, capacity, percent } = pricingSummaryPrint;
   const price = (minor: string) =>
     money({ currency: items.currency, minor } as Parameters<typeof money>[0]);
   return (
@@ -228,7 +228,9 @@ function LineItemsTable({
                 .filter(Boolean)
                 .join("\n"),
               `${price(row.unitPriceMinor)} / ${row.unit}`,
-              `${quantity(row.quantity)} ${row.unit}`,
+              // The entry over the converted quantity, so a long figure
+              // wraps in its own cell rather than across the term.
+              [capacity(row.quantity, row.unit, row.entered)].flat().join("\n"),
               row.termMonths === 1 ? "1 month" : `${row.termMonths} months`,
               percent(row.discountBps),
               price(row.extendedMinor),

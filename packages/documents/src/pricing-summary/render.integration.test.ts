@@ -50,6 +50,26 @@ const input: IndicativePricingSummaryInput = {
   ],
 };
 
+/** What Poppler reads on each page, whitespace collapsed. */
+function pageTexts(bytes: Buffer, pages: number) {
+  const dir = mkdtempSync(join(tmpdir(), "pricing-summary-pages-"));
+  try {
+    const path = join(dir, "summary.pdf");
+    writeFileSync(path, bytes);
+    return Array.from({ length: pages }, (_, index) =>
+      execFileSync(
+        "pdftotext",
+        ["-raw", "-f", String(index + 1), "-l", String(index + 1), path, "-"],
+        { encoding: "utf8" },
+      )
+        .replace(/\s+/g, " ")
+        .trim(),
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 /** Renders and returns what Poppler reads, whitespace collapsed. */
 async function extract(value: IndicativePricingSummaryInput) {
   const pdf = await renderIndicativePricingSummary(value);
@@ -131,6 +151,7 @@ const referral = {
       minimumQuantity: "1",
       quantity: "11258.99906842624",
       entered: { quantity: "10", unit: "PiB" },
+      egressTreatment: "included",
       termMonths: 36,
       discountBps: 0,
     }),
@@ -165,7 +186,7 @@ it("adds the partner's earnings for a partner and never Fil One's net", async ()
   const { text } = await extract({ ...referral, audience: "partner" });
   for (const expected of [
     "Partner Copperline Partners",
-    "10 PiB = 11,258.99906842624 TB",
+    "10 PiB about 11,259 TB",
     "Per month $67,441.40",
     "Year 1 $809,296.85",
     "No egress fees: reading and downloading stored data is free.",
@@ -193,12 +214,19 @@ it("adds the partner's earnings for a partner and never Fil One's net", async ()
 it("prints a resale partner's prices and margin for the partner", async () => {
   const partner = await extract({ ...resale, audience: "partner" });
   for (const expected of [
+    // The lines and totals are at the partner's price, as the figures are.
+    "ITEM PRICE QUANTITY",
+    "$6.50 / TB-month",
+    "Per month $73,183.49",
+    "Term total (USD) $2,634,605.78",
     "Model Resale",
     "Customer price $6.50 / TB-month",
     "Partner buy price $4.42 / TB-month",
     "Partner margin $2.08 / TB-month (32%)",
   ])
     expect(partner.text).toContain(expected);
+  expect(partner.text).not.toContain("$5.99");
+  expect(partner.text).not.toContain("Subtotal at list price");
 }, 30_000);
 
 it("quotes a resale customer at the partner's price, never Fil One's list", async () => {
@@ -283,6 +311,17 @@ it("runs a long partner schedule onto another page and leaves out steps past the
   expect(pdf.pages).toBeGreaterThan(1);
   for (let page = 1; page <= pdf.pages; page++)
     expect(text).toContain(`Ref 019a44ac · ${page} / ${pdf.pages}`);
+  // Each table's head repeats only on the pages its own rows reach.
+  const pages = pageTexts(pdf.bytes, pdf.pages);
+  for (const page of pages) {
+    const lineRows = page.includes("/ TB-month 100 TB");
+    const partnerRows = /, per month \$|Year \d+ \$|Term, \d+ months/u.test(
+      page,
+    );
+    expect(page.includes("ITEM LIST PRICE QUANTITY")).toBe(lineRows);
+    expect(page.includes("PERIOD PARTNER EARNINGS")).toBe(partnerRows);
+  }
+  expect(pages.some((page) => !page.includes("ITEM LIST PRICE"))).toBe(true);
   expect(text).toContain("Term, 107 months");
   expect(text).toContain("Year 9, months 97-107");
   // The longest term is 107 months, so the step from month 111 never prints.

@@ -131,6 +131,7 @@ export function scenarioLineItems(
       region: line.region,
       unit: line.unit,
       quantity: line.quantity,
+      ...(line.entered ? { entered: line.entered } : {}),
       termMonths: line.termMonths,
       unitPriceMinor: line.unitPrice.minor,
       minimumQuantity: line.minimumQuantity,

@@ -15,6 +15,7 @@ import {
 import {
   convertCapacity,
   indicativeScenarioPrice,
+  scenarioPartnerEconomics,
 } from "@clockwork/domain/core";
 import type { RuntimeDatabase, RuntimeTransaction } from "../client";
 import { pricingScenarios } from "../schema/pricing-scenarios";
@@ -54,6 +55,25 @@ const view = (row: Row): PricingScenarioRecord => ({
   updatedAt: row.updatedAt.toISOString(),
   version: row.version,
 });
+
+/**
+ * Rows that no longer parse, such as one written by a later version and read
+ * after a rollback, are left out of lists rather than failing the page. Only
+ * the row id and the error's name are logged.
+ */
+function readable<T>(rows: readonly Row[], read: (row: Row) => T): T[] {
+  return rows.flatMap((row) => {
+    try {
+      return [read(row)];
+    } catch (error) {
+      console.error("pricing scenario skipped: it does not parse", {
+        id: row.id,
+        error: error instanceof Error ? error.name : "unknown",
+      });
+      return [];
+    }
+  });
+}
 
 const summary = (row: Row): PricingScenarioSummary => {
   const record = view(row);
@@ -109,6 +129,9 @@ export function resolvePricingScenarioLines(
       unit: rate.unit,
       unitPrice: rate.unitPrice,
       minimumQuantity: rate.minimumQuantity,
+      ...(rate.egressTreatment
+        ? { egressTreatment: rate.egressTreatment }
+        : {}),
       quantity,
       ...(converted
         ? { entered: { quantity: entry.quantity, unit: converted } }
@@ -148,14 +171,15 @@ export class PricingScenarioRepository {
         ? eq(pricingScenarios.ownerId, scope.ownerId)
         : undefined;
     return this.tx(async (tx) =>
-      (
+      readable(
         await tx
           .select()
           .from(pricingScenarios)
           .where(where)
           .orderBy(desc(pricingScenarios.updatedAt), desc(pricingScenarios.id))
-          .limit(pricingScenarioListLimit)
-      ).map(summary),
+          .limit(pricingScenarioListLimit),
+        summary,
+      ),
     );
   }
 
@@ -192,6 +216,17 @@ export class PricingScenarioRepository {
       input.lines,
       await this.books.listInForce({ today }),
     );
+    // A partner cannot earn more than the customer pays in any month.
+    if (
+      input.partnerEconomics &&
+      lines.every((line) => line.unit === lines[0]?.unit) &&
+      scenarioPartnerEconomics(lines, input.partnerEconomics).periods.some(
+        ({ monthly }) =>
+          BigInt(monthly.partnerEarnings.minor) >
+          BigInt(monthly.customerSpend.minor),
+      )
+    )
+      throw new Error("PRICING_SCENARIO_PARTNER_ABOVE_SPEND");
     const priceBooks = [
       ...new Map(
         lines.map((line) => [

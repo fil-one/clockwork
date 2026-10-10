@@ -1,4 +1,5 @@
 import { ZodError, z } from "zod";
+import { pricingPartnerSummaryAvailable } from "@clockwork/contracts";
 import { renderIndicativePricingSummary } from "@clockwork/documents";
 import { explicitDemoIdentityEnabled } from "@/src/auth/session";
 import { contractReader } from "@/src/features/internal-ops/contracts/demo-access";
@@ -45,9 +46,11 @@ export async function GET(
           ),
         );
     if (!scenario) throw new Error("PRICING_SCENARIO_NOT_FOUND");
+    // A partner summary needs partner inputs on lines in one unit; anything
+    // else is served, named and audited as the customer summary.
     const audience =
       new URL(request.url).searchParams.get("audience") === "partner" &&
-      scenario.partnerEconomics
+      pricingPartnerSummaryAvailable(scenario)
         ? "partner"
         : "customer";
     const t = await getTranslations();

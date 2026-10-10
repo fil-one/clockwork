@@ -168,10 +168,38 @@ export const PricingPartnerEconomicsSchema = z
         message: "resale_basis",
         path: ["buyPriceMinor"],
       });
+    // A partner cannot buy above its own price: that is a loss, not a margin.
+    if (
+      value.model === "resale" &&
+      value.buyPriceMinor !== undefined &&
+      /^\d+$/.test(value.buyPriceMinor) &&
+      /^\d+$/.test(value.customerPriceMinor) &&
+      BigInt(value.buyPriceMinor) > BigInt(value.customerPriceMinor)
+    )
+      context.addIssue({
+        code: "custom",
+        message: "buy_above_customer",
+        path: ["buyPriceMinor"],
+      });
   });
 export type PricingPartnerEconomics = z.infer<
   typeof PricingPartnerEconomicsSchema
 >;
+
+/**
+ * Whether a scenario has a partner summary: it has partner inputs and every
+ * line is priced in one unit, since partner prices and fees apply per unit
+ * across all lines.
+ */
+export function pricingPartnerSummaryAvailable(scenario: {
+  lines: readonly { unit: string }[];
+  partnerEconomics: PricingPartnerEconomics | null;
+}) {
+  return (
+    scenario.partnerEconomics !== null &&
+    scenario.lines.every((entry) => entry.unit === scenario.lines[0]?.unit)
+  );
+}
 
 /** A new scenario, or an overwrite of `id` when `expectedVersion` is given. */
 export const PricingScenarioInputSchema = z
@@ -214,6 +242,8 @@ export const PricingScenarioLineSchema = z
       .object({ quantity, unit: PricingCapacityUnitSchema })
       .strict()
       .optional(),
+    /** The rate's egress terms, so a summary states free egress only when the book does. */
+    egressTreatment: line(60).optional(),
     termMonths,
     discountBps,
   })

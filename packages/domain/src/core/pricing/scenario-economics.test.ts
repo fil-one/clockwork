@@ -101,6 +101,15 @@ describe("resale terms", () => {
     expect(
       resaleTerms({ customerPriceMinor: "0", buyPriceMinor: "0" }).marginBps,
     ).toBeNull();
+    // 3.33 at 33% is a buy price of 2.2311, printed 2.23; the margin shown
+    // is the one 2.23 gives, 33.03%, so the two figures agree.
+    expect(
+      resaleTerms({ customerPriceMinor: "333", marginBps: 3_300 }),
+    ).toEqual({
+      customerPriceMinor: 333n,
+      buyPriceMinor: 223n,
+      marginBps: 3_303,
+    });
   });
 });
 

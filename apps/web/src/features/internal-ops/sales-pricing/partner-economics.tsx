@@ -158,13 +158,25 @@ export function parsePartnerDraft(
       steps,
     };
   } else if (draft.model === "resale") {
+    const customerPriceMinor = price("customerPrice", draft.customerPrice);
+    const buyPriceMinor =
+      draft.resaleBasis === "buyPrice"
+        ? price("buyPrice", draft.buyPrice)
+        : undefined;
+    if (
+      buyPriceMinor !== undefined &&
+      !problems.buyPrice &&
+      !problems.customerPrice &&
+      BigInt(buyPriceMinor) > BigInt(customerPriceMinor)
+    )
+      problems.buyPrice = "operations.sales.pricing.partner.error.buyAbove";
     economics = {
       model: "resale",
       ...named,
-      customerPriceMinor: price("customerPrice", draft.customerPrice),
-      ...(draft.resaleBasis === "margin"
+      customerPriceMinor,
+      ...(buyPriceMinor === undefined
         ? { marginBps: percent("margin", draft.margin) }
-        : { buyPriceMinor: price("buyPrice", draft.buyPrice) }),
+        : { buyPriceMinor }),
     };
   } else {
     const label = text(
@@ -244,6 +256,14 @@ export function PartnerEconomicsPanel({
     const id = problems[key];
     return id && (showEmpty || typed(draft, key).trim()) ? t(id) : undefined;
   };
+  // A partner cannot earn more than the customer pays in a month.
+  const aboveSpend =
+    draft.model === "other" &&
+    result?.periods.some(
+      ({ monthly }) =>
+        BigInt(monthly.partnerEarnings.minor) >
+        BigInt(monthly.customerSpend.minor),
+    );
   const yearLabel = (index: number) =>
     result && (index + 1) * 12 > result.months
       ? t("operations.sales.pricing.partner.years.partial", {
@@ -393,6 +413,9 @@ export function PartnerEconomicsPanel({
         ) : null}
         {draft.model === "resale" ? (
           <>
+            <p className={`${styles.partnerHelp} ${styles.wide}`} role="note">
+              {t("operations.sales.pricing.partner.resaleNote")}
+            </p>
             <Input
               label={t("operations.sales.pricing.partner.customerPrice", {
                 unit: unitLabel,
@@ -460,7 +483,12 @@ export function PartnerEconomicsPanel({
               label={t("operations.sales.pricing.partner.share")}
               inputMode="decimal"
               value={draft.share}
-              error={error("share")}
+              error={
+                error("share") ??
+                (aboveSpend
+                  ? t("operations.sales.pricing.partner.error.aboveSpend")
+                  : undefined)
+              }
               onChange={(event) => set({ share: event.target.value })}
             />
             <Input
@@ -492,13 +520,6 @@ export function PartnerEconomicsPanel({
         </p>
       ) : (
         <div className={styles.partnerFigures}>
-          {result.resale?.marginBps !== undefined &&
-          result.resale.marginBps !== null &&
-          result.resale.marginBps < 0 ? (
-            <p className={styles.warning} role="note">
-              {t("operations.sales.pricing.partner.negativeMargin")}
-            </p>
-          ) : null}
           <table className={styles.table}>
             <caption>{t("operations.sales.pricing.partner.figures")}</caption>
             <thead>

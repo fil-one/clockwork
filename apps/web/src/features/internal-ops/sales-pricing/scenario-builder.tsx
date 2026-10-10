@@ -7,6 +7,7 @@ import { useState, type FormEvent } from "react";
 
 import {
   pricingCapacityUnits,
+  pricingPartnerSummaryAvailable,
   pricingScenarioLineLimit,
   type Money,
   type PricingScenarioRecord,
@@ -82,6 +83,8 @@ const scenarioErrors: Readonly<Record<string, MessageId>> = {
   PRICING_SCENARIO_UNIT_UNSUPPORTED:
     "operations.sales.pricing.scenario.error.unit",
   PARTNER_INPUTS_INVALID: "operations.sales.pricing.partner.error.save",
+  PRICING_SCENARIO_PARTNER_ABOVE_SPEND:
+    "operations.sales.pricing.scenario.error.partnerAboveSpend",
 };
 const problem = (code: string) => scenarioErrors[code] ?? errorMessage(code);
 
@@ -322,6 +325,17 @@ export function ScenarioBuilder({
       setBusy(false);
       setPartnerAttempted(true);
       setError("PARTNER_INPUTS_INVALID");
+      return;
+    }
+    if (
+      partnerResult?.periods.some(
+        ({ monthly }) =>
+          BigInt(monthly.partnerEarnings.minor) >
+          BigInt(monthly.customerSpend.minor),
+      )
+    ) {
+      setBusy(false);
+      setError("PRICING_SCENARIO_PARTNER_ABOVE_SPEND");
       return;
     }
     const result = await saveScenario({
@@ -610,9 +624,11 @@ export function ScenarioBuilder({
                   step={0.01}
                   required
                   value={line.discount}
-                  {...(index === 0
-                    ? { help: t("operations.sales.pricing.discountHelp") }
-                    : {})}
+                  {...(partner.model === "resale"
+                    ? { help: t("operations.sales.pricing.discountResale") }
+                    : index === 0
+                      ? { help: t("operations.sales.pricing.discountHelp") }
+                      : {})}
                   error={
                     problems?.discount
                       ? t("operations.sales.pricing.error.discount")
@@ -815,7 +831,7 @@ export function ScenarioBuilder({
                   >
                     {t("operations.sales.pricing.scenario.download")}
                   </a>
-                  {opened.partnerEconomics ? (
+                  {pricingPartnerSummaryAvailable(opened) ? (
                     <a
                       className={buttonClassName({ variant: "secondary" })}
                       href={summaryPath(opened.id, "partner")}
@@ -908,7 +924,7 @@ export function ScenarioBuilder({
                   >
                     {t("operations.contracts.documents.download")}
                   </a>
-                  {example.partnerEconomics ? (
+                  {pricingPartnerSummaryAvailable(example) ? (
                     <a
                       className={buttonClassName({
                         variant: "secondary",
