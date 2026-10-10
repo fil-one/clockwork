@@ -2,7 +2,7 @@
 // SignWell client, with only SignWell's HTTP API simulated. The template is
 // the test-only fixture; it is never registered in production.
 import { createHash, createHmac, randomUUID } from "node:crypto";
-import { afterAll, expect, it } from "vitest";
+import { afterAll, expect, it, vi } from "vitest";
 import {
   ContractDocumentStores,
   ContractRepository,
@@ -18,6 +18,21 @@ import { ContractSigningWorkflow } from "@clockwork/workflows/contracts";
 import { availableContractTemplate } from "@clockwork/documents";
 import { fixtureContractTemplateRegistry } from "../../../../../../packages/documents/src/__fixtures__/contract-template";
 import { prepareInputSchema } from "./prepare-input";
+import { POST as signWellWebhook } from "../../../../app/api/v1/webhooks/signwell/route";
+
+// The webhook route as deployed, wired to this file's database and fake.
+const wired = vi.hoisted((): { workflow: unknown; repository: unknown } => ({
+  workflow: null,
+  repository: null,
+}));
+vi.mock("@/src/features/internal-ops/mnda/server", () => ({
+  mndaRepository: () => ({ byProvider: () => Promise.resolve(null) }),
+  mndaWorkflow: () => ({}),
+}));
+vi.mock("@/src/features/internal-ops/contracts/server", () => ({
+  contractSigningRepository: () => wired.repository,
+  contractSigningWorkflow: () => wired.workflow,
+}));
 
 const { client, db } = createRuntimeDatabase({
   url:
@@ -102,6 +117,10 @@ function fakeSignWell() {
     const [, id, action] = /^documents\/([^/]+)(?:\/(.+))?$/.exec(path) ?? [];
     const document = documents.get(id ?? "");
     if (!document) return new Response(null, { status: 404 });
+    if (!action && method === "DELETE") {
+      documents.delete(document.id);
+      return new Response(null, { status: 204 });
+    }
     if (!action) {
       // Text-tag extraction finishes after the first read.
       const current = structuredClone(document);
@@ -112,6 +131,7 @@ function fakeSignWell() {
       document.status = "Sent";
       return json({});
     }
+    if (action === "remind" && method === "POST") return json({});
     if (action.startsWith("completed_pdf"))
       return new Response(
         Buffer.from("%PDF-1.7\nexecuted with audit trail\n%%EOF"),
@@ -299,4 +319,187 @@ it("prepares from a template, enforces two-person approval, sends, and archives 
   expect(
     (await workflow.sync(input.id, { kind: "provider", id: "signwell" })).state,
   ).toBe("completed");
+}, 60_000);
+
+/** A contract prepared from the fixture template, approved and ready to send. */
+async function preparedContract(preparer: {
+  kind: "user";
+  id: string;
+  display: string;
+}) {
+  const template = availableContractTemplate(
+    fixtureContractTemplateRegistry,
+    "test-fixture",
+  );
+  const [countersigner] = await signing.countersigners();
+  if (!countersigner) throw new Error("A seeded countersigner is required");
+  const marker = randomUUID().slice(0, 8);
+  const id = randomUUID();
+  const signer = {
+    name: "Alex Example",
+    email: `alex.${marker}@example.com`,
+    title: "CEO",
+  };
+  const { values } = prepareInputSchema(template.fields).parse({
+    id,
+    templateId: template.id,
+    counterpartyName: `Deleted Data ${marker}`,
+    effectiveDate: "2026-10-09",
+    signerName: signer.name,
+    signerEmail: signer.email,
+    signerTitle: signer.title,
+    countersignerId: countersigner.id,
+    ownerName: "R.W. Holleman",
+    values: { fixture_reference: "REF-8", fixture_tier: "beta" },
+  });
+  const rendered = await template.render({
+    contractId: id,
+    counterpartyName: `Deleted Data ${marker}`,
+    effectiveDate: "2026-10-09",
+    values,
+    signer,
+    countersigner,
+  });
+  const documentName = `Fil One ${template.name} - Deleted Data ${marker}`;
+  await signing.prepare(
+    {
+      contract: {
+        id,
+        counterpartyName: `Deleted Data ${marker}`,
+        title: template.name,
+        contractType: template.contractType,
+        paper: "ours",
+        status: "draft",
+        effectiveDate: "2026-10-09",
+        initialTermMonths: null,
+        autoRenew: false,
+        renewalTermMonths: null,
+        noticePeriodDays: null,
+        valueMinor: null,
+        currency: null,
+        pricingNotes: "",
+        ownerName: "R.W. Holleman",
+        internalNotes: "",
+        tags: [],
+      },
+      signing: {
+        templateId: template.id,
+        templateVersion: template.version,
+        templateHash: template.templateHash,
+        documentName,
+        input: values,
+        counterpartySigner: signer,
+        countersignerId: countersigner.id,
+        approvalRequired: template.requiresApproval,
+        testMode: true,
+      },
+      pdf: rendered.bytes,
+      fileName: `${documentName}.pdf`,
+    },
+    preparer,
+  );
+  if (template.requiresApproval)
+    await signing.decide(
+      id,
+      { approve: true },
+      { kind: "user", id: randomUUID(), display: "Approver" },
+    );
+  return id;
+}
+
+it("survives a document deleted in SignWell: wakeups succeed, staff see it, and voiding closes it", async () => {
+  const preparer = { kind: "user" as const, id: randomUUID(), display: "R.W." };
+  const id = await preparedContract(preparer);
+  const signWell = fakeSignWell();
+  const workflow = new ContractSigningWorkflow(
+    signing,
+    new SignWellContractClient("test-key", signWell.transport),
+    () => Promise.resolve(),
+  );
+  await workflow.send(id, preparer);
+  const [document] = [...signWell.documents.values()];
+  if (!document) throw new Error("SignWell document missing");
+
+  // A reminder is recorded; a second one within the minute is refused even
+  // though nothing else changed.
+  const reminded = await workflow.remind(id, preparer);
+  expect(reminded.remindedAt).not.toBeNull();
+  await expect(workflow.remind(id, preparer)).rejects.toThrow(
+    "CONTRACT_REMINDER_TOO_SOON",
+  );
+  expect(signWell.calls.filter((c) => c.endsWith("/remind"))).toHaveLength(1);
+
+  // Someone deletes the document in SignWell. The next wakeup answers 200
+  // and the request waits for a person instead of failing every retry.
+  signWell.documents.delete(document.id);
+  const secret = "webhook-secret";
+  vi.stubEnv("SIGNWELL_WEBHOOK_ID", secret);
+  wired.workflow = workflow;
+  wired.repository = signing;
+  const response = await signWellWebhook(
+    new Request("https://commerce.fil.one/api/v1/webhooks/signwell", {
+      method: "POST",
+      body: wakeup(document.id, secret),
+    }),
+  );
+  vi.unstubAllEnvs();
+  expect(response.status).toBe(200);
+  const flagged = await register.get(id, "2026-10-09");
+  expect(flagged.signing).toMatchObject({
+    state: "attention",
+    error: "deleted_in_signwell",
+  });
+  expect(flagged.contract.status).toBe("out_for_signature");
+  await expect(
+    workflow.sync(id, { kind: "provider", id: "signwell" }),
+  ).resolves.toMatchObject({ state: "attention" });
+
+  // Voiding closes it without another delete call; the register row returns
+  // to draft and the history keeps the reason.
+  const deletes = signWell.calls.filter((c) => c.startsWith("DELETE"));
+  await expect(
+    workflow.void(id, preparer, "Deleted in SignWell by mistake"),
+  ).resolves.toMatchObject({ state: "canceled" });
+  expect(signWell.calls.filter((c) => c.startsWith("DELETE"))).toEqual(deletes);
+  const closed = await register.get(id, "2026-10-09");
+  expect(closed.contract.status).toBe("draft");
+  expect(closed.activity.map((a) => a.eventType)).toEqual(
+    expect.arrayContaining([
+      "contract.reminded",
+      "contract.deleted_in_signwell",
+      "contract.voided",
+    ]),
+  );
+  expect(closed.activity[0]).toMatchObject({
+    eventType: "contract.voided",
+    changes: { reason: "Deleted in SignWell by mistake" },
+  });
+}, 60_000);
+
+it("voids a sent contract in SignWell and in the register", async () => {
+  const preparer = { kind: "user" as const, id: randomUUID(), display: "R.W." };
+  const id = await preparedContract(preparer);
+  const signWell = fakeSignWell();
+  const workflow = new ContractSigningWorkflow(
+    signing,
+    new SignWellContractClient("test-key", signWell.transport),
+    () => Promise.resolve(),
+  );
+  await workflow.send(id, preparer);
+  await expect(workflow.cancel(id, preparer)).rejects.toThrow(
+    "CONTRACT_VOID_REQUIRED",
+  );
+  const voided = await workflow.void(id, preparer, "Wrong legal entity");
+  expect(voided.state).toBe("canceled");
+  expect(signWell.documents.size).toBe(0);
+  expect(signWell.calls.filter((c) => c.startsWith("DELETE"))).toHaveLength(1);
+  const detail = await register.get(id, "2026-10-09");
+  expect(detail.contract.status).toBe("draft");
+  expect(detail.activity[0]).toMatchObject({
+    eventType: "contract.voided",
+    changes: {
+      status: { from: "out_for_signature", to: "draft" },
+      reason: "Wrong legal entity",
+    },
+  });
 }, 60_000);

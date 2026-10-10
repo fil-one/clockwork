@@ -207,6 +207,21 @@ export const terminalContractSigningStates: readonly ContractSigningState[] = [
   "expired",
   "canceled",
 ];
+/** A request can be voided until the counterparty has signed. */
+export const contractVoidableStates: readonly ContractSigningState[] = [
+  "draft",
+  "preparing",
+  "ready",
+  "sent",
+  "viewed",
+  "attention",
+];
+/** Why a request in `attention` needs a person, beyond SignWell's status. */
+export const contractDeletedInSignWell = "deleted_in_signwell";
+/** Voiding needs a typed reason, saved with the contract's history. */
+export const ContractVoidSchema = z
+  .object({ contractId: z.uuid(), reason: z.string().trim().min(3).max(500) })
+  .strict();
 
 export const contractApprovalStates = [
   "not_required",
@@ -245,6 +260,8 @@ export interface ContractSigningRecord {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
+  /** When a person last sent a manual reminder. */
+  remindedAt: string | null;
   version: number;
 }
 

@@ -128,7 +128,10 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
   CONTRACT_LEASE_LOST: "operations.contracts.error.busy",
   CONTRACT_REMINDER_TOO_SOON: "operations.contracts.error.reminderTooSoon",
   CONTRACT_NOT_PENDING: "operations.contracts.error.notPending",
-  CONTRACT_CANCEL_IN_SIGNWELL: "operations.contracts.error.cancelInSignWell",
+  CONTRACT_VOID_REQUIRED: "operations.contracts.error.voidRequired",
+  CONTRACT_ALREADY_COMPLETED: "operations.contracts.error.alreadyCompleted",
+  CONTRACT_NOT_VOIDABLE: "operations.contracts.error.notVoidable",
+  CONTRACT_NOT_PREPARER: "operations.contracts.error.notPreparer",
   CONTRACT_DISTINCT_SIGNERS_REQUIRED:
     "operations.contracts.error.distinctSigners",
   CONTRACT_COUNTERSIGNER_UNAVAILABLE:

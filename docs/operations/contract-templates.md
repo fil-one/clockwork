@@ -209,8 +209,19 @@ is set to `false`; test-mode signatures are not legally binding.
    record is stored with its hash and the contract is marked executed, in one
    step.
 
-A sent request can only be voided in SignWell. A request that was never sent can
-be discarded in Commerce.
+A request that never reached SignWell can be discarded. Once it has, it is
+voided in Commerce, with a reason, until the counterparty signs: Commerce reads
+SignWell first, deletes the SignWell copy, and marks the request canceled. The
+register row returns to draft and keeps the prepared PDF and the history. The
+preparer can void their own request; anyone else needs contract approval rights.
+
+If someone deletes the document in SignWell directly, the next refresh or
+callback marks the request **SignWell no longer has this document** instead of
+failing, and callbacks keep succeeding. Void it in Commerce to close it.
+
+Reminders go to whoever signs next and are spaced at least a minute apart,
+counted from the last reminder. Each one is recorded in the contract's history
+as `contract.reminded` with its recipient.
 
 ## Configuration
 

@@ -125,6 +125,7 @@ const signingView = (s: SigningRow): ContractSigningRecord => ({
   createdAt: s.createdAt.toISOString(),
   updatedAt: s.updatedAt.toISOString(),
   completedAt: s.completedAt?.toISOString() ?? null,
+  remindedAt: s.remindedAt?.toISOString() ?? null,
   version: s.version,
 });
 
@@ -721,6 +722,7 @@ async function recordEvent(
   actor: Actor,
   eventType: string,
   changes: Record<string, unknown>,
+  detail?: Record<string, unknown>,
 ) {
   await tx.insert(contractEvents).values({
     id: randomUUID(),
@@ -737,8 +739,16 @@ async function recordEvent(
     eventType,
     actor,
     requestId: randomUUID(),
-    after: { eventType, fields: Object.keys(changes) },
+    after: { eventType, fields: Object.keys(changes), ...detail },
   });
+}
+
+/** A signing change worth its own history entry, beyond a state change. */
+export interface ContractSigningNote {
+  /** Overrides the default `contract.signing_<state>` event name. */
+  eventType: string;
+  /** Recorded in the contract's history and its audit event. */
+  detail?: Record<string, unknown>;
 }
 
 export interface PrepareContractSigning {
@@ -1051,7 +1061,8 @@ export class ContractSigningRepository {
   /**
    * Applies a signing transition under the caller's lease. Reaching
    * `completed` requires the executed PDF, which is stored and attached in
-   * the same transaction that marks the register row executed.
+   * the same transaction that marks the register row executed. A state
+   * change, or a `note`, is recorded in the contract's history.
    */
   async update(
     contractId: string,
@@ -1060,9 +1071,11 @@ export class ContractSigningRepository {
       state?: ContractSigningState;
       providerId?: string;
       error?: string | null;
+      remindedAt?: Date;
     },
     actor: Actor,
     executed?: { bytes: Uint8Array; fileName: string },
+    note?: ContractSigningNote,
   ) {
     const stored = executed
       ? await this.stores.primary.put(executed.bytes, {
@@ -1109,14 +1122,16 @@ export class ContractSigningRepository {
           .where(eq(contractSigning.contractId, contractId))
           .returning();
         if (!next) throw new Error("CONTRACT_SIGNING_UPDATE_FAILED");
-        if (patch.state && patch.state !== row.state) {
+        const changedState =
+          patch.state && patch.state !== row.state ? patch.state : undefined;
+        if (changedState || note) {
           const [contract] = await tx
             .select()
             .from(commerceContracts)
             .where(eq(commerceContracts.id, contractId))
             .for("update");
           if (!contract) throw new Error("CONTRACT_NOT_FOUND");
-          const status = registerStatusFor[patch.state];
+          const status = changedState && registerStatusFor[changedState];
           await tx
             .update(commerceContracts)
             .set({
@@ -1130,10 +1145,14 @@ export class ContractSigningRepository {
             contractId,
             contract.version + 1,
             actor,
-            `contract.signing_${patch.state}`,
-            status && status !== contract.status
-              ? { status: { from: contract.status, to: status } }
-              : {},
+            note?.eventType ?? `contract.signing_${changedState}`,
+            {
+              ...(status && status !== contract.status
+                ? { status: { from: contract.status, to: status } }
+                : {}),
+              ...note?.detail,
+            },
+            note?.detail,
           );
         }
         return signingView(next);

@@ -2,7 +2,11 @@
 
 import { z } from "zod";
 import { availableContractTemplate } from "@clockwork/documents";
-import { ContractInputSchema, contractPdfFileName } from "@clockwork/contracts";
+import {
+  ContractInputSchema,
+  ContractVoidSchema,
+  contractPdfFileName,
+} from "@clockwork/contracts";
 import { attempt } from "./action-result";
 import { prepareInputSchema } from "./prepare-input";
 import {
@@ -13,6 +17,7 @@ import {
   contractSigningWorkflow,
   contractStaff,
   contractTemplateRegistry,
+  sessionHas,
 } from "./server";
 
 /** Records a new contract, or saves an edit made against a known version. */
@@ -183,6 +188,30 @@ export async function operateContract(raw: unknown) {
     const record = await contractSigningWorkflow(operation)[operation](
       contractId,
       contractActor(session),
+    );
+    return { state: record.state };
+  });
+}
+
+/**
+ * Voids a sent request the counterparty has not signed, or closes one whose
+ * document was deleted in SignWell. Sending needs `contract:write`, and so
+ * does voiding; as with MNDAs, someone other than the preparer also needs to
+ * be an approver, so a colleague's request is not withdrawn by accident.
+ */
+export async function voidContract(raw: unknown) {
+  return attempt(async () => {
+    const session = await contractStaff("contract:write");
+    const { contractId, reason } = ContractVoidSchema.parse(raw);
+    if (!sessionHas(session, "contract:approve")) {
+      const record = await contractSigningRepository().get(contractId);
+      if (record.preparerId !== session.userId)
+        throw new Error("CONTRACT_NOT_PREPARER");
+    }
+    const record = await contractSigningWorkflow("void").void(
+      contractId,
+      contractActor(session),
+      reason,
     );
     return { state: record.state };
   });
