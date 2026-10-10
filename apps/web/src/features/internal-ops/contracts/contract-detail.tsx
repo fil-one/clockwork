@@ -276,7 +276,9 @@ export function ContractDetail({
           </div>
         }
       />
-      {contract.status === "executed" && signedCopies.length === 0 ? (
+      {canWrite &&
+      contract.status === "executed" &&
+      signedCopies.length === 0 ? (
         <InlineNotice
           tone="warning"
           title={t("operations.contracts.detail.noSignedCopyTitle")}

@@ -54,7 +54,7 @@ export async function GET(request: Request) {
         truncated,
       });
     }
-    const today = new Date().toISOString().slice(0, 10);
+    const today = demoNow().toISOString().slice(0, 10);
     // Status words follow the reader's language; the status code column next
     // to them stays stable for spreadsheet and CRM imports.
     return new Response(
