@@ -181,6 +181,7 @@ import {
   type LifecycleCommandName,
 } from "./schemas";
 import { provisioningLinesFromSnapshots } from "./accepted-order-provisioning";
+import { inviteToken, inviteTokenHash } from "./invites";
 import {
   insertAccountWithOrganization,
   registrationSide,
@@ -1416,17 +1417,21 @@ export class DatabaseLifecycleCommandRepository {
       });
     if (Date.parse(payload.expiresAt) <= this.now().getTime())
       throw new Error("INVITE_EXPIRY_INVALID");
-    const tokenHash = hashText(
-      `${context.idempotencyKey}:${payload.email.toLowerCase()}:${organization.id}`,
-    );
+    // The link's token is derived from the invite's id, so the organization
+    // page can show it again; only its hash is stored (see ./invites).
+    const inviteId = randomUUID();
     const [invite] = await transaction
       .insert(invites)
       .values({
+        id: inviteId,
         organizationId: organization.id,
         email: payload.email.toLowerCase(),
         role: payload.role,
-        tokenHash,
+        tokenHash: inviteTokenHash(
+          inviteToken(this.options.authorizationSecret, inviteId),
+        ),
         expiresAt: new Date(payload.expiresAt),
+        invitedBy: requireAuthorization(context).userId,
       })
       .returning();
     if (!invite) throw new Error("INVITE_INSERT_FAILED");

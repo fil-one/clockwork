@@ -35,6 +35,7 @@ import {
 import { withInternalTransaction } from "../../transaction";
 import { FixtureTaxPort } from "../core/tax-fixture";
 import { DatabaseLifecycleCommandRepository } from "./command-repository";
+import { inviteToken, inviteTokenHash } from "./invites";
 
 const databaseUrl =
   process.env.DIRECT_DATABASE_URL ??
@@ -941,6 +942,26 @@ describe("membership invitations", () => {
     await expect(
       invite(redwood, redwoodAdmin, "partner_seller"),
     ).resolves.toMatchObject({ status: "pending" });
+  });
+
+  it("stores only the hash of a link operations can show again", async () => {
+    const created = await invite(redwood, redwoodAdmin, "partner_seller");
+    const [row] = await withInternalTransaction(
+      db,
+      "lifecycle-invite-token-read",
+      (tx) =>
+        tx
+          .select({
+            tokenHash: invites.tokenHash,
+            invitedBy: invites.invitedBy,
+          })
+          .from(invites)
+          .where(eq(invites.id, created.id)),
+    );
+    expect(row).toEqual({
+      tokenHash: inviteTokenHash(inviteToken(authorizationSecret, created.id)),
+      invitedBy: redwoodAdmin.userId,
+    });
   });
 
   it("refuses every invitation across sides", async () => {

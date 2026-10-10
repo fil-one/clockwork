@@ -2019,10 +2019,39 @@ detail lives in `docs/operations/commerce-mnda.md`,
   (`supabase/migrations/001449_self_approval.sql`). There is no countersign
   deadline. Evidence: `supabase/tests/1449_self_approval.test.sql`,
   `packages/db/src/repositories/system/owner-console.integration.test.ts`.
-- **Customer and partner user management `[OPEN]`:** the invite route enforces
-  the inviter's role ceiling, but no code path turns an `invites` row into a
-  membership, and there is no role change or removal for customer or partner
-  administrators
+- **Invite acceptance `[COMPLETE]`:** an invite link opens `/invite/<token>`.
+  After sign-in, the person whose verified WorkOS email matches the invite
+  accepts it. Commerce checks everything first; then they join the
+  organization's WorkOS organization, Commerce creates their identity if new and
+  a membership with the invited role, marks the invite accepted (`accepted_at`,
+  `accepted_by`) and writes `invite.accepted`, and the session switches to the
+  organization. A refusal after the WorkOS step (a lost race) removes the WorkOS
+  membership again unless a Commerce membership holds it. An invite is used once
+  and expires, is never created accepted, and the runtime pool may change only
+  its expiry and acceptance (database-enforced in
+  `supabase/migrations/001463_invite_acceptance.sql`); a different, unverified
+  or staff address, an address bound to another WorkOS user, an impersonated
+  session and a role the organization's side cannot hold are refused. Operations
+  (`operations:write`) invites anyone into a customer or partner organization
+  from `/internal/organizations/<id>`, which lists every invite, shows the link
+  of each pending one to copy, and revokes pending ones (`invite.revoked`); no
+  email is sent (`EXT-PROVIDER-01`). The token is derived from the invite id
+  with `AUTHORIZATION_CONTEXT_SECRET`; only its hash is stored. After a secret
+  rotation a pending invite shows as void, with no link, and no longer blocks a
+  new invite to the same address. Evidence:
+  `supabase/tests/1463_invite_acceptance.test.sql`,
+  `packages/db/src/repositories/lifecycle/invites.integration.test.ts`,
+  `apps/web/src/features/invite/invite.test.tsx`.
+- **Sign-in for new customer and partner organizations `[OPEN]`:** owners,
+  administrators and partner administrators are privileged roles, and a session
+  counts as MFA-verified only for WorkOS organizations named in
+  `WORKOS_MFA_POLICY_ORGANIZATION_IDS`. Each new organization's WorkOS id must
+  be added there before its first administrator can use the portal.
+- **Customer and partner user management `[OPEN]`:** an organization's own
+  administrators invite through the lifecycle route, which applies their role
+  ceiling, but the customer and partner portals show no invite link (operations
+  copies it from the organization page), and there is no role change or removal
+  for customer or partner administrators
   (`packages/db/src/repositories/lifecycle/command-repository.ts`).
 - **Read-only "view as" `[OPEN]`:** staff can act for a customer only through an
   assisted session. A mode that renders a tenant portal with a chosen role's

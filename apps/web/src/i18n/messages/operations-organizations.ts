@@ -99,6 +99,57 @@ export const organizationMessages = defineStaffMessages({
     en: "Next: set up the organization, invite the signer as its first administrator, then mark this handoff done.",
   },
 
+  "operations.organizations.invites.title": { en: "Invitations" },
+  "operations.organizations.invites.description": {
+    en: "No email is sent. Copy the link and send it to the person yourself. They sign in with the invited email and accept; the link works once and expires after 14 days.",
+  },
+  "operations.organizations.invites.email": { en: "Email" },
+  "operations.organizations.invites.role": { en: "Role" },
+  "operations.organizations.invites.submit": { en: "Create invitation" },
+  "operations.organizations.invites.pending": { en: "Creating…" },
+  "operations.organizations.invites.done": {
+    en: "Invitation created for {email}. Copy the link below and send it to them.",
+  },
+  "operations.organizations.invites.empty": {
+    en: "No invitations yet.",
+  },
+  "operations.organizations.invites.unavailable": {
+    en: "Invitations cannot be read on this deployment right now.",
+  },
+  "operations.organizations.invites.link": { en: "Invitation link" },
+  "operations.organizations.invites.state.pending": {
+    en: "Waiting, expires {date}",
+  },
+  "operations.organizations.invites.state.accepted": { en: "Accepted {date}" },
+  "operations.organizations.invites.state.expired": { en: "Expired {date}" },
+  "operations.organizations.invites.state.void": {
+    en: "Link no longer works. Revoke it and invite again.",
+  },
+  "operations.organizations.invites.revoke": { en: "Revoke" },
+  "operations.organizations.invites.revoked": {
+    en: "Invitation for {email} revoked. Its link no longer works.",
+  },
+  "operations.organizations.error.INVITE_NOT_FOUND": {
+    en: "This invitation no longer exists.",
+  },
+  "operations.organizations.error.INVITE_NOT_PENDING": {
+    en: "This invitation was already accepted or has expired.",
+  },
+  "operations.organizations.error.INVITE_ORGANIZATION_NOT_FOUND": {
+    en: "This organization does not exist.",
+  },
+  "operations.organizations.error.INVITE_ROLE_NOT_ALLOWED_ON_SIDE": {
+    en: "That role is not available in this organization.",
+  },
+  "operations.organizations.error.INVITE_ALREADY_PENDING": {
+    en: "This person already has an invitation waiting. Copy its link below.",
+  },
+  "operations.organizations.error.INVITE_ALREADY_MEMBER": {
+    en: "This person is already a member of this organization.",
+  },
+  "operations.organizations.error.INVITE_UNAVAILABLE": {
+    en: "Invitations cannot be created on this deployment right now.",
+  },
   "operations.organizations.error.ONBOARDING_HANDOFF_NOT_IN_PROGRESS": {
     en: "Take the handoff before setting up its organization.",
   },

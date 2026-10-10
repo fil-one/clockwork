@@ -25,6 +25,13 @@ export const memberRoleLabels: Readonly<Record<string, MessageId>> = {
 };
 
 const otherErrors = [
+  "INVITE_ORGANIZATION_NOT_FOUND",
+  "INVITE_ROLE_NOT_ALLOWED_ON_SIDE",
+  "INVITE_ALREADY_PENDING",
+  "INVITE_ALREADY_MEMBER",
+  "INVITE_UNAVAILABLE",
+  "INVITE_NOT_FOUND",
+  "INVITE_NOT_PENDING",
   "HANDOFF_NOT_FOUND",
   "INVALID_INPUT",
   "CONTRACT_FORBIDDEN",

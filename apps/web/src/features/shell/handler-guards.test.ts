@@ -123,6 +123,8 @@ const actionExemptions: Readonly<Record<string, string>> = {
     "Ends the caller's own provider-managed assisted session.",
   "src/features/customer-partner/acquisition/actions.ts#submitCustomerAcquisition":
     "A customer's own request; it checks the owner or admin membership.",
+  "src/features/invite/actions.ts#acceptInvite":
+    "The invitee has no role yet: it requires a signed-in WorkOS user whose verified email matches the invite, which the repository checks again.",
 };
 
 function files(directory: string, match: (name: string) => boolean): string[] {

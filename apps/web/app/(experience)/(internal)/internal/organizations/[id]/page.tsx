@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { OrganizationInvites } from "@/src/features/internal-ops/organizations/organization-invites";
 import { OrganizationDetail } from "@/src/features/internal-ops/organizations/organization-views";
 import { loadOrganization } from "@/src/features/internal-ops/organizations/server";
 import { withStaffPermission } from "@/src/features/shell/staff-access";
@@ -25,11 +26,19 @@ async function Page({
   const loaded = await loadOrganization(id);
   if (loaded.kind === "forbidden") notFound();
   if (loaded.kind === "unavailable") throw new Error("ONBOARDING_UNAVAILABLE");
+  const { organization, invites, canWrite } = loaded.value;
   return (
     <OrganizationDetail
-      organization={loaded.value.organization}
+      organization={organization}
       created={query.created === "1"}
-    />
+    >
+      <OrganizationInvites
+        organizationId={organization.organizationId}
+        side={organization.side}
+        invites={invites}
+        canWrite={canWrite}
+      />
+    </OrganizationDetail>
   );
 }
 

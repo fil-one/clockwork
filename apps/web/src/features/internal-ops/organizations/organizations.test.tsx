@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   session: vi.fn(),
   revalidate: vi.fn(),
   repository: { create: vi.fn() },
+  invites: { createAsStaff: vi.fn(), revokeAsStaff: vi.fn() },
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.push, refresh: vi.fn() }),
@@ -21,10 +22,12 @@ vi.mock("@/src/db/service", () => ({ getServiceDatabase: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("./server", () => ({
   onboardingRepository: () => mocks.repository,
+  organizationInviteRepository: () => mocks.invites,
 }));
 
-import { createOrganization } from "./actions";
+import { createOrganization, inviteToOrganization } from "./actions";
 import { OrganizationForm } from "./organization-form";
+import { OrganizationInvites } from "./organization-invites";
 import {
   HandoffOrganizationStep,
   OrganizationDetail,
@@ -250,5 +253,168 @@ describe("the organization pages", () => {
     expect(
       screen.getByRole("link", { name: "Open the organization" }),
     ).toHaveAttribute("href", `/internal/organizations/${organizationId}`);
+  });
+});
+
+describe("invitations", () => {
+  const operatorSession = () =>
+    mocks.session.mockResolvedValue({
+      userId: "019a44ac-0000-7000-8000-0000000000aa",
+      profile: { name: "Ops Person" },
+      roles: ["internal_operator"],
+      isInternalStaff: true,
+      mfaVerified: true,
+    });
+
+  it("creates one and shows the link to copy", async () => {
+    operatorSession();
+    mocks.invites.createAsStaff.mockResolvedValue({
+      inviteId: "i1",
+      path: `/invite/${"t".repeat(43)}`,
+    });
+    render(
+      <OrganizationInvites
+        organizationId={organizationId}
+        side="customer"
+        invites={[]}
+        canWrite
+      />,
+    );
+    expect(screen.getByLabelText(/Role/u)).toHaveValue("owner");
+    fireEvent.change(screen.getByLabelText(/Email/u), {
+      target: { value: "alex@bluefin.test" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create invitation" }));
+    expect(
+      await screen.findByText(
+        "Invitation created for alex@bluefin.test. Copy the link below and send it to them.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(`http://localhost:3000/invite/${"t".repeat(43)}`),
+    ).toBeInTheDocument();
+    expect(mocks.invites.createAsStaff).toHaveBeenCalledWith(
+      { organizationId, email: "alex@bluefin.test", role: "owner" },
+      expect.objectContaining({ kind: "user", display: "Ops Person" }),
+    );
+  });
+
+  it("lists invitations with their state and a link only while pending", () => {
+    render(
+      <OrganizationInvites
+        organizationId={organizationId}
+        side="channel_partner"
+        invites={[
+          {
+            inviteId: "i1",
+            email: "lead@bluefin.test",
+            role: "partner_admin",
+            expiresAt: "2026-10-24T00:00:00.000Z",
+            acceptedAt: null,
+            state: "pending",
+            path: `/invite/${"p".repeat(43)}`,
+          },
+          {
+            inviteId: "i2",
+            email: "seller@bluefin.test",
+            role: "partner_seller",
+            expiresAt: "2026-10-20T00:00:00.000Z",
+            acceptedAt: "2026-10-11T00:00:00.000Z",
+            state: "accepted",
+            path: null,
+          },
+        ]}
+        canWrite={false}
+      />,
+    );
+    expect(
+      screen.getByText("Waiting, expires Oct 24, 2026"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Accepted Oct 11, 2026")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /Invitation link/u }),
+    ).toHaveLength(1);
+    expect(
+      screen.queryByRole("button", { name: "Create invitation" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("revokes a pending or void invitation", async () => {
+    operatorSession();
+    mocks.invites.revokeAsStaff.mockResolvedValue(undefined);
+    render(
+      <OrganizationInvites
+        organizationId={organizationId}
+        side="customer"
+        invites={[
+          {
+            inviteId: "019a44ac-0000-7000-8000-0000000000d1",
+            email: "old@bluefin.test",
+            role: "owner",
+            expiresAt: "2026-10-24T00:00:00.000Z",
+            acceptedAt: null,
+            state: "void",
+            path: null,
+          },
+        ]}
+        canWrite
+      />,
+    );
+    expect(
+      screen.getByText("Link no longer works. Revoke it and invite again."),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Revoke: old@bluefin.test" }),
+    );
+    expect(
+      await screen.findByText(
+        "Invitation for old@bluefin.test revoked. Its link no longer works.",
+      ),
+    ).toBeInTheDocument();
+    expect(mocks.invites.revokeAsStaff).toHaveBeenCalledWith(
+      {
+        organizationId,
+        inviteId: "019a44ac-0000-7000-8000-0000000000d1",
+      },
+      expect.objectContaining({ kind: "user" }),
+    );
+  });
+
+  it("is refused to sellers and words a refusal from the database", async () => {
+    mocks.session.mockResolvedValue({
+      userId: "u",
+      profile: { name: "Seller" },
+      roles: ["revenue"],
+      isInternalStaff: true,
+      mfaVerified: true,
+    });
+    await expect(
+      inviteToOrganization({
+        organizationId,
+        email: "a@b.test",
+        role: "owner",
+      }),
+    ).resolves.toEqual({ ok: false, code: "CONTRACT_FORBIDDEN" });
+    operatorSession();
+    mocks.invites.createAsStaff.mockRejectedValue(
+      new Error("INVITE_ALREADY_PENDING"),
+    );
+    render(
+      <OrganizationInvites
+        organizationId={organizationId}
+        side="customer"
+        invites={[]}
+        canWrite
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/Email/u), {
+      target: { value: "alex@bluefin.test" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create invitation" }));
+    expect(
+      await screen.findByText(
+        "This person already has an invitation waiting. Copy its link below.",
+      ),
+    ).toBeInTheDocument();
   });
 });

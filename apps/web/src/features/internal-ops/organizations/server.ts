@@ -1,7 +1,9 @@
 import "server-only";
 
 import {
+  InviteRepository,
   OrganizationOnboardingRepository,
+  type OrganizationInvite,
   type HandoffRequestDetail,
   type OnboardingOrganizationDetail,
   type OnboardingOrganizationSummary,
@@ -32,6 +34,20 @@ export function onboardingRepository() {
   const database = getOptionalServiceDatabase();
   if (!database) throw new Error("ONBOARDING_UNAVAILABLE");
   return new OrganizationOnboardingRepository(database);
+}
+
+/**
+ * Invites to these organizations. Links are derived with the deployment's
+ * authorization secret, so the page can show a pending link again.
+ */
+export function organizationInviteRepository() {
+  if (explicitDemoIdentityEnabled())
+    throw new ContractAccessError("CONTRACT_DEMO_UNAVAILABLE");
+  const database = getOptionalServiceDatabase();
+  const secret = process.env.AUTHORIZATION_CONTEXT_SECRET?.trim();
+  if (!database || !secret || secret.length < 32)
+    throw new Error("INVITE_UNAVAILABLE");
+  return new InviteRepository(database, secret);
 }
 
 async function load<T>(
@@ -71,11 +87,30 @@ export function loadOrganizations() {
 export function loadOrganization(id: string) {
   return load<{
     organization: OnboardingOrganizationDetail;
+    /** Null when invites cannot be read here, for example with no secret. */
+    invites: OrganizationInvite[] | null;
     canWrite: boolean;
-  }>("operations:read", async (session) => ({
-    organization: await onboardingRepository().get(id),
-    canWrite: sessionHas(session, "operations:write"),
-  }));
+  }>("operations:read", async (session) => {
+    const organization = await onboardingRepository().get(id);
+    const invites = await Promise.resolve()
+      .then(() => organizationInviteRepository().list(id))
+      .catch((error: unknown) => {
+        console.error("Organization invites could not be read", {
+          error: error instanceof Error ? error.message : "unknown",
+        });
+        return null;
+      });
+    const canWrite = sessionHas(session, "operations:write");
+    return {
+      organization,
+      // A pending link lets whoever holds it join; only someone who may
+      // invite sees it. Readers see the invite without its link.
+      invites: canWrite
+        ? invites
+        : (invites?.map((invite) => ({ ...invite, path: null })) ?? null),
+      canWrite,
+    };
+  });
 }
 
 /** The handoff a new organization is set up from, to prefill the form. */
