@@ -15,8 +15,9 @@ const artifactRoot = path.resolve(
 );
 const serial = process.env.CLOCKWORK_RELEASE_SERIAL === "1";
 if (
-  (process.env.CLOCKWORK_RELEASE_SHARD === "ui" ||
-    process.env.CLOCKWORK_RELEASE_SHARD === "demo") &&
+  ["ui-1", "ui-2", "demo"].includes(
+    process.env.CLOCKWORK_RELEASE_SHARD ?? "",
+  ) &&
   process.platform !== "darwin"
 )
   throw new Error(
@@ -72,8 +73,8 @@ const demoSuite = Boolean(demoPassword);
  * runtime as far as the product is concerned, and the product refuses one that
  * has neither real authentication nor the demo deploy opt-in. The demo shard
  * sets that opt-in, and a built server behind it is exactly what the hosted
- * demo deployment serves. The `ui` shard authenticates by `x-clockwork-persona`
- * header, which a production runtime is built to refuse, so it keeps the
+ * demo deployment serves. The `ui-*` shards authenticate by `x-clockwork-persona`
+ * header, which a production runtime is built to refuse, so they keep the
  * development server its journeys were written against.
  */
 const builtServer = demoSuite && Boolean(process.env.CI);

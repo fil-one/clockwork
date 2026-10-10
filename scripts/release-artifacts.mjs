@@ -5,13 +5,50 @@ export const RELEASE_FIXED_CLOCK = "2026-07-31T16:00:00.000Z";
 
 export const RELEASE_SUITE_NAMES = Object.freeze([
   "static",
+  "lint",
   "unit",
   "integration",
   "build",
-  "ui",
+  "ui-1",
+  "ui-2",
   "demo",
   "proof",
 ]);
+
+/**
+ * The browser journeys and visual comparisons run as two shards, each on its
+ * own macOS runner with its own `next dev` server, port and file-backed demo
+ * store (the store lives in the shard's workspace). Together they select every
+ * test the `functional-chromium` and `chromium` projects hold, once:
+ * `release-artifacts.test.mjs` discovers `apps/web/e2e/*.spec.ts` on disk and
+ * fails unless these lists partition it, less the demo and proof specs that
+ * their own shards run. A new spec therefore has to be placed in one of them.
+ *
+ * The halves are balanced on measured CI durations (sum of test durations in
+ * `playwright.json` over three runs on main, 2026-10-03 to 2026-10-05): about
+ * 330s for `ui-1` and 345s for `ui-2`, against 670s for the single shard.
+ *
+ * `visual.spec.ts` stays with the specs it follows today. Its project depends
+ * on `functional-chromium` so that, when this suite ran two workers, the
+ * screenshots could not race a mutating journey. A dependency runs its whole
+ * project whatever files are named, so `ui-2` passes `--no-deps` instead. The
+ * suite runs one worker now (playwright.config.ts), so nothing runs beside the
+ * visual tests, and they reset the durable demo state before and after.
+ */
+export const RELEASE_UI_SPEC_FILES = Object.freeze({
+  "ui-1": Object.freeze([
+    "e2e/ux-customer-partner.spec.ts",
+    "e2e/experience.spec.ts",
+    "e2e/language-settings.spec.ts",
+    "e2e/a11y-keyboard.spec.ts",
+    "e2e/smoke.spec.ts",
+  ]),
+  "ui-2": Object.freeze([
+    "e2e/ux-shell.spec.ts",
+    "e2e/ux-internal-ops.spec.ts",
+    "e2e/visual.spec.ts",
+  ]),
+});
 
 /**
  * The floor of the environment isolation contract, not a fingerprint of it.
@@ -95,7 +132,6 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
   static: Object.freeze([
     "typecheck",
     "format",
-    "lint",
     "boundaries",
     "secret-scan",
     "dependency-audit",
@@ -104,6 +140,9 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
     "traceability",
     "citation-liveness",
   ]),
+  // Type-aware lint is the longest static step (178s of 449s on main,
+  // 2026-10-05), so it runs on its own runner beside the rest.
+  lint: Object.freeze(["lint"]),
   unit: Object.freeze([
     "workspace-unit",
     "release-artifact-unit",
@@ -127,7 +166,8 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
     "workspace-integration",
   ]),
   build: Object.freeze(["production-build", "storybook-build"]),
-  ui: Object.freeze(["storybook-axe", "playwright-browser"]),
+  "ui-1": Object.freeze(["storybook-axe", "playwright-browser"]),
+  "ui-2": Object.freeze(["playwright-browser"]),
   demo: Object.freeze(["demo-browser"]),
   proof: Object.freeze(["production-proof-build", "production-browser-proof"]),
 });
@@ -210,7 +250,6 @@ export function expectedReleaseCommands(name, serial) {
     static: [
       turboCommand("typecheck", serial),
       ["pnpm", "format:check"],
-      ["pnpm", "lint"],
       ["pnpm", "boundaries"],
       ["pnpm", "scan:secrets"],
       ["pnpm", "audit", "--audit-level=low"],
@@ -219,6 +258,7 @@ export function expectedReleaseCommands(name, serial) {
       ["pnpm", "check:traceability"],
       ["pnpm", "check:citation-liveness"],
     ],
+    lint: [["pnpm", "lint"]],
     unit: [
       turboCommand("test:unit", serial, [
         "--allowOnly=false",
@@ -280,7 +320,7 @@ export function expectedReleaseCommands(name, serial) {
         "error",
       ],
     ],
-    ui: [
+    "ui-1": [
       [
         "pnpm",
         "--filter",
@@ -303,9 +343,25 @@ export function expectedReleaseCommands(name, serial) {
         "playwright",
         "test",
         "--project=functional-chromium",
-        "--project=chromium",
         "--retries=0",
         "--update-snapshots=none",
+        ...RELEASE_UI_SPEC_FILES["ui-1"],
+      ],
+    ],
+    "ui-2": [
+      [
+        "pnpm",
+        "--filter",
+        "@clockwork/web",
+        "exec",
+        "playwright",
+        "test",
+        "--project=functional-chromium",
+        "--project=chromium",
+        "--no-deps",
+        "--retries=0",
+        "--update-snapshots=none",
+        ...RELEASE_UI_SPEC_FILES["ui-2"],
       ],
     ],
     // The demo password gate redirects every non-exempt path, so these pages

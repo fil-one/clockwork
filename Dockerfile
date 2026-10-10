@@ -83,7 +83,23 @@ ENV CLOCKWORK_NEXT_STANDALONE=1
 # .env.production.local from.
 COPY deploy/.env.production.local ./apps/web/.env.production.local
 
-RUN pnpm exec turbo run build --filter=@clockwork/web
+# 1 only for a commit CI has already passed on main (deploy.yml sets it on the
+# workflow_run path; the PR-only Deploy check sets it too, because CI runs on
+# the same pull request). CI's static shard type-checks every package with the
+# same compiler and tsconfigs, and its build shard runs this same typed build,
+# so repeating that work here only costs the deploy about three minutes. The
+# upstream "build" tasks are `tsc --noEmit` and emit nothing the web build
+# reads (every workspace package exports its TypeScript source), so `--only`
+# skips them; CLOCKWORK_NEXT_SKIP_TYPECHECK skips Next's own type check. Next
+# still compiles every module, so a syntax error or an unresolved import fails
+# the build either way. Anything else, workflow_dispatch and local
+# `make docker-build` included, type-checks in full.
+ARG CLOCKWORK_TYPECHECKED_IN_CI=0
+RUN if [ "$CLOCKWORK_TYPECHECKED_IN_CI" = "1" ]; then \
+      CLOCKWORK_NEXT_SKIP_TYPECHECK=1 pnpm exec turbo run build --filter=@clockwork/web --only; \
+    else \
+      pnpm exec turbo run build --filter=@clockwork/web; \
+    fi
 
 # The migrate task also applies the production bootstrap (deploy/docker/
 # migrate.sh). Its CLI is TypeScript over the workspace packages, and the
