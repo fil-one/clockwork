@@ -6,7 +6,7 @@ import {
   managedProviders,
   type ProviderReferenceRow,
 } from "@clockwork/db";
-import { getCommerceSession } from "@/src/auth/session";
+import { getRequestCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import { LocalTimestamp } from "@/src/features/internal-ops/local-timestamp";
 import { AdministrationPage } from "@/src/features/internal-ops/administration-safety/ui";
@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 async function Page() {
-  const session = await getCommerceSession();
+  const session = await getRequestCommerceSession();
   if (
     !session.isInternalStaff ||
     !contextHasAnyPermission(session, ["operations:write", "quote:approve"])

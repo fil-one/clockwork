@@ -22,6 +22,7 @@ import {
 } from "./actions";
 import { formatMndaDate } from "./format";
 import { mndaErrorLabels } from "./labels";
+import { SessionExpiredReload } from "../session-expiry";
 import styles from "./workspace.module.css";
 
 /** Settings that bind Fil One: the notice email printed in new agreements and
@@ -42,8 +43,15 @@ export function MndaSettingsWorkspace({
   const [message, setMessage] = useState<{
     tone: "success" | "danger";
     text: string;
+    expired?: boolean;
   } | null>(null);
 
+  // A refused save keeps the draft typed in; the reload refreshes the session.
+  const expired = () => ({
+    tone: "danger" as const,
+    text: t(mndaErrorLabels.session_expired),
+    expired: true,
+  });
   async function reload() {
     const result = await loadMndaSettings();
     if (result.ok) {
@@ -79,7 +87,8 @@ export function MndaSettingsWorkspace({
             return;
           }
         }
-        setNoticeError(result.fields?.[0]?.code ?? result.code);
+        if (result.code === "session_expired") setMessage(expired());
+        else setNoticeError(result.fields?.[0]?.code ?? result.code);
         return;
       }
       setMessage({
@@ -103,7 +112,11 @@ export function MndaSettingsWorkspace({
             .getElementById(`mnda-signer-${result.fields[0]?.field ?? "name"}`)
             ?.focus();
         } else
-          setMessage({ tone: "danger", text: t(mndaErrorLabels[result.code]) });
+          setMessage(
+            result.code === "session_expired"
+              ? expired()
+              : { tone: "danger", text: t(mndaErrorLabels[result.code]) },
+          );
         return;
       }
       setSigner(null);
@@ -139,6 +152,13 @@ export function MndaSettingsWorkspace({
           tone={message.tone}
           live={message.tone === "danger" ? "assertive" : "polite"}
           title={message.text}
+          {...(message.expired
+            ? {
+                action: (
+                  <SessionExpiredReload onReloaded={() => setMessage(null)} />
+                ),
+              }
+            : {})}
         />
       ) : null}
       <section className={styles.panel} aria-labelledby="mnda-notice-heading">

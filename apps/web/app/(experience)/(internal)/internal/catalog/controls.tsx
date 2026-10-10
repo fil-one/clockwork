@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import type { DatabaseCatalogAdmin } from "@clockwork/db";
 import type { MessageId } from "@/src/i18n";
 import { useTranslations } from "@/src/i18n/client";
+import { SessionExpiredReload } from "@/src/features/internal-ops/session-expiry";
+import { sessionExpiredMessage } from "@/src/features/internal-ops/session-expiry-message";
 import { saveCatalogMapping, type CatalogMappingResult } from "./actions";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
 
@@ -13,6 +15,7 @@ const resultMessages: Readonly<
   Record<Exclude<CatalogMappingResult, "">, MessageId>
 > = {
   forbidden: "adminPricing.catalog.result.forbidden",
+  expired: sessionExpiredMessage,
   invalid: "adminPricing.catalog.result.invalid",
   saved: "adminPricing.catalog.result.saved",
   conflict: "adminPricing.catalog.result.conflict",
@@ -79,6 +82,7 @@ export function CatalogMappingControls({ row }: { row: CatalogRow }) {
         </button>
       </fieldset>
       {result ? <p role="status">{t(resultMessages[result])}</p> : null}
+      {result === "expired" ? <SessionExpiredReload /> : null}
     </form>
   );
 }

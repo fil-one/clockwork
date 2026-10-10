@@ -108,6 +108,7 @@ const failures: Readonly<Record<string, MessageId>> = {
   UNHANDLED_ERROR_EVIDENCE_INVALID:
     "operations.incidents.failure.referenceInvalid",
   UNHANDLED_ERROR_RECENT_AUTH_REQUIRED: "operations.decision.recentAuth",
+  SESSION_EXPIRED: "operations.session.expired",
   UNHANDLED_ERROR_FORBIDDEN: "operations.decision.permissionChanged",
   UNHANDLED_ERROR_UNAVAILABLE: "operations.incidents.failure.unavailable",
   UNHANDLED_ERROR_NOT_FOUND: "operations.incidents.failure.notFound",

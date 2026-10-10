@@ -10,7 +10,7 @@ import {
   provisionWorkosStaff,
 } from "@clockwork/integrations";
 
-import type { CommerceSession } from "@/src/auth/session";
+import { SessionExpiredError, type CommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import {
   requireStaffPermission,
@@ -74,6 +74,8 @@ async function authorize(): Promise<Authorized | Failure> {
     session = await requireStaffPermission("staff:manage");
   } catch (error) {
     if (error instanceof StaffPermissionError) return fail("NOT_PERMITTED");
+    // The access token lapsed; a reload refreshes it through the proxy.
+    if (error instanceof SessionExpiredError) return fail("SESSION_EXPIRED");
     // The session itself refused: most often an expired MFA check.
     return fail("RECENT_SIGN_IN_REQUIRED");
   }

@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { contextHasPermission } from "@clockwork/contracts";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
-import { requireRecentAuthentication } from "@/src/auth/session";
+import {
+  requireRecentAuthentication,
+  SessionExpiredError,
+} from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { recordUnhandledErrorDecision } from "./decision-store";
@@ -73,7 +76,9 @@ export async function decideUnhandledError(
   let session;
   try {
     session = await requireRecentAuthentication();
-  } catch {
+  } catch (error) {
+    if (error instanceof SessionExpiredError)
+      return { ok: false, code: "SESSION_EXPIRED" };
     return { ok: false, code: "UNHANDLED_ERROR_RECENT_AUTH_REQUIRED" };
   }
 

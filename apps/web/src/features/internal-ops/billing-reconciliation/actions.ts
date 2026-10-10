@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { contextHasAnyPermission } from "@clockwork/contracts";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
-import { requireRecentAuthentication } from "@/src/auth/session";
+import {
+  requireRecentAuthentication,
+  SessionExpiredError,
+} from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { recordVarianceDisposition } from "./disposition-store";
@@ -81,7 +84,9 @@ export async function classifyReconciliationVariance(
   let session;
   try {
     session = await requireRecentAuthentication();
-  } catch {
+  } catch (error) {
+    if (error instanceof SessionExpiredError)
+      return { ok: false, code: "SESSION_EXPIRED" };
     return { ok: false, code: "RECONCILIATION_RECENT_AUTH_REQUIRED" };
   }
 

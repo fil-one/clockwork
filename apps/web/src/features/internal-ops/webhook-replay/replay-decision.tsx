@@ -7,6 +7,7 @@ import { useId, useState, useTransition } from "react";
 import { replayWebhookEvent } from "./actions";
 import { replayFailureMessage, replayReasonMinimum } from "./copy";
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
+import { SessionExpiredReload } from "../session-expiry";
 
 export function ReplayDecision({
   provider,
@@ -23,10 +24,12 @@ export function ReplayDecision({
   const reasonId = useId().replaceAll(":", "");
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
+  const [expired, setExpired] = useState(false);
   const [started, setStarted] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function submit() {
+    setExpired(false);
     if (reason.trim().length < replayReasonMinimum) {
       setMessage(replayFailureMessage("WEBHOOK_REPLAY_REASON_REQUIRED", t));
       return;
@@ -47,6 +50,7 @@ export function ReplayDecision({
       }
       setStarted(false);
       setMessage(replayFailureMessage(result.code, t));
+      setExpired(result.code === "SESSION_EXPIRED");
     });
   }
 
@@ -117,6 +121,9 @@ export function ReplayDecision({
         <p className={styles.statusMessage} role="alert">
           {message}
         </p>
+      ) : null}
+      {message && expired ? (
+        <SessionExpiredReload onReloaded={() => setMessage("")} />
       ) : null}
       {started && !message ? (
         <p className={styles.statusMessage} role="status">
