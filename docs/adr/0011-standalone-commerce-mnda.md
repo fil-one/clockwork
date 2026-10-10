@@ -1,7 +1,8 @@
 # ADR 0011: Staff can send a pre-sales MNDA before an account exists
 
 Accepted 2026-10-02. Product name: Fil One Commerce. Repository and existing
-deployment hostname remain `clockwork`.
+deployment hostname remain `clockwork`. The MNDA signing workflow now runs on
+the shared engine in [ADR 0012](0012-one-signing-engine.md).
 
 The existing agreement flow binds a purchaser, commerce account and signing
 session. A sales prospect may have none of these. `/internal/mndas` therefore

@@ -439,14 +439,15 @@ it("holds a contract whose SignWell copy names other signers, and answers the wa
     workflow.sync(record().contractId, signwell),
   ).resolves.toMatchObject({
     state: "attention",
-    error: "signwell_signers_mismatch",
+    error: "signwell_signed_mismatch",
   });
-  // Nothing from the mismatched copy is applied, not even its completion.
+  // SignWell shows it completed, so it is held as signed in SignWell; nothing
+  // from the mismatched copy is applied, not even its completion.
   expect(provider.completedPdf).not.toHaveBeenCalled();
   expect(notes).toEqual([
     {
       eventType: "contract.signwell_mismatch",
-      detail: { reason: "signwell_signers_mismatch" },
+      detail: { reason: "signwell_signed_mismatch" },
     },
   ]);
   await workflow.sync(record().contractId, signwell);

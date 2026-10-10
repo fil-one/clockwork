@@ -7,7 +7,13 @@
  */
 import { randomUUID } from "node:crypto";
 import { vi, type Mock } from "vitest";
-import type { Actor, ContractSigningRecord } from "@clockwork/contracts";
+import {
+  contractSigning,
+  mndaSigning,
+  type Actor,
+  type ContractSigningRecord,
+  type SigningDocumentType,
+} from "@clockwork/contracts";
 import type {
   ContractSigningNote,
   MndaAuditNote,
@@ -25,34 +31,20 @@ import { MndaWorkflow } from "../mnda";
 export type SigningKind = "mnda" | "contract";
 
 /**
- * Where the two workflows differ today. A scenario that reaches one of these
- * asks `differs(name)` and asserts the current behavior; every other
- * expectation is shared.
+ * Where the two types still differ because a table has no column for the
+ * value. A scenario that reaches one asks `differs(name)`. Every behavior is
+ * shared; what a type declares (approval, copying the sender, correctable
+ * signers) is read from its declaration in `declares`.
  */
 export const expectedDifferences: Record<
   SigningKind,
   Readonly<Record<string, string>>
 > = {
-  mnda: {
-    no_approval: "An MNDA has no approval step.",
-  },
+  mnda: {},
   contract: {
-    attention_reason_dropped:
-      "A contract in attention records no reason: a bounce or a stopped document reads as error null.",
-    signed_mismatch_unnamed:
-      "A mismatched SignWell copy someone signed is recorded as a plain signer mismatch, and voiding it is refused as not voidable.",
-    send_returns_settled:
-      "Send returns a closed, attention or terminal request as its result instead of saying it was not sent.",
-    remind_returns_settled:
-      "Remind returns a request no longer waiting, or needing attention, instead of refusing.",
-    silent_unread_send: "A send whose read-back failed is not logged.",
-    silent_unrecorded_failure:
-      "A send failure that could not be recorded is not logged.",
-    no_copied_contacts: "A contract does not copy its sender.",
-    no_correct_signer: "A contract signer cannot be corrected in place.",
     no_cancel_code:
-      "A contract keeps no cancel code; a void records its reason in the history only.",
-    no_sent_at: "A contract records no first-sent time.",
+      "The contract table keeps no cancel code; a void records its reason in the history only.",
+    no_sent_at: "The contract table records no first-sent time.",
   },
 };
 
@@ -98,6 +90,7 @@ export interface SigningHarness {
   kind: SigningKind;
   /** The workflow's error code: `MNDA_<name>` or `CONTRACT_<name>`. */
   code(name: string): string;
+  declares: SigningDocumentType<never>;
   /** The operator log label, as the workflow writes it. */
   log: { label: string; idKey: string };
   differs(name: string): boolean;
@@ -290,6 +283,7 @@ export function mndaHarness(): SigningHarness {
   return {
     kind: "mnda",
     code: (name) => `MNDA_${name}`,
+    declares: mndaSigning,
     log: { label: "MNDA", idKey: "mndaId" },
     differs: differs("mnda"),
     actor,
@@ -406,7 +400,13 @@ export function contractHarness(): SigningHarness {
   });
   return {
     kind: "contract",
-    code: (name) => `CONTRACT_${name}`,
+    // The contract signing panel names these two with existing codes.
+    code: (name) =>
+      ({
+        SIGNED_IN_SIGNWELL: "CONTRACT_NOT_VOIDABLE",
+        REMIND_NEEDS_ATTENTION: "CONTRACT_NEEDS_ATTENTION",
+      })[name] ?? `CONTRACT_${name}`,
+    declares: contractSigning,
     log: { label: "CONTRACT", idKey: "contractId" },
     differs: differs("contract"),
     actor,
