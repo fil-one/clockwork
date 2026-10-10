@@ -240,8 +240,8 @@ function seeds(now: string) {
         owner: english(fixtureText.owner),
         payg: {
           currency: "USD",
-          storageTbMonthMinor: "499",
-          monthlyMinimumMinor: "499",
+          storageTbMonthMinor: "599",
+          monthlyMinimumMinor: "599",
           partialMonthMinimum: "full",
           correctionWindowDays: 90,
           aggregation: "hourly_average_daily_utc",

@@ -66,7 +66,7 @@ describe("DemoQuoteFlow", () => {
         rowVersion: 1,
         data: {
           status: "draft",
-          totalMinor: "7560000",
+          totalMinor: "301896",
           currency: "USD",
           marginFloorResult: "pass",
         },
@@ -202,7 +202,7 @@ describe("DemoQuoteFlow", () => {
     expect(order).toMatchObject({
       quoteRecordKey: `quote-${quoteId}`,
       accountId,
-      totalMinor: "7560000",
+      totalMinor: "301896",
     });
     expect(
       ((await store.read()) as DemoQuoteState).projectionOverrides[quoteId],
