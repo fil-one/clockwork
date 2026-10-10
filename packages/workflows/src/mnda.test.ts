@@ -12,7 +12,9 @@ import { MndaWorkflow } from "./mnda";
 const actor: Actor = { kind: "user", id: fixtureRecord.ownerId };
 function setup() {
   let record = structuredClone(fixtureRecord),
-    leased = false;
+    // The token holding the lease; writes with any other fail, as in the
+    // repository.
+    lease: ReturnType<typeof randomUUID> | undefined;
   const doc: SignWellDocument = {
     id: "019a44ac-0000-7000-8000-000000000005",
     status: "Draft",
@@ -41,15 +43,18 @@ function setup() {
   const events: string[] = [];
   const repo: Pick<
     MndaRepository,
-    "claim" | "release" | "update" | "get" | "readArtifact"
+    "claim" | "extendLease" | "release" | "update" | "get" | "readArtifact"
   > = {
     async claim() {
-      if (leased) throw new Error("MNDA_BUSY");
-      leased = true;
-      return { record: structuredClone(record), token: randomUUID() };
+      if (lease) throw new Error("MNDA_BUSY");
+      lease = randomUUID();
+      return { record: structuredClone(record), token: lease };
     },
-    async release() {
-      leased = false;
+    extendLease: vi.fn(async (_id: string, token: string) => {
+      if (token !== lease) throw new Error("MNDA_LEASE_LOST");
+    }),
+    async release(_id, token) {
+      if (token === lease) lease = undefined;
     },
     async get() {
       return structuredClone(record);
@@ -57,7 +62,8 @@ function setup() {
     async readArtifact() {
       return Buffer.from("%PDF-original");
     },
-    async update(_id, _token, patch, _actor, pdf, note) {
+    async update(_id, token, patch, _actor, pdf, note) {
+      if (token !== lease) throw new Error("MNDA_LEASE_LOST");
       if (pdf) archived = pdf;
       const { remindedAt, ...rest } = patch;
       record = {
@@ -90,16 +96,22 @@ function setup() {
     ),
     completedPdf: vi.fn(async () => Buffer.from("%PDF-completed-with-audit")),
   };
+  const wait = vi.fn(async () => {});
   return {
-    workflow: new MndaWorkflow(repo, provider),
+    workflow: new MndaWorkflow(repo, provider, wait),
     repo,
     provider,
+    wait,
     doc,
     record: () => record,
     archived: () => archived,
     events,
     setRecord: (patch: Partial<typeof fixtureRecord>) => {
       record = { ...record, ...patch };
+    },
+    /** The lease expired and someone else claimed the request. */
+    loseLease: () => {
+      lease = randomUUID();
     },
   };
 }
@@ -117,6 +129,127 @@ it("persists the binding before sending and retries a lost send response without
   expect((await s.workflow.send(fixtureRecord.id, actor)).state).toBe("sent");
   expect(s.provider.createDraft).toHaveBeenCalledTimes(1);
   expect(s.provider.send).toHaveBeenCalledTimes(1);
+});
+it("renews the lease while SignWell prepares the draft, then sends once", async () => {
+  const s = setup();
+  s.doc.status = "Created";
+  let reads = 0;
+  vi.mocked(s.provider.get).mockImplementation(async () => {
+    // Field extraction finishes after the first read.
+    if (++reads > 1 && s.doc.status === "Created") s.doc.status = "Draft";
+    return structuredClone(s.doc);
+  });
+  expect((await s.workflow.send(fixtureRecord.id, actor)).state).toBe("sent");
+  expect(s.wait).toHaveBeenCalledOnce();
+  // The lease is renewed in each polling round and before sending.
+  expect(s.repo.extendLease).toHaveBeenCalledTimes(2);
+  expect(s.provider.send).toHaveBeenCalledOnce();
+});
+it("reports a draft SignWell is still preparing instead of calling it sent", async () => {
+  const s = setup();
+  s.doc.status = "Created";
+  await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+    "MNDA_STILL_PREPARING",
+  );
+  expect(s.wait).toHaveBeenCalledTimes(8);
+  expect(s.repo.extendLease).toHaveBeenCalledTimes(9);
+  expect(s.provider.send).not.toHaveBeenCalled();
+  // Bound and waiting under Drafts, not recorded as a SignWell failure.
+  expect(s.record()).toMatchObject({
+    state: "preparing",
+    providerId: s.doc.id,
+    error: null,
+  });
+  s.doc.status = "Draft";
+  expect((await s.workflow.send(fixtureRecord.id, actor)).state).toBe("sent");
+  expect(s.provider.createDraft).toHaveBeenCalledOnce();
+  expect(s.provider.send).toHaveBeenCalledOnce();
+});
+it("stops waiting when the lease is lost while SignWell prepares the draft", async () => {
+  const s = setup();
+  s.doc.status = "Created";
+  s.wait.mockImplementationOnce(async () => s.loseLease());
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  // MNDA_LEASE_LOST is shown as "busy"; recording a provider failure under
+  // the lost lease fails too, so the request keeps no false SignWell error.
+  await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+    "MNDA_LEASE_LOST",
+  );
+  expect(warn).toHaveBeenCalledWith("MNDA send failure not recorded", {
+    mndaId: fixtureRecord.id,
+    error: "MNDA_LEASE_LOST",
+  });
+  warn.mockRestore();
+  expect(s.wait).toHaveBeenCalledOnce();
+  expect(s.provider.send).not.toHaveBeenCalled();
+  expect(s.record()).toMatchObject({ state: "ready", error: null });
+});
+it("reports a request SignWell shows needs attention before sending as not sent", async () => {
+  const s = setup();
+  s.setRecord({ providerId: s.doc.id, state: "ready" });
+  partnerOf(s.doc).bounced = true;
+  await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+    "MNDA_NEEDS_ATTENTION",
+  );
+  expect(s.record()).toMatchObject({
+    state: "attention",
+    error: "recipient_bounced",
+  });
+  expect(s.provider.send).not.toHaveBeenCalled();
+});
+it("reports a request nobody signs next as not pending instead of sent", async () => {
+  const declined = setup();
+  declined.setRecord({ providerId: declined.doc.id, state: "ready" });
+  declined.doc.status = "Declined";
+  await expect(declined.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+    "MNDA_NOT_PENDING",
+  );
+  expect(declined.record()).toMatchObject({ state: "declined", error: null });
+  const canceled = setup();
+  canceled.setRecord({ state: "canceled" });
+  await expect(canceled.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+    "MNDA_NOT_PENDING",
+  );
+  expect(canceled.record().error).toBeNull();
+  expect(canceled.provider.get).not.toHaveBeenCalled();
+  expect(declined.provider.send).not.toHaveBeenCalled();
+});
+it("flags a document deleted in SignWell right after it accepted the send", async () => {
+  const s = setup();
+  vi.mocked(s.provider.send).mockImplementationOnce(async () => {
+    s.doc.status = "Sent";
+    vi.mocked(s.provider.get)
+      .mockRejectedValueOnce(missing())
+      .mockRejectedValueOnce(missing());
+  });
+  await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+    "MNDA_NEEDS_ATTENTION",
+  );
+  expect(s.record()).toMatchObject({
+    state: "attention",
+    error: "deleted_in_signwell",
+  });
+  expect(s.events.at(-1)).toBe("mnda.deleted_in_signwell");
+  expect(s.provider.send).toHaveBeenCalledOnce();
+});
+it("returns the sent request when SignWell accepted the send but the read back failed", async () => {
+  const s = setup();
+  vi.mocked(s.provider.send).mockImplementationOnce(async () => {
+    s.doc.status = "Sent";
+    vi.mocked(s.provider.get).mockRejectedValueOnce(abort());
+  });
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const sent = await s.workflow.send(fixtureRecord.id, actor);
+  expect(warn).toHaveBeenCalledWith("MNDA state not read after send", {
+    mndaId: fixtureRecord.id,
+    error: "This operation was aborted",
+  });
+  warn.mockRestore();
+  expect(sent).toMatchObject({ state: "sending", error: null });
+  expect(s.record()).toMatchObject({ state: "sending", error: null });
+  // The next refresh settles it; nothing is sent twice.
+  expect((await s.workflow.sync(fixtureRecord.id, actor)).state).toBe("sent");
+  expect(s.provider.send).toHaveBeenCalledOnce();
 });
 it("never sends an unbound draft when creation fails", async () => {
   const s = setup();
@@ -436,6 +569,32 @@ it("spaces manual reminders from the last reminder, not from any update", async 
   s.setRecord({ remindedAt: new Date(Date.now() - 120_000).toISOString() });
   await s.workflow.remind(fixtureRecord.id, actor);
   expect(s.provider.remind).toHaveBeenCalledTimes(2);
+});
+it("refuses to remind a request SignWell shows is no longer waiting, keeping its new state", async () => {
+  const s = setup();
+  await s.workflow.send(fixtureRecord.id, actor);
+  s.doc.status = "Completed";
+  await expect(s.workflow.remind(fixtureRecord.id, actor)).rejects.toThrow(
+    "MNDA_NOT_PENDING",
+  );
+  expect(s.record().state).toBe("completed");
+  const bounced = setup();
+  await bounced.workflow.send(fixtureRecord.id, actor);
+  partnerOf(bounced.doc).bounced = true;
+  await expect(
+    bounced.workflow.remind(fixtureRecord.id, actor),
+  ).rejects.toThrow("MNDA_REMIND_NEEDS_ATTENTION");
+  expect(bounced.record().state).toBe("attention");
+  expect(s.provider.remind).not.toHaveBeenCalled();
+  expect(bounced.provider.remind).not.toHaveBeenCalled();
+});
+it("reminds the Fil One countersigner once the partner has signed", async () => {
+  const s = setup();
+  await s.workflow.send(fixtureRecord.id, actor);
+  partnerOf(s.doc).status = "signed";
+  const reminded = await s.workflow.remind(fixtureRecord.id, actor);
+  expect(reminded.state).toBe("awaiting_countersignature");
+  expect(s.provider.remind).toHaveBeenCalledOnce();
 });
 it("flags a document deleted in SignWell when sending, instead of reporting an outage", async () => {
   const s = setup();

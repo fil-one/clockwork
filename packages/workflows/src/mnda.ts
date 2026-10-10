@@ -49,6 +49,19 @@ const signedInSignWell = (doc: SignWellDocument) =>
   );
 /** Already recorded on the request; the register says what to do. */
 const needsAttention = () => new Error("MNDA_NEEDS_ATTENTION");
+/** SignWell has not finished processing the draft, so nothing was sent. The
+ * request stays under Drafts until someone sends it again. */
+const stillPreparing = () => new Error("MNDA_STILL_PREPARING");
+/** Nobody signs next: the request completed, or was declined, expired or
+ * canceled. */
+const notPending = () => new Error("MNDA_NOT_PENDING");
+/** The states in which SignWell has the request out for signature. */
+const outForSignature: readonly MndaState[] = [
+  "sending",
+  "sent",
+  "viewed",
+  "awaiting_countersignature",
+];
 
 /** How a void is explained: a typed reason, or the signer-change code. */
 export type MndaVoidReason = { reason: string } | { code: "signer_change" };
@@ -59,9 +72,11 @@ export class MndaWorkflow {
   constructor(
     private readonly repo: Pick<
       MndaRepository,
-      "claim" | "release" | "update" | "get" | "readArtifact"
+      "claim" | "extendLease" | "release" | "update" | "get" | "readArtifact"
     >,
     private readonly provider: MndaSigningProvider,
+    private readonly wait: (ms: number) => Promise<void> = (ms) =>
+      new Promise((resolve) => setTimeout(resolve, ms)),
   ) {}
   /**
    * Applies SignWell's state. A partner email change still pending is settled
@@ -178,7 +193,7 @@ export class MndaWorkflow {
     const { record, token } = await this.repo.claim(id);
     let current = record;
     try {
-      if (terminalMndaStates.includes(current.state)) return current;
+      if (terminalMndaStates.includes(current.state)) throw notPending();
       if (!current.providerId) {
         current = await this.repo.update(
           id,
@@ -201,20 +216,30 @@ export class MndaWorkflow {
       let doc = await this.fetch(current.providerId);
       // SignWell extracts text tags asynchronously after accepting a draft.
       // Keep the saved binding while allowing a bounded processing interval.
+      // Each round renews the lease, so a slow provider cannot outlive it.
       for (
         let attempt = 0;
         doc && signWellState(doc, current) === "preparing" && attempt < 8;
         attempt++
       ) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await this.wait(1500);
+        await this.repo.extendLease(id, token);
         doc = await this.fetch(current.providerId);
       }
+      await this.repo.extendLease(id, token);
       if (!doc) {
         await this.gone(current, token, actor);
         throw needsAttention();
       }
-      if (signWellState(doc, current) !== "ready")
-        return await this.apply(current, token, doc, actor);
+      if (signWellState(doc, current) !== "ready") {
+        // Only a request SignWell already has out for signature (a retry
+        // after a lost response) reads as sent.
+        const settled = await this.apply(current, token, doc, actor);
+        if (settled.state === "preparing") throw stillPreparing();
+        if (settled.state === "attention") throw needsAttention();
+        if (!outForSignature.includes(settled.state)) throw notPending();
+        return settled;
+      }
       assertSignWellSigningFields(doc, record);
       const copied = assertSignWellCopiedContacts(doc, current);
       if (copied === "unreported")
@@ -223,7 +248,7 @@ export class MndaWorkflow {
           mndaId: id,
           providerId: current.providerId,
         });
-      await this.repo.update(
+      const sending = await this.repo.update(
         id,
         token,
         { state: "sending", error: null },
@@ -232,15 +257,41 @@ export class MndaWorkflow {
         { detail: { copiedContacts: copied } },
       );
       await this.provider.send(current.providerId, current.testMode);
-      return await this.apply(
-        await this.repo.get(id),
-        token,
-        await this.provider.get(current.providerId),
-        actor,
-      );
+      // SignWell accepted the send. Failing to read it back is not a send
+      // failure: the webhook or the reconcile task settles the state.
+      try {
+        const sent = await this.fetch(current.providerId);
+        const stored = await this.repo.get(id);
+        if (!sent) {
+          await this.gone(stored, token, actor);
+          throw needsAttention();
+        }
+        return await this.apply(stored, token, sent, actor);
+      } catch (failure) {
+        if (
+          failure instanceof Error &&
+          failure.message === "MNDA_NEEDS_ATTENTION"
+        )
+          throw failure;
+        // i18n-exempt: operator log; identifiers and error codes only
+        console.warn("MNDA state not read after send", {
+          mndaId: id,
+          error: failure instanceof Error ? failure.message.slice(0, 120) : "",
+        });
+        return sending;
+      }
     } catch (error) {
-      // A deleted or mismatched document is already recorded with its reason.
-      if (error instanceof Error && error.message === "MNDA_NEEDS_ATTENTION")
+      // A deleted or mismatched document is already recorded with its
+      // reason, and a draft still processing in SignWell or a request nobody
+      // signs next is not a failure.
+      if (
+        error instanceof Error &&
+        [
+          "MNDA_NEEDS_ATTENTION",
+          "MNDA_STILL_PREPARING",
+          "MNDA_NOT_PENDING",
+        ].includes(error.message)
+      )
         throw error;
       const reason = current.providerId ? mismatchReason(error) : undefined;
       // Never include provider response bodies, keys, or signing links in
@@ -297,11 +348,16 @@ export class MndaWorkflow {
         throw new Error("MNDA_NOT_PENDING");
       }
       const current = await this.apply(record, token, doc, actor);
-      if (mismatched(current)) throw new Error("MNDA_NOT_PENDING");
+      // SignWell may show the request bounced, completed, declined or expired
+      // since the list was loaded. The new state is stored and nobody is
+      // reminded; a request needing attention says so, its row says why.
+      if (mismatched(current)) throw notPending();
+      if (current.state === "attention")
+        throw new Error("MNDA_REMIND_NEEDS_ATTENTION");
       if (
         !["sent", "viewed", "awaiting_countersignature"].includes(current.state)
       )
-        return current;
+        throw notPending();
       if (
         record.remindedAt &&
         Date.now() - Date.parse(record.remindedAt) < mndaReminderCooldownMs

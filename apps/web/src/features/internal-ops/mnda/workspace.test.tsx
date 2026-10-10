@@ -400,6 +400,61 @@ it("voids a sent MNDA only after a reason is given", async () => {
   ).toBeVisible();
 });
 
+it("says a draft SignWell is still preparing was not sent", async () => {
+  mocks.operate.mockResolvedValueOnce({ ok: false, code: "still_preparing" });
+  render(
+    <MndaWorkspace initial={data([fixtureRecord])} initialQuery={query} />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Confirm and send" }),
+  );
+  expect(
+    await screen.findByText(
+      "SignWell is still preparing this MNDA, so it was not sent. Send it again in a minute. Until then it stays under Drafts.",
+    ),
+  ).toBeVisible();
+  expect(screen.queryByText(/Sent to/)).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Confirm and send" }),
+  ).toBeEnabled();
+});
+
+it("names whoever SignWell says was reminded, and says when nobody was", async () => {
+  mocks.loadRegister.mockResolvedValue({
+    ok: true,
+    value: { register: data([sent]).register },
+  });
+  mocks.operate.mockResolvedValueOnce({
+    ok: true,
+    value: { ...sent, state: "awaiting_countersignature" },
+  });
+  render(<MndaWorkspace initial={data([sent])} initialQuery={query} />);
+  fireEvent.click(screen.getByRole("button", { name: "Remind Alex Example" }));
+  expect(await screen.findByText("Reminder sent to James Kurz.")).toBeVisible();
+  mocks.operate.mockResolvedValueOnce({ ok: false, code: "not_pending" });
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Remind Alex Example" }),
+  );
+  expect(
+    await screen.findByText(
+      "This MNDA is no longer waiting on anyone. Its row shows its current status.",
+    ),
+  ).toBeVisible();
+  mocks.operate.mockResolvedValueOnce({
+    ok: false,
+    code: "remind_needs_attention",
+  });
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Remind Alex Example" }),
+  );
+  expect(
+    await screen.findByText(
+      "No reminder was sent. This MNDA needs attention first, and its row says why and what to do next.",
+    ),
+  ).toBeVisible();
+});
+
 it("keeps sending disabled when the provider is not configured", async () => {
   render(
     <MndaWorkspace

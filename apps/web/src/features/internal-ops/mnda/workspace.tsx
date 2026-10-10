@@ -241,14 +241,15 @@ export function MndaWorkspace({
         });
         return false;
       }
+      // Named from SignWell's state as the reminder found it, not the row.
       if (operation === "remind")
         setMessage({
           tone: "success",
           text: t("operations.mnda.reminded", {
             name:
-              record.state === "awaiting_countersignature"
-                ? record.countersigner.name
-                : record.input.signerName,
+              result.value.state === "awaiting_countersignature"
+                ? result.value.countersigner.name
+                : result.value.input.signerName,
           }),
         });
       return true;

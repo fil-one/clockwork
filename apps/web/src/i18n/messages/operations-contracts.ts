@@ -2125,6 +2125,16 @@ export const contractMessages = defineMessages({
     zh: "请在此作废以关闭请求，然后准备新的合同。",
     ar: "أبطله هنا لإغلاق الطلب، ثم أعدّ عقدًا جديدًا.",
   },
+  "operations.contracts.error.stillPreparing": {
+    en: "SignWell is still preparing this contract, so it was not sent. Send it again in a minute.",
+    es: "SignWell aún está preparando este contrato, así que no se ha enviado. Vuelva a enviarlo dentro de un minuto.",
+    fr: "SignWell prépare encore ce contrat, il n’a donc pas été envoyé. Renvoyez-le dans une minute.",
+    de: "SignWell bereitet diesen Vertrag noch vor, daher wurde er nicht gesendet. Senden Sie ihn in einer Minute erneut.",
+    ja: "SignWell がこの契約をまだ準備中のため、送信されていません。1分後にもう一度送信してください。",
+    pt: "A SignWell ainda está preparando este contrato, então ele não foi enviado. Envie novamente em um minuto.",
+    zh: "SignWell 仍在准备此合同，因此尚未发送。请一分钟后再次发送。",
+    ar: "لا يزال SignWell يُعِدّ هذا العقد، لذا لم يُرسَل. أرسله مرة أخرى بعد دقيقة.",
+  },
   "operations.contracts.error.needsAttention": {
     en: "This contract was not sent. The signing section says why and what to do next.",
     es: "Este contrato no se envió. La sección de firma indica el motivo y qué hacer a continuación.",

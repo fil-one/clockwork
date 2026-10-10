@@ -190,6 +190,22 @@ describe("sending requires mnda:send", () => {
     expect(
       await operateMnda({ id: fixtureRecord.id, operation: "send" }),
     ).toEqual({ ok: false, code: "provider_failed" });
+    mocks.workflow.send.mockRejectedValueOnce(
+      new Error("MNDA_STILL_PREPARING"),
+    );
+    expect(
+      await operateMnda({ id: fixtureRecord.id, operation: "send" }),
+    ).toEqual({ ok: false, code: "still_preparing" });
+    mocks.workflow.send.mockRejectedValueOnce(new Error("MNDA_LEASE_LOST"));
+    expect(
+      await operateMnda({ id: fixtureRecord.id, operation: "send" }),
+    ).toEqual({ ok: false, code: "busy" });
+    mocks.workflow.remind.mockRejectedValueOnce(
+      new Error("MNDA_REMIND_NEEDS_ATTENTION"),
+    );
+    expect(
+      await operateMnda({ id: fixtureRecord.id, operation: "remind" }),
+    ).toEqual({ ok: false, code: "remind_needs_attention" });
     expect(await voidMnda({ id: fixtureRecord.id, reason: " " })).toMatchObject(
       { ok: false, code: "reason_required" },
     );

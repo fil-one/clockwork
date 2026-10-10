@@ -137,6 +137,27 @@ it("serializes duplicate draft creation, preserves signer snapshots and locks co
   ).rejects.toThrow("permission denied");
 }, 30000);
 
+it("renews a held lease and refuses one that was lost or released", async () => {
+  const record = await draft(await newSigner());
+  const leaseUntil = async () => {
+    const [row] = await client<
+      { lease_until: string }[]
+    >`select lease_until from commerce_mnda_requests where id=${record.id}`;
+    return Date.parse(row?.lease_until ?? "");
+  };
+  const lease = await repo.claim(record.id);
+  const claimed = await leaseUntil();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  await repo.extendLease(record.id, lease.token);
+  expect(await leaseUntil()).toBeGreaterThan(claimed);
+  await expect(repo.extendLease(record.id, randomUUID())).rejects.toThrow(
+    "MNDA_LEASE_LOST",
+  );
+  await repo.release(record.id, lease.token);
+  await expect(repo.extendLease(record.id, lease.token)).rejects.toThrow(
+    "MNDA_LEASE_LOST",
+  );
+});
 it("versions and audits the notice email, snapshots it on drafts and refuses stale saves", async () => {
   const before = await repo.settings();
   const changed = `notices-${randomUUID().slice(0, 8)}@fil.one`;

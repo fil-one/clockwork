@@ -383,6 +383,8 @@ export const mndaErrorCodes = [
   "not_correctable",
   "already_completed",
   "needs_attention",
+  "still_preparing",
+  "remind_needs_attention",
   "signed_in_signwell",
   "reason_required",
   "session_expired",

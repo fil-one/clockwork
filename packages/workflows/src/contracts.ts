@@ -53,6 +53,8 @@ const counterpartySigned = (doc: SignWellContractDocument) =>
   );
 /** Already recorded on the request; the signing panel says what to do. */
 const needsAttention = () => new Error("CONTRACT_NEEDS_ATTENTION");
+/** SignWell has not finished processing the draft, so nothing was sent. */
+const stillPreparing = () => new Error("CONTRACT_STILL_PREPARING");
 
 type Repository = Pick<
   ContractSigningRepository,
@@ -223,31 +225,48 @@ export class ContractSigningWorkflow {
         await this.gone(current, token, actor);
         throw needsAttention();
       }
-      if (contractSignWellState(doc, current) !== "ready")
-        return await this.apply(current, token, doc, actor);
+      if (contractSignWellState(doc, current) !== "ready") {
+        const settled = await this.apply(current, token, doc, actor);
+        if (settled.state === "preparing") throw stillPreparing();
+        return settled;
+      }
       assertContractSigningFields(doc);
-      await this.repo.update(
+      const sending = await this.repo.update(
         contractId,
         token,
         { state: "sending", error: null },
         actor,
       );
       await this.provider.send(current.providerId, current.testMode);
-      const sent = await this.fetch(current.providerId);
-      current = await this.repo.get(contractId);
-      if (!sent) {
-        await this.gone(current, token, actor);
-        throw needsAttention();
+      // SignWell accepted the send. Failing to read it back is not a send
+      // failure: the webhook or the reconcile task settles the state.
+      try {
+        const sent = await this.fetch(current.providerId);
+        current = await this.repo.get(contractId);
+        if (!sent) {
+          await this.gone(current, token, actor);
+          throw needsAttention();
+        }
+        return await this.apply(current, token, sent, actor);
+      } catch (failure) {
+        if (
+          failure instanceof Error &&
+          failure.message === "CONTRACT_NEEDS_ATTENTION"
+        )
+          throw failure;
+        return sending;
       }
-      return await this.apply(current, token, sent, actor);
     } catch (error) {
-      // Approval is a precondition, not a provider failure, and a deleted or
-      // mismatched document is already recorded with its reason.
+      // Approval is a precondition, not a provider failure, a deleted or
+      // mismatched document is already recorded with its reason, and a draft
+      // still processing in SignWell has not failed.
       if (
         error instanceof Error &&
-        ["CONTRACT_APPROVAL_REQUIRED", "CONTRACT_NEEDS_ATTENTION"].includes(
-          error.message,
-        )
+        [
+          "CONTRACT_APPROVAL_REQUIRED",
+          "CONTRACT_NEEDS_ATTENTION",
+          "CONTRACT_STILL_PREPARING",
+        ].includes(error.message)
       )
         throw error;
       const reason = current.providerId ? mismatchReason(error) : undefined;
