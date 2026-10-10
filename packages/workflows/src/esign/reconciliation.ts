@@ -21,9 +21,10 @@ import { MndaWorkflow } from "../mnda";
  * leaves a request showing an old state with nothing to correct it but a
  * person pressing refresh. Every tick this re-reads, through each workflow's
  * own `sync`, requests still open in SignWell that nothing has changed
- * recently, rotating through them when there are more than one run reads. `sync` takes the request's lease, so it cannot race a
- * webhook or a person acting on the same request: a held lease is skipped and
- * picked up on the next tick.
+ * recently, rotating through them when there are more than one run can read.
+ * `sync` takes the request's lease, so it cannot race a webhook or a person
+ * acting on the same request: a held lease is skipped and picked up on the
+ * next tick.
  */
 export interface ESignReconciliationSource {
   /** Which register the ids belong to; used in logs and the run summary. */
