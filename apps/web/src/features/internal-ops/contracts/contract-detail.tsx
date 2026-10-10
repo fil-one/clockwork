@@ -11,14 +11,16 @@ import {
   type UploadableContractFileKind,
 } from "@clockwork/contracts";
 import {
+  Breadcrumbs,
   DescriptionList,
   InlineNotice,
   PageHeader,
   StatusBadge,
   buttonClassName,
 } from "@clockwork/ui";
+import { breadcrumbsLabel } from "@/src/features/shared/ui-kit-labels";
 import type { MessageId, Translator } from "@/src/i18n";
-import { formatOperationalTimestamp } from "../presentation";
+import { LocalTimestamp } from "../local-timestamp";
 import { DateValue, DeadlineValue, Tags } from "./cells";
 import { ContractDocuments } from "./contract-documents";
 import {
@@ -203,9 +205,7 @@ function Activity({
               <strong>{activityTitle(event, t)}</strong>
               <span>
                 {event.actorName} ·{" "}
-                <time dateTime={event.occurredAt}>
-                  {formatOperationalTimestamp(event.occurredAt, locale)}
-                </time>
+                <LocalTimestamp value={event.occurredAt} locale={locale} />
               </span>
               {event.eventType === "contract.rejected" &&
               typeof changes.reason === "string" ? (
@@ -299,6 +299,17 @@ export function ContractDetail({
     contract.status === "executed";
   return (
     <main className={styles.page} id="main-content">
+      <Breadcrumbs
+        label={breadcrumbsLabel(t)}
+        items={[
+          {
+            label: t("operations.contracts.title"),
+            href: "/internal/contracts",
+          },
+          { label: contract.counterpartyName },
+        ]}
+        renderLink={(href, label) => <Link href={href as Route}>{label}</Link>}
+      />
       <PageHeader
         eyebrow={t(contractTypeLabels[contract.contractType])}
         title={contract.counterpartyName}
@@ -313,22 +324,14 @@ export function ContractDetail({
           </span>
         }
         actions={
-          <div className={styles.headerActions}>
-            {canWrite ? (
-              <Link
-                className={buttonClassName()}
-                href={`/internal/contracts/${contract.id}/edit` as Route}
-              >
-                {t("operations.contracts.action.edit")}
-              </Link>
-            ) : null}
+          canWrite ? (
             <Link
-              className={buttonClassName({ variant: "secondary" })}
-              href="/internal/contracts"
+              className={buttonClassName()}
+              href={`/internal/contracts/${contract.id}/edit` as Route}
             >
-              {t("operations.contracts.backToRegister")}
+              {t("operations.contracts.action.edit")}
             </Link>
-          </div>
+          ) : undefined
         }
       />
       {canWrite &&
@@ -385,6 +388,7 @@ export function ContractDetail({
                       date={contract.effectiveDate}
                       t={t}
                       locale={locale}
+                      spelled
                     />
                   ),
                 },
@@ -416,6 +420,7 @@ export function ContractDetail({
                       date={contract.termEndDate}
                       t={t}
                       locale={locale}
+                      spelled
                     />
                   ),
                 },
@@ -426,6 +431,7 @@ export function ContractDetail({
                       date={contract.renewalDate}
                       t={t}
                       locale={locale}
+                      spelled
                     />
                   ),
                 },
@@ -437,6 +443,7 @@ export function ContractDetail({
                       today={today}
                       t={t}
                       locale={locale}
+                      spelled
                     />
                   ),
                 },
@@ -486,7 +493,15 @@ export function ContractDetail({
                 },
                 {
                   term: t("operations.contracts.detail.recordedBy"),
-                  detail: `${contract.createdByName}, ${formatOperationalTimestamp(contract.createdAt, locale)}`,
+                  detail: (
+                    <>
+                      {contract.createdByName},{" "}
+                      <LocalTimestamp
+                        value={contract.createdAt}
+                        locale={locale}
+                      />
+                    </>
+                  ),
                 },
                 {
                   term: t("operations.contracts.detail.documents"),
@@ -496,7 +511,7 @@ export function ContractDetail({
                           files.map((f) => t(contractFileKindLabels[f.kind])),
                         ),
                       ].join(", ")
-                    : t("operations.contracts.notSet"),
+                    : t("operations.contracts.none"),
                 },
               ]}
             />

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { HandoffRequestRecord } from "@clockwork/contracts";
@@ -97,7 +103,7 @@ describe("the contract record's handoff section", () => {
     expect(screen.getByLabelText(/Signer email/u)).toHaveValue(
       "alex@example.com",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Send to operations" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hand to operations" }));
     await waitFor(() => expect(mocks.request).toHaveBeenCalledOnce());
     expect(mocks.request.mock.calls[0]?.[0]).toMatchObject({
       contractIds: [contractId],
@@ -108,9 +114,7 @@ describe("the contract record's handoff section", () => {
       pricingScenarioId: null,
     });
     expect(
-      await screen.findAllByText(
-        "Sent to operations. Its status shows here and on your home page.",
-      ),
+      await screen.findAllByText("Handed to operations."),
     ).not.toHaveLength(0);
     expect(mocks.refresh).toHaveBeenCalled();
   });
@@ -126,7 +130,7 @@ describe("the contract record's handoff section", () => {
       }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Hand to operations" }));
-    fireEvent.click(screen.getByRole("button", { name: "Send to operations" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hand to operations" }));
     expect(
       await screen.findByText("This contract is already with operations."),
     ).toBeInTheDocument();
@@ -152,7 +156,7 @@ describe("the contract record's handoff section", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("explains that only an executed contract can be handed off", async () => {
+  it("explains that only a signed contract can be handed off", async () => {
     render(
       await ContractHandoffSection({
         loaded: {
@@ -165,14 +169,17 @@ describe("the contract record's handoff section", () => {
     );
     expect(
       screen.getByText(
-        "A contract can be handed to operations once it is executed.",
+        "A contract can be handed to operations once it is signed.",
       ),
     ).toBeInTheDocument();
   });
 
-  it("renders nothing for a reader who may not raise one", async () => {
+  it("renders nothing for a reader who may not raise one, or in the demo", async () => {
     expect(
       await ContractHandoffSection({ loaded: { kind: "forbidden" } }),
+    ).toBeNull();
+    expect(
+      await ContractHandoffSection({ loaded: { kind: "demo" } }),
     ).toBeNull();
   });
 });
@@ -208,47 +215,104 @@ describe("the handoff detail", () => {
         readerId: "reader",
       }),
     );
+    expect(screen.getByText(/\(Signed in Commerce\)/u)).toBeInTheDocument();
     expect(
-      screen.getByText(/Executed\s*, signed in Commerce/u),
+      screen.getByText(/\(Recorded as signed by staff\)/u),
     ).toBeInTheDocument();
+    const trail = screen.getByRole("navigation", { name: "Breadcrumb" });
     expect(
-      screen.getByText(/Executed\s*, recorded as executed by staff/u),
-    ).toBeInTheDocument();
-  });
-});
-
-describe("the operations queue", () => {
-  it("lists requests with their status and links each one", async () => {
-    render(
-      await HandoffQueue({
-        requests: [
-          record(),
-          record({
-            id: "019a44ac-0000-7000-8000-0000000000e2",
-            status: "declined",
-            counterpartyLegalName: "Globex",
-          }),
-        ],
-        status: undefined,
-      }),
-    );
-    expect(
-      screen.getByRole("link", { name: "Bluefin Data Co." }),
-    ).toHaveAttribute(
-      "href",
-      "/internal/handoffs/019a44ac-0000-7000-8000-0000000000e1",
-    );
-    expect(screen.getAllByText("Waiting for operations")).not.toHaveLength(0);
-    expect(screen.getAllByText("Declined")).not.toHaveLength(0);
-    expect(screen.getByRole("link", { name: "All" })).toHaveAttribute(
+      within(trail).getByRole("link", { name: "Handoffs" }),
+    ).toHaveAttribute("href", "/internal/handoffs");
+    expect(within(trail).getByText("Bluefin Data Co.")).toHaveAttribute(
       "aria-current",
       "page",
     );
   });
+});
+
+describe("the operations queue", () => {
+  const requests = [
+    record(),
+    record({
+      id: "019a44ac-0000-7000-8000-0000000000e2",
+      status: "declined",
+      counterpartyLegalName: "Globex",
+    }),
+  ];
+
+  it("lists requests in the shared table and phone cards, linking each one", async () => {
+    render(
+      await HandoffQueue({
+        state: { kind: "ready", requests, recent: requests },
+        status: undefined,
+      }),
+    );
+    const table = screen.getByRole("table");
+    expect(
+      within(table).getByRole("link", { name: "Bluefin Data Co." }),
+    ).toHaveAttribute(
+      "href",
+      "/internal/handoffs/019a44ac-0000-7000-8000-0000000000e1",
+    );
+    expect(within(table).getByText("Not started")).toBeInTheDocument();
+    expect(within(table).getByText("Declined")).toBeInTheDocument();
+    // The same rows as cards for a phone, where the table is hidden.
+    expect(
+      screen.getAllByRole("heading", { level: 2, name: "Globex" }),
+    ).toHaveLength(1);
+  });
+
+  it("filters with pills that count each status", async () => {
+    render(
+      await HandoffQueue({
+        state: { kind: "ready", requests: requests.slice(1), recent: requests },
+        status: "declined",
+      }),
+    );
+    const filters = screen.getByRole("navigation", { name: "Show" });
+    expect(
+      within(filters).getByRole("link", { name: "All (2)" }),
+    ).toHaveAttribute("href", "/internal/handoffs");
+    expect(
+      within(filters).getByRole("link", { name: "Not started (1)" }),
+    ).toHaveAttribute("href", "/internal/handoffs?status=open");
+    expect(
+      within(filters).getByRole("link", { name: "Declined (1)" }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      within(filters).getByRole("link", { name: "Done (0)" }),
+    ).toBeInTheDocument();
+  });
 
   it("says when nothing is waiting", async () => {
-    render(await HandoffQueue({ requests: [], status: "open" }));
+    render(
+      await HandoffQueue({
+        state: { kind: "ready", requests: [], recent: [] },
+        status: "open",
+      }),
+    );
     expect(screen.getByText("Nothing waiting")).toBeInTheDocument();
+  });
+
+  it("reads as turned off in the demo, with no filters or failure", async () => {
+    render(await HandoffQueue({ state: { kind: "demo" }, status: undefined }));
+    expect(
+      screen.getByText("Handoffs are turned off in the demo."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/tell engineering/u)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: "Show" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("names a failed read and who to tell", async () => {
+    render(
+      await HandoffQueue({ state: { kind: "unavailable" }, status: undefined }),
+    );
+    expect(
+      screen.getByText(/The queue could not be loaded right now/u),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 });
 

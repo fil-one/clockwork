@@ -6,24 +6,24 @@ import { defineStaffMessages } from "../define";
  * the operations module.
  */
 export const handoffMessages = defineStaffMessages({
-  "operations.handoff.status.open": { en: "Waiting for operations" },
+  "operations.handoff.status.open": { en: "Not started" },
   "operations.handoff.status.in_progress": { en: "In progress" },
   "operations.handoff.status.done": { en: "Done" },
   "operations.handoff.status.declined": { en: "Declined" },
   "operations.handoff.side.customer": { en: "Customer" },
-  "operations.handoff.side.partner": { en: "Partner" },
+  "operations.handoff.side.partner": { en: "Channel or referral partner" },
 
   "operations.handoff.panel.title": { en: "Hand to operations" },
   "operations.handoff.panel.description": {
     en: "Operations sets the counterparty up in Commerce: the organization, then the first administrator's invitation.",
   },
   "operations.handoff.panel.notSigned": {
-    en: "A contract can be handed to operations once it is executed.",
+    en: "A contract can be handed to operations once it is signed.",
   },
   "operations.handoff.panel.unavailable": {
     en: "Handoffs could not be loaded right now. Reload the page in a minute.",
   },
-  "operations.handoff.panel.requests": { en: "Requests for this contract" },
+  "operations.handoff.panel.requests": { en: "Handoffs for this contract" },
   "operations.handoff.form.open": { en: "Hand to operations" },
   "operations.handoff.form.legalName": { en: "Counterparty legal name" },
   "operations.handoff.form.signerName": { en: "Signer name" },
@@ -42,17 +42,16 @@ export const handoffMessages = defineStaffMessages({
     en: "Start date, billing contact, anything agreed outside the contract.",
   },
   "operations.handoff.form.optional": { en: "Optional" },
-  "operations.handoff.form.submit": { en: "Send to operations" },
-  "operations.handoff.form.pending": { en: "Sending…" },
-  "operations.handoff.form.done": {
-    en: "Sent to operations. Its status shows here and on your home page.",
-  },
+  "operations.handoff.form.submit": { en: "Hand to operations" },
+  "operations.handoff.form.pending": { en: "Handing over…" },
+  "operations.handoff.form.done": { en: "Handed to operations." },
 
   "operations.handoff.queue.title": { en: "Handoffs" },
   "operations.handoff.queue.description": {
     en: "Signed contracts sales has handed over. Take one, set up the organization and invite its first administrator, then mark it done.",
   },
   "operations.handoff.queue.filter.all": { en: "All" },
+  "operations.handoff.queue.filter.withCount": { en: "{label} ({count})" },
   "operations.handoff.queue.filter.label": { en: "Show" },
   "operations.handoff.queue.empty.title": { en: "Nothing waiting" },
   "operations.handoff.queue.empty.description": {
@@ -60,6 +59,12 @@ export const handoffMessages = defineStaffMessages({
   },
   "operations.handoff.queue.unavailable": {
     en: "The queue could not be loaded right now. Reload the page in a minute. If it keeps failing, tell engineering.",
+  },
+  "operations.handoff.queue.demoTitle": {
+    en: "Handoffs are turned off in the demo.",
+  },
+  "operations.handoff.queue.demoBody": {
+    en: "In a live workspace, signed contracts that sales hands over appear here for operations to set up.",
   },
   "operations.handoff.column.counterparty": { en: "Counterparty" },
   "operations.handoff.column.side": { en: "Side" },
@@ -70,7 +75,13 @@ export const handoffMessages = defineStaffMessages({
   "operations.handoff.unassigned": { en: "Nobody yet" },
 
   "operations.handoff.detail.title": { en: "Handoff" },
-  "operations.handoff.detail.back": { en: "All handoffs" },
+  "operations.handoff.detail.documentTitle": { en: "{name}, handoff" },
+  "operations.handoff.detail.requested": {
+    en: "Requested by {name}, {date}",
+  },
+  "operations.handoff.detail.unavailable": {
+    en: "This handoff could not be loaded right now. Reload the page in a minute. If it keeps failing, tell engineering.",
+  },
   "operations.handoff.detail.contracts": { en: "Contracts" },
   "operations.handoff.detail.signer": { en: "Signer" },
   "operations.handoff.detail.mnda": { en: "MNDA" },
@@ -105,7 +116,7 @@ export const handoffMessages = defineStaffMessages({
     en: "Signed contracts you handed to operations, newest first.",
   },
   "operations.handoff.home.empty": {
-    en: "None yet. Open an executed contract and choose Hand to operations.",
+    en: "None yet. Open a signed contract and choose Hand to operations.",
   },
   "operations.handoff.home.more": { en: "Showing the newest {count}." },
 
@@ -116,7 +127,7 @@ export const handoffMessages = defineStaffMessages({
     en: "Someone changed this handoff a moment ago. Reload to see it.",
   },
   "operations.handoff.error.HANDOFF_CONTRACT_NOT_SIGNED": {
-    en: "The contract is not executed yet.",
+    en: "The contract is not signed yet.",
   },
   "operations.handoff.error.HANDOFF_ALREADY_REQUESTED": {
     en: "This contract is already with operations.",
@@ -137,7 +148,13 @@ export const handoffMessages = defineStaffMessages({
     en: "signed in Commerce",
   },
   "operations.handoff.detail.recordedExecuted": {
-    en: "recorded as executed by staff",
+    en: "recorded as signed by staff",
+  },
+  "operations.handoff.detail.signedInCommerceOnly": {
+    en: "Signed in Commerce",
+  },
+  "operations.handoff.detail.recordedExecutedOnly": {
+    en: "Recorded as signed by staff",
   },
   "operations.handoff.error.HANDOFF_TRANSITION_INVALID": {
     en: "That step is not available for this handoff now. Reload to see where it stands.",

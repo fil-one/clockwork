@@ -72,7 +72,7 @@ export function CounterpartyPaperCard({
     if (!result.fields) setError(result.code);
   }
   const fieldError = (name: string) =>
-    problems[name] ? t(fieldMessage(problems[name])) : undefined;
+    problems[name] ? t(fieldMessage(problems[name], name)) : undefined;
 
   return (
     <section className={styles.card} aria-labelledby={`${formId}-title`}>

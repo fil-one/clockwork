@@ -54,8 +54,8 @@ async function load<T>(
   permission: "operations:read" | "operations:write",
   read: (session: ContractStaffSession) => Promise<T>,
 ): Promise<Loaded<T>> {
-  if (explicitDemoIdentityEnabled() || !getOptionalServiceDatabase())
-    return { kind: "unavailable" };
+  if (explicitDemoIdentityEnabled()) return { kind: "demo" };
+  if (!getOptionalServiceDatabase()) return { kind: "unavailable" };
   let session: ContractStaffSession;
   try {
     session = await contractStaff(permission, getRequestCommerceSession);

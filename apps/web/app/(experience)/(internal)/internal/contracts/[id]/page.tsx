@@ -1,15 +1,33 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { ContractPageState } from "@/src/features/internal-ops/contracts/access-state";
 import { ContractDetail } from "@/src/features/internal-ops/contracts/contract-detail";
+import { contractTypeLabels } from "@/src/features/internal-ops/contracts/copy";
 import { loadContract } from "@/src/features/internal-ops/contracts/loaders";
 import { ContractHandoff } from "@/src/features/internal-ops/handoff/contract-handoff";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations();
-  return { title: t("operations.contracts.detail.title") };
+/** One read per request, shared by the document title and the page. */
+const load = cache((id: string) => loadContract(id));
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const [t, { id }] = await Promise.all([getTranslations(), params]);
+  const loaded = await load(id);
+  return {
+    title:
+      loaded.kind === "ready"
+        ? t("operations.contracts.detail.documentTitle", {
+            name: loaded.contract.counterpartyName,
+            type: t(contractTypeLabels[loaded.contract.contractType]),
+          })
+        : t("operations.contracts.detail.title"),
+  };
 }
 
 export default async function Page({
@@ -21,7 +39,7 @@ export default async function Page({
   const [t, locale, loaded] = await Promise.all([
     getTranslations(),
     getFormattingLocale(),
-    loadContract(id),
+    load(id),
   ]);
   if (loaded.kind !== "ready")
     return (

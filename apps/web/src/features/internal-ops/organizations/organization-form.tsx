@@ -10,7 +10,7 @@ import { useTranslations } from "@/src/i18n/client";
 
 import { SessionExpiredReload } from "../session-expiry";
 import { createOrganization } from "./actions";
-import { organizationErrorMessage } from "./model";
+import { organizationErrorMessage, resolveCountry } from "./model";
 import styles from "../handoff/handoff.module.css";
 
 const wide = styles.wide ?? "";
@@ -37,6 +37,7 @@ export function OrganizationForm({
   const router = useRouter();
   const organizationId = useRef<string | null>(null);
   const [side, setSide] = useState<string>(defaults.side);
+  const [country, setCountry] = useState("");
   const [code, setCode] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
@@ -77,6 +78,12 @@ export function OrganizationForm({
       },
       invoiceDeliveryEmail: text("invoiceEmail"),
     };
+    // The schema takes any two capital letters; only send a code Intl can name.
+    if (input.country && !resolveCountry(input.country)) {
+      setFields({ country: "country" });
+      setCode("INVALID_INPUT");
+      return;
+    }
     setCode(null);
     setFields({});
     startTransition(async () => {
@@ -164,8 +171,13 @@ export function OrganizationForm({
       ) : null}
       <Input
         label={t("operations.organizations.form.country")}
-        help={t("operations.organizations.form.countryHelp")}
+        help={
+          resolveCountry(country) ??
+          t("operations.organizations.form.countryHelp")
+        }
         name="country"
+        value={country}
+        onChange={(event) => setCountry(event.target.value)}
         maxLength={2}
         autoComplete="country"
         required

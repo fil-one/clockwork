@@ -284,7 +284,7 @@ export function ContractForm({
   }, [editing, counterparty, fromMndaId]);
 
   const fieldError = (key: string) =>
-    problems[key] ? t(fieldMessage(problems[key])) : undefined;
+    problems[key] ? t(fieldMessage(problems[key], key)) : undefined;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -347,7 +347,7 @@ export function ContractForm({
 
   const issues = Object.entries(problems).map(([key, code]) => ({
     id: key,
-    label: `${t(fieldLabels[key] ?? "operations.contracts.form.check")}: ${t(fieldMessage(code))}`,
+    label: `${t(fieldLabels[key] ?? "operations.contracts.form.check")}: ${t(fieldMessage(code, key))}`,
     href: `#${formId}-${key}`,
   }));
 

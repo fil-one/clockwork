@@ -1,6 +1,7 @@
 import type {
   contractStatusFilterExtras,
   ContractApprovalState,
+  ContractCancelCode,
   ContractFileKind,
   ContractPaper,
   ContractSigningState,
@@ -88,6 +89,41 @@ export const signingStateLabels: Readonly<
   canceled: "operations.contracts.signing.state.canceled",
   attention: "operations.contracts.signing.state.attention",
 };
+
+/**
+ * How a signing state reads where the record says why it closed: a request
+ * closed before it was sent was discarded, one closed after was voided.
+ */
+export function signingStateLabel(
+  state: ContractSigningState,
+  cancelCode: ContractCancelCode | null = null,
+): MessageId {
+  if (state !== "canceled" || !cancelCode) return signingStateLabels[state];
+  return cancelCode === "discarded"
+    ? "operations.contracts.signing.state.discarded"
+    : "operations.contracts.signing.state.voided";
+}
+
+type Tone = "neutral" | "info" | "success" | "warning" | "danger";
+
+/**
+ * One colour per meaning across the staff portal: red is broken and needs a
+ * person now, amber waits on Fil One, blue is with the other side, green is
+ * done and grey is a draft or closed.
+ */
+export function signingStateTone(
+  state: ContractSigningState,
+  options: { error?: string | null; approvalPending?: boolean } = {},
+): Tone {
+  if (state === "attention" || (options.error && state !== "completed"))
+    return "danger";
+  if (state === "completed") return "success";
+  if (["declined", "expired", "canceled"].includes(state)) return "neutral";
+  if (state === "awaiting_countersignature" || options.approvalPending)
+    return "warning";
+  if (state === "draft") return "neutral";
+  return "info";
+}
 
 export const approvalStateLabels: Readonly<
   Record<ContractApprovalState, MessageId>
@@ -206,8 +242,45 @@ const fieldMessages: Readonly<Record<string, MessageId>> = {
   line_items: "operations.contracts.lineItems.error.lines",
 };
 
-export function fieldMessage(code: string): MessageId {
-  return fieldMessages[code] ?? "operations.contracts.field.error.check";
+/** Codes that mean "this value is malformed" rather than "missing". */
+const malformed = new Set([
+  "number",
+  "invalid_format",
+  "invalid_type",
+  "check",
+]);
+/** Out of range only reads as malformed for a number of months or days. */
+const outOfRange = new Set(["too_small", "too_big"]);
+const counted = new Set([
+  "initialTermMonths",
+  "renewalTermMonths",
+  "noticePeriodDays",
+]);
+
+/**
+ * Field-specific wording for a malformed value, keyed by the form field or,
+ * for template values, by `kind:<field kind>`. A message that names the
+ * expected shape beats "check the format".
+ */
+const malformedByField: Readonly<Record<string, MessageId>> = {
+  initialTermMonths: "operations.contracts.field.error.months",
+  renewalTermMonths: "operations.contracts.field.error.months",
+  noticePeriodDays: "operations.contracts.field.error.days",
+  effectiveDate: "operations.contracts.field.error.date",
+  signerEmail: "operations.contracts.field.error.email",
+  "kind:date": "operations.contracts.field.error.date",
+  "kind:email": "operations.contracts.field.error.email",
+};
+
+export function fieldMessage(code: string, field?: string): MessageId {
+  const specific =
+    field &&
+    (malformed.has(code) || (outOfRange.has(code) && counted.has(field)))
+      ? malformedByField[field]
+      : undefined;
+  return (
+    specific ?? fieldMessages[code] ?? "operations.contracts.field.error.check"
+  );
 }
 
 /** A calendar date (YYYY-MM-DD) in the reader's language, never shifted by

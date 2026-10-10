@@ -69,7 +69,8 @@ export async function ContractHandoffSection({
 }: {
   loaded: Loaded<HandoffContractContext>;
 }) {
-  if (loaded.kind === "forbidden") return null;
+  // The demo keeps no handoffs, and its contracts are read-only anyway.
+  if (loaded.kind === "forbidden" || loaded.kind === "demo") return null;
   const [t, locale] = await Promise.all([
     getTranslations(),
     getFormattingLocale(),

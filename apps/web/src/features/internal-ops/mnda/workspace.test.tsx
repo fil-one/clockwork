@@ -208,7 +208,7 @@ it("warns before papering a company that already has an MNDA or a register contr
     "/internal/contracts/019a44ac-0000-7000-8000-0000000000c1",
   );
   expect(
-    screen.getByText(/, Executed, effective Apr 1, 2025, owner Morgan Lee/),
+    screen.getByText(/, Signed, effective Apr 1, 2025, owner Morgan Lee/),
   ).toBeVisible();
 });
 

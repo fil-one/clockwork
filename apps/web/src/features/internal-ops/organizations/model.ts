@@ -59,3 +59,23 @@ export function organizationErrorMessage(code: string): MessageId {
 export function emailDomain(email: string): string {
   return email.split("@")[1]?.toLowerCase() ?? "";
 }
+
+const countryNames = new Intl.DisplayNames(["en"], {
+  type: "region",
+  fallback: "none",
+});
+
+/**
+ * The English name of a two-letter country code, or null when the code is
+ * not one Intl can name. ZZ is the "Unknown Region" placeholder.
+ */
+export function resolveCountry(code: string): string | null {
+  const upper = code.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/u.test(upper) || upper === "ZZ") return null;
+  return countryNames.of(upper) ?? null;
+}
+
+/** A stored country by name, or its code when Intl cannot name it. */
+export function countryName(code: string): string {
+  return resolveCountry(code) ?? code;
+}

@@ -4,22 +4,15 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  Button,
-  Checkbox,
   EmptyState,
   InlineNotice,
-  Input,
   PageHeader,
-  Select,
   Table,
   buttonClassName,
 } from "@clockwork/ui";
 import {
-  contractRenewalWindows,
   contractExportLimit,
-  contractStatusFilterExtras,
-  contractStatuses,
-  contractTypes,
+  mndaRegisterSearchParams,
   type ContractListQuery,
   type ContractListRow,
   type ContractSort,
@@ -33,29 +26,14 @@ import {
   Tags,
   TermBoundaryValue,
 } from "./cells";
-import {
-  contractStatusLabels,
-  contractTypeLabels,
-  statusFilterExtraLabels,
-} from "./copy";
+import { contractTypeLabels } from "./copy";
+import { RegisterFilters } from "./register-filters";
+import { registerHref } from "./register-href";
 import styles from "./contracts.module.css";
 
 type Query = ContractListQuery;
 
-/** The register URL for a query, without defaults, so links stay short. */
-export function registerHref(query: Partial<Query>): Route {
-  const params = new URLSearchParams();
-  if (query.q) params.set("q", query.q);
-  if (query.type) params.set("type", query.type);
-  if (query.status) params.set("status", query.status);
-  if (query.window) params.set("window", String(query.window));
-  if (query.mine) params.set("mine", "1");
-  if (query.sort && query.sort !== "updated") params.set("sort", query.sort);
-  if (query.direction) params.set("direction", query.direction);
-  if (query.page && query.page > 1) params.set("page", String(query.page));
-  const search = params.toString();
-  return search ? `/internal/contracts?${search}` : "/internal/contracts";
-}
+export { registerHref };
 
 export const exportHref = (query: Query) =>
   registerHref({ ...query, page: 1 }).replace(
@@ -63,9 +41,10 @@ export const exportHref = (query: Query) =>
     "/internal/contracts/export",
   ) as Route;
 
+/** An MNDA row opens the MNDA register on that counterparty's signed MNDAs. */
 const rowHref = (row: ContractListRow) =>
   (row.source === "mnda"
-    ? "/internal/mndas"
+    ? `/internal/mndas?${mndaRegisterSearchParams({ status: ["completed"], q: row.counterpartyName }).toString()}`
     : `/internal/contracts/${row.id}`) as Route;
 
 /** The counterparty as a link, unless it points somewhere the reader may
@@ -177,10 +156,6 @@ export function RegisterView({
     query.q || query.type || query.status || query.window || query.mine,
   );
   const pages = Math.max(1, Math.ceil(result.total / result.pageSize));
-  const typeOptions = contractTypes.map((type) => ({
-    value: type,
-    label: t(contractTypeLabels[type]),
-  }));
   return (
     <main className={styles.page} id="main-content">
       <PageHeader
@@ -216,84 +191,7 @@ export function RegisterView({
       {demo ? (
         <InlineNotice tone="info" title={t("operations.contracts.demo")} />
       ) : null}
-      <form
-        className={`${styles.card} ${styles.filters}`}
-        method="get"
-        action="/internal/contracts"
-        role="search"
-        aria-label={t("operations.contracts.filters.label")}
-      >
-        <Input
-          type="search"
-          name="q"
-          label={t("operations.contracts.filters.search")}
-          placeholder={t("operations.contracts.filters.searchPlaceholder")}
-          defaultValue={query.q}
-          maxLength={100}
-        />
-        <Select
-          name="type"
-          label={t("operations.contracts.field.type")}
-          defaultValue={query.type ?? ""}
-          options={[
-            { value: "", label: t("operations.contracts.filters.allTypes") },
-            ...typeOptions,
-          ]}
-        />
-        <Select
-          name="status"
-          label={t("operations.contracts.field.status")}
-          defaultValue={query.status ?? ""}
-          options={[
-            { value: "", label: t("operations.contracts.filters.allStatuses") },
-            ...contractStatuses.map((status) => ({
-              value: status,
-              label: t(contractStatusLabels[status]),
-            })),
-            ...contractStatusFilterExtras.map((status) => ({
-              value: status,
-              label: t(statusFilterExtraLabels[status]),
-            })),
-          ]}
-        />
-        <Select
-          name="window"
-          label={t("operations.contracts.column.renewsOrEnds")}
-          defaultValue={query.window ? String(query.window) : ""}
-          options={[
-            { value: "", label: t("operations.contracts.filters.anyDate") },
-            ...contractRenewalWindows.map((days) => ({
-              value: String(days),
-              label: t("operations.contracts.filters.within", { count: days }),
-            })),
-          ]}
-        />
-        {query.sort !== "updated" ? (
-          <input type="hidden" name="sort" value={query.sort} />
-        ) : null}
-        {query.direction ? (
-          <input type="hidden" name="direction" value={query.direction} />
-        ) : null}
-        <div className={styles.filterActions}>
-          <Checkbox
-            name="mine"
-            value="1"
-            label={t("operations.contracts.filters.recordedByMe")}
-            defaultChecked={query.mine}
-          />
-          <Button type="submit">
-            {t("operations.contracts.filters.apply")}
-          </Button>
-          {filtered ? (
-            <Link
-              className={buttonClassName({ variant: "quiet" })}
-              href="/internal/contracts"
-            >
-              {t("operations.contracts.filters.clear")}
-            </Link>
-          ) : null}
-        </div>
-      </form>
+      <RegisterFilters query={query} />
 
       {result.total === 0 ? (
         filtered ? (

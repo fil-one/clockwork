@@ -11,6 +11,7 @@ export const contractMessages = defineStaffMessages({
   },
   "operations.contracts.backToRegister": { en: "Back to contracts" },
   "operations.contracts.notSet": { en: "Not set" },
+  "operations.contracts.none": { en: "None" },
   "operations.contracts.yes": { en: "Yes" },
   "operations.contracts.no": { en: "No" },
   "operations.contracts.months": {
@@ -23,8 +24,10 @@ export const contractMessages = defineStaffMessages({
   },
   "operations.contracts.noSignedCopy": { en: "No signed copy" },
   "operations.contracts.action.record": { en: "Record a contract" },
-  "operations.contracts.action.fromTemplate": { en: "New from template" },
-  "operations.contracts.action.renewals": { en: "Renewal notices" },
+  "operations.contracts.action.fromTemplate": {
+    en: "Prepare from template",
+  },
+  "operations.contracts.action.renewals": { en: "Contract renewal notices" },
   "operations.contracts.action.export": { en: "Export CSV" },
   "operations.contracts.action.edit": { en: "Edit" },
   "operations.contracts.access.mfaTitle": {
@@ -85,7 +88,7 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.status.draft": { en: "Draft" },
   "operations.contracts.status.inNegotiation": { en: "In negotiation" },
   "operations.contracts.status.outForSignature": { en: "Out for signature" },
-  "operations.contracts.status.executed": { en: "Executed" },
+  "operations.contracts.status.executed": { en: "Signed" },
   "operations.contracts.status.expired": { en: "Expired" },
   "operations.contracts.status.terminated": { en: "Terminated" },
   "operations.contracts.file.main": { en: "Main document" },
@@ -108,7 +111,7 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.field.paper": { en: "Whose paper" },
   "operations.contracts.field.status": { en: "Status" },
   "operations.contracts.field.statusExecutedHelp": {
-    en: "Once executed, a contract can only expire or be terminated.",
+    en: "Once signed, a contract can only expire or be terminated.",
   },
   "operations.contracts.field.effectiveDate": { en: "Effective date" },
   "operations.contracts.field.initialTerm": { en: "Initial term" },
@@ -177,6 +180,15 @@ export const contractMessages = defineStaffMessages({
     en: "Remove line breaks and special control characters.",
   },
   "operations.contracts.field.error.check": { en: "Check this value." },
+  "operations.contracts.field.error.months": {
+    en: "Enter the term in whole months, for example 12.",
+  },
+  "operations.contracts.field.error.days": {
+    en: "Enter the notice period in whole days, for example 30.",
+  },
+  "operations.contracts.field.error.date": {
+    en: "Enter a full date, for example 1 October 2026.",
+  },
   "operations.contracts.column.renewsOrEnds": { en: "Renews or ends" },
   "operations.contracts.boundary.renews": { en: "Renews" },
   "operations.contracts.boundary.ends": { en: "Ends" },
@@ -193,14 +205,11 @@ export const contractMessages = defineStaffMessages({
   },
   "operations.contracts.filters.allTypes": { en: "All types" },
   "operations.contracts.filters.allStatuses": { en: "All statuses" },
-  "operations.contracts.filters.signingDeclined": {
-    en: "Draft: signer declined",
-  },
-  "operations.contracts.filters.signingExpired": {
-    en: "Draft: signing expired",
-  },
+  "operations.contracts.filters.signingGroup": { en: "Signing" },
+  "operations.contracts.filters.signingDeclined": { en: "Signer declined" },
+  "operations.contracts.filters.signingExpired": { en: "Signing expired" },
   "operations.contracts.filters.signingCanceled": {
-    en: "Draft: signing discarded or voided",
+    en: "Signing voided or discarded",
   },
   "operations.contracts.filters.signingApproval": {
     en: "Waiting for approval",
@@ -214,7 +223,11 @@ export const contractMessages = defineStaffMessages({
     en: { one: "Within {count} day", other: "Within {count} days" },
   },
   "operations.contracts.filters.recordedByMe": { en: "Recorded by me" },
-  "operations.contracts.filters.apply": { en: "Apply" },
+  "operations.contracts.filters.toggle": {
+    count: "count",
+    en: { one: "Filters ({count})", other: "Filters ({count})" },
+  },
+  "operations.contracts.filters.toggleNone": { en: "Filters" },
   "operations.contracts.filters.clear": { en: "Clear filters" },
   "operations.contracts.sort.ascending": { en: "{column}, sort ascending" },
   "operations.contracts.sort.descending": { en: "{column}, sort descending" },
@@ -282,6 +295,7 @@ export const contractMessages = defineStaffMessages({
     en: "Open the contract to add them",
   },
   "operations.contracts.detail.title": { en: "Contract" },
+  "operations.contracts.detail.documentTitle": { en: "{name}, {type}" },
   "operations.contracts.detail.terms": { en: "Key terms" },
   "operations.contracts.detail.renewsEvery": {
     count: "count",
@@ -294,7 +308,7 @@ export const contractMessages = defineStaffMessages({
     en: "No signed copy is attached",
   },
   "operations.contracts.detail.noSignedCopyBody": {
-    en: "This contract is marked executed. Upload the signed PDF so the team can find it.",
+    en: "This contract is marked signed. Upload the signed PDF so the team can find it.",
   },
   "operations.contracts.detail.termEndedTitle": { en: "The term has ended" },
   "operations.contracts.detail.termEndedBody": {
@@ -321,7 +335,7 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.documents.uploaded": { en: "{name} was added." },
   "operations.contracts.documents.removed": { en: "{name} was removed." },
   "operations.contracts.documents.locked": {
-    en: "Documents on an executed contract are kept permanently. To correct one, upload the right file and explain it in the notes.",
+    en: "Documents on a signed contract are kept permanently. To correct one, upload the right file and explain it in the notes.",
   },
   "operations.contracts.documents.confirmTitle": {
     en: "Remove this document?",
@@ -408,9 +422,9 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.activity.change": {
     en: "{field} changed from {from} to {to}",
   },
-  "operations.contracts.renewals.title": { en: "Renewal notices due" },
+  "operations.contracts.renewals.title": { en: "Contract renewal notices" },
   "operations.contracts.renewals.description": {
-    en: "Executed contracts that renew automatically unless someone gives notice. The deadline is the last day to give notice before the current term ends.",
+    en: "Signed contracts that renew automatically unless someone gives notice. The deadline is the last day to give notice before the current term ends.",
   },
   "operations.contracts.renewals.windowLabel": { en: "Time window" },
   "operations.contracts.renewals.window": {
@@ -441,7 +455,7 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.renewals.footnote": {
     en: "Deadlines are worked out from the dates on each record. Check the agreement's own notice wording before relying on them.",
   },
-  "operations.contracts.templates.title": { en: "New from template" },
+  "operations.contracts.templates.title": { en: "Prepare from template" },
   "operations.contracts.templates.description": {
     en: "Prepare a Fil One agreement from wording approved by legal, then send it for signature.",
   },
@@ -458,12 +472,18 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.templates.pendingBody": {
     en: "Legal has not supplied this template yet. Until then, record the agreement manually once it is signed.",
   },
+  "operations.contracts.templates.noneReadyTitle": {
+    en: "Legal has not supplied contract templates yet",
+  },
+  "operations.contracts.templates.noneReadyBody": {
+    en: "Record a signed agreement instead. Coming from legal: {names}.",
+  },
+  "operations.contracts.templates.pendingList": {
+    en: "Not yet supplied by legal: {names}. Record these manually once signed.",
+  },
   "operations.contracts.templates.prepare": { en: "Prepare" },
   "operations.contracts.templates.prepareNamed": { en: "Prepare {name}" },
   "operations.contracts.templates.recordInstead": { en: "Record manually" },
-  "operations.contracts.templates.recordNamed": {
-    en: "Record a {name} manually",
-  },
   "operations.contracts.prepare.title": { en: "Prepare from template" },
   "operations.contracts.prepare.description": {
     en: "Template version {version}. You will see the PDF before anything is sent.",
@@ -504,9 +524,7 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.prepare.noCountersignerTitle": {
     en: "No Fil One countersigner is set up",
   },
-  "operations.contracts.paperSend.title": {
-    en: "Send for Fil One signature",
-  },
+  "operations.contracts.paperSend.title": { en: "Prepare for signature" },
   "operations.contracts.paperSend.description": {
     en: "Send their PDF through SignWell with a Fil One signature page added at the end.",
   },
@@ -551,10 +569,13 @@ export const contractMessages = defineStaffMessages({
     en: "This request can no longer be sent",
   },
   "operations.contracts.signing.paperClosedBody": {
-    en: "A contract on their paper is sent for signature once. To send it again, record it again with its PDF; the new record starts from this one. Then edit this record and set its status to Terminated, so the contract is not counted twice.",
+    en: "A contract on their paper is sent for signature once. To send it again, record it again with its PDF; the new record starts from this one. Then set this record to Terminated so the contract is not counted twice.",
   },
   "operations.contracts.signing.recordAgain": {
     en: "Record the contract again",
+  },
+  "operations.contracts.signing.closeThisOne": {
+    en: "Edit this record",
   },
   "operations.contracts.error.paperUnreadable": {
     en: "This PDF could not be read because it is encrypted or damaged, even if it opens in a viewer. Print it to a new PDF, upload that, and try again.",
@@ -671,17 +692,19 @@ export const contractMessages = defineStaffMessages({
   },
   "operations.contracts.signing.state.ready": { en: "Ready to send" },
   "operations.contracts.signing.state.sending": { en: "Sending" },
-  "operations.contracts.signing.state.sent": { en: "Sent to counterparty" },
-  "operations.contracts.signing.state.viewed": { en: "Viewed by counterparty" },
+  "operations.contracts.signing.state.sent": { en: "Sent" },
+  "operations.contracts.signing.state.viewed": { en: "Opened" },
   "operations.contracts.signing.state.awaitingCountersignature": {
-    en: "Waiting for Fil One signature",
+    en: "Waiting on Fil One",
   },
-  "operations.contracts.signing.state.completed": {
-    en: "Signed by both parties",
-  },
+  "operations.contracts.signing.state.completed": { en: "Signed" },
   "operations.contracts.signing.state.declined": { en: "Declined" },
   "operations.contracts.signing.state.expired": { en: "Expired unsigned" },
-  "operations.contracts.signing.state.canceled": { en: "Discarded" },
+  "operations.contracts.signing.state.canceled": {
+    en: "Voided or discarded",
+  },
+  "operations.contracts.signing.state.voided": { en: "Voided" },
+  "operations.contracts.signing.state.discarded": { en: "Discarded" },
   "operations.contracts.signing.state.attention": { en: "Needs attention" },
   "operations.contracts.signing.testMode": {
     en: "Test mode: SignWell sends practice requests, and signatures are not legally binding.",
@@ -830,13 +853,13 @@ export const contractMessages = defineStaffMessages({
     en: "This document did not match its fingerprint and was not opened. Tell a Commerce administrator.",
   },
   "operations.contracts.error.filePermanent": {
-    en: "Documents on an executed contract cannot be removed. Upload the right file and explain it in the notes.",
+    en: "Documents on a signed contract cannot be removed. Upload the right file and explain it in the notes.",
   },
   "operations.contracts.error.statusFollowsSigning": {
     en: "While a contract is out for signature, its status follows SignWell.",
   },
   "operations.contracts.error.executedFinal": {
-    en: "An executed contract can only be marked expired or terminated.",
+    en: "A signed contract can only be marked expired or terminated.",
   },
   "operations.contracts.error.selfApproval": {
     en: "You prepared this contract, so someone else must approve it.",
@@ -907,7 +930,7 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.error.generic": {
     en: "Something went wrong. Try again, and if it keeps happening, tell a Commerce administrator.",
   },
-  "operations.contracts.home.title": { en: "Renewal notices due" },
+  "operations.contracts.home.title": { en: "Contract renewal notices" },
   "operations.contracts.home.within": {
     count: "count",
     en: {
@@ -933,7 +956,7 @@ export const contractMessages = defineStaffMessages({
     en: "Current pitch decks, one-pagers, pricing sheets and case studies to share with customers and partners.",
   },
   "operations.contracts.demo": {
-    en: "Demo register: the counterparties are fictional and no documents are stored, so executed contracts show no signed copy. Recording and editing are turned off.",
+    en: "Demo register: the counterparties are fictional and no documents are stored, so signed contracts show No signed copy. Recording and editing are turned off.",
   },
   "operations.salesLibrary.demo": {
     en: "Demo library: these items are fictional and their files are not stored, so downloads are turned off.",
