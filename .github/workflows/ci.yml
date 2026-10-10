@@ -36,7 +36,9 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer push supersedes a pull request run. Runs on main always finish, so
+  # every merge reaches the Deploy workflow.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CI: "true"
@@ -171,9 +173,10 @@ jobs:
             echo "CLOCKWORK_EXPERIENCE_ADAPTER=demo"
             echo "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV=test"
           } >> "$GITHUB_ENV"
-      # The populated upgrade replay only exercises supabase/, so a pull request
-      # that changes nothing there skips it. pgTAP runs regardless. A push to
-      # main, or any diff that cannot be computed, runs the replay.
+      # The populated upgrade replay exercises supabase/, its own fixtures and
+      # assertions, and the Drizzle models, so a pull request that changes none
+      # of them skips it. pgTAP runs regardless. A push to main, or any diff
+      # that cannot be computed, runs the replay.
       - name: Decide whether the populated upgrade replay runs
         if: matrix.shard == 'integration'
         env:
@@ -182,7 +185,8 @@ jobs:
           replay=true
           if [ "$EVENT_NAME" = "pull_request" ] &&
             git rev-parse --verify --quiet HEAD^2 > /dev/null &&
-            git diff --quiet HEAD^1 HEAD -- supabase; then
+            git diff --quiet HEAD^1 HEAD -- supabase \
+              scripts/qualify-populated-upgrade.mjs packages/db; then
             replay=false
           fi
           echo "CLOCKWORK_UPGRADE_REPLAY=$replay" >> "$GITHUB_ENV"
@@ -215,6 +219,26 @@ jobs:
             !.artifacts/release-ci/**/auth/**
           if-no-files-found: error
           retention-days: 14
+
+  # The launch ledger checks run on pushes to main only, so the ledger cannot
+  # drift unnoticed. This job is not a release shard and the gate does not
+  # depend on it.
+  launch-ledger:
+    name: Launch ledger
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:launch
 
   release-gate:
     name: Parallel release gate
