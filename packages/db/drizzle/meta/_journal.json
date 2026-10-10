@@ -127,6 +127,13 @@
       "when": 1791642124039,
       "tag": "0017_worthless_thanos",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791643666955,
+      "tag": "0018_flashy_wolfsbane",
+      "breakpoints": true
     }
   ]
 }
