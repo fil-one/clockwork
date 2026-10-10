@@ -138,6 +138,104 @@
   font-size: var(--cw-text-md);
 }
 
+.scenarios {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--cw-border);
+}
+
+.scenarios h2,
+.saved h3 {
+  margin: 0;
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
+}
+
+.scenarioHeader p {
+  max-width: 68ch;
+  margin: 0.25rem 0 0;
+  color: var(--cw-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.line {
+  display: grid;
+  width: 100%;
+  justify-items: start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--cw-border);
+}
+
+.line legend {
+  padding: 0;
+  font-size: var(--cw-text-sm);
+  font-weight: 600;
+}
+
+.lineFields {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.actions,
+.savedActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.saved {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.saved > p {
+  margin: 0;
+  color: var(--cw-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.savedList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-md);
+  background: var(--cw-surface);
+}
+
+.savedList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.savedList li + li {
+  border-top: 1px solid var(--cw-border);
+}
+
+.savedList li > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.125rem;
+  font-size: var(--cw-text-sm);
+}
+
+.savedList li span {
+  color: var(--cw-muted);
+}
+
 @media (max-width: 640px) {
   .calculator,
   .state {

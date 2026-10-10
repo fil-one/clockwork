@@ -502,7 +502,7 @@ function SignaturePageHeading({ input }: { input: MndaInput }) {
  * bytes. Replacements keep their length, so cross-reference offsets hold.
  */
 const subsetTag = /\/([A-Z]{6})\+((?:Tinos|Arimo|Cousine)-[A-Za-z]+)/g;
-function canonicalMndaPdf(pdf: Uint8Array): Buffer {
+export function canonicalMndaPdf(pdf: Uint8Array): Buffer {
   const blank = Buffer.from(
     Buffer.from(pdf).toString("latin1").replace(subsetTag, "/AAAAAA+$2"),
     "latin1",

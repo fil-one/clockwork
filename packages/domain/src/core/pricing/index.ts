@@ -383,6 +383,51 @@ export function indicativeLinePrice(input: {
   };
 }
 
+/** One saved line of an indicative scenario: a list price and the entry. */
+export interface IndicativeScenarioLine {
+  unitPrice: Money;
+  minimumQuantity: string;
+  quantity: string;
+  termMonths: number;
+  discountBps: number;
+}
+
+/**
+ * Indicative totals for several lines in one currency, each priced by
+ * `indicativeLinePrice`. The subtotal is the lines at list price over their
+ * terms, the discount is what the entered discounts take off it, and the
+ * total is what remains. Like a single line, it knows only list prices.
+ */
+export function indicativeScenarioPrice(
+  lines: readonly IndicativeScenarioLine[],
+): {
+  currency: Currency;
+  lines: (ReturnType<typeof indicativeLinePrice> & { listTotal: Money })[];
+  subtotal: Money;
+  discount: Money;
+  total: Money;
+} {
+  const currency = lines[0]?.unitPrice.currency;
+  if (!currency) throw new Error("A scenario requires at least one line");
+  if (lines.some((line) => line.unitPrice.currency !== currency))
+    throw new Error("Scenario lines must share one currency");
+  const priced = lines.map((line) => ({
+    ...indicativeLinePrice(line),
+    listTotal: indicativeLinePrice({ ...line, discountBps: 0 }).total,
+  }));
+  const sum = (values: readonly Money[]) =>
+    values.reduce((total, value) => total + BigInt(value.minor), 0n);
+  const subtotal = sum(priced.map(({ listTotal }) => listTotal));
+  const total = sum(priced.map((line) => line.total));
+  return {
+    currency,
+    lines: priced,
+    subtotal: bookMoney(currency, subtotal),
+    discount: bookMoney(currency, subtotal - total),
+    total: bookMoney(currency, total),
+  };
+}
+
 export function priceQuote(input: PriceQuoteInput): {
   currency: Currency;
   lines: PricedQuoteLine[];
