@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   contracts: vi.fn(),
   staff: vi.fn(),
   database: vi.fn(),
+  session: vi.fn(),
 }));
 vi.mock("@clockwork/db", async (importOriginal) => ({
   ...(await importOriginal<typeof Db>()),
@@ -20,6 +21,9 @@ vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: mocks.database,
 }));
 vi.mock("../contracts/server", () => ({ contractStaff: mocks.staff }));
+vi.mock("@/src/auth/session", () => ({
+  getRequestCommerceSession: mocks.session,
+}));
 
 import { contractHomeRows } from "./contract-source";
 import { mndaHomeRows, mndaHomeSource } from "./mnda-source";
@@ -29,8 +33,20 @@ import { loadSalesHome } from "./server-loader";
 import { startGuideStorageKey } from "./start-guide";
 
 const counts = {
-  mine: { waitingPartner: 2, waitingFilOne: 0, completed: 4, drafts: 1 },
-  team: { waitingPartner: 5, waitingFilOne: 3, completed: 9, drafts: 6 },
+  mine: {
+    attention: 1,
+    waitingPartner: 2,
+    waitingFilOne: 0,
+    completed: 4,
+    drafts: 1,
+  },
+  team: {
+    attention: 2,
+    waitingPartner: 5,
+    waitingFilOne: 3,
+    completed: 9,
+    drafts: 6,
+  },
 };
 const contractCounts = {
   awaitingApproval: { mine: 1, team: 2 },
@@ -66,6 +82,7 @@ describe("MNDA register links", () => {
   it("links each row to exactly the states it counted", () => {
     const rows = mndaHomeRows(counts);
     expect(rows.map(({ href }) => href)).toEqual([
+      "/internal/mndas?status=attention&mine=1",
       "/internal/mndas?status=sent,viewed&mine=1",
       "/internal/mndas?status=awaiting_countersignature&mine=1",
       "/internal/mndas?status=completed&mine=1",
@@ -85,7 +102,7 @@ describe("sales home loader", () => {
         completedSince: new Date("2026-09-04T12:00:00.000Z"),
       },
     );
-    expect(section?.rows?.map(({ mine }) => mine)).toEqual([2, 0, 4, 1]);
+    expect(section?.rows?.map(({ mine }) => mine)).toEqual([1, 2, 0, 4, 1]);
   });
 
   it("counts the guided demo's fictional register and links to it", async () => {
@@ -95,16 +112,17 @@ describe("sales home loader", () => {
     });
     expect(mocks.count).not.toHaveBeenCalled();
     expect(mocks.database).not.toHaveBeenCalled();
-    expect(section?.rows?.map(({ mine }) => mine)).toEqual([1, 1, 1, 1]);
+    expect(section?.rows?.map(({ mine }) => mine)).toEqual([1, 1, 1, 1, 1]);
     // A completion older than 30 days is not counted.
     expect(section?.rows?.map(({ team }) => team)).toEqual([
+      1,
       3,
       1,
       2,
       undefined,
     ]);
     expect(section?.rows?.[0]?.href).toBe(
-      "/internal/mndas?status=sent,viewed&mine=1",
+      "/internal/mndas?status=attention&mine=1",
     );
   });
 
@@ -137,7 +155,8 @@ describe("contract work on the home page", () => {
   it("counts contracts out for signature and needing attention in one read", async () => {
     const sections = await loadSalesHome(context);
     expect(sections.map(({ id }) => id)).toEqual(["mndas", "contracts"]);
-    expect(mocks.staff).toHaveBeenCalledWith("contract:read");
+    // The request-cached session, not a second sign-in check.
+    expect(mocks.staff).toHaveBeenCalledWith("contract:read", mocks.session);
     expect(mocks.contracts).toHaveBeenCalledExactlyOnceWith(
       {},
       { viewerId: context.userId },
@@ -249,8 +268,22 @@ describe("sales home page", () => {
       screen.getByRole("region", { name: "Your MNDAs" }),
     ).getByRole("list");
     const rows = within(list).getAllByRole("listitem");
-    const [waitingPartner, waitingFilOne] = rows as [HTMLElement, HTMLElement];
-    expect(rows).toHaveLength(4);
+    const [attention, waitingPartner, waitingFilOne] = rows as [
+      HTMLElement,
+      HTMLElement,
+      HTMLElement,
+    ];
+    expect(rows).toHaveLength(5);
+    // What needs the reader comes first, with both register links.
+    expect(
+      within(attention).getByRole("heading", { name: "Need attention" }),
+    ).toBeInTheDocument();
+    expect(
+      within(attention).getByRole("link", { name: "View in the register" }),
+    ).toHaveAttribute("href", "/internal/mndas?status=attention&mine=1");
+    expect(
+      within(attention).getByRole("link", { name: "2 across the team" }),
+    ).toHaveAttribute("href", "/internal/mndas?status=attention");
     expect(within(waitingPartner).getByText("2")).toBeInTheDocument();
     expect(
       within(waitingPartner).getByRole("link", {

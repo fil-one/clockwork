@@ -79,22 +79,21 @@ export async function RenewalNoticesSummary({
 }
 
 /**
- * The renewal notices card for the staff home. It shows nothing to anyone
- * who cannot read contracts, and nothing when the register cannot be read,
- * so it never stands in the way of the rest of the page.
+ * The renewal summary for the staff home. It is null for anyone who cannot
+ * read contracts, and when the register cannot be read, so the card never
+ * stands in the way of the rest of the page. The page reads it beside its
+ * other sections.
  */
-export async function RenewalNoticesCard() {
-  let summary: RenewalSummary;
+export async function loadRenewalSummary(): Promise<RenewalSummary | null> {
   try {
     const session = await contractReader(
       "contract:read",
       getRequestCommerceSession,
     );
-    summary = await contractRegisterReader(session).renewalSummary(
+    return await contractRegisterReader(session).renewalSummary(
       contractToday(demoNow()),
     );
   } catch {
     return null;
   }
-  return <RenewalNoticesSummary summary={summary} />;
 }

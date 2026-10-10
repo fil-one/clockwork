@@ -12,6 +12,7 @@ import {
   PostgresContractDocumentStore,
 } from "./contract-documents";
 import { ContractRepository, ContractSigningRepository } from "./contracts";
+import { MndaRepository } from "./mnda";
 import {
   contractHomeStatusFilters,
   countSalesHomeContracts,
@@ -54,6 +55,7 @@ it("counts a seller's MNDAs by what they wait on, beside the team's", async () =
     completedSince: since,
   });
   expect(before.mine).toEqual({
+    attention: 0,
     waitingPartner: 0,
     waitingFilOne: 0,
     completed: 0,
@@ -68,8 +70,11 @@ it("counts a seller's MNDAs by what they wait on, beside the team's", async () =
   await request(seller, "completed", new Date("2026-08-01T00:00:00.000Z"));
   await request(seller, "ready");
   await request(seller, "canceled");
+  await request(seller, "attention");
+  await request(seller, "attention");
   await request(colleague, "sent");
   await request(colleague, "draft");
+  await request(colleague, "attention");
 
   const after = await countSalesHomeMndas(db, {
     ownerId: seller,
@@ -77,6 +82,7 @@ it("counts a seller's MNDAs by what they wait on, beside the team's", async () =
     requestId: `sales-home-test:${now.toISOString()}`,
   });
   expect(after.mine).toEqual({
+    attention: 2,
     waitingPartner: 2,
     waitingFilOne: 1,
     completed: 1,
@@ -86,6 +92,14 @@ it("counts a seller's MNDAs by what they wait on, beside the team's", async () =
   expect(after.team.waitingFilOne - before.team.waitingFilOne).toBe(1);
   expect(after.team.completed - before.team.completed).toBe(1);
   expect(after.team.drafts - before.team.drafts).toBe(2);
+  expect(after.team.attention - before.team.attention).toBe(3);
+  // The home link opens the register's "Needs attention" filter, which lists
+  // exactly the rows counted.
+  const register = await new MndaRepository(db).list(
+    { status: ["attention"], mine: true },
+    seller,
+  );
+  expect(register.total).toBe(after.mine.attention);
 });
 
 it("counts contract work for one reader in a single read, matching the register filters", async () => {

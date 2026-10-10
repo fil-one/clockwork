@@ -1845,11 +1845,11 @@ detail lives in `docs/operations/commerce-mnda.md`,
   Pricing, plus Owner console and Team for holders of `staff:manage`
   (`apps/web/src/features/shell/navigation.ts`,
   `supabase/migrations/001441_revenue_roles.sql`). Home ("My work") counts the
-  reader's MNDAs waiting on the partner, waiting on Fil One, completed in the
-  last 30 days and unsent drafts, and the contracts they recorded or prepared
-  that are out for signature or need attention. Approvers also see contracts
-  prepared by others that await their decision; each team count opens the
-  register filtered to the same rows
+  reader's MNDAs needing attention, waiting on the partner, waiting on Fil One,
+  completed in the last 30 days and unsent drafts, and the contracts they
+  recorded or prepared that are out for signature or need attention. Approvers
+  also see contracts prepared by others that await their decision; each team
+  count opens the register filtered to the same rows
   (`packages/db/src/repositories/sales-home.ts`,
   `apps/web/src/features/internal-ops/sales-home/`). Evidence:
   `packages/db/src/repositories/sales-home.integration.test.ts`,
