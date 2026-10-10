@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 
-import { Button, StateBanner, StatusBadge } from "@clockwork/ui";
+import { Button, PageHeader, StateBanner, StatusBadge } from "@clockwork/ui";
 
 import type { MessageId } from "@/src/i18n";
 import { useTranslations } from "@/src/i18n/client";
@@ -482,10 +482,10 @@ export function OwnerConsole({ view }: { view: OwnerConsoleView }) {
   const editable = view.mode === "live";
   return (
     <main className={styles.main} id="main-content">
-      <header className={styles.header}>
-        <h1>{t("operations.owner.title")}</h1>
-        <p>{t("operations.owner.description")}</p>
-      </header>
+      <PageHeader
+        title={t("operations.owner.title")}
+        description={t("operations.owner.description")}
+      />
 
       {view.mode === "demo" ? (
         <StateBanner tone="info" title={t("operations.owner.demoNotice")} />

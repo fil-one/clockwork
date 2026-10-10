@@ -113,7 +113,7 @@ it("lists requests waiting for a second person with a link to decide each", () =
   expect(
     within(own).getByText("Your request: you can approve it yourself"),
   ).toBeInTheDocument();
-  expect(within(own).getByText("Requested by Noor Haddad")).toBeVisible();
+  expect(within(own).getByText("Requested by Elena Brooks")).toBeVisible();
   expect(
     within(own).getByRole("link", { name: "Open request" }),
   ).toHaveAttribute("href", "/internal/price-books");
@@ -230,7 +230,7 @@ it("lists recent self-approvals with who, what and why", () => {
   const recent = section("Recent self-approvals");
   expect(
     within(recent).getByText(
-      "Noor Haddad approved their own request: Version 3, effective Oct 15, 2026",
+      "Elena Brooks approved their own request: Version 3, effective Oct 15, 2026",
     ),
   ).toBeInTheDocument();
   expect(within(recent).getByText("Channel policy")).toBeInTheDocument();
@@ -440,12 +440,12 @@ it("lists switches, staff, assisted sessions and the security record", () => {
   const security = section("Recent security events");
   expect(
     within(security).getByText(
-      "Noor Haddad added priya.raman@fil-one-internal.test to the team as Revenue",
+      "Elena Brooks added priya.raman@fil-one-internal.test to the team as Revenue",
     ),
   ).toBeInTheDocument();
   expect(
     within(security).getByText(
-      "Noor Haddad changed the MNDA notice email to legal@fil-one-internal.test",
+      "Elena Brooks changed the MNDA notice email to legal@fil-one-internal.test",
     ),
   ).toBeInTheDocument();
 });

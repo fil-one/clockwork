@@ -136,6 +136,11 @@ export interface RouteSession {
   selectedAccountId: string;
   effectiveAccountId: string;
   providerBacked: boolean;
+  /**
+   * The explicit demo identity is active, so tools the demo turns off (such
+   * as sending an MNDA) are not offered as shortcuts.
+   */
+  demoIdentity?: true;
   assistedSession?: CommerceSession["assistedSession"];
   assistedSessionProvider?: CommerceSession["assistedSessionProvider"];
   authenticationSource: CommerceSession["authenticationSource"];
@@ -184,6 +189,9 @@ export async function getRouteSession(
     ...defaultRouteFormatting,
     locale: formattingLocaleFor(language),
   };
+  const demo = explicitDemoIdentityEnabled()
+    ? ({ demoIdentity: true } as const)
+    : {};
   if (!providerAuthenticationConfigured()) {
     if (!explicitDemoIdentityEnabled())
       throw new Error(
@@ -219,6 +227,7 @@ export async function getRouteSession(
         effectiveAccountId: membership.accountId,
         providerBacked: false,
         authenticationSource: "local",
+        ...demo,
       };
     }
     const demoRole = demoPersonaOverrideAllowed()
@@ -242,6 +251,7 @@ export async function getRouteSession(
       effectiveAccountId: selected.accountId,
       providerBacked: false,
       authenticationSource: "local",
+      ...demo,
     };
   }
   const session = await getRequestCommerceSession().catch((error: unknown) => {
@@ -267,6 +277,7 @@ export async function getRouteSession(
     effectiveAccountId: session.effectiveAccountId ?? session.selectedAccountId,
     providerBacked: session.providerBacked,
     authenticationSource: session.authenticationSource,
+    ...demo,
     ...(session.assistedSession
       ? { assistedSession: session.assistedSession }
       : {}),

@@ -1,12 +1,10 @@
-import {
-  getFormattingLocale,
-  getLocale,
-  getTranslations,
-} from "@/src/i18n/server";
+import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { use, type ReactNode } from "react";
 import Link from "next/link";
 
-import { rtlLocales, type MessageId } from "@/src/i18n";
+import { PageHeader } from "@clockwork/ui";
+
+import type { MessageId } from "@/src/i18n";
 import { richText } from "@/src/i18n/rich";
 
 import { LocalTimestamp } from "../local-timestamp";
@@ -25,8 +23,6 @@ const areaLabels: Readonly<Record<string, MessageId>> = {
 function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
   const t = use(getTranslations());
   const locale = use(getFormattingLocale());
-  // The arrow points the way the line reads, so it turns round in Arabic.
-  const forward = rtlLocales.has(use(getLocale())) ? "←" : "→";
   return signals.map((signal) => {
     const area = areaLabels[signal.channel];
     const time = <LocalTimestamp value={signal.generatedAt} locale={locale} />;
@@ -47,10 +43,7 @@ function SignalRows({ signals }: { signals: readonly OperationalSignal[] }) {
             : time}
         </td>
         <td>
-          <Link href={signal.href}>
-            {signal.action}
-            <span aria-hidden="true"> {forward}</span>
-          </Link>
+          <Link href={signal.href}>{signal.action}</Link>
         </td>
       </tr>
     );
@@ -93,17 +86,17 @@ export function OperationsHome({
   });
   return (
     <main className={styles.main} id="main-content">
-      <header className={styles.taskHeader}>
-        <div>
-          <h1>{t("operations.home.title")}</h1>
-          <p>{t("operations.home.description")}</p>
-        </div>
-        <p className={styles.freshness} role="status">
-          {richText(t, "common.updatedAt", {
-            time: <LocalTimestamp value={data.generatedAt} locale={locale} />,
-          })}
-        </p>
-      </header>
+      <PageHeader
+        title={t("operations.home.title")}
+        description={t("operations.home.description")}
+        metadata={
+          <p className={styles.freshness} role="status">
+            {richText(t, "common.updatedAt", {
+              time: <LocalTimestamp value={data.generatedAt} locale={locale} />,
+            })}
+          </p>
+        }
+      />
 
       {staleAreas.length > 0 ? (
         <p className={styles.freshness} role="alert">

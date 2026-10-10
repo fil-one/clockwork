@@ -11,12 +11,14 @@ import {
   Timeline,
 } from "./data-display";
 import { Checkbox, Input, RadioGroup, Select, Textarea } from "./input";
-import { AppShell, Navigation } from "./shell";
+import { AppShell, Navigation, PageHeader } from "./shell";
 import {
   ApplicationStatePanel,
   ProgressSteps,
   Skeleton,
   StateBanner,
+  StatusBadge,
+  Tag,
   ValidationSummary,
 } from "./states";
 import { Table } from "./table";
@@ -165,6 +167,39 @@ describe("application states", () => {
     expect(html).toContain('href="#po"');
     expect(html).toContain("Loading agreements");
     expect(html).toContain('aria-current="step"');
+  });
+});
+
+describe("page header and tags", () => {
+  it("keeps the page header props and sizes its copy with one token", () => {
+    const html = renderToStaticMarkup(
+      <PageHeader
+        eyebrow="Sales"
+        title="Pricing"
+        description="Work out a total."
+        metadata="Updated today"
+        actions={<Button>New</Button>}
+        className="extra"
+      />,
+    );
+    expect(html).toContain('class="cw-page-header extra"');
+    expect(html).toContain("<h1>Pricing</h1>");
+    expect(html).toContain("cw-page-header__description");
+    expect(html).toContain("cw-page-header__metadata");
+    expect(html).toContain("cw-page-header__actions");
+  });
+
+  it("renders a tag apart from a status badge", () => {
+    const html = renderToStaticMarkup(
+      <>
+        <Tag>Commerce administrator</Tag>
+        <StatusBadge>Draft</StatusBadge>
+      </>,
+    );
+    expect(html).toContain(
+      '<span class="cw-tag">Commerce administrator</span>',
+    );
+    expect(html).toContain("cw-badge cw-badge--neutral");
   });
 });
 

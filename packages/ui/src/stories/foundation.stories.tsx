@@ -9,6 +9,7 @@ import {
   Select,
   Skeleton,
   StatusBadge,
+  Tag,
   Table,
   TermBar,
   Toast,
@@ -35,6 +36,7 @@ function FoundationGallery() {
         <Button variant="danger">Destructive</Button>
         <StatusBadge tone="success">Active</StatusBadge>
         <StatusBadge tone="warning">In notice</StatusBadge>
+        <Tag>Commerce administrator</Tag>
       </div>
       <Input
         label="Purchase order"

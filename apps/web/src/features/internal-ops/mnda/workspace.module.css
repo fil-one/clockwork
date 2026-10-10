@@ -2,8 +2,9 @@
   padding: clamp(1rem, 3vw, 2.5rem);
   display: grid;
   gap: var(--cw-space-5, 1.25rem);
+  width: min(100%, var(--cw-page-width));
   min-width: 0;
-  max-width: var(--cw-content-max, 90rem);
+  margin: 0 auto;
 }
 .main :global(.cw-page-header) {
   margin-bottom: 0;

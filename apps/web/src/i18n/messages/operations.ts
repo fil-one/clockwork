@@ -157,7 +157,7 @@ export const operationsMessages = defineStaffMessages({
   "operations.home.area.approvals": { en: "Approvals" },
   "operations.home.area.provisioning": { en: "Provisioning" },
   "operations.home.area.collections": { en: "Collections" },
-  "operations.home.area.renewals": { en: "Renewals" },
+  "operations.home.area.renewals": { en: "Order renewals" },
   "operations.home.area.reports": { en: "Reports" },
   "operations.home.overview.title": { en: "Work overview" },
   "operations.home.overview.description": {

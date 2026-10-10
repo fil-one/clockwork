@@ -4,8 +4,8 @@ import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { rtlLocales, type MessageId } from "@/src/i18n";
-import { useLocale, useTranslations } from "@/src/i18n/client";
+import type { MessageId } from "@/src/i18n";
+import { useTranslations } from "@/src/i18n/client";
 
 import type { ConsoleSection } from "./model";
 import styles from "./owner-console.module.css";
@@ -81,12 +81,9 @@ export function PanelLink({
   href: Route;
   children: ReactNode;
 }) {
-  // The arrow points the way the line reads, so it turns round in Arabic.
-  const forward = rtlLocales.has(useLocale()) ? "←" : "→";
   return (
     <Link className={styles.panelLink} href={href}>
       {children}
-      <span aria-hidden="true">{forward}</span>
     </Link>
   );
 }

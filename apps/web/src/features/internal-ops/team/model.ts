@@ -182,9 +182,11 @@ function demoMember(
 /** Fictional people for the demo deploy, which has no team to read. */
 export const demoTeamMembers: readonly TeamMemberView[] = [
   demoMember({
-    userId: "21000000-0000-4000-8000-000000000020",
-    name: "Noor Haddad",
-    email: "noor.haddad@fil-one-internal.test",
+    // The demo's commerce administrator persona, so Demo controls and this
+    // list name the same person.
+    userId: "21000000-0000-4000-8000-000000000011",
+    name: "Elena Brooks",
+    email: "elena.brooks@fil-one-internal.test",
     roles: ["commerce_admin"],
     mfa: { state: "verified", at: "2026-09-28T14:05:00Z" },
     addedAt: "2026-06-02T09:00:00Z",

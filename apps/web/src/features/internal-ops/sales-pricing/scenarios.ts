@@ -6,6 +6,7 @@ import type {
 /** What the page's scenario section can show. */
 export type ScenarioPanelState =
   | { kind: "unavailable" }
+  | { kind: "demo" }
   | { kind: "mfa" }
   | { kind: "error" }
   | {

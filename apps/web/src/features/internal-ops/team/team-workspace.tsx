@@ -9,9 +9,11 @@ import {
   Dialog,
   EmptyState,
   Input,
+  PageHeader,
   Select,
   StateBanner,
   StatusBadge,
+  Tag,
   Textarea,
   buttonClassName,
 } from "@clockwork/ui";
@@ -139,10 +141,10 @@ export function TeamWorkspace({ view }: { view: TeamView }) {
 
   return (
     <main className={styles.main} id="main-content">
-      <header className={styles.header}>
-        <h1>{t("operations.team.title")}</h1>
-        <p className={styles.description}>{t("operations.team.description")}</p>
-      </header>
+      <PageHeader
+        title={t("operations.team.title")}
+        description={t("operations.team.description")}
+      />
 
       {view.mode === "demo" ? (
         <StateBanner tone="info" title={t("operations.team.demoNotice")} />
@@ -338,7 +340,8 @@ function InviteForm({
   );
 }
 
-/** A person's roles as chips, the primary one first. */
+/** A person's roles as neutral tags, the primary one first. Roles say what
+ * someone may do, not where anything stands, so they carry no status tone. */
 export function RoleChips({
   roles,
   roleLabel,
@@ -349,8 +352,8 @@ export function RoleChips({
   return (
     <ul className={styles.chips}>
       {roles.map((role) => (
-        <li key={role} className={styles.chip}>
-          {roleLabel(role)}
+        <li key={role}>
+          <Tag>{roleLabel(role)}</Tag>
         </li>
       ))}
     </ul>

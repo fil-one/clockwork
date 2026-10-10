@@ -152,6 +152,13 @@
   --cw-control-height: 2.25rem;
   --cw-control-height-small: 2rem;
   --cw-content-max: 90rem;
+  /*
+   * A staff page's content column and the page header's line length. Every
+   * page that uses PageHeader sizes its container with --cw-page-width so
+   * the title and the first block start at the same place on every page.
+   */
+  --cw-page-width: 75rem;
+  --cw-page-header-measure: 46rem;
   --cw-rail-width: 15rem;
   --cw-rail-compact-width: 4.25rem;
   --cw-header-height: 3.5rem;
@@ -1137,7 +1144,7 @@ summary {
 
 .cw-page-header__copy {
   min-width: 0;
-  max-width: 53rem;
+  max-width: var(--cw-page-header-measure);
 }
 
 .cw-page-header h1 {
@@ -1154,7 +1161,6 @@ summary {
 }
 
 .cw-page-header__description {
-  max-width: 46rem;
   margin-top: var(--cw-space-1);
   color: var(--cw-muted);
   font-size: var(--cw-text-md);
@@ -1555,6 +1561,28 @@ summary {
   border-color: var(--cw-danger-border);
   background: var(--cw-danger-soft);
   color: var(--cw-danger-strong);
+}
+
+/*
+ * Tags describe a record (a role, a document type, an audience); they are not
+ * a state. Outlined with square-ish corners so they never read as a status
+ * pill.
+ */
+.cw-tag {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 1.375rem;
+  align-items: center;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-xs);
+  background: var(--cw-surface);
+  padding: 0.0625rem 0.4375rem;
+  color: var(--cw-ink-soft);
+  font-size: var(--cw-text-xs);
+  font-weight: 500;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
 }
 
 /* Signature term bar */
@@ -3933,6 +3961,7 @@ summary {
   }
 
   .cw-badge,
+  .cw-tag,
   .cw-state,
   .cw-stat,
   .cw-chart,

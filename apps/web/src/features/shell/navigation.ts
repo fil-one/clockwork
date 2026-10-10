@@ -40,27 +40,10 @@ export interface NavigationItem {
 /**
  * The sales workspace, first in the staff rail and the only group a seller
  * sees. A new sales destination is one entry here: the rail section, the icon
- * and the command palette all read this list.
+ * and the command palette all read this list. The daily destinations come
+ * first; the administrator's team page and owner console close the group.
  */
 export const salesNavigation: readonly NavigationItem[] = [
-  {
-    href: "/internal/owner",
-    label: "platform.nav.sales.owner",
-    description: "platform.nav.sales.owner.description",
-    // i18n-exempt: search aliases matched in addition to the translated label; never displayed
-    keywords: [
-      "owner",
-      "console",
-      "approvals",
-      "notices",
-      "security",
-      "access",
-      "admin",
-    ],
-    requiredPermission: "staff:manage",
-    workspace: "sales",
-    icon: "owner",
-  },
   {
     href: "/internal",
     label: "platform.nav.sales.home",
@@ -91,6 +74,7 @@ export const salesNavigation: readonly NavigationItem[] = [
   {
     href: "/internal/contracts",
     label: "platform.nav.internal.contracts",
+    description: "platform.nav.sales.contracts.description",
     // i18n-exempt: search aliases matched in addition to the translated label; never displayed
     keywords: ["agreements", "msa", "renewals", "notice", "contract"],
     requiredPermission: "contract:read",
@@ -100,6 +84,7 @@ export const salesNavigation: readonly NavigationItem[] = [
   {
     href: "/internal/sales-library",
     label: "platform.nav.internal.salesLibrary",
+    description: "platform.nav.sales.library.description",
     // i18n-exempt: search aliases matched in addition to the translated label; never displayed
     keywords: ["deck", "collateral", "case study", "one-pager", "library"],
     requiredPermission: "sales:read",
@@ -132,6 +117,24 @@ export const salesNavigation: readonly NavigationItem[] = [
     requiredPermission: "staff:manage",
     workspace: "sales",
     icon: "team",
+  },
+  {
+    href: "/internal/owner",
+    label: "platform.nav.sales.owner",
+    description: "platform.nav.sales.owner.description",
+    // i18n-exempt: search aliases matched in addition to the translated label; never displayed
+    keywords: [
+      "owner",
+      "console",
+      "approvals",
+      "notices",
+      "security",
+      "access",
+      "admin",
+    ],
+    requiredPermission: "staff:manage",
+    workspace: "sales",
+    icon: "owner",
   },
 ];
 

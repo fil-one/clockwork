@@ -93,13 +93,13 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.home.start.show": {
     en: "New to MNDAs? Show the four steps",
   },
-  "operations.sales.pricing.title": { en: "Indicative pricing" },
+  "operations.sales.pricing.title": { en: "Pricing" },
   "operations.sales.pricing.description": {
-    en: "Work out a total for a conversation with a prospect. These figures are indicative. They are not a quote or an offer.",
+    en: "Work out a total for a prospect from today's list prices, save it as a scenario and download a summary PDF to send. The figures are indicative, not a quote or an offer.",
   },
   "operations.sales.pricing.book": { en: "Price book" },
   "operations.sales.pricing.bookOption": {
-    en: "{name}, version {version}, {currency}",
+    en: "{name} ({currency}), version {version}",
   },
   "operations.sales.pricing.source.active": {
     en: "Prices from the active price book, effective {date}. Signed contract prices can differ.",
@@ -112,28 +112,45 @@ export const salesMessages = defineStaffMessages({
   },
   "operations.sales.pricing.rate": { en: "Storage option" },
   "operations.sales.pricing.rateOption": {
-    en: "{sku}, {region}: {price} per {unit}",
+    en: "{product}, {region}: {price} per {unit} per month",
   },
-  "operations.sales.pricing.quantity": { en: "Quantity ({unit})" },
-  "operations.sales.pricing.minimum": { en: "Minimum {minimum} {unit}." },
+  "operations.sales.pricing.product.lockedStorage": { en: "Locked storage" },
+  "operations.sales.pricing.product.storage": { en: "Storage" },
+  "operations.sales.pricing.product.archive": { en: "Archive storage" },
+  "operations.sales.pricing.region.usEast1": { en: "US East (N. Virginia)" },
+  "operations.sales.pricing.region.usEast2": { en: "US East (Ohio)" },
+  "operations.sales.pricing.region.usWest2": { en: "US West (Oregon)" },
+  "operations.sales.pricing.region.ukSouth": { en: "UK South (London)" },
+  "operations.sales.pricing.capacity": { en: "Capacity ({unit})" },
+  "operations.sales.pricing.minimum": { en: "At least {minimum} {unit}." },
   "operations.sales.pricing.term": { en: "Term (months)" },
   "operations.sales.pricing.discount": { en: "Discount (%)" },
   "operations.sales.pricing.discountHelp": {
     en: "Any discount needs finance approval before it can go in a quote.",
   },
-  "operations.sales.pricing.run": { en: "Work out the price" },
+  "operations.sales.pricing.error.capacity": {
+    en: "Enter the capacity as a number above zero, for example 100.",
+  },
+  "operations.sales.pricing.error.term": {
+    en: "Enter whole months from 1 to 120, for example 12.",
+  },
+  "operations.sales.pricing.error.discount": {
+    en: "Enter a discount from 0 to 100, with up to two decimals.",
+  },
   "operations.sales.pricing.invalid": {
-    en: "Check the numbers: the quantity must be above zero, the term a whole number of months, and the discount between 0 and 100%.",
+    en: "Complete every line to see a total.",
   },
   "operations.sales.pricing.result.monthly": { en: "Per month" },
   "operations.sales.pricing.result.total": { en: "Total for {months} months" },
-  "operations.sales.pricing.result.unit": { en: "Price per unit" },
+  "operations.sales.pricing.result.unit": { en: "Price per {unit} per month" },
   "operations.sales.pricing.result.overage": {
     en: "Usage above the commitment",
   },
-  "operations.sales.pricing.perUnit": { en: "{price} per {unit}" },
+  "operations.sales.pricing.perUnitMonth": {
+    en: "{price} per {unit} per month",
+  },
   "operations.sales.pricing.belowMinimum": {
-    en: "This is below the minimum of {minimum} {unit}. A quote starts at the minimum.",
+    en: "Enter at least {minimum} {unit}. A quote starts at the minimum.",
   },
   "operations.sales.pricing.caveat": {
     en: "Indicative only. Taxes are not included, and the final price is set in the quote.",
@@ -141,16 +158,13 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.pricing.unavailable": {
     en: "Price books could not be loaded right now. Reload the page in a minute. If it keeps failing, tell a commerce administrator.",
   },
-  "operations.sales.pricing.scenario.title": { en: "Pricing scenarios" },
-  "operations.sales.pricing.scenario.description": {
-    en: "Price several lines for one prospect, save them to come back to, and download an indicative summary to send. Saving prices every line at today's list prices.",
-  },
+  "operations.sales.pricing.scenario.details": { en: "Scenario details" },
   "operations.sales.pricing.scenario.editing": { en: "Editing {name}" },
   "operations.sales.pricing.scenario.asOf": {
     en: "Saved with list prices as of {date}. Saving again prices every line at today's list prices.",
   },
   "operations.sales.pricing.scenario.lineStale": {
-    en: "The saved rate {sku}, {region} is no longer in force. Choose a current rate before you save.",
+    en: "The saved rate {product}, {region} is no longer in force. Choose a current rate before you save.",
   },
   "operations.sales.pricing.scenario.chooseRate": {
     en: "Choose a current rate",
@@ -175,6 +189,15 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.pricing.scenario.save": { en: "Save as scenario" },
   "operations.sales.pricing.scenario.saveChanges": { en: "Save changes" },
   "operations.sales.pricing.scenario.startNew": { en: "Start a new scenario" },
+  "operations.sales.pricing.scenario.download": {
+    en: "Download summary PDF",
+  },
+  "operations.sales.pricing.scenario.downloadAfterSave": {
+    en: "Save the scenario to download its summary PDF.",
+  },
+  "operations.sales.pricing.scenario.downloadAfterChanges": {
+    en: "The summary PDF shows the scenario as last saved. Save your changes to update it.",
+  },
   "operations.sales.pricing.scenario.saved": { en: "Saved {name}." },
   "operations.sales.pricing.scenario.deleted": { en: "Deleted {name}." },
   "operations.sales.pricing.scenario.deleteConfirm": {
@@ -195,7 +218,10 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.pricing.scenario.delete": { en: "Delete" },
   "operations.sales.pricing.scenario.deleteNamed": { en: "Delete {name}" },
   "operations.sales.pricing.scenario.unavailable": {
-    en: "Saved scenarios are not available here. The calculator above still works.",
+    en: "Saving scenarios is not available here. The calculator still works.",
+  },
+  "operations.sales.pricing.scenario.demo": {
+    en: "Saving scenarios is turned off in the demo.",
   },
   "operations.sales.pricing.scenario.mfa": {
     en: "Verify your sign-in to save and open scenarios.",
