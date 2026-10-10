@@ -8,7 +8,7 @@ vi.mock("./demo-access", () => ({
   contractRegisterReader: () => ({ renewalSummary: mocks.summary }),
 }));
 import {
-  RenewalNoticesCard,
+  loadRenewalSummary,
   RenewalNoticesSummary,
 } from "./renewal-notices-card";
 
@@ -60,6 +60,15 @@ it("says when nothing is due", async () => {
 
 it("shows nothing to people who cannot read contracts", async () => {
   mocks.staff.mockRejectedValue(new Error("CONTRACT_FORBIDDEN"));
-  expect(await RenewalNoticesCard()).toBeNull();
+  expect(await loadRenewalSummary()).toBeNull();
   expect(mocks.summary).not.toHaveBeenCalled();
+});
+
+it("leaves the card out when the register cannot be read", async () => {
+  mocks.staff.mockResolvedValueOnce({});
+  mocks.summary.mockRejectedValueOnce(new Error("db down"));
+  // The home page reads this beside its other sections and relies on it
+  // never rejecting.
+  await expect(loadRenewalSummary()).resolves.toBeNull();
+  expect(mocks.summary).toHaveBeenCalledOnce();
 });

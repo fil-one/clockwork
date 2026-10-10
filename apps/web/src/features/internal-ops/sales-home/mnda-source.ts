@@ -20,13 +20,20 @@ import {
 
 const RECENT_DAYS = 30;
 
-/** Rows in the order a seller acts on them: what waits on someone first. */
+/** Rows in the order a seller acts on them: what needs the seller first,
+ * then what waits on someone. */
 const rows: readonly {
   group: SalesHomeMndaGroup;
   title: MessageId;
   hint: MessageId;
   showTeam: boolean;
 }[] = [
+  {
+    group: "attention",
+    title: "operations.sales.home.card.attention.title",
+    hint: "operations.sales.home.card.attention.hint",
+    showTeam: true,
+  },
   {
     group: "waitingPartner",
     title: "operations.sales.home.card.waitingPartner.title",

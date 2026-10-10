@@ -6,6 +6,7 @@ import {
   type SalesHomeContractCounts,
 } from "@clockwork/db";
 
+import { getRequestCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import type { MessageId } from "@/src/i18n";
 
@@ -65,8 +66,9 @@ export const contractHomeSource: SalesHomeSource = {
     // hidden.
     if (context.demo) return [];
     // Every contract read passes the register's own check (second factor,
-    // own session), not only the page's.
-    await contractStaff("contract:read");
+    // staff session), not only the page's. It reuses the session the page
+    // already read for this request.
+    await contractStaff("contract:read", getRequestCommerceSession);
     const database = getOptionalServiceDatabase();
     // i18n-exempt: thrown to the home loader, which shows its own unavailable state; never rendered
     if (!database) throw new Error("SALES_HOME_DATABASE_UNAVAILABLE");

@@ -385,6 +385,7 @@ export function demoMndaHomeCounts(
   completedSince: Date,
 ): SalesHomeMndaCounts {
   const tally = () => ({
+    attention: 0,
     waitingPartner: 0,
     waitingFilOne: 0,
     completed: 0,
@@ -404,7 +405,9 @@ export function demoMndaHomeCounts(
               : null
             : ["draft", "preparing", "ready", "sending"].includes(r.state)
               ? "drafts"
-              : null;
+              : r.state === "attention"
+                ? "attention"
+                : null;
     if (!group) continue;
     counts.team[group] += 1;
     if (r.ownerId === viewer.id) counts.mine[group] += 1;

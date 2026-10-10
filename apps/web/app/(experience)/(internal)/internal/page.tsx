@@ -6,7 +6,10 @@ import { getTranslations } from "@/src/i18n/server";
 import { demoNow } from "@/src/features/experience-server/demo-clock";
 import { SalesHome } from "@/src/features/internal-ops/sales-home/sales-home";
 import { loadSalesHome } from "@/src/features/internal-ops/sales-home/server-loader";
-import { RenewalNoticesCard } from "@/src/features/internal-ops/contracts/renewal-notices-card";
+import {
+  loadRenewalSummary,
+  RenewalNoticesSummary,
+} from "@/src/features/internal-ops/contracts/renewal-notices-card";
 import {
   getRouteIdentity,
   getRouteSession,
@@ -35,18 +38,23 @@ export default async function Page() {
     return <StaffRoleNotAvailable roles={session.roles} />;
   }
   const identity = await getRouteIdentity("internal");
-  const sections = await loadSalesHome({
-    userId: identity.userId,
-    permissions: session.permissions,
-    demo: explicitDemoIdentityEnabled(),
-    now: demoNow(),
-  });
+  // Neither read rejects: a failed section shows as unavailable and a failed
+  // renewal summary leaves its card out, so they run side by side.
+  const [sections, renewals] = await Promise.all([
+    loadSalesHome({
+      userId: identity.userId,
+      permissions: session.permissions,
+      demo: explicitDemoIdentityEnabled(),
+      now: demoNow(),
+    }),
+    loadRenewalSummary(),
+  ]);
   return (
     <SalesHome
       userId={identity.userId}
       sections={sections}
       canSendMnda={session.providerBacked && staffMayUse(session, "mnda:send")}
-      cards={<RenewalNoticesCard />}
+      cards={renewals ? <RenewalNoticesSummary summary={renewals} /> : null}
     />
   );
 }

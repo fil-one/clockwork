@@ -14,6 +14,7 @@ import { contractAwaitingApproval, contractNeedsAttention } from "./contracts";
  * exactly the rows counted here.
  */
 export const salesHomeMndaGroups = {
+  attention: ["attention"],
   waitingPartner: ["sent", "viewed"],
   waitingFilOne: ["awaiting_countersignature"],
   completed: ["completed"],
@@ -38,7 +39,13 @@ const groupOfState = new Map<string, SalesHomeMndaGroup>(
 );
 
 function emptyTally(): Record<SalesHomeMndaGroup, number> {
-  return { waitingPartner: 0, waitingFilOne: 0, completed: 0, drafts: 0 };
+  return {
+    attention: 0,
+    waitingPartner: 0,
+    waitingFilOne: 0,
+    completed: 0,
+    drafts: 0,
+  };
 }
 
 /**
