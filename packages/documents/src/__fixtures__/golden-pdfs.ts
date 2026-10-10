@@ -1,11 +1,7 @@
 import type { DocumentKind } from "../model";
 
-// Generated with the official pinned Node distribution; zlib affects PDF bytes.
-export const goldenPdfRuntime = {
-  node: "24.18.1",
-  zlib: "1.3.1-e00f703",
-} as const;
-
+// Captured on Node 24.18.1 with zlib 1.3.1. Tests check pages and approximate
+// size only; contentHash is reference metadata because zlib changes PDF bytes.
 export const goldenPdfs: Readonly<
   Record<DocumentKind, { bytes: number; contentHash: string; pages: number }>
 > = {
