@@ -8,3 +8,4 @@ export * from "./render";
 export * from "./template";
 export * from "./mnda/render";
 export * from "./contract-templates";
+export * from "./pricing-summary/render";

@@ -1828,6 +1828,24 @@ detail lives in `docs/operations/commerce-mnda.md`,
   (`apps/web/src/features/internal-ops/sales-pricing/books.ts`). Signed prices
   remain `EXT-COMMERCIAL-01`. Evidence:
   `apps/web/src/features/internal-ops/sales-pricing/pricing.test.tsx`.
+- **Pricing scenarios and indicative summary `[COMPLETE]`:** sellers with
+  `sales:read` save scenarios of up to 20 lines for a named prospect on
+  `/internal/pricing`, then open, overwrite, delete or download them as an
+  indicative pricing summary PDF. Lines keep the list price and book version in
+  force on the day saved; totals are recomputed on every read, and floors,
+  transfer prices, claims and accounting codes are never stored or read
+  (`packages/db/src/repositories/pricing-scenarios.ts`,
+  `packages/documents/src/pricing-summary/render.tsx`, migration `001456`).
+  `sales:read` gates the saves and deletes because a seller's writes reach only
+  their own rows; `commerce_admin` reads, overwrites and deletes every seller's
+  scenarios. A line below its rate's minimum quantity, or a company the PDF
+  cannot print, is refused at save. Saves, deletes and downloads are audited as
+  `pricing_scenario.*`. The guided demo shows scenarios as unavailable. Prices
+  stay indicative until `EXT-COMMERCIAL-01` and the summary copy is interim
+  until `EXT-BRAND-01`. Evidence:
+  `packages/db/src/repositories/pricing-scenarios.integration.test.ts`,
+  `packages/documents/src/pricing-summary/render.integration.test.ts`,
+  `apps/web/src/features/internal-ops/sales-pricing/scenario-builder.test.tsx`.
 - **CRM provider `[EXTERNAL-ONLY]`:** prospects, contacts, activities and
   pipeline live in HubSpot, outside this repository. The outbound CRM projection
   exists and is inert behind `CLOCKWORK_CRM_ENABLED` and `EXT-PROVIDER-01`; a
