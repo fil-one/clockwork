@@ -75,7 +75,6 @@ export const PricingScenarioInputSchema = z
     expectedVersion: z.int().min(1).optional(),
   })
   .strict();
-export type PricingScenarioInput = z.infer<typeof PricingScenarioInputSchema>;
 
 /**
  * A saved line: the entry plus the list price and rate details read from the

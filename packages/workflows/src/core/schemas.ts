@@ -2,7 +2,6 @@ import {
   PaygInvoiceSourceSchema,
   CurrencySchema,
   EmailSchema,
-  IdempotencyKeySchema,
   IsoDateTimeSchema,
   LocalDateSchema,
   MoneySchema,
@@ -508,18 +507,6 @@ export const CertificateExpiryInputSchema = z
     }
   });
 
-export const MeteredOverageProviderInputSchema = z
-  .object({
-    invoiceId: ids.invoice,
-    providerInvoiceId: z.string().min(1),
-    orderId: ids.order,
-    customerId: z.string().min(1),
-    lines: SyncOverageInputSchema.shape.lines,
-    idempotencyKey: IdempotencyKeySchema,
-  })
-  .strict();
-
-export type ReplayRequest = z.infer<typeof ReplayRequestSchema>;
 export type CoreWorkflowContext = z.infer<typeof CoreWorkflowContextSchema>;
 export type IssueInvoiceInput = z.infer<typeof IssueInvoiceInputSchema>;
 export type SyncOverageInput = z.infer<typeof SyncOverageInputSchema>;
@@ -536,4 +523,3 @@ export type ExportReportInput = z.infer<typeof ExportReportInputSchema>;
 export type CertificateExpiryInput = z.infer<
   typeof CertificateExpiryInputSchema
 >;
-export type ReportType = z.infer<typeof ReportTypeSchema>;

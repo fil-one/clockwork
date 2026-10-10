@@ -123,5 +123,3 @@ export function createApiApp(options: ApiAppOptions = {}) {
   );
   return app;
 }
-
-export type ClockworkApi = ReturnType<typeof createApiApp>;

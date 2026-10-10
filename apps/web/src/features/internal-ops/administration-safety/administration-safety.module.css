@@ -226,8 +226,7 @@
 .buttonSecondary:focus-visible,
 .buttonDanger:focus-visible,
 .textButton:focus-visible,
-.caseButton:focus-visible,
-.exitLink:focus-visible {
+.caseButton:focus-visible {
   outline: 2px solid var(--cw-focus);
   outline-offset: 2px;
 }
@@ -607,13 +606,6 @@
   min-width: 0;
 }
 
-.exitLink {
-  margin-inline-start: auto;
-  color: var(--cw-action-strong);
-  font-size: var(--cw-text-sm);
-  font-weight: 500;
-}
-
 @media (max-width: 64rem) {
   .toolbar {
     grid-template-columns: minmax(12rem, 2fr) minmax(9rem, 1fr);
@@ -655,10 +647,6 @@
   .assistedState {
     align-items: start;
     flex-wrap: wrap;
-  }
-
-  .exitLink {
-    margin-inline-start: 0;
   }
 }
 

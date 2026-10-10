@@ -2,10 +2,7 @@ import { activateTriggerWorkerRuntime } from "../runtime/trigger-worker-bootstra
 import type { TaskModuleImporter } from "../tasks/load";
 import { registerAllTriggerTasks } from "../tasks/trigger-adapter";
 
-export {
-  productionTaskImporters,
-  type TaskModuleImporter as TriggerTaskImporter,
-} from "../tasks/load";
+export { productionTaskImporters } from "../tasks/load";
 
 /**
  * Trigger task modules are evaluated only after the durable runtime is active;

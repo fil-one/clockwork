@@ -1,8 +1,4 @@
-import type {
-  BillingPort,
-  IdempotencyKey,
-  ProviderResult,
-} from "@clockwork/contracts";
+import type { BillingPort, IdempotencyKey } from "@clockwork/contracts";
 import { IdempotencyKeySchema, MoneySchema } from "@clockwork/contracts";
 import Stripe from "stripe";
 
@@ -914,5 +910,3 @@ export class StripeFinanceGateway
     }
   }
 }
-
-export type StripeFinanceGatewayResult<T> = ProviderResult<T>;

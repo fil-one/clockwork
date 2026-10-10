@@ -3,8 +3,3 @@ export * from "./dead-letter-redrive";
 export * from "./lifecycle-task-dispatch";
 export * from "./workos-organization";
 export * from "./gate-activation-tasks";
-
-export const systemWorkflowRegistry = [
-  "system.outbox.dispatch.v1",
-  "system.external-gates.activation.v1",
-] as const;

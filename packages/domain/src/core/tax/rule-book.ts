@@ -1,7 +1,4 @@
-import type {
-  TaxRoundingConvention,
-  TaxSupplyType,
-} from "@clockwork/contracts";
+import type { TaxSupplyType } from "@clockwork/contracts";
 import { z } from "zod";
 
 /**
@@ -492,10 +489,4 @@ export function thresholdFor(
   return ruleBook.thresholds.find(
     (threshold) => threshold.jurisdictionId === jurisdictionId,
   );
-}
-
-export function roundingFor(
-  territory: TaxTerritoryRule,
-): TaxRoundingConvention {
-  return territory.rounding;
 }

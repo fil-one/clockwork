@@ -8,8 +8,6 @@
  * the same file.
  */
 export default {
-  /** Still import `localizeCopy` / `translateInterfaceText`. */
-  localizeCopy: [],
   /** Still format with a literal locale or the runtime's default locale. */
   literalLocales: [],
 };

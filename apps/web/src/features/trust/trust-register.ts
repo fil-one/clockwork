@@ -496,19 +496,6 @@ export function attestationVocabularyHits(
     .map((pattern) => pattern.source);
 }
 
-/** Every path this register asks a reader to be able to open. */
-export function trustEvidencePaths(): readonly string[] {
-  return [
-    ...trustControls.flatMap((control) => [
-      control.evidencePath,
-      ...(control.alsoCites ?? []).map((citation) => citation.path),
-    ]),
-    ...trustIntegrations.map((entry) => entry.evidencePath),
-    ...trustUnselectedIntegrations.map((entry) => entry.evidencePath),
-    ...trustGaps.map((entry) => entry.evidencePath),
-  ];
-}
-
 /**
  * The share of tracked files a cited token may appear in and still count as
  * naming one implementation.

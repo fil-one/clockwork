@@ -4,49 +4,6 @@ import { defineMessages, sameAsEnglish } from "../define";
  * Projection, detail and demo-record surfaces served by experience-server. Owned by the experience lane.
  */
 export const experienceMessages = defineMessages({
-  // Pre-module IDs. The experience surfaces no longer render these; they stay
-  // because other lanes' remaining `localizeCopy` callers reverse-map English
-  // text to them until those callers migrate.
-  "ui.97": {
-    en: "Documents",
-    es: "Documentos",
-    fr: sameAsEnglish("Documents"),
-    de: "Dokumente",
-    ja: "文書",
-    pt: "Documentos",
-    zh: "文档",
-    ar: "المستندات",
-  },
-  "ui.98": {
-    en: "Audit evidence",
-    es: "Evidencia de auditoría",
-    fr: "Preuves d’audit",
-    de: "Audit-Nachweise",
-    ja: "監査証跡",
-    pt: "Evidências de auditoria",
-    zh: "审计证据",
-    ar: "أدلة التدقيق",
-  },
-  "ui.104": {
-    en: "Organization",
-    es: "Organización",
-    fr: "Organisation",
-    de: "Organisation",
-    ja: "組織",
-    pt: "Organização",
-    zh: "组织",
-    ar: "المؤسسة",
-  },
-  "internal.provisioning.title": {
-    en: "Provisioning recovery",
-    es: "Recuperación del aprovisionamiento",
-    fr: "Reprise du provisionnement",
-    de: "Wiederherstellung der Bereitstellung",
-    ja: "プロビジョニングの復旧",
-    pt: "Recuperação do provisionamento",
-    zh: "开通恢复",
-    ar: "استعادة التهيئة",
-  },
   "detail.eyebrow": {
     en: "Artifact record",
     es: "Registro del documento",

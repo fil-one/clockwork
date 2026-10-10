@@ -118,8 +118,6 @@ export const englishDocumentMessages = {
   workload: "Workload",
 } as const;
 
-export type DocumentMessageKey = keyof typeof englishDocumentMessages;
-
 export const documentTitles: Readonly<Record<DocumentKind, string>> = {
   amendment: englishDocumentMessages.amendment,
   commission_statement: englishDocumentMessages.commissionStatement,

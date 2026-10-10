@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import React, { type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import { FIL_ONE_WORDMARK_PNG } from "./assets/wordmark";
 import {

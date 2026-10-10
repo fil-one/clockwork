@@ -1,8 +1,6 @@
 "use client";
 import { useTranslations } from "@/src/i18n/client";
 
-import type { Route } from "next";
-import Link from "next/link";
 import { useEffect, useId, useState, type ReactNode } from "react";
 
 import type { SelectOption } from "./data";
@@ -212,20 +210,6 @@ export function StatusPill({
     <span className={tone ? `${styles.pill} ${styles[tone]}` : styles.pill}>
       {state}
     </span>
-  );
-}
-
-export function ExitLink({
-  href,
-  children,
-}: {
-  href: Route;
-  children: ReactNode;
-}) {
-  return (
-    <Link className={styles.exitLink} href={href}>
-      {children}
-    </Link>
   );
 }
 

@@ -16,11 +16,3 @@ export type BuyQuoteProjectionLookup =
   | { status: "pending" }
   | { status: "unavailable" }
   | { status: "forbidden" };
-
-export type LookupPreparedQuoteArtifact = (
-  quoteId: string,
-) => Promise<PreparedQuoteArtifactLookup>;
-
-export type LookupBuyQuoteProjection = (
-  quoteId: string,
-) => Promise<BuyQuoteProjectionLookup>;

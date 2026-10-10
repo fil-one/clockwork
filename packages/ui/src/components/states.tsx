@@ -193,22 +193,6 @@ export function StateBanner({
   );
 }
 
-export function LiveRegion({
-  children,
-  priority = "polite",
-  atomic = true,
-}: {
-  children: ReactNode;
-  priority?: "polite" | "assertive";
-  atomic?: boolean;
-}) {
-  return (
-    <div className="cw-sr-only" aria-live={priority} aria-atomic={atomic}>
-      {children}
-    </div>
-  );
-}
-
 export interface ValidationIssue {
   id: string;
   label: ReactNode;

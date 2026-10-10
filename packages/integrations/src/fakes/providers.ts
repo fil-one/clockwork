@@ -14,8 +14,6 @@ import type {
   SupportFeedPort,
   TaxDeterminationPort,
   TaxPort,
-  WebhookVerifier,
-  WebhookVerificationResult,
 } from "@clockwork/contracts";
 import { ids, MoneySchema } from "@clockwork/contracts";
 import { taxOnNet, type TaxRuleBook } from "@clockwork/domain/core";
@@ -353,25 +351,6 @@ export class FakeUsageAdapter implements OrchestratorUsagePort {
           },
         ] as const,
     );
-  }
-}
-
-export class FakeWebhookVerifier<T> implements WebhookVerifier<T> {
-  public constructor(
-    private readonly parse: (raw: Uint8Array) => T,
-    private readonly secret = "fake-signature",
-  ) {}
-  public verify(
-    input: Parameters<WebhookVerifier<T>["verify"]>[0],
-  ): Promise<WebhookVerificationResult<T>> {
-    if (input.signature !== this.secret)
-      throw new Error("Invalid fake webhook signature");
-    const payload = this.parse(input.rawBody);
-    return Promise.resolve({
-      eventId: stableReference("evt_fake", payload),
-      occurredAt: "2026-07-31T16:00:00.000Z",
-      payload,
-    });
   }
 }
 

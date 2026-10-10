@@ -7,7 +7,6 @@ import type {
   Money,
   ProviderResult,
 } from "@clockwork/contracts";
-import { MoneySchema } from "@clockwork/contracts";
 
 import { stableExternalId, toProviderFailure } from "../provider-result";
 
@@ -866,8 +865,4 @@ export class InMemoryAccountingExportSink implements AccountingExportSink {
     this.batches.push(input.batch);
     return Promise.resolve({ ok: true, value: { externalBatchId } });
   }
-}
-
-export function accountingMoney(currency: Currency, minor: string): Money {
-  return MoneySchema.parse({ currency, minor });
 }

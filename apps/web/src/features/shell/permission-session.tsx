@@ -8,7 +8,7 @@ import type { Permission } from "@clockwork/contracts";
  * Empty by default so a client surface rendered outside the provider is denied
  * rather than handed the permissions of a privileged session.
  */
-export const PermissionContext = createContext<readonly Permission[]>([]);
+const PermissionContext = createContext<readonly Permission[]>([]);
 
 export function PermissionSessionProvider({
   permissions,

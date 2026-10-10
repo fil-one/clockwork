@@ -7,9 +7,9 @@ import { legacyFiles } from "./apps/web/src/i18n/legacy-callers/index.mjs";
 /*
  * Translation fences for the web app. Feature code gets its translator from
  * `@/src/i18n/server` or `@/src/i18n/client`, renders message IDs, and formats
- * with the reader's formatting locale. The legacy English-text lookup and
- * literal locales are allowed only in the files each lane lists under
- * apps/web/src/i18n/legacy-callers/, and those lists only shrink.
+ * with the reader's formatting locale. Literal locales are allowed only in the
+ * files each lane lists under apps/web/src/i18n/legacy-callers/, and those
+ * lists only shrink.
  */
 const i18nSources = [
   "apps/web/src/**/*.{ts,tsx}",
@@ -25,11 +25,6 @@ const catalogImport = {
   name: "@/src/i18n/catalogs",
   message:
     "Catalogs are server-side and hold every language. Use getTranslations() from @/src/i18n/server or useTranslations() from @/src/i18n/client.",
-};
-const legacyCopyImport = {
-  name: "@/src/i18n/copy",
-  message:
-    'localizeCopy/translateInterfaceText map English back to IDs and silently leave anything unmatched in English. Call t("message.id") instead.',
 };
 const englishTranslator = {
   selector:
@@ -112,10 +107,7 @@ export default tseslint.config(
     files: i18nSources,
     ignores: i18nExempt,
     rules: {
-      "no-restricted-imports": [
-        "error",
-        { paths: [catalogImport, legacyCopyImport] },
-      ],
+      "no-restricted-imports": ["error", { paths: [catalogImport] }],
       "no-restricted-syntax": ["error", englishTranslator, ...literalLocales],
     },
   },
@@ -123,18 +115,10 @@ export default tseslint.config(
     // The root layout hands the selected catalog to the client provider.
     files: ["apps/web/app/layout.tsx"],
     rules: {
-      "no-restricted-imports": ["error", { paths: [legacyCopyImport] }],
+      "no-restricted-imports": "off",
     },
   },
   // Spread so an emptied list drops its block instead of an empty `files`.
-  ...[legacyFiles("localizeCopy")]
-    .filter((files) => files.length > 0)
-    .map((files) => ({
-      files,
-      rules: {
-        "no-restricted-imports": ["error", { paths: [catalogImport] }],
-      },
-    })),
   ...[legacyFiles("literalLocales")]
     .filter((files) => files.length > 0)
     .map((files) => ({

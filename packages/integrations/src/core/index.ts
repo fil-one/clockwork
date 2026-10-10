@@ -13,11 +13,3 @@ export * from "./tax/http-determination-adapter";
 export * from "./tax/http-tax-adapter";
 export * from "./tax/rule-book-adapter";
 export * from "./tax/seed-rule-book";
-
-export const coreIntegrationRegistry = [
-  "stripe-finance-v1",
-  "accounting-export-v1",
-  "aws-marketplace-finance-v1",
-  "azure-marketplace-finance-v1",
-  "google-marketplace-finance-v1",
-] as const;

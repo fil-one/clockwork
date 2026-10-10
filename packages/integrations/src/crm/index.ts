@@ -246,8 +246,6 @@ export const crmProjectionTopics = [
   "renewal.declined",
 ] as const;
 
-export type CrmProjectionTopic = (typeof crmProjectionTopics)[number];
-
 /**
  * Binds the provider's record identifier to the commerce account row. Commerce
  * stays the customer master: the reference is written once and re-asserted on

@@ -5,13 +5,6 @@ import { defineStaffMessages, sameInAllLanguages } from "../define";
  * Staff-only, so English only.
  */
 export const adminPricingMessages = defineStaffMessages({
-  /*
-   * No adminPricing file renders this any more (they use `common.currency`).
-   * It stays while other lanes still reach "Currency" through the legacy
-   * `localizeCopy` map; delete it with `legacy-english.ts`.
-   */
-  "ui.120": { en: "Currency" },
-
   // ── Shared across the pricing surfaces ──────────────────────────────────
   "adminPricing.version": { en: "Version" },
   "adminPricing.bookName": { en: "{name} v{version}" },

@@ -1,14 +1,8 @@
 /**
  * The English text of every message that existed before the lane-owned
- * modules, frozen at the migration. Two things read it and nothing edits it:
- *
- * - `copy.ts`, the legacy `localizeCopy` path, maps authored English back to
- *   an ID with it. It is English only, so client components on that path do
- *   not ship every language.
- * - `catalogs.test.ts`, which lets these IDs keep their pre-module names and
- *   forbids any new `ui.<digits>` ID.
- *
- * Delete this file when the last `localizeCopy` caller is gone.
+ * modules, frozen at the migration. Nothing edits it. `catalogs.test.ts` reads
+ * it to let these IDs keep their pre-module names and to forbid any new
+ * `ui.<digits>` ID.
  */
 export const legacyEnglish: Readonly<Record<string, string>> = {
   "clientReview.eyebrow": "Client review · demonstration",

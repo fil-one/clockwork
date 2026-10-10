@@ -51,11 +51,6 @@ export function staffPermissions(roles: readonly string[]): Permission[] {
   return permissionsForRoles(roles, { side: "fil_one" });
 }
 
-/** The roles a person does not hold yet, in the usual order. */
-export function rolesToAdd(member: TeamMemberView): TeamRole[] {
-  return teamRoles.filter((role) => !member.roles.includes(role));
-}
-
 export const teamErrorCodes = [
   "NOT_PERMITTED",
   "DIRECT_SESSION_REQUIRED",

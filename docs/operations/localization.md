@@ -93,12 +93,11 @@ breaks the mechanically checkable typography rules in the glossary. The
 translation and typography checks skip the staff-only modules, and a test pins
 which modules those are.
 
-ESLint rejects, in the web app, the legacy English-text lookup (`localizeCopy`,
-`translateInterfaceText`), imports of the all-language catalogs outside the root
-layout, `translatorFor("en")`, and `Intl` or `toLocale*` calls with a literal or
-missing locale. Files still on a legacy path are listed per lane in
-`apps/web/src/i18n/legacy-callers/`; those lists only shrink, and a test fails
-on an entry that is no longer needed.
+ESLint rejects, in the web app, imports of the all-language catalogs outside the
+root layout, `translatorFor("en")`, and `Intl` or `toLocale*` calls with a
+literal or missing locale. Files still formatting with a literal locale are
+listed per lane in `apps/web/src/i18n/legacy-callers/`; those lists only shrink,
+and a test fails on an entry that is no longer needed.
 
 `node scripts/i18n-scan.mjs [paths...]` (also `pnpm i18n:scan`) reports
 interface text that bypasses the catalogs, per file and line. A line that must

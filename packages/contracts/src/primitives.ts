@@ -164,30 +164,6 @@ export const CountryCodeSchema = z
   .regex(/^[A-Z]{2}$/)
   .brand<"CountryCode">();
 export const EmailSchema = z.email().max(320);
-export const UrlSchema = z.url();
-
-export const VersionSchema = z
-  .object({ sequence: z.int().positive(), immutable: z.boolean() })
-  .strict();
-
-export const TimestampsSchema = z
-  .object({ createdAt: IsoDateTimeSchema, updatedAt: IsoDateTimeSchema })
-  .strict();
-
-export const PaginationRequestSchema = z
-  .object({
-    cursor: z.string().max(512).optional(),
-    limit: z.int().min(1).max(100).default(50),
-  })
-  .strict();
-
-export const paginationResponse = <T extends z.ZodType>(item: T) =>
-  z
-    .object({
-      items: z.array(item),
-      nextCursor: z.string().max(512).nullable(),
-    })
-    .strict();
 
 export const IdempotencyKeySchema = z
   .string()
