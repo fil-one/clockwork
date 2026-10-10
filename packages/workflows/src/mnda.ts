@@ -39,7 +39,8 @@ const mismatchReason = (error: unknown) =>
   error instanceof Error ? mismatchReasons[error.message] : undefined;
 const mismatched = (record: MndaRecord) =>
   record.state === "attention" &&
-  Object.values(mismatchReasons).some((reason) => reason === record.error);
+  (record.error === "signwell_signed_mismatch" ||
+    Object.values(mismatchReasons).some((reason) => reason === record.error));
 /** Signed by anyone, as SignWell's own copy reports it. */
 const signedInSignWell = (doc: SignWellDocument) =>
   doc.status.toLowerCase() === "completed" ||
@@ -78,7 +79,14 @@ export class MndaWorkflow {
     } catch (failure) {
       const reason = mismatchReason(failure);
       if (!reason) throw failure;
-      return this.mismatch(record, token, reason, actor);
+      // Someone signed SignWell's copy: only a person in SignWell can decide
+      // whether it stands, so it is never voided from here.
+      return this.mismatch(
+        record,
+        token,
+        signedInSignWell(doc) ? "signwell_signed_mismatch" : reason,
+        actor,
+      );
     }
     const error = state === "attention" ? signWellAttentionReason(doc) : null;
     const patch: MndaUpdatePatch = {};
@@ -360,9 +368,15 @@ export class MndaWorkflow {
           if (terminalMndaStates.includes(current.state)) return current;
           if (!mndaVoidableStates.includes(current.state))
             throw new Error("MNDA_NOT_VOIDABLE");
-          // A mismatched copy's state was not applied; check it directly.
-          if (mismatched(current) && signedInSignWell(doc))
-            throw new Error("MNDA_NOT_VOIDABLE");
+          // The state may not show a signature: a mismatched copy is not
+          // applied, and a bounce outranks the partner's signature. Never
+          // delete a document anyone signed.
+          if (signedInSignWell(doc))
+            throw new Error(
+              mismatched(current)
+                ? "MNDA_SIGNED_IN_SIGNWELL"
+                : "MNDA_NOT_VOIDABLE",
+            );
           await this.deleteInSignWell(current, token, actor);
         }
       }
@@ -432,8 +446,30 @@ export class MndaWorkflow {
         throw new Error("MNDA_NOT_CORRECTABLE");
       }
       const current = await this.apply(record, token, doc, actor);
-      if (mismatched(current)) throw new Error("MNDA_NOT_CORRECTABLE");
       const counterparty = doc.recipients.find((r) => r.id === "counterparty");
+      // A correction SignWell applied after its answer was lost, and after a
+      // refresh dropped it, shows as other signers. When SignWell already has
+      // exactly this email, record it; the next read still checks the rest.
+      if (
+        (current.error === "signwell_signers_mismatch" ||
+          current.error === "signwell_signed_mismatch") &&
+        counterparty?.email.toLowerCase() === signerEmail
+      ) {
+        const settled = await this.repo.update(
+          id,
+          token,
+          { correctedSignerEmail: signerEmail, pendingSignerEmail: null },
+          actor,
+          undefined,
+          {
+            eventType: "mnda.signer_corrected",
+            before: { signerEmail: mndaSignerEmail(current) },
+            detail: { signerEmail },
+          },
+        );
+        return await this.apply(settled, token, doc, actor);
+      }
+      if (mismatched(current)) throw new Error("MNDA_NOT_CORRECTABLE");
       if (["signed", "completed"].includes(counterparty?.status ?? ""))
         throw new Error("MNDA_SIGNER_STARTED");
       if (!["sent", "viewed", "attention"].includes(current.state))

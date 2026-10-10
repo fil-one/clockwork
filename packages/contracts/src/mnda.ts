@@ -383,6 +383,7 @@ export const mndaErrorCodes = [
   "not_correctable",
   "already_completed",
   "needs_attention",
+  "signed_in_signwell",
   "reason_required",
   "session_expired",
   "unexpected",
@@ -405,6 +406,8 @@ export const mndaAttentionReasons = [
   // SignWell's copy names other signers, or is not bound to this request.
   "signwell_signers_mismatch",
   "signwell_binding_mismatch",
+  // As above, and someone signed SignWell's copy; resolved in SignWell.
+  "signwell_signed_mismatch",
 ] as const;
 export type MndaAttentionReason = (typeof mndaAttentionReasons)[number];
 

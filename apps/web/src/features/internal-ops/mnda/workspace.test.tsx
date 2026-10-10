@@ -212,21 +212,50 @@ it("warns before papering a company that already has an MNDA or a register contr
   ).toBeVisible();
 });
 
-it("explains a SignWell copy that no longer matches, and offers only a void", () => {
+it("explains a SignWell copy that no longer matches, and sends a signed one to an administrator", () => {
+  const signed = {
+    ...sent,
+    id: "019a44ac-0000-7000-8000-0000000000dd",
+    state: "attention" as const,
+    error: "signwell_signed_mismatch",
+    input: { ...sent.input, company: "Signed Elsewhere Co" },
+  };
   render(
     <MndaWorkspace
       initial={data([
         { ...sent, state: "attention", error: "signwell_signers_mismatch" },
+        signed,
       ])}
       initialQuery={query}
     />,
   );
+  const row = (company: string) =>
+    within(screen.getByText(company).closest("tr") as HTMLElement);
   expect(
-    screen.getByText(/The signers in SignWell no longer match this MNDA/),
+    row("Example Corporation").getByText(
+      /The signers in SignWell no longer match this MNDA/,
+    ),
   ).toBeVisible();
-  expect(screen.getByText(/Void it, then send it again\./)).toBeVisible();
-  expect(screen.getByRole("button", { name: "Void" })).toBeVisible();
-  expect(screen.queryByRole("button", { name: "Fix email" })).toBeNull();
+  expect(
+    row("Example Corporation").getByText(/void it, then send it again\./),
+  ).toBeVisible();
+  expect(
+    row("Example Corporation").getByRole("button", { name: "Void" }),
+  ).toBeVisible();
+  expect(
+    row("Example Corporation").getByRole("button", { name: "Fix email" }),
+  ).toBeVisible();
+  expect(
+    row("Signed Elsewhere Co").getByText(
+      /Ask a commerce administrator to resolve it in SignWell\./,
+    ),
+  ).toBeVisible();
+  expect(
+    row("Signed Elsewhere Co").queryByRole("button", { name: "Void" }),
+  ).toBeNull();
+  expect(
+    row("Signed Elsewhere Co").queryByRole("button", { name: "Fix email" }),
+  ).toBeNull();
 });
 
 it("no longer offers the partner-completes mode, and copies an old one into the default mode", async () => {
