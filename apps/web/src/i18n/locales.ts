@@ -93,6 +93,7 @@ export function formattingLocaleFor(
     try {
       return Intl.getCanonicalLocales(regional)[0] ?? formattingLocales[locale];
     } catch {
+      // A malformed regional tag falls back to the language's own format.
       return formattingLocales[locale];
     }
   }

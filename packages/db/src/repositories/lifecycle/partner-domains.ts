@@ -16,6 +16,7 @@ export class DatabaseVerifiedPartnerOriginRepository {
     try {
       url = new URL(input.origin);
     } catch {
+      // An unparseable origin is never an allowed partner domain.
       return false;
     }
     if (url.protocol !== "https:" || url.username || url.password || url.port)

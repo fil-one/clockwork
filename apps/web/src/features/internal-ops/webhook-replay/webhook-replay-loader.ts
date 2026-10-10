@@ -51,7 +51,10 @@ export async function loadReplayableWebhookEvents(input: {
         source: "demo",
         readable: true,
       };
-    } catch {
+    } catch (error) {
+      console.error("Demo webhook events could not be read", {
+        error: error instanceof Error ? error.name : "unknown",
+      });
       return unreadable;
     }
   }
@@ -63,7 +66,10 @@ export async function loadReplayableWebhookEvents(input: {
       ...(input.provider ? { provider: input.provider } : {}),
     });
     return { events, source: "live", readable: true };
-  } catch {
+  } catch (error) {
+    console.error("Webhook events could not be read", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
     return unreadable;
   }
 }

@@ -27,13 +27,19 @@ export async function loadReconciliationWorkspace(input: {
       return await readDemoReconciliationWorkspace({
         ...(input.limit === undefined ? {} : { limit: input.limit }),
       });
-    } catch {
+    } catch (error) {
+      console.error("Demo reconciliation workspace could not be read", {
+        error: error instanceof Error ? error.name : "unknown",
+      });
       return unreadableReconciliationWorkspace;
     }
   if (!database) return unreadableReconciliationWorkspace;
   try {
     return await readReconciliationWorkspace(database, input);
-  } catch {
+  } catch (error) {
+    console.error("Reconciliation workspace could not be read", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
     return unreadableReconciliationWorkspace;
   }
 }

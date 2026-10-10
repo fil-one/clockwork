@@ -206,12 +206,14 @@ async function telemetryMeterKey(): Promise<string | undefined> {
         ? `workos:${session.sessionId}`
         : undefined;
     } catch {
+      // An unreadable WorkOS session names no caller, so it gets no key.
       return undefined;
     }
   }
   try {
     await getCommerceSession();
   } catch {
+    // The resolver refuses a caller with no credential; that caller gets no key.
     return undefined;
   }
   return sharedDeploymentMeterKey;

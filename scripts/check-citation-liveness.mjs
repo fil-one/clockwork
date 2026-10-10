@@ -354,6 +354,7 @@ function workspacePackageTargets(baseDirectory) {
         withFileTypes: true,
       });
     } catch {
+      // A missing packages or apps directory contributes no targets.
       continue;
     }
     for (const entry of entries) {
@@ -365,6 +366,7 @@ function workspacePackageTargets(baseDirectory) {
           readFileSync(resolve(packageRoot, "package.json"), "utf8"),
         );
       } catch {
+        // A directory without a readable package.json is not a workspace package.
         continue;
       }
       if (typeof manifest.name !== "string") continue;
@@ -880,6 +882,7 @@ export function collectSourceFiles(
     try {
       if (!statSync(absolute).isDirectory()) continue;
     } catch {
+      // A missing scan root has nothing to scan.
       continue;
     }
     walk(absolute);

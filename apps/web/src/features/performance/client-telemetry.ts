@@ -168,6 +168,7 @@ export function sanitizeRoute(value: string): string {
   try {
     pathname = new URL(value, "https://telemetry.invalid").pathname;
   } catch {
+    // An unparseable route is recorded under one placeholder, never verbatim.
     pathname = "/invalid-route";
   }
   return pathname

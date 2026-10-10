@@ -35,6 +35,7 @@ export function routeLocale(
   try {
     return isStaffPath(new URL(referer).pathname) ? "en" : readerLocale;
   } catch {
+    // An unparseable referer keeps the reader's language.
     return readerLocale;
   }
 }

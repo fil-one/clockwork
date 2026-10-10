@@ -44,6 +44,7 @@ export function releaseProofConfiguration(
       return undefined;
     return { origin: url.origin, secret };
   } catch {
+    // A malformed APP_ORIGIN leaves release proof unconfigured.
     return undefined;
   }
 }

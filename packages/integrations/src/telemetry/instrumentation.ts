@@ -135,6 +135,7 @@ async function problemCode(response: Response): Promise<unknown> {
       ? body.code
       : undefined;
   } catch {
+    // An unreadable body has no problem code to report.
     return undefined;
   }
 }
