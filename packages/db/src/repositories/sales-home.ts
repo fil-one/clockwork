@@ -15,10 +15,10 @@ import { contractAwaitingApproval, contractNeedsAttention } from "./contracts";
  */
 export const salesHomeMndaGroups = {
   attention: ["attention"],
-  waitingPartner: ["sent", "viewed"],
+  waitingPartner: ["sending", "sent", "viewed"],
   waitingFilOne: ["awaiting_countersignature"],
   completed: ["completed"],
-  drafts: ["draft", "preparing", "ready", "sending"],
+  drafts: ["draft", "preparing", "ready"],
 } as const satisfies Record<string, readonly MndaState[]>;
 
 export type SalesHomeMndaGroup = keyof typeof salesHomeMndaGroups;

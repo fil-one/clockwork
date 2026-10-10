@@ -3,13 +3,9 @@ import type { MndaSigningProvider } from "@clockwork/integrations";
 import {
   SigningEngine,
   signingErrors,
-  signingReminderCooldownMs,
   type SigningVoidReason,
 } from "./signing/engine";
 import { mndaSigningStore, type MndaSigningRepository } from "./signing/stores";
-
-/** Manual reminders are spaced so a double click cannot email twice. */
-export const mndaReminderCooldownMs = signingReminderCooldownMs;
 
 /** How a void is explained: a typed reason, or the signer-change code. */
 export type MndaVoidReason = SigningVoidReason;
