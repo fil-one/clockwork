@@ -29,7 +29,10 @@ Rate changes record the changed rate and previous rate in audit evidence.
 Discount changes preserve previous/new matrix data. Review the displayed claims,
 tax/accounting mappings, transfer prices, floors and matrix before deciding.
 These changes add no approved commercial policy: finance still must supply
-signed economics and satisfy external gates.
+signed economics and satisfy external gates before selling. No capability switch
+gates price-book work, so finance can publish list prices while quotes and
+orders stay off. To publish Fil One's list book, follow
+[publishing the Fil One list price book](fil-one-list-price-book.md).
 
 ## Referral policy snapshots
 
@@ -180,12 +183,20 @@ until that external provider contract and adapter behavior are qualified.
 Finance can draft, edit, propose, return, and approve effective-dated channel
 policies at `/internal/channel-policy`. Sales handoff capacity, default and
 maximum initial requested protection, extension length, and maximum extensions
-are configurable. Creator, last editor, and proposer cannot review their own
-version. Approval is immutable; UTC effective dates select the policy for new
-requests. Each new registration retains the server-selected policy (or an
-explicit legacy-default marker), initial requested window, and extension count.
-Extensions require progress evidence and obey both per-extension and cumulative
-limits. Existing registrations are not rewritten when policy changes.
+are configurable (up to 3,650 days and 100 extensions). Commission rates,
+transfer prices and margins have no global ceiling. Each partner has one
+commission rate and holdback, fixed on each quote, and a transfer tier on the
+price book. A registration naming an existing direct client stays open for
+channel-ops review with a recorded house-account match; a registration that
+duplicates an active deal on the same client and workload is refused. No staff
+screen shows the house-account match yet; check
+`core_deal_registration_exclusions` before approving. Creator, last editor, and
+proposer cannot review their own version. Approval is immutable; UTC effective
+dates select the policy for new requests. Each new registration retains the
+server-selected policy (or an explicit legacy-default marker), initial requested
+window, and extension count. Extensions require progress evidence and obey both
+per-extension and cumulative limits. Existing registrations are not rewritten
+when policy changes.
 
 Explicitly configured demo deployments offer fictional PAYG/trial and channel
 policy workspaces. The seeded proposals have a different author, allowing the

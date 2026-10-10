@@ -1,5 +1,5 @@
 import type { EditableQuoteLine } from "../commercial/quote-lines";
-import { uuidV7 } from "@clockwork/contracts";
+import { QuantitySchema, uuidV7 } from "@clockwork/contracts";
 
 import type { MessageId, MessageValues, Translator } from "@/src/i18n";
 
@@ -248,9 +248,11 @@ export function validateResaleQuoteStage(
   if (stage >= 1 && !offer)
     errors.offerName = { id: "partner.quote.new.error.offer" };
   if (stage >= 2) {
-    // An empty field reads as zero here, which every bound below rejects.
-    const capacity = Number(draft.capacity);
-    if (!Number.isFinite(capacity) || capacity < 10)
+    // An empty field reads as zero here, which every bound below rejects. No
+    // deal-size floor is set here: the rate card's own minimum quantity is the
+    // only one, and the server applies it when the quote is priced.
+    const capacity = draft.capacity.trim();
+    if (!QuantitySchema.safeParse(capacity).success || Number(capacity) <= 0)
       errors.capacity = { id: "partner.quote.new.error.capacity" };
     const termMonths = Number(draft.termMonths);
     if (!Number.isInteger(termMonths) || termMonths < 1)

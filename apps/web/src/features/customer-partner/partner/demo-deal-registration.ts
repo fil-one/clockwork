@@ -65,7 +65,7 @@ const commandSchema = z
         endClientAccountId: z.uuid(),
         workload: z.string().trim().min(1).max(240),
         expectedVolume: QuantitySchema,
-        protectionDays: z.number().int().positive().max(730),
+        protectionDays: z.number().int().positive().max(3650),
       })
       .strict(),
   })

@@ -65,10 +65,10 @@ export const channelPolicyVersions = pgTable(
     and (${table.terms}->>'version')::integer>0 and (${table.terms}->>'effectiveFrom') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
     and (${table.terms}->>'effectiveFrom')::date is not null
     and (${table.terms}->>'selfServeThresholdTb')::numeric>0 and (${table.terms}->>'selfServeThresholdTb')::numeric<=1000000000
-    and (${table.terms}->>'defaultProtectionDays')::integer between 1 and 730
-    and (${table.terms}->>'maximumProtectionDays')::integer between (${table.terms}->>'defaultProtectionDays')::integer and 730
-    and (${table.terms}->>'extensionDays')::integer between 1 and 730
-    and (${table.terms}->>'maximumExtensions')::integer between 0 and 10
+    and (${table.terms}->>'defaultProtectionDays')::integer between 1 and 3650
+    and (${table.terms}->>'maximumProtectionDays')::integer between (${table.terms}->>'defaultProtectionDays')::integer and 3650
+    and (${table.terms}->>'extensionDays')::integer between 1 and 3650
+    and (${table.terms}->>'maximumExtensions')::integer between 0 and 100
     and length(trim(${table.terms}->>'sourceEvidence'))>=8
   `,
     ),

@@ -461,7 +461,8 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                     name="capacity"
                     type="number"
                     inputMode="decimal"
-                    min="10"
+                    min="0"
+                    step="any"
                     value={draft.capacity}
                     onChange={(event) => update("capacity", event.target.value)}
                     aria-invalid={Boolean(errors.capacity)}
