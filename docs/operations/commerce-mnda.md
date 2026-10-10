@@ -31,9 +31,9 @@ details**. Leave unknown details blank and the partner fills them in before
 signing. **Our team enters the details** makes every detail required. New drafts
 always name the partner's legal company. The retired **Partner completes details
 when signing** mode took an internal reference instead; MNDAs already prepared
-in it still send, refresh and download as before, and **Duplicate**, **Send
-again** or **Edit details** on one opens the default mode with the legal name
-blank to fill in.
+in it still send, refresh and download as before, and **New MNDA from this one**
+or **Edit details** on one opens the default mode with the legal name blank to
+fill in.
 
 Problems appear next to the field with a specific message (for example a
 reserved character such as `<` or `[`, a partner email equal to the
@@ -90,24 +90,31 @@ partner signer name and email, preparer, and what the partner entered at signing
 (see [partner-completed details](#partner-completed-details)). Status filters
 and **Only mine** live in the address, so links can open a filtered view:
 
-| Filter             | Address                                            |
-| ------------------ | -------------------------------------------------- |
-| Waiting on partner | `/internal/mndas?status=sending,sent,viewed`       |
-| Waiting on Fil One | `/internal/mndas?status=awaiting_countersignature` |
-| Needs attention    | `/internal/mndas?status=attention`                 |
-| Signed             | `/internal/mndas?status=completed`                 |
-| Drafts             | `/internal/mndas?status=draft,preparing,ready`     |
-| Closed             | `/internal/mndas?status=declined,expired,canceled` |
+| Filter                  | Address                                            |
+| ----------------------- | -------------------------------------------------- |
+| Waiting on counterparty | `/internal/mndas?status=sending,sent,viewed`       |
+| Waiting on Fil One      | `/internal/mndas?status=awaiting_countersignature` |
+| Needs attention         | `/internal/mndas?status=attention`                 |
+| Signed                  | `/internal/mndas?status=completed`                 |
+| Drafts                  | `/internal/mndas?status=draft,preparing,ready`     |
+| Closed                  | `/internal/mndas?status=declined,expired,canceled` |
 
 Add `&mine=1` for the signed-in seller's own MNDAs, `q=` for a search and
 `page=` for a page. Replaced and discarded drafts appear only under **Closed**.
 
-Each row shows the sent date and the days outstanding while the MNDA is open.
-**Needs attention** rows say why and what to do: a bounced partner email ("Fix
-the email and SignWell sends it again"), a request SignWell stopped ("Void it,
-then send it again"), a document deleted directly in SignWell ("Void it here to
-close it"), or a SignWell copy that no longer matches the MNDA. A copy no longer
-matches when its signers differ from the MNDA's partner and Fil One
+Each row shows the sent date and, under **Waiting**, the days outstanding while
+the MNDA is open (a dash once it closes). Each row leads with one action for its
+state (**Continue**, **Remind**, **Fix email**, **Check status**, **Signed PDF**
+or **New MNDA from this one**); **More** lists the rest, with **Void** and
+**Discard draft** last. Without the signing connection, actions that reach
+SignWell stay focusable and say why they wait. A draft closed before it was sent
+reads **Discarded**; a sent MNDA that was stopped reads **Voided**.
+`/internal/mndas?compose=1` opens a new MNDA (Home and the command palette link
+to it). **Needs attention** rows say why and what to do: a bounced partner email
+("Fix the email and SignWell sends it again"), a request SignWell stopped ("Void
+it, then send it again"), a document deleted directly in SignWell ("Void it here
+to close it"), or a SignWell copy that no longer matches the MNDA. A copy no
+longer matches when its signers differ from the MNDA's partner and Fil One
 countersigner (for example a recipient changed directly in SignWell; error
 `signwell_signers_mismatch`) or when it is not bound to this request
 (`signwell_binding_mismatch`). Commerce applies nothing from such a copy and
@@ -130,9 +137,9 @@ the preview reads SignWell's copy first and never creates a second SignWell
 request. When SignWell is still preparing the document, nothing is sent and the
 seller is told to send again in a minute. When SignWell accepted the send but
 could not be read back at once, the seller is told it was sent and the row shows
-Sending until SignWell is read again: by its callback, by the row's **Refresh**,
-or by the [scheduled check](#missed-callbacks) every 15 minutes for rows
-unchanged for 10 minutes.
+Sending until SignWell is read again: by its callback, by the row's **Check
+status**, or by the [scheduled check](#missed-callbacks) every 15 minutes for
+rows unchanged for 10 minutes.
 
 **Export CSV** downloads the filtered register (company, partner signer and
 email, status, countersigner, preparer, created, sent, days outstanding,
@@ -144,7 +151,7 @@ says so above the register when more match, and the response carries
 `x-mnda-export-truncated: true`.
 
 The open page refreshes the register every 15 seconds while the tab is visible.
-**Refresh** on a row reconciles a missed callback at once; a scheduled task
+**Check status** on a row reconciles a missed callback at once; a scheduled task
 checks open MNDAs in rotation ([missed callbacks](#missed-callbacks)). SignWell
 sends automatic reminders, and expiry is 30 days. **Remind** names who is
 reminded: the partner, or the Fil One countersigner once the partner has signed.
@@ -176,8 +183,8 @@ a bounced partner email, **Fix email**). Manual reminders are a minute apart.
   answer is lost, Commerce reads the document back: gone means the void is
   recorded with its reason. Commerce keeps the original PDF, the record and the
   reason, audited as `mnda.voided`.
-- **Send again** (closed MNDAs) and **Duplicate** (open ones) start a new draft
-  prefilled from the row, dated today.
+- **New MNDA from this one** starts a new draft prefilled from the row, dated
+  today.
 - A document deleted directly in SignWell (404 on two reads) moves to **Needs
   attention**; a person voids it. It is never closed automatically.
 
@@ -222,8 +229,8 @@ volume above the free allowance. Plan/billing changes remain in SignWell.
 
 Staff hold one of three roles:
 
-- `revenue`: sellers. Home, MNDAs and indicative pricing. No operations,
-  billing, provisioning or platform tools.
+- `revenue`: sellers. Home, MNDAs and Pricing. No operations, billing,
+  provisioning or platform tools.
 - `commerce_admin`: everything every internal role can do, plus MNDA signatory
   and notice settings and the **Team** page. Migration 001441 promotes one
   person: James Kurz (`james@fil.one`), while he holds `internal_operator` in
@@ -284,8 +291,8 @@ walks a new seller through it.
   (`signwell_signed_mismatch`) is resolved by a commerce administrator in
   SignWell. Open the document in SignWell and compare its signers with the row.
   If the signature must not stand, delete the document in SignWell, choose
-  **Refresh** on the row (it moves to "Deleted in SignWell"), then **Void** it
-  with a reason and send a new MNDA. If it should stand, first download the
+  **Check status** on the row (it moves to "Deleted in SignWell"), then **Void**
+  it with a reason and send a new MNDA. If it should stand, first download the
   signed PDF from SignWell and record it in the contract register as an MNDA
   with that PDF attached, then delete it in SignWell, refresh and void the row
   with a reason that names the register entry. Whether SignWell lets an
@@ -307,7 +314,7 @@ The scheduled task `system.esign.reconcile.v1` runs every 15 minutes in staging
 and production. Each run re-reads in SignWell open MNDAs bound to a SignWell
 document (preparing, sending, sent, opened, awaiting countersignature or needing
 attention) that have not changed for 10 minutes, through the same refresh as the
-row's **Refresh** button and the callback. Template contract signings are
+row's **Check status** button and the callback. Template contract signings are
 included when `COMMERCE_CONTRACTS_SIGNING_ENABLED=true`. Unsent drafts, closed
 requests and documents deleted in SignWell are not read. Requests whose signers
 or binding disagree with SignWell stay in the rotation: they recover on their

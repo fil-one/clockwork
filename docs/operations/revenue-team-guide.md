@@ -1,9 +1,8 @@
 # Fil One Commerce for the revenue team
 
 Fil One Commerce at `https://commerce.fil.one` is where the revenue team sends
-mutual NDAs (MNDAs), keeps the contract register, finds sales material and
-checks indicative pricing. Sellers do not see billing, provisioning or the
-operations tools.
+mutual NDAs (MNDAs), keeps the contract register, finds sales material and uses
+Pricing. Sellers do not see billing, provisioning or the operations tools.
 
 Practice in the demo: https://clockwork-commerce-demo.netlify.app. It uses
 made-up companies and sends nothing.
@@ -33,11 +32,11 @@ Nobody else can enroll a factor for you.
 
 ## Send an MNDA
 
-1. Open **MNDAs** and choose **New MNDA**.
-2. Enter the partner signer's name and email, then the company's legal name.
-   Fill in any other details you know and leave the rest blank: the partner
-   completes the blanks when signing. Choose **Our team enters the details**
-   only when you have every detail.
+1. Choose **New MNDA** on **Home**, or open **MNDAs** and choose **New MNDA**.
+2. Enter the counterparty signer's name and email, then the company's legal
+   name. Fill in any other details you know and leave the rest blank: the
+   counterparty completes the blanks when signing. Choose **Our team enters the
+   details** only when you have every detail.
 3. Use Latin-script names and addresses (accents are fine). Write the entity
    type without "a" or "an", for example `Delaware corporation`.
 4. If Commerce already has an MNDA with that company, or the contract register
@@ -45,78 +44,85 @@ Nobody else can enroll a factor for you.
    company name shows it with a link. Check it before sending another.
 5. Choose **Prepare preview** and open the PDF. To fix something, choose **Edit
    details**; the corrected preview replaces the old draft.
-6. Choose **Confirm and send**. The partner receives an email from SignWell, our
-   signing service. The partner signs first, then the Fil One countersigner.
+6. Choose **Confirm and send**. The counterparty receives an email from
+   SignWell, our signing service. The counterparty signs first, then the Fil One
+   countersigner.
 
 If a problem with what you entered stops the preview, the message appears next
 to the field.
 
 ## Check status
 
-**Home** (My work) counts your MNDAs waiting on the partner, waiting on Fil One,
-completed in the last 30 days, and your unsent drafts. Each line opens the
-register filtered to those MNDAs; the team total opens everyone's.
+**Home** (My work) counts your MNDAs that need attention, wait on the
+counterparty or on Fil One, were signed in the last 30 days, or are unsent
+drafts. Your count opens the register filtered to those MNDAs; the team total
+opens everyone's. Needs attention shows in red while you have any.
 
 Home also counts the contracts you recorded or prepared that are out for
 signature or need attention. Approvers see the contracts someone else prepared
 that are waiting for their approval.
 
-The MNDA register filters by status (Waiting on partner, Waiting on Fil One,
-Needs attention, Signed, Drafts, Closed), **Only mine** and search. Each row
-shows when it was sent and how many days it has been open. While the tab is
-visible, the page reloads the register from Commerce every 15 seconds.
-**Refresh** on a row asks SignWell for the latest status at once; otherwise
-Commerce checks SignWell on a schedule.
+The MNDA register filters by status (Drafts, Waiting on counterparty, Waiting on
+Fil One, Needs attention, Signed, Closed), **Only mine** and search. Each row
+shows when it was sent and how many days it has been waiting. It leads with its
+next step (**Continue**, **Remind**, **Fix email**, **Check status**, **Signed
+PDF** or **New MNDA from this one**); **More** lists the rest, with **Void** and
+**Discard draft** last. While the tab is visible, the page reloads the register
+from Commerce every 15 seconds. **Check status** on a row asks SignWell for the
+latest status at once; otherwise Commerce checks SignWell on a schedule.
 
 Commerce does not email you when a status changes. When both sides have signed,
 SignWell emails the signed agreement to both signers and to you.
 
 ### What a note on a row means
 
-| What the row says                                                            | What to do                                                                                                                           |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| The partner's email bounced.                                                 | **Fix email**. SignWell sends it to the new address.                                                                                 |
-| SignWell stopped this request.                                               | **Void** it, then **Send again**.                                                                                                    |
-| Deleted in SignWell.                                                         | **Void** it here to close it, then send again if needed.                                                                             |
-| The signers in SignWell no longer match this MNDA.                           | If you just fixed the partner's email, choose **Fix email** again with the same address. Otherwise **Void** it, then **Send again**. |
-| Someone signed this MNDA in SignWell, but SignWell's copy does not match it. | Ask a commerce administrator to resolve it in SignWell. **Void** and **Fix email** are not offered.                                  |
-| SignWell's copy does not belong to this MNDA.                                | **Void** it, then **Send again**.                                                                                                    |
-| Sending did not finish.                                                      | **Continue** and send again. The partner never gets two.                                                                             |
-| SignWell did not answer the last check.                                      | **Refresh** in a minute.                                                                                                             |
+| What the row says                                                            | What to do                                                                                                                                            |
+| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The counterparty's email bounced.                                            | **Fix email**. SignWell sends it to the new address.                                                                                                  |
+| SignWell stopped this request.                                               | **Void** it, then **New MNDA from this one**.                                                                                                         |
+| Deleted in SignWell.                                                         | **Void** it here to close it, then start a new one if needed.                                                                                         |
+| The signers in SignWell no longer match this MNDA.                           | If you just fixed the counterparty's email, choose **Fix email** again with the same address. Otherwise **Void** it, then **New MNDA from this one**. |
+| Someone signed this MNDA in SignWell, but SignWell's copy does not match it. | Ask a commerce administrator to resolve it in SignWell. **Void** and **Fix email** are not offered.                                                   |
+| SignWell's copy does not belong to this MNDA.                                | **Void** it, then **New MNDA from this one**.                                                                                                         |
+| Sending did not finish.                                                      | **Continue** and send again. The counterparty never gets two.                                                                                         |
+| SignWell did not answer the last check.                                      | **Check status** in a minute.                                                                                                                         |
 
-An MNDA the partner declined, or did not sign within 30 days, moves to
-**Closed**. **Send again** starts a new draft from it.
+An MNDA the counterparty declined, or did not sign within 30 days, moves to
+**Closed**. **New MNDA from this one** starts a new draft from it. A draft
+discarded before it was sent shows as **Discarded**; a sent MNDA that was
+stopped shows as **Voided**.
 
 ### Reminders
 
-SignWell reminds the partner automatically. **Remind** sends one now: to the
-partner, or to the Fil One countersigner once the partner has signed. Reminders
-are at least a minute apart.
+SignWell reminds the counterparty automatically. **Remind** sends one now: to
+the counterparty, or to the Fil One countersigner once the counterparty has
+signed. Reminders are at least a minute apart.
 
 ## Fix a wrong email
 
-**Fix email** replaces the partner's email while they have not started signing.
-SignWell sends the request to the new address; the signer's name stays the same.
+**Fix email** replaces the counterparty's email while they have not started
+signing. SignWell sends the request to the new address; the signer's name stays
+the same.
 
-If a different person will sign for the partner, choose **Fix email**, then
+If a different person will sign for the counterparty, choose **Fix email**, then
 **Someone else will sign**, and confirm the void. Commerce voids the MNDA and
 opens a new draft with the same company details and a blank signer.
 
 You can fix or void the MNDAs you prepared; a commerce administrator can do
 either for any MNDA.
 
-Once the partner has started signing, the email cannot change: void the MNDA and
-send a new one.
+Once the counterparty has started signing, the email cannot change: void the
+MNDA and send a new one.
 
 ## Void an MNDA
 
-**Void** works on sent, opened or **Needs attention** MNDAs until the partner
-signs. Enter a reason. Commerce checks SignWell, stops the request and keeps the
-original PDF, the reason and the history. An unsent draft has **Discard draft**
-instead.
+**Void**, under **More**, works on sent, opened or **Needs attention** MNDAs
+until the counterparty signs. Enter a reason. Commerce checks SignWell, stops
+the request and keeps the original PDF, the reason and the history. An unsent
+draft has **Discard draft** instead.
 
-If the partner has already signed, the MNDA cannot be voided: tell the Fil One
-countersigner not to sign it.
+If the counterparty has already signed, the MNDA cannot be voided: tell the Fil
+One countersigner not to sign it.
 
 ## Contracts
 
@@ -176,7 +182,7 @@ again.
 
 | Page          | What it is for                                                                                              |
 | ------------- | ----------------------------------------------------------------------------------------------------------- |
-| Home          | Your MNDAs and contracts by what they are waiting on, and the start guide.                                  |
+| Home          | Your MNDAs and contracts by what they are waiting on, then the start guide.                                 |
 | MNDAs         | Send, remind, fix an email, void, check status, download, export.                                           |
 | Contracts     | Every agreement. Record one, prepare from a template, send, remind, void, export.                           |
 | Sales library | Current decks, one-pagers, pricing sheets and case studies.                                                 |

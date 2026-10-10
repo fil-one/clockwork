@@ -921,7 +921,7 @@ test.describe("playable product-demo workflows", () => {
     await expect(page.getByText("Saltmarsh Climate Data Ltd")).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Remind Rafael Ortega/ }),
-    ).toBeDisabled();
+    ).toHaveAttribute("aria-disabled", "true");
     const pdf = await page.request.get(
       "/internal/mndas/61000000-0000-4000-8000-000000000005/pdf?kind=original",
     );

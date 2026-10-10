@@ -3,7 +3,7 @@ import { getTranslations } from "@/src/i18n/server";
 import { demoNow } from "@/src/features/experience-server/demo-clock";
 import { demoMndaRows } from "@/src/features/internal-ops/mnda/demo-register";
 import { demoMndaViewer } from "@/src/features/internal-ops/mnda/demo-workspace";
-import { mndaStateLabels } from "@/src/features/internal-ops/mnda/labels";
+import { mndaRecordStateLabel } from "@/src/features/internal-ops/mnda/labels";
 import {
   mndaActor,
   mndaRepository,
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
     // to them stays stable for spreadsheet and CRM imports.
     return new Response(
       mndaRegisterCsv(records, {
-        status: (r) => t(mndaStateLabels[r.state]),
+        status: (r) => t(mndaRecordStateLabel(r)),
         signerChange: t("operations.mnda.void.someoneElseReason"),
       }),
       {

@@ -209,14 +209,37 @@ describe("contract work on the home page", () => {
     expect(mocks.contracts).not.toHaveBeenCalled();
   });
 
-  it("leaves the guided demo without a contract section", async () => {
+  it("counts the guided demo's contract register and links to it", async () => {
     const sections = await loadSalesHome({ ...context, demo: true });
-    expect(sections[1]?.rows).toEqual([]);
     expect(mocks.contracts).not.toHaveBeenCalled();
+    expect(mocks.staff).not.toHaveBeenCalled();
+    expect(
+      sections[1]?.rows?.map(({ id, mine, team, href }) => ({
+        id,
+        mine,
+        team,
+        href,
+      })),
+    ).toEqual([
+      {
+        id: "contracts-needsAttention",
+        mine: 0,
+        team: 0,
+        href: "/internal/contracts?status=signing_attention&mine=1",
+      },
+      {
+        id: "contracts-outForSignature",
+        mine: 1,
+        team: 1,
+        href: "/internal/contracts?status=out_for_signature&mine=1",
+      },
+    ]);
     render(
       <SalesHome userId={context.userId} sections={sections} canSendMnda />,
     );
-    expect(screen.queryByRole("region", { name: "Your contracts" })).toBeNull();
+    expect(
+      screen.getByRole("region", { name: "Your contracts" }),
+    ).toBeInTheDocument();
   });
 
   it("reads as unavailable when the contract check refuses", async () => {
@@ -247,7 +270,7 @@ describe("contract work on the home page", () => {
     const region = screen.getByRole("region", { name: "Your contracts" });
     expect(within(region).getAllByRole("listitem")).toHaveLength(3);
     expect(
-      within(region).getByRole("link", { name: "5 across the team" }),
+      within(region).getByRole("link", { name: "Team: 5" }),
     ).toHaveAttribute("href", "/internal/contracts?status=out_for_signature");
   });
 });
@@ -281,44 +304,62 @@ describe("sales home page", () => {
       HTMLElement,
     ];
     expect(rows).toHaveLength(5);
-    // What needs the reader comes first, with both register links.
+    // What needs the reader comes first. Each count is its own link.
     expect(
-      within(attention).getByRole("heading", { name: "Need attention" }),
+      within(attention).getByRole("heading", { name: "Needs attention" }),
     ).toBeInTheDocument();
     expect(
-      within(attention).getByRole("link", { name: "View in the register" }),
+      within(attention).getByRole("link", { name: "Yours: 1" }),
     ).toHaveAttribute("href", "/internal/mndas?status=attention&mine=1");
     expect(
-      within(attention).getByRole("link", { name: "2 across the team" }),
+      within(attention).getByRole("link", { name: "Team: 2" }),
     ).toHaveAttribute("href", "/internal/mndas?status=attention");
-    expect(within(waitingPartner).getByText("2")).toBeInTheDocument();
     expect(
-      within(waitingPartner).getByRole("link", {
-        name: "View in the register",
-      }),
+      within(waitingPartner).getByRole("link", { name: "Yours: 2" }),
     ).toHaveAttribute(
       "href",
       "/internal/mndas?status=sending,sent,viewed&mine=1",
     );
     expect(
-      within(waitingPartner).getByRole("link", { name: "5 across the team" }),
+      within(waitingPartner).getByRole("link", { name: "Team: 5" }),
     ).toHaveAttribute("href", "/internal/mndas?status=sending,sent,viewed");
     // Nothing of the reader's waits on Fil One: say so, and offer no empty list.
+    expect(within(waitingFilOne).getByText("Yours: none")).toBeInTheDocument();
     expect(
-      within(waitingFilOne).getByText("None right now"),
-    ).toBeInTheDocument();
-    expect(
-      within(waitingFilOne).queryByRole("link", {
-        name: "View in the register",
-      }),
+      within(waitingFilOne).queryByRole("link", { name: /^Yours/ }),
     ).toBeNull();
-    expect(screen.getByRole("link", { name: "Send an MNDA" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "New MNDA" })).toHaveAttribute(
       "href",
-      "/internal/mndas",
+      "/internal/mndas?compose=1",
     );
-    expect(
-      screen.getByRole("link", { name: "Indicative pricing" }),
-    ).toHaveAttribute("href", "/internal/pricing");
+    expect(screen.getByRole("link", { name: "Pricing" })).toHaveAttribute(
+      "href",
+      "/internal/pricing",
+    );
+  });
+
+  it("marks broken work in the danger tone only while the reader has some", () => {
+    const quiet = mndaHomeRows({
+      ...counts,
+      mine: { ...counts.mine, attention: 0 },
+    });
+    const { unmount } = render(
+      <SalesHome userId={context.userId} sections={[section]} canSendMnda />,
+    );
+    const [attention, waitingPartner] = screen.getAllByRole("listitem");
+    expect(attention).toHaveAttribute("data-attention");
+    expect(waitingPartner).not.toHaveAttribute("data-attention");
+    unmount();
+    render(
+      <SalesHome
+        userId={context.userId}
+        sections={[{ ...section, rows: quiet }]}
+        canSendMnda
+      />,
+    );
+    expect(screen.getAllByRole("listitem")[0]).not.toHaveAttribute(
+      "data-attention",
+    );
   });
 
   it("explains an unavailable section and where to go instead", () => {
@@ -335,7 +376,7 @@ describe("sales home page", () => {
     expect(
       screen.getByRole("link", { name: "Open the MNDA register" }),
     ).toHaveAttribute("href", "/internal/mndas");
-    expect(screen.queryByRole("link", { name: "Send an MNDA" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "New MNDA" })).toBeNull();
   });
 
   it("lets the reader hide the start guide and bring it back", async () => {
@@ -343,18 +384,65 @@ describe("sales home page", () => {
     render(
       <SalesHome userId={context.userId} sections={[]} canSendMnda={false} />,
     );
-    const guide = screen.getByRole("region", { name: "Start here" });
+    const guide = screen.getByRole("region", { name: "Send your first MNDA" });
     expect(within(guide).getAllByRole("listitem")).toHaveLength(4);
     await user.click(screen.getByRole("button", { name: "Hide this guide" }));
-    expect(screen.queryByRole("region", { name: "Start here" })).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Send your first MNDA" }),
+    ).toBeNull();
     expect(
       window.localStorage.getItem(startGuideStorageKey(context.userId)),
     ).toBe("1");
     await user.click(
-      screen.getByRole("button", { name: "Show the start guide" }),
+      screen.getByRole("button", { name: "New to MNDAs? Show the four steps" }),
     );
     expect(
-      screen.getByRole("region", { name: "Start here" }),
+      screen.getByRole("region", { name: "Send your first MNDA" }),
+    ).toBeInTheDocument();
+  });
+
+  it("puts the guide after the work, folded once the reader has sent an MNDA", async () => {
+    const user = userEvent.setup();
+    const reader = "21000000-0000-4000-8000-0000000000aa";
+    const { unmount } = render(
+      <SalesHome userId={reader} sections={[section]} canSendMnda />,
+    );
+    expect(
+      screen.queryByRole("region", { name: "Send your first MNDA" }),
+    ).toBeNull();
+    const show = screen.getByRole("button", {
+      name: "New to MNDAs? Show the four steps",
+    });
+    expect(
+      screen
+        .getByRole("region", { name: "Your MNDAs" })
+        .compareDocumentPosition(show) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    await user.click(show);
+    expect(
+      screen.getByRole("region", { name: "Send your first MNDA" }),
+    ).toBeInTheDocument();
+    unmount();
+    // Drafts alone are not a sent MNDA: a newcomer still sees the steps.
+    const draftsOnly = mndaHomeRows({
+      ...counts,
+      mine: {
+        attention: 0,
+        waitingPartner: 0,
+        waitingFilOne: 0,
+        completed: 0,
+        drafts: 2,
+      },
+    });
+    render(
+      <SalesHome
+        userId="21000000-0000-4000-8000-0000000000ab"
+        sections={[{ ...section, rows: draftsOnly }]}
+        canSendMnda
+      />,
+    );
+    expect(
+      screen.getByRole("region", { name: "Send your first MNDA" }),
     ).toBeInTheDocument();
   });
 });

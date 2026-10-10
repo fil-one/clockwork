@@ -37,6 +37,13 @@ vi.mock("next/navigation", () => ({
 }));
 import { MndaWorkspace } from "./workspace";
 
+// The tooltip that says why a control waits measures itself.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
 const query: MndaRegisterQuery = {
   status: [],
   mine: false,
@@ -59,6 +66,10 @@ const sent: MndaRecord = {
   providerId: "019a44ac-0000-7000-8000-000000000005",
   sentAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
 };
+/** Unfolds a row's More list, where every action but the lead one sits. */
+function openMore(row: Pick<typeof screen, "getByRole">) {
+  fireEvent.click(row.getByRole("button", { name: /^More actions for/ }));
+}
 function fill(values: Partial<Record<string, string>>) {
   for (const [name, value] of Object.entries(values))
     fireEvent.change(
@@ -155,7 +166,7 @@ it("shows specific messages next to each field and focuses the first problem", a
   fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
   expect(
     await screen.findByText(
-      "The partner signer can't use the Fil One countersigner's email.",
+      "The counterparty signer can't use the Fil One countersigner's email.",
     ),
   ).toBeVisible();
 });
@@ -231,6 +242,8 @@ it("explains a SignWell copy that no longer matches, and sends a signed one to a
   );
   const row = (company: string) =>
     within(screen.getByText(company).closest("tr") as HTMLElement);
+  openMore(row("Example Corporation"));
+  openMore(row("Signed Elsewhere Co"));
   expect(
     row("Example Corporation").getByText(
       /The signers in SignWell no longer match this MNDA/,
@@ -277,10 +290,13 @@ it("explains a SignWell draft whose fields do not match the template, and offers
   ).toBeVisible();
   expect(
     row.getByText(
-      /Void it and send again\. If it happens again, contact engineering\./,
+      /Void it and send again\. If it happens again, tell engineering\./,
     ),
   ).toBeVisible();
   expect(row.queryByText(/SignWell stopped/)).toBeNull();
+  // Nothing to repair in place: the row leads with a status check.
+  expect(row.getByRole("button", { name: "Check status" })).toBeVisible();
+  openMore(row);
   expect(row.getByRole("button", { name: "Void" })).toBeVisible();
   expect(row.queryByRole("button", { name: "Fix email" })).toBeNull();
 });
@@ -304,7 +320,10 @@ it("no longer offers the partner-completes mode, and copies an old one into the 
   };
   render(<MndaWorkspace initial={data([legacy])} initialQuery={query} />);
   expect(screen.getByText("Deal 42 reference")).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: "Send again" }));
+  openMore(screen);
+  fireEvent.click(
+    screen.getByRole("button", { name: "New MNDA from this one" }),
+  );
   expect(await screen.findByLabelText(/Counterparty legal name/)).toHaveValue(
     "",
   );
@@ -336,7 +355,7 @@ it("refreshes only the register while the page is open", async () => {
     });
     expect(mocks.loadRegister).toHaveBeenCalledWith(query);
     expect(mocks.load).not.toHaveBeenCalled();
-    expect(screen.getByText("Opened by partner")).toBeVisible();
+    expect(screen.getByText("Opened")).toBeVisible();
     expect(screen.getByRole("button", { name: "New MNDA" })).toBeVisible();
   } finally {
     vi.useRealTimers();
@@ -357,7 +376,7 @@ it("explains blocked requests in plain words with the next step", () => {
       initialQuery={query}
     />,
   );
-  expect(screen.getByText(/The partner's email bounced\./)).toBeVisible();
+  expect(screen.getByText(/The counterparty's email bounced\./)).toBeVisible();
   expect(
     screen.getByText(/Fix the email and SignWell sends it again\./),
   ).toBeVisible();
@@ -371,7 +390,9 @@ it("explains blocked requests in plain words with the next step", () => {
 it("filters by status and owner through the URL", async () => {
   const replace = vi.spyOn(window.history, "replaceState");
   render(<MndaWorkspace initial={data([sent])} initialQuery={query} />);
-  fireEvent.click(screen.getByRole("button", { name: "Waiting on partner" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Waiting on counterparty" }),
+  );
   await waitFor(() =>
     expect(mocks.load).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -386,7 +407,7 @@ it("filters by status and owner through the URL", async () => {
     expect.stringContaining("?status=sending%2Csent%2Cviewed"),
   );
   expect(
-    screen.getByRole("button", { name: "Waiting on partner" }),
+    screen.getByRole("button", { name: "Waiting on counterparty" }),
   ).toHaveAttribute("aria-pressed", "true");
   fireEvent.click(screen.getByRole("checkbox", { name: "Only mine" }));
   await waitFor(() =>
@@ -409,6 +430,7 @@ it("voids a sent MNDA only after a reason is given", async () => {
     value: { ...sent, state: "canceled", cancelReason: "Wrong entity" },
   });
   render(<MndaWorkspace initial={data([sent])} initialQuery={query} />);
+  openMore(screen);
   fireEvent.click(screen.getByRole("button", { name: "Void" }));
   const dialog = await screen.findByRole("dialog", {
     name: "Void this MNDA?",
@@ -429,7 +451,9 @@ it("voids a sent MNDA only after a reason is given", async () => {
     reason: "Wrong entity",
   });
   expect(
-    await screen.findByText("MNDA voided. The partner can no longer sign it."),
+    await screen.findByText(
+      "MNDA voided. The counterparty can no longer sign it.",
+    ),
   ).toBeVisible();
 });
 
@@ -518,15 +542,23 @@ it("turns off every control the demo would refuse and says why", () => {
   expect(
     screen.queryByText(/Sending is unavailable until the signing connection/),
   ).toBeNull();
+  for (const button of screen.getAllByRole("button", {
+    name: /^More actions for/,
+  }))
+    fireEvent.click(button);
+  // Each refused control stays in reach and says why on hover and focus.
   for (const name of [
     "New MNDA",
     "Continue",
     "Discard draft",
-    "Duplicate",
+    "New MNDA from this one",
     /^Remind/,
+    "Fix email",
+    "Check status",
+    "Void",
   ])
     for (const button of screen.getAllByRole("button", { name }))
-      expect(button).toBeDisabled();
+      expect(button).toHaveAttribute("aria-disabled", "true");
 });
 
 it("offers void and email fixes only to the preparer, and never after the partner signed", () => {
@@ -550,6 +582,8 @@ it("offers void and email fixes only to the preparer, and never after the partne
   );
   const row = (company: string) =>
     within(screen.getByText(company).closest("tr") as HTMLElement);
+  for (const company of ["Example Corporation", "Colleague Co", "Signed Co"])
+    openMore(row(company));
   expect(
     row("Example Corporation").getByRole("button", { name: "Void" }),
   ).toBeVisible();
@@ -631,6 +665,8 @@ it("offers to record a contract from a signed MNDA only", () => {
   );
   const row = (company: string) =>
     within(screen.getByText(company).closest("tr") as HTMLElement);
+  openMore(row("Signed Co"));
+  openMore(row(fixtureInput.company));
   expect(
     row("Signed Co").getByRole("link", { name: "Record a contract" }),
   ).toHaveAttribute("href", `/internal/contracts/new?mnda=${signed.id}`);
@@ -642,6 +678,7 @@ it("offers to record a contract from a signed MNDA only", () => {
   unmount();
   // Without contract:write the link would open a page that refuses them.
   render(<MndaWorkspace initial={data([signed])} initialQuery={query} />);
+  openMore(screen);
   expect(screen.queryByRole("link", { name: "Record a contract" })).toBeNull();
 });
 
@@ -677,4 +714,140 @@ it("shows the legal name the partner signed as when it differs from what staff e
     row("Harbor deal").getByText("Signed as Harbor Holdings, LLC"),
   ).toBeInTheDocument();
   expect(row("Same Name Inc.").queryByText(/Signed as/)).toBeNull();
+});
+
+it("leads each row with one action for its state and folds the rest under More", () => {
+  const at = (
+    n: number,
+    company: string,
+    patch: Partial<MndaRecord>,
+  ): MndaRecord => ({
+    ...sent,
+    id: `019a44ac-0000-7000-8000-0000000001${String(n).padStart(2, "0")}`,
+    input: { ...sent.input, company },
+    ...patch,
+  });
+  render(
+    <MndaWorkspace
+      initial={data([
+        { ...fixtureRecord, input: { ...fixtureInput, company: "Draft Co" } },
+        at(1, "Sent Co", {}),
+        at(2, "Countersign Co", { state: "awaiting_countersignature" }),
+        at(3, "Bounced Co", { state: "attention", error: "recipient_bounced" }),
+        at(4, "Stopped Co", {
+          state: "attention",
+          error: "deleted_in_signwell",
+        }),
+        at(5, "Signed Co", {
+          state: "completed",
+          completedAt: "2026-09-28T00:00:00Z",
+        }),
+        at(6, "Expired Co", { state: "expired" }),
+        at(7, "Voided Co", { state: "canceled", cancelCode: "voided" }),
+      ])}
+      initialQuery={query}
+    />,
+  );
+  const lead = (company: string) => {
+    const row = within(screen.getByText(company).closest("tr") as HTMLElement);
+    const cell = within(
+      row.getByRole("button", { name: /^More actions for/ })
+        .parentElement as HTMLElement,
+    );
+    return [...cell.queryAllByRole("button"), ...cell.queryAllByRole("link")]
+      .map((control) => control.textContent)
+      .filter((name) => name !== "More");
+  };
+  expect(lead("Draft Co")).toEqual(["Continue"]);
+  expect(lead("Sent Co")).toEqual(["Remind Alex Example"]);
+  expect(lead("Countersign Co")).toEqual(["Remind James Kurz"]);
+  expect(lead("Bounced Co")).toEqual(["Fix email"]);
+  expect(lead("Stopped Co")).toEqual(["Check status"]);
+  expect(lead("Signed Co")).toEqual(["Signed PDF"]);
+  expect(lead("Expired Co")).toEqual(["New MNDA from this one"]);
+  expect(lead("Voided Co")).toEqual(["New MNDA from this one"]);
+  // Void comes last, after the other actions.
+  const row = within(screen.getByText("Sent Co").closest("tr") as HTMLElement);
+  openMore(row);
+  const more = row.getAllByRole("listitem").map((item) => item.textContent);
+  expect(more).toEqual([
+    "Open PDF",
+    "Fix email",
+    "Check status",
+    "New MNDA from this one",
+    "Void",
+  ]);
+});
+
+it("says why a control waits for the signing connection", async () => {
+  render(
+    <MndaWorkspace
+      initial={{ ...data([sent]), ready: false }}
+      initialQuery={query}
+    />,
+  );
+  const remind = screen.getByRole("button", { name: "Remind Alex Example" });
+  expect(remind).toHaveAttribute("aria-disabled", "true");
+  expect(remind).toBeEnabled();
+  fireEvent.click(remind);
+  expect(mocks.operate).not.toHaveBeenCalled();
+  act(() => remind.focus());
+  expect(
+    (await screen.findAllByText("Sending is off until signing is connected."))
+      .length,
+  ).toBeGreaterThan(0);
+});
+
+it("opens a new MNDA when asked to compose, then drops the flag", () => {
+  window.history.replaceState(null, "", "/internal/mndas?compose=1&mine=1");
+  const replace = vi.spyOn(window.history, "replaceState");
+  render(<MndaWorkspace initial={data()} initialQuery={query} compose />);
+  expect(screen.getByLabelText(/Counterparty legal name/)).toHaveValue("");
+  expect(replace).toHaveBeenCalledWith(null, "", "/internal/mndas?mine=1");
+});
+
+it("does not compose in the demo", () => {
+  render(
+    <MndaWorkspace
+      initial={{ ...data(), ready: false, demo: true }}
+      initialQuery={query}
+      compose
+    />,
+  );
+  expect(screen.queryByLabelText(/Counterparty legal name/)).toBeNull();
+});
+
+it("names a draft closed before sending Discarded, and shows the signed date or a dash once closed", () => {
+  render(
+    <MndaWorkspace
+      initial={data([
+        {
+          ...fixtureRecord,
+          state: "canceled",
+          cancelCode: "discarded",
+          input: { ...fixtureInput, company: "Never Sent Co" },
+        },
+        {
+          ...sent,
+          state: "canceled",
+          cancelCode: "voided",
+          cancelReason: "Wrong entity",
+        },
+        {
+          ...sent,
+          id: "019a44ac-0000-7000-8000-000000000199",
+          state: "completed",
+          completedAt: "2026-10-08T12:00:00Z",
+          input: { ...fixtureInput, company: "Signed Co" },
+        },
+      ])}
+      initialQuery={query}
+    />,
+  );
+  const row = (company: string) =>
+    within(screen.getByText(company).closest("tr") as HTMLElement);
+  expect(row("Never Sent Co").getByText("Discarded")).toBeVisible();
+  expect(row("Example Corporation").getByText("Voided")).toBeVisible();
+  expect(row("Example Corporation").getByText("–")).toBeVisible();
+  expect(row("Signed Co").getByText("Signed Oct 8, 2026")).toBeVisible();
 });

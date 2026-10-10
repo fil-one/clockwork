@@ -68,6 +68,7 @@ export function mndaHomeRows(counts: SalesHomeMndaCounts): SalesHomeRow[] {
       title,
       hint,
       mine: counts.mine[group],
+      ...(group === "attention" ? { attention: true } : {}),
       ...(showTeam ? { team: counts.team[group] } : {}),
       href: mndaRegisterHref(states, true),
       ...(showTeam ? { teamHref: mndaRegisterHref(states, false) } : {}),

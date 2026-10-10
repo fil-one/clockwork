@@ -7,40 +7,40 @@ import { defineStaffMessages } from "../define";
 export const salesMessages = defineStaffMessages({
   "operations.sales.home.title": { en: "My work" },
   "operations.sales.home.description": {
-    en: "Agreements waiting on you or a partner, and what finished recently.",
+    en: "Agreements waiting on you or a counterparty, and what finished recently.",
   },
-  "operations.sales.home.sendMnda": { en: "Send an MNDA" },
-  "operations.sales.home.openPricing": { en: "Indicative pricing" },
+  "operations.sales.home.sendMnda": { en: "New MNDA" },
+  "operations.sales.home.openPricing": { en: "Pricing" },
   "operations.sales.home.cards": { en: "Your MNDAs" },
-  "operations.sales.home.card.attention.title": { en: "Need attention" },
+  "operations.sales.home.card.attention.title": { en: "Needs attention" },
   "operations.sales.home.card.attention.hint": {
     en: "An email bounced, SignWell stopped or deleted the request, or SignWell's copy does not match. Open the MNDA to see what to do.",
   },
   "operations.sales.home.card.waitingPartner.title": {
-    en: "Waiting on the partner",
+    en: "Waiting on the counterparty",
   },
   "operations.sales.home.card.waitingPartner.hint": {
-    en: "Sent or opened, not yet signed by the partner.",
+    en: "Sent or opened, not yet signed by the counterparty.",
   },
   "operations.sales.home.card.waitingFilOne.title": {
-    en: "Waiting on Fil One countersignature",
+    en: "Waiting on Fil One",
   },
   "operations.sales.home.card.waitingFilOne.hint": {
-    en: "The partner signed. A Fil One signer completes it.",
+    en: "The counterparty signed. A Fil One signer countersigns next.",
   },
   "operations.sales.home.card.completed.title": {
-    en: "Completed in the last 30 days",
+    en: "Signed in the last 30 days",
   },
   "operations.sales.home.card.completed.hint": {
-    en: "Signed by both sides. Download the executed copy from the register.",
+    en: "Signed by both sides. Download the signed PDF from the register.",
   },
   "operations.sales.home.card.drafts.title": { en: "Drafts you started" },
   "operations.sales.home.card.drafts.hint": {
-    en: "Not sent yet. Open one to finish and send it, or cancel it.",
+    en: "Not sent yet. Open one to finish and send it, or discard it.",
   },
-  "operations.sales.home.card.view": { en: "View in the register" },
-  "operations.sales.home.card.team": { en: "{count} across the team" },
-  "operations.sales.home.card.none": { en: "None right now" },
+  "operations.sales.home.card.mine": { en: "Yours: {count}" },
+  "operations.sales.home.card.team": { en: "Team: {count}" },
+  "operations.sales.home.card.none": { en: "none" },
   "operations.sales.home.unavailable": {
     en: "MNDA counts are not available right now. Open the MNDA register to check where each one stands.",
   },
@@ -53,7 +53,7 @@ export const salesMessages = defineStaffMessages({
     en: "Prepared by someone else. Approve it, or send it back with a reason.",
   },
   "operations.sales.home.contracts.needsAttention.title": {
-    en: "Need attention",
+    en: "Needs attention",
   },
   "operations.sales.home.contracts.needsAttention.hint": {
     en: "SignWell reported a problem, a send did not finish, or an approver sent it back. Open the contract to see what to do.",
@@ -70,27 +70,29 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.home.contracts.openRegister": {
     en: "Open the contract register",
   },
-  "operations.sales.home.start.title": { en: "Start here" },
+  "operations.sales.home.start.title": { en: "Send your first MNDA" },
   "operations.sales.home.start.intro": {
-    en: "Four steps to send your first MNDA.",
+    en: "Four steps from draft to signed PDF.",
   },
   "operations.sales.home.start.step1": {
-    en: "Open MNDAs in the Sales menu and start a new one.",
+    en: "Choose New MNDA at the top of this page, or in the MNDA register.",
   },
   "operations.sales.home.start.step2": {
-    en: "Enter the partner's legal name and the signer's name and email. Leave anything you do not know blank. The partner fills it in when signing.",
+    en: "Enter the counterparty's legal name and the signer's name and email. Leave anything you do not know blank. The counterparty fills it in when signing.",
   },
   "operations.sales.home.start.step3": {
-    en: "Preview the PDF, check the names, then send. The partner gets an email from SignWell, our signing service.",
+    en: "Preview the PDF, check the names, then send. The counterparty gets an email from SignWell, our signing service.",
   },
   "operations.sales.home.start.step4": {
-    en: "Track it on this page. When the partner signs, a Fil One signer countersigns and the signed PDF appears in the register.",
+    en: "Track it here and in the MNDA register. When the counterparty signs, a Fil One signer countersigns and the signed PDF appears in the register.",
   },
   "operations.sales.home.start.help": {
     en: "Questions about access or signing go to a commerce administrator.",
   },
   "operations.sales.home.start.dismiss": { en: "Hide this guide" },
-  "operations.sales.home.start.show": { en: "Show the start guide" },
+  "operations.sales.home.start.show": {
+    en: "New to MNDAs? Show the four steps",
+  },
   "operations.sales.pricing.title": { en: "Indicative pricing" },
   "operations.sales.pricing.description": {
     en: "Work out a total for a conversation with a prospect. These figures are indicative. They are not a quote or an offer.",
