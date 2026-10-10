@@ -6,6 +6,74 @@ import { gotoHydrated } from "./shell-hydration";
 
 const english = translatorFor("en");
 
+/**
+ * The root layout survives a client-side navigation, so `<html lang dir>` keeps
+ * the attributes of the first page loaded unless the staff subtree sets them.
+ * An Arabic reader moves between a staff route and `/settings`, which renders
+ * in the reader's language, without a document load in either direction.
+ */
+test("client-side navigation between staff and reader routes switches the document language", async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  if (!baseURL) throw new Error("Browser test baseURL is required");
+  const t = translatorFor("ar");
+  const html = page.locator("html");
+  const readerDocument = async () => {
+    await expect(
+      page.getByRole("heading", { name: t("settings.title"), exact: true }),
+    ).toBeVisible();
+    await expect(html).toHaveAttribute("dir", "rtl");
+    await expect(html).toHaveAttribute("lang", "ar-AE");
+  };
+  const staffDocument = async () => {
+    await expect(
+      page.getByRole("heading", {
+        name: english("operations.home.title"),
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(html).toHaveAttribute("dir", "ltr");
+    await expect(html).toHaveAttribute("lang", "en");
+  };
+  await context.addCookies([
+    { name: "clockwork-language", value: "ar", url: baseURL },
+  ]);
+  await gotoHydrated(page, "/internal/operations");
+  await staffDocument();
+  // A document load would discard this marker.
+  await page.evaluate(() => {
+    (window as unknown as { sameDocument: boolean }).sameDocument = true;
+  });
+  const stillSameDocument = () =>
+    page.evaluate(
+      () => (window as unknown as { sameDocument?: boolean }).sameDocument,
+    );
+
+  // Staff to reader: the profile menu's settings link.
+  await page
+    .getByRole("button", { name: english("app.profile"), exact: true })
+    .click();
+  await page
+    .getByRole("link", { name: english("settings.title"), exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/settings$/u);
+  await readerDocument();
+  expect(await stillSameDocument()).toBe(true);
+
+  // Reader to staff, and back again, through history.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/internal\/operations$/u);
+  await staffDocument();
+  expect(await stillSameDocument()).toBe(true);
+
+  await page.goForward();
+  await expect(page).toHaveURL(/\/settings$/u);
+  await readerDocument();
+  expect(await stillSameDocument()).toBe(true);
+});
+
 // Visits use separate browser contexts: a preference must never become global.
 for (const language of locales) {
   test(`saved ${language} preference survives navigation and reload`, async ({
