@@ -152,6 +152,7 @@ describe("every staff route is guarded", () => {
     "owner/page.tsx": "staff:manage",
     // Creating an organization is operations work, not only reading.
     "organizations/new/page.tsx": "operations:write",
+    "notifications/settings/page.tsx": "staff:manage",
   };
   function pages(directory: string): string[] {
     return readdirSync(directory).flatMap((name) => {
@@ -172,6 +173,13 @@ describe("every staff route is guarded", () => {
     // The MNDA workspace checks `mnda:send` and `signatory:manage` in its own
     // server module for every page and action under /internal/mndas.
     if (path.startsWith("mndas/")) return;
+    // Every staff member has an inbox. Its loader checks a staff session of
+    // one's own with a second factor and shows only the kinds the reader's
+    // permissions reach.
+    if (path === "notifications/page.tsx") {
+      expect(source).toContain("loadNotificationInbox()");
+      return;
+    }
     // Contract and sales library pages load through the contracts loaders,
     // which check `contract:*`, `sales:read` or `collateral:manage` before
     // any read.

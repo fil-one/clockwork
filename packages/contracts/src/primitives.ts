@@ -61,6 +61,7 @@ export const entityNames = [
   "experience_action_claim",
   "portal_projection",
   "handoff_request",
+  "staff_notification_settings",
 ] as const;
 
 export type EntityName = (typeof entityNames)[number];

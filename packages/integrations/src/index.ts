@@ -11,3 +11,4 @@ export * from "./workos/management-client";
 export * from "./esign/signwell";
 export * from "./esign/signwell-contracts";
 export * from "./workos/provision-staff";
+export * from "./staff-notifications";

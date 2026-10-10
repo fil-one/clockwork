@@ -307,6 +307,9 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       // Standalone pre-sales MNDA repository, not an account projection channel.
       "/internal/mndas",
       "/internal/mndas/settings",
+      // Each staff member's own notifications, read from their own table.
+      "/internal/notifications",
+      "/internal/notifications/settings",
       // The operations board moved here from the staff landing page; it reads
       // the same projections the landing page read before.
       "/internal/operations",
