@@ -3,7 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import type { Actor } from "@clockwork/contracts";
 import {
   assertExceptionRoutingQueue,
-  resolveExceptionOwners,
+  resolveExceptionOwnersForRequester,
   type ExceptionRosterMember,
   type ExceptionRosterRole,
 } from "@clockwork/domain/lifecycle";
@@ -206,14 +206,14 @@ export class DatabasePersistedWorkflowExceptionRouting {
           transaction,
           input.aggregateId,
         );
-        const owners = resolveExceptionOwners({
+        // A two-person roster may assign the requester; the case's opened
+        // event records it as requesterOnRoster.
+        const owners = resolveExceptionOwnersForRequester({
           accountId: affected.accountId,
           queue,
           roster: await rosterFor(transaction, affected.accountId, queue),
           now: this.now(),
-          ...(input.requestedBy
-            ? { excludedUserIds: [input.requestedBy] }
-            : {}),
+          requesterUserId: input.requestedBy,
         });
         return {
           accountId: affected.accountId,
@@ -226,6 +226,7 @@ export class DatabasePersistedWorkflowExceptionRouting {
           ).toISOString(),
           absenceEscalated: owners.absenceEscalated,
           rosterEntryIds: owners.rosterEntryIds,
+          requesterOnRoster: owners.requesterOnRoster,
         };
       },
     );
@@ -409,7 +410,7 @@ export class DatabaseExceptionRosterAdminService {
         });
         if (!current) throw new Error("EXCEPTION_CASE_NOT_FOUND");
         if (current.status !== "open") throw new Error("EXCEPTION_NOT_OPEN");
-        const owners = resolveExceptionOwners({
+        const owners = resolveExceptionOwnersForRequester({
           accountId: current.accountId,
           queue: current.queue,
           roster: await rosterFor(
@@ -418,7 +419,7 @@ export class DatabaseExceptionRosterAdminService {
             current.queue,
           ),
           now: input.now,
-          excludedUserIds: [input.requestedBy],
+          requesterUserId: input.requestedBy,
         });
         const [updated] = await transaction
           .update(exceptionCases)
@@ -462,6 +463,7 @@ export class DatabaseExceptionRosterAdminService {
             targetAt: updated.targetAt.toISOString(),
             reason: input.reason.trim(),
             rosterEntryIds: owners.rosterEntryIds,
+            requesterOnRoster: owners.requesterOnRoster,
           },
         });
         return updated;

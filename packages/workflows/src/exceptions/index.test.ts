@@ -57,6 +57,26 @@ describe("exception workflows", () => {
     ).toThrow("QUEUE_BACKUP_MUST_BE_DISTINCT:legal");
   });
 
+  it("accepts a two-person staff, the second escalation returning to the owner", () => {
+    const staff = {
+      ownerUserId: "cfo",
+      backupUserId: "revenue-lead",
+      escalationUserId: "cfo",
+    };
+    const twoPerson = policies.map((policy) => ({ ...policy, ...staff }));
+    expect(validateQueuePolicies(twoPerson).size).toBe(exceptionQueues.length);
+    const legal = { ...legalPolicy, ...staff };
+    expect(
+      planExceptionEscalation({
+        exceptionCase,
+        policy: legal,
+        now: "2026-08-06T16:00:00.000Z",
+        targetAt: "2026-08-05T16:00:00.000Z",
+        escalationLevel: 1,
+      })?.payload,
+    ).toMatchObject({ recipient: "cfo", escalationLevel: 2 });
+  });
+
   it("creates a durable wait and escalates an overdue case to backup", () => {
     const workflow = openExceptionCase({ exceptionCase, policy: legalPolicy });
     expect(workflow.targetAt).toBe("2026-08-05T16:00:00.000Z");

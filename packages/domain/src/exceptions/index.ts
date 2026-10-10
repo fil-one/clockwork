@@ -123,7 +123,8 @@ export interface ResolvedExceptionOwners {
   queue: string;
   ownerUserId: string;
   backupUserId: string;
-  escalationUserId: string;
+  /** Null when no third qualified person is on the roster (a two-person team). */
+  escalationUserId: string | null;
   targetMinutes: number;
   absenceEscalated: boolean;
   rosterEntryIds: readonly string[];
@@ -178,8 +179,10 @@ function ranked(
 
 /**
  * Resolves only account-scoped, persisted, currently qualified people. A
- * primary absence promotes a qualified backup and retains a distinct
- * escalation owner. Missing authority always fails closed.
+ * primary absence promotes a qualified backup. The owner and backup are
+ * always two distinct people; an escalation owner is a third distinct person
+ * when the roster has one and null otherwise, so a two-person staff can route.
+ * A missing owner or backup always fails closed.
  */
 export function resolveExceptionOwners(input: {
   accountId: string;
@@ -222,10 +225,8 @@ export function resolveExceptionOwners(input: {
     throw new Error(`EXCEPTION_NO_ELIGIBLE_PRIMARY:${input.queue}`);
   if (!owner) throw new Error(`EXCEPTION_NO_ELIGIBLE_OWNER:${input.queue}`);
   if (!backup) throw new Error(`EXCEPTION_NO_ELIGIBLE_BACKUP:${input.queue}`);
-  if (!escalation)
-    throw new Error(`EXCEPTION_NO_ELIGIBLE_ESCALATION:${input.queue}`);
-  const userIds = new Set([owner.userId, backup.userId, escalation.userId]);
-  if (userIds.size !== 3)
+  const people = escalation ? [owner, backup, escalation] : [owner, backup];
+  if (new Set(people.map((entry) => entry.userId)).size !== people.length)
     throw new Error(`EXCEPTION_SEPARATION_OF_DUTIES_FAILED:${input.queue}`);
   if (
     !Number.isSafeInteger(owner.targetMinutes) ||
@@ -238,14 +239,61 @@ export function resolveExceptionOwners(input: {
     queue: input.queue,
     ownerUserId: owner.userId,
     backupUserId: backup.userId,
-    escalationUserId: escalation.userId,
+    escalationUserId: escalation?.userId ?? null,
     targetMinutes: owner.targetMinutes,
     absenceEscalated: !primary,
-    rosterEntryIds: [
-      owner.rosterEntryId,
-      backup.rosterEntryId,
-      escalation.rosterEntryId,
-    ],
+    rosterEntryIds: people.map((entry) => entry.rosterEntryId),
+  };
+}
+
+/** The refusals that leaving the requester off the roster can cause. */
+const requesterExclusionRefusals = [
+  "EXCEPTION_NO_ELIGIBLE_PRIMARY:",
+  "EXCEPTION_NO_ELIGIBLE_OWNER:",
+  "EXCEPTION_NO_ELIGIBLE_BACKUP:",
+];
+
+/**
+ * Resolves the owners of a case raised by `requesterUserId`. The requester is
+ * left off the roster first. When that leaves no eligible primary, owner or
+ * backup (a two-person roster where the requester is one of the two), the
+ * roster is resolved again with the requester on it, and `requesterOnRoster`
+ * says the requester was assigned so the caller records the separation gap.
+ * The requester still cannot decide their own case without self-approval.
+ */
+export function resolveExceptionOwnersForRequester(input: {
+  accountId: string;
+  queue: string;
+  roster: readonly ExceptionRosterMember[];
+  now: Date;
+  requesterUserId?: string | undefined;
+}): ResolvedExceptionOwners & { requesterOnRoster: boolean } {
+  const { requesterUserId, ...routing } = input;
+  if (!requesterUserId)
+    return { ...resolveExceptionOwners(routing), requesterOnRoster: false };
+  try {
+    return {
+      ...resolveExceptionOwners({
+        ...routing,
+        excludedUserIds: [requesterUserId],
+      }),
+      requesterOnRoster: false,
+    };
+  } catch (error) {
+    if (
+      !(error instanceof Error) ||
+      !requesterExclusionRefusals.some((code) => error.message.startsWith(code))
+    )
+      throw error;
+  }
+  const owners = resolveExceptionOwners(routing);
+  return {
+    ...owners,
+    requesterOnRoster: [
+      owners.ownerUserId,
+      owners.backupUserId,
+      owners.escalationUserId,
+    ].includes(requesterUserId),
   };
 }
 
@@ -291,7 +339,8 @@ export interface ExceptionCase {
   requestedBy: string;
   ownerId: string;
   backupId: string;
-  escalationOwnerId: string;
+  /** Null for a case routed to a two-person roster. */
+  escalationOwnerId: string | null;
   openedAt: string;
   targetAt: string;
   status: "open" | "approved" | "rejected" | "closed";
@@ -415,10 +464,12 @@ export function escalateException(
     return exceptionCase;
   return {
     ...exceptionCase,
+    // Without an escalation owner (a two-person roster) the case stays with
+    // the backup.
     ownerId:
       exceptionCase.escalationLevel === 0
         ? exceptionCase.backupId
-        : exceptionCase.escalationOwnerId,
+        : (exceptionCase.escalationOwnerId ?? exceptionCase.backupId),
     escalationLevel: exceptionCase.escalationLevel + 1,
     targetAt: addBusinessHours(now, 4),
   };

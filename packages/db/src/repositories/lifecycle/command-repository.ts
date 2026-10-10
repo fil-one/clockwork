@@ -247,11 +247,13 @@ export interface LifecycleExceptionRoutingPort {
     accountId: string;
     ownerUserId: string;
     backupUserId: string;
-    escalationUserId: string;
+    escalationUserId: string | null;
     objectType: string;
     targetAt: string;
     absenceEscalated: boolean;
     rosterEntryIds: readonly string[];
+    /** The requester was assigned because the roster had nobody else. */
+    requesterOnRoster?: boolean;
   }>;
 }
 
@@ -4859,6 +4861,7 @@ export class DatabaseLifecycleCommandRepository {
         escalationOwnerId: exceptionCase.escalationOwnerId,
         ownershipRosterEntryIds: routed?.rosterEntryIds ?? [],
         ownershipAbsenceEscalated: routed?.absenceEscalated ?? false,
+        requesterOnRoster: routed?.requesterOnRoster ?? false,
         targetAt: row.targetAt.toISOString(),
         reason: payload.reason,
         evidenceDocumentId: evidence.documentId,
@@ -4896,9 +4899,14 @@ export class DatabaseLifecycleCommandRepository {
     );
     const policy = this.queuePolicies.get(payload.queue);
     const backupId = row.backupUserId ?? policy?.backupId;
+    // A case routed from the roster keeps its own ownership: a two-person
+    // roster records no escalation owner, and the static policy does not
+    // add one.
+    const routedFromRoster = row.ownershipRosterEntryIds.length > 0;
     const escalationOwnerId =
-      row.escalationOwnerUserId ?? policy?.escalationOwnerId;
-    if (!backupId || !escalationOwnerId)
+      row.escalationOwnerUserId ??
+      (routedFromRoster ? null : policy?.escalationOwnerId);
+    if (!backupId || escalationOwnerId === undefined)
       throw new Error(`EXCEPTION_PERSISTED_OWNERSHIP_MISSING:${payload.queue}`);
     const exceptionCase = {
       caseId: row.id,

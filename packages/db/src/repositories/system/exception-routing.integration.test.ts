@@ -31,6 +31,8 @@ const users = {
   backup: "72000000-0000-4000-8000-000000000003",
   escalationOne: "72000000-0000-4000-8000-000000000004",
   escalationTwo: "72000000-0000-4000-8000-000000000005",
+  cfo: "72000000-0000-4000-8000-000000000006",
+  revenueLead: "72000000-0000-4000-8000-000000000007",
 } as const;
 const now = new Date("2026-07-31T16:00:00.000Z");
 
@@ -132,6 +134,23 @@ beforeAll(async () => {
         targetMinutes: 60,
         priority: 10,
       },
+      // A two-person staff on the legal queue.
+      ...(
+        [
+          [users.cfo, "primary"],
+          [users.revenueLead, "backup"],
+        ] as const
+      ).map(([userId, role]) => ({
+        accountId,
+        queue: "legal",
+        userId,
+        role,
+        active: true,
+        qualificationEvidenceReference: `evidence://approvers/${userId}`,
+        qualifiedUntil: new Date("2027-07-31T16:00:00.000Z"),
+        targetMinutes: 60,
+        priority: 10,
+      })),
       ...([users.escalationOne, users.escalationTwo] as const).map(
         (userId, priority) => ({
           accountId,
@@ -172,6 +191,42 @@ describe.sequential("persisted exception routing", () => {
       targetAt: "2026-07-31T17:00:00.000Z",
       absenceEscalated: false,
     });
+  });
+
+  it("leaves the requester off the roster when someone else can take the case", async () => {
+    await expect(
+      routing.resolve({
+        queue: "reconciliation",
+        aggregateId: accountId,
+        occurredAt: now.toISOString(),
+        severity: "blocking",
+        requestedBy: users.escalationOne,
+      }),
+    ).resolves.toMatchObject({
+      ownerUserId: users.primary,
+      backupUserId: users.backup,
+      escalationUserId: users.escalationTwo,
+      absenceEscalated: false,
+      requesterOnRoster: false,
+    });
+  });
+
+  it("assigns the requester on a two-person roster and says so", async () => {
+    for (const requestedBy of [users.cfo, users.revenueLead])
+      await expect(
+        routing.resolve({
+          queue: "legal",
+          aggregateId: accountId,
+          occurredAt: now.toISOString(),
+          severity: "blocking",
+          requestedBy,
+        }),
+      ).resolves.toMatchObject({
+        ownerUserId: users.cfo,
+        backupUserId: users.revenueLead,
+        escalationUserId: null,
+        requesterOnRoster: true,
+      });
   });
 
   it("audits roster absence and separation-of-duties reassignment", async () => {
