@@ -220,6 +220,31 @@ describe("downloads", () => {
     expect(response.headers.get("content-type")).not.toBe("application/pdf");
   });
 
+  it("sends no CSV or library PDF when the access cannot be audited", async () => {
+    as("revenue");
+    mocks.repository.exportRows.mockResolvedValue({
+      rows: [],
+      truncated: false,
+    });
+    mocks.repository.recordAccess.mockRejectedValueOnce(new Error("db down"));
+    const csv = await exportCsv(
+      new Request(`${origin}/internal/contracts/export`),
+    );
+    expect(csv.status).toBe(500);
+    expect(csv.headers.get("content-type")).not.toContain("text/csv");
+    mocks.library.readFile.mockResolvedValue({
+      record: { title: "Deck", file: { fileName: "Deck.pdf" } },
+      bytes: Buffer.from("%PDF-1.7"),
+    });
+    mocks.library.recordDownload.mockRejectedValueOnce(new Error("db down"));
+    const file = await collateralFile(
+      new Request(`${origin}/x`),
+      params({ id: contractId }),
+    );
+    expect(file.status).toBe(500);
+    expect(file.headers.get("content-type")).not.toBe("application/pdf");
+  });
+
   it("reports a document that fails its hash check without its bytes", async () => {
     as("revenue");
     mocks.repository.readFile.mockRejectedValue(
