@@ -30,11 +30,21 @@ import styles from "./contracts.module.css";
 
 type Operation = "send" | "sync" | "remind" | "cancel";
 
-/** Why SignWell's copy is not applied, for the two mismatch codes. */
+/** Why SignWell's copy is not applied, for each mismatch code. */
 const mismatchNotes: Readonly<Record<string, MessageId>> = {
   signwell_signers_mismatch: "operations.contracts.signing.signersMismatch",
   signwell_binding_mismatch: "operations.contracts.signing.bindingMismatch",
+  signwell_signed_mismatch: "operations.contracts.signing.signedMismatch",
 };
+
+/** Refusals that come after the request's new state was stored. */
+const storedBeforeRefusal = new Set([
+  "CONTRACT_NEEDS_ATTENTION",
+  "CONTRACT_NOT_PENDING",
+  "CONTRACT_STILL_PREPARING",
+  "CONTRACT_ALREADY_COMPLETED",
+  "CONTRACT_NOT_VOIDABLE",
+]);
 
 const sentStates = ["sent", "viewed", "awaiting_countersignature"];
 
@@ -138,11 +148,16 @@ export function SigningPanel({
   // Waits for a person to void it; sending changes nothing. A mismatched copy
   // can still be refreshed: the hold clears once SignWell's copy matches.
   const held = deleted || Boolean(mismatch);
+  // Someone signed SignWell's copy: it is resolved in SignWell, never voided.
+  const signedMismatch =
+    signing.state === "attention" &&
+    signing.error === "signwell_signed_mismatch";
   // Voiding a colleague's request takes an approver, as the server checks.
   const canVoid =
     canWrite &&
     (isPreparer || canApprove) &&
     Boolean(signing.providerId) &&
+    !signedMismatch &&
     contractVoidableStates.includes(signing.state);
 
   async function run(
@@ -154,7 +169,10 @@ export function SigningPanel({
     const result = await action();
     setBusy(null);
     if (!result.ok) setError(result.code ?? "UNEXPECTED");
-    else router.refresh();
+    // These refusals follow a fresh read of SignWell whose state is stored,
+    // so the panel reloads to show it.
+    if (result.ok || storedBeforeRefusal.has(result.code ?? ""))
+      router.refresh();
     return result.ok;
   }
   const operate = (operation: Operation) =>
@@ -221,7 +239,11 @@ export function SigningPanel({
         <InlineNotice
           tone="warning"
           title={t(mismatch)}
-          description={t("operations.contracts.signing.mismatchNext")}
+          description={t(
+            signedMismatch
+              ? "operations.contracts.signing.signedMismatchNext"
+              : "operations.contracts.signing.mismatchNext",
+          )}
         />
       ) : signing.state === "attention" ? (
         <InlineNotice

@@ -1799,12 +1799,19 @@ detail lives in `docs/operations/commerce-mnda.md`,
   owner and tags; PDF text is not indexed. `COMMERCE_DOCUMENT_STORE` accepts
   only `postgres`; an S3-compatible `ContractDocumentStore` is the planned
   second backend.
-- **One e-signature engine `[OPEN]`:** MNDAs (`packages/workflows/src/mnda.ts`)
-  and template contracts (`packages/workflows/src/contracts.ts`) run parallel
-  workflows with the same rules, and the lifecycle purchase-agreement path uses
-  a third, provider-neutral port (`packages/integrations/src/esign/index.ts`).
-  Moving MNDAs onto the template engine and promoting register records into the
-  lifecycle `agreements` model once accounts exist are both repository work.
+- **One e-signature engine `[OPEN]`:** MNDAs and template contracts run on one
+  `SigningEngine` (`packages/workflows/src/signing/engine.ts`,
+  [ADR 0012](adr/0012-one-signing-engine.md)), each described by a
+  `SigningDocumentType` declaration, with one SignWell document schema and one
+  scenario suite run against both (`packages/workflows/src/signing/`). Shared:
+  bind before send, the bounded wait for SignWell's draft, post-send read
+  tolerance, attention reasons, void and remind rules, and approval or sender
+  copies where a type declares them. Deferred: each type keeps its own table and
+  repository, so contracts have no cancel code, first-sent time or signer
+  correction until their table does; whether to move both onto one table is a
+  decision for when a third document type or the lifecycle `agreements` model
+  needs it, not scheduled work. The lifecycle purchase-agreement path still uses
+  its own provider-neutral port (`packages/integrations/src/esign/index.ts`).
 - **Counsel templates `[EXTERNAL-ONLY]`:** all eight template ids in
   `packages/documents/src/contract-templates/registry.ts` are stubs listed as
   "Template pending from legal": channel partnership, customer MSA, order form,

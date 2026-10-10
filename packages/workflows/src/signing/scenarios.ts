@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/require-await -- in-memory fakes model async SignWell calls. */
 /**
  * The signing lifecycle as one table of scenarios. `scenarios.test.ts` runs
- * every row against each workflow through `harness.ts`. Where the workflows
- * differ, the row asks `differs(name)` and asserts what that workflow does;
- * the names and reasons are listed in `expectedDifferences`.
+ * every row against each workflow through `harness.ts`. Every behavior is
+ * shared. A row covering something a type declares (approval, copying the
+ * sender, a correctable signer) reads the declaration; where a table has no
+ * column for a value, the row asks `differs(name)`, listed with its reason in
+ * `expectedDifferences`.
  */
 import { expect, vi } from "vitest";
 import type { SigningHarness } from "./harness";
@@ -124,13 +126,10 @@ export const signingScenarios: readonly SigningScenario[] = [
       h.wait.mockImplementationOnce(async () => h.loseLease());
       const warn = quietly();
       await expect(h.send()).rejects.toThrow(h.code("LEASE_LOST"));
-      if (h.differs("silent_unrecorded_failure"))
-        expect(warn).not.toHaveBeenCalled();
-      else
-        expect(warn).toHaveBeenCalledWith(
-          `${h.log.label} send failure not recorded`,
-          { [h.log.idKey]: h.record().id, error: h.code("LEASE_LOST") },
-        );
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        `${h.log.label} send failure not recorded`,
+        { [h.log.idKey]: h.record().id, error: h.code("LEASE_LOST") },
+      );
       warn.mockRestore();
       expect(h.wait).toHaveBeenCalledOnce();
       expect(h.provider.send).not.toHaveBeenCalled();
@@ -147,12 +146,10 @@ export const signingScenarios: readonly SigningScenario[] = [
       });
       const warn = quietly();
       expect(await h.send()).toMatchObject({ state: "sending", error: null });
-      if (h.differs("silent_unread_send")) expect(warn).not.toHaveBeenCalled();
-      else
-        expect(warn).toHaveBeenCalledWith(
-          `${h.log.label} state not read after send`,
-          { [h.log.idKey]: h.record().id, error: "This operation was aborted" },
-        );
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        `${h.log.label} state not read after send`,
+        { [h.log.idKey]: h.record().id, error: "This operation was aborted" },
+      );
       warn.mockRestore();
       expect(h.record()).toMatchObject({ state: "sending", error: null });
       expect((await h.sync()).state).toBe("sent");
@@ -211,14 +208,13 @@ export const signingScenarios: readonly SigningScenario[] = [
       bounced.partner().bounced = true;
       const stopped = await sent(make);
       stopped.doc.status = "Error";
-      const lost = bounced.differs("attention_reason_dropped");
       expect(await bounced.sync()).toMatchObject({
         state: "attention",
-        error: lost ? null : "recipient_bounced",
+        error: "recipient_bounced",
       });
       expect(await stopped.sync()).toMatchObject({
         state: "attention",
-        error: lost ? null : "provider_stopped",
+        error: "provider_stopped",
       });
     },
   },
@@ -229,12 +225,9 @@ export const signingScenarios: readonly SigningScenario[] = [
       h.filOne().email = "someone-else@example.com";
       h.doc.status = "Completed";
       const result = await h.sync();
-      const unnamed = h.differs("signed_mismatch_unnamed");
       expect(result).toMatchObject({
         state: "attention",
-        error: unnamed
-          ? "signwell_signers_mismatch"
-          : "signwell_signed_mismatch",
+        error: "signwell_signed_mismatch",
       });
       expect(h.provider.completedPdf).not.toHaveBeenCalled();
       expect(h.events.at(-1)).toMatchObject({
@@ -244,7 +237,7 @@ export const signingScenarios: readonly SigningScenario[] = [
       await h.sync();
       expect(h.events).toHaveLength(recorded);
       await expect(h.void({ reason: "Wrong signer" })).rejects.toThrow(
-        h.code(unnamed ? "NOT_VOIDABLE" : "SIGNED_IN_SIGNWELL"),
+        h.code("SIGNED_IN_SIGNWELL"),
       );
       await expect(h.remind()).rejects.toThrow(h.code("NOT_PENDING"));
       expect(h.provider.cancel).not.toHaveBeenCalled();
@@ -292,6 +285,24 @@ export const signingScenarios: readonly SigningScenario[] = [
     },
   },
   {
+    name: "keeps a signed mismatched copy held as signed when a send finds it",
+    async run(make) {
+      const h = await sent(make);
+      h.filOne().email = "someone-else@example.com";
+      h.partner().status = "signed";
+      await h.sync();
+      const recorded = h.events.length;
+      await expect(h.send()).rejects.toThrow(h.code("NEEDS_ATTENTION"));
+      expect(h.record()).toMatchObject({
+        state: "attention",
+        error: "signwell_signed_mismatch",
+      });
+      // Not flipped to a plain signer mismatch and back, one event each time.
+      expect(h.events).toHaveLength(recorded);
+      expect(h.provider.send).toHaveBeenCalledOnce();
+    },
+  },
+  {
     name: "writes nothing when SignWell's state and the error are unchanged",
     async run(make) {
       const h = await sent(make);
@@ -318,7 +329,6 @@ export const signingScenarios: readonly SigningScenario[] = [
   {
     name: "says why a send found nothing to send",
     async run(make) {
-      const settled = make().differs("send_returns_settled");
       const declined = make();
       declined.setRecord({ providerId: declined.doc.id, state: "ready" });
       declined.doc.status = "Declined";
@@ -327,21 +337,15 @@ export const signingScenarios: readonly SigningScenario[] = [
       bounced.partner().bounced = true;
       const canceled = make();
       canceled.setRecord({ state: "canceled" });
-      if (settled) {
-        expect((await declined.send()).state).toBe("declined");
-        expect((await bounced.send()).state).toBe("attention");
-        expect((await canceled.send()).state).toBe("canceled");
-      } else {
-        await expect(declined.send()).rejects.toThrow(
-          declined.code("NOT_PENDING"),
-        );
-        await expect(bounced.send()).rejects.toThrow(
-          bounced.code("NEEDS_ATTENTION"),
-        );
-        await expect(canceled.send()).rejects.toThrow(
-          canceled.code("NOT_PENDING"),
-        );
-      }
+      await expect(declined.send()).rejects.toThrow(
+        declined.code("NOT_PENDING"),
+      );
+      await expect(bounced.send()).rejects.toThrow(
+        bounced.code("NEEDS_ATTENTION"),
+      );
+      await expect(canceled.send()).rejects.toThrow(
+        canceled.code("NOT_PENDING"),
+      );
       expect(declined.record()).toMatchObject({
         state: "declined",
         error: null,
@@ -509,22 +513,16 @@ export const signingScenarios: readonly SigningScenario[] = [
   {
     name: "refuses to remind a request that is not waiting or needs attention",
     async run(make) {
-      const settled = make().differs("remind_returns_settled");
       const completed = await sent(make);
       completed.doc.status = "Completed";
       const bounced = await sent(make);
       bounced.partner().bounced = true;
-      if (settled) {
-        expect((await completed.remind()).state).toBe("completed");
-        expect((await bounced.remind()).state).toBe("attention");
-      } else {
-        await expect(completed.remind()).rejects.toThrow(
-          completed.code("NOT_PENDING"),
-        );
-        await expect(bounced.remind()).rejects.toThrow(
-          bounced.code("REMIND_NEEDS_ATTENTION"),
-        );
-      }
+      await expect(completed.remind()).rejects.toThrow(
+        completed.code("NOT_PENDING"),
+      );
+      await expect(bounced.remind()).rejects.toThrow(
+        bounced.code("REMIND_NEEDS_ATTENTION"),
+      );
       expect(completed.record().state).toBe("completed");
       expect(bounced.record().state).toBe("attention");
       const unsent = make();
@@ -540,7 +538,7 @@ export const signingScenarios: readonly SigningScenario[] = [
     name: "corrects a bounced signer: pending, then confirmed by SignWell",
     async run(make) {
       const h = await sent(make);
-      if (h.differs("no_correct_signer")) {
+      if (!h.declares.slots.some((slot) => slot.correctable)) {
         expect(h.correctSigner).toBeUndefined();
         return;
       }
@@ -578,7 +576,7 @@ export const signingScenarios: readonly SigningScenario[] = [
     name: "settles a correction SignWell refused or answered unclearly",
     async run(make) {
       const refused = await sent(make);
-      if (refused.differs("no_correct_signer")) return;
+      if (!refused.declares.slots.some((slot) => slot.correctable)) return;
       const correct = (h: SigningHarness, email: string) => {
         if (!h.correctSigner) throw new Error("Expected correctSigner");
         return h.correctSigner(email);
@@ -631,7 +629,7 @@ export const signingScenarios: readonly SigningScenario[] = [
     name: "requires approval before any SignWell call where the type declares it",
     async run(make) {
       const h = make();
-      if (h.differs("no_approval")) return;
+      if (h.declares.approval === "none") return;
       h.setRecord({ approvalState: "pending" });
       await expect(h.send()).rejects.toThrow(h.code("APPROVAL_REQUIRED"));
       expect(h.provider.createDraft).not.toHaveBeenCalled();
@@ -643,7 +641,7 @@ export const signingScenarios: readonly SigningScenario[] = [
     name: "checks the sender is copied where the type copies the sender",
     async run(make) {
       const h = make();
-      if (h.differs("no_copied_contacts")) return;
+      if (!h.declares.copySender) return;
       delete h.doc.copied_contacts;
       const warn = quietly();
       expect((await h.send()).state).toBe("sent");
@@ -659,7 +657,9 @@ export const signingScenarios: readonly SigningScenario[] = [
     },
   },
   {
-    name: "records history on the request's own aggregate",
+    // The fakes model the repositories here; the repository integration
+    // tests prove the repositories themselves.
+    name: "fake model check: history goes to the request's own aggregate",
     async run(make) {
       const h = await sent(make);
       await h.remind();
@@ -672,7 +672,7 @@ export const signingScenarios: readonly SigningScenario[] = [
     },
   },
   {
-    name: "records when the request was first sent",
+    name: "fake model check: the first-sent time is set once",
     async run(make) {
       const h = make();
       await h.send();

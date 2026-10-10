@@ -398,6 +398,8 @@ describe("signing panel", () => {
         "SignWell is still preparing this contract, so it was not sent. Send it again in a minute.",
       ),
     ).toBeInTheDocument();
+    // The draft is bound and stored as preparing, so the panel reloads.
+    expect(mocks.refresh).toHaveBeenCalledOnce();
   });
 
   it("names who a reminder goes to once it is out for signature", () => {
@@ -492,7 +494,44 @@ describe("signing panel", () => {
     ).toBeInTheDocument();
   });
 
-  it("explains a SignWell failure in words", async () => {
+  it("holds a copy someone signed in SignWell for an administrator, offering no send or void", () => {
+    panel({
+      state: "attention",
+      error: "signwell_signed_mismatch",
+      providerId: "x",
+    });
+    expect(
+      screen.getByText(
+        "Someone signed this contract in SignWell, but SignWell's copy does not match it.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Ask a commerce administrator to resolve it in SignWell.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Send for signature" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Void" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Check status" }),
+    ).toBeInTheDocument();
+  });
+
+  it("reloads the panel when a reminder is refused after SignWell's new state was stored", async () => {
+    mocks.operateContract.mockResolvedValue({
+      ok: false,
+      code: "CONTRACT_NOT_PENDING",
+    });
+    panel({ state: "sent", providerId: "x" });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remind Alex Example" }),
+    );
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledOnce());
+  });
+
+  it("explains a SignWell failure in words, without reloading", async () => {
     mocks.operateContract.mockResolvedValue({
       ok: false,
       code: "SIGNWELL_HTTP_500",
@@ -502,6 +541,7 @@ describe("signing panel", () => {
     expect(
       await screen.findByText(/SignWell did not respond as expected/),
     ).toBeInTheDocument();
+    expect(mocks.refresh).not.toHaveBeenCalled();
   });
 });
 
