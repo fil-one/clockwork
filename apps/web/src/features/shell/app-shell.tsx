@@ -150,6 +150,7 @@ const namedNavigationIcons: Readonly<Record<NavigationIconName, ReactNode>> = {
   home: <LayoutDashboard size={19} strokeWidth={1.8} />,
   document: <FileText size={19} strokeWidth={1.8} />,
   contract: <FileSignature size={19} strokeWidth={1.8} />,
+  partner: <Handshake size={19} strokeWidth={1.8} />,
   library: <BookOpen size={19} strokeWidth={1.8} />,
   pricing: <Calculator size={19} strokeWidth={1.8} />,
   team: <Users size={19} strokeWidth={1.8} />,

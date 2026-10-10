@@ -21,6 +21,7 @@ import { operationsFinanceMessages } from "./messages/operations-finance";
 import { mndaMessages } from "./messages/operations-mnda";
 import { contractMessages } from "./messages/operations-contracts";
 import { handoffMessages } from "./messages/operations-handoff";
+import { staffPartnerMessages } from "./messages/operations-partners";
 import { organizationMessages } from "./messages/operations-organizations";
 import { partnerMessages } from "./messages/partner";
 import { platformMessages } from "./messages/platform";
@@ -82,6 +83,7 @@ export const messageModules = {
       ...teamMessages,
       ...contractMessages,
       ...handoffMessages,
+      ...staffPartnerMessages,
       ...organizationMessages,
     },
     prefixes: ["operations."],

@@ -22,7 +22,14 @@ export const staffWorkspacePermission: Readonly<
 
 /** Rail icons a destination can name; the shell owns the drawings. */
 export type NavigationIconName =
-  "owner" | "home" | "document" | "contract" | "library" | "pricing" | "team";
+  | "owner"
+  | "home"
+  | "document"
+  | "contract"
+  | "partner"
+  | "library"
+  | "pricing"
+  | "team";
 
 export interface NavigationItem {
   href: Route;
@@ -80,6 +87,24 @@ export const salesNavigation: readonly NavigationItem[] = [
     requiredPermission: "contract:read",
     workspace: "sales",
     icon: "contract",
+  },
+  {
+    href: "/internal/partners",
+    label: "platform.nav.sales.partners",
+    description: "platform.nav.sales.partners.description",
+    // i18n-exempt: search aliases matched in addition to the translated label; never displayed
+    keywords: [
+      "partner",
+      "channel",
+      "referral",
+      "reseller",
+      "affiliate",
+      "commission",
+      "deal registration",
+    ],
+    requiredPermission: "sales:read",
+    workspace: "sales",
+    icon: "partner",
   },
   {
     href: "/internal/sales-library",
