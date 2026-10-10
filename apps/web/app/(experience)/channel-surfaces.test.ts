@@ -301,6 +301,8 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/contracts/notices",
       "/internal/contracts/templates",
       "/internal/gates",
+      // Sales-to-operations handoffs read their own register.
+      "/internal/handoffs",
       "/internal/migrations",
       // Standalone pre-sales MNDA repository, not an account projection channel.
       "/internal/mndas",

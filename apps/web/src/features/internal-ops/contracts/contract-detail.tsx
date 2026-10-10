@@ -1,5 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   contractStatuses,
   contractTypes,
@@ -241,6 +242,7 @@ export function ContractDetail({
   isPreparer,
   canSelfApprove = false,
   signingReady,
+  handoff,
 }: {
   t: Translator;
   locale: string;
@@ -255,6 +257,8 @@ export function ContractDetail({
   /** The reader may approve their own requests under `approval:self`. */
   canSelfApprove?: boolean;
   signingReady: boolean;
+  /** The hand-to-operations section, for readers who may raise one. */
+  handoff?: ReactNode;
 }) {
   const months = (value: number | null) =>
     value === null
@@ -475,6 +479,7 @@ export function ContractDetail({
           <Activity activity={activity} t={t} locale={locale} />
         </div>
       </div>
+      {handoff}
     </main>
   );
 }

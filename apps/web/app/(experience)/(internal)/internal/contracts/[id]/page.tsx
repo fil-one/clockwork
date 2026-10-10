@@ -3,6 +3,7 @@ import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { ContractPageState } from "@/src/features/internal-ops/contracts/access-state";
 import { ContractDetail } from "@/src/features/internal-ops/contracts/contract-detail";
 import { loadContract } from "@/src/features/internal-ops/contracts/loaders";
+import { ContractHandoff } from "@/src/features/internal-ops/handoff/contract-handoff";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,11 @@ export default async function Page({
       isPreparer={loaded.isPreparer}
       canSelfApprove={loaded.canSelfApprove}
       signingReady={loaded.signingReady}
+      handoff={
+        loaded.canWrite ? (
+          <ContractHandoff contractId={loaded.contract.id} />
+        ) : null
+      }
     />
   );
 }

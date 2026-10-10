@@ -1941,6 +1941,30 @@ detail lives in `docs/operations/commerce-mnda.md`,
   and enrolls their own authenticator; no test can complete another person's
   MFA. Production acceptance of a new seller is their own first sign-in.
 
+### Handoff to operations
+
+- **Handoff request and queue `[COMPLETE]`:** a seller with `contract:write`
+  hands an executed contract (or a template contract whose signing completed) to
+  operations from the contract record, with the counterparty's legal name and
+  signer, the requested side, notes, and optionally the completed MNDA and a
+  saved pricing scenario. `/internal/handoffs` lists the queue for
+  `operations:read`; internal operators and commerce administrators
+  (`operations:write`) take, complete or decline, a decline with a note for the
+  seller. The seller sees status on the contract and on Home. The database
+  refuses an unsigned contract, a contract already in a request that was not
+  declined, an MNDA that did not complete and a missing scenario, and allows
+  only open, in progress, then done or declined
+  (`supabase/migrations/001462_commerce_handoff_requests.sql`,
+  `packages/db/src/repositories/system/handoff-requests.ts`,
+  `apps/web/src/features/internal-ops/handoff/`). Every change is audited as
+  `handoff.*`. Evidence:
+  `supabase/tests/1462_commerce_handoff_requests.test.sql`,
+  `packages/db/src/repositories/system/handoff-requests.integration.test.ts`,
+  `apps/web/src/features/internal-ops/handoff/handoff.test.tsx`.
+- **Handoff notifications `[OPEN]`:** nobody is told when a request is raised or
+  decided; operations watches the queue and the seller watches Home. A notice
+  waits on a notification provider (`EXT-PROVIDER-01`).
+
 ### Permission model
 
 - **Permissions as the single check `[COMPLETE]`:** every application and

@@ -270,6 +270,12 @@ export const navigation: Readonly<
       { href: "/internal/search", label: "nav.internal.search" },
       { href: "/internal/queues", label: "nav.internal.queues" },
       {
+        href: "/internal/handoffs",
+        label: "platform.nav.operations.handoffs",
+        // i18n-exempt: search aliases matched in addition to the translated label; never displayed
+        keywords: ["handoff", "onboarding", "new customer", "new partner"],
+      },
+      {
         href: "/internal/renewals",
         label: "nav.internal.renewals",
         requiredPermission: "report:read",

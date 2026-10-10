@@ -64,8 +64,10 @@ const messageModuleFiles: Readonly<Record<string, Lane>> = {
   "operations-sales.ts": "operations",
   "operations-team.ts": "operations",
   "operations-contracts.ts": "operations",
+  "operations-handoff.ts": "operations",
   "platform.ts": "platform",
   "platform-access.ts": "platform",
+  "platform-onboarding.ts": "platform",
   "demo.ts": "demo",
 };
 
