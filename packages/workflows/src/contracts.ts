@@ -43,15 +43,13 @@ const mismatchReason = (error: unknown) =>
 const mismatched = (record: ContractSigningRecord) =>
   record.state === "attention" &&
   Object.values(mismatchReasons).some((reason) => reason === record.error);
-/** Whether SignWell's copy shows the counterparty's signature, whatever
- * state the workflow derives from it (a bounced countersigner reads as
- * `attention`, and a mismatched copy is never applied). */
+/** Whether SignWell's copy shows anyone's signature, whatever state the
+ * workflow derives from it (a bounced countersigner reads as `attention`, and
+ * a mismatched copy, whose recipients may not be ours, is never applied). */
 const counterpartySigned = (doc: SignWellContractDocument) =>
   doc.status.toLowerCase() === "completed" ||
-  ["signed", "completed"].includes(
-    doc.recipients
-      .find((r) => r.id === "counterparty")
-      ?.status?.toLowerCase() ?? "",
+  doc.recipients.some((r) =>
+    ["signed", "completed"].includes(r.status?.toLowerCase() ?? ""),
   );
 /** Already recorded on the request; the signing panel says what to do. */
 const needsAttention = () => new Error("CONTRACT_NEEDS_ATTENTION");

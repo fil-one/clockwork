@@ -135,7 +135,8 @@ export function SigningPanel({
     signing.state === "attention"
       ? mismatchNotes[signing.error ?? ""]
       : undefined;
-  // Waits for a person to void it; sending or refreshing changes nothing.
+  // Waits for a person to void it; sending changes nothing. A mismatched copy
+  // can still be refreshed: the hold clears once SignWell's copy matches.
   const held = deleted || Boolean(mismatch);
   // Voiding a colleague's request takes an approver, as the server checks.
   const canVoid =
@@ -353,7 +354,7 @@ export function SigningPanel({
             {t("operations.contracts.signing.send")}
           </Button>
         ) : null}
-        {canWrite && signing.providerId && !terminal && !held ? (
+        {canWrite && signing.providerId && !terminal && !deleted ? (
           <Button
             variant="secondary"
             disabled={busy !== null || !signingReady}

@@ -356,7 +356,7 @@ describe("signing panel", () => {
     expect(screen.getByRole("button", { name: "Void" })).toBeInTheDocument();
   });
 
-  it("explains a mismatched SignWell copy and offers only to void it", () => {
+  it("explains a mismatched SignWell copy and offers to void or check it again", () => {
     panel({
       state: "attention",
       error: "signwell_signers_mismatch",
@@ -364,7 +364,7 @@ describe("signing panel", () => {
     });
     expect(
       screen.getByText(
-        "The signers in SignWell no longer match this contract, so its status is not updated.",
+        "The signers in SignWell no longer match this contract, so its status is not updated until they match again.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/did not respond as expected/)).toBeNull();
@@ -372,6 +372,10 @@ describe("signing panel", () => {
       screen.queryByRole("button", { name: "Send for signature" }),
     ).toBeNull();
     expect(screen.getByRole("button", { name: "Void" })).toBeInTheDocument();
+    // The hold clears once SignWell's copy matches, so a check stays offered.
+    expect(
+      screen.getByRole("button", { name: "Check status" }),
+    ).toBeInTheDocument();
   });
 
   it("explains a SignWell failure in words", async () => {
