@@ -34,17 +34,16 @@ environment, canonical localhost origin, production build directory, and
 release-proof authentication. Persona headers, account headers, route
 interception, and first-party page mocking are forbidden in proof.
 
-The browser suite runs as two halves, `ui-1` and `ui-2`, each on its own macOS
+The browser suite runs as two halves, `ui-1` and `ui-2`, each on its own Linux
 runner with its own development server, port and file-backed demo store.
 `RELEASE_UI_SPEC_FILES` in `scripts/release-artifacts.mjs` names each half's
 spec files, balanced on measured durations, and `release-artifacts.test.mjs`
 fails unless the two lists partition every spec in `apps/web/e2e` other than the
 demo and proof specs, so a new spec has to be assigned to one half. `ui-2` holds
-the visual comparisons and runs with `--no-deps`: the visual project's
-dependency on the functional project would otherwise rerun every functional spec
-there. The suite runs one worker, and the visual tests reset the durable demo
-state before and after, so the dependency's original purpose (keeping
-screenshots from racing a mutating journey) still holds.
+the visual layout and accessibility checks and runs with `--no-deps`: the visual
+project's dependency on the functional project would otherwise rerun every
+functional spec there. The suite runs one worker, and the visual tests reset the
+durable demo state before and after. No shard compares screenshots.
 
 ## Assertion and artifact equivalence
 

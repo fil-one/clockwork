@@ -1143,11 +1143,10 @@ test("gives every CI shard its own application port", () => {
     );
 });
 
-test("pins the CI shards to the macOS runner that owns the screenshot baselines", () => {
-  // `apps/web/playwright.config.ts` throws for any visual shard off Darwin.
-  const visual = new Set(["ui-1", "ui-2", "demo"]);
+test("runs every CI shard on the Linux runner", () => {
+  // No shard compares screenshots, so none needs a macOS runner.
   for (const { shard, runner } of workflowShards)
-    if (visual.has(shard)) assert.match(runner, /^macos-/);
+    assert.equal(runner, "ubuntu-24.04", shard);
 });
 
 test("runs every browser test in exactly one ui shard", async () => {

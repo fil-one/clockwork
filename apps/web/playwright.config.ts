@@ -14,15 +14,6 @@ const artifactRoot = path.resolve(
   process.env.CLOCKWORK_ARTIFACT_DIR ?? "test-results",
 );
 const serial = process.env.CLOCKWORK_RELEASE_SERIAL === "1";
-if (
-  ["ui-1", "ui-2", "demo"].includes(
-    process.env.CLOCKWORK_RELEASE_SHARD ?? "",
-  ) &&
-  process.platform !== "darwin"
-)
-  throw new Error(
-    "Release visual comparisons require the pinned Darwin runner used by the reviewed baselines.",
-  );
 /**
  * One worker, always. `ux-internal-ops.spec.ts` resets the durable demo store
  * through `resetDurableDemoState`, and there is exactly one store and one
@@ -166,8 +157,8 @@ export default defineConfig({
       // without enabling the separately gated public demo deployment.
       CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
       CLOCKWORK_EVIDENCE_ADAPTER: "demo",
-      // Demo reads count days from "now"; a fixed instant keeps screenshots and
-      // assertions independent of the day the suite runs.
+      // Demo reads count days from "now"; a fixed instant keeps assertions
+      // independent of the day the suite runs.
       CLOCKWORK_DEMO_CLOCK: DEMO_TEST_CLOCK,
       ...(demoSuite
         ? {

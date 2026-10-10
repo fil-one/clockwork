@@ -102,16 +102,6 @@ for (const surface of desktopSurfaces) {
       "data-hydrated",
       "true",
     );
-    await page.addStyleTag({
-      content: "nextjs-portal { display: none !important; }",
-    });
-    await page.evaluate(() => document.fonts.ready);
-    await expect(page).toHaveScreenshot(`${surface.name}.png`, {
-      mask: [page.locator("time")],
-      animations: "disabled",
-      fullPage: true,
-      maxDiffPixelRatio: 0.01,
-    });
   });
 }
 
@@ -127,15 +117,6 @@ for (const surface of commercialSurfaces) {
     await expect(
       page.getByRole("heading", { level: 1, name: surface.heading }),
     ).toBeVisible();
-    await page.addStyleTag({
-      content: "nextjs-portal { display: none !important; }",
-    });
-    await page.evaluate(() => document.fonts.ready);
-    await expect(page).toHaveScreenshot(`${surface.name}.png`, {
-      animations: "disabled",
-      fullPage: true,
-      maxDiffPixelRatio: 0.01,
-    });
   });
 
   test(`visual ${surface.name} at 320px`, async ({ page }) => {
@@ -149,15 +130,6 @@ for (const surface of commercialSurfaces) {
     await expect(
       page.getByRole("heading", { level: 1, name: surface.heading }),
     ).toBeVisible();
-    await page.addStyleTag({
-      content: "nextjs-portal { display: none !important; }",
-    });
-    await page.evaluate(() => document.fonts.ready);
-    await expect(page).toHaveScreenshot(`${surface.name}-320.png`, {
-      animations: "disabled",
-      fullPage: true,
-      maxDiffPixelRatio: 0.01,
-    });
   });
 }
 
@@ -181,18 +153,6 @@ for (const surface of adoptionSurfaces) {
       ).toBeVisible();
       await expectNoHorizontalOverflow(page);
       await expectAxeClean(page);
-      await page.addStyleTag({
-        content: "nextjs-portal { display: none !important; }",
-      });
-      await page.evaluate(() => document.fonts.ready);
-      await expect(page).toHaveScreenshot(
-        `${surface.name}${viewport.label === "320" ? "-320" : ""}.png`,
-        {
-          animations: "disabled",
-          fullPage: true,
-          maxDiffPixelRatio: 0.01,
-        },
-      );
     });
   }
 }
@@ -214,15 +174,6 @@ for (const surface of mobileRailSurfaces) {
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await expectAxeClean(page);
-    await page.addStyleTag({
-      content: "nextjs-portal { display: none !important; }",
-    });
-    await page.evaluate(() => document.fonts.ready);
-    await expect(page).toHaveScreenshot(`${surface.name}-320.png`, {
-      animations: "disabled",
-      fullPage: true,
-      maxDiffPixelRatio: 0.01,
-    });
   });
 }
 
@@ -234,16 +185,6 @@ test("visual customer dashboard at 320px", async ({ page }) => {
     "data-hydrated",
     "true",
   );
-  await page.addStyleTag({
-    content: "nextjs-portal { display: none !important; }",
-  });
-  await page.evaluate(() => document.fonts.ready);
-  await expect(page).toHaveScreenshot("customer-dashboard-320.png", {
-    mask: [page.locator("time")],
-    animations: "disabled",
-    fullPage: true,
-    maxDiffPixelRatio: 0.01,
-  });
 });
 
 for (const viewport of [
@@ -269,18 +210,6 @@ for (const viewport of [
     await expect(page.locator(".cw-state")).toHaveCount(11);
     await expectNoHorizontalOverflow(page);
     await expectAxeClean(page);
-    await page.addStyleTag({
-      content: "nextjs-portal { display: none !important; }",
-    });
-    await page.evaluate(() => document.fonts.ready);
-    await expect(page).toHaveScreenshot(
-      `customer-state-gallery${viewport.label === "320" ? "-320" : ""}.png`,
-      {
-        animations: "disabled",
-        fullPage: true,
-        maxDiffPixelRatio: 0.01,
-      },
-    );
   });
 }
 

@@ -199,11 +199,9 @@ pnpm verify            # all four, in order
 
 CI runs the same work as nine parallel shards — `static`, `lint`, `unit`,
 `integration`, `build`, `ui-1`, `ui-2`, `demo`, and `proof` — on every pull
-request and every push to `main`. The `ui-1`, `ui-2` and `demo` shards run on
-macOS, because all three compare against the reviewed screenshot baselines. The
-shard list is the same list the orchestrator uses, `RELEASE_SUITE_NAMES`, and a
-test in `scripts/release-artifacts.test.mjs` fails if the workflow drifts from
-it.
+request and every push to `main`. The shard list is the same list the
+orchestrator uses, `RELEASE_SUITE_NAMES`, and a test in
+`scripts/release-artifacts.test.mjs` fails if the workflow drifts from it.
 
 Testing uses fixed clocks, stable demo identifiers and `.test` domains, with
 provider fakes for replay and failure scenarios.

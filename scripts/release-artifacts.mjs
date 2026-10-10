@@ -16,9 +16,9 @@ export const RELEASE_SUITE_NAMES = Object.freeze([
 ]);
 
 /**
- * The browser journeys and visual comparisons run as two shards, each on its
- * own macOS runner with its own `next dev` server, port and file-backed demo
- * store (the store lives in the shard's workspace). Together they select every
+ * The browser journeys and visual layout checks run as two shards, each on its
+ * own runner with its own `next dev` server, port and file-backed demo store
+ * (the store lives in the shard's workspace). Together they select every
  * test the `functional-chromium` and `chromium` projects hold, once:
  * `release-artifacts.test.mjs` discovers `apps/web/e2e/*.spec.ts` on disk and
  * fails unless these lists partition it, less the demo and proof specs that

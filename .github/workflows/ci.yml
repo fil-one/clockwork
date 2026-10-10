@@ -22,8 +22,8 @@ env:
   # Type-aware linting holds the whole workspace program in memory: the lint
   # shard peaks at 3.7 GiB against Node's default ~4 GiB old-space ceiling, so a
   # runner with less headroom than a developer machine aborts with SIGABRT
-  # (exit 134) rather than a lint failure. Raise the ceiling; both ubuntu-24.04
-  # and macos-15 have 16 GB.
+  # (exit 134) rather than a lint failure. Raise the ceiling; ubuntu-24.04 has
+  # 16 GB.
   NODE_OPTIONS: "--max-old-space-size=6144"
   NEXT_TELEMETRY_DISABLED: "1"
   STORYBOOK_DISABLE_TELEMETRY: "1"
@@ -58,17 +58,15 @@ jobs:
           # server (`RELEASE_UI_SPEC_FILES` in release-artifacts.mjs).
           - shard: ui-1
             port: 32004
-            runner: macos-15
+            runner: ubuntu-24.04
           - shard: ui-2
             port: 32008
-            runner: macos-15
-          # Darwin like `ui-*`: all three compare against the reviewed
-          # screenshot baselines, and `playwright.config.ts` refuses them off
-          # macOS. `release-suites.mjs` mints the demo access password per run,
-          # so nothing here needs a secret.
+            runner: ubuntu-24.04
+          # `release-suites.mjs` mints the demo access password per run, so
+          # nothing here needs a secret.
           - shard: demo
             port: 32006
-            runner: macos-15
+            runner: ubuntu-24.04
           - shard: proof
             port: 32005
             runner: ubuntu-24.04
@@ -125,11 +123,10 @@ jobs:
         run: |
           pnpm install --frozen-lockfile --store-dir "$CLOCKWORK_RELEASE_CACHE_ROOT/pnpm-store"
           echo "CLOCKWORK_RELEASE_FROZEN_INSTALL_VERIFIED=1" >> "$GITHUB_ENV"
-      - name: Install Chromium on pinned macOS visual runners
-        if: startsWith(matrix.shard, 'ui-') || matrix.shard == 'demo'
-        run: pnpm playwright:install
       - name: Install Chromium and Linux dependencies
-        if: matrix.shard == 'proof'
+        if:
+          startsWith(matrix.shard, 'ui-') || matrix.shard == 'demo' ||
+          matrix.shard == 'proof'
         run: pnpm playwright:install:ci
       # `semantic-pdf.integration.test.ts` spawns `pdftotext` directly to read
       # back all 15 rendered document kinds, so Poppler is a hard dependency of
