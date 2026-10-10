@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
+import { DEMO_TEST_CLOCK } from "@clockwork/testing/demo-seed";
 
 const port = Number.parseInt(
   process.env.CLOCKWORK_TEST_PORT ?? process.env.PORT ?? "3000",
@@ -164,6 +165,9 @@ export default defineConfig({
       // without enabling the separately gated public demo deployment.
       CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
       CLOCKWORK_EVIDENCE_ADAPTER: "demo",
+      // Demo reads count days from "now"; a fixed instant keeps screenshots and
+      // assertions independent of the day the suite runs.
+      CLOCKWORK_DEMO_CLOCK: DEMO_TEST_CLOCK,
       ...(demoSuite
         ? {
             CLOCKWORK_DEMO_DEPLOY: "1",

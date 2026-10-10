@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import type { SessionClaims } from "@clockwork/api";
 import { uuidV7 } from "@clockwork/contracts";
 import { demoText } from "@clockwork/testing/demo-localized-text";
+import { DEMO_NOW } from "@clockwork/testing/demo-seed";
 import {
   FileDemoAdapterStateStore,
   findDemoProductionMarker,
@@ -49,6 +50,7 @@ import {
   type DemoCreatedOrder,
 } from "./demo-portal-records";
 import type { DemoCreatedQuote, DemoQuoteState } from "./demo-quote-flow";
+import { demoNow } from "./demo-clock";
 import { configuredDemoStateStore } from "./demo-state-store";
 import { DatabaseExperienceRepository } from "./repository";
 import {
@@ -947,6 +949,68 @@ function asProjection(
   };
 }
 
+const demoSeedClock = Date.parse(DEMO_NOW);
+const isoInstant =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/u;
+const isoDay = /^\d{4}-\d{2}-\d{2}$/u;
+const dayMs = 86_400_000;
+
+/** Every instant and calendar day in a fixture value, moved by `offset`. */
+function shiftedDates(value: unknown, offset: number): unknown {
+  if (typeof value === "string") {
+    if (isoInstant.test(value))
+      return new Date(Date.parse(value) + offset).toISOString();
+    if (isoDay.test(value))
+      return new Date(
+        Date.parse(`${value}T00:00:00.000Z`) +
+          Math.round(offset / dayMs) * dayMs,
+      )
+        .toISOString()
+        .slice(0, 10);
+    return value;
+  }
+  if (Array.isArray(value))
+    return value.map((item) => shiftedDates(item, offset));
+  if (value && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        shiftedDates(item, offset),
+      ]),
+    );
+  return value;
+}
+
+/**
+ * The internal queue fixtures read as of the request, not as of the seed clock.
+ *
+ * Queue rows were written against `DEMO_NOW` (a target due in three days).
+ * Read months later every target was breached and every row was past the
+ * five-minute refresh window, so the queue always opened behind a stale-data
+ * warning. The instants in a row's data move by the time since `DEMO_NOW`, so
+ * each keeps its distance from "now", and the demo's projector is current: the
+ * seeded source reads as projected at the request. Every other channel keeps
+ * its seeded dates.
+ */
+function withDemoQueueClock(
+  record: DemoRecord,
+  now: Date,
+  apply: (record: DemoRecord) => DemoRecord,
+): DemoRecord {
+  if (record.audience !== "internal" || record.channel !== "queues")
+    return apply(record);
+  const offset = now.getTime() - demoSeedClock;
+  const seeded: DemoRecord = {
+    ...record,
+    updatedAt: now.toISOString(),
+    data: shiftedDates(record.data, offset) as DemoRecord["data"],
+  };
+  const current = apply(seeded);
+  return Date.parse(current.updatedAt) < Date.parse(seeded.updatedAt)
+    ? { ...current, updatedAt: seeded.updatedAt }
+    : current;
+}
+
 function actionRequestDigest(input: ProjectionActionInput): string {
   return createHash("sha256")
     .update(input.projectionId)
@@ -1152,7 +1216,12 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
           withinAccount(record, input.accountId),
       )
       .map((record) =>
-        applyInvoicePayment(applyDemoState(record, state), state),
+        applyInvoicePayment(
+          withDemoQueueClock(record, input.now, (seeded) =>
+            applyDemoState(seeded, state),
+          ),
+          state,
+        ),
       );
     // Only an explicit `orderBy` sorts. The fixtures' own declaration order is
     // what the demo tour and its screenshots were built against, and quietly
@@ -1215,7 +1284,12 @@ export class ExplicitDemoProjectionSource implements ProjectionSource {
         "Projection record not found",
       );
     return projectRecord(
-      applyInvoicePayment(applyDemoState(record, state), state),
+      applyInvoicePayment(
+        withDemoQueueClock(record, input.now, (seeded) =>
+          applyDemoState(seeded, state),
+        ),
+        state,
+      ),
       input.now,
       reader,
     );
@@ -1535,7 +1609,7 @@ export function projectionInput(input: {
     ...(input.cursor ? { cursor: input.cursor } : {}),
     limit: input.limit,
     ...(input.orderBy ? { orderBy: input.orderBy } : {}),
-    now: input.now ?? new Date(),
+    now: input.now ?? demoNow(),
     ...(input.locale ? { locale: input.locale } : {}),
   };
 }
