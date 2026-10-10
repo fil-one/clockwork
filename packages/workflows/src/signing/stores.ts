@@ -1,5 +1,6 @@
 import {
   contractPdfFileName,
+  contractSignerEmail,
   mndaSignerEmail,
   type ContractSigningRecord,
   type MndaRecord,
@@ -82,21 +83,27 @@ export type ContractSigningStoreRepository = Pick<
   | "decide"
 >;
 
-/** The contract table has no cancel code, correction, before-image or
- * captured-field columns, and writes one history entry per change. The store
- * declares none of them, and refuses a change carrying one rather than drop
- * it. */
+const contractPatchKeys: ReadonlySet<string> = new Set([
+  "state",
+  "providerId",
+  "error",
+  "remindedAt",
+  "correctedSignerEmail",
+  "pendingSignerEmail",
+  "cancelCode",
+  "cancelReason",
+]);
+
+/** The contract table keeps the counterparty's pending and confirmed email
+ * corrections and a cancel code (001459), with before-images in the
+ * contract's history, one entry per change. It has no `superseded` code or
+ * captured-field columns, and the adapter refuses a change carrying anything
+ * else it cannot keep, or a note with a follow-up, rather than drop it. */
 export function contractSigningStore(
   repo: ContractSigningStoreRepository,
 ): SigningStore<ContractSigningRecord> {
-  const signer = (s: { name: string; email: string }) => ({
-    name: s.name,
-    email: s.email,
-    accepted: [s.email],
-    pending: null,
-  });
   return {
-    capabilities: new Set(),
+    capabilities: new Set(["signer_correction", "cancel_code"]),
     view: (r) => ({
       id: r.contractId,
       state: r.state,
@@ -107,8 +114,22 @@ export function contractSigningStore(
       remindedAt: r.remindedAt,
       approved: ["not_required", "approved"].includes(r.approvalState),
       signers: {
-        counterparty: signer(r.counterpartySigner),
-        "fil-one": signer(r.countersigner),
+        counterparty: {
+          name: r.counterpartySigner.name,
+          email: contractSignerEmail(r),
+          accepted: [
+            r.counterpartySigner.email,
+            r.correctedSignerEmail,
+            r.pendingSignerEmail,
+          ].filter((email): email is string => Boolean(email)),
+          pending: r.pendingSignerEmail,
+        },
+        "fil-one": {
+          name: r.countersigner.name,
+          email: r.countersigner.email,
+          accepted: [r.countersigner.email],
+          pending: null,
+        },
       },
       copiedContacts: [],
     }),
@@ -118,23 +139,19 @@ export function contractSigningStore(
     get: (id) => repo.get(id),
     originalPdf: (id) => repo.generatedPdf(id),
     update: async (r, token, patch, actor, executed, note) => {
-      const { state, providerId, error, remindedAt, ...unkept } = patch;
       if (
-        Object.keys(unkept).length > 0 ||
-        note?.before ||
+        Object.keys(patch).some((key) => !contractPatchKeys.has(key)) ||
         note?.followUp ||
         (note && !note.eventType)
       )
         throw new Error("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
+      const { cancelCode, ...kept } = patch;
+      if (cancelCode === "superseded")
+        throw new Error("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
       return repo.update(
         r.contractId,
         token,
-        {
-          ...("state" in patch ? { state } : {}),
-          ...("providerId" in patch ? { providerId } : {}),
-          ...("error" in patch ? { error } : {}),
-          ...("remindedAt" in patch ? { remindedAt } : {}),
-        },
+        { ...kept, ...(cancelCode ? { cancelCode } : {}) },
         actor,
         executed && {
           bytes: executed,
@@ -144,6 +161,7 @@ export function contractSigningStore(
           ? {
               eventType: note.eventType,
               ...(note.detail ? { detail: note.detail } : {}),
+              ...(note.before ? { before: note.before } : {}),
             }
           : undefined,
       );

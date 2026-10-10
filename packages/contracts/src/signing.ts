@@ -119,7 +119,8 @@ export const mndaSigning: SigningDocumentType<MndaRecord> = {
 
 /** A contract prepared from a template: the counterparty signs first, then
  * the Fil One countersigner. Whether a template needs approval is recorded
- * on each request; the type declares that approval exists. */
+ * on each request; the type declares that approval exists. Staff may fix the
+ * counterparty's email until they start signing. */
 export const contractSigning: SigningDocumentType<ContractSigningRecord> = {
   bindingKey: "commerce_contract_id",
   slots: [
@@ -127,7 +128,7 @@ export const contractSigning: SigningDocumentType<ContractSigningRecord> = {
       id: "counterparty",
       order: 1,
       fields: () => signatureFields,
-      correctable: false,
+      correctable: true,
     },
     {
       id: "fil-one",

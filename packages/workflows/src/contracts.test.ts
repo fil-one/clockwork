@@ -105,6 +105,16 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
     cancel: vi.fn(async () => {
       deleted = true;
     }),
+    updateRecipient: vi.fn(
+      async (_id: string, recipient: { id: string; email: string }) => {
+        const signer = doc.recipients.find((r) => r.id === recipient.id);
+        if (signer) {
+          signer.email = recipient.email;
+          signer.bounced = false;
+        }
+        return structuredClone(doc);
+      },
+    ),
     completedPdf: vi.fn(async () => Buffer.from("%PDF-executed-with-audit")),
   };
   const wait = vi.fn(async () => {});
@@ -325,11 +335,9 @@ it("reminds the Fil One countersigner once the counterparty has signed", async (
 it("voids a sent request: deletes the SignWell copy, then records the reason", async () => {
   const { workflow, doc, record, provider, notes } = setup(sent);
   doc.status = "Sent";
-  const voided = await workflow.void(
-    record().contractId,
-    actor,
-    "Wrong legal entity",
-  );
+  const voided = await workflow.void(record().contractId, actor, {
+    reason: "Wrong legal entity",
+  });
   expect(voided.state).toBe("canceled");
   expect(provider.cancel).toHaveBeenCalledExactlyOnceWith(sent.providerId);
   expect(notes.at(-1)).toEqual({
@@ -346,7 +354,9 @@ it("closes a request whose document was deleted in SignWell without calling dele
   });
   deleteInSignWell();
   await expect(
-    workflow.void(record().contractId, actor, "Deleted in SignWell"),
+    workflow.void(record().contractId, actor, {
+      reason: "Deleted in SignWell",
+    }),
   ).resolves.toMatchObject({ state: "canceled", error: null });
   expect(provider.cancel).not.toHaveBeenCalled();
 });
@@ -357,7 +367,9 @@ it("refuses to void once the counterparty has signed, and keeps a completed cont
   const counterparty = signed.doc.recipients[0];
   if (counterparty) counterparty.status = "signed";
   await expect(
-    signed.workflow.void(signed.record().contractId, actor, "Too late"),
+    signed.workflow.void(signed.record().contractId, actor, {
+      reason: "Too late",
+    }),
   ).rejects.toThrow("CONTRACT_NOT_VOIDABLE");
   expect(signed.record().state).toBe("awaiting_countersignature");
   expect(signed.provider.cancel).not.toHaveBeenCalled();
@@ -365,7 +377,9 @@ it("refuses to void once the counterparty has signed, and keeps a completed cont
   const completed = setup(sent);
   completed.doc.status = "Completed";
   await expect(
-    completed.workflow.void(completed.record().contractId, actor, "Too late"),
+    completed.workflow.void(completed.record().contractId, actor, {
+      reason: "Too late",
+    }),
   ).rejects.toThrow("CONTRACT_ALREADY_COMPLETED");
   expect(completed.archived()).toBeDefined();
 });
@@ -378,7 +392,7 @@ it("treats an unclear delete as done when a re-read finds the document gone", as
     throw new Error("SIGNWELL_HTTP_502");
   });
   await expect(
-    workflow.void(record().contractId, actor, "Wrong legal entity"),
+    workflow.void(record().contractId, actor, { reason: "Wrong legal entity" }),
   ).resolves.toMatchObject({ state: "canceled" });
 });
 
@@ -389,7 +403,7 @@ it("keeps the request open when SignWell refuses the delete", async () => {
     new Error("SIGNWELL_HTTP_422"),
   );
   await expect(
-    workflow.void(record().contractId, actor, "Wrong legal entity"),
+    workflow.void(record().contractId, actor, { reason: "Wrong legal entity" }),
   ).rejects.toThrow("SIGNWELL_HTTP_422");
   expect(record().state).toBe("sent");
 });
@@ -423,7 +437,7 @@ it("refuses to void when the counterparty signed and the countersigner's email b
   counterparty.status = "signed";
   filOne.bounced = true;
   await expect(
-    workflow.void(record().contractId, actor, "Wrong legal entity"),
+    workflow.void(record().contractId, actor, { reason: "Wrong legal entity" }),
   ).rejects.toThrow("CONTRACT_NOT_VOIDABLE");
   expect(record().state).toBe("attention");
   expect(provider.cancel).not.toHaveBeenCalled();
@@ -498,7 +512,60 @@ it("voids a mismatched copy that nobody signed", async () => {
   doc.status = "Sent";
   doc.metadata.template_sha256 = "f".repeat(64);
   await expect(
-    workflow.void(record().contractId, actor, "SignWell copy changed"),
+    workflow.void(record().contractId, actor, {
+      reason: "SignWell copy changed",
+    }),
   ).resolves.toMatchObject({ state: "canceled" });
   expect(provider.cancel).toHaveBeenCalledOnce();
+});
+
+it("corrects the counterparty email, keeping the replaced address as the before-image", async () => {
+  const { workflow, doc, record, provider, updates, notes } = setup(sent);
+  doc.status = "Sent";
+  const corrected = await workflow.correctSigner(
+    record().contractId,
+    actor,
+    "right@example.com",
+  );
+  expect(corrected).toMatchObject({
+    correctedSignerEmail: "right@example.com",
+    pendingSignerEmail: null,
+  });
+  expect(provider.updateRecipient).toHaveBeenCalledExactlyOnceWith(
+    sent.providerId,
+    { id: "counterparty", name: "Alex Example", email: "right@example.com" },
+  );
+  expect(updates).toContainEqual({
+    pendingSignerEmail: "right@example.com",
+    error: null,
+  });
+  expect(notes.filter(Boolean)).toEqual([
+    {
+      eventType: "contract.signer_correction_requested",
+      before: { signerEmail: "alex@example.com" },
+      detail: { signerEmail: "right@example.com" },
+    },
+    {
+      eventType: "contract.signer_corrected",
+      before: { signerEmail: "alex@example.com" },
+      detail: { signerEmail: "right@example.com" },
+    },
+  ]);
+});
+
+it("voids for a different signer with the signer_change code and no reason", async () => {
+  const { workflow, doc, record, updates, notes } = setup(sent);
+  doc.status = "Sent";
+  await expect(
+    workflow.void(record().contractId, actor, { code: "signer_change" }),
+  ).resolves.toMatchObject({ state: "canceled", cancelCode: "signer_change" });
+  expect(updates.at(-1)).toEqual({
+    state: "canceled",
+    error: null,
+    cancelCode: "signer_change",
+  });
+  expect(notes.at(-1)).toEqual({
+    eventType: "contract.voided",
+    detail: { cancelCode: "signer_change" },
+  });
 });

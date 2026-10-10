@@ -92,6 +92,7 @@ interface FakeDocument {
     email: string;
     name: string;
     status: string | null;
+    bounced?: boolean;
   }[];
   fields: { recipient_id: string; type: string; required: boolean }[][];
   apply_signing_order: boolean;
@@ -165,6 +166,16 @@ function fakeSignWell() {
       return json({});
     }
     if (action === "remind" && method === "POST") return json({});
+    if (action === "recipients" && method === "PATCH") {
+      const body = JSON.parse(
+        typeof init?.body === "string" ? init.body : "{}",
+      ) as { recipients: { id: string; email: string; name: string }[] };
+      for (const change of body.recipients) {
+        const recipient = document.recipients.find((r) => r.id === change.id);
+        if (recipient) Object.assign(recipient, { ...change, bounced: false });
+      }
+      return json(document);
+    }
     if (action.startsWith("completed_pdf"))
       return new Response(
         Buffer.from("%PDF-1.7\nexecuted with audit trail\n%%EOF"),
@@ -507,7 +518,9 @@ it("survives a document deleted in SignWell: wakeups succeed, staff see it, and 
   // to draft and the history keeps the reason.
   const deletes = signWell.calls.filter((c) => c.startsWith("DELETE"));
   await expect(
-    workflow.void(id, preparer, "Deleted in SignWell by mistake"),
+    workflow.void(id, preparer, {
+      reason: "Deleted in SignWell by mistake",
+    }),
   ).resolves.toMatchObject({ state: "canceled" });
   expect(signWell.calls.filter((c) => c.startsWith("DELETE"))).toEqual(deletes);
   const closed = await register.get(id, "2026-10-09");
@@ -538,8 +551,14 @@ it("voids a sent contract in SignWell and in the register", async () => {
   await expect(workflow.cancel(id, preparer)).rejects.toThrow(
     "CONTRACT_VOID_REQUIRED",
   );
-  const voided = await workflow.void(id, preparer, "Wrong legal entity");
-  expect(voided.state).toBe("canceled");
+  const voided = await workflow.void(id, preparer, {
+    reason: "Wrong legal entity",
+  });
+  expect(voided).toMatchObject({
+    state: "canceled",
+    cancelCode: "voided",
+    cancelReason: "Wrong legal entity",
+  });
   expect(signWell.documents.size).toBe(0);
   expect(signWell.calls.filter((c) => c.startsWith("DELETE"))).toHaveLength(1);
   const detail = await register.get(id, "2026-10-09");
@@ -550,5 +569,76 @@ it("voids a sent contract in SignWell and in the register", async () => {
       status: { from: "out_for_signature", to: "draft" },
       reason: "Wrong legal entity",
     },
+  });
+}, 60_000);
+
+it("fixes a bounced counterparty email, then voids for a different signer", async () => {
+  const preparer = { kind: "user" as const, id: randomUUID(), display: "R.W." };
+  const id = await preparedContract(preparer);
+  const signWell = fakeSignWell();
+  const workflow = new ContractSigningWorkflow(
+    signing,
+    new SignWellContractClient("test-key", signWell.transport),
+    () => Promise.resolve(),
+  );
+  await workflow.send(id, preparer);
+  const [document] = [...signWell.documents.values()];
+  const counterparty = document?.recipients[0];
+  if (!counterparty) throw new Error("SignWell document missing");
+  const original = counterparty.email;
+
+  // SignWell reports the bounce; the request waits in attention.
+  counterparty.bounced = true;
+  await expect(workflow.sync(id, preparer)).resolves.toMatchObject({
+    state: "attention",
+    error: "recipient_bounced",
+  });
+
+  // The correction is recorded pending, sent to SignWell, then confirmed.
+  await expect(
+    workflow.correctSigner(id, preparer, "right@example.com"),
+  ).resolves.toMatchObject({
+    state: "sent",
+    error: null,
+    correctedSignerEmail: "right@example.com",
+    pendingSignerEmail: null,
+  });
+  expect(signWell.calls).toContain(`PATCH documents/${document.id}/recipients`);
+  expect(counterparty.email).toBe("right@example.com");
+  const corrected = await register.get(id, "2026-10-09");
+  // Newest first: the request left attention once SignWell confirmed.
+  expect(corrected.activity.slice(0, 3)).toMatchObject([
+    { eventType: "contract.signing_sent" },
+    {
+      eventType: "contract.signer_corrected",
+      changes: {
+        before: { signerEmail: original },
+        signerEmail: "right@example.com",
+      },
+    },
+    {
+      eventType: "contract.signer_correction_requested",
+      changes: {
+        before: { signerEmail: original },
+        signerEmail: "right@example.com",
+      },
+    },
+  ]);
+
+  // A different person will sign: the void keeps the code and no reason.
+  await expect(
+    workflow.void(id, preparer, { code: "signer_change" }),
+  ).resolves.toMatchObject({
+    state: "canceled",
+    cancelCode: "signer_change",
+    cancelReason: null,
+    correctedSignerEmail: "right@example.com",
+  });
+  expect(signWell.documents.size).toBe(0);
+  const closed = await register.get(id, "2026-10-09");
+  expect(closed.contract.status).toBe("draft");
+  expect(closed.activity[0]).toMatchObject({
+    eventType: "contract.voided",
+    changes: { cancelCode: "signer_change" },
   });
 }, 60_000);

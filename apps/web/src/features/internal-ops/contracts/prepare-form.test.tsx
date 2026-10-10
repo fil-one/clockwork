@@ -291,3 +291,52 @@ it("says when there is nothing to import and shows the server's line-item refusa
   // The summary links to the editor, which repeats the refusal.
   expect(document.getElementById(target.slice(1))).toHaveTextContent(message);
 });
+
+it("starts from a voided contract's values, its line items included, with the signer left blank", () => {
+  render(
+    <PrepareForm
+      template={{ id: "test-fixture", requiresApproval: true, fields }}
+      countersigners={[
+        {
+          id: "019a44ac-0000-7000-8000-000000000001",
+          name: "James Kurz",
+          title: "CFO/CSO",
+          email: "james@fil.one",
+          isDefault: false,
+        },
+        {
+          id: "019a44ac-0000-7000-8000-000000000002",
+          name: "Default Signer",
+          title: "CEO",
+          email: "default@fil.one",
+          isDefault: true,
+        },
+      ]}
+      ownerName="Seller"
+      today="2026-10-10"
+      signingReady
+      start={{
+        counterpartyName: "Bluefin Data Co.",
+        effectiveDate: "2026-10-05",
+        ownerName: "R.W. Holleman",
+        countersignerId: "019a44ac-0000-7000-8000-000000000001",
+        values: { fixture_reference: "REF-7", order_lines: importedTable },
+      }}
+    />,
+  );
+  expect(
+    screen.getByText("Values from the voided contract"),
+  ).toBeInTheDocument();
+  expect(screen.getByLabelText(/Counterparty legal name/)).toHaveValue(
+    "Bluefin Data Co.",
+  );
+  expect(screen.getByLabelText("Effective date")).toHaveValue("2026-10-05");
+  expect(screen.getByLabelText("Fixture reference")).toHaveValue("REF-7");
+  expect(screen.getByLabelText("Item")).toHaveValue("STORAGE-TB");
+  expect(screen.getByRole("note")).toHaveTextContent("Acme Q4");
+  expect(screen.getByLabelText(/Fil One countersigner/)).toHaveValue(
+    "019a44ac-0000-7000-8000-000000000001",
+  );
+  expect(screen.getByLabelText("Signer's full name")).toHaveValue("");
+  expect(screen.getByLabelText("Signer's email")).toHaveValue("");
+});

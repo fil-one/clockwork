@@ -12,6 +12,7 @@ import { demoNow } from "@/src/features/experience-server/demo-clock";
 import { mndaRepository } from "../mnda/server";
 import { mayApproveOwnRequests } from "../self-approval/model";
 import { contractReader, contractRegisterReader } from "./demo-access";
+import type { PrepareStart } from "./prepare-input";
 import {
   ContractAccessError,
   contractRepository,
@@ -135,13 +136,58 @@ export function loadTemplates() {
   );
 }
 
-export function loadPrepare(templateId: string) {
+/** The earlier values, with the counterparty signer left blank for the
+ * person who will sign instead. */
+async function prepareStart(
+  from: string | undefined,
+  templateId: string,
+  fieldIds: readonly string[],
+): Promise<PrepareStart | null> {
+  // Only an id is read; anything else starts an empty form.
+  if (!from || !z.uuid().safeParse(from).success) return null;
+  try {
+    const signing = await contractSigningRepository().get(from);
+    if (signing.templateId !== templateId) return null;
+    const { contract } = await contractRepository().get(
+      from,
+      contractToday(demoNow()),
+    );
+    return {
+      counterpartyName: contract.counterpartyName,
+      effectiveDate: contract.effectiveDate,
+      ownerName: contract.ownerName,
+      countersignerId: signing.countersigner.id,
+      values: Object.fromEntries(
+        fieldIds.map((id) => [id, signing.input[id] ?? ""]),
+      ),
+    };
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      ["CONTRACT_SIGNING_NOT_FOUND", "CONTRACT_NOT_FOUND"].includes(
+        error.message,
+      )
+    )
+      return null;
+    throw error;
+  }
+}
+
+export function loadPrepare(templateId: string, from?: string) {
   return loadWith("contract:write", async (session) => {
     const template = contractTemplateRegistry().find(
       (candidate) => candidate.id === templateId,
     );
     if (!template) throw new Error("CONTRACT_TEMPLATE_NOT_FOUND");
     return {
+      start:
+        template.status === "available"
+          ? await prepareStart(
+              from,
+              template.id,
+              template.fields.map((field) => field.id),
+            )
+          : null,
       template:
         template.status === "available"
           ? {

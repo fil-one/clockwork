@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { TemplateField } from "@clockwork/contracts";
+import type { TemplateField, TemplateValue } from "@clockwork/contracts";
 import { checkLineItems, type RateMinimums } from "./line-items";
 
 const text = (max: number) =>
@@ -84,3 +84,14 @@ export function prepareInputSchema(
     .strict();
 }
 export type PrepareInput = z.infer<ReturnType<typeof prepareInputSchema>>;
+
+/** What a preparation starts from when it replaces an earlier contract from
+ * the same template, for a different counterparty signer. */
+export interface PrepareStart {
+  counterpartyName: string;
+  effectiveDate: string | null;
+  ownerName: string;
+  countersignerId: string;
+  /** Text values, and a line-item table where the template has one. */
+  values: Record<string, TemplateValue>;
+}

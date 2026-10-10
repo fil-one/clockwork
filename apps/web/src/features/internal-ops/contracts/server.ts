@@ -116,7 +116,8 @@ export function contractSigningConfiguration() {
  * `CONTRACT_SIGNING_NOT_CONFIGURED`.
  */
 export function contractSigningWorkflow(
-  operation: "send" | "sync" | "remind" | "cancel" | "void" = "send",
+  operation:
+    "send" | "sync" | "remind" | "cancel" | "void" | "correctSigner" = "send",
 ) {
   const apiKey = process.env.SIGNWELL_API_KEY;
   if (contractSigningConfiguration().ready && apiKey)
@@ -134,6 +135,7 @@ export function contractSigningWorkflow(
     send: unavailable,
     remind: unavailable,
     cancel: unavailable,
+    updateRecipient: unavailable,
     completedPdf: unavailable,
   });
 }

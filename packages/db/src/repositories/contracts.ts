@@ -9,6 +9,7 @@ import {
   uploadableContractFileKinds,
   type Actor,
   type ContractActivity,
+  type ContractCancelCode,
   type ContractFileKind,
   type ContractFileRecord,
   type ContractInput,
@@ -132,6 +133,10 @@ const signingView = (s: SigningRow): ContractSigningRecord => ({
   updatedAt: s.updatedAt.toISOString(),
   completedAt: s.completedAt?.toISOString() ?? null,
   remindedAt: s.remindedAt?.toISOString() ?? null,
+  correctedSignerEmail: s.correctedSignerEmail,
+  pendingSignerEmail: s.pendingSignerEmail,
+  cancelCode: s.cancelCode,
+  cancelReason: s.cancelReason,
   version: s.version,
 });
 
@@ -145,8 +150,25 @@ const actorId = (actor: Actor) =>
     ? actor.id
     : null;
 
+/** Object keys sorted at every depth; arrays keep their order. jsonb returns
+ * keys in its own order, so a submitted value and its stored copy compare
+ * equal only once both are put in one order. */
+const canonical = (value: unknown): unknown =>
+  Array.isArray(value)
+    ? value.map(canonical)
+    : value !== null && typeof value === "object" && !(value instanceof Date)
+      ? Object.fromEntries(
+          Object.keys(value)
+            .sort()
+            .map((key) => [
+              key,
+              canonical((value as Record<string, unknown>)[key]),
+            ]),
+        )
+      : value;
+
 const sameValue = (a: unknown, b: unknown) =>
-  JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  JSON.stringify(canonical(a ?? null)) === JSON.stringify(canonical(b ?? null));
 
 /** Escapes LIKE wildcards so a search for "50%" means the text "50%". */
 const likePattern = (q: string) => `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
@@ -809,6 +831,7 @@ async function recordEvent(
   eventType: string,
   changes: Record<string, unknown>,
   detail?: Record<string, unknown>,
+  before?: Record<string, unknown>,
 ) {
   await tx.insert(contractEvents).values({
     id: randomUUID(),
@@ -825,6 +848,7 @@ async function recordEvent(
     eventType,
     actor,
     requestId: randomUUID(),
+    ...(before ? { before } : {}),
     after: { eventType, fields: Object.keys(changes), ...detail },
   });
 }
@@ -835,6 +859,9 @@ export interface ContractSigningNote {
   eventType: string;
   /** Recorded in the contract's history and its audit event. */
   detail?: Record<string, unknown>;
+  /** What the change replaced, such as the signer email before a
+   * correction: in the history and as the audit event's before-image. */
+  before?: Record<string, unknown>;
 }
 
 export interface PrepareContractSigning {
@@ -1182,6 +1209,10 @@ export class ContractSigningRepository {
       providerId?: string;
       error?: string | null;
       remindedAt?: Date;
+      correctedSignerEmail?: string;
+      pendingSignerEmail?: string | null;
+      cancelCode?: ContractCancelCode;
+      cancelReason?: string;
     },
     actor: Actor,
     executed?: { bytes: Uint8Array; fileName: string },
@@ -1260,9 +1291,11 @@ export class ContractSigningRepository {
               ...(status && status !== contract.status
                 ? { status: { from: contract.status, to: status } }
                 : {}),
+              ...(note?.before ? { before: note.before } : {}),
               ...note?.detail,
             },
             note?.detail,
+            note?.before,
           );
         }
         return signingView(next);

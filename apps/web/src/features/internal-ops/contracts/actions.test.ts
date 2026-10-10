@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
     remind: vi.fn(),
     cancel: vi.fn(),
     void: vi.fn(),
+    correctSigner: vi.fn(),
   },
   library: { create: vi.fn(), update: vi.fn() },
   registry: vi.fn(),
@@ -55,6 +56,7 @@ vi.mock("./line-items-server", async (original) => ({
 }));
 import { rateMinimums } from "./line-items";
 import {
+  correctContractSigner,
   decideContract,
   findContractDuplicates,
   operateContract,
@@ -632,8 +634,28 @@ describe("voidContract", () => {
     expect(mocks.workflow.void).toHaveBeenCalledWith(
       contractId,
       expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
-      "Wrong legal entity",
+      { reason: "Wrong legal entity" },
     );
+  });
+
+  it("voids for a different signer with the code and no reason", async () => {
+    as("legal_approver");
+    mocks.workflow.void.mockResolvedValue({ state: "canceled" });
+    await expect(
+      voidContract({ contractId, code: "signer_change" }),
+    ).resolves.toEqual({ ok: true, value: { state: "canceled" } });
+    expect(mocks.workflow.void).toHaveBeenCalledWith(
+      contractId,
+      expect.anything(),
+      { code: "signer_change" },
+    );
+    await expect(
+      voidContract({ contractId, code: "superseded" }),
+    ).resolves.toMatchObject({ code: "INVALID_INPUT" });
+    await expect(
+      voidContract({ contractId, code: "signer_change", reason: "Both" }),
+    ).resolves.toMatchObject({ code: "INVALID_INPUT" });
+    expect(mocks.workflow.void).toHaveBeenCalledOnce();
   });
 
   it("needs an approver to void a colleague's request", async () => {
@@ -658,6 +680,60 @@ describe("voidContract", () => {
       voidContract({ contractId, reason: " " }),
     ).resolves.toMatchObject({ code: "INVALID_INPUT" });
     expect(mocks.workflow.void).not.toHaveBeenCalled();
+  });
+});
+
+describe("correctContractSigner", () => {
+  it("lets the preparer fix the counterparty's email, lowercased", async () => {
+    as("revenue");
+    mocks.signing.get.mockResolvedValue({
+      preparerId: "019a44ac-0000-7000-8000-0000000000aa",
+    });
+    mocks.workflow.correctSigner.mockResolvedValue({
+      state: "sent",
+      counterpartySigner: { email: "alex@example.com" },
+      correctedSignerEmail: "right@example.com",
+    });
+    await expect(
+      correctContractSigner({ contractId, signerEmail: "Right@Example.com" }),
+    ).resolves.toEqual({
+      ok: true,
+      value: { state: "sent", signerEmail: "right@example.com" },
+    });
+    expect(mocks.workflow.correctSigner).toHaveBeenCalledWith(
+      contractId,
+      expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
+      "right@example.com",
+    );
+  });
+
+  it("needs an approver for a colleague's request, and a valid email", async () => {
+    as("revenue");
+    mocks.signing.get.mockResolvedValue({
+      preparerId: "019a44ac-0000-7000-8000-0000000000bb",
+    });
+    await expect(
+      correctContractSigner({ contractId, signerEmail: "right@example.com" }),
+    ).resolves.toEqual({ ok: false, code: "CONTRACT_NOT_PREPARER" });
+    as("commerce_admin");
+    await expect(
+      correctContractSigner({ contractId, signerEmail: "not an email" }),
+    ).resolves.toMatchObject({ code: "INVALID_INPUT" });
+    as("finance_approver");
+    await expect(
+      correctContractSigner({ contractId, signerEmail: "right@example.com" }),
+    ).resolves.toMatchObject({ ok: false });
+    expect(mocks.workflow.correctSigner).not.toHaveBeenCalled();
+  });
+
+  it("passes the workflow's refusal codes through", async () => {
+    as("commerce_admin");
+    mocks.workflow.correctSigner.mockRejectedValue(
+      new Error("CONTRACT_SIGNER_STARTED"),
+    );
+    await expect(
+      correctContractSigner({ contractId, signerEmail: "right@example.com" }),
+    ).resolves.toEqual({ ok: false, code: "CONTRACT_SIGNER_STARTED" });
   });
 });
 

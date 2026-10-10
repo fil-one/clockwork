@@ -17,6 +17,7 @@ import {
 } from "@clockwork/contracts";
 import type {
   ContractSigningNote,
+  ContractSigningRepository,
   MndaAuditNote,
   MndaRepository,
 } from "@clockwork/db";
@@ -43,8 +44,6 @@ export const expectedDifferences: Record<
 > = {
   mnda: {},
   contract: {
-    no_cancel_code:
-      "The contract table keeps no cancel code; a void records its reason in the history only.",
     no_sent_at: "The contract table records no first-sent time.",
   },
 };
@@ -389,12 +388,7 @@ export function contractHarness(): SigningHarness {
     async update(
       id: string,
       token: string,
-      patch: {
-        state?: ContractSigningRecord["state"];
-        providerId?: string;
-        error?: string | null;
-        remindedAt?: Date;
-      },
+      patch: Parameters<ContractSigningRepository["update"]>[2],
       _actor: Actor,
       executed?: { bytes: Uint8Array; fileName: string },
       note?: ContractSigningNote,
@@ -422,13 +416,26 @@ export function contractHarness(): SigningHarness {
       return structuredClone(record);
     },
   };
-  const provider = signWell(doc);
+  const provider = {
+    ...signWell(doc),
+    updateRecipient: vi.fn(
+      async (_id: string, recipient: { id: string; email: string }) => {
+        const signer = doc.recipients.find((r) => r.id === recipient.id);
+        if (signer) {
+          signer.email = recipient.email;
+          signer.bounced = false;
+        }
+        return structuredClone(doc);
+      },
+    ),
+  };
   const client = {
     createContractDraft: provider.createDraft,
     getContract: provider.get,
     send: provider.send,
     remind: provider.remind,
     cancel: provider.cancel,
+    updateRecipient: provider.updateRecipient,
     completedPdf: provider.completedPdf,
   } as unknown as ContractSigningClient;
   const wait = vi.fn(async () => {});
@@ -455,13 +462,9 @@ export function contractHarness(): SigningHarness {
     remind: async () => view(await workflow.remind(record.contractId, actor)),
     cancel: async () => view(await workflow.cancel(record.contractId, actor)),
     void: async (why) =>
-      view(
-        await workflow.void(
-          record.contractId,
-          actor,
-          "reason" in why ? why.reason : why.code,
-        ),
-      ),
+      view(await workflow.void(record.contractId, actor, why)),
+    correctSigner: async (email) =>
+      view(await workflow.correctSigner(record.contractId, actor, email)),
     doc,
     provider,
     wait,

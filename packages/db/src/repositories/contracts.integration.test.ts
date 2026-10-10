@@ -1015,6 +1015,92 @@ describe("template signing persistence", () => {
       { event_type: "contract.voided", after: { reason: "Wrong entity" } },
     ]);
   });
+
+  it("keeps a signer correction with its before-image, and the cancel code (001459)", async () => {
+    const { input, result } = await prepare(false);
+    const original = result.record.counterpartySigner.email;
+    const lease = await signing.claim(input.id);
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "sent", providerId: randomUUID() },
+      actor,
+    );
+    const note = (eventType: string) => ({
+      eventType,
+      before: { signerEmail: original },
+      detail: { signerEmail: "right@example.com" },
+    });
+    await expect(
+      signing.update(
+        input.id,
+        lease.token,
+        { pendingSignerEmail: "right@example.com", error: null },
+        actor,
+        undefined,
+        note("contract.signer_correction_requested"),
+      ),
+    ).resolves.toMatchObject({ pendingSignerEmail: "right@example.com" });
+    await expect(
+      signing.update(
+        input.id,
+        lease.token,
+        { correctedSignerEmail: "right@example.com", pendingSignerEmail: null },
+        actor,
+        undefined,
+        note("contract.signer_corrected"),
+      ),
+    ).resolves.toMatchObject({
+      correctedSignerEmail: "right@example.com",
+      pendingSignerEmail: null,
+    });
+    // The database writes a cancel code only with the cancellation.
+    await expect(
+      signing.update(
+        input.id,
+        lease.token,
+        { cancelCode: "signer_change" },
+        actor,
+      ),
+    ).rejects.toThrow();
+    await expect(
+      signing.update(
+        input.id,
+        lease.token,
+        { state: "canceled", error: null, cancelCode: "signer_change" },
+        actor,
+        undefined,
+        {
+          eventType: "contract.voided",
+          detail: { cancelCode: "signer_change" },
+        },
+      ),
+    ).resolves.toMatchObject({
+      state: "canceled",
+      cancelCode: "signer_change",
+      cancelReason: null,
+    });
+    await signing.release(input.id, lease.token);
+    const audit = await client<
+      { event_type: string; before: unknown; after: unknown }[]
+    >`
+      select event_type, before, after from audit_events
+      where aggregate_id = ${input.id}
+        and event_type like 'contract.signer_%'
+      order by aggregate_version`;
+    expect(audit).toMatchObject([
+      {
+        event_type: "contract.signer_correction_requested",
+        before: { signerEmail: original },
+        after: { signerEmail: "right@example.com" },
+      },
+      {
+        event_type: "contract.signer_corrected",
+        before: { signerEmail: original },
+        after: { signerEmail: "right@example.com" },
+      },
+    ]);
+  });
 });
 
 describe("document lifetime", () => {
@@ -1108,6 +1194,61 @@ describe("document lifetime", () => {
     );
     expect(again.duplicate).toBe(true);
     expect(await count()).toBe(1);
+  });
+
+  it("treats a retried preparation as the same request whatever order Postgres keeps its values in", async () => {
+    const marker = randomUUID();
+    const [countersigner] = await signing.countersigners();
+    if (!countersigner) throw new Error("seed countersigner missing");
+    // jsonb stores keys shorter-first, so it returns these in another order
+    // than they were submitted.
+    const input = {
+      zeta_reference: "REF-7",
+      a: "beta",
+      nested_terms: JSON.stringify({ z: 1, a: [2, 1] }),
+    };
+    const prepared = {
+      contract: contract(marker, {
+        paper: "ours",
+        status: "draft",
+        contractType: "other",
+      }),
+      signing: {
+        templateId: "test-fixture",
+        templateVersion: "1",
+        templateHash: "b".repeat(64),
+        documentName: `Doc ${marker}`,
+        input,
+        counterpartySigner: {
+          name: "Alex",
+          email: `alex-${marker}@example.com`,
+          title: "CEO",
+        },
+        countersignerId: countersigner.id,
+        approvalRequired: false,
+        testMode: true,
+      },
+      fileName: "Prepared.pdf",
+    };
+    const first = await signing.prepare(
+      { ...prepared, pdf: pdf(marker) },
+      actor,
+    );
+    expect(Object.keys(first.record.input)).not.toEqual(Object.keys(input));
+    await expect(
+      signing.prepare({ ...prepared, pdf: pdf(marker) }, actor),
+    ).resolves.toMatchObject({ duplicate: true });
+    // A different value is still a different request.
+    await expect(
+      signing.prepare(
+        {
+          ...prepared,
+          signing: { ...prepared.signing, input: { ...input, a: "alpha" } },
+          pdf: pdf(marker),
+        },
+        actor,
+      ),
+    ).rejects.toThrow("CONTRACT_IDEMPOTENCY_CONFLICT");
   });
 });
 

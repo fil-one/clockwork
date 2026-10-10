@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type {
   LocalizedText,
   TemplateField,
@@ -27,6 +27,7 @@ import {
   initialTable,
   lineItemsFormValue,
 } from "./line-items-editor";
+import type { PrepareStart } from "./prepare-input";
 import { SessionExpiredReload } from "../session-expiry";
 import styles from "./contracts.module.css";
 
@@ -55,6 +56,7 @@ export function PrepareForm({
   today,
   signingReady,
   initialValues,
+  start = null,
 }: {
   template: {
     id: string;
@@ -67,6 +69,8 @@ export function PrepareForm({
   signingReady: boolean;
   /** Field values to start from; a line-item table starts its editor. */
   initialValues?: Readonly<Record<string, TemplateValue>>;
+  /** An earlier contract's values, for a different counterparty signer. */
+  start?: PrepareStart | null;
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -78,7 +82,27 @@ export function PrepareForm({
   const [busy, setBusy] = useState(false);
   const local = (text: LocalizedText) => text[locale] ?? text.en;
   const defaultSigner =
-    countersigners.find((signer) => signer.isDefault) ?? countersigners[0];
+    countersigners.find((signer) => signer.id === start?.countersignerId) ??
+    countersigners.find((signer) => signer.isDefault) ??
+    countersigners[0];
+  // An earlier contract's template values start the form: a line-item table
+  // through its editor, the other fields set once by name below.
+  const startValues = start?.values ?? initialValues;
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form || !start) return;
+    for (const [id, value] of Object.entries(start.values)) {
+      const control = form.elements.namedItem(`value.${id}`);
+      if (
+        typeof value === "string" &&
+        (control instanceof HTMLInputElement ||
+          control instanceof HTMLSelectElement ||
+          control instanceof HTMLTextAreaElement)
+      )
+        control.value = value;
+    }
+  }, [start]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -139,6 +163,7 @@ export function PrepareForm({
 
   return (
     <form
+      ref={formRef}
       className={`${styles.card} ${styles.form}`}
       onSubmit={(event) => void submit(event)}
       noValidate
@@ -164,6 +189,13 @@ export function PrepareForm({
             : {})}
         />
       ) : null}
+      {start ? (
+        <InlineNotice
+          tone="info"
+          title={t("operations.contracts.prepare.fromTitle")}
+          description={t("operations.contracts.prepare.fromBody")}
+        />
+      ) : null}
       {template.requiresApproval ? (
         <InlineNotice
           tone="info"
@@ -187,6 +219,7 @@ export function PrepareForm({
             help={t("operations.contracts.prepare.latinHelp")}
             maxLength={200}
             required
+            defaultValue={start?.counterpartyName}
             error={fieldError("counterpartyName")}
           />
           <Input
@@ -194,7 +227,7 @@ export function PrepareForm({
             name="effectiveDate"
             type="date"
             label={t("operations.contracts.field.effectiveDate")}
-            defaultValue={today}
+            defaultValue={start?.effectiveDate ?? today}
             required
             error={fieldError("effectiveDate")}
           />
@@ -244,7 +277,7 @@ export function PrepareForm({
                 <LineItemsEditor
                   key={field.id}
                   {...common}
-                  initialValue={initialTable(initialValues?.[field.id])}
+                  initialValue={initialTable(startValues?.[field.id])}
                 />
               ) : field.kind === "choice" ? (
                 <Select
@@ -302,7 +335,7 @@ export function PrepareForm({
             id={`${formId}-ownerName`}
             name="ownerName"
             label={t("operations.contracts.field.owner")}
-            defaultValue={ownerName}
+            defaultValue={start?.ownerName ?? ownerName}
             maxLength={120}
             required
             error={fieldError("ownerName")}

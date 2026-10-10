@@ -94,5 +94,9 @@ export const fixtureSigningRecord: ContractSigningRecord = {
   updatedAt: "2026-10-03T15:00:00.000Z",
   completedAt: null,
   remindedAt: null,
+  correctedSignerEmail: null,
+  pendingSignerEmail: null,
+  cancelCode: null,
+  cancelReason: null,
   version: 2,
 };

@@ -3,9 +3,11 @@
 import { z } from "zod";
 import { availableContractTemplate } from "@clockwork/documents";
 import {
+  ContractCorrectSignerSchema,
   ContractInputSchema,
   ContractVoidSchema,
   contractPdfFileName,
+  contractSignerEmail,
 } from "@clockwork/contracts";
 import { mndaRepository } from "../mnda/server";
 import type { MndaDuplicates } from "../mnda/actions";
@@ -255,26 +257,54 @@ export async function operateContract(raw: unknown) {
   });
 }
 
+/** Voiding or correcting a colleague's request takes an approver, so it is
+ * not changed by accident. */
+async function assertMayChangeSigning(
+  session: Awaited<ReturnType<typeof contractStaff>>,
+  contractId: string,
+) {
+  if (sessionHas(session, "contract:approve")) return;
+  const record = await contractSigningRepository().get(contractId);
+  if (record.preparerId !== session.userId)
+    throw new Error("CONTRACT_NOT_PREPARER");
+}
+
 /**
  * Voids a sent request the counterparty has not signed, or closes one whose
- * document was deleted in SignWell. Sending needs `contract:write`, and so
- * does voiding; as with MNDAs, someone other than the preparer also needs to
- * be an approver, so a colleague's request is not withdrawn by accident.
+ * document was deleted in SignWell, with a typed reason or the code for "a
+ * different person will sign". Sending needs `contract:write`, and so does
+ * voiding; as with MNDAs, someone other than the preparer also needs to be an
+ * approver.
  */
 export async function voidContract(raw: unknown) {
   return attempt(async () => {
     const session = await contractStaff("contract:write");
-    const { contractId, reason } = ContractVoidSchema.parse(raw);
-    if (!sessionHas(session, "contract:approve")) {
-      const record = await contractSigningRepository().get(contractId);
-      if (record.preparerId !== session.userId)
-        throw new Error("CONTRACT_NOT_PREPARER");
-    }
+    const input = ContractVoidSchema.parse(raw);
+    await assertMayChangeSigning(session, input.contractId);
     const record = await contractSigningWorkflow("void").void(
-      contractId,
+      input.contractId,
       contractActor(session),
-      reason,
+      "code" in input ? { code: input.code } : { reason: input.reason },
     );
     return { state: record.state };
+  });
+}
+
+/**
+ * Replaces the counterparty signer's email (a bounce or a typo) while they
+ * have not started signing; SignWell sends the request to the new address.
+ * The same people who may void the request may correct it.
+ */
+export async function correctContractSigner(raw: unknown) {
+  return attempt(async () => {
+    const session = await contractStaff("contract:write");
+    const { contractId, signerEmail } = ContractCorrectSignerSchema.parse(raw);
+    await assertMayChangeSigning(session, contractId);
+    const record = await contractSigningWorkflow("correctSigner").correctSigner(
+      contractId,
+      contractActor(session),
+      signerEmail,
+    );
+    return { state: record.state, signerEmail: contractSignerEmail(record) };
   });
 }
