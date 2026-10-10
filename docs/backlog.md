@@ -1654,6 +1654,246 @@ silently deleted, because the closure is part of the record.
   once Actions can run. Requiring it needs organization administration this
   account does not hold; it is a named input of `EXT-ACC-01`. See P0-48.
 
+## Revenue workspace
+
+The staff tools the revenue team uses at `commerce.fil.one`: MNDAs, the contract
+register and template signing, the sales library and indicative pricing, the
+staff home page and roles, and the permission model underneath them. They run
+without a commerce account, billing or provisioning (ADR 0011), so no launch
+requirement in the ledger depends on them and they carry no P0 ID. Markers have
+the meanings defined at the top of this file. Operator detail lives in
+`docs/operations/commerce-mnda.md`, `docs/operations/contract-templates.md`,
+`docs/operations/self-approval.md` and `docs/operations/revenue-team-guide.md`.
+
+### MNDA workflow
+
+- **MNDA send, track and archive `[COMPLETE]`:** staff prepare an MNDA from the
+  hash-pinned template (`packages/documents/src/mnda/template.json`), preview
+  the PDF, and send it through SignWell for a partner signature followed by a
+  Fil One countersignature. The provider id is bound to an unsent draft before
+  sending, a lease serializes callbacks and staff actions, and a callback only
+  triggers a re-read of the document. Completion requires the executed PDF in
+  the same step (`supabase/migrations/001439_commerce_mnda.sql`,
+  `packages/workflows/src/mnda.ts`,
+  `packages/integrations/src/esign/signwell.ts`,
+  `apps/web/app/api/v1/webhooks/signwell/route.ts`). Field-level errors, **Edit
+  details** with automatic replacement of the superseded draft, the
+  partner-completes-blanks default, **Duplicate** and **Send again**, embedded
+  fonts and readable dates are in place. The "Partner completes details when
+  signing" mode is retired for new drafts and still renders for MNDAs prepared
+  in it (`packages/contracts/src/mnda.ts`). Evidence:
+  `packages/workflows/src/mnda.test.ts`,
+  `packages/integrations/src/esign/signwell.test.ts`,
+  `packages/documents/src/mnda/render.integration.test.ts`,
+  `packages/db/src/repositories/mnda.integration.test.ts`,
+  `apps/web/src/features/internal-ops/mnda/workspace.test.tsx`.
+- **Register, corrections and voids `[COMPLETE]`:** the register pages through
+  every MNDA with status filters, **Only mine**, search, sent date and days
+  outstanding, and a CSV export capped at 10,000 rows
+  (`supabase/migrations/001442_commerce_mnda_register.sql`,
+  `apps/web/src/features/internal-ops/mnda/register.ts`). **Needs attention**
+  rows name the reason and the next step: bounced email, request stopped,
+  document deleted in SignWell, or a SignWell copy whose signers or binding no
+  longer match. **Fix email**, **Someone else will sign** and **Void** run in
+  Commerce; void re-reads SignWell first and is refused once the partner has
+  signed. The duplicate warning checks earlier MNDAs and the contract register
+  under one normalizer (`commerce_mnda_normalize_company`). Countersigners and
+  the notice email are limited to `signatory:manage`. Every PDF download and
+  export is audited.
+- **Missed callbacks and expired sessions `[COMPLETE]`:** the scheduled task
+  `system.esign.reconcile.v1` re-reads open MNDAs and template contracts every
+  15 minutes in rotation, at most 50 of each per run
+  (`packages/workflows/src/esign/tasks.ts`,
+  `packages/db/src/repositories/esign-reconciliation.ts`,
+  `supabase/migrations/001453_esign_reconciled_at.sql`). A server action that
+  arrives after the WorkOS access token expired returns `SESSION_EXPIRED`; the
+  page shows "Your session expired. Reload to continue." with a **Reload**
+  control that refreshes the session in place and keeps typed input
+  (`apps/web/src/features/internal-ops/session-expiry.tsx`). Evidence:
+  `packages/workflows/src/esign/reconciliation.test.ts`,
+  `packages/db/src/repositories/esign-reconciliation.integration.test.ts`.
+- **Partner-entered details stay in the PDF `[OPEN]`:** details the partner
+  fills in at signing are recorded only in the executed PDF. The register keeps
+  what staff entered, so a search by the partner's completed legal name or
+  jurisdiction does not find the MNDA. Closing it means reading the SignWell
+  field values on completion into the record.
+- **Partner signer delegation `[OPEN]`:** SignWell documents are created with
+  `allow_reassign: false`, and a changed partner email fails the signer check
+  (`signwell_signers_mismatch`). A partner whose authorized signatory is someone
+  else needs **Someone else will sign**, which voids the MNDA and opens a new
+  draft. In-provider reassignment needs the counterparty slot's email check
+  relaxed and the reassigned recipient recorded; the Fil One slot stays strict.
+- **Live SignWell behavior of corrections and partner fields
+  `[EXTERNAL-ONLY]`:** as of 2026-10-10, **Fix email**
+  (`PATCH /documents/{id}/recipients`), void (`DELETE /documents/{id}`),
+  copied-contact completion notices, and the partner-completed field values on
+  the executed PDF are proven against fakes and the adapter contract, not
+  against SignWell. The input is one test-mode run of each against the staging
+  account (`EXT-PROVIDER-01`).
+- **SignWell callback host `[EXTERNAL-ONLY]`:** the callback URLs are
+  `https://clockwork-staging.fil.one/api/v1/webhooks/signwell` and
+  `https://clockwork.fil.one/api/v1/webhooks/signwell`. As of 2026-10-10 the DNS
+  for those hosts and the matching callback configuration in SignWell are
+  pending (`EXT-DOMAIN-01`). Until they are live, the 15-minute reconciliation
+  is what advances statuses. SignWell API pay-as-you-go billing must be active
+  above the free allowance.
+
+### Contract register and template signing
+
+- **Executed-contract register `[COMPLETE]`:** staff record any agreement
+  without a commerce account: type, paper (ours or theirs), status including
+  `in_negotiation`, counterparty, owner, key terms, tags, and PDFs as main,
+  attachment, counterparty draft or redline files
+  (`packages/contracts/src/contract-register.ts`,
+  `supabase/migrations/001443_commerce_contracts.sql`,
+  `packages/db/src/repositories/contracts.ts`). Files are stored in
+  `commerce_stored_documents`, PDF only, at most 25 MB, hash-checked on every
+  read. The notices page lists renewal and notice deadlines; the register
+  exports to CSV, and every download and export is audited. Evidence:
+  `packages/db/src/repositories/contracts.integration.test.ts`,
+  `supabase/tests/1443_commerce_contracts.test.sql`,
+  `apps/web/src/features/internal-ops/contracts/views.test.tsx`.
+- **Template signing engine `[COMPLETE]`:** a template is counsel's wording as
+  data, bound to the SHA-256 of counsel's DOCX, with declared fields and
+  fail-closed `[[token]]` resolution
+  (`packages/documents/src/contract-templates/definition.ts`, `registry.ts`,
+  `render.tsx`). Prepared contracts pass an approval by someone other than the
+  preparer when the template requires it, enforced in the database, then follow
+  the MNDA's bind-then-send, lease and re-read rules
+  (`packages/workflows/src/contracts.ts`,
+  `packages/integrations/src/esign/signwell-contracts.ts`). Void runs in
+  Commerce and survives a document deleted in SignWell; reminders are spaced
+  from the last reminder
+  (`supabase/migrations/001451_contract_signing_reminders.sql`).
+  `scripts/render-contract-specimen.ts` renders a specimen for counsel.
+  Evidence: `packages/workflows/src/contracts.test.ts`,
+  `packages/documents/src/contract-templates/registry.test.ts`,
+  `packages/documents/src/contract-templates/render.integration.test.ts`,
+  `apps/web/src/features/internal-ops/contracts/engine.integration.test.ts`.
+- **Signer correction on template contracts `[OPEN]`:** a template contract has
+  no **Fix email** or **Someone else will sign**. A bounced counterparty email
+  shows "A signer's email may have bounced" and points the reader to SignWell or
+  a commerce administrator; the in-Commerce path is void and prepare again.
+- **Contract register "mine" filter `[OPEN]`:** the register filters by type,
+  status and window but not by owner. The home page therefore links only the
+  team count for contract rows
+  (`apps/web/src/features/internal-ops/sales-home/contract-source.ts`).
+- **Counterparty paper for Fil One signature `[OPEN]`:** a partner's own PDF can
+  be recorded with its redlines but not sent through SignWell for the Fil One
+  countersignature. Signing runs only for contracts prepared from a template.
+- **Renewal reminders outside the app `[OPEN]`:** notice deadlines appear in the
+  notices list and on the contract record only. Email or chat reminders need a
+  scheduled task and a sender, and the sender waits on a notification provider
+  (`EXT-PROVIDER-01`).
+- **Register search and storage `[OPEN]`:** search covers counterparty, title,
+  owner and tags; PDF text is not indexed. `COMMERCE_DOCUMENT_STORE` accepts
+  only `postgres`; an S3-compatible `ContractDocumentStore` is the planned
+  second backend.
+- **One e-signature engine `[OPEN]`:** MNDAs (`packages/workflows/src/mnda.ts`)
+  and template contracts (`packages/workflows/src/contracts.ts`) run parallel
+  workflows with the same rules, and the lifecycle purchase-agreement path uses
+  a third, provider-neutral port (`packages/integrations/src/esign/index.ts`).
+  Moving MNDAs onto the template engine and promoting register records into the
+  lifecycle `agreements` model once accounts exist are both repository work.
+- **Counsel templates `[EXTERNAL-ONLY]`:** all eight template ids in
+  `packages/documents/src/contract-templates/registry.ts` are stubs listed as
+  "Template pending from legal": channel partnership, customer MSA, order form,
+  DPA, security annex, one-way NDA, technology partner and SOW. Each needs
+  counsel's approved DOCX and approval of a rendered specimen (`EXT-LEGAL-01`).
+  No order form, SOW or technology-partner text exists yet. Sending stays in
+  SignWell test mode until `COMMERCE_CONTRACTS_TEST_MODE=false`.
+
+### Sales library and indicative pricing
+
+- **Sales library `[COMPLETE]`:** decks, one-pagers, pricing sheets and case
+  studies as a stored PDF or an https link, each with audience, status and
+  content date (`packages/db/src/repositories/sales-library.ts`,
+  `apps/web/src/features/internal-ops/sales-library/library-view.tsx`). Staff
+  with `sales:read` browse and download; `collateral:manage` (commerce
+  administrators) adds and edits. Downloads are audited as
+  `sales_collateral.downloaded`. Evidence:
+  `apps/web/src/features/internal-ops/sales-library/library-view.test.tsx`.
+- **Indicative pricing `[COMPLETE]`:** `/internal/pricing` prices in the browser
+  from active price books in force today, showing list prices only; floors,
+  transfer prices and accounting codes stay on the server
+  (`apps/web/src/features/internal-ops/sales-pricing/books.ts`). Signed prices
+  remain `EXT-COMMERCIAL-01`. Evidence:
+  `apps/web/src/features/internal-ops/sales-pricing/pricing.test.tsx`.
+- **CRM `[EXTERNAL-ONLY]`:** prospects, contacts, activities and pipeline live
+  in HubSpot, outside this repository. The outbound CRM projection exists and is
+  inert behind `CLOCKWORK_CRM_ENABLED` and `EXT-PROVIDER-01`; MNDA and contract
+  records carry no CRM reference. A HubSpot client follows provider selection.
+
+### Staff home and roles
+
+- **Revenue role and sales workspace `[COMPLETE]`:** `revenue` (Fil One seller)
+  holds `mnda:send`, `contract:read`, `contract:write` and `sales:read` and no
+  operations, billing or provisioning permission. The sales rail shows Home,
+  MNDAs, Contracts, Sales library and Pricing, plus Owner console and Team for
+  holders of `staff:manage` (`apps/web/src/features/shell/navigation.ts`,
+  `supabase/migrations/001441_revenue_roles.sql`). Home ("My work") counts the
+  reader's MNDAs waiting on the partner, waiting on Fil One, completed in the
+  last 30 days and unsent drafts, and the contracts they recorded or prepared
+  that are out for signature or need attention. Approvers also see contracts
+  prepared by others that await their decision; each team count opens the
+  register filtered to the same rows
+  (`packages/db/src/repositories/sales-home.ts`,
+  `apps/web/src/features/internal-ops/sales-home/`). Evidence:
+  `packages/db/src/repositories/sales-home.integration.test.ts`,
+  `apps/web/src/features/internal-ops/sales-home/sales-home.test.tsx`.
+- **Team page `[COMPLETE]`:** a commerce administrator adds staff, grants and
+  removes roles, and removes access at `/internal/team`, with every change
+  audited. The last commerce administrator cannot be removed or demoted
+  (`packages/db/src/repositories/system/staff-team.ts`). Granting
+  `commerce_admin` takes one administrator. Evidence:
+  `packages/db/src/repositories/system/staff-team.integration.test.ts`,
+  `packages/db/src/repositories/system/staff-team-administrators.integration.test.ts`.
+- **Staff first sign-in `[EXTERNAL-ONLY]`:** each person verifies their email
+  and enrolls their own authenticator; no test can complete another person's
+  MFA. Production acceptance of a new seller is their own first sign-in.
+
+### Permission model
+
+- **Permissions as the single check `[COMPLETE]`:** every application and
+  database check tests a permission. The signed claim carries the permission
+  set; `app_has_permission` reads it, and stored-role checks join the generated
+  `role_permissions` table (`supabase/migrations/001445_role_permissions.sql`,
+  `supabase/migrations/001446_permission_model.sql`). Organizations carry an
+  explicit side, triggers refuse a role that does not fit it, and
+  `membership_roles` lets one person hold several roles. Restrictive policies
+  test for a wider permission and never for holding a role
+  (`supabase/migrations/001447_permission_policies.sql`). An assisted session
+  withholds every approver permission (`assistedSessionWithheldPermissions` in
+  `packages/contracts/src/auth.ts`). `docs/security/access-matrix.md` is
+  generated by `scripts/generate-access-model.ts` and checked by
+  `pnpm check:generated`. Evidence:
+  `supabase/tests/1446_permission_model.test.sql`,
+  `supabase/tests/1447_permission_policies.test.sql`,
+  `supabase/tests/1447_restrictive_monotonicity.test.sql`.
+- **Owner console and self-approval `[COMPLETE]`:** `/internal/owner` gathers
+  pending approvals, capability switches, staff, assisted sessions, notices,
+  recent self-approvals and security events
+  (`packages/db/src/repositories/system/owner-console.ts`,
+  `supabase/migrations/001452_audit_event_type_index.sql`). A commerce
+  administrator may approve their own two-person request with a written reason
+  (`approval:self`); the database marks the row, writes `approval.self_approved`
+  and notifies every other holder of `staff:manage`
+  (`supabase/migrations/001449_self_approval.sql`). There is no countersign
+  deadline. Evidence: `supabase/tests/1449_self_approval.test.sql`,
+  `packages/db/src/repositories/system/owner-console.integration.test.ts`.
+- **Customer and partner user management `[OPEN]`:** the invite route enforces
+  the inviter's role ceiling, but no code path turns an `invites` row into a
+  membership, and there is no role change or removal for customer or partner
+  administrators
+  (`packages/db/src/repositories/lifecycle/command-repository.ts`).
+- **Read-only "view as" `[OPEN]`:** staff can act for a customer only through an
+  assisted session. A mode that renders a tenant portal with a chosen role's
+  permissions and refuses every write does not exist.
+- **Repository settings `[EXTERNAL-ONLY]`:** as of 2026-10-10 the repository's
+  `Main` branch ruleset exists with enforcement disabled, and the Actions
+  setting for approving workflow runs from fork pull requests is unverified.
+  Both are organization administration under `EXT-ACC-01`.
+
 ## P1 — external activation and approval gates
 
 Each input below already has a repository control, deterministic simulator,
