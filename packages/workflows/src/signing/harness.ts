@@ -10,6 +10,7 @@ import { vi, type Mock } from "vitest";
 import {
   contractSigning,
   mndaSigning,
+  mndaSigningFields,
   type Actor,
   type ContractSigningRecord,
   type SigningDocumentType,
@@ -60,6 +61,8 @@ export interface SigningRow {
   cancelReason?: string | null;
   correctedSignerEmail?: string | null;
   pendingSignerEmail?: string | null;
+  partnerDetails?: Readonly<Record<string, string>> | null;
+  version: number;
 }
 
 export interface SigningEvent {
@@ -83,7 +86,13 @@ export interface FakeDocument {
   apply_signing_order: boolean;
   copied_contacts?: { email: string }[] | null;
   recipients: Recipient[];
-  fields: { recipient_id: string; type: string; required: boolean }[][];
+  fields: {
+    recipient_id: string;
+    type: string;
+    required: boolean;
+    api_id?: string;
+    value?: string | null;
+  }[][];
 }
 
 export interface SigningHarness {
@@ -103,6 +112,9 @@ export interface SigningHarness {
     why: { reason: string } | { code: "signer_change" },
   ): Promise<SigningRow>;
   correctSigner?: (email: string) => Promise<SigningRow>;
+  /** Where the type captures fields: leaves details for the first signer to
+   * complete, places their fields in SignWell's copy and returns their ids. */
+  askPartner?: () => string[];
   doc: FakeDocument;
   provider: {
     createDraft: Mock;
@@ -248,7 +260,8 @@ export function mndaHarness(): SigningHarness {
         ...(patch.state && delivered.includes(patch.state) && !record.sentAt
           ? { sentAt: now }
           : {}),
-        version: record.version + 1,
+        // A follow-up event takes the next version, as in the repository.
+        version: record.version + (note?.followUp ? 2 : 1),
       };
       // The MNDA repository audits every update on the request itself.
       events.push({
@@ -256,6 +269,12 @@ export function mndaHarness(): SigningHarness {
         eventType: note?.eventType ?? `mnda.${record.state}`,
         ...(note?.detail ? { detail: note.detail } : {}),
       });
+      if (note?.followUp)
+        events.push({
+          aggregateId: id,
+          eventType: note.followUp.eventType,
+          ...(note.followUp.detail ? { detail: note.followUp.detail } : {}),
+        });
       return structuredClone(record);
     },
   };
@@ -293,6 +312,27 @@ export function mndaHarness(): SigningHarness {
     cancel: () => workflow.cancel(record.id, actor),
     void: (why) => workflow.void(record.id, actor, why),
     correctSigner: (email) => workflow.correctSigner(record.id, actor, email),
+    askPartner: () => {
+      record = {
+        ...record,
+        input: {
+          ...record.input,
+          detailsMode: "mixed",
+          entityDescription: "",
+          signerTitle: "",
+        },
+      };
+      const ids = mndaSigningFields(record.input).map(({ id }) => id);
+      doc.fields[0]?.push(
+        ...ids.map((api_id) => ({
+          recipient_id: "counterparty",
+          type: "text",
+          required: true,
+          api_id,
+        })),
+      );
+      return ids;
+    },
     doc,
     provider,
     wait,

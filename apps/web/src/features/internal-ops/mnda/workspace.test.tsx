@@ -617,3 +617,37 @@ it("offers to record a contract from a signed MNDA only", () => {
   render(<MndaWorkspace initial={data([signed])} initialQuery={query} />);
   expect(screen.queryByRole("link", { name: "Record a contract" })).toBeNull();
 });
+
+it("shows the legal name the partner signed as when it differs from what staff entered", () => {
+  const signed = (id: string, company: string, legalName: string) => ({
+    ...sent,
+    id,
+    input: { ...fixtureInput, company },
+    state: "completed" as const,
+    completedAt: "2026-09-28T00:00:00Z",
+    partnerDetails: { company_sign: legalName },
+  });
+  render(
+    <MndaWorkspace
+      initial={data([
+        signed(
+          "019a44ac-0000-7000-8000-000000000012",
+          "Harbor deal",
+          "Harbor Holdings, LLC",
+        ),
+        signed(
+          "019a44ac-0000-7000-8000-000000000013",
+          "Same Name Inc.",
+          "same name inc.",
+        ),
+      ])}
+      initialQuery={query}
+    />,
+  );
+  const row = (company: string) =>
+    within(screen.getByText(company).closest("tr") as HTMLElement);
+  expect(
+    row("Harbor deal").getByText("Signed as Harbor Holdings, LLC"),
+  ).toBeInTheDocument();
+  expect(row("Same Name Inc.").queryByText(/Signed as/)).toBeNull();
+});

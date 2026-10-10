@@ -8,6 +8,7 @@ import {
   assertSignWellFields,
   checkSignWellCopiedContacts,
   signWellAttentionReason,
+  signWellFieldValues,
   signWellRefused,
   signWellSigningState,
   type SignWellSigningDocument,
@@ -52,6 +53,9 @@ export interface SigningPatch {
   /** The correctable signer's pending and confirmed corrections. */
   pendingSignerEmail?: string | null;
   correctedSignerEmail?: string;
+  /** With completion: what the first signer entered in the declared capture
+   * fields, by field id. Empty when SignWell reported none. */
+  capturedFields?: Readonly<Record<string, string>>;
 }
 
 /** A change worth its own history entry, beyond a state change. */
@@ -60,6 +64,8 @@ export interface SigningNote {
   eventType?: string;
   before?: Record<string, unknown>;
   detail?: Record<string, unknown>;
+  /** A second history entry, recorded after the first in the same change. */
+  followUp?: { eventType: string; detail?: Record<string, unknown> };
 }
 
 /**
@@ -71,8 +77,10 @@ export interface SigningNote {
 export interface SigningStore<R> {
   /**
    * What the table can keep beyond state and error: `signer_correction` (a
-   * pending and a confirmed signer email, with before-images in history) and
-   * `cancel_code` (why a request closed, and a typed void reason).
+   * pending and a confirmed signer email, with before-images in history),
+   * `cancel_code` (why a request closed, and a typed void reason) and
+   * `captured_fields` (the first signer's entered values, kept with
+   * completion, and a follow-up history entry in the same change).
    */
   capabilities: ReadonlySet<SigningStoreCapability>;
   view(record: R): SigningView;
@@ -100,7 +108,8 @@ export interface SigningStore<R> {
 }
 export type SigningDecision =
   { approve: true } | { approve: false; reason: string };
-export type SigningStoreCapability = "signer_correction" | "cancel_code";
+export type SigningStoreCapability =
+  "signer_correction" | "cancel_code" | "captured_fields";
 
 /** The SignWell calls the engine makes. */
 export interface SignWellCalls<R> {
@@ -238,6 +247,10 @@ export class SigningEngine<R> {
       throw new Error(
         `${type.errorPrefix} declares a correctable signer its store or SignWell client cannot correct`,
       );
+    if (type.capture?.length && !store.capabilities.has("captured_fields"))
+      throw new Error(
+        `${type.errorPrefix} declares captured fields its store cannot keep`,
+      );
   }
 
   private get slots() {
@@ -309,6 +322,15 @@ export class SigningEngine<R> {
       state === "completed"
         ? await this.signWell.completedPdf(doc.id)
         : undefined;
+    // Kept in the same change as completion and its executed PDF.
+    const captured =
+      state === "completed" ? this.captured(record, doc) : undefined;
+    if (captured) patch.capturedFields = captured.values;
+    if (captured?.missing.length)
+      this.warn("signer fields not reported by SignWell", view.id, {
+        providerId: doc.id,
+        fields: captured.missing,
+      });
     return this.store.update(
       record,
       token,
@@ -325,8 +347,34 @@ export class SigningEngine<R> {
             before: { signerEmail: view.signers[slot.id]?.email },
             detail: { signerEmail: patch.correctedSignerEmail ?? null },
           }
-        : undefined,
+        : captured?.missing.length
+          ? {
+              followUp: {
+                eventType: this.event("fields_unreported"),
+                detail: { fields: captured.missing },
+              },
+            }
+          : undefined,
     );
+  }
+  /**
+   * What the first signer entered in the declared capture fields this
+   * request asked of them, and which of those SignWell did not report.
+   * Undefined when the request asked for none.
+   */
+  private captured(record: R, doc: SignWellSigningDocument) {
+    const declared = new Set(this.type.capture?.map((c) => c.apiId));
+    const [first] = this.slots;
+    if (!first || declared.size === 0) return undefined;
+    const asked = first
+      .fields(record)
+      .flatMap((f) => (f.apiId && declared.has(f.apiId) ? [f.apiId] : []));
+    if (asked.length === 0) return undefined;
+    const values = signWellFieldValues(doc, first.id, asked);
+    return {
+      values,
+      missing: asked.filter((id) => !Object.hasOwn(values, id)),
+    };
   }
   /**
    * SignWell no longer has a bound document. Signing cannot continue, but the

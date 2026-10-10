@@ -94,6 +94,22 @@ it("filters the demo register the way the repository does", async () => {
   expect(
     search.ok && search.value.register.records.map((r) => r.input.company),
   ).toEqual(["Kestrel Bio SAS"]);
+  // What a partner entered at signing is searched, as in the repository.
+  const entered = await loadMndas({ status: [], q: "colorado", page: 1 });
+  expect(
+    entered.ok &&
+      entered.value.register.records.map((r) => [
+        r.input.company,
+        r.input.entityDescription,
+        r.partnerDetails,
+      ]),
+  ).toEqual([
+    [
+      "Pinecrest Mapping Co.",
+      "",
+      { entity: "Colorado corporation", signer_title: "Founder" },
+    ],
+  ]);
 });
 
 it("refuses every change in the demo with its own code", async () => {

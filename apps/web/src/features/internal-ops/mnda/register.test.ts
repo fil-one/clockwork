@@ -65,3 +65,51 @@ it("writes RFC 4180 CSV that spreadsheet apps cannot execute", () => {
   expect(csv).not.toContain("superseded");
   expect(csv).toContain("A different person will sign.");
 });
+
+it("exports what the partner entered at signing after the existing columns", () => {
+  const completed = {
+    ...fixtureRecord,
+    state: "completed" as const,
+    completedAt: "2026-10-05T00:00:00Z",
+  };
+  const csv = mndaRegisterCsv(
+    [
+      {
+        ...completed,
+        partnerDetails: {
+          company_intro: "Harbor Holdings, LLC",
+          entity: "Delaware limited liability company",
+          signer_title: "=COO",
+          street_intro: "1 Pier",
+          locality_intro: "Boston, MA",
+          email_intro: "legal@harbor.test",
+        },
+      },
+      { ...completed, partnerDetails: {} },
+      fixtureRecord,
+    ],
+    { status: () => "Signed", signerChange: "" },
+    now,
+  );
+  const [header, harbor, unreported, none] = csv.trimEnd().split("\r\n");
+  const columns = header?.replace("\u{feff}", "").split(",") ?? [];
+  expect(columns.slice(14)).toEqual([
+    "Request ID",
+    "Partner details",
+    "Partner legal name",
+    "Partner jurisdiction and entity type",
+    "Partner short name",
+    "Partner signer name",
+    "Partner signer title",
+    "Partner notice contact",
+    "Partner notice email",
+    "Partner notice address",
+  ]);
+  expect(harbor).toContain(
+    `${fixtureRecord.id},reported,"Harbor Holdings, LLC",Delaware limited liability company,,,'=COO,,legal@harbor.test,"1 Pier, Boston, MA"`,
+  );
+  expect(unreported?.endsWith(`${fixtureRecord.id},not_reported,,,,,,,,`)).toBe(
+    true,
+  );
+  expect(none?.endsWith(`${fixtureRecord.id},,,,,,,,,`)).toBe(true);
+});

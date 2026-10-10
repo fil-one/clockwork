@@ -19,11 +19,14 @@ import {
   MndaSettingsSchema,
   MndaSignerSchema,
   mndaExportLimit,
+  mndaPartnerLegalNameFields,
+  mndaSigning,
   mndaStates,
   type Actor,
   type ContractStatus,
   type ContractType,
   type MndaCancelCode,
+  type MndaPartnerDetails,
   type MndaRecord,
   type MndaRegisterPage,
   type MndaRegisterQuery,
@@ -67,6 +70,7 @@ const view = (r: Row): MndaRecord => ({
   completedAt: r.completedAt?.toISOString() ?? null,
   cancelCode: r.cancelCode,
   cancelReason: r.cancelReason,
+  partnerDetails: r.partnerDetails,
 });
 export const terminalMndaStates: readonly MndaState[] = [
   "completed",
@@ -89,6 +93,17 @@ const settingsAggregateId = "019a44ac-0000-7000-8000-000000001442";
 function emptyCounts(): MndaStateCounts {
   return Object.fromEntries(mndaStates.map((s) => [s, 0])) as MndaStateCounts;
 }
+/** The legal name the partner completed at signing, or null. */
+const partnerLegalName = sql`coalesce(${sql.join(
+  mndaPartnerLegalNameFields.map(
+    (id) => sql`nullif(${mndaRequests.partnerDetails}->>${id}::text, '')`,
+  ),
+  sql`, `,
+)})`;
+/** Captured partner values the register search matches. */
+const searchableDetails = (mndaSigning.capture ?? []).filter(
+  (c) => c.searchable,
+);
 /** `%` and `_` in a search are literal text, not wildcards. */
 function contains(value: string) {
   return `%${value.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
@@ -125,6 +140,8 @@ export interface MndaUpdatePatch {
   cancelCode?: MndaCancelCode;
   cancelReason?: string;
   remindedAt?: Date;
+  /** Only with completion; fixed afterwards. */
+  partnerDetails?: MndaPartnerDetails;
 }
 export interface MndaCreateOptions {
   /** Unsent drafts this one replaces. */
@@ -137,6 +154,8 @@ export interface MndaAuditNote {
   eventType?: string;
   before?: Record<string, unknown>;
   detail?: Record<string, unknown>;
+  /** A second event in the same change, at the next version. */
+  followUp?: { eventType: string; detail?: Record<string, unknown> };
 }
 
 export class MndaRepository {
@@ -169,6 +188,12 @@ export class MndaRepository {
           ilike(sql`${mndaRequests.input}->>'signerEmail'`, pattern),
           ilike(mndaRequests.correctedSignerEmail, pattern),
           ilike(mndaRequests.ownerName, pattern),
+          ...searchableDetails.map(({ apiId }) =>
+            ilike(
+              sql`${mndaRequests.partnerDetails}->>${apiId}::text`,
+              pattern,
+            ),
+          ),
         ) as SQL,
       );
     }
@@ -272,14 +297,16 @@ export class MndaRepository {
       return { byState, mine };
     });
   }
-  /** Existing, non-canceled requests whose normalized legal name matches.
-   * Stored and searched names share one database normalizer. */
+  /** Existing, non-canceled requests whose normalized legal name matches,
+   * as staff entered it or as the partner completed it at signing. Stored
+   * and searched names share one database normalizer. The partner's name is
+   * normalized in the query: few requests carry one. */
   duplicates(company: string, excludeId?: string) {
     return this.tx(async (tx) => {
       const rows = await tx
         .select({
           id: mndaRequests.id,
-          company: sql<string>`${mndaRequests.input}->>'company'`,
+          company: sql<string>`coalesce(${partnerLegalName}, ${mndaRequests.input}->>'company')`,
           state: mndaRequests.state,
           createdAt: mndaRequests.createdAt,
           completedAt: mndaRequests.completedAt,
@@ -289,10 +316,13 @@ export class MndaRepository {
         .where(
           and(
             ne(mndaRequests.state, "canceled"),
-            sql`${mndaRequests.normalizedCompany} <> ''`,
-            eq(
-              mndaRequests.normalizedCompany,
-              sql`public.commerce_mnda_normalize_company(${company})`,
+            sql`public.commerce_mnda_normalize_company(${company}) <> ''`,
+            or(
+              eq(
+                mndaRequests.normalizedCompany,
+                sql`public.commerce_mnda_normalize_company(${company})`,
+              ),
+              sql`public.commerce_mnda_normalize_company(${partnerLegalName}) = public.commerce_mnda_normalize_company(${company})`,
             ),
             excludeId ? ne(mndaRequests.id, excludeId) : undefined,
           ),
@@ -643,7 +673,7 @@ export class MndaRepository {
         .set({
           ...patch,
           leaseUntil: new Date(Date.now() + 120_000),
-          version: r.version + 1,
+          version: r.version + (note?.followUp ? 2 : 1),
           updatedAt: now,
           ...(patch.state === "completed" ? { completedAt: now } : {}),
           ...(patch.state && deliveredStates.includes(patch.state) && !r.sentAt
@@ -655,11 +685,15 @@ export class MndaRepository {
       if (!next) throw new Error("MNDA_UPDATE_FAILED");
       await this.audit(
         tx,
-        next,
+        { ...next, version: r.version + 1 },
         actor,
         note?.eventType ?? `mnda.${next.state}`,
         note,
       );
+      if (note?.followUp)
+        await this.audit(tx, next, actor, note.followUp.eventType, {
+          ...(note.followUp.detail ? { detail: note.followUp.detail } : {}),
+        });
       return view(next);
     });
   }

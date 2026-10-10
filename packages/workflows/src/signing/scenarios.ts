@@ -387,6 +387,77 @@ export const signingScenarios: readonly SigningScenario[] = [
     },
   },
   {
+    name: "keeps what the first signer entered with completion, where the type captures it",
+    async run(make) {
+      // A request that asked the signer for nothing keeps nothing.
+      const plain = await sent(make);
+      plain.doc.status = "Completed";
+      expect((await plain.sync()).state).toBe("completed");
+      expect(plain.record().partnerDetails ?? null).toBeNull();
+      expect(plain.events.map((e) => e.eventType)).not.toContain(
+        `${plain.kind}.fields_unreported`,
+      );
+      const h = make();
+      if (!h.declares.capture?.length) {
+        expect(h.askPartner).toBeUndefined();
+        return;
+      }
+      const asked = h.askPartner?.() ?? [];
+      expect(asked.length).toBeGreaterThan(0);
+      expect((await h.send()).state).toBe("sent");
+      const before = h.updates.length;
+      const version = h.record().version;
+      h.doc.status = "Completed";
+      for (const field of h.doc.fields.flat())
+        if (field.api_id) field.value = ` Entered ${field.api_id} `;
+      expect((await h.sync()).state).toBe("completed");
+      expect(h.record().partnerDetails).toEqual(
+        Object.fromEntries(asked.map((id) => [id, `Entered ${id}`])),
+      );
+      // One change: the state, the executed PDF and the values together.
+      expect(h.updates.length).toBe(before + 1);
+      expect(h.record().version).toBe(version + 1);
+      expect(h.archived()).toBeDefined();
+      expect(h.events.at(-1)?.eventType).toBe(`${h.kind}.completed`);
+    },
+  },
+  {
+    name: "completes when SignWell reports no entered values, and records the gap",
+    async run(make) {
+      const h = make();
+      if (!h.askPartner) return;
+      const asked = h.askPartner();
+      await h.send();
+      const version = h.record().version;
+      h.doc.status = "Completed";
+      const warn = quietly();
+      expect((await h.sync()).state).toBe("completed");
+      // Completion and the follow-up event each take a version.
+      expect(h.record().version).toBe(version + 2);
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        `${h.log.label} signer fields not reported by SignWell`,
+        { [h.log.idKey]: h.record().id, providerId: h.doc.id, fields: asked },
+      );
+      warn.mockRestore();
+      expect(h.record().partnerDetails).toEqual({});
+      expect(h.archived()).toBeDefined();
+      expect(h.events.slice(-2)).toEqual([
+        { aggregateId: h.record().id, eventType: `${h.kind}.completed` },
+        {
+          aggregateId: h.record().id,
+          eventType: `${h.kind}.fields_unreported`,
+          detail: { fields: asked },
+        },
+      ]);
+      // Completion is final: a later read changes nothing.
+      h.doc.fields[0]?.forEach((field) => {
+        if (field.api_id) field.value = "Late";
+      });
+      await h.sync();
+      expect(h.record().partnerDetails).toEqual({});
+    },
+  },
+  {
     name: "reads SignWell before a void and never deletes what anyone signed",
     async run(make) {
       const signed = await sent(make);

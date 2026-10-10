@@ -49,6 +49,26 @@ describe("the signing engine refuses a declaration it cannot honour", () => {
     ).toThrow("at most one signer");
   });
 
+  it("declares captured fields only where the store can keep them", () => {
+    const capturing = {
+      ...contractSigning,
+      capture: [{ apiId: "company_sign", searchable: true }],
+    };
+    expect(
+      () =>
+        new SigningEngine<ContractSigningRecord>(
+          capturing,
+          contractStore(),
+          signWell(),
+        ),
+    ).toThrow("CONTRACT declares captured fields its store cannot keep");
+    expect(contractSigning.capture).toBeUndefined();
+    expect(mndaSigning.capture?.length).toBeGreaterThan(0);
+    expect(
+      () => new SigningEngine<MndaRecord>(mndaSigning, mndaStore(), signWell()),
+    ).not.toThrow();
+  });
+
   it("declares a correctable signer only where the store and client can correct it", () => {
     const correctable = {
       ...contractSigning,
@@ -88,7 +108,7 @@ describe("the contract store", () => {
   const record = structuredClone(fixtureSigningRecord);
   const actor = { kind: "user" as const, id: randomUUID() };
 
-  it("declares no cancel code or signer correction", () => {
+  it("declares no cancel code, signer correction or captured fields", () => {
     expect([...contractStore().capabilities]).toEqual([]);
   });
 
@@ -113,6 +133,19 @@ describe("the contract store", () => {
       store.update(record, "token", { error: null }, actor, undefined, {
         eventType: "contract.signer_corrected",
         before: { signerEmail: "a@b.co" },
+      }),
+    ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
+    await expect(
+      store.update(
+        record,
+        "token",
+        { state: "completed", error: null, capturedFields: {} },
+        actor,
+      ),
+    ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
+    await expect(
+      store.update(record, "token", { state: "completed" }, actor, undefined, {
+        followUp: { eventType: "contract.fields_unreported" },
       }),
     ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
     expect(update).not.toHaveBeenCalled();

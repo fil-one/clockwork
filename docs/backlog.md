@@ -1716,11 +1716,22 @@ detail lives in `docs/operations/commerce-mnda.md`,
   (`apps/web/src/features/internal-ops/session-expiry.tsx`). Evidence:
   `packages/workflows/src/esign/reconciliation.test.ts`,
   `packages/db/src/repositories/esign-reconciliation.integration.test.ts`.
-- **Partner-entered details stay in the PDF `[OPEN]`:** details the partner
-  fills in at signing are recorded only in the executed PDF. The register keeps
-  what staff entered, so a search by the partner's completed legal name or
-  jurisdiction does not find the MNDA. Closing it means reading the SignWell
-  field values on completion into the record.
+- **Partner-entered details kept on the record `[COMPLETE]`:** on completion the
+  signing engine reads the values the partner entered in the fields the MNDA
+  asked of them (`mndaSigning.capture`) and stores them in
+  `commerce_mnda_requests.partner_details`, in the same change as the state and
+  the executed PDF. The protect trigger allows that write only with completion
+  and never afterwards (`001458`). Register search matches the partner's legal
+  name, jurisdiction and signer name; the duplicate check matches the partner's
+  legal name; the register row shows "Signed as" when it differs from what staff
+  entered; the CSV export carries the partner's values. When SignWell reports no
+  values the record keeps an empty object and the history records
+  `mnda.fields_unreported`. Evidence:
+  `packages/workflows/src/signing/scenarios.ts`,
+  `packages/db/src/repositories/mnda.integration.test.ts`,
+  `supabase/tests/1458_mnda_partner_details.test.sql`. Whether live SignWell
+  reports field values on a completed document (`fields[].value`) is
+  `[EXTERNAL-ONLY]`, below.
 - **Partner signer delegation `[OPEN]`:** SignWell documents are created with
   `allow_reassign: false`, and a changed partner email fails the signer check
   (`signwell_signers_mismatch`). A partner whose authorized signatory is someone
@@ -1731,10 +1742,10 @@ detail lives in `docs/operations/commerce-mnda.md`,
   `[EXTERNAL-ONLY]`:** as of 2026-10-10, **Fix email**
   (`PATCH /documents/{id}/recipients`), void (`DELETE /documents/{id}`),
   copied-contact completion notices, the partner-completed field values on the
-  executed PDF, and whether SignWell lets an administrator delete a document
-  someone has signed are proven against fakes and the adapter contract, not
-  against SignWell. The input is one test-mode run of each against the staging
-  account (`EXT-PROVIDER-01`).
+  executed PDF and in the completed document's `fields[].value`, and whether
+  SignWell lets an administrator delete a document someone has signed are proven
+  against fakes and the adapter contract, not against SignWell. The input is one
+  test-mode run of each against the staging account (`EXT-PROVIDER-01`).
 - **SignWell callback host `[EXTERNAL-ONLY]`:** the callback URLs are
   `https://clockwork-staging.fil.one/api/v1/webhooks/signwell` and
   `https://clockwork.fil.one/api/v1/webhooks/signwell`. As of 2026-10-10 the DNS

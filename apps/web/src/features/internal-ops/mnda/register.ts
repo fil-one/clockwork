@@ -1,7 +1,9 @@
 // i18n-exempt-file: CSV column names and codes stay stable for spreadsheet and CRM imports; file names are not reader text
 import {
   mndaOpenStates,
+  mndaPartnerLegalName,
   mndaSignerEmail,
+  type MndaDetailFieldId,
   type MndaRecord,
 } from "@clockwork/contracts";
 
@@ -77,7 +79,33 @@ const columns = [
   "Test mode",
   "Void reason",
   "Request ID",
+  "Partner details",
+  "Partner legal name",
+  "Partner jurisdiction and entity type",
+  "Partner short name",
+  "Partner signer name",
+  "Partner signer title",
+  "Partner notice contact",
+  "Partner notice email",
+  "Partner notice address",
 ] as const;
+
+/** The first value the partner entered among fields that repeat it. */
+function entered(record: MndaRecord, ...ids: MndaDetailFieldId[]) {
+  for (const id of ids) {
+    const value = record.partnerDetails?.[id];
+    if (value) return value;
+  }
+  return null;
+}
+/** Whether SignWell reported what the partner entered at signing: blank when
+ * the partner was asked for nothing or the request has not completed. */
+function reported(record: MndaRecord) {
+  if (!record.partnerDetails) return null;
+  return Object.keys(record.partnerDetails).length > 0
+    ? "reported"
+    : "not_reported";
+}
 
 /** RFC 4180 CSV with a byte order mark so spreadsheet apps read UTF-8. */
 export function mndaRegisterCsv(
@@ -106,6 +134,22 @@ export function mndaRegisterCsv(
       r.testMode ? "yes" : "no",
       r.cancelCode === "signer_change" ? labels.signerChange : r.cancelReason,
       r.id,
+      reported(r),
+      mndaPartnerLegalName(r),
+      entered(r, "entity"),
+      entered(r, "short_name"),
+      entered(r, "signer_name"),
+      entered(r, "signer_title"),
+      entered(r, "notice_contact"),
+      entered(r, "email_notice", "email_intro"),
+      entered(r, "address_notice", "address_intro") ??
+        ([
+          entered(r, "street_notice", "street_intro"),
+          entered(r, "locality_notice", "locality_intro"),
+        ]
+          .filter(Boolean)
+          .join(", ") ||
+          null),
     ]
       .map(cell)
       .join(","),

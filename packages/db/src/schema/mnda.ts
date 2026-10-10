@@ -12,6 +12,7 @@ import { sql } from "drizzle-orm";
 import type {
   MndaCancelCode,
   MndaInput,
+  MndaPartnerDetails,
   MndaSigner,
   MndaState,
 } from "@clockwork/contracts";
@@ -60,6 +61,8 @@ export const mndaRequests = pgTable("commerce_mnda_requests", {
   completedAt: timestamp("completed_at", { withTimezone: true }),
   cancelCode: text("cancel_code").$type<MndaCancelCode>(),
   cancelReason: text("cancel_reason"),
+  /** Partner-entered values read from SignWell with completion. */
+  partnerDetails: jsonb("partner_details").$type<MndaPartnerDetails>(),
   normalizedCompany: text("normalized_company").generatedAlwaysAs(
     sql`public.commerce_mnda_normalize_company(input->>'company')`,
   ),

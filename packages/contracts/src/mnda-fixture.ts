@@ -44,6 +44,7 @@ export const fixtureRecord: MndaRecord = {
   completedAt: null,
   cancelCode: null,
   cancelReason: null,
+  partnerDetails: null,
   error: null,
   version: 1,
 };

@@ -160,6 +160,22 @@ export function mndaDetailValue(
   return values[id];
 }
 
+/** What the partner completed at signing, by SignWell field id. */
+export type MndaPartnerDetails = Partial<Record<MndaDetailFieldId, string>>;
+/** The partner's completed legal name, read from these fields in order. */
+export const mndaPartnerLegalNameFields = [
+  "company_sign",
+  "company_intro",
+  "company_notice",
+] as const satisfies readonly MndaDetailFieldId[];
+/** Partner-completed values the register search matches: the legal name,
+ * the jurisdiction and entity type, and the signer's name. */
+export const mndaSearchableDetailFields: readonly MndaDetailFieldId[] = [
+  ...mndaPartnerLegalNameFields,
+  "entity",
+  "signer_name",
+];
+
 export function mndaSigningFields(input: MndaInput) {
   if (input.detailsMode === "recipient") return [...mndaRecipientFields];
   if (input.detailsMode !== "mixed") return [];
@@ -214,6 +230,11 @@ export interface MndaRecord {
   cancelCode: MndaCancelCode | null;
   /** Typed by the person who voided it. */
   cancelReason: string | null;
+  /** What the partner filled in at signing, read from SignWell with
+   * completion and fixed afterwards. Null when the request asked the partner
+   * for nothing or has not completed; empty when SignWell reported no values,
+   * in which case the executed PDF alone holds them. */
+  partnerDetails: MndaPartnerDetails | null;
   error: string | null;
   version: number;
 }
@@ -419,4 +440,15 @@ export function mndaSignerEmail(record: MndaRecord): string {
 }
 export function mndaNoticeEmail(record: MndaRecord): string {
   return record.noticeEmail ?? record.countersigner.email;
+}
+/** The legal name the partner completed at signing, when they were asked
+ * for it and SignWell reported it. */
+export function mndaPartnerLegalName(
+  record: Pick<MndaRecord, "partnerDetails">,
+): string | null {
+  for (const id of mndaPartnerLegalNameFields) {
+    const value = record.partnerDetails?.[id]?.trim();
+    if (value) return value;
+  }
+  return null;
 }

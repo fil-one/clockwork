@@ -7,6 +7,8 @@ import {
   signWellRefused,
   SignWellClient,
   signWellAttentionReason,
+  signWellFieldValueLimit,
+  signWellFieldValues,
   signWellState,
   verifySignWellWakeup,
   type SignWellDocument,
@@ -354,5 +356,127 @@ describe("after-send safety checks", () => {
         Object.assign(new Error("aborted"), { name: "AbortError" }),
       ),
     ).toBe(false);
+  });
+});
+
+describe("partner-entered values at completion", () => {
+  const completed = (fields: Record<string, unknown>[]) =>
+    new Response(
+      JSON.stringify({
+        ...doc(),
+        status: "Completed",
+        fields: [[...doc().fields.flat(), ...fields]],
+      }),
+    );
+  const text = (api_id: string, value?: unknown) => ({
+    recipient_id: "counterparty",
+    type: "text",
+    required: true,
+    api_id,
+    ...(value === undefined ? {} : { value }),
+  });
+
+  it("keeps the values SignWell reports for the asked fields", async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        completed([
+          text("company_sign", "  Acme\u0000 Holdings LLC "),
+          text("entity", "x".repeat(400)),
+          text("signer_title", "COO"),
+          { ...text("signer_name", "Fil One"), recipient_id: "fil-one" },
+        ]),
+      );
+    const read = await new SignWellClient("private-key", transport).get(
+      providerId,
+    );
+    expect(
+      signWellFieldValues(read, "counterparty", [
+        "company_sign",
+        "entity",
+        "signer_name",
+      ]),
+    ).toEqual({
+      company_sign: "Acme  Holdings LLC",
+      entity: `${"x".repeat(signWellFieldValueLimit - 1)}…`,
+    });
+  });
+
+  it("marks a cut value with an ellipsis inside the limit, and keeps one at the limit whole", async () => {
+    const atLimit = "y".repeat(signWellFieldValueLimit);
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        completed([
+          text("entity", atLimit),
+          text(
+            "company_sign",
+            `${"z".repeat(signWellFieldValueLimit - 2)} tail`,
+          ),
+        ]),
+      );
+    const read = await new SignWellClient("private-key", transport).get(
+      providerId,
+    );
+    const values = signWellFieldValues(read, "counterparty", [
+      "entity",
+      "company_sign",
+    ]);
+    expect(values.entity).toBe(atLimit);
+    // The cut lands after a space, which is trimmed before the ellipsis.
+    expect(values.company_sign).toBe(
+      `${"z".repeat(signWellFieldValueLimit - 2)}…`,
+    );
+    expect([...(values.company_sign ?? "")].length).toBeLessThanOrEqual(
+      signWellFieldValueLimit,
+    );
+  });
+
+  it("replaces a lone surrogate that Postgres would refuse, and keeps a valid pair", async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        completed([
+          text("company_sign", "Acme \ud800Labs"),
+          text("entity", "Delaware 🚀 corporation"),
+        ]),
+      );
+    const read = await new SignWellClient("private-key", transport).get(
+      providerId,
+    );
+    const values = signWellFieldValues(read, "counterparty", [
+      "company_sign",
+      "entity",
+    ]);
+    expect(values).toEqual({
+      company_sign: "Acme �Labs",
+      entity: "Delaware 🚀 corporation",
+    });
+    for (const value of Object.values(values))
+      expect(value.isWellFormed()).toBe(true);
+    expect(JSON.stringify(values)).not.toMatch(/\\ud[89a-f]/i);
+  });
+
+  it("reads a document without values, or with a value of another type, as unreported", async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        completed([
+          text("company_sign"),
+          text("entity", true),
+          text("signer_title", null),
+        ]),
+      );
+    const read = await new SignWellClient("private-key", transport).get(
+      providerId,
+    );
+    expect(read.status).toBe("Completed");
+    expect(
+      signWellFieldValues(read, "counterparty", [
+        "company_sign",
+        "entity",
+        "signer_title",
+      ]),
+    ).toEqual({});
   });
 });

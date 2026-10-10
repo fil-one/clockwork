@@ -20,7 +20,11 @@ export function mndaSigningStore(
   repo: MndaSigningRepository,
 ): SigningStore<MndaRecord> {
   return {
-    capabilities: new Set(["signer_correction", "cancel_code"]),
+    capabilities: new Set([
+      "signer_correction",
+      "cancel_code",
+      "captured_fields",
+    ]),
     view: (r) => ({
       id: r.id,
       state: r.state,
@@ -55,8 +59,15 @@ export function mndaSigningStore(
     release: (id, token) => repo.release(id, token),
     get: (id) => repo.get(id),
     originalPdf: (id) => repo.readArtifact(id, "original"),
-    update: (r, token, patch, actor, executed, note) =>
-      repo.update(r.id, token, patch, actor, executed, note),
+    update: (r, token, { capturedFields, ...patch }, actor, executed, note) =>
+      repo.update(
+        r.id,
+        token,
+        capturedFields ? { ...patch, partnerDetails: capturedFields } : patch,
+        actor,
+        executed,
+        note,
+      ),
   };
 }
 
@@ -71,9 +82,10 @@ export type ContractSigningStoreRepository = Pick<
   | "decide"
 >;
 
-/** The contract table has no cancel code, correction or before-image
- * columns. The store declares none of them, and refuses a change carrying one
- * rather than drop it. */
+/** The contract table has no cancel code, correction, before-image or
+ * captured-field columns, and writes one history entry per change. The store
+ * declares none of them, and refuses a change carrying one rather than drop
+ * it. */
 export function contractSigningStore(
   repo: ContractSigningStoreRepository,
 ): SigningStore<ContractSigningRecord> {
@@ -110,6 +122,7 @@ export function contractSigningStore(
       if (
         Object.keys(unkept).length > 0 ||
         note?.before ||
+        note?.followUp ||
         (note && !note.eventType)
       )
         throw new Error("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");

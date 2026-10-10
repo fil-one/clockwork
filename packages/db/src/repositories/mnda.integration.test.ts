@@ -440,6 +440,108 @@ it("normalizes legal names in the database for duplicate lookups", async () => {
   ).toEqual([record.id]);
 }, 30000);
 
+it("keeps what the partner entered with completion, finds it by search and duplicate check, and never changes it", async () => {
+  const signer = await newSigner();
+  const tag = randomUUID().slice(0, 8);
+  // A partner-completes draft: the company field is an internal reference.
+  const record = await draft(signer, {
+    detailsMode: "recipient",
+    company: `Ref ${tag}`,
+  });
+  expect(record.partnerDetails).toBeNull();
+  const lease = await repo.claim(record.id);
+  await repo.update(
+    record.id,
+    lease.token,
+    { state: "sent", providerId: randomUUID() },
+    actor,
+  );
+  await expect(
+    repo.update(
+      record.id,
+      lease.token,
+      { partnerDetails: { entity: "Delaware corporation" } },
+      actor,
+    ),
+  ).rejects.toMatchObject({
+    cause: {
+      message: "MNDA partner details are recorded only with completion",
+    },
+  });
+  const details = {
+    company_sign: `Harbor ${tag} Holdings, LLC`,
+    entity: `Delaware ${tag} limited liability company`,
+    signer_name: `Robin ${tag}`,
+  };
+  const completed = await repo.update(
+    record.id,
+    lease.token,
+    { state: "completed", partnerDetails: details },
+    actor,
+    Buffer.from("%PDF-executed"),
+    {
+      followUp: {
+        eventType: "mnda.fields_unreported",
+        detail: { fields: ["signer_title"] },
+      },
+    },
+  );
+  await repo.release(record.id, lease.token);
+  expect(completed).toMatchObject({
+    state: "completed",
+    partnerDetails: details,
+    version: 4,
+  });
+  expect((await repo.get(record.id)).partnerDetails).toEqual(details);
+  const audit = await client<
+    { event_type: string; aggregate_version: number; after: unknown }[]
+  >`select event_type, aggregate_version, after from audit_events
+    where aggregate_id=${record.id} order by aggregate_version`;
+  expect(audit.map((r) => [r.event_type, r.aggregate_version])).toEqual([
+    ["mnda.drafted", 1],
+    ["mnda.sent", 2],
+    ["mnda.completed", 3],
+    ["mnda.fields_unreported", 4],
+  ]);
+  expect(audit[3]?.after).toMatchObject({
+    state: "completed",
+    fields: ["signer_title"],
+  });
+
+  for (const q of [`harbor ${tag} holdings`, `Delaware ${tag}`, `robin ${tag}`])
+    expect((await repo.list({ q }, actor.id)).records.map((r) => r.id)).toEqual(
+      [record.id],
+    );
+  expect(
+    (await repo.exportRows({ q: `Harbor ${tag}` }, actor.id)).records,
+  ).toEqual([expect.objectContaining({ id: record.id })]);
+  expect(await repo.duplicates(`HARBOR ${tag} HOLDINGS LLC`)).toEqual([
+    expect.objectContaining({
+      id: record.id,
+      company: `Harbor ${tag} Holdings, LLC`,
+    }),
+  ]);
+  expect(
+    (await repo.duplicates(`Ref ${tag}`)).map((m) => [m.id, m.company]),
+  ).toEqual([[record.id, `Harbor ${tag} Holdings, LLC`]]);
+
+  await expect(
+    client`update commerce_mnda_requests set partner_details = '{}'::jsonb where id=${record.id}`,
+  ).rejects.toThrow("MNDA partner details are recorded only with completion");
+  const again = await repo.claim(record.id);
+  expect(
+    (
+      await repo.update(
+        record.id,
+        again.token,
+        { partnerDetails: { company_sign: "Other Inc." } },
+        actor,
+      )
+    ).partnerDetails,
+  ).toEqual(details);
+  await repo.release(record.id, again.token);
+}, 30000);
+
 it("audits PDF downloads and register exports without touching the request's versions", async () => {
   const signer = await newSigner();
   const record = await draft(signer);
