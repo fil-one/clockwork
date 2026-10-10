@@ -1447,6 +1447,54 @@ describe("sending a contract again (001465)", () => {
     ).rejects.toThrow("CONTRACT_PAPER_NOT_SENDABLE");
   });
 
+  it("reports a different request made since as existing, not as the retry's success", async () => {
+    const marker = randomUUID();
+    const input = contract(marker, { status: "in_negotiation", paper: "ours" });
+    await repo.create(input, actor);
+    const [first, second] = await Promise.all(
+      ["First.pdf", "Second.pdf"].map((fileName) =>
+        repo.addFile(
+          input.id,
+          { kind: "main", fileName, bytes: pdf(`${fileName} ${marker}`) },
+          actor,
+        ),
+      ),
+    );
+    if (!first || !second) throw new Error("uploads missing");
+    const [countersigner] = await signing.countersigners();
+    if (!countersigner) throw new Error("seed countersigner missing");
+    const prepared = (file: typeof first) => ({
+      contractId: input.id,
+      source: { fileId: file.id, sha256: file.sha256 },
+      documentName: `Doc ${marker}`,
+      signaturePageVersion: "2026-10-10",
+      counterpartySigner: null,
+      countersignerId: countersigner.id,
+      testMode: true,
+      pdf: pdf(`prepared ${file.fileName}`),
+      fileName: "Prepared.pdf",
+    });
+    await signing.prepareCounterpartyPaper(prepared(first), actor);
+    const lease = await signing.claim(input.id);
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "canceled", cancelCode: "discarded" },
+      actor,
+    );
+    await signing.release(input.id, lease.token);
+    // Request 2 is a different PDF, from the form, by the same person.
+    await signing.prepareCounterpartyPaper(prepared(second), actor);
+    await expect(
+      signing.resend(
+        input.id,
+        1,
+        { testMode: true, preparerEmail: null },
+        actor,
+      ),
+    ).rejects.toThrow("CONTRACT_SIGNING_EXISTS");
+  });
+
   it("prepares a request voided for a different signer again instead, and refuses a stale decision", async () => {
     const { input } = await declined();
     const options = { testMode: true, preparerEmail: null };

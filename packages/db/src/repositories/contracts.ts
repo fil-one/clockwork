@@ -1339,12 +1339,37 @@ export class ContractSigningRepository {
         .where(eq(contractSigning.contractId, contractId))
         .for("update");
       if (!existing) throw new Error("CONTRACT_SIGNING_NOT_FOUND");
-      if (
-        existing.requestNumber === expectedRequest + 1 &&
-        existing.preparerId === preparer.id &&
-        !terminalContractSigningStates.includes(existing.state)
-      )
-        return { record: signingView(existing), duplicate: true };
+      // A retry finds the request it made: the next one, by the same person,
+      // still open, and a copy of the one it replaced. Any other request made
+      // since is reported as existing, never as this one's success.
+      if (existing.requestNumber === expectedRequest + 1) {
+        const [replaced] = await tx
+          .select()
+          .from(contractSigningHistory)
+          .where(
+            and(
+              eq(contractSigningHistory.contractId, contractId),
+              eq(contractSigningHistory.requestNumber, expectedRequest),
+            ),
+          );
+        const was = replaced?.request;
+        const wasSigner = (was?.counterparty_signer ?? {}) as {
+          email?: string;
+        };
+        const wasCountersigner = (was?.countersigner ?? {}) as { id?: string };
+        if (
+          was &&
+          existing.preparerId === preparer.id &&
+          !terminalContractSigningStates.includes(existing.state) &&
+          existing.templateHash === was.template_hash &&
+          existing.documentType === was.document_type &&
+          existing.counterpartySigns === was.counterparty_signs &&
+          existing.countersigner.id === wasCountersigner.id &&
+          existing.counterpartySigner.email ===
+            ((was.corrected_signer_email as string | null) ?? wasSigner.email)
+        )
+          return { record: signingView(existing), duplicate: true };
+      }
       if (existing.requestNumber !== expectedRequest)
         throw new Error("CONTRACT_SIGNING_EXISTS");
       if (
@@ -1438,6 +1463,23 @@ export class ContractSigningRepository {
         .from(contractSigning)
         .where(eq(contractSigning.providerId, providerId));
       return row ? signingView(row) : null;
+    });
+  }
+
+  /** The replaced request a SignWell document belonged to, if any: its
+   * callbacks no longer wake the contract. */
+  replacedByProvider(providerId: string) {
+    return this.tx(async (tx) => {
+      const [row] = await tx
+        .select({
+          contractId: contractSigningHistory.contractId,
+          requestNumber: contractSigningHistory.requestNumber,
+        })
+        .from(contractSigningHistory)
+        .where(
+          sql`${contractSigningHistory.request}->>'provider_id' = ${providerId}`,
+        );
+      return row ?? null;
     });
   }
 
@@ -1553,8 +1595,10 @@ export class ContractSigningRepository {
     });
   }
 
-  /** Lease spans provider I/O without holding a database transaction open. */
-  claim(contractId: string) {
+  /** Lease spans provider I/O without holding a database transaction open.
+   * With `expectedRequest`, a request replaced since the caller read it is
+   * refused under the row lock; a leased request cannot be replaced. */
+  claim(contractId: string, expectedRequest?: number) {
     return this.tx(async (tx) => {
       const [row] = await tx
         .select()
@@ -1562,6 +1606,11 @@ export class ContractSigningRepository {
         .where(eq(contractSigning.contractId, contractId))
         .for("update");
       if (!row) throw new Error("CONTRACT_SIGNING_NOT_FOUND");
+      if (
+        expectedRequest !== undefined &&
+        row.requestNumber !== expectedRequest
+      )
+        throw new Error("CONTRACT_REQUEST_CHANGED");
       if (row.leaseUntil && row.leaseUntil > new Date())
         throw new Error("CONTRACT_BUSY");
       const token = randomUUID();

@@ -400,6 +400,15 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.signing.signedMismatchNext": {
     en: "Ask a commerce administrator to resolve it in SignWell.",
   },
+  "operations.contracts.signing.filOneOnlyApprovalTitle": {
+    en: "Fil One only: the counterparty has already signed this PDF",
+  },
+  "operations.contracts.signing.filOneOnlyApprovalBody": {
+    en: "The signature page states that their signature appears in the PDF. Open the preview and check it is there before approving.",
+  },
+  "operations.contracts.signing.copiedContactsMismatch": {
+    en: "SignWell's copy would not email the signed agreement to the person who prepared it, so nothing was sent.",
+  },
   "operations.contracts.signing.fieldsMismatch": {
     en: "SignWell found signature fields Commerce did not place, such as form fields in the uploaded PDF, so nothing was sent.",
   },

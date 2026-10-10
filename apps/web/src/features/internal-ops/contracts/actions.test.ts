@@ -647,6 +647,7 @@ describe("voidContract", () => {
       contractId,
       expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
       { reason: "Wrong legal entity" },
+      undefined,
     );
   });
 
@@ -660,6 +661,7 @@ describe("voidContract", () => {
       contractId,
       expect.anything(),
       { code: "signer_change" },
+      undefined,
     );
     await expect(
       voidContract({ contractId, code: "superseded" }),
@@ -716,6 +718,7 @@ describe("correctContractSigner", () => {
       contractId,
       expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
       "right@example.com",
+      undefined,
     );
   });
 
@@ -945,38 +948,49 @@ describe("resendContract", () => {
 });
 
 describe("actions on a replaced request", () => {
-  it("refuses an approval, operation, void or correction made on an earlier request", async () => {
+  it("names the request acted on, so one since replaced is refused", async () => {
     as("commerce_admin");
-    mocks.signing.get.mockResolvedValue({
-      requestNumber: 3,
-      preparerId: "019a44ac-0000-7000-8000-0000000000aa",
-    });
-    mocks.signing.decide.mockRejectedValue(
-      new Error("CONTRACT_REQUEST_CHANGED"),
-    );
+    const changed = new Error("CONTRACT_REQUEST_CHANGED");
+    mocks.signing.decide.mockRejectedValue(changed);
+    mocks.workflow.send.mockRejectedValue(changed);
+    mocks.workflow.void.mockRejectedValue(changed);
+    mocks.workflow.correctSigner.mockRejectedValue(changed);
     const stale = { contractId, requestNumber: 2 };
-    await expect(decideContract({ ...stale, approve: true })).resolves.toEqual({
-      ok: false,
-      code: "CONTRACT_REQUEST_CHANGED",
+    const refused = { ok: false, code: "CONTRACT_REQUEST_CHANGED" };
+    await expect(decideContract({ ...stale, approve: true })).resolves.toEqual(
+      refused,
+    );
+    await expect(
+      operateContract({ ...stale, operation: "send" }),
+    ).resolves.toEqual(refused);
+    await expect(
+      voidContract({ ...stale, reason: "Wrong PDF" }),
+    ).resolves.toEqual(refused);
+    await expect(
+      correctContractSigner({ ...stale, signerEmail: "right@example.com" }),
+    ).resolves.toEqual(refused);
+    const actor: unknown = expect.objectContaining({
+      id: "019a44ac-0000-7000-8000-0000000000aa",
     });
     expect(mocks.signing.decide).toHaveBeenCalledWith(
       contractId,
       { approve: true },
-      expect.anything(),
+      actor,
       2,
     );
-    for (const result of [
-      operateContract({ ...stale, operation: "send" }),
-      voidContract({ ...stale, reason: "Wrong PDF" }),
-      correctContractSigner({ ...stale, signerEmail: "right@example.com" }),
-    ])
-      await expect(result).resolves.toEqual({
-        ok: false,
-        code: "CONTRACT_REQUEST_CHANGED",
-      });
-    expect(mocks.workflow.send).not.toHaveBeenCalled();
-    expect(mocks.workflow.void).not.toHaveBeenCalled();
-    expect(mocks.workflow.correctSigner).not.toHaveBeenCalled();
+    expect(mocks.workflow.send).toHaveBeenCalledWith(contractId, actor, 2);
+    expect(mocks.workflow.void).toHaveBeenCalledWith(
+      contractId,
+      actor,
+      { reason: "Wrong PDF" },
+      2,
+    );
+    expect(mocks.workflow.correctSigner).toHaveBeenCalledWith(
+      contractId,
+      actor,
+      "right@example.com",
+      2,
+    );
   });
 });
 

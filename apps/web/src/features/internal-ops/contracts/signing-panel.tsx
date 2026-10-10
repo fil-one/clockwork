@@ -54,6 +54,8 @@ const mismatchNotes: Readonly<Record<string, MessageId>> = {
   signwell_binding_mismatch: "operations.contracts.signing.bindingMismatch",
   signwell_signed_mismatch: "operations.contracts.signing.signedMismatch",
   signwell_fields_mismatch: "operations.contracts.signing.fieldsMismatch",
+  signwell_copied_contacts_mismatch:
+    "operations.contracts.signing.copiedContactsMismatch",
 };
 
 /** Refusals that come after the request's new state was stored. */
@@ -444,6 +446,17 @@ export function SigningPanel({
           tone="warning"
           title={t("operations.contracts.signing.rejectionReason")}
           description={signing.rejectionReason}
+        />
+      ) : null}
+      {signing.approvalState === "pending" &&
+      !terminal &&
+      !signing.counterpartySigns ? (
+        // The signature page records that their signature is in the PDF, so
+        // whoever approves confirms it.
+        <InlineNotice
+          tone="warning"
+          title={t("operations.contracts.signing.filOneOnlyApprovalTitle")}
+          description={t("operations.contracts.signing.filOneOnlyApprovalBody")}
         />
       ) : null}
       {signing.approvalState === "pending" && !terminal ? (

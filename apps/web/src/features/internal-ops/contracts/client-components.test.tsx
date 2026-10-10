@@ -1010,6 +1010,32 @@ describe("counterparty paper", () => {
     ).toBeInTheDocument();
   });
 
+  it("asks the approver to confirm the counterparty already signed when Fil One alone signs", () => {
+    render(
+      <SigningPanel
+        signing={{
+          ...paper,
+          providerId: null,
+          state: "draft",
+          approvalState: "pending",
+          approverName: null,
+          decidedAt: null,
+        }}
+        generatedFileId="019a44ac-0000-7000-8000-0000000000f9"
+        canWrite
+        canApprove
+        isPreparer={false}
+        signingReady
+      />,
+    );
+    expect(
+      screen.getByText(
+        "Fil One only: the counterparty has already signed this PDF",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument();
+  });
+
   it("sends an uploaded PDF voided for a new signer from the form, not again to the old one", () => {
     render(
       <SigningPanel

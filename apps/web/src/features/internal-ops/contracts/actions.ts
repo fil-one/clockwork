@@ -37,18 +37,9 @@ import {
 
 /** The request a person acted on, when the screen names it: a contract's
  * request is replaced after it ends, so an action taken on an earlier one is
- * refused rather than applied to the next. */
+ * refused (`CONTRACT_REQUEST_CHANGED`) rather than applied to the next. The
+ * workflow checks it under the request's lease. */
 const requestNumber = z.number().int().min(1).optional();
-
-async function assertCurrentRequest(
-  contractId: string,
-  expected: number | undefined,
-) {
-  if (expected === undefined) return;
-  const record = await contractSigningRepository().get(contractId);
-  if (record.requestNumber !== expected)
-    throw new Error("CONTRACT_REQUEST_CHANGED");
-}
 
 /** Records a new contract, or saves an edit made against a known version. */
 export async function saveContract(raw: unknown) {
@@ -279,10 +270,10 @@ export async function operateContract(raw: unknown) {
       })
       .strict()
       .parse(raw);
-    await assertCurrentRequest(contractId, expected);
     const record = await contractSigningWorkflow(operation)[operation](
       contractId,
       contractActor(session),
+      expected,
     );
     return { state: record.state };
   });
@@ -311,12 +302,12 @@ export async function voidContract(raw: unknown) {
   return attempt(async () => {
     const session = await contractStaff("contract:write");
     const input = ContractVoidSchema.parse(raw);
-    await assertCurrentRequest(input.contractId, input.requestNumber);
     await assertMayChangeSigning(session, input.contractId);
     const record = await contractSigningWorkflow("void").void(
       input.contractId,
       contractActor(session),
       "code" in input ? { code: input.code } : { reason: input.reason },
+      input.requestNumber,
     );
     return { state: record.state };
   });
@@ -335,12 +326,12 @@ export async function correctContractSigner(raw: unknown) {
       signerEmail,
       requestNumber: expected,
     } = ContractCorrectSignerSchema.parse(raw);
-    await assertCurrentRequest(contractId, expected);
     await assertMayChangeSigning(session, contractId);
     const record = await contractSigningWorkflow("correctSigner").correctSigner(
       contractId,
       contractActor(session),
       signerEmail,
+      expected,
     );
     return { state: record.state, signerEmail: contractSignerEmail(record) };
   });

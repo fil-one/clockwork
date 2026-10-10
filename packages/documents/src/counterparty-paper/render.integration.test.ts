@@ -85,7 +85,10 @@ it("appends the Fil One signature page to their pages, deterministically", async
     import.meta.url,
   );
   if (process.env.UPDATE_GOLDEN === "1") writeFileSync(golden, `${rendered}\n`);
-  expect(rendered).toBe(readFileSync(golden, "utf8").trim());
+  // Poppler versions differ on whether a line break reads as a space, so the
+  // wording is compared without whitespace.
+  const words = (text: string) => text.replace(/\s+/g, "");
+  expect(words(rendered)).toBe(words(readFileSync(golden, "utf8")));
   expect(rendered).toContain("page one");
   expect(rendered).toContain(`SHA-256: ${sha256(source)}`);
   // Fil One alone signs: one recipient, one signature and one date.

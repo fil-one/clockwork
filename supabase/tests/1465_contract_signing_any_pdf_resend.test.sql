@@ -106,10 +106,7 @@ $$, 'P0001', 'Contract signing snapshots and provider binding are immutable', 't
 select throws_ok($$
   update commerce_contract_signing_history set state = 'expired'
 $$, '42501', null, 'a replaced request is never changed');
-select throws_ok($$
-  insert into commerce_contract_signing_history (contract_id, request_number, state, request)
-  values ('c1465000-0000-4000-8000-000000000001', 7, 'canceled', '{}')
-$$, '42501', null, 'a request is never written to the history except as it is replaced');
+
 select throws_ok($$
   delete from commerce_contract_signing_history
 $$, '42501', null, 'a replaced request is never removed');
@@ -118,6 +115,13 @@ select throws_ok($$
 $$, 'P0001', 'A PDF sent for signature is permanent', 'the PDF sent is kept');
 update commerce_contract_signing set state = 'expired'
   where contract_id = 'c1465000-0000-4000-8000-000000000001';
+-- A copy of the ended request written ahead of its removal would block the
+-- replacement; only the archive trigger writes the history.
+select throws_ok($$
+  insert into commerce_contract_signing_history (contract_id, request_number, state, request)
+  select contract_id, request_number, state, to_jsonb(s) - 'lease_token' - 'lease_until'
+  from commerce_contract_signing s where contract_id = 'c1465000-0000-4000-8000-000000000001'
+$$, '42501', null, 'the service role cannot write a request into the history');
 delete from commerce_contract_signing where contract_id = 'c1465000-0000-4000-8000-000000000001';
 select is(
   (select array_agg(request_number order by request_number) from commerce_contract_signing_history

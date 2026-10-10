@@ -68,7 +68,7 @@ create table if not exists public.commerce_contract_signing_history (
 );
 
 comment on table public.commerce_contract_signing_history is
-  'Signing requests that ended without signatures and were replaced by a new request on the same contract. Written only by the delete trigger on commerce_contract_signing; never updated or deleted.';
+  'Signing requests that ended without signatures and were replaced by a new request on the same contract. Written only by the security-definer delete trigger on commerce_contract_signing; the service role reads it and never writes it.';
 
 alter table public.commerce_contract_signing_history enable row level security;
 
@@ -77,30 +77,20 @@ alter table public.commerce_contract_signing_history force row level security;
 revoke all on public.commerce_contract_signing_history
   from public, anon, authenticated, clockwork_runtime, clockwork_service;
 
-grant select, insert on public.commerce_contract_signing_history to clockwork_service;
+-- Read only: rows are written by the archive trigger alone, as its owner.
+grant select on public.commerce_contract_signing_history to clockwork_service;
 
 drop policy if exists contract_signing_history_read on public.commerce_contract_signing_history;
 
 create policy contract_signing_history_read on public.commerce_contract_signing_history
   for select to clockwork_service using (true);
 
-drop policy if exists contract_signing_history_insert on public.commerce_contract_signing_history;
-
--- Only the archive trigger's insert passes: the row names the current
--- request, numbered and ended as it is, while that request is being removed.
-create policy contract_signing_history_insert on public.commerce_contract_signing_history
-  for insert to clockwork_service with check (exists (
-    select 1 from public.commerce_contract_signing s
-    where s.contract_id = commerce_contract_signing_history.contract_id
-      and s.request_number = commerce_contract_signing_history.request_number
-      and s.state = commerce_contract_signing_history.state
-      and to_jsonb(s) - 'lease_token' - 'lease_until' = commerce_contract_signing_history.request));
-
 -- A replaced request moves to the history whole, in the statement that
 -- removes it. Only one that ended without signatures, and is not in use,
--- can go.
+-- can go. It runs as its owner, so the service role never writes the
+-- history itself.
 create or replace function public.archive_commerce_contract_signing() returns trigger
-language plpgsql set search_path = public as $$
+language plpgsql security definer set search_path = pg_catalog, public as $$
 begin
   if old.state not in ('declined','expired','canceled') then
     raise exception 'Only a declined, expired or voided signing request can be replaced';

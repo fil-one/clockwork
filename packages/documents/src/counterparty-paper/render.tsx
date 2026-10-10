@@ -153,11 +153,12 @@ function SignatureBlock({
 }
 
 /** What the page says above the signature blocks. When Fil One alone signs
- * here, the counterparty signed the document itself. */
+ * here, the page records only what the approver confirmed: the
+ * counterparty's signature is in the document itself. */
 function executionText(input: CounterpartySignaturePageInput) {
   return input.counterpartySigner
     ? `${filOneEntity} and ${input.counterpartyName} have caused the Document to be signed by their authorized representatives as of the dates written below. Each person signing confirms that they are authorized to sign for the party named above their signature.`
-    : `${input.counterpartyName} has signed the Document. ${filOneEntity} has caused the Document to be signed by its authorized representative as of the date written below, and the person signing confirms that they are authorized to sign for ${filOneEntity}.`;
+    : `The signature of ${input.counterpartyName} appears in the Document. ${filOneEntity} has caused the Document to be signed by its authorized representative as of the date written below, and the person signing confirms that they are authorized to sign for ${filOneEntity}.`;
 }
 
 const counterpartsText =

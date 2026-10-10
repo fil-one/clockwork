@@ -308,23 +308,29 @@ Word and uploaded as a PDF. **Prepare for signature** on the contract appends
 the Fil One signature page to the chosen PDF and prepares it for SignWell,
 pinned to that PDF's SHA-256. Choose **The counterparty, then Fil One** to have
 them sign the added page first (the default on Fil One's paper), or **Fil One
-only** when the counterparty already signed the PDF (the default on theirs). It
-always needs approval; a commerce administrator may approve their own with a
-reason. The signing panel then works as for a template contract.
+only** when the counterparty already signed the PDF (the default on theirs, and
+allowed on Fil One's paper for a signed scan). It always needs approval; a
+commerce administrator may approve their own with a reason. For **Fil One
+only**, the approval step says that the counterparty has already signed the PDF,
+because the signature page states that their signature appears in it: the
+approver checks the preview before approving. The signing panel then works as
+for a template contract.
 
 The signature page is on the PDF's paper size, A4 or Letter. It names both
 parties (Fil One as FIL One LLC), states that each signs by an authorized
-representative, allows counterparts and electronic signatures, and gives a name,
-title and date block for each signer and the PDF's SHA-256. Its version is
-stored on each request; a change to the wording is a new version, and requests
-already prepared keep theirs.
+representative (or, for **Fil One only**, that the counterparty's signature
+appears in the document), allows counterparts and electronic signatures, and
+gives a name, title and date block for each signer and the PDF's SHA-256. Its
+version is stored on each request; a change to the wording is a new version, and
+requests already prepared keep theirs.
 
 Form fields in the PDF are drawn into the page exactly as they look and removed,
 so SignWell asks only for the signatures on the added page. A PDF whose form
 cannot be drawn exactly is refused: print it to a flat PDF, upload that and send
 it again. A draft SignWell still finds other fields in is held for a void and
-never sent. A PDF that was sent for signature cannot be removed from the
-contract.
+never sent, and so is one whose SignWell copy would not email the preparer the
+signed PDF (`signwell_copied_contacts_mismatch`). A PDF that was sent for
+signature cannot be removed from the contract.
 
 ### Sending again
 
@@ -353,16 +359,16 @@ audited, as `contract.file_downloaded`, `contract.register_exported` and
 
 ## Configuration
 
-| Variable                             | Effect                                                                                                   |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| `COMMERCE_CONTRACTS_SIGNING_ENABLED` | `true` turns on sending. Also needs `SIGNWELL_API_KEY` and `SIGNWELL_WEBHOOK_ID`, shared with MNDAs.     |
-| `COMMERCE_CONTRACTS_TEST_MODE`       | Anything other than `false` sends in SignWell test mode. Each request keeps the mode it was prepared in. |
+| Variable                             | Effect                                                                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `COMMERCE_CONTRACTS_SIGNING_ENABLED` | `true` turns on sending. Also needs `SIGNWELL_API_KEY` and `SIGNWELL_WEBHOOK_ID`, shared with MNDAs.                       |
+| `COMMERCE_CONTRACTS_TEST_MODE`       | Anything other than `false` sends in SignWell test mode. Each request keeps the mode it was prepared in.                   |
+| `COMMERCE_DOCUMENT_STORE`            | Where new PDFs are written. Only `postgres` exists today; any other value stops document reads and writes until supported. |
 
-Deployed environments set both from Terraform (`deploy/app/main.tf`). Sending is
-on unless the GitHub environment variable `COMMERCE_CONTRACTS_SIGNING_ENABLED`
-is `false`; staging sends in test mode and production sends live. |
-`COMMERCE_DOCUMENT_STORE` | Where new PDFs are written. Only `postgres` exists
-today; any other value stops document reads and writes until supported. |
+Deployed environments set the first two from Terraform (`deploy/app/main.tf`).
+Sending is on unless the GitHub environment variable
+`COMMERCE_CONTRACTS_SIGNING_ENABLED` is `false`; staging sends in test mode and
+production sends live.
 
 Recording contracts, uploading PDFs, the renewal notices list and the sales
 library need none of these.

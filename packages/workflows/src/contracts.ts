@@ -4,7 +4,6 @@ import {
   type Actor,
   type ContractSigningDocumentType,
   type ContractSigningRecord,
-  type SigningDocumentType,
 } from "@clockwork/contracts";
 import type { SignWellContractClient } from "@clockwork/integrations";
 import {
@@ -52,44 +51,60 @@ export class ContractSigningWorkflow {
   >;
   constructor(
     private readonly repo: ContractSigningStoreRepository,
-    provider: ContractSigningClient,
-    wait?: (ms: number) => Promise<void>,
+    private readonly provider: ContractSigningClient,
+    private readonly wait?: (ms: number) => Promise<void>,
   ) {
-    const engine = (
-      type: SigningDocumentType<ContractSigningRecord>,
-      createDraft: (
-        record: ContractSigningRecord,
-        pdf: Uint8Array,
-      ) => ReturnType<ContractSigningClient["createContractDraft"]>,
-    ) =>
-      new SigningEngine(
-        type,
-        contractSigningStore(repo),
-        {
-          createDraft,
-          get: (id) => provider.getContract(id),
-          send: (id, testMode) => provider.send(id, testMode),
-          remind: (id) => provider.remind(id),
-          cancel: (id) => provider.cancel(id),
-          updateRecipient: (id, recipient) =>
-            provider.updateRecipient(id, recipient),
-          completedPdf: (id) => provider.completedPdf(id),
-        },
-        wait,
-      );
     this.engines = {
-      contract_template: engine(contractSigning, (record, pdf) =>
-        provider.createContractDraft(record, pdf),
-      ),
-      counterparty_paper: engine(counterpartyPaperSigning, (record, pdf) =>
-        provider.createCounterpartyPaperDraft(record, pdf),
-      ),
+      contract_template: this.build("contract_template", repo),
+      counterparty_paper: this.build("counterparty_paper", repo),
     };
   }
 
-  /** The engine for the request's document type. */
-  private async engine(contractId: string) {
-    return this.engines[(await this.repo.get(contractId)).documentType];
+  private build(
+    documentType: ContractSigningDocumentType,
+    repo: ContractSigningStoreRepository,
+  ) {
+    const provider = this.provider;
+    return new SigningEngine(
+      documentType === "contract_template"
+        ? contractSigning
+        : counterpartyPaperSigning,
+      contractSigningStore(repo),
+      {
+        createDraft: (record, pdf) =>
+          documentType === "contract_template"
+            ? provider.createContractDraft(record, pdf)
+            : provider.createCounterpartyPaperDraft(record, pdf),
+        get: (id) => provider.getContract(id),
+        send: (id, testMode) => provider.send(id, testMode),
+        remind: (id) => provider.remind(id),
+        cancel: (id) => provider.cancel(id),
+        updateRecipient: (id, recipient) =>
+          provider.updateRecipient(id, recipient),
+        completedPdf: (id) => provider.completedPdf(id),
+      },
+      this.wait,
+    );
+  }
+
+  /**
+   * The engine for the request's document type. With `expectedRequest`, the
+   * engine's lease is taken only on that request, so an action someone took
+   * on a request since replaced is refused instead of applied to the next.
+   */
+  private async engine(contractId: string, expectedRequest?: number) {
+    const { documentType } = await this.repo.get(contractId);
+    if (expectedRequest === undefined) return this.engines[documentType];
+    const repo = this.repo;
+    return this.build(documentType, {
+      claim: (id) => repo.claim(id, expectedRequest),
+      extendLease: (id, token) => repo.extendLease(id, token),
+      release: (id, token) => repo.release(id, token),
+      update: (...change) => repo.update(...change),
+      get: (id) => repo.get(id),
+      generatedPdf: (id) => repo.generatedPdf(id),
+      decide: (...decision) => repo.decide(...decision),
+    });
   }
 
   /** Approves or rejects a pending request; the preparer cannot decide. */
@@ -102,42 +117,52 @@ export class ContractSigningWorkflow {
       .then((engine) => engine.decide(contractId, decision, actor))
       .catch(named);
   }
-  send(contractId: string, actor: Actor) {
-    return this.engine(contractId)
+  send(contractId: string, actor: Actor, expectedRequest?: number) {
+    return this.engine(contractId, expectedRequest)
       .then((engine) => engine.send(contractId, actor))
       .catch(named);
   }
   /** Re-reads the provider's state; called by staff and by webhooks. */
-  sync(contractId: string, actor: Actor) {
-    return this.engine(contractId)
+  sync(contractId: string, actor: Actor, expectedRequest?: number) {
+    return this.engine(contractId, expectedRequest)
       .then((engine) => engine.sync(contractId, actor))
       .catch(named);
   }
   /** Reminds whoever signs next: the counterparty, then the Fil One
    * countersigner. */
-  remind(contractId: string, actor: Actor) {
-    return this.engine(contractId)
+  remind(contractId: string, actor: Actor, expectedRequest?: number) {
+    return this.engine(contractId, expectedRequest)
       .then((engine) => engine.remind(contractId, actor))
       .catch(named);
   }
   /** Discards a preparation that never reached SignWell. Once a provider
    * document exists, the request is voided instead. */
-  cancel(contractId: string, actor: Actor) {
-    return this.engine(contractId)
+  cancel(contractId: string, actor: Actor, expectedRequest?: number) {
+    return this.engine(contractId, expectedRequest)
       .then((engine) => engine.cancel(contractId, actor))
       .catch(named);
   }
   /** Voids a request nobody has signed yet, with a typed reason or the
    * signer-change code, kept on the request and in its history. */
-  void(contractId: string, actor: Actor, why: SigningVoidReason) {
-    return this.engine(contractId)
+  void(
+    contractId: string,
+    actor: Actor,
+    why: SigningVoidReason,
+    expectedRequest?: number,
+  ) {
+    return this.engine(contractId, expectedRequest)
       .then((engine) => engine.void(contractId, actor, why))
       .catch(named);
   }
   /** Replaces the counterparty signer's email (a bounce or a typo) on a
    * request they have not started signing. */
-  correctSigner(contractId: string, actor: Actor, signerEmail: string) {
-    return this.engine(contractId)
+  correctSigner(
+    contractId: string,
+    actor: Actor,
+    signerEmail: string,
+    expectedRequest?: number,
+  ) {
+    return this.engine(contractId, expectedRequest)
       .then((engine) => engine.correctSigner(contractId, actor, signerEmail))
       .catch(named);
   }
