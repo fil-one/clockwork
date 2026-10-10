@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",
-    "@aws-sdk/lib-storage": "catalog:",
     "@clockwork/contracts": "workspace:*",
     "@clockwork/domain": "workspace:*",
     "@workos-inc/node": "catalog:",
@@ -29,7 +28,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "fast-check": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
