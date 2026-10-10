@@ -54,6 +54,7 @@ variable "httpport" {
 
 variable "lb_health_check" {
   description = "Target group health check timing. The defaults are the AWS provider's (30 s, 3 and 3); a null timeout leaves AWS's default, 5 s for HTTP."
+  nullable    = false
   type = object({
     interval            = optional(number, 30)
     healthy_threshold   = optional(number, 3)

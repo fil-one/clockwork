@@ -234,12 +234,12 @@ stage deploys of October 5. That covers the new task starting, three passing
 checks at the AWS provider's default 30-second interval (60 to 90 seconds), the
 traffic shift, and the minute CodeDeploy keeps the old tasks before stopping
 them, the fast-rollback window, which stays. `lb_health_check` in `app/main.tf`
-probes every 10 seconds instead, so three passes take 20 to 30 seconds, an
-estimated 40 to 60 seconds saved per stage and 80 to 120 per pipeline run.
-Eviction keeps its pace: seven failures in a row take 60 to 70 seconds, where
-three at 30 seconds took 60 to 90. To undo it, delete the `lb_health_check`
-block and apply; the target groups return to 30 / 3 / 3 in place, nothing is
-replaced.
+probes every 10 seconds instead, so three passes take 20 to 30 seconds. The
+deploy wait polls CodeDeploy every 15 seconds, so the estimated saving shows up
+as 30 to 60 seconds per stage and 60 to 120 per pipeline run. Eviction keeps its
+pace: seven failures in a row take 60 to 70 seconds, where three at 30 seconds
+took 60 to 90. To undo it, delete the `lb_health_check` block and apply; the
+target groups return to 30 / 3 / 3 in place, nothing is replaced.
 
 `make smoke` (`smoke.sh`) then checks the public hostname: `/healthcheck`
 answers 200, `/` answers 200 or a redirect to sign-in (a 503 means
