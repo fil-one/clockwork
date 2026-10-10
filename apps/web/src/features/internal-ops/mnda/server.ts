@@ -27,12 +27,12 @@ export type MndaPermission = Extract<
  * impersonated and demo sessions never act on legal documents.
  */
 export async function mndaStaff(permission: MndaPermission = "mnda:send") {
+  if (explicitDemoIdentityEnabled()) throw new Error("MNDA_DEMO_UNAVAILABLE");
   const session = await getCommerceSession();
   if (
     !session.isInternalStaff ||
     session.impersonation ||
-    session.assistedSession ||
-    explicitDemoIdentityEnabled()
+    session.assistedSession
   )
     throw new Error("MNDA_FORBIDDEN");
   if (!session.mfaVerified) throw new Error("MNDA_MFA_REQUIRED");

@@ -9,22 +9,22 @@ import {
 } from "@/src/features/internal-ops/contracts/copy";
 import { listScope } from "@/src/features/internal-ops/contracts/loaders";
 import { toCsv } from "@/src/features/internal-ops/contracts/csv";
-import { jsonFailure } from "@/src/features/internal-ops/contracts/http";
 import {
-  contractRepository,
-  contractStaff,
-} from "@/src/features/internal-ops/contracts/server";
+  contractReader,
+  contractRegisterReader,
+} from "@/src/features/internal-ops/contracts/demo-access";
+import { jsonFailure } from "@/src/features/internal-ops/contracts/http";
 
 /** The register as CSV, with the same filters as the list on screen. */
 export async function GET(request: Request) {
   try {
-    const session = await contractStaff("contract:read");
+    const session = await contractReader("contract:read");
     const t = await getTranslations();
     const today = contractToday();
     const query = ContractListQuerySchema.parse(
       Object.fromEntries(new URL(request.url).searchParams),
     );
-    const { rows, truncated } = await contractRepository().exportRows(
+    const { rows, truncated } = await contractRegisterReader().exportRows(
       query,
       today,
       listScope(session),

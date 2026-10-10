@@ -16,6 +16,13 @@ import {
 } from "@clockwork/contracts";
 import type { MndaRegisterMatch } from "@clockwork/db";
 import { mndaTemplateHash, renderMnda } from "@clockwork/documents";
+import {
+  demoMndaNoticeEmail,
+  demoMndaRegister,
+  demoMndaSigners,
+} from "./demo-register";
+import { demoNow } from "@/src/features/experience-server/demo-clock";
+import { demoMndaViewer } from "./demo-workspace";
 import { mndaFailure, mndaInvalid } from "./results";
 import {
   mndaActor,
@@ -36,6 +43,8 @@ export interface MndaWorkspaceData {
   testMode: boolean;
   canManage: boolean;
   viewerId: string;
+  /** Fictional demo records; nothing can be prepared, sent or changed. */
+  demo?: boolean;
 }
 export interface MndaSettingsData {
   signers: MndaSigner[];
@@ -62,6 +71,20 @@ export async function loadMndas(
   rawQuery: unknown = {},
 ): Promise<MndaResult<MndaWorkspaceData>> {
   return attempt(async () => {
+    const viewer = await demoMndaViewer();
+    if (viewer) {
+      const query = MndaRegisterQuerySchema.parse(rawQuery);
+      return {
+        register: demoMndaRegister(query, viewer, demoNow()),
+        signers: [...demoMndaSigners],
+        noticeEmail: demoMndaNoticeEmail,
+        ready: false,
+        testMode: false,
+        canManage: false,
+        viewerId: viewer.id,
+        demo: true,
+      };
+    }
     const session = await mndaStaff();
     const query = MndaRegisterQuerySchema.parse(rawQuery);
     const repository = mndaRepository();

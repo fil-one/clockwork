@@ -6,12 +6,12 @@ import {
   type Permission,
 } from "@clockwork/contracts";
 import { contractToday } from "@clockwork/domain/contract-terms";
+import { contractReader, contractRegisterReader } from "./demo-access";
 import {
   ContractAccessError,
   contractRepository,
   contractSigningConfiguration,
   contractSigningRepository,
-  contractStaff,
   contractTemplateRegistry,
   sessionHas,
   type ContractAccessFailure,
@@ -31,7 +31,7 @@ export async function loadWith<T>(
   load: (session: ContractStaffSession) => Promise<T>,
 ): Promise<Loaded<T>> {
   try {
-    const session = await contractStaff(permission);
+    const session = await contractReader(permission);
     return { kind: "ready", ...(await load(session)) };
   } catch (error) {
     if (error instanceof ContractAccessError)
@@ -67,7 +67,11 @@ export function loadRegister(
     return {
       query,
       today,
-      result: await contractRepository().list(query, today, listScope(session)),
+      result: await contractRegisterReader().list(
+        query,
+        today,
+        listScope(session),
+      ),
       canOpenMndas: listScope(session).includeMndas,
       ...permissions(session),
     };
@@ -78,7 +82,7 @@ export function loadContract(id: string) {
   return loadWith("contract:read", async (session) => {
     if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("CONTRACT_NOT_FOUND");
     const today = contractToday();
-    const detail = await contractRepository().get(id, today);
+    const detail = await contractRegisterReader().get(id, today);
     return {
       ...detail,
       today,
@@ -94,7 +98,7 @@ export function loadRenewals(window: unknown) {
     const days =
       contractRenewalWindows.find((w) => String(w) === String(window)) ?? 90;
     const today = contractToday();
-    const repository = contractRepository();
+    const repository = contractRegisterReader();
     return {
       days,
       today,

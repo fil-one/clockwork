@@ -365,6 +365,7 @@ export const mndaErrorCodes = [
   "not_correctable",
   "already_completed",
   "reason_required",
+  "demo_unavailable",
   "unexpected",
 ] as const;
 export type MndaErrorCode = (typeof mndaErrorCodes)[number];

@@ -3,7 +3,7 @@ import { contractToday } from "@clockwork/domain/contract-terms";
 import { buttonClassName } from "@clockwork/ui";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { formatContractDate } from "./copy";
-import { contractRepository, contractStaff } from "./server";
+import { contractReader, contractRegisterReader } from "./demo-access";
 import styles from "./contracts.module.css";
 
 export interface RenewalSummary {
@@ -84,8 +84,8 @@ export async function RenewalNoticesSummary({
 export async function RenewalNoticesCard() {
   let summary: RenewalSummary;
   try {
-    await contractStaff("contract:read");
-    summary = await contractRepository().renewalSummary(contractToday());
+    await contractReader("contract:read");
+    summary = await contractRegisterReader().renewalSummary(contractToday());
   } catch {
     return null;
   }

@@ -291,6 +291,16 @@ export const mndaMessages = defineMessages({
     zh: "测试模式：这些文档仅用于测试。",
     ar: "وضع الاختبار: هذه المستندات للاختبار فقط.",
   },
+  "operations.mnda.demo": {
+    en: "Demo register: the companies and people are fictional. Preparing, sending, reminders and voids are turned off, and nothing goes out for signature.",
+    es: "Registro de demostración: las empresas y las personas son ficticias. La preparación, el envío, los recordatorios y las anulaciones están desactivados, y no se envía nada para firmar.",
+    fr: "Registre de démonstration : les entreprises et les personnes sont fictives. La préparation, l’envoi, les relances et les annulations sont désactivés, et rien n’est envoyé pour signature.",
+    de: "Demo-Register: Die Unternehmen und Personen sind fiktiv. Erstellen, Senden, Erinnerungen und Stornierungen sind deaktiviert, und nichts wird zur Unterschrift versendet.",
+    ja: "デモ用の台帳です。会社と人物は架空のものです。作成、送信、リマインド、無効化はオフになっており、署名依頼は送信されません。",
+    pt: "Registro de demonstração: as empresas e as pessoas são fictícias. Preparação, envio, lembretes e anulações estão desativados, e nada é enviado para assinatura.",
+    zh: "演示登记册：公司和人员均为虚构。准备、发送、提醒和作废功能已关闭，不会发出任何签署请求。",
+    ar: "سجل تجريبي: الشركات والأشخاص خياليون. الإعداد والإرسال والتذكيرات والإلغاء متوقفة، ولا يُرسل أي شيء للتوقيع.",
+  },
   "operations.mnda.none": {
     en: "No MNDAs yet.",
     es: "Todavía no hay acuerdos.",
@@ -1714,6 +1724,16 @@ export const mndaMessages = defineMessages({
     pt: "Insira um motivo com pelo menos 3 caracteres.",
     zh: "请输入至少 3 个字符的原因。",
     ar: "أدخل سببًا لا يقل عن 3 أحرف.",
+  },
+  "operations.mnda.error.demoUnavailable": {
+    en: "The demo does not prepare, send or change MNDAs.",
+    es: "La demostración no prepara, envía ni modifica acuerdos de confidencialidad.",
+    fr: "La démo ne prépare, n’envoie ni ne modifie aucun accord de confidentialité.",
+    de: "Die Demo erstellt, versendet und ändert keine Geheimhaltungsvereinbarungen.",
+    ja: "デモではMNDAの作成、送信、変更はできません。",
+    pt: "A demonstração não prepara, envia nem altera acordos de confidencialidade.",
+    zh: "演示版不会准备、发送或更改保密协议。",
+    ar: "لا يُعدّ العرض التجريبي اتفاقيات عدم الإفصاح ولا يرسلها ولا يغيّرها.",
   },
   "operations.mnda.error.unexpected": {
     en: "That did not work. Try again, and tell James if it keeps happening.",

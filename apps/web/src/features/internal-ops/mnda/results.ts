@@ -8,6 +8,7 @@ import type {
 /** Server error messages and the code, and field, the workspace shows. */
 const known: Record<string, { code: MndaErrorCode; field?: string }> = {
   MNDA_FORBIDDEN: { code: "forbidden" },
+  MNDA_DEMO_UNAVAILABLE: { code: "demo_unavailable" },
   MNDA_MFA_REQUIRED: { code: "mfa_required" },
   MNDA_NOT_CONFIGURED: { code: "not_configured" },
   MNDA_NOT_FOUND: { code: "not_found" },

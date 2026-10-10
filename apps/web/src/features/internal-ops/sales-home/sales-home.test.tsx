@@ -49,7 +49,7 @@ describe("MNDA register links", () => {
   });
 
   it("links each row to exactly the states it counted", () => {
-    const rows = mndaHomeRows(counts, true);
+    const rows = mndaHomeRows(counts);
     expect(rows.map(({ href }) => href)).toEqual([
       "/internal/mndas?status=sent,viewed&mine=1",
       "/internal/mndas?status=awaiting_countersignature&mine=1",
@@ -73,13 +73,24 @@ describe("sales home loader", () => {
     expect(section?.rows?.map(({ mine }) => mine)).toEqual([2, 0, 4, 1]);
   });
 
-  it("shows the guided demo a fixed tally without links", async () => {
+  it("counts the guided demo's fictional register and links to it", async () => {
     const [section] = await loadSalesHome({
       ...context,
       providerBacked: false,
     });
     expect(mocks.count).not.toHaveBeenCalled();
-    expect(section?.rows?.every(({ href }) => href === undefined)).toBe(true);
+    expect(mocks.database).not.toHaveBeenCalled();
+    expect(section?.rows?.map(({ mine }) => mine)).toEqual([1, 1, 1, 1]);
+    // A completion older than 30 days is not counted.
+    expect(section?.rows?.map(({ team }) => team)).toEqual([
+      3,
+      1,
+      2,
+      undefined,
+    ]);
+    expect(section?.rows?.[0]?.href).toBe(
+      "/internal/mndas?status=sent,viewed&mine=1",
+    );
   });
 
   it("marks a failed source unavailable and keeps the others", async () => {
@@ -116,7 +127,7 @@ describe("sales home page", () => {
       href: "/internal/mndas",
       action: "operations.sales.home.openRegister" as const,
     },
-    rows: mndaHomeRows(counts, true),
+    rows: mndaHomeRows(counts),
   };
 
   it("lists the reader's MNDAs by what they wait on, with team totals", () => {

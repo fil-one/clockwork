@@ -53,5 +53,6 @@ export const mndaErrorLabels: Record<MndaErrorCode, MessageId> = {
   not_correctable: "operations.mnda.error.notCorrectable",
   already_completed: "operations.mnda.error.alreadyCompleted",
   reason_required: "operations.mnda.error.reasonRequired",
+  demo_unavailable: "operations.mnda.error.demoUnavailable",
   unexpected: "operations.mnda.error.unexpected",
 };

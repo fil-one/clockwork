@@ -193,9 +193,10 @@ something that has actually broken here:
    draft, add its first rate card, propose activation, and use the seeded
    independent proposal to exercise the second-authority activation decision.
    The new and activated versions must remain visible after refresh.
-7. **Queue refresh changes the page.** As Ada Mercer, open `/internal/queues`,
-   choose **Refresh data**, and confirm the stale warning and refresh button
-   disappear. This is a secured persisted refresh, not a page reload.
+7. **The queue opens current.** As Ada Mercer, open `/internal/queues` and
+   confirm there is no stale-data warning and the Meridian legal review reads
+   **Healthy**. Queue targets are seeded relative to the seed clock and read
+   relative to the request, so they keep their distance from today.
 8. **Partner work persists.** As Priya Nair, register a deal, create a priced
    partner quote, and request a renewal. Each result must appear in its
    collection and remain after a fresh page read.
@@ -229,6 +230,14 @@ something that has actually broken here:
     demo data. These simulated records prove the request workflow; they do not
     provision storage, issue credentials, enforce provider quotas, or establish
     live billing cutover.
+
+14. **Seller workspaces read fictional records.** As Priya Raman, open
+    **MNDAs**, **Contracts** and **Sales library** from the rail. Each shows its
+    demo notice and fictional records: MNDAs in every state with days
+    outstanding, contracts with one notice due within 30 days and one passed,
+    and current and archived collateral. **Open PDF** on an MNDA renders the
+    unsigned agreement; reminders, voids, recording, uploads and collateral
+    downloads are turned off. Nothing here reaches SignWell or a database.
 
 One environment trap: `CLOCKWORK_DEMO_STATE_STORE=memory` breaks order
 acceptance in a production build, because the API route and the page bundles get

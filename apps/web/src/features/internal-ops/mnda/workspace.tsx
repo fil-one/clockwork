@@ -262,7 +262,9 @@ export function MndaWorkspace({
           </Button>
         </div>
       </header>
-      {!data.ready ? (
+      {data.demo ? (
+        <StateBanner tone="info" title={t("operations.mnda.demo")} />
+      ) : !data.ready ? (
         <StateBanner tone="warning" title={t("operations.mnda.notReady")} />
       ) : null}
       {data.testMode ? (
