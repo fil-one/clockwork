@@ -273,10 +273,11 @@ describe("operable PAYG and trial policy administration", () => {
   });
 });
 
-describe("PAYG and trial policies in the reader's language", () => {
+// Staff copy is English in every catalog; amounts follow the language given.
+describe("PAYG and trial policies for a reader of another language", () => {
   afterEach(() => setHarnessLanguage("en", catalogs.en));
 
-  it("renders the page, the policy summary and its amounts in Portuguese", async () => {
+  it("renders the policy summary with Portuguese amounts", async () => {
     setHarnessLanguage("pt", catalogs.pt);
     const user = userEvent.setup();
     render(
@@ -290,32 +291,27 @@ describe("PAYG and trial policies in the reader's language", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "Políticas de pagamento por uso e de período de teste",
+        name: "PAYG and trial policies",
       }),
     ).toBeVisible();
     await user.click(
       screen.getByRole("button", {
-        name: /Direct PAYG · france · v1 · Aprovada/,
+        name: /Direct PAYG · france · v1 · Approved/,
       }),
     );
     expect(
       screen.getByText(
-        "US$ 4,99 por TB-mês; mínimo mensal de US$ 4,99. Mínimo em meses parciais: Mínimo mensal integral.",
+        "US$ 4,99 per TB-month; monthly minimum US$ 4,99. Partial-month minimum: Full monthly minimum.",
       ),
     ).toBeVisible();
+    expect(screen.getByText(/Trial: 30 days, then 7 days/)).toBeVisible();
+    expect(screen.getByText(/Storage cap: 1 TB/)).toBeVisible();
     expect(
-      screen.getByText(/Período de teste: 30 dias e, depois, 7 dias/),
+      screen.getByRole("button", { name: "Retire for future enrollments" }),
     ).toBeVisible();
-    expect(screen.getByText(/Limite de armazenamento: 1 TB/)).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: "Descontinuar para novas adesões" }),
-    ).toBeVisible();
-    expect(document.body.textContent).not.toMatch(
-      /Policy versions|Retire for future enrollments|per TB-month|Storage cap/u,
-    );
   });
 
-  it("shows an API refusal in the reader's language, not the server code", async () => {
+  it("shows an API refusal as a sentence, not the server code", async () => {
     setHarnessLanguage("de", catalogs.de);
     const user = userEvent.setup();
     mocks.fetch.mockResolvedValue(
@@ -333,17 +329,15 @@ describe("PAYG and trial policies in the reader's language", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: /Direct PAYG/ }));
-    await user.click(screen.getByRole("button", { name: "Entwurf speichern" }));
+    await user.click(screen.getByRole("button", { name: "Save draft" }));
     expect(
       (
         await screen.findAllByText(
-          "Entscheiden muss eine genehmigende Person aus der Finanzabteilung, die diese Version weder erstellt noch bearbeitet noch beantragt hat.",
+          "A finance approver who did not create, edit, or propose this version must decide.",
         )
       ).length,
     ).toBeGreaterThan(0);
-    expect(document.body.textContent).not.toMatch(
-      /PAYG_OFFER|finance approver/u,
-    );
+    expect(document.body.textContent).not.toMatch(/PAYG_OFFER/u);
   });
 });
 

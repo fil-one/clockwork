@@ -4,6 +4,8 @@ import { locales } from "../src/i18n/locales";
 
 import { gotoHydrated } from "./shell-hydration";
 
+const english = translatorFor("en");
+
 // Visits use separate browser contexts: a preference must never become global.
 for (const language of locales) {
   test(`saved ${language} preference survives navigation and reload`, async ({
@@ -32,20 +34,33 @@ for (const language of locales) {
     });
     await page.reload();
     await expect(page.locator('select[name="language"]')).toHaveValue(language);
-    await page.goto("/internal/operations");
-    await expect(
-      page.getByRole("heading", {
-        name: t("operations.home.title"),
-        exact: true,
-      }),
-    ).toBeVisible();
+    // Customer and partner routes render in the reader's language.
+    await page.setExtraHTTPHeaders({ "x-clockwork-persona": "owner" });
+    await gotoHydrated(page, "/dashboard");
     await expect(page.locator("html")).toHaveAttribute(
       "dir",
       language === "ar" ? "rtl" : "ltr",
     );
     await expect(
+      page.getByRole("link", { name: t("nav.dashboard"), exact: true }).first(),
+    ).toBeVisible();
+    // Staff routes render in English whatever language was saved.
+    await page.setExtraHTTPHeaders({});
+    await page.goto("/internal/operations");
+    await expect(
+      page.getByRole("heading", {
+        name: english("operations.home.title"),
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+    await expect(
       page
-        .getByRole("link", { name: t("nav.internal.search"), exact: true })
+        .getByRole("link", {
+          name: english("nav.internal.search"),
+          exact: true,
+        })
         .first(),
     ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });

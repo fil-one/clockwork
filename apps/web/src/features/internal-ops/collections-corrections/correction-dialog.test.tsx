@@ -179,7 +179,7 @@ describe("collections corrections", () => {
    * invoice total in the amount help is formatted for the reader from minor
    * units, not copied from an English-formatted string.
    */
-  it("speaks the reader's language, including the provider reasons and the total", async () => {
+  it("formats the total for the reader's language and keeps staff copy in English", async () => {
     const user = userEvent.setup();
     render(
       <LanguageProvider locale="pt" catalog={catalogs.pt}>
@@ -187,9 +187,7 @@ describe("collections corrections", () => {
       </LanguageProvider>,
     );
 
-    await user.click(
-      screen.getByRole("button", { name: "Emitir nota de crédito" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Issue credit note" }));
 
     const total = new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -200,20 +198,20 @@ describe("collections corrections", () => {
       .replace(/\s/gu, " ");
     expect(
       screen.getByText(
-        `Número inteiro na menor unidade de USD. O total da fatura é ${total}.`,
+        `A whole number in the smallest unit of USD. The invoice total is ${total}.`,
       ),
     ).toBeVisible();
     const reasons = screen
       .getAllByRole("option")
       .map((option) => option.textContent);
     expect(reasons).toEqual([
-      "Duplicado",
-      "Fraudulento",
-      "Alteração do pedido",
-      "Produto insatisfatório",
+      "Duplicate",
+      "Fraudulent",
+      "Order change",
+      "Product unsatisfactory",
     ]);
     expect(
-      screen.getByText(/Somente anulando a nota de crédito no provedor/u),
+      screen.getByText(/Only by voiding the credit note through the provider/u),
     ).toBeVisible();
   });
 });

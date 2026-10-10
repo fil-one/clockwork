@@ -45,6 +45,11 @@ vi.mock("@/src/i18n/server", async () => {
         status: "fulfilled",
         value: "en",
       }),
+    getReaderLocale: () =>
+      Object.assign(Promise.resolve("en"), {
+        status: "fulfilled",
+        value: "en",
+      }),
     getFormattingLocale: () =>
       Object.assign(Promise.resolve("en-US"), {
         status: "fulfilled",

@@ -34,27 +34,23 @@ const row = {
 afterEach(() => setHarnessLanguage("en", catalogs.en));
 
 describe("catalog mapping form", () => {
-  it("words the form and the saved result in the reader's language", async () => {
+  // Staff screens are English whatever the reader's language.
+  it("words the form and the saved result for a Portuguese reader", async () => {
     setHarnessLanguage("pt", catalogs.pt);
     mocks.save.mockResolvedValue("saved");
     const user = userEvent.setup();
     render(<CatalogMappingControls row={row} />);
-    expect(
-      screen.getByText("Mapeamento de provedor em rascunho"),
-    ).toBeVisible();
-    expect(screen.getByLabelText("Motivo da alteração")).toBeVisible();
+    expect(screen.getByText("Draft provider mapping")).toBeVisible();
     await user.type(
-      screen.getByLabelText("Motivo da alteração"),
+      screen.getByLabelText("Reason for change"),
       "Referência confirmada",
     );
     await user.click(
-      screen.getByRole("button", { name: "Salvar mapeamento em rascunho" }),
+      screen.getByRole("button", { name: "Save draft mapping" }),
     );
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Mapeamento em rascunho salvo. A qualificação do provedor e a aprovação da tabela de preços continuam obrigatórias.",
+      "Draft mapping saved. Provider qualification and price-book approval remain required.",
     );
-    expect(screen.queryByText(/Draft mapping saved/u)).toBeNull();
-    expect(screen.queryByText(/Save draft mapping/u)).toBeNull();
   });
 
   it("reports the authority rule, not a success, when the action refuses", async () => {

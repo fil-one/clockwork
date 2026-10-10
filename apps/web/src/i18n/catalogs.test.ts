@@ -14,6 +14,7 @@ import { formatMoney } from "@/src/features/shared/format";
 
 import { catalogs, messageModules, translatorFor } from "./catalogs";
 import {
+  defineStaffMessages,
   isPluralMessage,
   isSameInAllLanguages,
   pluralCategoriesByLocale,
@@ -44,6 +45,16 @@ const definitions = Object.entries(messageModules).flatMap(
       ([id, message]) => ({ module, id, message }),
     ),
 );
+/**
+ * Messages that name all eight languages. Staff-only modules are English and
+ * are served as English in every catalog, so the translation and typography
+ * checks apply only to these.
+ */
+const localized = definitions.filter(
+  ({ module }) =>
+    !("staffOnly" in messageModules[module as keyof typeof messageModules]),
+);
+const localizedIds = new Set(localized.map(({ id }) => id));
 
 /** Every string a catalog entry can render, with a label for failures. */
 function forms(entry: CatalogEntry): readonly [string, string][] {
@@ -110,7 +121,7 @@ describe("catalog structure", () => {
       expect([...pluralCategoriesByLocale[locale]].sort(), locale).toEqual(
         runtime,
       );
-      for (const { id, message } of definitions) {
+      for (const { id, message } of localized) {
         if (!isPluralMessage(message)) continue;
         expect(Object.keys(message[locale]).sort(), `${locale} ${id}`).toEqual(
           runtime,
@@ -120,10 +131,30 @@ describe("catalog structure", () => {
   });
 });
 
+describe("staff-only modules", () => {
+  it("are exactly the operations and administration modules", () => {
+    expect(
+      Object.entries(messageModules)
+        .filter(([, module]) => "staffOnly" in module)
+        .map(([name]) => name)
+        .sort(),
+    ).toEqual(["adminGovernance", "adminPricing", "operations"]);
+  });
+
+  it("cannot carry translations", () => {
+    defineStaffMessages({
+      "operations.example": { en: "Example" },
+      // @ts-expect-error a staff message names no other language
+      "operations.translated": { en: "Example", es: "Ejemplo" },
+    });
+    expect(true).toBe(true);
+  });
+});
+
 describe("nothing is left in English by accident", () => {
   it("fails on a translation identical to English unless it is marked", () => {
     const unmarked: string[] = [];
-    for (const { id, message } of definitions) {
+    for (const { id, message } of localized) {
       if (isSameInAllLanguages(message)) {
         expect(message.sameInAllLanguages.trim(), id).not.toBe("");
         continue;
@@ -249,7 +280,8 @@ describe("typography", () => {
   it("follows the enforced typography subset in every language", () => {
     const failures: string[] = [];
     for (const locale of locales)
-      for (const [id, entry] of Object.entries(catalogs[locale]))
+      for (const [id, entry] of Object.entries(catalogs[locale])) {
+        if (!localizedIds.has(id)) continue;
         for (const [category, form] of forms(entry)) {
           // zh: a placeholder stands for a value (a date such as "2026年9月24日",
           // an amount), not for nothing, so removing it would make "已于 {date}到期"
@@ -278,6 +310,7 @@ describe("typography", () => {
               failures.push(`es ${id}${category}: ¡ with every !`);
           }
         }
+      }
     expect(failures).toEqual([]);
   });
 });
@@ -350,6 +383,26 @@ describe("translator", () => {
     );
     expect(translatorFor("en")("common.results", { count: 1 })).toBe(
       "1 result",
+    );
+  });
+
+  // Japanese has only `other` and French puts 0 in `one`; a staff message is
+  // English and must pick its form by English rules in every catalog.
+  it("selects staff plural forms by English rules in every language", () => {
+    expect(translatorFor("ja")("operations.cases", { count: 1 })).toBe(
+      "1 case",
+    );
+    expect(translatorFor("zh")("operations.cases", { count: 1 })).toBe(
+      "1 case",
+    );
+    expect(translatorFor("fr")("operations.cases", { count: 0 })).toBe(
+      "0 cases",
+    );
+    expect(translatorFor("pt")("operations.cases", { count: 0 })).toBe(
+      "0 cases",
+    );
+    expect(translatorFor("de")("operations.cases", { count: 1234 })).toBe(
+      "1,234 cases",
     );
   });
 

@@ -1,7 +1,7 @@
 import { documentLanguages, rtlLocales } from "@/src/i18n";
-import { catalogs } from "@/src/i18n/catalogs";
 import { LanguageProvider } from "@/src/i18n/client";
-import { getLocale, getTranslations } from "@/src/i18n/server";
+import { catalogs, translatorFor } from "@/src/i18n/catalogs";
+import { getLocale, getReaderLocale, getTranslations } from "@/src/i18n/server";
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import type { ReactNode } from "react";
@@ -59,8 +59,13 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const locale = await getLocale();
-  const t = await getTranslations();
+  // The provider carries the reader's language. Staff routes switch their own
+  // subtree to English (`StaffLanguage` in `(internal)/layout.tsx`), so a
+  // client-side navigation that keeps this layout never carries one surface's
+  // language to the other. `<html lang dir>` starts as the requested route's.
+  const locale = await getReaderLocale();
+  const documentLocale = await getLocale();
+  const t = translatorFor(locale);
   const incomingTrace = parseTraceparent(
     (await headers()).get("traceparent") ?? undefined,
   );
@@ -76,8 +81,8 @@ export default async function RootLayout({
     : undefined;
   return (
     <html
-      lang={documentLanguages[locale]}
-      dir={rtlLocales.has(locale) ? "rtl" : "ltr"}
+      lang={documentLanguages[documentLocale]}
+      dir={rtlLocales.has(documentLocale) ? "rtl" : "ltr"}
       data-scroll-behavior="smooth"
       className={brandFontVariables}
     >

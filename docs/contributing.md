@@ -221,6 +221,11 @@ provider fakes for replay and failure scenarios.
 - **`supabase/migrations` is the source of truth for schema.** The Drizzle model
   mirrors it, and `pnpm check:schema-drift` fails when the two disagree. No
   schema change is authored in the Supabase dashboard.
+- **Interface text is a message** in `apps/web/src/i18n/messages/`. Customer and
+  partner routes are localized, and their modules name all eight languages with
+  `defineMessages`. Staff routes render in English, and staff-only modules
+  (`operations*.ts`, `admin-*.ts`) are English only, with `defineStaffMessages`.
+  See [interface languages](operations/localization.md).
 - **Errors are RFC 9457 `application/problem+json`** with a request ID, a stable
   machine code, and a safe user message. Every list endpoint takes a stable
   cursor and an explicit account scope; mutations return the aggregate version

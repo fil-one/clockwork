@@ -13,6 +13,15 @@ role, currency, and timezone. It does not synchronize between devices. An
 unsupported cookie value falls back to English. Language selection does not
 change authorization or commercial capability controls.
 
+Customer, partner, demo and public routes render in the saved language. Staff
+routes (`/internal`, `app/(experience)/(internal)`) render entirely in English
+whatever language is saved: shell, shared words, statuses, amounts and dates,
+with `lang="en" dir="ltr"`. `proxy.ts` marks each request's route audience in a
+request header for server components; requests the proxy does not see (server
+actions, form posts, API calls) take the audience of the page that sent them.
+`StaffLanguage` in the internal layout gives client components the English
+catalog and keeps `<html lang dir>` English while a staff page is shown.
+
 ## What is translated, and what is not
 
 - Everything the product writes is a message: labels, headings, help text, table
@@ -46,8 +55,15 @@ plus two shared modules:
 Each message names all eight languages through `defineMessages`, so a missing
 language is a type error. Plural messages give each language exactly the CLDR
 categories its rules select (Arabic six, Japanese and Chinese one), also typed.
-`apps/web/src/i18n/catalogs.ts` composes one flat catalog per language from the
-modules; `apps/web/src/i18n/ownership.ts` maps source paths to lanes.
+The staff-only modules (`operations*.ts`, `admin-pricing.ts`,
+`admin-governance.ts`) are the exception: they are English only, written with
+`defineStaffMessages` and registered with `staffOnly: true`. A staff message
+cannot name another language, so a translated module cannot be registered as
+staff-only. Every language's catalog carries their English text with English
+plural rules, and dependency-cruiser stops customer, partner and demo code
+importing `src/features/internal-ops/`. `apps/web/src/i18n/catalogs.ts` composes
+one flat catalog per language from the modules; `apps/web/src/i18n/ownership.ts`
+maps source paths to lanes.
 
 Server code gets a translator from `getTranslations()` in `@/src/i18n/server`
 and the reader's formatting tag from `getFormattingLocale()`. Client components
@@ -69,7 +85,9 @@ placeholder differs between languages, a plural message is missing a CLDR
 category, a translation is identical to English without a `sameAsEnglish` or
 `sameInAllLanguages` marker, a new opaque `ui.<number>` ID appears, a new ID is
 outside its module's namespace, a lane uses another lane's messages, or a value
-breaks the mechanically checkable typography rules in the glossary.
+breaks the mechanically checkable typography rules in the glossary. The
+translation and typography checks skip the staff-only modules, and a test pins
+which modules those are.
 
 ESLint rejects, in the web app, the legacy English-text lookup (`localizeCopy`,
 `translateInterfaceText`), imports of the all-language catalogs outside the root

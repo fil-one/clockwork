@@ -138,9 +138,9 @@ describe("ReportsView report filter", () => {
       </LanguageProvider>,
     );
 
-    const recorded = recordedExports("Erfasste Berichtsexporte");
+    const recorded = recordedExports();
     expect(
-      within(recorded).getByText("Verlängerungs- und Abwanderungsrisiko"),
+      within(recorded).getByText("Renewal and churn exposure"),
     ).toBeVisible();
     expect(within(recorded).queryByText("Renewal Churn Exposure")).toBeNull();
   });
@@ -195,7 +195,7 @@ describe("ReportsView report filter", () => {
    * language sees no English label and no title-cased storage token. The
    * registry code itself stays beside it as the identifier the API uses.
    */
-  it("names every report in the reader's language", () => {
+  it("names every report by its label, not its code, for a Portuguese reader", () => {
     render(
       <LanguageProvider locale="pt" catalog={catalogs.pt}>
         <ReportsView accounts={[]} exports={exports} provenance={provenance} />
@@ -206,8 +206,8 @@ describe("ReportsView report filter", () => {
       .getAllByRole("heading", { level: 3 })
       .map((heading) => heading.textContent);
     expect(headings).toHaveLength(reportNames.length);
-    expect(headings).toContain("Previsão de receita");
-    expect(headings).toContain("Conciliação tripla");
+    expect(headings).toContain("Revenue forecast");
+    expect(headings).toContain("Three-way tie-out");
     for (const name of reportNames)
       expect(headings).not.toContain(
         name
@@ -215,14 +215,9 @@ describe("ReportsView report filter", () => {
           .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
           .join(" "),
       );
-    expect(
-      screen.getAllByRole("button", { name: "Exportar CSV" }),
-    ).toHaveLength(reportNames.length);
-    expect(
-      screen.getByRole("heading", {
-        name: "Exportações de relatórios registradas",
-      }),
-    ).toBeVisible();
-    expect(screen.getByText("4 exportações")).toBeVisible();
+    expect(screen.getAllByRole("button", { name: "Export CSV" })).toHaveLength(
+      reportNames.length,
+    );
+    expect(within(recordedExports()).getByText("4 exports")).toBeVisible();
   });
 });
