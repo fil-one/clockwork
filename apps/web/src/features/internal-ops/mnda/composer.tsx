@@ -37,6 +37,7 @@ import {
 import { mndaErrorLabels, mndaStateLabels } from "./labels";
 import { formatMndaDate } from "./format";
 import { mndaPdfHref } from "./register";
+import { SessionExpiredReload } from "../session-expiry";
 import styles from "./workspace.module.css";
 
 const modeLabels = {
@@ -246,6 +247,13 @@ export function MndaComposer({
       live="assertive"
       className={styles.inlineBanner ?? ""}
       title={t(mndaErrorLabels[failure])}
+      {...(failure === "session_expired"
+        ? {
+            action: (
+              <SessionExpiredReload onReloaded={() => setFailure(null)} />
+            ),
+          }
+        : {})}
     />
   ) : null;
 

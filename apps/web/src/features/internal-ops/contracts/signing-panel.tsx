@@ -22,6 +22,7 @@ import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { formatOperationalTimestamp } from "../presentation";
 import { decideContract, operateContract } from "./actions";
 import { approvalStateLabels, errorMessage, signingStateLabels } from "./copy";
+import { SessionExpiredReload } from "../session-expiry";
 import styles from "./contracts.module.css";
 
 type Operation = "send" | "sync" | "remind" | "cancel";
@@ -194,6 +195,13 @@ export function SigningPanel({
           tone="danger"
           title={t(errorMessage(error))}
           live="assertive"
+          {...(error === "SESSION_EXPIRED"
+            ? {
+                action: (
+                  <SessionExpiredReload onReloaded={() => setError(null)} />
+                ),
+              }
+            : {})}
         />
       ) : null}
 

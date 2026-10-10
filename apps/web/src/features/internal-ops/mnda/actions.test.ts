@@ -140,6 +140,14 @@ describe("sending requires mnda:send", () => {
     as("revenue", { mfaVerified: false });
     expect(await loadMndas()).toEqual({ ok: false, code: "mfa_required" });
   });
+  it("reports an expired session apart from other failures", async () => {
+    mocks.session.mockRejectedValue(new Error("SESSION_EXPIRED"));
+    expect(await loadMndas()).toEqual({ ok: false, code: "session_expired" });
+    expect(
+      await operateMnda({ id: fixtureRecord.id, operation: "send" }),
+    ).toEqual({ ok: false, code: "session_expired" });
+    expect(mocks.workflow.send).not.toHaveBeenCalled();
+  });
   it("tells the seller exactly which field is wrong", async () => {
     as("revenue");
     const result = await prepareMnda({

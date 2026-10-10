@@ -38,6 +38,7 @@ const known: Record<string, { code: MndaErrorCode; field?: string }> = {
   MNDA_SIGNER_STARTED: { code: "signer_started" },
   MNDA_NOT_CORRECTABLE: { code: "not_correctable" },
   MNDA_ALREADY_COMPLETED: { code: "already_completed" },
+  SESSION_EXPIRED: { code: "session_expired" },
 };
 
 function fieldCode(issue: ZodError["issues"][number]): MndaErrorCode {

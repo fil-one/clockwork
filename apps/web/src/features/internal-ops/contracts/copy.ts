@@ -141,6 +141,7 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
     "operations.contracts.error.signingNotConfigured",
   COLLATERAL_LINK_OR_FILE: "operations.salesLibrary.error.linkOrFile",
   COLLATERAL_NOT_FOUND: "operations.contracts.error.notFound",
+  SESSION_EXPIRED: "operations.session.expired",
   COLLATERAL_FILE_NOT_FOUND: "operations.contracts.error.fileNotFound",
   UPLOAD_INTERRUPTED: "operations.contracts.error.uploadInterrupted",
   provider_unavailable: "operations.contracts.error.provider",

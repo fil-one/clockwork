@@ -28,6 +28,7 @@ import { emptyValues, valuesFromRecord } from "./form-model";
 import { formatMndaDate } from "./format";
 import { mndaErrorLabels, mndaGroupLabels, mndaStateLabels } from "./labels";
 import { mndaDaysOutstanding, mndaPdfHref } from "./register";
+import { SessionExpiredReload, useSessionRefresh } from "../session-expiry";
 import styles from "./workspace.module.css";
 
 const terminal = (r: MndaRecord) =>
@@ -129,6 +130,7 @@ export function MndaWorkspace({
   const [message, setMessage] = useState<{
     tone: "success" | "danger";
     text: string;
+    expired?: boolean;
   } | null>(null);
   const [composer, setComposer] = useState<{
     key: number;
@@ -140,20 +142,29 @@ export function MndaWorkspace({
   const queryRef = useRef(query);
   queryRef.current = query;
   const composerRef = useRef<HTMLDivElement>(null);
+  const refreshSession = useSessionRefresh();
 
-  const reload = useCallback(async (next: MndaRegisterQuery, quiet = false) => {
-    if (!quiet) setLoading(true);
-    try {
-      const result = await loadMndas(next);
-      if (next !== queryRef.current) return;
-      if (result.ok) {
-        setData(result.value);
-        setLoadFailed(false);
-      } else if (!quiet) setLoadFailed(true);
-    } finally {
-      if (!quiet) setLoading(false);
-    }
-  }, []);
+  const reload = useCallback(
+    async (next: MndaRegisterQuery, quiet = false) => {
+      if (!quiet) setLoading(true);
+      try {
+        let result = await loadMndas(next);
+        // Reads are safe to repeat once a navigation has refreshed the session.
+        if (!result.ok && result.code === "session_expired") {
+          await refreshSession();
+          result = await loadMndas(next);
+        }
+        if (next !== queryRef.current) return;
+        if (result.ok) {
+          setData(result.value);
+          setLoadFailed(false);
+        } else if (!quiet) setLoadFailed(true);
+      } finally {
+        if (!quiet) setLoading(false);
+      }
+    },
+    [refreshSession],
+  );
   const changeQuery = (patch: Partial<MndaRegisterQuery>) => {
     const next = { ...queryRef.current, page: 1, ...patch };
     setQuery(next);
@@ -200,7 +211,11 @@ export function MndaWorkspace({
     try {
       const result = await operateMnda({ id: record.id, operation });
       if (!result.ok) {
-        setMessage({ tone: "danger", text: t(mndaErrorLabels[result.code]) });
+        setMessage({
+          tone: "danger",
+          text: t(mndaErrorLabels[result.code]),
+          expired: result.code === "session_expired",
+        });
         return false;
       }
       if (operation === "remind")
@@ -273,6 +288,13 @@ export function MndaWorkspace({
           tone={message.tone}
           live={message.tone === "danger" ? "assertive" : "polite"}
           title={message.text}
+          {...(message.expired
+            ? {
+                action: (
+                  <SessionExpiredReload onReloaded={() => setMessage(null)} />
+                ),
+              }
+            : {})}
           dismiss={
             <Button
               variant="quiet"

@@ -42,7 +42,11 @@ import {
   withAuth,
 } from "@workos-inc/authkit-nextjs";
 import { cookies, headers } from "next/headers";
-import { WorkOS } from "@workos-inc/node";
+import { cache } from "react";
+import {
+  AuthenticateWithSessionCookieFailureReason,
+  WorkOS,
+} from "@workos-inc/node";
 
 import {
   demoAccessConfiguration,
@@ -252,10 +256,25 @@ function getSealedSessionClient(): WorkOS {
 }
 
 /**
+ * A direct action or upload arrived with no session cookie, or with an access
+ * token that no longer verifies (in practice, one that expired). Only a
+ * request through the proxy can refresh it, so callers report this apart from
+ * other refusals and the page sends a navigation before trying again.
+ */
+export class SessionExpiredError extends Error {
+  public constructor() {
+    // i18n-exempt: control code that action results map to translated copy; never rendered
+    super("SESSION_EXPIRED");
+    this.name = "SessionExpiredError";
+  }
+}
+
+/**
  * Actions skip AuthKit's proxy to preserve their body. Authenticate their
  * sealed cookie without rotating it: Next renders the action response with
  * the same POST headers, but its cookie store is read-only during that render.
- * Normal navigations remain responsible for refreshing expired sessions.
+ * Normal navigations remain responsible for refreshing expired sessions, so an
+ * expired token here is refused as {@link SessionExpiredError}.
  */
 export async function getVerifiedWorkosSession(): Promise<UserInfo> {
   const requestHeaders = await headers();
@@ -265,15 +284,21 @@ export async function getVerifiedWorkosSession(): Promise<UserInfo> {
       process.env.WORKOS_COOKIE_NAME || "wos-session",
     )?.value;
     const cookiePassword = process.env.WORKOS_COOKIE_PASSWORD;
-    if (!sessionData || !cookiePassword)
+    if (!cookiePassword)
       // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       throw new Error("WorkOS authentication is required");
+    if (!sessionData) throw new SessionExpiredError();
     const resolved = await getSealedSessionClient()
       .userManagement.loadSealedSession({
         sessionData,
         cookiePassword,
       })
       .authenticate();
+    if (
+      !resolved.authenticated &&
+      resolved.reason === AuthenticateWithSessionCookieFailureReason.INVALID_JWT
+    )
+      throw new SessionExpiredError();
     if (!resolved.authenticated || !resolved.user)
       // i18n-exempt: server-side invariant for logs; in production readers get the translated error page and a digest
       throw new Error("WorkOS authentication is required");
@@ -515,6 +540,15 @@ export async function getCommerceSession(): Promise<CommerceSession> {
   )?.value;
   return workosCommerceSession(session, assistedCookie);
 }
+
+/**
+ * The session for one server-component render. React keeps this cache on the
+ * render's own request, so the layout and the page's guards verify the session
+ * once between them and nothing is shared across requests. Server actions and
+ * route handlers call {@link getCommerceSession} so each reads the session
+ * afresh.
+ */
+export const getRequestCommerceSession = cache(getCommerceSession);
 
 async function workosCommerceSession(
   session: UserInfo,

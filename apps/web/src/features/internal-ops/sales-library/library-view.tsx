@@ -37,6 +37,7 @@ import {
   formatContractDate,
   formatFileSize,
 } from "../contracts/copy";
+import { SessionExpiredReload } from "../session-expiry";
 import { localFileProblem, postCollateral } from "../contracts/upload-client";
 import { saveCollateral } from "./actions";
 import styles from "../contracts/contracts.module.css";
@@ -180,6 +181,13 @@ function ItemForm({
           tone="danger"
           title={t(errorMessage(error))}
           live="assertive"
+          {...(error === "SESSION_EXPIRED"
+            ? {
+                action: (
+                  <SessionExpiredReload onReloaded={() => setError(null)} />
+                ),
+              }
+            : {})}
         />
       ) : null}
       <div className={styles.fieldGrid}>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { parseMndaRegisterParams } from "@clockwork/contracts";
 import { getTranslations } from "@/src/i18n/server";
-import { loadMndas } from "@/src/features/internal-ops/mnda/actions";
+import { loadMndaPage } from "@/src/features/internal-ops/mnda/page-data";
 import { MndaAccessState } from "@/src/features/internal-ops/mnda/access-state";
 import { MndaWorkspace } from "@/src/features/internal-ops/mnda/workspace";
 
@@ -18,7 +18,7 @@ export default async function Page({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const query = parseMndaRegisterParams(await searchParams);
-  const result = await loadMndas(query);
+  const result = await loadMndaPage(query);
   if (!result.ok) return <MndaAccessState code={result.code} />;
   return <MndaWorkspace initial={result.value} initialQuery={query} />;
 }

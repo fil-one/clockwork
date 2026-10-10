@@ -6,6 +6,7 @@ import {
   type Permission,
 } from "@clockwork/contracts";
 import { contractToday } from "@clockwork/domain/contract-terms";
+import { getRequestCommerceSession } from "@/src/auth/session";
 import {
   ContractAccessError,
   contractRepository,
@@ -31,7 +32,7 @@ export async function loadWith<T>(
   load: (session: ContractStaffSession) => Promise<T>,
 ): Promise<Loaded<T>> {
   try {
-    const session = await contractStaff(permission);
+    const session = await contractStaff(permission, getRequestCommerceSession);
     return { kind: "ready", ...(await load(session)) };
   } catch (error) {
     if (error instanceof ContractAccessError)
