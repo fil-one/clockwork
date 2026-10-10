@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   removeContractFile: vi.fn(),
   decideContract: vi.fn(),
   operateContract: vi.fn(),
+  voidContract: vi.fn(),
   prepareContract: vi.fn(),
   upload: vi.fn(),
 }));
@@ -30,6 +31,7 @@ vi.mock("./actions", () => ({
   removeContractFile: mocks.removeContractFile,
   decideContract: mocks.decideContract,
   operateContract: mocks.operateContract,
+  voidContract: mocks.voidContract,
   prepareContract: mocks.prepareContract,
 }));
 vi.mock("./upload-client", async (original) => ({
@@ -288,6 +290,68 @@ describe("signing panel", () => {
       screen.getByRole("button", { name: "Remind James Kurz" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Discard draft" })).toBeNull();
+  });
+
+  it("voids a sent request only with a reason", async () => {
+    mocks.voidContract.mockResolvedValue({
+      ok: true,
+      value: { state: "canceled" },
+    });
+    panel({ state: "sent", providerId: "x" });
+    fireEvent.click(screen.getByRole("button", { name: "Void" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText("Alex Example can no longer sign it."),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Void contract" }),
+    );
+    expect(
+      await within(dialog).findByText(
+        "Enter a reason of at least 3 characters.",
+      ),
+    ).toBeInTheDocument();
+    expect(mocks.voidContract).not.toHaveBeenCalled();
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: "Wrong legal entity" },
+    });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Void contract" }),
+    );
+    await waitFor(() =>
+      expect(mocks.voidContract).toHaveBeenCalledWith({
+        contractId: fixtureSigningRecord.contractId,
+        reason: "Wrong legal entity",
+      }),
+    );
+    expect(mocks.refresh).toHaveBeenCalled();
+  });
+
+  it("offers no void once the counterparty has signed, or to a colleague without approval", () => {
+    panel({ state: "awaiting_countersignature", providerId: "x" });
+    expect(screen.queryByRole("button", { name: "Void" })).toBeNull();
+    panel(
+      { state: "sent", providerId: "x" },
+      { canApprove: false, isPreparer: false },
+    );
+    expect(screen.queryByRole("button", { name: "Void" })).toBeNull();
+  });
+
+  it("explains a document deleted in SignWell and offers to close it", () => {
+    panel({
+      state: "attention",
+      error: "deleted_in_signwell",
+      providerId: "x",
+    });
+    expect(
+      screen.getByText("SignWell no longer has this document"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/did not respond as expected/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Check status" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Send for signature" }),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Void" })).toBeInTheDocument();
   });
 
   it("explains a SignWell failure in words", async () => {
