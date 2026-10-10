@@ -4,9 +4,11 @@ Status: Accepted, 2026-07-31
 
 Drizzle defines the typed application schema. Reviewed Supabase SQL files are
 the canonical migration history because RLS, triggers, pgTAP, and extension
-behavior exceed generated DDL. `drizzle-kit generate` is an authoring/diff aid;
-generated SQL is reconciled into a reserved migration and reviewed before
-execution.
+behavior exceed generated DDL. `drizzle-kit generate` is an ad hoc authoring
+aid; generated SQL is reconciled into a reserved migration and reviewed before
+execution. Generated Drizzle migrations and snapshots are not committed.
+`pnpm check:schema-drift` compares the Drizzle model with the schema the
+migrations apply, and CI runs it against a freshly reset database.
 
 Foundation owns `000001`–`000099`; core-finance owns `000100`–`000199`;
 lifecycle owns `000200`–`000299`; experience/system owns `000300`–`000399`;
@@ -19,6 +21,5 @@ The historically named consolidation lanes used non-overlapping ranges:
 commercial integrity `001000`–`001099`, runtime operations `001100`–`001199`,
 and experience release `001200`–`001299`; consolidated release-integrity work
 uses `001300`. Those ranges and migrations remain immutable. Future shared
-corrections are forward-only on `main`. The current Drizzle authoring snapshot
-is `0009_early_vanisher` for 128 modeled tables; reviewed Supabase SQL remains
-the execution authority.
+corrections are forward-only on `main`. Reviewed Supabase SQL is the execution
+authority.

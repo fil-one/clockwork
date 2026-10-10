@@ -217,9 +217,9 @@ provider fakes for replay and failure scenarios.
 - **Generated artifacts are committed with the change that caused them.** Run
   `pnpm generate` alongside any route change; `pnpm check:generated` enforces
   it.
-- **`supabase/migrations` is the source of truth for schema.** Drizzle metadata
-  under `packages/db/drizzle/meta` is an aid, never authoritative, and no schema
-  change is authored in the Supabase dashboard.
+- **`supabase/migrations` is the source of truth for schema.** The Drizzle model
+  mirrors it, and `pnpm check:schema-drift` fails when the two disagree. No
+  schema change is authored in the Supabase dashboard.
 - **Errors are RFC 9457 `application/problem+json`** with a request ID, a stable
   machine code, and a safe user message. Every list endpoint takes a stable
   cursor and an explicit account scope; mutations return the aggregate version

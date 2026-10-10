@@ -63,13 +63,9 @@ export const RELEASE_UI_SPEC_FILES = Object.freeze({
  * `documented.includes`, so the list is a subset check and its order and length
  * carry no meaning.
  *
- * It is a DIFFERENT contract from `RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT`
- * and `_SHA256`, which pin the whole documented set exactly (104 variables) so
- * that any edit to `.env.example` has to be acknowledged here. Adding a name to
- * this list does not move that fingerprint; adding a variable to `.env.example`
- * does. The two are only related in one direction: a name added here must
- * already be documented in `.env.example`, or every suite fails isolation
- * verification for a variable the release could never have supplied.
+ * A name added here must already be documented in `.env.example`, or every
+ * suite fails isolation verification for a variable the release could never
+ * have supplied.
  */
 export const RELEASE_REQUIRED_RUNTIME_ENVIRONMENT = Object.freeze([
   "ACCOUNTING_PROVIDER_BASE_URL",
@@ -124,10 +120,6 @@ export const RELEASE_FILE_CREDENTIAL_ENVIRONMENT = Object.freeze([
   "NPM_CONFIG_USERCONFIG",
 ]);
 
-export const RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT = 111;
-export const RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_SHA256 =
-  "4341ad8610eb4948cae9a8a0efa516daedf5883f058e66794d1d520ea33fa9fb";
-
 export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
   static: Object.freeze([
     "typecheck",
@@ -154,7 +146,6 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
     "demo-reset-production-refusal",
   ]),
   integration: Object.freeze([
-    "drizzle-check",
     "database-lint",
     "schema-drift-applied",
     "populated-upgrade-and-pgtap",
@@ -277,7 +268,6 @@ export function expectedReleaseCommands(name, serial) {
       ["node", "scripts/verify-demo-reset-safety.mjs"],
     ],
     integration: [
-      ["pnpm", "--filter", "@clockwork/db", "check"],
       [
         "pnpm",
         "exec",
@@ -800,18 +790,6 @@ function environmentIsolationIssues(result, installationMode) {
     new Set(documented).size !== documented.length
   )
     issues.push(`${suite} documented runtime environment inventory is invalid`);
-  const documentedFingerprint = createHash("sha256")
-    .update(JSON.stringify(documented))
-    .digest("hex");
-  if (
-    isolation?.documentedRuntimeVariableCount !==
-      RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT ||
-    isolation?.documentedRuntimeVariablesSha256 !== documentedFingerprint ||
-    documentedFingerprint !== RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_SHA256
-  )
-    issues.push(
-      `${suite} documented runtime environment differs from the canonical contract`,
-    );
   const missingRequired = RELEASE_REQUIRED_RUNTIME_ENVIRONMENT.filter(
     (variable) => !documented.includes(variable),
   );

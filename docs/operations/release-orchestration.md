@@ -72,8 +72,7 @@ upload patterns exclude authentication storage state.
 
 ## Cross-lane generated output join
 
-Instance 4 does not write the shared OpenAPI or Drizzle outputs. Static
-verification runs `drizzle-kit check` and generates OpenAPI files only in a
-disposable nested worktree, then compares their hashes to the committed outputs.
-Instance 5 owns the final shared generation and joins that evidence to this
-release gate.
+Instance 4 does not write the shared OpenAPI outputs. Static verification
+generates OpenAPI files only in a disposable nested worktree, then compares
+their hashes to the committed outputs. Instance 5 owns the final shared
+generation and joins that evidence to this release gate.
