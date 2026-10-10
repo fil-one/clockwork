@@ -93,7 +93,11 @@ jobs:
     steps:
       - name: Start release budget clock
         run: echo "CLOCKWORK_RELEASE_STARTED_AT=$(date +%s000)" >> "$GITHUB_ENV"
+      # Depth 2 keeps a pull request merge commit's base parent, which the
+      # integration shard diffs against below.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: pnpm/action-setup@v4
         with:
           version: 10.34.5
@@ -145,6 +149,22 @@ jobs:
             echo "CLOCKWORK_EXPERIENCE_ADAPTER=demo"
             echo "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV=test"
           } >> "$GITHUB_ENV"
+      # The populated upgrade replay only exercises supabase/, so a pull request
+      # that changes nothing there skips it. pgTAP runs regardless. A push to
+      # main, or any diff that cannot be computed, runs the replay.
+      - name: Decide whether the populated upgrade replay runs
+        if: matrix.shard == 'integration'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          replay=true
+          if [ "$EVENT_NAME" = "pull_request" ] &&
+            git rev-parse --verify --quiet HEAD^2 > /dev/null &&
+            git diff --quiet HEAD^1 HEAD -- supabase; then
+            replay=false
+          fi
+          echo "CLOCKWORK_UPGRADE_REPLAY=$replay" >> "$GITHUB_ENV"
+          echo "Populated upgrade replay: $replay"
       - name: Start freshly migrated and seeded database
         if: matrix.shard == 'integration' || matrix.shard == 'proof'
         run: |
