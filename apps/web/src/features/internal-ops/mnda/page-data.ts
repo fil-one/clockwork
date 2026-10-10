@@ -33,7 +33,12 @@ export async function mndaWorkspaceData(
   };
 }
 
-export async function mndaSettingsData(): Promise<MndaSettingsData> {
+/** Takes the guarded session so a caller cannot reach the countersigners
+ * without first checking `signatory:manage`. */
+export async function mndaSettingsData(
+  session: MndaSession,
+): Promise<MndaSettingsData> {
+  if (!mndaCanManage(session)) throw new Error("MNDA_FORBIDDEN");
   return {
     signers: await mndaSigners(),
     settings: await mndaRepository().settings(),
@@ -61,7 +66,8 @@ export function loadMndaPage(rawQuery: unknown) {
 
 export function loadMndaSettingsPage() {
   return pageResult(async () => {
-    await mndaStaff("signatory:manage", getRequestCommerceSession);
-    return mndaSettingsData();
+    return mndaSettingsData(
+      await mndaStaff("signatory:manage", getRequestCommerceSession),
+    );
   });
 }

@@ -224,8 +224,7 @@ export async function loadMndaSettings(): Promise<
   MndaResult<MndaSettingsData>
 > {
   return attempt(async () => {
-    await mndaStaff("signatory:manage");
-    return mndaSettingsData();
+    return mndaSettingsData(await mndaStaff("signatory:manage"));
   });
 }
 
