@@ -450,9 +450,10 @@ export class MndaWorkflow {
       // A correction SignWell applied after its answer was lost, and after a
       // refresh dropped it, shows as other signers. When SignWell already has
       // exactly this email, record it; the next read still checks the rest.
+      // Never once someone has signed: that row is an administrator's to
+      // resolve in SignWell.
       if (
-        (current.error === "signwell_signers_mismatch" ||
-          current.error === "signwell_signed_mismatch") &&
+        current.error === "signwell_signers_mismatch" &&
         counterparty?.email.toLowerCase() === signerEmail
       ) {
         const settled = await this.repo.update(

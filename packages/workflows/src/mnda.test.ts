@@ -497,6 +497,15 @@ it("holds a request whose SignWell signers changed for a person, applying nothin
   await expect(
     s.workflow.correctSigner(fixtureRecord.id, actor, "right@example.com"),
   ).rejects.toThrow("NOT_CORRECTABLE");
+  // Not even with the address SignWell shows for the person who signed.
+  await expect(
+    s.workflow.correctSigner(
+      fixtureRecord.id,
+      actor,
+      partnerOf(s.doc).email.toLowerCase(),
+    ),
+  ).rejects.toThrow("NOT_CORRECTABLE");
+  expect(s.events).not.toContain("mnda.signer_corrected");
   await expect(s.workflow.remind(fixtureRecord.id, actor)).rejects.toThrow(
     "NOT_PENDING",
   );
