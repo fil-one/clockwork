@@ -8,6 +8,7 @@ import type * as Db from "@clockwork/db";
 const mocks = vi.hoisted(() => ({
   count: vi.fn(),
   contracts: vi.fn(),
+  partners: vi.fn(),
   staff: vi.fn(),
   database: vi.fn(),
   session: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock("@clockwork/db", async (importOriginal) => ({
   ...(await importOriginal<typeof Db>()),
   countSalesHomeMndas: mocks.count,
   countSalesHomeContracts: mocks.contracts,
+  countPartnerNextSteps: mocks.partners,
 }));
 vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: mocks.database,
@@ -66,6 +68,10 @@ beforeEach(() => {
   mocks.database.mockReturnValue({});
   mocks.count.mockResolvedValue(counts);
   mocks.contracts.mockResolvedValue(contractCounts);
+  mocks.partners.mockResolvedValue({
+    overdue: { mine: 0, team: 0 },
+    dueThisWeek: { mine: 0, team: 0 },
+  });
   mocks.staff.mockResolvedValue({});
 });
 
@@ -154,7 +160,11 @@ describe("sales home loader", () => {
 describe("contract work on the home page", () => {
   it("counts contracts out for signature and needing attention in one read", async () => {
     const sections = await loadSalesHome(context);
-    expect(sections.map(({ id }) => id)).toEqual(["mndas", "contracts"]);
+    expect(sections.map(({ id }) => id)).toEqual([
+      "mndas",
+      "contracts",
+      "partners",
+    ]);
     // The request-cached session, not a second sign-in check.
     expect(mocks.staff).toHaveBeenCalledWith("contract:read", mocks.session);
     expect(mocks.contracts).toHaveBeenCalledExactlyOnceWith(
@@ -205,7 +215,7 @@ describe("contract work on the home page", () => {
       ...context,
       permissions: ["mnda:send", "sales:read"],
     });
-    expect(sections.map(({ id }) => id)).toEqual(["mndas"]);
+    expect(sections.map(({ id }) => id)).toEqual(["mndas", "partners"]);
     expect(mocks.contracts).not.toHaveBeenCalled();
   });
 
@@ -444,5 +454,59 @@ describe("sales home page", () => {
     expect(
       screen.getByRole("region", { name: "Send your first MNDA" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("partner next steps on the home page", () => {
+  it("counts the reader's overdue and coming partner steps and links to the same filters", async () => {
+    mocks.partners.mockResolvedValue({
+      overdue: { mine: 1, team: 2 },
+      dueThisWeek: { mine: 2, team: 4 },
+    });
+    const sections = await loadSalesHome(context);
+    const partners = sections.find(({ id }) => id === "partners");
+    expect(mocks.staff).toHaveBeenCalledWith("sales:read", mocks.session);
+    expect(mocks.partners).toHaveBeenCalledWith(
+      {},
+      { viewerId: context.userId, today: "2026-10-04" },
+    );
+    expect(partners?.rows).toEqual([
+      expect.objectContaining({
+        id: "partners-overdue",
+        mine: 1,
+        team: 2,
+        attention: true,
+        href: "/internal/partners?mine=1&due=overdue",
+        teamHref: "/internal/partners?due=overdue",
+      }),
+      expect.objectContaining({
+        id: "partners-week",
+        mine: 2,
+        team: 4,
+        href: "/internal/partners?mine=1&due=week",
+        teamHref: "/internal/partners?due=week",
+      }),
+    ]);
+  });
+
+  it("leaves the section out when no partner step is due on the team", async () => {
+    const sections = await loadSalesHome(context);
+    expect(sections.find(({ id }) => id === "partners")?.rows).toEqual([]);
+    render(
+      <SalesHome userId={context.userId} sections={sections} canSendMnda />,
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Partners" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("counts the guided demo's fictional partners", async () => {
+    const sections = await loadSalesHome({ ...context, demo: true });
+    expect(mocks.partners).not.toHaveBeenCalled();
+    const rows = sections.find(({ id }) => id === "partners")?.rows ?? [];
+    expect(rows.map(({ id, mine, team }) => ({ id, mine, team }))).toEqual([
+      { id: "partners-overdue", mine: 1, team: 1 },
+      { id: "partners-week", mine: 2, team: 3 },
+    ]);
   });
 });

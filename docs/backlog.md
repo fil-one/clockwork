@@ -2002,6 +2002,29 @@ detail lives in `docs/operations/commerce-mnda.md`,
   decided; operations watches the queue and the seller watches Home. A notice
   waits on a notification provider (`EXT-PROVIDER-01`).
 
+### Partner records
+
+- **Staff partner records and registered deals `[COMPLETE]`:**
+  `/internal/partners` keeps each partner's models, status, owner, contacts,
+  next step and terms (commission or revenue share, step-down rows, margin,
+  territory, exclusivity, currency, NFR allowance, trial, free-form rows) before
+  any organization exists, with an optional link to one later. Holders of
+  `sales:read` read and export; `contract:write` changes. Registered deals take
+  the channel policy's protection by default, warn on another partner's open
+  registration for the same normalized end client without blocking, and expire
+  on read once protection ends. Home counts partner next steps overdue and due
+  this week. Every change is audited as `partner.*`. The records do not feed
+  billing, commissions or the switched-off partner-portal engine
+  (`docs/operations/partner-records.md`,
+  `supabase/migrations/001466_commerce_partners.sql`,
+  `packages/db/src/repositories/partners.ts`,
+  `apps/web/src/features/internal-ops/partners/`). Evidence:
+  `supabase/tests/1466_commerce_partners.test.sql`,
+  `packages/db/src/repositories/partners.integration.test.ts`,
+  `apps/web/src/features/internal-ops/partners/partners.test.tsx`.
+- **Partner next-step reminders `[OPEN]`:** nobody is emailed when a next step
+  falls due; Home shows it. A reminder reads `PartnerRepository.nextStepsDue`.
+
 ### Permission model
 
 - **Permissions as the single check `[COMPLETE]`:** every application and

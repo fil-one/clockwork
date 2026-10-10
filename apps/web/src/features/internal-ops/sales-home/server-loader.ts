@@ -2,6 +2,7 @@ import "server-only";
 
 import { contractHomeSource } from "./contract-source";
 import { mndaHomeSource } from "./mnda-source";
+import { partnerHomeSource } from "./partner-source";
 import type {
   SalesHomeContext,
   SalesHomeSection,
@@ -12,6 +13,7 @@ import type {
 export const salesHomeSources: readonly SalesHomeSource[] = [
   mndaHomeSource,
   contractHomeSource,
+  partnerHomeSource,
 ];
 
 /**

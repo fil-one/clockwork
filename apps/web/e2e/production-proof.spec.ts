@@ -1113,3 +1113,128 @@ test("@internal maintains provider operating references with retained audit evid
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations).toEqual([]);
 });
+
+test("@internal records a partner's terms, registers deals and is warned about an overlap", async ({
+  page,
+}) => {
+  const tag = createHash("sha256")
+    .update(String(Date.now()))
+    .digest("hex")
+    .slice(0, 6);
+  const first = `Proof Northwind ${tag}`;
+  const second = `Proof Southwind ${tag}`;
+  const yesterday = new Date(Date.now() - 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+
+  async function newPartner(name: string) {
+    await page.goto("/internal/partners");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Partners" }),
+    ).toBeVisible();
+    await page.getByRole("link", { name: "New partner" }).click();
+    await page.getByLabel(/^Partner name/u).fill(name);
+  }
+
+  // Record the first partner with typed terms and a free-form row.
+  await newPartner(first);
+  await page.getByLabel("Referral", { exact: true }).check();
+  await page.getByLabel(/^Commission or revenue share/u).fill("17.5");
+  await page.getByLabel(/^Contracting currency/u).selectOption("EUR");
+  await page.getByRole("button", { name: "Add a term" }).click();
+  await page.getByLabel("Term", { exact: true }).fill("Data-center build-outs");
+  await page.getByLabel("Agreed", { exact: true }).fill("10% referral");
+  await page.getByLabel(/^Next step(?! due)/u).fill("Send the term sheet");
+  await page.getByLabel(/^Next step due/u).fill(yesterday);
+  await page.getByRole("button", { name: "Save partner" }).click();
+  // The first server action on a cold production server can take a while.
+  await expect(page).toHaveURL(/\/internal\/partners\/[0-9a-f-]{36}$/u, {
+    timeout: 15_000,
+  });
+  const firstUrl = page.url();
+  await expect(
+    page.getByRole("heading", { level: 1, name: first }),
+  ).toBeVisible();
+  await expect(page.getByText("17.5%", { exact: true })).toBeVisible();
+  await expect(page.getByText("10% referral")).toBeVisible();
+
+  // Edit it: the history names what changed.
+  await page.getByRole("link", { name: "Edit partner" }).click();
+  await page.getByLabel(/^Commission or revenue share/u).fill("20");
+  await page.getByRole("button", { name: "Save partner" }).click();
+  await expect(page).toHaveURL(firstUrl, { timeout: 15_000 });
+  await expect(page.getByText("20%", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(/changed Commission or revenue share \(%\)/u),
+  ).toBeVisible();
+
+  // Register a deal for it.
+  await page.getByRole("button", { name: "Register a deal" }).click();
+  await page
+    .getByRole("textbox", { name: /^End client/u })
+    .fill(`Proof Acme ${tag}, Inc.`);
+  await page.getByLabel(/^Estimated size/u).fill("250");
+  await page.getByRole("button", { name: "Save deal" }).click();
+  await expect(page.getByText("Deal saved.").first()).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 3, name: `Proof Acme ${tag}, Inc.` }),
+  ).toBeVisible();
+
+  // A second partner registers the same company, typed differently: warned
+  // while typing and after saving, never blocked.
+  await newPartner(second);
+  await page.getByRole("button", { name: "Save partner" }).click();
+  await expect(
+    page.getByRole("heading", { level: 1, name: second }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Register a deal" }).click();
+  await page
+    .getByRole("textbox", { name: /^End client/u })
+    .fill(`PROOF ACME ${tag} Inc`);
+  await expect(
+    page.getByText("Another partner has registered this end client"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: new RegExp(first, "u") }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Save deal" }).click();
+  await expect(
+    page.getByText(
+      "Saved. Another partner has an open registration for this end client.",
+    ),
+  ).toBeVisible();
+
+  // The first partner's record carries the warning too, and the list finds
+  // its overdue next step.
+  await page.goto(firstUrl);
+  await expect(
+    page.getByRole("link", { name: new RegExp(`^${second}: Registered`, "u") }),
+  ).toBeVisible();
+  await page.goto(
+    `/internal/partners?q=${encodeURIComponent(tag)}&due=overdue`,
+  );
+  await expect(page.getByRole("link", { name: first }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: second })).toHaveCount(0);
+
+  const databaseUrl = process.env.DIRECT_DATABASE_URL;
+  if (!databaseUrl)
+    throw new Error("DIRECT_DATABASE_URL is required for partner proof");
+  const sql = createDirectMigrationClient(databaseUrl);
+  try {
+    const events = await sql<{ event_type: string; actor_id: string }[]>`
+      select a.event_type, a.actor->>'id' as actor_id
+      from public.commerce_partners p
+      join public.audit_events a on a.aggregate_type = 'partner' and a.aggregate_id = p.id
+      where p.name = ${first}
+      order by a.aggregate_version`;
+    expect(events.map(({ event_type }) => event_type)).toEqual([
+      "partner.created",
+      "partner.updated",
+    ]);
+    expect(events[0]?.actor_id).toBe("20000000-0000-4000-8000-000000000001");
+  } finally {
+    await sql.end();
+  }
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations).toEqual([]);
+});

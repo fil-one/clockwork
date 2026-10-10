@@ -19,9 +19,9 @@ made-up companies and sends nothing.
    Google Authenticator or Authy). Keep it on a device you carry.
 4. You land on **Home**, which shows your own work.
 
-New sellers get the **Revenue** role: Home, MNDAs, Contracts, Sales library and
-Pricing. Commerce administrators also see Team, the owner console, MNDA settings
-and the operations groups.
+New sellers get the **Revenue** role: Home, MNDAs, Contracts, Partners, Sales
+library and Pricing. Commerce administrators also see Team, the owner console,
+MNDA settings and the operations groups.
 
 Commerce asks for the 6-digit code from your authenticator. A verification lasts
 eight hours, and sensitive actions may ask again if your last check is more than
@@ -154,6 +154,55 @@ waiting for operations, in progress, done, or declined with a note from
 operations. A declined contract can be handed over again. Commerce does not
 email you when the status changes.
 
+## Partners
+
+**Partners** keeps what we agreed, or are negotiating, with each channel,
+referral, affiliate and technology partner. Record a partner at the first
+conversation; nothing has to exist in Commerce first.
+
+1. Choose **New partner**. Only the name is required. Add the website, the
+   region or territory in your own words, the partnership models (referral,
+   resale, affiliate, distributor, MSP, teaming, technology, other), the status,
+   the owner and the key contacts.
+2. Under **Terms**, fill in what applies: commission or revenue share (any rate
+   from 0 to 100, decimals allowed), how long it runs or how it steps down,
+   partner margin or discount, territory, exclusivity, contracting currency
+   (USD, EUR or GBP), NFR (not-for-resale) allowance, and the trial period and
+   targets. A step-down schedule takes one row per change, for example 32% from
+   month 1, 26% from month 13, 20% from month 25. Anything else, such as a
+   second commission rate for data-center build-outs or a resale price per TB,
+   goes in **Other terms** as its own row.
+3. Set a **Next step** and its due date. Home shows partner next steps that are
+   overdue or due this week, yours and the team's.
+4. Once operations has set up the partner's organization, link it on the record.
+
+Anyone with the Revenue role can edit any partner. Every change is recorded with
+who made it and what changed, under **History** on the partner. If someone else
+saved while you were editing, Commerce asks you to reload rather than overwrite
+their change.
+
+The partner page also lists MNDAs and contracts with the same company, matched
+the way the MNDA form spots duplicates. A teaming agreement or channel agreement
+on the partner's paper goes in **Contracts** as usual; it then shows here.
+
+### Registered deals
+
+On the partner, choose **Register a deal** and enter the end client, the
+registration date, the estimated size (TB, PB, TiB or PiB), the model for this
+deal (referral, resale or other) and notes. Leave **Protected until** empty to
+take the channel policy's protection (90 days when no policy is set), or set
+your own date.
+
+If another partner has an open registration for the same end client, a warning
+names that partner and its dates while you type and again on both partners'
+records. It never stops you saving: decide with the owners, then mark the losing
+registration **Withdrawn** or **Disputed**. A registration still **Registered**
+or **Accepted** when its protection ends becomes **Expired** on its own.
+
+These records do not change billing, commission payments or anything the partner
+sees. **Export CSV** on the Partners page downloads the filtered list, up to
+5,000 rows.
+
 ## Find a signed PDF
 
 - MNDAs: filter the register to **Signed**, then download from the row. The file
@@ -168,6 +217,8 @@ email you when the status changes.
   10,000 rows.
 - Contracts: **Export CSV** on the Contracts page downloads the filtered
   register, including signed MNDAs, up to 5,000 rows.
+- Partners: **Export CSV** on the Partners page downloads the filtered list with
+  each partner's headline terms, up to 5,000 rows.
 
 Every download and export is recorded under your name.
 
@@ -182,9 +233,10 @@ again.
 
 | Page          | What it is for                                                                                              |
 | ------------- | ----------------------------------------------------------------------------------------------------------- |
-| Home          | Your MNDAs and contracts by what they are waiting on, then the start guide.                                 |
+| Home          | Your MNDAs, contracts and partner next steps by what they are waiting on, then the start guide.             |
 | MNDAs         | Send, remind, fix an email, void, check status, download, export.                                           |
 | Contracts     | Every agreement. Record one, prepare from a template, send, remind, void, export.                           |
+| Partners      | Each partner's terms, owner, next step and registered deals.                                                |
 | Sales library | Current decks, one-pagers, pricing sheets and case studies.                                                 |
 | Pricing       | Indicative prices for a conversation, worked out from the current price book. Not a quote and not an offer. |
 | Team          | Commerce administrators only: add staff, change roles, remove access.                                       |
