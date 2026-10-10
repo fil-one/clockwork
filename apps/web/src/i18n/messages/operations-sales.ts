@@ -208,6 +208,9 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.pricing.scenario.downloadHelp": {
     en: "The summary shows Fil One list pricing only. The partner summary adds the partner's terms and earnings; it does not print Fil One's net revenue.",
   },
+  "operations.sales.pricing.scenario.downloadHelpResale": {
+    en: "On a resale, the summary is the partner's quote to its customer, at the partner's price. The partner summary adds the partner's terms and earnings; it does not print Fil One's net revenue.",
+  },
   "operations.sales.pricing.scenario.downloadPartnerNamed": {
     en: "Download the partner summary for {name}",
   },

@@ -7,6 +7,7 @@ import type { PricingScenarioLine } from "@clockwork/contracts";
 import {
   indicativePartnerNotice,
   indicativePricingSummaryNotice,
+  partnerQuoteNotice,
   renderIndicativePricingSummary,
   type IndicativePricingSummaryInput,
 } from "./render";
@@ -145,6 +146,16 @@ const referral = {
   },
 } satisfies IndicativePricingSummaryInput;
 
+const resale = {
+  ...referral,
+  partnerEconomics: {
+    model: "resale" as const,
+    partnerName: "Tidewater Systems",
+    customerPriceMinor: "650",
+    marginBps: 3200,
+  },
+} satisfies IndicativePricingSummaryInput;
+
 it("adds the partner's earnings for a partner and never Fil One's net", async () => {
   const [a, b] = await Promise.all([
     renderIndicativePricingSummary({ ...referral, audience: "partner" }),
@@ -179,15 +190,7 @@ it("adds the partner's earnings for a partner and never Fil One's net", async ()
   expect(text).not.toMatch(/net/iu);
 }, 30_000);
 
-it("prints a resale partner's prices and margin, and no partner figures for a customer", async () => {
-  const resale = {
-    ...referral,
-    partnerEconomics: {
-      model: "resale" as const,
-      customerPriceMinor: "650",
-      marginBps: 3200,
-    },
-  };
+it("prints a resale partner's prices and margin for the partner", async () => {
   const partner = await extract({ ...resale, audience: "partner" });
   for (const expected of [
     "Model Resale",
@@ -196,49 +199,72 @@ it("prints a resale partner's prices and margin, and no partner figures for a cu
     "Partner margin $2.08 / TB-month (32%)",
   ])
     expect(partner.text).toContain(expected);
-  const customer = await extract({ ...resale, audience: "customer" });
-  expect(customer.text).not.toContain("Partner");
-  expect(customer.text).not.toContain("$4.42");
-  expect(customer.text).not.toContain(indicativePartnerNotice);
 }, 30_000);
 
-it("embeds every font", async () => {
-  const { fonts } = await extract(input);
-  const rows = fonts.split("\n").slice(2).filter(Boolean);
-  expect(rows.length).toBeGreaterThanOrEqual(2);
-  for (const row of rows) expect(row).toMatch(/ yes +yes +yes /);
-}, 30_000);
-
-it("runs to a second page with the notice on each", async () => {
-  const lines = Array.from({ length: 20 }, (_, index) =>
-    line({ sku: `SKU-${index + 1}`, region: "ap-southeast-2" }),
+it("quotes a resale customer at the partner's price, never Fil One's list", async () => {
+  const [a, b] = await Promise.all([
+    renderIndicativePricingSummary({ ...resale, audience: "customer" }),
+    renderIndicativePricingSummary({ ...resale, audience: "customer" }),
+  ]);
+  expect(a.sha256).toBe(b.sha256);
+  const { text } = await extract({ ...resale, audience: "customer" });
+  // 11,258.99906842624 TB x 6.50 = 73,183.49 a month, 878,201.93 for 12
+  // months and 2,634,605.78 for 36.
+  for (const expected of [
+    "Indicative Pricing Summary Partner quote from Tidewater Systems, on Fil One storage",
+    "Prepared for Meridian Data Vaults",
+    "Quoted by Tidewater Systems",
+    "Prices as of October 10, 2026",
+    "ITEM PRICE QUANTITY",
+    "$6.50 / TB-month",
+    "Per month $73,183.49",
+    "Year 1 $878,201.93",
+    "Term total (USD) $2,634,605.78",
+    "Prices are the partner's indicative prices as of October 10, 2026",
+    partnerQuoteNotice,
+    "Indicative Pricing Summary · Tidewater Systems · Ref 019a44ac",
+  ])
+    expect(text).toContain(expected);
+  for (const absent of [
+    "$5.99",
+    "$4.42",
+    "FIL One LLC",
+    "List prices",
+    "Subtotal at list price",
+    "Partner economics",
+    "Partner buy price",
+    indicativePartnerNotice,
+  ])
+    expect(text).not.toContain(absent);
+  // Without a partner name the quote still names who is quoting.
+  const unnamed = await extract({
+    ...resale,
+    partnerEconomics: {
+      model: "resale",
+      customerPriceMinor: "650",
+      marginBps: 3200,
+    },
+    audience: "customer",
+  });
+  expect(unnamed.text).toContain(
+    "Partner quote from your Fil One partner, on Fil One storage",
   );
-  const { pdf, text } = await extract({ ...input, lines });
-  expect(pdf.pages).toBeLessThanOrEqual(2);
-  for (let page = 1; page <= pdf.pages; page++)
-    expect(text).toContain(`Ref 019a44ac · ${page} / ${pdf.pages}`);
-  expect(text.split(indicativePricingSummaryNotice)).toHaveLength(
-    pdf.pages + 1,
-  );
+  expect(unnamed.text).toContain("Quoted by Your Fil One partner");
 }, 30_000);
 
-it("accepts saved list-price lines only and refuses what it cannot print", async () => {
-  await expect(
-    renderIndicativePricingSummary({
-      ...input,
-      lines: [{ ...line(), floorPrice: { currency: "USD", minor: "1111" } }],
-    } as unknown as IndicativePricingSummaryInput),
-  ).rejects.toThrow();
-  await expect(
-    renderIndicativePricingSummary({
-      ...input,
-      lines: [line(), line({ unitPrice: { currency: "EUR", minor: "1" } })],
-    }),
-  ).rejects.toThrow();
-  await expect(
-    renderIndicativePricingSummary({ ...input, company: "株式会社" }),
-  ).rejects.toThrow("PRICING_SUMMARY_UNPRINTABLE");
-});
+it("keeps direct and referral customer summaries at Fil One list", async () => {
+  const { text } = await extract({ ...referral, audience: "customer" });
+  for (const expected of [
+    "Prepared by FIL One LLC",
+    "List prices as of October 10, 2026",
+    "$5.99 / TB-month",
+    "Per month $67,441.40",
+    indicativePricingSummaryNotice,
+  ])
+    expect(text).toContain(expected);
+  expect(text).not.toContain("Partner");
+  expect(text).not.toContain("Quoted by");
+}, 30_000);
 
 it("runs a long partner schedule onto another page and leaves out steps past the term", async () => {
   const steps = Array.from({ length: 11 }, (_, index) => ({

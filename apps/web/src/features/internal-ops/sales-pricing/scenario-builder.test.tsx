@@ -566,3 +566,38 @@ it("reads amounts strictly, warns on a negative margin and names what blocks a s
     within(panel).getByText(/the partner would lose money on every TB/u),
   ).toBeInTheDocument();
 });
+
+it("says a resale scenario's summary is the partner's quote", () => {
+  const opened: PricingScenarioRecord = {
+    ...summary,
+    notes: "",
+    priceBooks: [{ id: bookId, version: 3 }],
+    lines: [
+      {
+        bookId,
+        bookVersion: 3,
+        rateId: storage,
+        sku: "STORAGE-TB",
+        region: "us-east",
+        unit: "TB-month",
+        unitPrice: { currency: "USD", minor: "1500" },
+        minimumQuantity: "10",
+        quantity: "100",
+        termMonths: 12,
+        discountBps: 0,
+      } as PricingScenarioRecord["lines"][number],
+    ],
+    partnerEconomics: {
+      model: "resale",
+      customerPriceMinor: "650",
+      marginBps: 3200,
+    },
+    createdAt: summary.updatedAt,
+  };
+  render(<ScenarioBuilder books={books} state={ready(opened)} />);
+  expect(
+    screen.getByText(
+      /^On a resale, the summary is the partner's quote to its customer/u,
+    ),
+  ).toBeInTheDocument();
+});

@@ -844,7 +844,11 @@ export function ScenarioBuilder({
               ) : null}
               <p className={styles.hint} id="summary-download-hint">
                 {opened && unchanged
-                  ? t("operations.sales.pricing.scenario.downloadHelp")
+                  ? t(
+                      opened.partnerEconomics?.model === "resale"
+                        ? "operations.sales.pricing.scenario.downloadHelpResale"
+                        : "operations.sales.pricing.scenario.downloadHelp",
+                    )
                   : t(
                       opened
                         ? "operations.sales.pricing.scenario.downloadAfterChanges"

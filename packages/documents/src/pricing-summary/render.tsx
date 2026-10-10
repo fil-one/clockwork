@@ -60,6 +60,12 @@ export const indicativePricingSummaryTitle = "Indicative Pricing Summary";
 /** Printed at the foot of every page. */
 export const indicativePricingSummaryNotice =
   "Indicative pricing, not an offer or a quote. Neither party is bound until an order form is signed.";
+/**
+ * Printed at the foot of a resale scenario's customer summary, which quotes
+ * the partner's own price to its customer.
+ */
+export const partnerQuoteNotice =
+  "Indicative pricing from the partner named above, not a binding offer. Neither party is bound until an order form is signed.";
 export const indicativePartnerNotice =
   "Partner figures are indicative and worked out from the inputs shown. Commission, margin and partner prices are set only in a signed partner agreement.";
 
@@ -70,6 +76,8 @@ export function pricingSummaryNotes(input: {
   converted: boolean;
   /** False when a line prices egress, so the summary cannot say it is free. */
   freeEgress: boolean;
+  /** The partner's quote to its customer, not Fil One's list. */
+  partnerQuote?: boolean;
 }): string[] {
   return [
     ...(input.decimalTb
@@ -84,7 +92,9 @@ export function pricingSummaryNotes(input: {
     ...(input.freeEgress
       ? ["No egress fees: reading and downloading stored data is free."]
       : []),
-    `List prices are as of ${input.date} and can change. The prices in a signed order form are the ones that apply.`,
+    input.partnerQuote
+      ? `Prices are the partner's indicative prices as of ${input.date} and can change. The prices in the partner's signed order form are the ones that apply.`
+      : `List prices are as of ${input.date} and can change. The prices in a signed order form are the ones that apply.`,
     "Year 1 is the first 12 months of each line, or its whole term when shorter. Taxes are not included.",
   ];
 }
@@ -112,6 +122,7 @@ const style = StyleSheet.create({
     color: "#202020",
   },
   title: { fontWeight: 700, fontSize: 16, marginBottom: 16 },
+  subtitle: { fontSize: 11, marginTop: -10, marginBottom: 14 },
   meta: { marginBottom: 18 },
   metaRow: { flexDirection: "row", marginBottom: 4 },
   caption: {
@@ -179,6 +190,11 @@ const columns = [
   { label: "PER MONTH", width: 64, align: "right" },
   { label: "TERM TOTAL", width: 66, align: "right" },
 ] as const;
+
+// A partner's quote to its customer prices at the partner's price.
+const quoteColumns = columns.map((column) =>
+  column.label === "LIST PRICE" ? { ...column, label: "PRICE" } : column,
+);
 
 // The partner table: a span, its figure and the figure per capacity unit.
 const partnerColumns = [
@@ -431,31 +447,50 @@ function PartnerSection({
  * discounts, priced with the same function the pricing page uses, with
  * monthly, annual and term totals, under a fixed notice that nothing here is
  * an offer. A partner summary adds what the partner earns; it never prints
- * what Fil One keeps.
+ * what Fil One keeps. A resale scenario's customer summary is the partner's
+ * quote to its customer instead: every line at the partner's customer price,
+ * with no Fil One list or buy price on it.
  */
 export async function renderIndicativePricingSummary(
   input: IndicativePricingSummaryInput,
 ) {
   const lines = PricingScenarioLinesSchema.parse(input.lines);
-  const economics =
-    input.audience === "partner" && input.partnerEconomics
-      ? PricingPartnerEconomicsSchema.parse(input.partnerEconomics)
-      : null;
+  const saved = input.partnerEconomics
+    ? PricingPartnerEconomicsSchema.parse(input.partnerEconomics)
+    : null;
+  const economics = input.audience === "partner" ? saved : null;
   const productOf = (sku: string) => input.productNames?.[sku] ?? sku;
   const regionOf = (region: string) => input.regionNames?.[region] ?? region;
   const printed = [
     input.company,
     ...lines.flatMap((l) => [productOf(l.sku), regionOf(l.region), l.unit]),
-    economics?.partnerName ?? "",
-    economics?.model === "other" ? (economics.label ?? "") : "",
+    saved?.partnerName ?? "",
+    saved?.model === "other" ? (saved.label ?? "") : "",
   ];
   if (!printed.every((value) => pricingSummaryPrintable.test(value)))
     throw new Error("PRICING_SUMMARY_UNPRINTABLE");
-  const priced = indicativeScenarioPrice(lines);
   const capacity = (unit: string) => unit.replace(/-month$/u, "");
   const sharedUnit = lines.every((l) => l.unit === lines[0]?.unit)
     ? lines[0]?.unit
     : undefined;
+  // A resale customer pays the partner, so their summary is the partner's
+  // quote: one customer price per unit, which needs every line in one unit.
+  const quote =
+    input.audience !== "partner" && saved?.model === "resale" && sharedUnit
+      ? saved
+      : null;
+  const shown = quote
+    ? lines.map((line) => ({
+        ...line,
+        unitPrice: {
+          currency: line.unitPrice.currency,
+          minor: quote.customerPriceMinor,
+        } as Money,
+        discountBps: 0,
+      }))
+    : lines;
+  const priced = indicativeScenarioPrice(shown);
+  const quotedBy = quote?.partnerName ?? "Your Fil One partner";
   // Partner figures apply one price per unit to every line, so they print
   // only when every line is in the same unit, as the builder shows them.
   const partner =
@@ -472,22 +507,35 @@ export async function renderIndicativePricingSummary(
   const pdf = await renderToBuffer(
     <Document
       title={indicativePricingSummaryTitle}
-      author={filOneLegalName}
+      author={quote ? quotedBy : filOneLegalName}
       creationDate={fixedDate}
       modificationDate={fixedDate}
     >
       <Page size="LETTER" style={style.page}>
         <Text style={style.title}>{indicativePricingSummaryTitle}</Text>
+        {quote ? (
+          <Text style={style.subtitle}>
+            {`Partner quote from ${quote.partnerName ?? "your Fil One partner"}, on Fil One storage`}
+          </Text>
+        ) : null}
         <View style={style.meta}>
-          {[
-            ["Prepared for", input.company],
-            ...(partner && economics?.partnerName
-              ? [["Partner", economics.partnerName]]
-              : []),
-            ["Prepared by", filOneLegalName],
-            ["List prices as of", date],
-            ["Currency", priced.currency],
-          ].map(([label, value]) => (
+          {(quote
+            ? [
+                ["Prepared for", input.company],
+                ["Quoted by", quotedBy],
+                ["Prices as of", date],
+                ["Currency", priced.currency],
+              ]
+            : [
+                ["Prepared for", input.company],
+                ...(partner && economics?.partnerName
+                  ? [["Partner", economics.partnerName]]
+                  : []),
+                ["Prepared by", filOneLegalName],
+                ["List prices as of", date],
+                ["Currency", priced.currency],
+              ]
+          ).map(([label, value]) => (
             <View key={label} style={style.metaRow}>
               <Text style={style.caption}>{label}</Text>
               <Text style={style.metaValue}>{value}</Text>
@@ -495,9 +543,12 @@ export async function renderIndicativePricingSummary(
           ))}
         </View>
         <View style={style.head} fixed>
-          <Cells values={columns.map(({ label }) => label)} />
+          <Cells
+            layout={quote ? quoteColumns : columns}
+            values={(quote ? quoteColumns : columns).map(({ label }) => label)}
+          />
         </View>
-        {lines.map((line, index) => {
+        {shown.map((line, index) => {
           const result = priced.lines[index];
           const unit = capacity(line.unit);
           const stored = `${quantity(line.quantity)} ${unit}`;
@@ -525,12 +576,16 @@ export async function renderIndicativePricingSummary(
         <View style={style.totals} wrap={false}>
           {total("Per month", money(priced.monthly))}
           {total("Year 1", money(priced.annual))}
-          {total("Subtotal at list price", money(priced.subtotal))}
-          {total(
-            "Discounts",
-            priced.discount.minor === "0"
-              ? money(priced.discount)
-              : `-${money(priced.discount)}`,
+          {quote ? null : (
+            <>
+              {total("Subtotal at list price", money(priced.subtotal))}
+              {total(
+                "Discounts",
+                priced.discount.minor === "0"
+                  ? money(priced.discount)
+                  : `-${money(priced.discount)}`,
+              )}
+            </>
           )}
           {total(`Term total (${priced.currency})`, money(priced.total), true)}
         </View>
@@ -540,6 +595,7 @@ export async function renderIndicativePricingSummary(
             decimalTb: lines.every((l) => l.unit === "TB-month"),
             converted: lines.some((l) => l.entered),
             freeEgress: !lines.some((l) => /egress/iu.test(l.sku)),
+            partnerQuote: Boolean(quote),
           }).map((note) => (
             <Text key={note} style={style.note}>
               {note}
@@ -557,7 +613,7 @@ export async function renderIndicativePricingSummary(
           fixed
           style={style.footer}
           render={({ pageNumber, totalPages }) =>
-            `${partner ? `${indicativePartnerNotice} ` : ""}${indicativePricingSummaryNotice}\n${indicativePricingSummaryTitle} · ${filOneLegalName} · ${reference} · ${pageNumber} / ${totalPages}`
+            `${partner ? `${indicativePartnerNotice} ` : ""}${quote ? partnerQuoteNotice : indicativePricingSummaryNotice}\n${indicativePricingSummaryTitle} · ${quote ? quotedBy : filOneLegalName} · ${reference} · ${pageNumber} / ${totalPages}`
           }
         />
       </Page>

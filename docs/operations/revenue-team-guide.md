@@ -198,11 +198,12 @@ offer; the price that applies is the one in a signed order form.
   applied, and the figures commit nobody to a commission or margin.
 
 - **Summary PDF.** Save the scenario, then download the summary for the customer
-  (Fil One list pricing only) or, when it has partner economics, the partner
-  summary, which adds the partner's terms and earnings and does not print Fil
-  One's net revenue. On a resale, the customer summary shows Fil One's list
-  price, not the partner's price, so send the partner summary to the partner and
-  let the partner price its own customer.
+  or, when it has partner economics, the partner summary, which adds the
+  partner's terms and earnings and does not print Fil One's net revenue. On a
+  resale, the customer summary is the partner's quote to its customer: every
+  line at the partner's price, under the partner's name, with no Fil One list or
+  buy price on it. Direct and referral customer summaries show Fil One list
+  prices.
 
 The demo has two example scenarios, a resale and a referral with step-downs,
 that you can open and download.
