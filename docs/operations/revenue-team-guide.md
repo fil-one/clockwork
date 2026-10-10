@@ -56,10 +56,16 @@ see contracts prepared by someone else that are waiting for their approval. The
 team total on each line opens the contract register filtered to those contracts.
 
 An MNDA marked **Needs attention** says why and what to do next. If SignWell's
-copy no longer matches the MNDA, void it and send it again.
+copy no longer matches the MNDA, void it and send it again. If someone already
+signed SignWell's copy, ask a commerce administrator.
 
-If an MNDA went to the wrong person or needs to be withdrawn after sending, ask
-a commerce administrator. That step happens in SignWell today.
+If the partner's email bounced or was mistyped, choose **Fix email** on the row
+while the partner has not signed; SignWell sends the request to the new address.
+To withdraw an MNDA the partner has not signed, choose **Void** and give a
+reason; the partner can no longer sign it. If a different person will sign for
+the partner, choose **Fix email**, then **Someone else will sign**. You can fix
+or void the MNDAs you prepared; a commerce administrator can do either for any
+MNDA.
 
 ## Where things are
 
