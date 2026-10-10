@@ -40,13 +40,15 @@ async function Page({
     searchParams,
   ]);
   const database = getOptionalServiceDatabase();
+  const reading = loadIndicativePriceBookRecords(
+    database ? new DatabaseIndicativePriceBookReader(database) : undefined,
+    { locale },
+  );
   const [result, scenarios] = await Promise.all([
-    loadIndicativePriceBookRecords(
-      database ? new DatabaseIndicativePriceBookReader(database) : undefined,
-      { locale },
-    ),
+    reading,
     loadScenarioPanel(
       typeof query.scenario === "string" ? query.scenario : undefined,
+      reading,
     ),
   ]);
   const dateFormat = new Intl.DateTimeFormat(formattingLocale, {
@@ -72,7 +74,8 @@ async function Page({
         <ScenarioBuilder
           // A fresh form for each opened scenario and each saved version.
           key={
-            scenarios.kind === "ready" && scenarios.opened
+            (scenarios.kind === "ready" || scenarios.kind === "demo") &&
+            scenarios.opened
               ? `${scenarios.opened.id}:${scenarios.opened.version}`
               : "new"
           }

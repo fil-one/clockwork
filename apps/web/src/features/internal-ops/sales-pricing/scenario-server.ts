@@ -1,6 +1,8 @@
 import "server-only";
 import {
+  DatabaseIndicativePriceBookReader,
   PricingScenarioRepository,
+  type IndicativePriceBookRecord,
   type PricingScenarioScope,
 } from "@clockwork/db";
 import {
@@ -13,6 +15,8 @@ import {
   contractStaff,
   type ContractStaffSession,
 } from "../contracts/server";
+import { demoPricingScenarios } from "./demo-scenarios";
+import { loadIndicativePriceBookRecords } from "./server-books";
 import type { ScenarioPanelState } from "./scenarios";
 
 /**
@@ -27,6 +31,18 @@ export function scenarioScope(
   return session.roles.includes("commerce_admin")
     ? { kind: "all" }
     : { kind: "own", ownerId: session.userId };
+}
+
+/**
+ * The books a demo example is priced from: the same read the pricing page
+ * makes, through the service database when there is one.
+ */
+export function demoScenarioBooks(locale: string) {
+  const database = getOptionalServiceDatabase();
+  return loadIndicativePriceBookRecords(
+    database ? new DatabaseIndicativePriceBookReader(database) : undefined,
+    { locale },
+  );
 }
 
 /** The guided demo and a deployment without a database keep no scenarios. */
@@ -44,13 +60,28 @@ export const scenarioToday = (now = new Date()) =>
 
 /**
  * The page's scenario section: the caller's list and, when `openId` names
- * one they may reach, that scenario. Refusals become states the page words
- * plainly; the calculator above keeps working whatever happens here.
+ * one they may reach, that scenario. The guided demo keeps no scenarios and
+ * offers fictional examples priced from `books`, the read the page prices
+ * with, so the builder and the summary agree.
+ * Refusals become states the page words plainly; the calculator above keeps
+ * working whatever happens here.
  */
 export async function loadScenarioPanel(
   openId: string | undefined,
+  books: Promise<{
+    books: readonly IndicativePriceBookRecord[];
+    readAt: string;
+  }>,
 ): Promise<ScenarioPanelState> {
-  if (explicitDemoIdentityEnabled()) return { kind: "demo" };
+  if (explicitDemoIdentityEnabled()) {
+    const read = await books;
+    const examples = demoPricingScenarios(read.books, read.readAt.slice(0, 10));
+    return {
+      kind: "demo",
+      examples,
+      opened: examples.find(({ id }) => id === openId) ?? null,
+    };
+  }
   if (!getOptionalServiceDatabase()) return { kind: "unavailable" };
   try {
     const session = await contractStaff(

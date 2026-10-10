@@ -94,4 +94,50 @@ describe("scenario lines", () => {
       resolvePricingScenarioLines([{ ...entry, quantity: "9" }], [book]),
     ).toThrow("PRICING_SCENARIO_BELOW_MINIMUM");
   });
+
+  it("store an entry in another unit in the rate's unit, exactly", () => {
+    const [pib, tb] = resolvePricingScenarioLines(
+      [
+        { ...entry, quantity: "10", quantityUnit: "PiB" },
+        { ...entry, quantity: "500", quantityUnit: "TB" },
+      ],
+      [book],
+    );
+    expect(pib).toMatchObject({
+      quantity: "11258.99906842624",
+      entered: { quantity: "10", unit: "PiB" },
+    });
+    // An entry already in the rate's unit is stored as it is.
+    expect(tb?.quantity).toBe("500");
+    expect(tb).not.toHaveProperty("entered");
+  });
+
+  it("refuse a unit that does not convert exactly to the rate's unit", () => {
+    const tib = {
+      ...book,
+      rateCards: [{ ...book.rateCards?.[0], unit: "TiB-month" }],
+    } as unknown as IndicativePriceBookRecord;
+    expect(() =>
+      resolvePricingScenarioLines(
+        [{ ...entry, quantity: "500", quantityUnit: "TB" }],
+        [tib],
+      ),
+    ).toThrow("PRICING_SCENARIO_UNIT_UNSUPPORTED");
+  });
+
+  it("checks the minimum against the converted quantity", () => {
+    // 0.008 TiB is 0.0087960930222208 TB, below the 10 TB minimum.
+    expect(() =>
+      resolvePricingScenarioLines(
+        [{ ...entry, quantity: "0.008", quantityUnit: "TiB" }],
+        [book],
+      ),
+    ).toThrow("PRICING_SCENARIO_BELOW_MINIMUM");
+    expect(
+      resolvePricingScenarioLines(
+        [{ ...entry, quantity: "0.01", quantityUnit: "PB" }],
+        [book],
+      )[0]?.quantity,
+    ).toBe("10");
+  });
 });

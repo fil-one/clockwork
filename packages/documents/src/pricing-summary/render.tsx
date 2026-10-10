@@ -9,12 +9,18 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import {
+  PricingPartnerEconomicsSchema,
   PricingScenarioLinesSchema,
   pricingSummaryPrintable,
   type Money,
+  type PricingPartnerEconomics,
   type PricingScenarioLine,
 } from "@clockwork/contracts";
-import { indicativeScenarioPrice } from "@clockwork/domain/core";
+import {
+  indicativeScenarioPrice,
+  scenarioPartnerEconomics,
+  type ScenarioPartnerEconomics,
+} from "@clockwork/domain/core";
 import { canonicalMndaPdf } from "../mnda/render";
 import {
   arimoRegular,
@@ -25,22 +31,63 @@ import {
 /** Fil One's registered legal name, as the MNDA prints it. */
 export const filOneLegalName = "FIL One LLC";
 
+/** Who a summary is for: the customer sees list pricing only. */
+export type IndicativePricingSummaryAudience = "customer" | "partner";
+
 /**
  * What an indicative pricing summary prints: the prospect, the day the list
  * prices were read, and the saved lines. Totals are worked out here from the
- * lines, never passed in. Nothing but list prices reaches this input.
+ * lines, never passed in. Nothing but list prices and the seller's partner
+ * inputs reach this input; a floor or transfer price never does.
  */
 export interface IndicativePricingSummaryInput {
   scenarioId: string;
   company: string;
   asOf: string;
   lines: readonly PricingScenarioLine[];
+  /**
+   * Product and region names as a reader says them, by SKU and region code.
+   * A code with no name prints as it is.
+   */
+  productNames?: Readonly<Record<string, string>>;
+  regionNames?: Readonly<Record<string, string>>;
+  /** "customer" unless given. Only a partner summary prints partner figures. */
+  audience?: IndicativePricingSummaryAudience;
+  partnerEconomics?: PricingPartnerEconomics | null;
 }
 
-// Copy below is interim until claims-approved document copy (EXT-BRAND-01).
 export const indicativePricingSummaryTitle = "Indicative Pricing Summary";
+/** Printed at the foot of every page. */
 export const indicativePricingSummaryNotice =
-  "These are indicative list prices for discussion only. This summary is not an offer or a quote and does not bind either party. Prices, discounts and terms are subject to a signed order form. Taxes are not included.";
+  "Indicative pricing, not an offer or a quote. Neither party is bound until an order form is signed.";
+export const indicativePartnerNotice =
+  "Partner figures are indicative and worked out from the inputs shown. Commission, margin and partner prices are set only in a signed partner agreement.";
+
+/** The notes under the totals: units, egress, validity and tax. */
+export function pricingSummaryNotes(input: {
+  date: string;
+  decimalTb: boolean;
+  converted: boolean;
+  /** False when a line prices egress, so the summary cannot say it is free. */
+  freeEgress: boolean;
+}): string[] {
+  return [
+    ...(input.decimalTb
+      ? [
+          `Prices are per decimal terabyte (TB) per month: 1 TB is 1,000 GB.${
+            input.converted
+              ? " Capacity given in PB, TiB or PiB is converted to TB exactly: 1 PB is 1,000 TB, 1 TiB is about 1.0995 TB and 1 PiB is about 1,125.9 TB."
+              : ""
+          }`,
+        ]
+      : []),
+    ...(input.freeEgress
+      ? ["No egress fees: reading and downloading stored data is free."]
+      : []),
+    `List prices are as of ${input.date} and can change. The prices in a signed order form are the ones that apply.`,
+    "Year 1 is the first 12 months of each line, or its whole term when shorter. Taxes are not included.",
+  ];
+}
 
 // The MNDA's embedded faces under this document's own family names, so every
 // viewer draws the same glyphs and accented company names print exactly.
@@ -91,7 +138,12 @@ const style = StyleSheet.create({
     paddingVertical: 5,
     fontSize: 9.5,
   },
+  sub: { fontFamily: sans, fontSize: 7.5, color: "#555555", marginTop: 1 },
   totals: { marginTop: 12, marginLeft: 276, width: 240 },
+  partner: { marginTop: 20 },
+  notes: { marginTop: 16, fontSize: 8.5, color: "#333333" },
+  note: { marginBottom: 3 },
+  heading: { fontWeight: 700, fontSize: 11, marginBottom: 8 },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -119,12 +171,20 @@ const style = StyleSheet.create({
 
 // Column widths in points; they sum to the 516-point body width.
 const columns = [
-  { label: "ITEM", width: 150, align: "left" },
-  { label: "LIST UNIT PRICE", width: 90, align: "right" },
-  { label: "QUANTITY", width: 82, align: "right" },
-  { label: "TERM", width: 54, align: "right" },
-  { label: "DISCOUNT", width: 50, align: "right" },
-  { label: "EXTENDED PRICE", width: 90, align: "right" },
+  { label: "ITEM", width: 132, align: "left" },
+  { label: "LIST PRICE", width: 76, align: "right" },
+  { label: "QUANTITY", width: 86, align: "right" },
+  { label: "TERM", width: 46, align: "right" },
+  { label: "DISCOUNT", width: 46, align: "right" },
+  { label: "PER MONTH", width: 64, align: "right" },
+  { label: "TERM TOTAL", width: 66, align: "right" },
+] as const;
+
+// The partner table: a span, its figure and the figure per capacity unit.
+const partnerColumns = [
+  { label: "PERIOD", width: 236, align: "left" },
+  { label: "PARTNER EARNINGS", width: 140, align: "right" },
+  { label: "PER UNIT PER MONTH", width: 140, align: "right" },
 ] as const;
 
 function money(value: Money) {
@@ -139,7 +199,8 @@ function money(value: Money) {
 }
 
 const quantity = (value: string) =>
-  new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 }).format(
+  // Up to 18 places, so a quantity converted from PiB prints exactly.
+  new Intl.NumberFormat("en-US", { maximumFractionDigits: 18 }).format(
     value as `${number}`,
   );
 
@@ -158,44 +219,256 @@ function longDate(iso: string) {
   }).format(new Date(`${iso}T00:00:00Z`));
 }
 
-function Cells({ values }: { values: readonly string[] }) {
+/** A cell's text, with an optional smaller second line beneath it. */
+type Cell = string | readonly [string, string];
+
+function Cells({
+  values,
+  layout = columns,
+}: {
+  values: readonly Cell[];
+  layout?: readonly { label: string; width: number; align: string }[];
+}) {
   return (
     <>
-      {columns.map((column, index) => (
-        <Text
-          key={column.label}
-          style={{
-            width: column.width,
-            textAlign: column.align,
-            paddingLeft: index ? 6 : 0,
-          }}
-        >
-          {values[index]}
-        </Text>
-      ))}
+      {layout.map((column, index) => {
+        const value = values[index] ?? "";
+        const [main, sub] = typeof value === "string" ? [value, ""] : value;
+        return (
+          <View
+            key={column.label}
+            style={{ width: column.width, paddingLeft: index ? 6 : 0 }}
+          >
+            <Text style={{ textAlign: column.align as "left" | "right" }}>
+              {main}
+            </Text>
+            {sub ? (
+              <Text
+                style={{
+                  ...style.sub,
+                  textAlign: column.align as "left" | "right",
+                }}
+              >
+                {sub}
+              </Text>
+            ) : null}
+          </View>
+        );
+      })}
     </>
   );
 }
 
+const months = (count: number) => (count === 1 ? "1 month" : `${count} months`);
+
+const modelNames: Readonly<Record<PricingPartnerEconomics["model"], string>> = {
+  referral: "Referral",
+  resale: "Resale",
+  other: "Other",
+};
+
 /**
- * A one-to-two page summary a seller can send a prospect: list prices,
- * quantities, terms and the entered discounts, priced with the same function
- * the pricing page uses, under a fixed notice that nothing here is an offer.
+ * The partner's inputs, line by line, as the seller entered them. The
+ * partner's name is in the header.
+ */
+function partnerTerms(
+  economics: PricingPartnerEconomics,
+  result: ScenarioPartnerEconomics,
+  perUnit: string,
+): [string, string][] {
+  const price = (minor: string) =>
+    `${money({ currency: result.currency, minor } as Money)} / ${perUnit}`;
+  const named: [string, string][] = [
+    [
+      "Model",
+      economics.model === "other" && economics.label
+        ? `${modelNames.other}: ${economics.label}`
+        : modelNames[economics.model],
+    ],
+  ];
+  if (economics.model === "referral")
+    return [
+      ...named,
+      [
+        "Commission",
+        [
+          `${percent(economics.commissionBps)} from month 1`,
+          ...economics.steps
+            .filter((step) => step.fromMonth <= result.months)
+            .map(
+              (step) =>
+                `${percent(step.commissionBps)} from month ${step.fromMonth}`,
+            ),
+        ].join("; "),
+      ],
+    ];
+  if (economics.model === "resale" && result.resale) {
+    const margin =
+      BigInt(result.resale.customerPrice.minor) -
+      BigInt(result.resale.buyPrice.minor);
+    return [
+      ...named,
+      ["Customer price", price(result.resale.customerPrice.minor)],
+      ["Partner buy price", price(result.resale.buyPrice.minor)],
+      [
+        "Partner margin",
+        `${price(margin.toString())}${
+          result.resale.marginBps === null
+            ? ""
+            : ` (${percent(result.resale.marginBps)})`
+        }`,
+      ],
+    ];
+  }
+  if (economics.model === "other")
+    return [
+      ...named,
+      ["Share of spend", percent(economics.partnerShareBps)],
+      ["Fee per unit", price(economics.partnerPerUnitMinor)],
+      [
+        "Fixed monthly",
+        money({
+          currency: result.currency,
+          minor: economics.partnerMonthlyMinor,
+        } as Money),
+      ],
+    ];
+  return named;
+}
+
+/** Partner earnings by period, by year and over the term. Never Fil One's net. */
+function PartnerSection({
+  economics,
+  result,
+  perUnit,
+}: {
+  economics: PricingPartnerEconomics;
+  result: ScenarioPartnerEconomics;
+  perUnit: string | null;
+}) {
+  const unitLabel = perUnit ?? "unit";
+  const rows: { cells: Cell[]; strong?: boolean }[] = [
+    ...result.periods.map((period) => ({
+      cells: [
+        `${
+          period.fromMonth === period.toMonth
+            ? `Month ${period.fromMonth}`
+            : `Months ${period.fromMonth}-${period.toMonth}`
+        }${
+          period.commissionBps === undefined
+            ? ""
+            : ` at ${percent(period.commissionBps)}`
+        }, per month`,
+        money(period.monthly.partnerEarnings),
+        perUnit ? money(period.perUnit.partnerEarnings) : "",
+      ] as Cell[],
+    })),
+    ...(result.years.length > 1
+      ? result.years.map((year, index) => ({
+          cells: [
+            index * 12 + 12 > result.months
+              ? `Year ${index + 1}, months ${index * 12 + 1}-${result.months}`
+              : `Year ${index + 1}`,
+            money(year.partnerEarnings),
+            "",
+          ] as Cell[],
+        }))
+      : [
+          {
+            cells: [
+              result.months < 12 ? `Months 1-${result.months}` : "Year 1",
+              money(result.firstYear.partnerEarnings),
+              "",
+            ] as Cell[],
+          },
+        ]),
+    {
+      cells: [
+        `Term, ${months(result.months)}`,
+        money(result.term.partnerEarnings),
+        "",
+      ],
+      strong: true,
+    },
+  ];
+  return (
+    <View style={style.partner}>
+      <Text style={style.heading} minPresenceAhead={120}>
+        Partner economics
+      </Text>
+      <View style={style.meta} wrap={false}>
+        {partnerTerms(economics, result, unitLabel).map(([label, value]) => (
+          <View key={label} style={style.metaRow}>
+            <Text style={style.caption}>{label}</Text>
+            <Text style={style.metaValue}>{value}</Text>
+          </View>
+        ))}
+      </View>
+      <View style={style.head} wrap={false}>
+        <Cells
+          layout={partnerColumns}
+          values={partnerColumns.map(({ label }, index) =>
+            index === 2 && perUnit ? `PER ${perUnit.toUpperCase()}` : label,
+          )}
+        />
+      </View>
+      {rows.map((row, index) => (
+        <View
+          key={index}
+          wrap={false}
+          style={row.strong ? { ...style.row, fontWeight: 700 } : style.row}
+        >
+          <Cells layout={partnerColumns} values={row.cells} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * A one-to-two page summary a seller can send a prospect or a partner: list
+ * prices in product names, quantities as entered, terms and the entered
+ * discounts, priced with the same function the pricing page uses, with
+ * monthly, annual and term totals, under a fixed notice that nothing here is
+ * an offer. A partner summary adds what the partner earns; it never prints
+ * what Fil One keeps.
  */
 export async function renderIndicativePricingSummary(
   input: IndicativePricingSummaryInput,
 ) {
   const lines = PricingScenarioLinesSchema.parse(input.lines);
+  const economics =
+    input.audience === "partner" && input.partnerEconomics
+      ? PricingPartnerEconomicsSchema.parse(input.partnerEconomics)
+      : null;
+  const productOf = (sku: string) => input.productNames?.[sku] ?? sku;
+  const regionOf = (region: string) => input.regionNames?.[region] ?? region;
   const printed = [
     input.company,
-    ...lines.flatMap((l) => [l.sku, l.region, l.unit]),
+    ...lines.flatMap((l) => [productOf(l.sku), regionOf(l.region), l.unit]),
+    economics?.partnerName ?? "",
+    economics?.model === "other" ? (economics.label ?? "") : "",
   ];
   if (!printed.every((value) => pricingSummaryPrintable.test(value)))
     throw new Error("PRICING_SUMMARY_UNPRINTABLE");
   const priced = indicativeScenarioPrice(lines);
+  const capacity = (unit: string) => unit.replace(/-month$/u, "");
+  const sharedUnit = lines.every((l) => l.unit === lines[0]?.unit)
+    ? lines[0]?.unit
+    : undefined;
+  // Partner figures apply one price per unit to every line, so they print
+  // only when every line is in the same unit, as the builder shows them.
+  const partner =
+    economics && sharedUnit ? scenarioPartnerEconomics(lines, economics) : null;
   const date = longDate(input.asOf);
   const reference = `Ref ${input.scenarioId.slice(0, 8)}`;
   const fixedDate = new Date(`${input.asOf}T00:00:00Z`);
+  const total = (label: string, value: string, grand = false) => (
+    <View style={grand ? style.grandTotal : style.totalRow}>
+      <Text>{label}</Text>
+      <Text>{value}</Text>
+    </View>
+  );
   const pdf = await renderToBuffer(
     <Document
       title={indicativePricingSummaryTitle}
@@ -208,6 +481,9 @@ export async function renderIndicativePricingSummary(
         <View style={style.meta}>
           {[
             ["Prepared for", input.company],
+            ...(partner && economics?.partnerName
+              ? [["Partner", economics.partnerName]]
+              : []),
             ["Prepared by", filOneLegalName],
             ["List prices as of", date],
             ["Currency", priced.currency],
@@ -223,17 +499,23 @@ export async function renderIndicativePricingSummary(
         </View>
         {lines.map((line, index) => {
           const result = priced.lines[index];
+          const unit = capacity(line.unit);
+          const stored = `${quantity(line.quantity)} ${unit}`;
           return (
             <View key={index} style={style.row} wrap={false}>
               <Cells
                 values={[
-                  `${line.sku}, ${line.region}`,
+                  [productOf(line.sku), regionOf(line.region)],
                   `${money(line.unitPrice)} / ${line.unit}`,
-                  `${quantity(line.quantity)} ${line.unit}`,
-                  line.termMonths === 1
-                    ? "1 month"
-                    : `${line.termMonths} months`,
+                  line.entered
+                    ? [
+                        `${quantity(line.entered.quantity)} ${line.entered.unit}`,
+                        `= ${stored}`,
+                      ]
+                    : stored,
+                  months(line.termMonths),
                   percent(line.discountBps),
+                  result ? money(result.monthly) : "",
                   result ? money(result.total) : "",
                 ]}
               />
@@ -241,28 +523,41 @@ export async function renderIndicativePricingSummary(
           );
         })}
         <View style={style.totals} wrap={false}>
-          <View style={style.totalRow}>
-            <Text>Subtotal at list price</Text>
-            <Text>{money(priced.subtotal)}</Text>
-          </View>
-          <View style={style.totalRow}>
-            <Text>Discounts</Text>
-            <Text>
-              {priced.discount.minor === "0"
-                ? money(priced.discount)
-                : `-${money(priced.discount)}`}
-            </Text>
-          </View>
-          <View style={style.grandTotal}>
-            <Text>Total ({priced.currency})</Text>
-            <Text>{money(priced.total)}</Text>
-          </View>
+          {total("Per month", money(priced.monthly))}
+          {total("Year 1", money(priced.annual))}
+          {total("Subtotal at list price", money(priced.subtotal))}
+          {total(
+            "Discounts",
+            priced.discount.minor === "0"
+              ? money(priced.discount)
+              : `-${money(priced.discount)}`,
+          )}
+          {total(`Term total (${priced.currency})`, money(priced.total), true)}
         </View>
+        <View style={style.notes} wrap={false}>
+          {pricingSummaryNotes({
+            date,
+            decimalTb: lines.every((l) => l.unit === "TB-month"),
+            converted: lines.some((l) => l.entered),
+            freeEgress: !lines.some((l) => /egress/iu.test(l.sku)),
+          }).map((note) => (
+            <Text key={note} style={style.note}>
+              {note}
+            </Text>
+          ))}
+        </View>
+        {economics && partner ? (
+          <PartnerSection
+            economics={economics}
+            result={partner}
+            perUnit={sharedUnit ?? null}
+          />
+        ) : null}
         <Text
           fixed
           style={style.footer}
           render={({ pageNumber, totalPages }) =>
-            `${indicativePricingSummaryNotice}\n${indicativePricingSummaryTitle} · ${filOneLegalName} · ${reference} · ${pageNumber} / ${totalPages}`
+            `${partner ? `${indicativePartnerNotice} ` : ""}${indicativePricingSummaryNotice}\n${indicativePricingSummaryTitle} · ${filOneLegalName} · ${reference} · ${pageNumber} / ${totalPages}`
           }
         />
       </Page>

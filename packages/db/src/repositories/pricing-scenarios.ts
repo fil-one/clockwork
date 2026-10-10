@@ -4,6 +4,7 @@ import {
   PricingScenarioBooksSchema,
   PricingScenarioInputSchema,
   PricingScenarioLinesSchema,
+  PricingPartnerEconomicsSchema,
   pricingScenarioListLimit,
   type Actor,
   type PricingScenarioLine,
@@ -11,7 +12,10 @@ import {
   type PricingScenarioRecord,
   type PricingScenarioSummary,
 } from "@clockwork/contracts";
-import { indicativeScenarioPrice } from "@clockwork/domain/core";
+import {
+  convertCapacity,
+  indicativeScenarioPrice,
+} from "@clockwork/domain/core";
 import type { RuntimeDatabase, RuntimeTransaction } from "../client";
 import { pricingScenarios } from "../schema/pricing-scenarios";
 import { withInternalTransaction } from "../transaction";
@@ -42,6 +46,10 @@ const view = (row: Row): PricingScenarioRecord => ({
   asOf: row.asOf,
   priceBooks: PricingScenarioBooksSchema.parse(row.priceBooks),
   lines: PricingScenarioLinesSchema.parse(row.lines),
+  partnerEconomics:
+    row.partnerEconomics === null
+      ? null
+      : PricingPartnerEconomicsSchema.parse(row.partnerEconomics),
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
   version: row.version,
@@ -69,9 +77,11 @@ const inScope = (scope: PricingScenarioScope, row: Row) =>
 
 /**
  * Prices each entered line from the books in force: the list price, unit and
- * minimum come from the book, never from the caller. A line whose book or
- * rate is no longer in force is refused, as are lines in two currencies and
- * quantities below a rate's minimum.
+ * minimum come from the book, never from the caller. A quantity entered in
+ * another capacity unit is converted exactly to the rate's unit, and the
+ * entry is kept beside it for display. A line whose book or rate is no
+ * longer in force is refused, as are a unit that does not convert exactly,
+ * lines in two currencies and quantities below a rate's minimum.
  */
 export function resolvePricingScenarioLines(
   lines: readonly PricingScenarioLineInput[],
@@ -81,6 +91,15 @@ export function resolvePricingScenarioLines(
     const book = books.find(({ id }) => id === entry.bookId);
     const rate = book?.rateCards?.find(({ id }) => id === entry.rateId);
     if (!book || !rate) throw new Error("PRICING_SCENARIO_RATE_UNAVAILABLE");
+    const rateUnit = rate.unit.replace(/-month$/u, "");
+    const converted =
+      entry.quantityUnit && entry.quantityUnit !== rateUnit
+        ? entry.quantityUnit
+        : undefined;
+    const quantity = converted
+      ? convertCapacity(entry.quantity, converted, rateUnit)
+      : entry.quantity;
+    if (quantity === null) throw new Error("PRICING_SCENARIO_UNIT_UNSUPPORTED");
     return {
       bookId: book.id,
       bookVersion: book.version,
@@ -90,7 +109,10 @@ export function resolvePricingScenarioLines(
       unit: rate.unit,
       unitPrice: rate.unitPrice,
       minimumQuantity: rate.minimumQuantity,
-      quantity: entry.quantity,
+      quantity,
+      ...(converted
+        ? { entered: { quantity: entry.quantity, unit: converted } }
+        : {}),
       termMonths: entry.termMonths,
       discountBps: entry.discountBps,
     };
@@ -186,6 +208,7 @@ export class PricingScenarioRepository {
       asOf: today,
       priceBooks,
       lines,
+      partnerEconomics: input.partnerEconomics,
     };
     return this.tx(async (tx) => {
       const [current] = await tx
@@ -262,8 +285,15 @@ export class PricingScenarioRepository {
     });
   }
 
-  /** Records who downloaded a scenario's summary, as its own audit aggregate. */
-  recordDownload(actor: Actor, scenarioId: string) {
+  /**
+   * Records who downloaded a scenario's summary and for which audience, as
+   * its own audit aggregate.
+   */
+  recordDownload(
+    actor: Actor,
+    scenarioId: string,
+    audience: "customer" | "partner" = "customer",
+  ) {
     return this.tx((tx) =>
       appendAuditAndOutbox(tx, {
         aggregateType: "document",
@@ -272,7 +302,7 @@ export class PricingScenarioRepository {
         eventType: "pricing_scenario.downloaded",
         actor,
         requestId: randomUUID(),
-        after: { scenarioId },
+        after: { scenarioId, audience },
       }),
     );
   }
@@ -298,6 +328,10 @@ export class PricingScenarioRepository {
         asOf: row.asOf,
         priceBooks: row.priceBooks,
         lineCount: Array.isArray(row.lines) ? row.lines.length : 0,
+        partnerModel:
+          row.partnerEconomics === null
+            ? null
+            : PricingPartnerEconomicsSchema.parse(row.partnerEconomics).model,
       },
     });
   }

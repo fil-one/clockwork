@@ -171,6 +171,42 @@ email you when the status changes.
 
 Every download and export is recorded under your name.
 
+## Pricing
+
+Pricing gives you an indicative number in a meeting. It is not a quote or an
+offer; the price that applies is the one in a signed order form.
+
+- **Capacity.** Enter it in TB, PB, TiB or PiB. Prices are per decimal TB per
+  month (1 TB = 1,000 GB), so the page shows the conversion under the field: 10
+  PiB is about 11,259 TB, which at $5.99 is about $67,441 a month. A "10 PiB at
+  $60K a month" model treats a PiB as 1,000 TB; check which the other side
+  means.
+- **Totals.** Each line and the scenario show per month, year 1 (the first 12
+  months, or the whole term when shorter) and the total for the term.
+- **Partner economics.** Optional. Pick a model:
+  - Referral: the customer buys from Fil One and the partner earns a commission
+    on what the customer pays. Add step-downs for a rate that changes later, for
+    example 30% from month 1, 20% from month 13 and 10% from month 25.
+  - Resale: enter the partner's price to its customer and either the partner's
+    margin or Fil One's price to the partner; the page works out the other. At
+    $6.50 and a 32% margin, Fil One's price to the partner is $4.42.
+  - Other: a share of what the customer pays, a fee per TB-month and a fixed
+    monthly amount, in any mix.
+
+  The panel shows what the customer pays, what the partner earns and Fil One's
+  net revenue for month 1, year 1, the term and per TB-month. No cap or floor is
+  applied, and the figures commit nobody to a commission or margin.
+
+- **Summary PDF.** Save the scenario, then download the summary for the customer
+  (Fil One list pricing only) or, when it has partner economics, the partner
+  summary, which adds the partner's terms and earnings and does not print Fil
+  One's net revenue. On a resale, the customer summary shows Fil One's list
+  price, not the partner's price, so send the partner summary to the partner and
+  let the partner price its own customer.
+
+The demo has two example scenarios, a resale and a referral with step-downs,
+that you can open and download.
+
 ## If your session expires
 
 If an action shows "Your session expired. Reload to continue.", choose

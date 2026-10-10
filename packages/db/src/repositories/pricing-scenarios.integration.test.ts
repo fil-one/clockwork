@@ -135,6 +135,96 @@ describe("pricing scenarios", () => {
     // 15.00 less 10% = 13.50 x 500 x 12 = 81,000.00; 4.00 x 20 x 12 = 960.00.
     expect(row?.total).toEqual({ currency: "USD", minor: "8196000" });
     expect(row?.lineCount).toBe(2);
+    expect(saved.partnerEconomics).toBeNull();
+  });
+
+  it("keeps an entry in PiB beside its TB quantity, and the partner inputs", async () => {
+    unitMinor = "599";
+    const economics = {
+      model: "referral",
+      partnerName: "Copperline Advisors",
+      commissionBps: 3000,
+      steps: [
+        { fromMonth: 13, commissionBps: 2000 },
+        { fromMonth: 25, commissionBps: 1000 },
+      ],
+    };
+    const saved = await repo.save(
+      input({
+        lines: [
+          {
+            bookId: usdBook,
+            rateId: usdRate,
+            quantity: "10",
+            quantityUnit: "PiB",
+            termMonths: 36,
+            discountBps: 0,
+          },
+        ],
+        partnerEconomics: economics,
+      }),
+      seller,
+      own(seller),
+      "2026-10-10",
+    );
+    const read = await repo.get(saved.id, own(seller));
+    expect(read.lines[0]).toMatchObject({
+      quantity: "11258.99906842624",
+      entered: { quantity: "10", unit: "PiB" },
+    });
+    expect(read.partnerEconomics).toEqual(economics);
+    // 11,258.99906842624 TB x 5.99 x 36 months = 2,427,890.56.
+    const [row] = (await repo.list(own(seller))).filter(
+      ({ id }) => id === saved.id,
+    );
+    expect(row?.total).toEqual({ currency: "USD", minor: "242789056" });
+    const resale = await repo.save(
+      {
+        ...input(),
+        id: saved.id,
+        partnerEconomics: {
+          model: "resale",
+          customerPriceMinor: "650",
+          marginBps: 3200,
+        },
+        expectedVersion: 1,
+      },
+      seller,
+      own(seller),
+      "2026-10-10",
+    );
+    expect(resale.partnerEconomics).toEqual({
+      model: "resale",
+      customerPriceMinor: "650",
+      marginBps: 3200,
+    });
+    const direct = await repo.save(
+      { ...input(), id: saved.id, partnerEconomics: null, expectedVersion: 2 },
+      seller,
+      own(seller),
+      "2026-10-10",
+    );
+    expect(direct.partnerEconomics).toBeNull();
+    const [audit] = await client<{ after: { partnerModel: string | null } }[]>`
+      select after from audit_events where aggregate_id = ${saved.id}
+        and aggregate_version = 2`;
+    expect(audit?.after.partnerModel).toBe("resale");
+    await expect(
+      repo.save(
+        input({
+          partnerEconomics: {
+            model: "resale",
+            customerPriceMinor: "650",
+            buyPriceMinor: "442",
+            marginBps: 3200,
+          },
+        }),
+        seller,
+        own(seller),
+        "2026-10-10",
+      ),
+    ).rejects.toThrow();
+    unitMinor = "1500";
   });
 
   it("never takes a price from the caller", async () => {
@@ -296,7 +386,7 @@ describe("pricing scenarios", () => {
       a.id,
       b.id,
     ]);
-    await repo.recordDownload(owner, a.id);
+    await repo.recordDownload(owner, a.id, "partner");
     await repo.delete(b.id, 1, owner, own(owner));
     await expect(repo.get(b.id, own(owner))).rejects.toThrow(
       "PRICING_SCENARIO_NOT_FOUND",

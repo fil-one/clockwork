@@ -181,6 +181,7 @@ export default defineConfig({
         "production-proof.spec.ts",
         "visual.spec.ts",
         "demo.spec.ts",
+        "demo-pricing.spec.ts",
       ],
       // These specs set no per-test budget of their own, so they take the 30s
       // default, and one cold compile inside a multi-step journey is enough to
@@ -200,7 +201,9 @@ export default defineConfig({
     },
     {
       name: "demo-chromium",
-      testMatch: "demo.spec.ts",
+      // The pricing builder reads the demo price books, which only the demo
+      // deployment serves.
+      testMatch: ["demo.spec.ts", "demo-pricing.spec.ts"],
       fullyParallel: false,
       use: { ...devices["Desktop Chrome"] },
     },

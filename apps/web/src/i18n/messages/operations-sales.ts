@@ -122,6 +122,13 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.pricing.region.usWest2": { en: "US West (Oregon)" },
   "operations.sales.pricing.region.ukSouth": { en: "UK South (London)" },
   "operations.sales.pricing.capacity": { en: "Capacity ({unit})" },
+  "operations.sales.pricing.capacityUnit": { en: "Unit" },
+  "operations.sales.pricing.conversion.exact": {
+    en: "{entered} = {converted}.",
+  },
+  "operations.sales.pricing.conversion.approx": {
+    en: "{entered} ≈ {converted}.",
+  },
   "operations.sales.pricing.minimum": { en: "At least {minimum} {unit}." },
   "operations.sales.pricing.term": { en: "Term (months)" },
   "operations.sales.pricing.discount": { en: "Discount (%)" },
@@ -141,6 +148,7 @@ export const salesMessages = defineStaffMessages({
     en: "Complete every line to see a total.",
   },
   "operations.sales.pricing.result.monthly": { en: "Per month" },
+  "operations.sales.pricing.result.annual": { en: "Year 1" },
   "operations.sales.pricing.result.total": { en: "Total for {months} months" },
   "operations.sales.pricing.result.unit": { en: "Price per {unit} per month" },
   "operations.sales.pricing.result.overage": {
@@ -185,12 +193,26 @@ export const salesMessages = defineStaffMessages({
     en: "Subtotal at list price",
   },
   "operations.sales.pricing.scenario.discounts": { en: "Discounts" },
-  "operations.sales.pricing.scenario.total": { en: "Total" },
+  "operations.sales.pricing.scenario.monthly": { en: "Per month" },
+  "operations.sales.pricing.scenario.annual": { en: "Year 1" },
+  "operations.sales.pricing.scenario.total": { en: "Term total" },
   "operations.sales.pricing.scenario.save": { en: "Save as scenario" },
   "operations.sales.pricing.scenario.saveChanges": { en: "Save changes" },
   "operations.sales.pricing.scenario.startNew": { en: "Start a new scenario" },
   "operations.sales.pricing.scenario.download": {
     en: "Download summary PDF",
+  },
+  "operations.sales.pricing.scenario.downloadPartner": {
+    en: "Download partner summary PDF",
+  },
+  "operations.sales.pricing.scenario.downloadHelp": {
+    en: "The summary shows Fil One list pricing only. The partner summary adds the partner's terms and earnings; it does not print Fil One's net revenue.",
+  },
+  "operations.sales.pricing.scenario.downloadPartnerNamed": {
+    en: "Download the partner summary for {name}",
+  },
+  "operations.sales.pricing.scenario.partnerSummary": {
+    en: "Partner summary",
   },
   "operations.sales.pricing.scenario.downloadAfterSave": {
     en: "Save the scenario to download its summary PDF.",
@@ -223,6 +245,10 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.pricing.scenario.demo": {
     en: "Saving scenarios is turned off in the demo.",
   },
+  "operations.sales.pricing.scenario.examples": { en: "Example scenarios" },
+  "operations.sales.pricing.scenario.examplesHelp": {
+    en: "Fictional companies, priced from the demo price book. Open one to see it in the builder.",
+  },
   "operations.sales.pricing.scenario.mfa": {
     en: "Verify your sign-in to save and open scenarios.",
   },
@@ -250,6 +276,130 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.pricing.scenario.error.notFound": {
     en: "This scenario no longer exists.",
   },
+  "operations.sales.pricing.scenario.error.unit": {
+    en: "A line's capacity unit does not convert exactly to its rate's unit. Enter it in the rate's unit.",
+  },
+  "operations.sales.pricing.partner.legend": { en: "Partner economics" },
+  "operations.sales.pricing.partner.help": {
+    en: "Optional. Indicative figures worked out from your inputs. No policy cap or floor applies here.",
+  },
+  "operations.sales.pricing.partner.model": { en: "Partner model" },
+  "operations.sales.pricing.partner.model.direct": { en: "Direct, no partner" },
+  "operations.sales.pricing.partner.model.referral": { en: "Referral" },
+  "operations.sales.pricing.partner.model.resale": { en: "Resale" },
+  "operations.sales.pricing.partner.model.other": { en: "Other" },
+  "operations.sales.pricing.partner.name": { en: "Partner name" },
+  "operations.sales.pricing.partner.nameHelp": {
+    en: "Optional. Printed on the partner summary.",
+  },
+  "operations.sales.pricing.partner.commission": { en: "Commission (%)" },
+  "operations.sales.pricing.partner.commissionHelp": {
+    en: "Of what the customer pays each month, from month 1.",
+  },
+  "operations.sales.pricing.partner.stepFrom": {
+    en: "Step {number}: from month",
+  },
+  "operations.sales.pricing.partner.stepCommission": {
+    en: "Step {number}: commission (%)",
+  },
+  "operations.sales.pricing.partner.addStep": { en: "Add a step-down" },
+  "operations.sales.pricing.partner.removeStep": {
+    en: "Remove step {number}",
+  },
+  "operations.sales.pricing.partner.customerPrice": {
+    en: "Partner's price to its customer, per {unit}-month",
+  },
+  "operations.sales.pricing.partner.resaleBasis": { en: "Work out from" },
+  "operations.sales.pricing.partner.resaleBasis.margin": {
+    en: "The partner's margin",
+  },
+  "operations.sales.pricing.partner.resaleBasis.buyPrice": {
+    en: "Fil One's price to the partner",
+  },
+  "operations.sales.pricing.partner.margin": {
+    en: "Partner margin (%)",
+  },
+  "operations.sales.pricing.partner.marginHelp": {
+    en: "On the partner's own price to its customer.",
+  },
+  "operations.sales.pricing.partner.buyPrice": {
+    en: "Fil One's price to the partner, per {unit}-month",
+  },
+  "operations.sales.pricing.partner.derivedBuyPrice": {
+    en: "Fil One's price to the partner: {price} per {unit}-month.",
+  },
+  "operations.sales.pricing.partner.derivedMargin": {
+    en: "Partner margin: {percent}.",
+  },
+  "operations.sales.pricing.partner.label": { en: "Arrangement" },
+  "operations.sales.pricing.partner.labelHelp": {
+    en: "Optional. A few words on the deal, for example co-sell.",
+  },
+  "operations.sales.pricing.partner.share": {
+    en: "Share of what the customer pays (%)",
+  },
+  "operations.sales.pricing.partner.perUnit": {
+    en: "Partner fee per {unit}-month",
+  },
+  "operations.sales.pricing.partner.monthly": {
+    en: "Fixed amount per month",
+  },
+  "operations.sales.pricing.partner.error.percent": {
+    en: "Enter a percentage from 0 to 100, with up to two decimals.",
+  },
+  "operations.sales.pricing.partner.error.price": {
+    en: "Enter an amount up to 99,999,999.99, for example 6.50, with no currency sign.",
+  },
+  "operations.sales.pricing.partner.error.month": {
+    en: "Enter a month from 2 to 120, later than the step above.",
+  },
+  "operations.sales.pricing.partner.error.name": {
+    en: "Enter up to 120 Latin letters, numbers or punctuation.",
+  },
+  "operations.sales.pricing.partner.error.label": {
+    en: "Enter up to 80 Latin letters, numbers or punctuation.",
+  },
+  "operations.sales.pricing.partner.negativeMargin": {
+    en: "Fil One's price to the partner is above the partner's own price, so the partner would lose money on every TB.",
+  },
+  "operations.sales.pricing.partner.error.save": {
+    en: "Complete the partner inputs, or choose Direct, before you save.",
+  },
+  "operations.sales.pricing.partner.mixedUnits": {
+    en: "Partner figures need every line priced in the same unit.",
+  },
+  "operations.sales.pricing.partner.invalid": {
+    en: "Complete the lines and the partner inputs to see partner figures.",
+  },
+  "operations.sales.pricing.partner.figures": { en: "Partner figures" },
+  "operations.sales.pricing.partner.col.month": { en: "Month 1" },
+  "operations.sales.pricing.partner.col.term": {
+    en: "Term ({months} months)",
+  },
+  "operations.sales.pricing.partner.col.perUnit": {
+    en: "Per {unit}-month",
+  },
+  "operations.sales.pricing.partner.row.customer": { en: "Customer pays" },
+  "operations.sales.pricing.partner.row.partner": { en: "Partner earns" },
+  "operations.sales.pricing.partner.row.net": { en: "Fil One net revenue" },
+  "operations.sales.pricing.partner.periods": { en: "By period" },
+  "operations.sales.pricing.partner.periods.months": { en: "Months" },
+  "operations.sales.pricing.partner.periods.range": { en: "{from} to {to}" },
+  "operations.sales.pricing.partner.periods.commission": {
+    en: "Commission",
+  },
+  "operations.sales.pricing.partner.periods.partner": {
+    en: "Partner per month",
+  },
+  "operations.sales.pricing.partner.periods.net": {
+    en: "Fil One net per month",
+  },
+  "operations.sales.pricing.partner.years": { en: "By year" },
+  "operations.sales.pricing.partner.years.year": { en: "Year {number}" },
+  "operations.sales.pricing.partner.years.partial": {
+    en: "Year {number} (months {from} to {to})",
+  },
+  "operations.sales.pricing.partner.years.yearLabel": { en: "Year" },
   "operations.staff.error.mfaHint": {
     en: "If you signed in a while ago, your sign-in check may have expired. Verify your sign-in, then try again.",
   },
