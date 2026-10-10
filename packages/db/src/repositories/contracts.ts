@@ -22,7 +22,12 @@ import {
   type ContractType,
   type StoredDocument,
 } from "@clockwork/contracts";
-import { addContractDays, contractTermSchedule } from "@clockwork/domain";
+import {
+  addContractDays,
+  assertDistinctOrSelfApproved,
+  contractTermSchedule,
+  type SelfApproval,
+} from "@clockwork/domain";
 import type { RuntimeDatabase, RuntimeTransaction } from "../client";
 import {
   commerceContracts,
@@ -33,6 +38,7 @@ import {
 import { mndaSigners } from "../schema/mnda";
 import { withInternalTransaction } from "../transaction";
 import { appendAuditAndOutbox } from "./audit-outbox";
+import { checkedSelfApproval } from "./self-approval";
 import {
   lazyDocumentStores,
   type ContractDocumentStores,
@@ -1031,11 +1037,15 @@ export class ContractSigningRepository {
 
   /**
    * Records an approval decision. Only a pending request can be decided, and
-   * never by the person who prepared it; the database enforces both again.
+   * never by the person who prepared it unless they approve it under
+   * `approval:self` with a reason; the database enforces all of it again and
+   * writes the self-approval's audit event and notices (001457).
    */
   decide(
     contractId: string,
-    decision: { approve: true } | { approve: false; reason: string },
+    decision:
+      | { approve: true; selfApproval?: SelfApproval }
+      | { approve: false; reason: string },
     approver: Actor & { kind: "user" },
   ) {
     return this.tx(async (tx) => {
@@ -1047,10 +1057,19 @@ export class ContractSigningRepository {
       if (!row) throw new Error("CONTRACT_SIGNING_NOT_FOUND");
       if (row.approvalState !== "pending")
         throw new Error("CONTRACT_APPROVAL_NOT_PENDING");
-      if (row.preparerId === approver.id)
-        throw new Error("CONTRACT_APPROVER_IS_PREPARER");
+      const offered = decision.approve ? decision.selfApproval : undefined;
+      const selfApproved = assertDistinctOrSelfApproved({
+        deciderId: approver.id,
+        requesterIds: [row.preparerId],
+        selfApproval: offered,
+        distinctError: "CONTRACT_APPROVER_IS_PREPARER",
+      });
       if (terminalContractSigningStates.includes(row.state))
         throw new Error("CONTRACT_APPROVAL_NOT_PENDING");
+      const selfApproval =
+        selfApproved && offered
+          ? await checkedSelfApproval(tx, approver.id, offered)
+          : undefined;
       const reason = decision.approve ? null : decision.reason.trim();
       if (!decision.approve && !reason)
         throw new Error("CONTRACT_REJECTION_REASON_REQUIRED");
@@ -1062,6 +1081,9 @@ export class ContractSigningRepository {
           approverName: actorName(approver),
           decidedAt: new Date(),
           rejectionReason: reason,
+          ...(selfApproval
+            ? { selfApproved: true, selfApprovalReason: selfApproval.reason }
+            : {}),
           version: row.version + 1,
           updatedAt: new Date(),
         })
@@ -1080,8 +1102,16 @@ export class ContractSigningRepository {
         contractId,
         contract.version + 1,
         approver,
-        decision.approve ? "contract.approved" : "contract.rejected",
-        reason ? { reason } : {},
+        selfApproval
+          ? "contract.self_approved"
+          : decision.approve
+            ? "contract.approved"
+            : "contract.rejected",
+        selfApproval
+          ? { reason: selfApproval.reason }
+          : reason
+            ? { reason }
+            : {},
       );
       return signingView(next);
     });

@@ -726,7 +726,7 @@ describe("contract documents", () => {
 });
 
 describe("template signing persistence", () => {
-  const prepare = async (approvalRequired: boolean) => {
+  const prepare = async (approvalRequired: boolean, preparer = actor) => {
     const marker = randomUUID();
     const [countersigner] = await signing.countersigners();
     if (!countersigner) throw new Error("seed countersigner missing");
@@ -756,9 +756,20 @@ describe("template signing persistence", () => {
         pdf: pdf("prepared"),
         fileName: "Prepared.pdf",
       },
-      actor,
+      preparer,
     );
     return { input, result };
+  };
+
+  /** A commerce administrator (approval:self, staff:manage) in the Fil One
+   * staff organization, enrolled in MFA. */
+  const commerceAdmin = async (display: string) => {
+    const id = randomUUID();
+    await client`insert into commerce_users (id, workos_user_id, email, name, is_internal_staff, mfa_enrolled)
+      values (${id}, ${`it_1457_${id}`}, ${`admin-${id}@fil-one.test`}, ${display}, true, true)`;
+    await client`insert into memberships (organization_id, user_id, role)
+      values ('30000000-0000-4000-8000-000000000008', ${id}, 'commerce_admin')`;
+    return { kind: "user" as const, id, display };
   };
 
   it("enforces the two-person approval rule before anything can be sent", async () => {
@@ -795,6 +806,79 @@ describe("template signing persistence", () => {
     await expect(
       signing.decide(input.id, { approve: false, reason: "late" }, approver),
     ).rejects.toThrow("CONTRACT_APPROVAL_NOT_PENDING");
+  });
+
+  it("lets a holder of approval:self approve a contract they prepared, with a reason", async () => {
+    const admin = await commerceAdmin("Contract Admin");
+    const colleague = await commerceAdmin("Other Admin");
+    const reason = "Two-person team, colleague travelling";
+    const own = await prepare(true, admin);
+    await expect(
+      signing.decide(own.input.id, { approve: true }, admin),
+    ).rejects.toThrow("CONTRACT_APPROVER_IS_PREPARER");
+    await expect(
+      signing.decide(
+        own.input.id,
+        { approve: true, selfApproval: { reason: "short" } },
+        admin,
+      ),
+    ).rejects.toThrow("SELF_APPROVAL_REASON_REQUIRED");
+    const approved = await signing.decide(
+      own.input.id,
+      { approve: true, selfApproval: { reason: `  ${reason} ` } },
+      admin,
+    );
+    expect(approved).toMatchObject({
+      approvalState: "approved",
+      approverName: "Contract Admin",
+    });
+    const [row] = await client<
+      { self_approved: boolean; self_approval_reason: string | null }[]
+    >`select self_approved, self_approval_reason from commerce_contract_signing where contract_id = ${own.input.id}`;
+    expect(row).toEqual({ self_approved: true, self_approval_reason: reason });
+    const { activity } = await repo.get(own.input.id, "2026-10-04");
+    expect(activity[0]).toMatchObject({
+      eventType: "contract.self_approved",
+      changes: { reason },
+    });
+    const audit = await client<
+      { id: string; after: Record<string, unknown> }[]
+    >`
+      select id, after from audit_events
+      where event_type = 'approval.self_approved'
+        and after->>'subjectId' = ${own.input.id}`;
+    expect(audit).toHaveLength(1);
+    expect(audit[0]?.after).toMatchObject({
+      control: "contract_approval",
+      subjectType: "contract",
+      decision: "approved",
+      reason,
+      approverId: admin.id,
+    });
+    const notices = await client<{ recipient_user_id: string }[]>`
+      select recipient_user_id from staff_notices
+      where audit_event_id = ${audit[0]?.id ?? ""}`;
+    const recipients = notices.map((notice) => notice.recipient_user_id);
+    expect(recipients).toContain(colleague.id);
+    expect(recipients).not.toContain(admin.id);
+  });
+
+  it("refuses a self-approval from anyone without approval:self, or on someone else's contract", async () => {
+    const admin = await commerceAdmin("Contract Admin");
+    const selfApproval = { reason: "Approving my own draft today" };
+    const unheld = await prepare(true);
+    await expect(
+      signing.decide(unheld.input.id, { approve: true, selfApproval }, actor),
+    ).rejects.toThrow("SELF_APPROVAL_NOT_PERMITTED");
+    await expect(
+      signing.decide(unheld.input.id, { approve: true, selfApproval }, admin),
+    ).rejects.toThrow("SELF_APPROVAL_NOT_OWN_REQUEST");
+    await expect(
+      client.begin(async (tx) => {
+        await tx`set local role clockwork_service`;
+        await tx`update commerce_contract_signing set approval_state = 'approved', approver_id = preparer_id, approver_name = 'x', decided_at = now(), self_approved = true, self_approval_reason = 'Approving my own draft today' where contract_id = ${unheld.input.id}`;
+      }),
+    ).rejects.toThrow("SELF_APPROVAL_NOT_PERMITTED");
   });
 
   it("records a rejection with its reason", async () => {

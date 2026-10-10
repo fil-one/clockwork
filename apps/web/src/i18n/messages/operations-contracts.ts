@@ -2055,6 +2055,16 @@ export const contractMessages = defineMessages({
     zh: "已批准发送",
     ar: "اعتُمد للإرسال",
   },
+  "operations.contracts.activity.selfApproved": {
+    en: "Approved for sending by the preparer, with a reason",
+    es: "Aprobado para envío por quien lo preparó, con un motivo",
+    fr: "Approuvé pour envoi par la personne qui l’a préparé, avec un motif",
+    de: "Von der erstellenden Person mit Begründung zum Versand genehmigt",
+    ja: "作成者が理由を添えて送信を承認しました",
+    pt: "Aprovado para envio por quem o preparou, com um motivo",
+    zh: "已由准备人附理由批准发送",
+    ar: "اعتمده مُعدّه للإرسال مع ذكر السبب",
+  },
   "operations.contracts.activity.voided": {
     en: "Voided",
     es: "Anulado",

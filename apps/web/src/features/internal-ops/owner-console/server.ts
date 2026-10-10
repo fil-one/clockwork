@@ -16,15 +16,15 @@ import { getOptionalServiceDatabase } from "@/src/db/service";
 import { mayApproveOwnRequests } from "../self-approval/model";
 import { teamMemberView } from "../team/server";
 import {
-  approvalControls,
   demoOwnerConsole,
-  type ApprovalControl,
+  selfApprovalControls,
   type ApprovalItemView,
   type ApprovalsView,
   type ConsoleEventView,
   type ConsoleSection,
   type ConsoleSelfApprovalTarget,
   type OwnerConsoleView,
+  type SelfApprovalControl,
 } from "./model";
 
 const requestId = (read: string) =>
@@ -65,11 +65,11 @@ function eventSubject(event: ConsoleAuditEvent): string | null {
 }
 
 /** The console's control for a self-approval event's `control`. */
-function selfApprovedControl(value: unknown): ApprovalControl | null {
+function selfApprovedControl(value: unknown): SelfApprovalControl | null {
   const control = value === "termination_teardown" ? "termination" : value;
   return typeof control === "string" &&
-    (approvalControls as readonly string[]).includes(control)
-    ? (control as ApprovalControl)
+    (selfApprovalControls as readonly string[]).includes(control)
+    ? (control as SelfApprovalControl)
     : null;
 }
 

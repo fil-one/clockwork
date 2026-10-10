@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   assertExceptionRoutingQueue,
   decideException,
+  escalateException,
   exceptionQueues,
   openExceptionCase,
   resolveExceptionOwners,
+  resolveExceptionOwnersForRequester,
   validateQueuePolicies,
   type ExceptionRosterMember,
 } from ".";
@@ -191,5 +193,140 @@ describe("persisted exception roster resolution", () => {
         ],
       }),
     ).toThrow("EXCEPTION_NO_ELIGIBLE_PRIMARY:legal");
+  });
+
+  it("routes a two-person roster with no escalation owner", () => {
+    const routed = resolveExceptionOwners({
+      accountId: "account-1",
+      queue: "legal",
+      now,
+      roster: [
+        member("primary", "cfo", 10),
+        member("backup", "revenue-lead", 10),
+      ],
+    });
+    expect(routed).toMatchObject({
+      ownerUserId: "cfo",
+      backupUserId: "revenue-lead",
+      escalationUserId: null,
+      absenceEscalated: false,
+    });
+    expect(routed.rosterEntryIds).toEqual([
+      "roster-cfo",
+      "roster-revenue-lead",
+    ]);
+  });
+
+  it("still requires the owner and backup to be two people", () => {
+    expect(() =>
+      resolveExceptionOwners({
+        accountId: "account-1",
+        queue: "legal",
+        now,
+        roster: [member("primary", "cfo", 10), member("backup", "cfo", 20)],
+      }),
+    ).toThrow("EXCEPTION_NO_ELIGIBLE_BACKUP:legal");
+    expect(() =>
+      resolveExceptionOwners({
+        accountId: "account-1",
+        queue: "legal",
+        now,
+        roster: [member("primary", "cfo", 10)],
+      }),
+    ).toThrow("EXCEPTION_NO_ELIGIBLE_BACKUP:legal");
+  });
+
+  it("leaves the requester off the roster when someone else can take the case", () => {
+    expect(
+      resolveExceptionOwnersForRequester({
+        accountId: "account-1",
+        queue: "legal",
+        now,
+        requesterUserId: "primary-1",
+        roster: [
+          member("primary", "primary-1", 10),
+          member("primary", "primary-2", 20),
+          member("backup", "backup-1", 10),
+        ],
+      }),
+    ).toMatchObject({
+      ownerUserId: "primary-2",
+      backupUserId: "backup-1",
+      requesterOnRoster: false,
+    });
+  });
+
+  it("assigns the requester on a two-person roster and says so", () => {
+    const roster = [
+      member("primary", "cfo", 10),
+      member("backup", "revenue-lead", 10),
+    ];
+    expect(() =>
+      resolveExceptionOwners({
+        accountId: "account-1",
+        queue: "legal",
+        now,
+        excludedUserIds: ["cfo"],
+        roster,
+      }),
+    ).toThrow("EXCEPTION_NO_ELIGIBLE_PRIMARY:legal");
+    for (const requesterUserId of ["cfo", "revenue-lead"])
+      expect(
+        resolveExceptionOwnersForRequester({
+          accountId: "account-1",
+          queue: "legal",
+          now,
+          requesterUserId,
+          roster,
+        }),
+      ).toMatchObject({
+        ownerUserId: "cfo",
+        backupUserId: "revenue-lead",
+        requesterOnRoster: true,
+      });
+    expect(() =>
+      resolveExceptionOwnersForRequester({
+        accountId: "account-1",
+        queue: "legal",
+        now,
+        requesterUserId: "cfo",
+        roster: [member("primary", "cfo", 10)],
+      }),
+    ).toThrow("EXCEPTION_NO_ELIGIBLE_BACKUP:legal");
+  });
+
+  it("decides and escalates a case with no escalation owner", () => {
+    const twoPerson = {
+      ...openExceptionCase({
+        caseId: "case-2",
+        queue: "legal",
+        objectType: "agreement",
+        objectId: "agreement-2",
+        requestedBy: "requester-1",
+        openedAt: "2026-07-31T16:00:00.000Z",
+        policies,
+      }),
+      ownerId: "cfo",
+      backupId: "revenue-lead",
+      escalationOwnerId: null,
+    };
+    const second = escalateException(
+      escalateException(twoPerson, "2026-08-10T16:00:00.000Z"),
+      "2026-08-20T16:00:00.000Z",
+    );
+    expect(second).toMatchObject({
+      ownerId: "revenue-lead",
+      escalationLevel: 2,
+    });
+    expect(
+      decideException(twoPerson, {
+        actorId: "revenue-lead",
+        outcome: "approved",
+        reason: "Commercial exception approved",
+        evidenceDocumentId: "document-1",
+        evidenceBytes: new Uint8Array([1]),
+        decidedAt: "2026-08-01T16:00:00.000Z",
+      }).status,
+    ).toBe("approved");
   });
 });

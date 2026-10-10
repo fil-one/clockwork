@@ -333,6 +333,47 @@ describe("signing panel", () => {
     ).toBeNull();
   });
 
+  it("asks a preparer holding approval:self for a reason to approve their own contract", async () => {
+    mocks.decideContract.mockResolvedValue({ ok: true, value: {} });
+    const pending = {
+      approvalState: "pending" as const,
+      approverName: null,
+      decidedAt: null,
+    };
+    const { unmount } = panel(pending, { isPreparer: true });
+    expect(
+      screen.queryByRole("button", { name: "Approve my own request" }),
+    ).toBeNull();
+    unmount();
+    panel(pending, { isPreparer: true, canSelfApprove: true });
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Approve my own request" }),
+    );
+    const dialog = await screen.findByRole("dialog");
+    const confirm = within(dialog).getByRole("button", {
+      name: "Approve my own request",
+    });
+    fireEvent.click(confirm);
+    expect(
+      await within(dialog).findByText("Write a reason of 8 to 500 characters."),
+    ).toBeInTheDocument();
+    expect(mocks.decideContract).not.toHaveBeenCalled();
+    fireEvent.change(
+      within(dialog).getByLabelText(/Why are you approving it yourself/),
+      { target: { value: "Two-person team, colleague travelling" } },
+    );
+    fireEvent.click(confirm);
+    await waitFor(() =>
+      expect(mocks.decideContract).toHaveBeenCalledWith({
+        contractId: fixtureSigningRecord.contractId,
+        approve: true,
+        selfApprovalReason: "Two-person team, colleague travelling",
+      }),
+    );
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+  });
+
   it("lets another approver approve, or send back only with a reason", async () => {
     mocks.decideContract.mockResolvedValue({ ok: true, value: {} });
     panel({ approvalState: "pending", approverName: null, decidedAt: null });

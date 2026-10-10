@@ -41,6 +41,7 @@ export default async function Page({
       canWrite={loaded.canWrite}
       canApprove={loaded.canApprove}
       isPreparer={loaded.isPreparer}
+      canSelfApprove={loaded.canSelfApprove}
       signingReady={loaded.signingReady}
     />
   );

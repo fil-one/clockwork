@@ -424,11 +424,13 @@ export interface WorkflowExceptionRouting {
     accountId: string;
     ownerUserId: string;
     backupUserId?: string;
-    escalationUserId?: string;
+    escalationUserId?: string | null;
     objectType: string;
     targetAt: string;
     absenceEscalated?: boolean;
     rosterEntryIds?: readonly string[];
+    /** The requester was assigned because the roster had nobody else. */
+    requesterOnRoster?: boolean;
   }>;
 }
 
@@ -569,6 +571,7 @@ export class DatabaseWorkflowExceptionPort {
           escalationUserId: route.escalationUserId ?? null,
           ownershipRosterEntryIds: route.rosterEntryIds ?? [],
           ownershipAbsenceEscalated: route.absenceEscalated ?? false,
+          requesterOnRoster: route.requesterOnRoster ?? false,
           metadata: request.metadata,
         },
       });
@@ -592,6 +595,14 @@ export class DatabaseWorkflowExceptionPort {
           escalationOwnerId: exceptionCase.escalationOwnerUserId,
           ownershipRosterEntryIds: exceptionCase.ownershipRosterEntryIds,
           ownershipAbsenceEscalated: exceptionCase.ownershipAbsenceEscalated,
+          // A two-person roster may assign the requester; say so on the case.
+          requesterOnRoster:
+            exceptionCase.requesterUserId !== null &&
+            [
+              exceptionCase.ownerUserId,
+              exceptionCase.backupUserId,
+              exceptionCase.escalationOwnerUserId,
+            ].includes(exceptionCase.requesterUserId),
           targetAt: exceptionCase.targetAt.toISOString(),
           severity: request.severity,
           code: request.code,

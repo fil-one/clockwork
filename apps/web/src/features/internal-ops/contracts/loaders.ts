@@ -10,6 +10,7 @@ import { contractToday } from "@clockwork/domain/contract-terms";
 import { getRequestCommerceSession } from "@/src/auth/session";
 import { demoNow } from "@/src/features/experience-server/demo-clock";
 import { mndaRepository } from "../mnda/server";
+import { mayApproveOwnRequests } from "../self-approval/model";
 import { contractReader, contractRegisterReader } from "./demo-access";
 import {
   ContractAccessError,
@@ -94,6 +95,7 @@ export function loadContract(id: string) {
       today,
       ...permissions(session),
       isPreparer: detail.signing?.preparerId === session.userId,
+      canSelfApprove: mayApproveOwnRequests(session),
       signingReady: contractSigningConfiguration().ready,
     };
   });

@@ -18,6 +18,15 @@ written reason. The right is the `approval:self` permission, held by the
 | Terminations and teardown                          | `POST /v1/lifecycle/terminations/{id}/approvals` with `selfApproval: true` |
 | Tax rule book activation                           | In the database, by an operator (see below)                                |
 
+Template contract approval follows the same rule. On a contract you prepared
+that is waiting for approval, the signing panel at `/internal/contracts/{id}`
+shows **Approve my own request** when you hold `approval:self` and
+`contract:approve`, signed in within the recent-authentication window. The
+reason is stored on `commerce_contract_signing` (`self_approved`,
+`self_approval_reason`), the contract's history records `contract.self_approved`
+with the reason, and the database writes the `approval.self_approved` audit
+event (control `contract_approval`) and the notices described below.
+
 Production bootstrap and the MNDA countersigner are not approval controls and
 are unchanged.
 

@@ -29,7 +29,7 @@ export interface ConsoleEventView {
   /** The reason written with the change, when there is one. */
   reason: string | null;
   /** The control a self-approval was given on. */
-  control?: ApprovalControl | null;
+  control?: SelfApprovalControl | null;
 }
 
 export interface NoticeView extends ConsoleEventView {
@@ -64,6 +64,16 @@ export const approvalControls = [
   "termination",
 ] as const;
 export type ApprovalControl = (typeof approvalControls)[number];
+
+/**
+ * The controls a self-approval notice can name: the console's controls and
+ * template contract approval, which is decided on the contract's own page.
+ */
+export const selfApprovalControls = [
+  ...approvalControls,
+  "contract_approval",
+] as const;
+export type SelfApprovalControl = (typeof selfApprovalControls)[number];
 
 /**
  * What "Approve my own request" sends for a request on the console: the
@@ -169,7 +179,7 @@ export const capabilityLabels: Readonly<Record<string, MessageId>> = {
 
 /** What kind of request each control raises. */
 export const approvalControlLabels: Readonly<
-  Record<ApprovalControl, MessageId>
+  Record<SelfApprovalControl, MessageId>
 > = {
   price_book_activation: "operations.owner.approvals.control.priceBook",
   tax_rule_book_activation: "operations.owner.approvals.control.taxRuleBook",
@@ -178,6 +188,7 @@ export const approvalControlLabels: Readonly<
   payg_offer: "operations.owner.approvals.control.paygOffer",
   exception_case: "operations.owner.approvals.control.exception",
   termination: "operations.owner.approvals.control.termination",
+  contract_approval: "operations.owner.approvals.control.contract",
 };
 
 export const noticeErrorCodes = [

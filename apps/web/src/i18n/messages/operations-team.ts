@@ -2001,6 +2001,16 @@ export const teamMessages = defineMessages({
     zh: "账户关闭",
     ar: "إغلاق حساب",
   },
+  "operations.owner.approvals.control.contract": {
+    en: "Template contract",
+    es: "Contrato de plantilla",
+    fr: "Contrat type",
+    de: "Vorlagenvertrag",
+    ja: "テンプレート契約",
+    pt: "Contrato de modelo",
+    zh: "模板合同",
+    ar: "عقد من قالب",
+  },
   "operations.owner.approvals.subject.versioned": {
     en: "{name}, version {version}",
     es: "{name}, versión {version}",

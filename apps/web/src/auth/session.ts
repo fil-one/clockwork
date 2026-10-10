@@ -429,6 +429,19 @@ function demoPersonaSession(persona: DemoPersona): CommerceSession {
   };
 }
 
+/**
+ * How recent a sign-in (the token's `auth_time`) or an MFA verification
+ * receipt must be for every action behind `requireRecentAuthentication`, here
+ * and in the API: approvals and self-approvals, price books, PAYG offers and
+ * the catalog, staff provisioning and role changes, capability switches,
+ * channel policy, providers, webhook replay, billing reconciliation, finance
+ * migrations, recovery, unhandled-error handling and termination teardown.
+ * Thirty minutes, raised from five: the platform is run by two people, and a
+ * five-minute window made them re-verify for nearly every decision. An MFA receipt still expires after eight hours (001438), so
+ * the window never outlives the verification it rests on.
+ */
+export const RECENT_AUTHENTICATION_WINDOW_MS = 30 * 60 * 1000;
+
 export async function requireRecentAuthentication(): Promise<CommerceSession> {
   const session = await getCommerceSession();
   if (!session.recentAuthenticationVerified)
@@ -683,10 +696,11 @@ async function workosCommerceSession(
     (typeof authTime === "number" &&
       Number.isFinite(authTime) &&
       Math.floor(Date.now() / 1000) >= authTime &&
-      Math.floor(Date.now() / 1000) - authTime <= 300) ||
+      Math.floor(Date.now() / 1000) - authTime <=
+        RECENT_AUTHENTICATION_WINDOW_MS / 1000) ||
     (receiptTime !== undefined &&
       receiptTime <= Date.now() &&
-      Date.now() - receiptTime <= 300_000);
+      Date.now() - receiptTime <= RECENT_AUTHENTICATION_WINDOW_MS);
   const accountIds = activeAssistedSession
     ? [activeAssistedSession.targetAccountId]
     : isInternalStaff
