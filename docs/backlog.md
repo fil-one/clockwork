@@ -1961,6 +1961,31 @@ detail lives in `docs/operations/commerce-mnda.md`,
   `supabase/tests/1462_commerce_handoff_requests.test.sql`,
   `packages/db/src/repositories/system/handoff-requests.integration.test.ts`,
   `apps/web/src/features/internal-ops/handoff/handoff.test.tsx`.
+- **Organization set-up by staff `[COMPLETE]`:** an internal operator or
+  commerce administrator (`operations:write`) creates a customer, channel
+  partner or referral partner organization at `/internal/organizations/new`,
+  from a handoff they are working or on its own, with legal name, country,
+  currency, business domain, registered address and billing contact. Partners
+  get `relationship_roles = {partner}` and an agreement type (`referral`, or
+  `resale`, `msp` or `embedded` for a channel partner), so the side the account
+  implies matches the organization. Self-registration and staff set-up share one
+  account-and-organization writer
+  (`packages/db/src/repositories/lifecycle/organization-onboarding.ts`). The
+  account stays in screening review, the organization is recorded on its handoff
+  (`handoff.organization_recorded`), and `organization.created` starts the
+  WorkOS organization as it does for a registration. Evidence:
+  `packages/db/src/repositories/lifecycle/organization-onboarding.integration.test.ts`,
+  `apps/web/src/features/internal-ops/organizations/organizations.test.tsx`.
+- **Partner self-registration `[COMPLETE]`:** `/register` hard-coded a customer
+  organization and an owner. A registration whose relationship is `partner` (and
+  not also `direct_client`) now creates a channel partner organization run by a
+  `partner_admin`. Evidence: the registration cases in
+  `packages/db/src/repositories/lifecycle/command-repository.integration.test.ts`.
+- **Partner agreement type defaults disagree `[OPEN]`:** a partner account with
+  no agreement type is a channel partner to `organization_side_from_account`
+  (001446) and a referral partner to the finance billing profile
+  (`packages/db/src/repositories/core/database-finance.ts`). Self-registered
+  partners have no agreement type; staff set-up always records one.
 - **Handoff notifications `[OPEN]`:** nobody is told when a request is raised or
   decided; operations watches the queue and the seller watches Home. A notice
   waits on a notification provider (`EXT-PROVIDER-01`).

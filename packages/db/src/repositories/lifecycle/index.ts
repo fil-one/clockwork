@@ -6,6 +6,7 @@ export * from "./deletion-certificates";
 export * from "./notification-branding";
 export * from "./notification-deliveries";
 export * from "./notification-preferences";
+export * from "./organization-onboarding";
 export * from "./schemas";
 
 import { DatabaseLifecycleAuthorizationScopeResolver } from "./authorization-scopes";

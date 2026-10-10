@@ -276,6 +276,12 @@ export const navigation: Readonly<
         keywords: ["handoff", "onboarding", "new customer", "new partner"],
       },
       {
+        href: "/internal/organizations",
+        label: "platform.nav.operations.organizations",
+        // i18n-exempt: search aliases matched in addition to the translated label; never displayed
+        keywords: ["organization", "customer", "partner", "invite"],
+      },
+      {
         href: "/internal/renewals",
         label: "nav.internal.renewals",
         requiredPermission: "report:read",

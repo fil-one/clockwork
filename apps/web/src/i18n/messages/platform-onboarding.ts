@@ -2,7 +2,7 @@ import { defineMessages } from "../define";
 
 /**
  * Bringing a new customer or partner into Commerce: the staff rail entries
- * for handoffs. Part of the platform module.
+ * for handoffs and organizations. Part of the platform module.
  */
 export const platformOnboardingMessages = defineMessages({
   "platform.nav.operations.handoffs": {
@@ -14,5 +14,15 @@ export const platformOnboardingMessages = defineMessages({
     pt: "Transferências",
     zh: "交接",
     ar: "التسليمات",
+  },
+  "platform.nav.operations.organizations": {
+    en: "Organizations",
+    es: "Organizaciones",
+    fr: "Organisations",
+    de: "Organisationen",
+    ja: "組織",
+    pt: "Organizações",
+    zh: "组织",
+    ar: "المؤسسات",
   },
 });

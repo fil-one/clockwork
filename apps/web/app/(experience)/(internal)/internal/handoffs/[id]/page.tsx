@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { HandoffDetailView } from "@/src/features/internal-ops/handoff/handoff-detail";
 import { loadHandoffDetail } from "@/src/features/internal-ops/handoff/server";
+import { HandoffOrganizationStep } from "@/src/features/internal-ops/organizations/organization-views";
 import { getRouteIdentity } from "@/src/features/shell/route-session";
 import { withStaffPermission } from "@/src/features/shell/staff-access";
 import { getTranslations } from "@/src/i18n/server";
@@ -23,12 +24,20 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
   ]);
   if (loaded.kind === "forbidden") notFound();
   if (loaded.kind === "unavailable") throw new Error("HANDOFF_UNAVAILABLE");
+  const { request, canWork } = loaded.value;
   return (
     <HandoffDetailView
-      request={loaded.value.request}
-      canWork={loaded.value.canWork}
+      request={request}
+      canWork={canWork}
       readerId={identity.userId}
-    />
+    >
+      <HandoffOrganizationStep
+        handoffId={request.id}
+        organizationId={request.organizationId}
+        status={request.status}
+        canWork={canWork}
+      />
+    </HandoffDetailView>
   );
 }
 

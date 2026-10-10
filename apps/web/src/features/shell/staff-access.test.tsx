@@ -150,6 +150,8 @@ describe("every staff route is guarded", () => {
     "pricing/page.tsx": "sales:read",
     "team/page.tsx": "staff:manage",
     "owner/page.tsx": "staff:manage",
+    // Creating an organization is operations work, not only reading.
+    "organizations/new/page.tsx": "operations:write",
   };
   function pages(directory: string): string[] {
     return readdirSync(directory).flatMap((name) => {

@@ -15,6 +15,7 @@ import {
   approvals,
   auditEvents,
   invites,
+  memberships,
   orders,
   organizations,
   outboxMessages,
@@ -1163,6 +1164,64 @@ describe("lifecycle registration tax identifiers", () => {
     expect(
       await persistedAccount(`tax-${suffix}.registrant.test`),
     ).toBeUndefined();
+  });
+
+  it("registers a partner as a channel partner run by a partner administrator", async () => {
+    // Registration hard-coded a customer organization and an owner, so a
+    // partner who registered landed in the customer portal with customer
+    // roles and no partner tools.
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const base = registration(suffix, []);
+    const result = await repository.executeInTransaction({
+      ...base,
+      payload: { ...base.payload, relationshipRoles: ["partner"] },
+    });
+    const rows = await withInternalTransaction(
+      db,
+      `partner-registrant-read-${suffix}`,
+      (tx) =>
+        tx
+          .select({
+            side: organizations.side,
+            role: memberships.role,
+            relationshipRoles: accounts.relationshipRoles,
+          })
+          .from(organizations)
+          .innerJoin(accounts, eq(accounts.id, organizations.accountId))
+          .innerJoin(
+            memberships,
+            eq(memberships.organizationId, organizations.id),
+          )
+          .where(eq(organizations.id, String(result.organizationId))),
+    );
+    expect(rows).toEqual([
+      {
+        side: "channel_partner",
+        role: "partner_admin",
+        relationshipRoles: ["partner"],
+      },
+    ]);
+  });
+
+  it("registers a direct client as the owner of a customer organization", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const result = await repository.executeInTransaction(
+      registration(suffix, []),
+    );
+    const [row] = await withInternalTransaction(
+      db,
+      `customer-registrant-read-${suffix}`,
+      (tx) =>
+        tx
+          .select({ side: organizations.side, role: memberships.role })
+          .from(organizations)
+          .innerJoin(
+            memberships,
+            eq(memberships.organizationId, organizations.id),
+          )
+          .where(eq(organizations.id, String(result.organizationId))),
+    );
+    expect(row).toEqual({ side: "customer", role: "owner" });
   });
 
   it("registers with no identifier and no verifier", async () => {

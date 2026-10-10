@@ -310,6 +310,9 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       // The operations board moved here from the staff landing page; it reads
       // the same projections the landing page read before.
       "/internal/operations",
+      // Customer and partner organizations operations sets up, read directly.
+      "/internal/organizations",
+      "/internal/organizations/new",
       // The owner console reads notices, controls and audit events directly.
       "/internal/owner",
       "/internal/payg-offers",
