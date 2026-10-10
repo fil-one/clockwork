@@ -94,6 +94,7 @@ import {
 import {
   explicitDemoIdentityEnabled,
   getCommerceSession,
+  RECENT_AUTHENTICATION_WINDOW_MS,
   requireRecentAuthentication,
   SessionExpiredError,
   WorkosNextSessionResolver,
@@ -692,6 +693,35 @@ describe("WorkOS commerce session mapping", () => {
       recentAuthenticationVerified: true,
     });
     authMocks.getTokenClaims.mockResolvedValue({ amr: ["mfa"], auth_time: 0 });
+    await expect(requireRecentAuthentication()).rejects.toThrow(
+      "Sensitive action requires recent authentication",
+    );
+  });
+
+  it("treats a sign-in or MFA receipt as recent for thirty minutes", async () => {
+    expect(RECENT_AUTHENTICATION_WINDOW_MS).toBe(30 * 60 * 1000);
+    const secondsAgo = (minutes: number) =>
+      Math.floor(Date.now() / 1000) - minutes * 60;
+    authMocks.getTokenClaims.mockResolvedValue({
+      amr: ["mfa"],
+      auth_time: secondsAgo(29),
+    });
+    await expect(requireRecentAuthentication()).resolves.toMatchObject({
+      recentAuthenticationVerified: true,
+    });
+    authMocks.getTokenClaims.mockResolvedValue({
+      amr: ["mfa"],
+      auth_time: secondsAgo(31),
+    });
+    await expect(requireRecentAuthentication()).rejects.toThrow(
+      "Sensitive action requires recent authentication",
+    );
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.findMfaReceipt.mockResolvedValue(Date.now() - 29 * 60_000);
+    await expect(requireRecentAuthentication()).resolves.toMatchObject({
+      recentAuthenticationVerified: true,
+    });
+    authMocks.findMfaReceipt.mockResolvedValue(Date.now() - 31 * 60_000);
     await expect(requireRecentAuthentication()).rejects.toThrow(
       "Sensitive action requires recent authentication",
     );

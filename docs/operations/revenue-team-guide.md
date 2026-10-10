@@ -26,9 +26,9 @@ and the operations groups.
 
 Commerce asks for the 6-digit code from your authenticator. A verification lasts
 eight hours, and sensitive actions may ask again if your last check is more than
-five minutes old. If a page reports a problem after you have been signed in for
-a while, choose **Verify sign-in**, enter a fresh code and try again. Lost your
-phone or authenticator? Ask a commerce administrator to reset your access.
+thirty minutes old. If a page reports a problem after you have been signed in
+for a while, choose **Verify sign-in**, enter a fresh code and try again. Lost
+your phone or authenticator? Ask a commerce administrator to reset your access.
 Nobody else can enroll a factor for you.
 
 ## Send an MNDA

@@ -93,8 +93,8 @@ The server selects the signed-in user's factor and stores a verification receipt
 bound to the verified WorkOS user, organization, and session IDs.
 
 Receipts expire after eight hours. Sensitive actions require authentication or a
-fresh MFA receipt within five minutes; `/access/mfa` can renew verification. The
-durable attempt budget permits five submissions per user per ten minutes,
+fresh MFA receipt within thirty minutes; `/access/mfa` can renew verification.
+The durable attempt budget permits five submissions per user per ten minutes,
 including submissions from different login sessions. Runtime database
 credentials cannot read or insert receipts; service credentials cannot update or
 delete them. Impersonated sessions cannot use the target user's receipt as actor
