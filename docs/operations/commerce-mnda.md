@@ -125,10 +125,11 @@ says so above the register when more match, and the response carries
 `x-mnda-export-truncated: true`.
 
 The open page refreshes the register every 15 seconds while the tab is visible.
-**Refresh** on a row reconciles a missed callback. SignWell sends automatic
-reminders, and expiry is 30 days. **Remind** names who is reminded: the partner,
-or the Fil One countersigner once the partner has signed. Manual reminders are a
-minute apart.
+**Refresh** on a row reconciles a missed callback at once; a scheduled task does
+the same for every open MNDA ([missed callbacks](#missed-callbacks)). SignWell
+sends automatic reminders, and expiry is 30 days. **Remind** names who is
+reminded: the partner, or the Fil One countersigner once the partner has signed.
+Manual reminders are a minute apart.
 
 ## After sending
 
@@ -264,6 +265,34 @@ walks a new seller through it.
 - Disabling the feature prevents provider operations. Originals and completed
   artifacts remain readable to authorized staff. Database backups retain
   evidence.
+
+### Missed callbacks
+
+The scheduled task `system.esign.reconcile.v1` runs every 15 minutes in staging
+and production, so a callback that never arrives is corrected within about 25
+minutes. Each run re-reads in SignWell every open MNDA bound to a SignWell
+document (preparing, sending, sent, opened, awaiting countersignature or needing
+attention) that has not changed for 10 minutes, oldest first, through the same
+refresh as the row's **Refresh** button and the callback. Template contract
+signings are included when `COMMERCE_CONTRACTS_SIGNING_ENABLED=true`. Unsent
+drafts, closed requests and documents deleted in SignWell are not read.
+
+- The refresh holds the request's lease, so it never runs alongside a callback
+  or a person's action on the same request. A request that is busy is left for
+  the next run.
+- Changes it applies are audited like a callback's, with the system actor
+  `esign-reconciliation`. Seeing that actor on recent changes means callbacks
+  are not arriving: check the SignWell callback URLs under
+  [Deployment](#deployment).
+- A run reads at most 50 MNDAs and 50 contracts, one at a time, starts nothing
+  after 150 seconds and stops at the first SignWell 429. A request that fails is
+  logged as `ESIGN_RECONCILE_FAILED` with its ID and error code and retried on
+  the next run; the others continue. `ESIGN_RECONCILE_CAPPED` means more stale
+  requests were waiting than one run reads.
+- The task needs no configuration of its own. It reads the same
+  `SIGNWELL_API_KEY`, `SIGNWELL_WEBHOOK_ID` and feature flags as sending, in the
+  container that hosts the tasks. Without them each run logs
+  `ESIGN_RECONCILE_SKIPPED` and does nothing.
 
 See [ADR 0011](../adr/0011-standalone-commerce-mnda.md) for boundaries and
 storage guarantees. Production acceptance requires a successful deployment plus
