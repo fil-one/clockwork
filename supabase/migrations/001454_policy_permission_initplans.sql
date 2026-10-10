@@ -27,10 +27,17 @@
 -- only the two application roles may execute app_context_is_valid, so for any
 -- other role the block turns a permission error into an empty claim.
 --
--- scripts/qualify-permission-upgrade.ts --unchanged-from 001454 proves every
--- persona reads and writes exactly the same rows before and after this
--- migration, and supabase/tests/1454_policy_initplans.test.sql keeps permission
--- tests out of the per-row path.
+-- scripts/qualify-permission-upgrade.ts --unchanged-from 001454 evaluates every
+-- rewritten policy's USING and WITH CHECK for every persona against every
+-- existing row before and after this migration and requires the same answers,
+-- and supabase/tests/1454_policy_initplans.test.sql keeps permission tests out
+-- of the per-row path.
+--
+-- ALTER POLICY takes an exclusive lock on each table until commit, so a long
+-- transaction on any of them fails this migration fast instead of queueing
+-- traffic behind it.
+
+set lock_timeout = '5s';
 
 alter policy guard_i_accounts_7a90e38a on public.accounts
   with check ((select app_has_permission('account:write'::text)));
@@ -422,3 +429,5 @@ alter policy guard_i_usage_events_f6c8fb56 on public.usage_events
 alter policy guard_u_usage_events_f6c8fb56 on public.usage_events
   using ((select app_has_permission('operations:write'::text)))
   with check ((select app_has_permission('operations:write'::text)));
+
+reset lock_timeout;
