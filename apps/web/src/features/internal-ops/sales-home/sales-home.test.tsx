@@ -163,10 +163,11 @@ describe("contract work on the home page", () => {
     );
     // A seller cannot approve, so no approval line.
     expect(
-      sections[1]?.rows?.map(({ id, mine, team, teamHref }) => ({
+      sections[1]?.rows?.map(({ id, mine, team, href, teamHref }) => ({
         id,
         mine,
         team,
+        href,
         teamHref,
       })),
     ).toEqual([
@@ -174,23 +175,29 @@ describe("contract work on the home page", () => {
         id: "contracts-needsAttention",
         mine: 0,
         team: 3,
+        href: "/internal/contracts?status=signing_attention&mine=1",
         teamHref: "/internal/contracts?status=signing_attention",
       },
       {
         id: "contracts-outForSignature",
         mine: 2,
         team: 5,
+        href: "/internal/contracts?status=out_for_signature&mine=1",
         teamHref: "/internal/contracts?status=out_for_signature",
       },
     ]);
   });
 
   it("puts approvals first for someone who can approve", () => {
-    expect(contractHomeRows(contractCounts, true)[0]).toMatchObject({
+    const [approvals] = contractHomeRows(contractCounts, true);
+    expect(approvals).toMatchObject({
       id: "contracts-awaitingApproval",
       mine: 1,
       teamHref: "/internal/contracts?status=signing_approval",
     });
+    // "Mine" here is what others prepared for this reader to decide, which
+    // no register filter lists.
+    expect(approvals?.href).toBeUndefined();
   });
 
   it("shows nothing new to a reader without contract permissions", async () => {

@@ -41,6 +41,8 @@ interface Fixture {
   value?: { minor: number; currency: "USD" | "EUR" | "GBP" };
   pricingNotes?: string;
   ownerName: string;
+  /** Who recorded it, when not the owner. */
+  createdBy?: string;
   internalNotes?: string;
   tags?: string[];
   /** Days before today the record was last changed. */
@@ -137,6 +139,7 @@ const fixtures: readonly Fixture[] = [
     initialTermMonths: 12,
     autoRenew: false,
     ownerName: "Jonah Pike",
+    createdBy: "Priya Raman",
     tags: ["integration"],
     updatedDaysAgo: 30,
   },
@@ -190,6 +193,14 @@ const fixtures: readonly Fixture[] = [
   },
 ];
 
+/** Who recorded each fixture, for "recorded by me": the seller persona and
+ * the colleagues the demo MNDA register names. */
+const creatorIds: Readonly<Record<string, string>> = {
+  "Priya Raman": "21000000-0000-4000-8000-000000000010",
+  "Jonah Pike": "61000000-0000-4000-8000-000000000101",
+  "Sofia Marchetti": "61000000-0000-4000-8000-000000000102",
+};
+
 const day = 86_400_000;
 const contractId = (key: number) =>
   `62000000-0000-4000-8000-${String(key).padStart(12, "0")}`;
@@ -237,7 +248,7 @@ function contract(fixture: Fixture, now: Date, today: string): ContractRecord {
       fixture.status === "executed" && effectiveDate
         ? `${effectiveDate}T16:00:00.000Z`
         : null,
-    createdByName: fixture.ownerName,
+    createdByName: fixture.createdBy ?? fixture.ownerName,
     createdAt: stamp(now, fixture.updatedDaysAgo + 21),
     updatedAt,
     version: fixture.status === "executed" ? 2 : 1,
@@ -332,9 +343,11 @@ function filtered(
   rows: ContractListRow[],
   query: Omit<ContractListQuery, "page">,
   today: string,
+  mine: (row: ContractListRow) => boolean,
 ) {
   const needle = query.q.toLowerCase();
   return rows.filter((row) => {
+    if (query.mine && !mine(row)) return false;
     if (
       needle &&
       ![row.counterpartyName, row.title, row.ownerName, ...row.tags].some(
@@ -366,6 +379,28 @@ export function demoContractRegister(now: Date, viewer: DemoMndaViewer) {
     ...records().map(listRow),
     ...(scope.includeMndas ? mndaRows(now, viewer) : []),
   ];
+  // Who recorded each row: a fixture's owner, or the MNDA's sender.
+  const creators = new Map<string, string>([
+    ...records().map(
+      (record) => [record.id, creatorIds[record.createdByName] ?? ""] as const,
+    ),
+    ...demoMndaRecords(viewer, now).map(
+      (record) => [record.id, record.ownerId] as const,
+    ),
+  ]);
+  const matching = (
+    query: Omit<ContractListQuery, "page">,
+    scope: ContractListScope,
+  ) =>
+    ordered(
+      filtered(
+        rows(scope),
+        query,
+        today,
+        (row) => creators.get(row.id) === scope.viewerId,
+      ),
+      query,
+    );
   const executedNotices = () =>
     records()
       .map(listRow)
@@ -376,11 +411,11 @@ export function demoContractRegister(now: Date, viewer: DemoMndaViewer) {
       _asOf: string,
       scope: ContractListScope,
     ): Promise<ContractListResult> {
-      const matching = ordered(filtered(rows(scope), query, today), query);
+      const found = matching(query, scope);
       const start = (query.page - 1) * contractPageSize;
       return Promise.resolve({
-        rows: matching.slice(start, start + contractPageSize),
-        total: matching.length,
+        rows: found.slice(start, start + contractPageSize),
+        total: found.length,
         page: query.page,
         pageSize: contractPageSize,
       });
@@ -390,10 +425,10 @@ export function demoContractRegister(now: Date, viewer: DemoMndaViewer) {
       _asOf: string,
       scope: ContractListScope,
     ) {
-      const matching = ordered(filtered(rows(scope), query, today), query);
+      const found = matching(query, scope);
       return Promise.resolve({
-        rows: matching.slice(0, contractExportLimit),
-        truncated: matching.length > contractExportLimit,
+        rows: found.slice(0, contractExportLimit),
+        truncated: found.length > contractExportLimit,
       });
     },
     noticesPassed(_asOf: string) {

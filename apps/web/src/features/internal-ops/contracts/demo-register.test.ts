@@ -69,9 +69,13 @@ describe("demo contract register", () => {
 
   it("filters, sorts and pages like the repository and joins signed MNDAs", async () => {
     const register = demoContractRegister(now, viewer);
-    const all = await register.list(query(), today, { includeMndas: true });
+    const all = await register.list(query(), today, {
+      includeMndas: true,
+      viewerId: viewer.id,
+    });
     const withoutMndas = await register.list(query(), today, {
       includeMndas: false,
+      viewerId: viewer.id,
     });
     expect(all.total).toBe(withoutMndas.total + 3);
     // The reader's own signed MNDA carries the reader's name, never a blank.
@@ -87,22 +91,65 @@ describe("demo contract register", () => {
     const negotiating = await register.list(
       query({ status: "in_negotiation" }),
       today,
-      { includeMndas: true },
+      { includeMndas: true, viewerId: viewer.id },
     );
     expect(negotiating.rows.map((row) => row.counterpartyName)).toEqual([
       "Halden Archives AS",
     ]);
     const search = await register.list(query({ q: "pilot" }), today, {
       includeMndas: false,
+      viewerId: viewer.id,
     });
     expect(search.rows.map((row) => row.title)).toEqual(["Pilot order form"]);
     const byNotice = await register.list(query({ sort: "notice" }), today, {
       includeMndas: false,
+      viewerId: viewer.id,
     });
     expect(byNotice.rows[0]?.counterpartyName).toBe(
       "Brightwater Systems Integrators Ltd",
     );
     expect(byNotice.rows.at(-1)?.noticeDeadline).toBeNull();
+  });
+
+  it("narrows to what the reader recorded, whoever the owner is, and the MNDAs they sent", async () => {
+    const register = demoContractRegister(now, viewer);
+    const scope = { includeMndas: true, viewerId: viewer.id };
+    const mine = await register.list(query({ mine: "1" }), today, scope);
+    expect(mine.rows.some((row) => row.source === "mnda")).toBe(true);
+    // Every contract listed was recorded by the reader, judged by its
+    // creator rather than the free-text owner.
+    const contracts = mine.rows.filter((row) => row.source === "register");
+    for (const row of contracts)
+      expect((await register.get(row.id, today)).contract.createdByName).toBe(
+        "Priya Raman",
+      );
+    // Recorded by the reader for a colleague: listed under the reader.
+    expect(
+      contracts.find((row) => row.counterpartyName === "Pinecrest Mapping Co."),
+    ).toMatchObject({ ownerName: "Jonah Pike" });
+    const exported = await register.exportRows(
+      query({ mine: "1" }),
+      today,
+      scope,
+    );
+    expect(exported.rows).toHaveLength(mine.total);
+    // The owner named on the contract does not see it as theirs; they see
+    // what they recorded, here their own Pinecrest MNDA.
+    const jonah = await register.list(query({ mine: "1" }), today, {
+      ...scope,
+      viewerId: "61000000-0000-4000-8000-000000000101",
+    });
+    expect(jonah.total).toBeGreaterThan(0);
+    expect(
+      jonah.rows
+        .filter((row) => row.counterpartyName === "Pinecrest Mapping Co.")
+        .map((row) => row.source),
+    ).toEqual(["mnda"]);
+    const someoneElse = await register.list(query({ mine: "1" }), today, {
+      ...scope,
+      viewerId: "21000000-0000-4000-8000-000000000099",
+    });
+    expect(someoneElse.total).toBe(0);
   });
 
   it("opens a record with its history and reports an unknown one missing", async () => {

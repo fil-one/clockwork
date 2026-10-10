@@ -34,22 +34,28 @@ const rows: readonly { group: Group; title: MessageId; hint: MessageId }[] = [
   },
 ];
 
-/** The register has no "mine" filter, so only the team count links, to
- * exactly the rows it counted. */
+/** Each count links to exactly the rows it counted. "Mine" opens the
+ * register's "recorded by me" filter, except for approvals: there the reader's
+ * count is what others prepared for them to decide, which no register filter
+ * expresses, so only the team count links. */
 export function contractHomeRows(
   counts: SalesHomeContractCounts,
   canApprove: boolean,
 ): SalesHomeRow[] {
   return rows
     .filter(({ group }) => canApprove || group !== "awaitingApproval")
-    .map(({ group, title, hint }) => ({
-      id: `contracts-${group}`,
-      title,
-      hint,
-      mine: counts[group].mine,
-      team: counts[group].team,
-      teamHref: `/internal/contracts?status=${contractHomeStatusFilters[group]}`,
-    }));
+    .map(({ group, title, hint }) => {
+      const teamHref = `/internal/contracts?status=${contractHomeStatusFilters[group]}`;
+      return {
+        id: `contracts-${group}`,
+        title,
+        hint,
+        mine: counts[group].mine,
+        team: counts[group].team,
+        ...(group === "awaitingApproval" ? {} : { href: `${teamHref}&mine=1` }),
+        teamHref,
+      };
+    });
 }
 
 export const contractHomeSource: SalesHomeSource = {

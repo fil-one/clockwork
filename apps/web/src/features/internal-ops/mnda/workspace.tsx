@@ -580,6 +580,18 @@ export function MndaWorkspace({
                               {t("operations.mnda.openPdf")}
                             </a>
                           )}
+                          {r.state === "completed" &&
+                          data.canRecordContracts ? (
+                            <a
+                              className={buttonClassName({
+                                variant: "quiet",
+                                size: "small",
+                              })}
+                              href={`/internal/contracts/new?mnda=${r.id}`}
+                            >
+                              {t("operations.contracts.action.record")}
+                            </a>
+                          ) : null}
                           {unsentStates.includes(r.state) ? (
                             <Button
                               variant="secondary"

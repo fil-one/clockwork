@@ -1,5 +1,9 @@
 import "server-only";
-import { MndaRegisterQuerySchema, type MndaResult } from "@clockwork/contracts";
+import {
+  contextHasPermission,
+  MndaRegisterQuerySchema,
+  type MndaResult,
+} from "@clockwork/contracts";
 import { getRequestCommerceSession } from "@/src/auth/session";
 import type { MndaSettingsData, MndaWorkspaceData } from "./actions";
 import { demoMndaViewer, demoMndaWorkspaceData } from "./demo-workspace";
@@ -31,6 +35,7 @@ export async function mndaWorkspaceData(
     ...mndaConfiguration(),
     canManage: mndaCanManage(session),
     viewerId: session.userId,
+    canRecordContracts: contextHasPermission(session, "contract:write"),
   };
 }
 

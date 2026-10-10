@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   },
   library: { create: vi.fn(), update: vi.fn() },
   registry: vi.fn(),
+  mnda: { duplicates: vi.fn(), contractDuplicates: vi.fn() },
 }));
 vi.mock("@/src/auth/session", () => ({
   getCommerceSession: mocks.session,
@@ -39,8 +40,10 @@ vi.mock("./server", async (original) => ({
   salesLibraryRepository: () => mocks.library,
   contractTemplateRegistry: mocks.registry,
 }));
+vi.mock("../mnda/server", () => ({ mndaRepository: () => mocks.mnda }));
 import {
   decideContract,
+  findContractDuplicates,
   operateContract,
   prepareContract,
   removeContractFile,
@@ -187,6 +190,70 @@ describe("saveContract", () => {
     await expect(
       saveContract({ contract: fixtureContractInput, expectedVersion: 1 }),
     ).resolves.toEqual({ ok: false, code: "UNEXPECTED" });
+  });
+});
+
+describe("findContractDuplicates", () => {
+  const mndaMatch = {
+    id: "019a44ac-0000-7000-8000-0000000000e1",
+    company: "Bluefin Data Co.",
+    state: "completed",
+    createdAt: "2026-09-01T00:00:00.000Z",
+    completedAt: "2026-09-02T00:00:00.000Z",
+    ownerName: "Seller",
+  };
+  const contractMatch = {
+    id: contractId,
+    counterpartyName: "BLUEFIN DATA, Inc.",
+    contractType: "order_form",
+    status: "executed",
+    effectiveDate: "2026-03-01",
+    ownerName: "Morgan Lee",
+  };
+  beforeEach(() => {
+    mocks.mnda.duplicates.mockResolvedValue([mndaMatch]);
+    mocks.mnda.contractDuplicates.mockResolvedValue([contractMatch]);
+  });
+
+  it("runs the MNDA register's check for the counterparty being recorded", async () => {
+    as("revenue");
+    await expect(
+      findContractDuplicates({
+        counterpartyName: " Bluefin Data Co ",
+        excludeMndaId: mndaMatch.id,
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      value: { mndas: [mndaMatch], contracts: [contractMatch] },
+    });
+    expect(mocks.mnda.duplicates).toHaveBeenCalledWith(
+      "Bluefin Data Co",
+      mndaMatch.id,
+    );
+    expect(mocks.mnda.contractDuplicates).toHaveBeenCalledWith(
+      "Bluefin Data Co",
+    );
+    // A warning only: nothing is written.
+    expect(mocks.repository.create).not.toHaveBeenCalled();
+  });
+
+  it("lists MNDAs only to people who may open the MNDA register", async () => {
+    as("revenue", { permissions: ["contract:read", "contract:write"] });
+    await expect(
+      findContractDuplicates({ counterpartyName: "Bluefin" }),
+    ).resolves.toEqual({
+      ok: true,
+      value: { mndas: [], contracts: [contractMatch] },
+    });
+    expect(mocks.mnda.duplicates).not.toHaveBeenCalled();
+  });
+
+  it("refuses a reader who cannot record contracts", async () => {
+    as("finance_approver");
+    await expect(
+      findContractDuplicates({ counterpartyName: "Bluefin" }),
+    ).resolves.toEqual({ ok: false, code: "CONTRACT_FORBIDDEN" });
+    expect(mocks.mnda.contractDuplicates).not.toHaveBeenCalled();
   });
 });
 

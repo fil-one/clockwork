@@ -26,7 +26,6 @@ import {
   prepareMnda,
   type MndaDuplicates,
 } from "./actions";
-import { contractStatusLabels, contractTypeLabels } from "../contracts/copy";
 import {
   detailsModes,
   fieldLabels,
@@ -39,9 +38,10 @@ import {
   type MndaFormValues,
   valuesFromRecord,
 } from "./form-model";
-import { mndaErrorLabels, mndaStateLabels } from "./labels";
+import { mndaErrorLabels } from "./labels";
 import { formatMndaDate } from "./format";
 import { mndaPdfHref } from "./register";
+import { DuplicateWarning, noDuplicateMatches } from "./duplicate-warning";
 import { SessionExpiredReload } from "../session-expiry";
 import styles from "./workspace.module.css";
 
@@ -58,104 +58,6 @@ const draftStates = ["draft", "preparing", "ready", "sending"];
 export type ComposerStart =
   | { kind: "form"; values: MndaFormValues }
   | { kind: "preview"; record: MndaRecord };
-
-const noMatches: MndaDuplicates = { mndas: [], contracts: [] };
-
-function DuplicateWarning({ matches }: { matches: MndaDuplicates }) {
-  return (
-    <>
-      <MndaMatches matches={matches.mndas} />
-      <ContractMatches matches={matches.contracts} />
-    </>
-  );
-}
-
-function MndaMatches({ matches }: { matches: MndaDuplicates["mndas"] }) {
-  const t = useTranslations();
-  const locale = useFormattingLocale();
-  if (!matches.length) return null;
-  return (
-    <StateBanner
-      tone="warning"
-      live="polite"
-      className={styles.inlineBanner ?? ""}
-      title={t("operations.mnda.duplicate.title")}
-      description={
-        <ul className={styles.matchList}>
-          {matches.map((match) => (
-            <li key={match.id}>
-              <a
-                href={`/internal/mndas?q=${encodeURIComponent(match.company)}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {match.company}
-              </a>{" "}
-              {t("operations.mnda.duplicate.detail", {
-                status: t(mndaStateLabels[match.state]),
-                date: formatMndaDate(
-                  match.completedAt ?? match.createdAt,
-                  locale,
-                ),
-                owner: match.ownerName,
-              })}
-            </li>
-          ))}
-        </ul>
-      }
-    />
-  );
-}
-
-/** Register contracts with the same company, NDAs or any other type. */
-function ContractMatches({
-  matches,
-}: {
-  matches: MndaDuplicates["contracts"];
-}) {
-  const t = useTranslations();
-  const locale = useFormattingLocale();
-  if (!matches.length) return null;
-  return (
-    <StateBanner
-      tone="warning"
-      live="polite"
-      className={styles.inlineBanner ?? ""}
-      title={t("operations.mnda.duplicate.contractsTitle")}
-      description={
-        <ul className={styles.matchList}>
-          {matches.map((match) => {
-            const values = {
-              type: t(contractTypeLabels[match.contractType]),
-              status: t(contractStatusLabels[match.status]),
-              owner: match.ownerName,
-            };
-            return (
-              <li key={match.id}>
-                <a
-                  href={`/internal/contracts/${match.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {match.counterpartyName}
-                </a>{" "}
-                {match.effectiveDate
-                  ? t("operations.mnda.duplicate.contractDetail", {
-                      ...values,
-                      date: formatMndaDate(match.effectiveDate, locale),
-                    })
-                  : t(
-                      "operations.mnda.duplicate.contractDetailUndated",
-                      values,
-                    )}
-              </li>
-            );
-          })}
-        </ul>
-      }
-    />
-  );
-}
 
 /** The new-MNDA form and its preview. Editing a preview reopens the filled
  * form; the next preview replaces the previous unsent draft. */
@@ -191,7 +93,7 @@ export function MndaComposer({
   const [fieldErrors, setFieldErrors] = useState<MndaFieldError[]>([]);
   const [failure, setFailure] = useState<MndaErrorCode | null>(null);
   const [busy, setBusy] = useState<"preview" | "send" | "discard" | null>(null);
-  const [matches, setMatches] = useState<MndaDuplicates>(noMatches);
+  const [matches, setMatches] = useState<MndaDuplicates>(noDuplicateMatches);
   // One id per form session: a retried preview reuses it, so a lost response
   // cannot create a second draft.
   const formId = useRef(crypto.randomUUID());
@@ -201,16 +103,25 @@ export function MndaComposer({
   const excludeId = preview?.id ?? supersedes;
   useEffect(() => {
     if (company.trim().length < 2) {
-      setMatches(noMatches);
+      setMatches(noDuplicateMatches);
       return;
     }
+    // A response for a name the seller has since changed is dropped.
+    let live = true;
     const timer = setTimeout(() => {
       void findMndaDuplicates({
         company,
         ...(excludeId ? { excludeId } : {}),
-      }).then((result) => setMatches(result.ok ? result.value : noMatches));
+      })
+        .then((result) => {
+          if (live) setMatches(result.ok ? result.value : noDuplicateMatches);
+        })
+        .catch(() => {});
     }, 400);
-    return () => clearTimeout(timer);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [company, excludeId]);
   useEffect(() => heading.current?.focus(), [preview]);
 

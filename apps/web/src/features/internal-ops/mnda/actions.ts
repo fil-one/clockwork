@@ -41,6 +41,8 @@ export interface MndaWorkspaceData {
   testMode: boolean;
   canManage: boolean;
   viewerId: string;
+  /** May record a contract from a signed MNDA. */
+  canRecordContracts?: boolean;
   /** Fictional demo records; nothing can be prepared, sent or changed. */
   demo?: boolean;
 }

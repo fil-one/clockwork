@@ -1783,9 +1783,10 @@ detail lives in `docs/operations/commerce-mnda.md`,
   no **Fix email** or **Someone else will sign**. A bounced counterparty email
   shows "A signer's email may have bounced" and points the reader to SignWell or
   a commerce administrator; the in-Commerce path is void and prepare again.
-- **Contract register "mine" filter `[OPEN]`:** the register filters by type,
-  status and window but not by owner. The home page therefore links only the
-  team count for contract rows
+- **Contract register "mine" filter `[COMPLETE]`:** **Recorded by me** lists
+  what the reader recorded or prepared and the MNDAs they sent, and the home
+  page links its own needs-attention and out-for-signature counts to it, while
+  approvals awaiting the reader's decision link only the team count
   (`apps/web/src/features/internal-ops/sales-home/contract-source.ts`).
 - **Counterparty paper for Fil One signature `[OPEN]`:** a partner's own PDF can
   be recorded with its redlines but not sent through SignWell for the Fil One

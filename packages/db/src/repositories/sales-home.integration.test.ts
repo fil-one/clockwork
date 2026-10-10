@@ -229,7 +229,7 @@ it("counts contract work for one reader in a single read, matching the register 
         q: run,
       }),
       "2026-10-09",
-      { includeMndas: false },
+      { includeMndas: false, viewerId: seller.id },
     );
     expect(listed.total).toBe(total);
   }

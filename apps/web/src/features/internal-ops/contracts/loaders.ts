@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import {
   ContractListQuerySchema,
   contractRenewalWindows,
@@ -8,6 +9,7 @@ import {
 import { contractToday } from "@clockwork/domain/contract-terms";
 import { getRequestCommerceSession } from "@/src/auth/session";
 import { demoNow } from "@/src/features/experience-server/demo-clock";
+import { mndaRepository } from "../mnda/server";
 import { contractReader, contractRegisterReader } from "./demo-access";
 import {
   ContractAccessError,
@@ -54,9 +56,11 @@ const permissions = (session: ContractStaffSession) => ({
   canApprove: sessionHas(session, "contract:approve"),
 });
 
-/** Signed MNDAs join the register only for people who may open MNDAs. */
+/** Signed MNDAs join the register only for people who may open MNDAs.
+ * "Recorded by me" is the signed-in reader. */
 export const listScope = (session: ContractStaffSession) => ({
   includeMndas: sessionHas(session, "mnda:send"),
+  viewerId: session.userId,
 });
 
 export function loadRegister(
@@ -163,12 +167,45 @@ export function loadPrepare(templateId: string) {
   });
 }
 
-export function loadContractForm(id?: string) {
+/** A signed MNDA the reader may open in the MNDA register, to start a
+ * contract with the same counterparty. Any other id starts an empty form. */
+export interface ContractFormMnda {
+  id: string;
+  company: string;
+  signerName: string;
+  /** The UTC day the MNDA was fully signed. */
+  signedOn: string;
+}
+
+async function signedMnda(
+  session: ContractStaffSession,
+  id: string | undefined,
+): Promise<ContractFormMnda | null> {
+  if (!id || !z.uuid().safeParse(id).success) return null;
+  if (!sessionHas(session, "mnda:send")) return null;
+  try {
+    const record = await mndaRepository().get(id);
+    if (record.state !== "completed") return null;
+    return {
+      id: record.id,
+      company: record.input.company,
+      signerName: record.input.signerName,
+      signedOn: (record.completedAt ?? record.updatedAt).slice(0, 10),
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message === "MNDA_NOT_FOUND")
+      return null;
+    throw error;
+  }
+}
+
+export function loadContractForm(id?: string, mndaId?: string) {
   return loadWith("contract:write", async (session) => ({
     ownerName: session.profile.name,
     today: contractToday(demoNow()),
     contract: id
       ? (await contractRepository().get(id, contractToday(demoNow()))).contract
       : null,
+    mnda: id ? null : await signedMnda(session, mndaId),
   }));
 }

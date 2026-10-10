@@ -378,6 +378,9 @@ export const ContractListQuerySchema = z.object({
     firstValue,
     z.enum(["asc", "desc"]).optional().catch(undefined),
   ),
+  /** Only contracts the reader recorded or prepared ("recorded by me"),
+   * whoever the free-text owner is. */
+  mine: z.preprocess((value) => firstValue(value) === "1", z.boolean()),
   page: z.preprocess(
     (value) => Number(firstValue(value) ?? 1),
     z.number().int().min(1).max(10_000).catch(1),

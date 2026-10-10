@@ -39,6 +39,7 @@ function renderRegister(
   patch: {
     q?: string;
     status?: string;
+    mine?: string;
     total?: number;
     canWrite?: boolean;
     canOpenMndas?: boolean;
@@ -49,7 +50,12 @@ function renderRegister(
     <RegisterView
       t={t}
       locale="en-US"
-      query={query({ q: patch.q, page: patch.page, status: patch.status })}
+      query={query({
+        q: patch.q,
+        page: patch.page,
+        status: patch.status,
+        mine: patch.mine,
+      })}
       result={{
         rows,
         total: patch.total ?? rows.length,
@@ -149,6 +155,32 @@ describe("contract register", () => {
       "href",
       "/internal/contracts/export?q=blue",
     );
+  });
+
+  it("keeps the reader's own filter in its form, links and export", () => {
+    const { unmount } = renderRegister([row()], {
+      status: "out_for_signature",
+      mine: "1",
+      total: 60,
+    });
+    expect(
+      screen.getByRole("checkbox", { name: "Recorded by me" }),
+    ).toBeChecked();
+    expect(screen.getByRole("link", { name: "Next" })).toHaveAttribute(
+      "href",
+      "/internal/contracts?status=out_for_signature&mine=1&page=2",
+    );
+    expect(screen.getByRole("link", { name: "Export CSV" })).toHaveAttribute(
+      "href",
+      "/internal/contracts/export?status=out_for_signature&mine=1",
+    );
+    unmount();
+    // Nothing of the reader's own is a filtered result, not an empty register.
+    renderRegister([], { mine: "1" });
+    expect(
+      screen.getByText("No contracts match these filters"),
+    ).toBeInTheDocument();
+    expect(query({ mine: "yes" }).mine).toBe(false);
   });
 
   it("builds short links", () => {

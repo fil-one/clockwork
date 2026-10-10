@@ -7,6 +7,8 @@ import {
   ContractVoidSchema,
   contractPdfFileName,
 } from "@clockwork/contracts";
+import { mndaRepository } from "../mnda/server";
+import type { MndaDuplicates } from "../mnda/actions";
 import { attempt } from "./action-result";
 import { prepareInputSchema } from "./prepare-input";
 import {
@@ -44,6 +46,34 @@ export async function saveContract(raw: unknown) {
       actor,
     );
     return { id: input.id, version };
+  });
+}
+
+/**
+ * Earlier MNDAs and register contracts for the same counterparty, matched
+ * with the MNDA register's company normalizer, so a seller recording a
+ * contract sees what already exists. A warning only: saving never waits on
+ * it. MNDAs are listed only to people who may open the MNDA register.
+ */
+export async function findContractDuplicates(raw: unknown) {
+  return attempt(async (): Promise<MndaDuplicates> => {
+    const session = await contractStaff("contract:write");
+    const { counterpartyName, excludeMndaId } = z
+      .object({
+        counterpartyName: z.string().trim().max(200),
+        // The signed MNDA the contract starts from is not a duplicate.
+        excludeMndaId: z.uuid().optional(),
+      })
+      .strict()
+      .parse(raw);
+    const repository = mndaRepository();
+    const [mndas, contracts] = await Promise.all([
+      sessionHas(session, "mnda:send")
+        ? repository.duplicates(counterpartyName, excludeMndaId)
+        : [],
+      repository.contractDuplicates(counterpartyName),
+    ]);
+    return { mndas, contracts };
   });
 }
 
