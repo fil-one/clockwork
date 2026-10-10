@@ -1,9 +1,36 @@
+# Pre-commit checks only the staged files. `pnpm verify:static` and CI run the
+# same tools across the whole repository.
+#
+# The hooks run lefthook through scripts/lefthook.sh, which passes
+# --no-stage-fixed so lefthook never stashes unstaged changes; every worktree
+# shares the git stash. Lefthook embeds this value in the generated hook inside
+# `test -n "..."`, so it must not contain double quotes. A worktree on a branch
+# that predates scripts/lefthook.sh shares this hook, so it falls back to plain
+# lefthook there instead of failing to commit.
+lefthook:
+  sh -c 'test -f scripts/lefthook.sh || exec node_modules/.bin/lefthook $*; exec
+  sh scripts/lefthook.sh $*' lefthook
+glob_matcher: doublestar
+
 pre-commit:
   parallel: true
   commands:
+    # Prettier and secretlint read the staged content of each file.
     format:
-      run: pnpm format:check
+      run: sh scripts/check-staged.sh format
     secrets:
-      run: pnpm scan:secrets
+      run: sh scripts/check-staged.sh secrets
+    # ESLint's type-aware rules need the project on disk, so it reads the
+    # working-tree copy of each staged file.
     lint:
-      run: pnpm lint
+      glob: "**/*.{ts,tsx,js,mjs,cjs}"
+      exclude:
+        - "apps/web/**"
+      run: pnpm exec eslint --max-warnings=0 --no-warn-ignored {staged_files}
+    lint-web:
+      # Type-aware rules read Next's generated route types (typedRoutes), so
+      # regenerate them first. typegen takes a few seconds.
+      glob: "apps/web/**/*.{ts,tsx,js,mjs,cjs}"
+      run:
+        pnpm --filter @clockwork/web exec next typegen && pnpm exec eslint
+        --max-warnings=0 --no-warn-ignored {staged_files}

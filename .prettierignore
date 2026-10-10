@@ -11,6 +11,8 @@ deno.lock
 .github/CODEOWNERS
 # OpenTofu provider caches under deploy/, present after a local `make init`.
 **/.terraform/**
+# Agent worktrees are full checkouts of other branches.
+.claude/worktrees/**
 
 # Framework-managed instructions are regenerated verbatim by Next.js.
 apps/showcase/AGENTS.md
