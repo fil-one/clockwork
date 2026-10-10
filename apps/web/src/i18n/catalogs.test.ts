@@ -12,7 +12,12 @@ import {
 
 import { formatMoney } from "@/src/features/shared/format";
 
-import { catalogs, messageModules, translatorFor } from "./catalogs";
+import {
+  browserCatalogs,
+  catalogs,
+  messageModules,
+  translatorFor,
+} from "./catalogs";
 import {
   defineStaffMessages,
   isPluralMessage,
@@ -34,7 +39,7 @@ import { experienceDataMessages } from "./messages/experience-data";
 import { operationsMessages } from "./messages/operations";
 import { operationsFinanceMessages } from "./messages/operations-finance";
 import { laneModules, laneOf } from "./ownership";
-import type { CatalogEntry } from "./translator";
+import { createTranslator, type CatalogEntry } from "./translator";
 
 const translated = locales.filter(
   (locale): locale is Exclude<Locale, "en"> => locale !== "en",
@@ -148,6 +153,32 @@ describe("staff-only modules", () => {
       "operations.translated": { en: "Example", es: "Ejemplo" },
     });
     expect(true).toBe(true);
+  });
+});
+
+describe("catalogs sent to the browser", () => {
+  it("leave staff-only entries out of every language but English", () => {
+    expect(browserCatalogs.en).toBe(catalogs.en);
+    for (const locale of translated) {
+      const sent = browserCatalogs[locale] as Readonly<
+        Record<string, CatalogEntry>
+      >;
+      expect(Object.keys(sent).sort(), locale).toEqual(
+        [...localizedIds].sort(),
+      );
+      for (const id of localizedIds)
+        expect(sent[id], `${locale} ${id}`).toBe(
+          catalogs[locale][id as keyof typeof catalogs.en],
+        );
+    }
+  });
+
+  it("translate reader messages as the server catalog does", () => {
+    const sent = createTranslator(browserCatalogs.ja, "ja");
+    expect(sent("common.results", { count: 1 })).toBe(
+      translatorFor("ja")("common.results", { count: 1 }),
+    );
+    expect(sent("operations.cases", { count: 1 })).toBe("operations.cases");
   });
 });
 

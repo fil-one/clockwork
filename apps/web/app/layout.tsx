@@ -1,6 +1,6 @@
 import { documentLanguages, rtlLocales } from "@/src/i18n";
 import { LanguageProvider } from "@/src/i18n/client";
-import { catalogs, translatorFor } from "@/src/i18n/catalogs";
+import { browserCatalogs, translatorFor } from "@/src/i18n/catalogs";
 import { getLocale, getReaderLocale, getTranslations } from "@/src/i18n/server";
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
@@ -59,7 +59,8 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  // The provider carries the reader's language. Staff routes switch their own
+  // The provider carries the reader's language, without staff-only entries
+  // unless the reader's language is English. Staff routes switch their own
   // subtree to English (`StaffLanguage` in `(internal)/layout.tsx`), so a
   // client-side navigation that keeps this layout never carries one surface's
   // language to the other. `<html lang dir>` starts as the requested route's.
@@ -87,7 +88,7 @@ export default async function RootLayout({
       className={brandFontVariables}
     >
       <body>
-        <LanguageProvider locale={locale} catalog={catalogs[locale]}>
+        <LanguageProvider locale={locale} catalog={browserCatalogs[locale]}>
           {children}
           {persona ? (
             <DemoPersonaSwitcher

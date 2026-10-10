@@ -1,13 +1,18 @@
 "use client";
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import type { MessageCatalog, Translator } from "./catalogs";
+import type {
+  MessageCatalog,
+  MessageId,
+  ReaderCatalog,
+  Translator,
+} from "./catalogs";
 import { formattingLocales, type Locale } from "./locales";
 import { createTranslator } from "./translator";
 
 interface Language {
   locale: Locale;
-  catalog: MessageCatalog;
+  catalog: MessageCatalog | ReaderCatalog;
 }
 
 const LanguageContext = createContext<Language | null>(null);
@@ -30,7 +35,7 @@ export function LanguageProvider({
   children,
 }: {
   locale: Locale;
-  catalog: MessageCatalog;
+  catalog: MessageCatalog | ReaderCatalog;
   children: ReactNode;
 }) {
   const value = useMemo(() => ({ locale, catalog }), [locale, catalog]);
@@ -61,5 +66,8 @@ export function useFormattingLocale(): string {
 
 export function useTranslations(): Translator {
   const { catalog, locale } = useLanguage();
-  return useMemo(() => createTranslator(catalog, locale), [catalog, locale]);
+  return useMemo(
+    () => createTranslator<MessageId>(catalog, locale),
+    [catalog, locale],
+  );
 }
