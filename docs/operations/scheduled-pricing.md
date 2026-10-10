@@ -33,15 +33,15 @@ uses the actual current time, refreshed after lock waits; the original Trigger
 occurrence timestamp is diagnostic metadata, not authority to backdate a retry.
 The effective end date is inclusive in UTC.
 
-Before activation, the worker rechecks the retained two-person approval, both
-users' persisted finance authority and MFA enrollment, and the enabled
-`new_business` capability. Those checks stay locked through the transaction.
-Scheduling does not enable that capability or replace its external evidence
-gates. Missing authority, disabled capability, or changed evidence leaves the
-schedule approved and pricing untouched. Inspect the task result's `blocked`
-status and reason, resolve the control through its normal authorized workflow,
-or cancel and obtain a new approval. The next sweep retries approved due rows;
-task-level failures also use the shared durable retry policy.
+Before activation, the worker rechecks the retained two-person (or reasoned
+self-) approval and both users' persisted finance authority and MFA enrollment.
+Those checks stay locked through the transaction. No capability switch gates the
+change: list prices can be published while `new_business` and `legal` stay off,
+and quotes and orders keep their own switches. Missing authority or changed
+evidence leaves the schedule approved and pricing untouched. Inspect the task
+result's `blocked` status and reason, resolve the control through its normal
+authorized workflow, or cancel and obtain a new approval. The next sweep retries
+approved due rows; task-level failures also use the shared durable retry policy.
 
 Successful execution retires the incumbent and activates the approved candidate
 atomically, preserving the candidate's end date. Repeated execution of a

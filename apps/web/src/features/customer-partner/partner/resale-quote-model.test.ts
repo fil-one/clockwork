@@ -165,7 +165,7 @@ describe("partner quote workflow validation", () => {
       3,
       {
         ...completedDraft(pinnedClock),
-        capacity: "9",
+        capacity: "0",
         termMonths: "1.5",
         endClientName: "Unknown",
         expiresAt: "2026-01-01T00:00:00Z",

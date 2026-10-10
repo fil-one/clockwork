@@ -1,0 +1,44 @@
+{
+  "format": "clockwork.price-book.v2",
+  "schemaVersion": 2,
+  "exportedAt": "2026-10-10T00:00:00.000Z",
+  "source": {
+    "id": "0199d0a0-0000-7000-8000-000000000599",
+    "name": "Fil One list USD",
+    "version": 1,
+    "rowVersion": 1
+  },
+  "currency": "USD",
+  "rateCards": [
+    {
+      "id": "0199d0a0-0000-7000-8000-000000000601",
+      "sku": "OBJECT_COMMIT",
+      "region": "france",
+      "unit": "TB-month",
+      "approvedClaim": "Object storage per decimal TB-month (1 TB = 1,000 GB); no egress, API or exit fees",
+      "unitPrice": { "currency": "USD", "minor": "599" },
+      "overageRate": { "currency": "USD", "minor": "599" },
+      "minimumQuantity": "1",
+      "egressTreatment": "included",
+      "commitType": "period_allowance",
+      "stripeTaxCode": "txcd_10103001",
+      "qboIncomeAccount": "4000-Storage",
+      "partnerTransferPrices": {}
+    },
+    {
+      "id": "0199d0a0-0000-7000-8000-000000000602",
+      "sku": "OBJECT_COMMIT",
+      "region": "michigan",
+      "unit": "TB-month",
+      "approvedClaim": "Object storage per decimal TB-month (1 TB = 1,000 GB); no egress, API or exit fees",
+      "unitPrice": { "currency": "USD", "minor": "599" },
+      "overageRate": { "currency": "USD", "minor": "599" },
+      "minimumQuantity": "1",
+      "egressTreatment": "included",
+      "commitType": "period_allowance",
+      "stripeTaxCode": "txcd_10103001",
+      "qboIncomeAccount": "4000-Storage",
+      "partnerTransferPrices": {}
+    }
+  ]
+}

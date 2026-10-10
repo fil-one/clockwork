@@ -47,7 +47,7 @@ describe("the buy page's demo offers", () => {
       "en",
     );
     expect(offers.map((offer) => offer.label)).toContain(
-      "Fictional immutable storage capacity · LOCKED-STORAGE-TB · us-east-2 · Direct commerce USD v2",
+      "Object storage per decimal TB-month, no egress fees · LOCKED-STORAGE-TB · us-east-2 · Direct commerce USD v2",
     );
   });
 });

@@ -46,6 +46,7 @@ export const adminPricingMessages = defineStaffMessages({
   "adminPricing.unit.tbMonthQuantity": { en: "{quantity} TB-month" },
   "adminPricing.unit.quantity": { en: "{quantity} {unit}" },
   "adminPricing.egress.metered": { en: "Metered" },
+  "adminPricing.egress.included": { en: "Included, no egress fee" },
   "adminPricing.error.forbidden": {
     en: "Your role or current session cannot make this change.",
   },

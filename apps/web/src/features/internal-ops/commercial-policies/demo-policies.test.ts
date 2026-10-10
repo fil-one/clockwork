@@ -120,7 +120,7 @@ it("rates fictional saved economics through the real UTC usage rating engine", a
     egressBytes: "1000",
     apiOperations: "123",
   });
-  expect(rating.total).toEqual({ currency: "USD", minor: "998" });
+  expect(rating.total).toEqual({ currency: "USD", minor: "1198" });
   expect(rating.simulation).toBe(true);
 });
 it("never substitutes demo state in a production or unconfigured environment", async () => {

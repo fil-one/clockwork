@@ -6,7 +6,7 @@ import { gotoHydrated } from "./shell-hydration";
 
 const CUSTOMER_ACCOUNT_ID = demoAccountIds.direct;
 const OFFER =
-  "Fictional immutable storage capacity · LOCKED-STORAGE-TB · us-east-2 · Direct commerce USD v2";
+  "Object storage per decimal TB-month, no egress fees · LOCKED-STORAGE-TB · us-east-2 · Direct commerce USD v2";
 const OFFER_PRICE_BOOK_ID = "66000000-0000-4000-8000-000000000001";
 
 const journeys = [

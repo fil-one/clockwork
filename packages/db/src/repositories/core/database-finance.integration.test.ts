@@ -3018,7 +3018,7 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
     });
   });
 
-  it("derives house-account and prior-deal exclusions from persisted truth", async () => {
+  it("flags house accounts and refuses prior deals from persisted truth", async () => {
     const partnerAccountId = "10000000-0000-4000-8000-000000000002";
     const partnerUserId = "20000000-0000-4000-8000-000000000003";
     const partnerAuthorization: AuthorizationContext = {
@@ -3071,7 +3071,9 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
         callerHouseAccountIds: [crypto.randomUUID()],
       }),
     ]);
-    expect(house.record.data.status).toBe("rejected");
+    // A house-account match is flagged for channel-ops review, not refused;
+    // a prior active deal on the same workload is still refused.
+    expect(house.record.data.status).toBe("registered");
     expect(prior.record.data.status).toBe("rejected");
 
     await withInternalTransaction(

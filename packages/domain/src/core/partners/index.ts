@@ -99,19 +99,24 @@ export function registerDeal(input: {
       deal.endClientAccountId === input.endClient.id &&
       deal.workload.toLocaleLowerCase() === input.workload.toLocaleLowerCase(),
   );
-  const exclusion = house ? "house_account" : prior ? "prior_deal" : undefined;
+  // A prior active deal on the same workload keeps one economic owner, so it
+  // is refused. A house-account match is commercial judgement, not integrity:
+  // the registration stays open for channel ops to approve or reject, with the
+  // match recorded as evidence. Partner terms are set per deal.
+  const exclusion = prior ? "prior_deal" : house ? "house_account" : undefined;
+  const refused = exclusion === "prior_deal";
   return {
     id: input.id,
     partnerAccountId: input.partner.id,
     endClientAccountId: input.endClient.id,
     workload: input.workload,
     expectedVolume: input.expectedVolume,
-    status: exclusion ? "rejected" : "registered",
+    status: refused ? "rejected" : "registered",
     protectionStartsAt: new Date(start).toISOString(),
     protectionEndsAt: new Date(
       start + input.protectionDays * 86_400_000,
     ).toISOString(),
-    credit: exclusion ? "none" : "sourced",
+    credit: refused ? "none" : "sourced",
     ...(exclusion ? { exclusion } : {}),
   };
 }

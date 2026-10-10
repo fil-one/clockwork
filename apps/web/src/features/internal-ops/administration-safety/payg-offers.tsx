@@ -50,17 +50,17 @@ function value(data: FormData, name: string): string {
 
 /**
  * The hint's example amount, written with the reader's decimal separator
- * where the input accepts it: "4,99" for a comma locale, otherwise "4.99".
+ * where the input accepts it: "5,99" for a comma locale, otherwise "5.99".
  * Always ASCII digits, which is what the input parses.
  */
 export function exampleAmount(formattingLocale: string): string {
   const separator = new Intl.NumberFormat(formattingLocale)
-    .formatToParts(4.99)
+    .formatToParts(5.99)
     .find((part) => part.type === "decimal")?.value;
-  return separator === "," ? "4,99" : "4.99";
+  return separator === "," ? "5,99" : "5.99";
 }
 
-/** Minor units as the plain decimal an input accepts ("4.99"). */
+/** Minor units as the plain decimal an input accepts ("5.99"). */
 function moneyInput(minor?: string): string {
   if (minor === undefined) return "";
   return `${BigInt(minor) / 100n}.${(BigInt(minor) % 100n).toString().padStart(2, "0")}`;
@@ -131,7 +131,7 @@ function serviceMonth(value: string, locale: string): string {
 
 /**
  * A typed amount in minor units. Either decimal separator is accepted, so a
- * reader who writes "4,99" is not refused; at most two decimals and never a
+ * reader who writes "5,99" is not refused; at most two decimals and never a
  * grouping separator, so "1.500" cannot be read as fifteen hundred.
  */
 export function minor(value: string): string {

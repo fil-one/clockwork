@@ -124,16 +124,16 @@ describe("price book server read", () => {
         candidate.currency === "USD" && candidate.status === "active",
     );
     expect(active?.lastDecisionReason).toBe(
-      "Preços fictícios de demonstração aprovados para venda direta.",
+      "Preço de tabela da Fil One para a demonstração: US$ 5,99 por TB decimal por mês, sem tarifas de saída de dados.",
     );
     expect(active?.rateCards?.[0]?.approvedClaim).toBe(
-      "Capacidade fictícia de armazenamento imutável",
+      "Armazenamento de objetos por TB decimal por mês, sem tarifas de saída de dados",
     );
     // Identifiers and money are facts, untouched by the language.
     expect(active?.rateCards?.[0]).toMatchObject({
       sku: "LOCKED-STORAGE-TB",
       region: "us-east-2",
-      unitPrice: { currency: "USD", minor: "15000" },
+      unitPrice: { currency: "USD", minor: "599" },
     });
   });
 });
