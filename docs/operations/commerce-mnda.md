@@ -275,7 +275,10 @@ walks a new seller through it.
   with a reason and send a new MNDA. If it should stand, first download the
   signed PDF from SignWell and record it in the contract register as an MNDA
   with that PDF attached, then delete it in SignWell, refresh and void the row
-  with a reason that names the register entry.
+  with a reason that names the register entry. Whether SignWell lets an
+  administrator delete a document someone has signed has not been confirmed; if
+  it does not, leave the document in SignWell. The row then stays marked, and
+  for a signature that stands the register entry is the record.
 - Choose tests using [change validation](#change-validation). When a complete
   provider qualification is needed, use non-binding test mode with embedded
   signing and notifications off; exercise both signers and retrieve the final
