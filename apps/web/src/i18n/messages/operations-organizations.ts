@@ -9,13 +9,19 @@ export const organizationMessages = defineStaffMessages({
   "operations.organizations.description": {
     en: "Customer and partner organizations in Commerce, newest first.",
   },
-  "operations.organizations.new": { en: "Set up an organization" },
+  "operations.organizations.new": { en: "Create organization" },
   "operations.organizations.empty.title": { en: "No organizations yet" },
   "operations.organizations.empty.description": {
-    en: "Set one up from a handoff, or with Set up an organization.",
+    en: "Create one from a handoff, or with Create organization.",
   },
   "operations.organizations.unavailable": {
-    en: "Organizations could not be loaded right now. Reload the page in a minute.",
+    en: "Organizations could not be loaded right now. Reload the page in a minute. If it keeps failing, tell engineering.",
+  },
+  "operations.organizations.demoTitle": {
+    en: "Organizations are turned off in the demo.",
+  },
+  "operations.organizations.demoBody": {
+    en: "In a live workspace, operations creates customer and partner organizations here from signed handoffs.",
   },
   "operations.organizations.side.customer": { en: "Customer" },
   "operations.organizations.side.channel_partner": { en: "Channel partner" },
@@ -31,7 +37,7 @@ export const organizationMessages = defineStaffMessages({
     en: "Being set up with the sign-in service",
   },
 
-  "operations.organizations.form.title": { en: "Set up an organization" },
+  "operations.organizations.form.title": { en: "New organization" },
   "operations.organizations.form.description": {
     en: "Creates the account and organization. Its account stays in screening review until screening clears it, and nobody can sign in until you invite them.",
   },
@@ -51,6 +57,9 @@ export const organizationMessages = defineStaffMessages({
   "operations.organizations.form.country": { en: "Country" },
   "operations.organizations.form.countryHelp": {
     en: "Two-letter code, for example US or GB.",
+  },
+  "operations.organizations.form.unavailable": {
+    en: "Organizations cannot be set up right now. Reload the page in a minute. If it keeps failing, tell engineering.",
   },
   "operations.organizations.form.currency": { en: "Billing currency" },
   "operations.organizations.form.domain": { en: "Business domain" },
@@ -76,7 +85,13 @@ export const organizationMessages = defineStaffMessages({
     en: "This handoff is not in progress, so no organization can be set up from it. Take it first.",
   },
 
-  "operations.organizations.detail.back": { en: "All organizations" },
+  "operations.organizations.detail.unavailable": {
+    en: "This organization could not be loaded right now. Reload the page in a minute. If it keeps failing, tell engineering.",
+  },
+  "operations.organizations.detail.title": { en: "Organization" },
+  "operations.organizations.detail.documentTitle": {
+    en: "{name}, organization",
+  },
   "operations.organizations.detail.account": { en: "Account" },
   "operations.organizations.detail.domain": { en: "Business domain" },
   "operations.organizations.detail.currency": { en: "Currency" },
@@ -93,7 +108,7 @@ export const organizationMessages = defineStaffMessages({
     en: "Organization created.",
   },
 
-  "operations.organizations.handoff.setUp": { en: "Set up the organization" },
+  "operations.organizations.handoff.setUp": { en: "Create organization" },
   "operations.organizations.handoff.open": { en: "Open the organization" },
   "operations.organizations.handoff.next": {
     en: "Next: set up the organization, invite the signer as its first administrator, then mark this handoff done.",

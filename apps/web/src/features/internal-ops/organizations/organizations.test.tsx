@@ -26,11 +26,14 @@ vi.mock("./server", () => ({
 }));
 
 import { createOrganization, inviteToOrganization } from "./actions";
+import { resolveCountry } from "./model";
 import { OrganizationForm } from "./organization-form";
 import { OrganizationInvites } from "./organization-invites";
 import {
   HandoffOrganizationStep,
   OrganizationDetail,
+  OrganizationList,
+  OrganizationPageState,
 } from "./organization-views";
 
 const handoffId = "019a44ac-0000-7000-8000-0000000000e1";
@@ -75,6 +78,7 @@ describe("setting up an organization", () => {
       "resale",
     );
     fill(/^Country/u, "gb");
+    expect(screen.getByText("United Kingdom")).toBeInTheDocument();
     fill(/Street address/u, "1 Archive Way");
     fill(/City/u, "London");
     fill(/Postal code/u, "EC1A 1AA");
@@ -123,6 +127,40 @@ describe("setting up an organization", () => {
       ),
     ).toBeInTheDocument();
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+});
+
+describe("the country field", () => {
+  it("names a two-letter code and refuses codes that name no country", () => {
+    expect(resolveCountry("gb")).toBe("United Kingdom");
+    expect(resolveCountry(" US ")).toBe("United States");
+    for (const code of ["AA", "XX", "ZZ", "G", "G1", ""])
+      expect(resolveCountry(code)).toBeNull();
+  });
+
+  it("keeps a code no country uses from reaching the server", () => {
+    render(
+      <OrganizationForm
+        defaults={{
+          handoffRequestId: null,
+          legalName: "Bluefin Data Co.",
+          side: "customer",
+          billingName: "",
+          billingEmail: "",
+          domain: "",
+        }}
+      />,
+    );
+    const country = screen.getByLabelText(/^Country/u);
+    fireEvent.change(country, { target: { value: "AA" } });
+    expect(
+      screen.getByText("Two-letter code, for example US or GB."),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create organization" }),
+    );
+    expect(country).toHaveAttribute("aria-invalid", "true");
+    expect(mocks.repository.create).not.toHaveBeenCalled();
   });
 });
 
@@ -193,6 +231,75 @@ describe("the organization pages", () => {
     handoffRequestIds: [handoffId],
   };
 
+  it("lists organizations by country name and offers Create organization", async () => {
+    render(
+      await OrganizationList({
+        state: { kind: "ready", organizations: [organization] },
+        canWrite: true,
+      }),
+    );
+    expect(screen.getAllByText("United Kingdom")).not.toHaveLength(0);
+    expect(
+      screen.getByRole("link", { name: "Create organization" }),
+    ).toHaveAttribute("href", "/internal/organizations/new");
+  });
+
+  it("hides Create organization while the list cannot be read", async () => {
+    render(
+      await OrganizationList({
+        state: { kind: "unavailable" },
+        canWrite: true,
+      }),
+    );
+    expect(
+      screen.getByText(/Organizations could not be loaded right now/u),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Create organization" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says set-up is unavailable on the new page instead of failing", async () => {
+    render(
+      await OrganizationPageState({
+        heading: "operations.organizations.form.title",
+        state: "unavailable",
+        unavailable: "operations.organizations.form.unavailable",
+      }),
+    );
+    expect(
+      screen.getByRole("heading", { level: 1, name: "New organization" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Organizations cannot be set up right now\. Reload the page in a minute\./u,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("reads as turned off in the demo on the list, new and detail pages", async () => {
+    render(await OrganizationList({ state: { kind: "demo" }, canWrite: true }));
+    for (const heading of [
+      "operations.organizations.form.title",
+      "operations.organizations.detail.title",
+    ] as const)
+      render(
+        await OrganizationPageState({
+          heading,
+          state: "demo",
+          unavailable: "operations.organizations.detail.unavailable",
+        }),
+      );
+    expect(
+      screen.getAllByText("Organizations are turned off in the demo."),
+    ).toHaveLength(3);
+    expect(screen.queryByText(/could not be loaded/u)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Create organization" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows the account, its people and the handoff it came from", async () => {
     render(await OrganizationDetail({ organization, created: true }));
     expect(screen.getByText("Organization created.")).toBeInTheDocument();
@@ -218,7 +325,7 @@ describe("the organization pages", () => {
       }),
     );
     expect(
-      screen.getByRole("link", { name: "Set up the organization" }),
+      screen.getByRole("link", { name: "Create organization" }),
     ).toHaveAttribute(
       "href",
       `/internal/organizations/new?handoff=${handoffId}`,
@@ -327,9 +434,9 @@ describe("invitations", () => {
         canWrite={false}
       />,
     );
-    expect(
-      screen.getByText("Waiting, expires Oct 24, 2026"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Waiting, expires Oct 24, 2026")).toHaveClass(
+      "cw-badge--warning",
+    );
     expect(screen.getByText("Accepted Oct 11, 2026")).toBeInTheDocument();
     expect(
       screen.getAllByRole("button", { name: /Invitation link/u }),
@@ -360,9 +467,12 @@ describe("invitations", () => {
         canWrite
       />,
     );
-    expect(
-      screen.getByText("Link no longer works. Revoke it and invite again."),
-    ).toBeInTheDocument();
+    const voided = screen.getByText(
+      "Link no longer works. Revoke it and invite again.",
+    );
+    // A void invite is closed, not waiting: neutral, never amber.
+    expect(voided).toHaveClass("cw-badge--neutral");
+    expect(voided).not.toHaveClass("cw-badge--warning");
     fireEvent.click(
       screen.getByRole("button", { name: "Revoke: old@bluefin.test" }),
     );

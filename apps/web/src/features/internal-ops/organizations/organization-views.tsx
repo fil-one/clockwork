@@ -7,109 +7,178 @@ import type {
   OnboardingOrganizationSummary,
 } from "@clockwork/db";
 import {
+  Breadcrumbs,
   EmptyState,
+  InlineNotice,
+  PageHeader,
   StateBanner,
-  StatusBadge,
+  Table,
   buttonClassName,
 } from "@clockwork/ui";
 
+import { breadcrumbsLabel } from "@/src/features/shared/ui-kit-labels";
+import type { MessageId } from "@/src/i18n";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 
 import { formatContractDate } from "../contracts/copy";
 import { handoffDay } from "../handoff/model";
-import { memberRoleLabels, organizationSideLabels } from "./model";
+import { OperationsPageState } from "../handoff/page-state";
+import { countryName, memberRoleLabels, organizationSideLabels } from "./model";
+import pageStyles from "../contracts/contracts.module.css";
 import styles from "../handoff/handoff.module.css";
+
+/** What the list could read, or why there is nothing to show. */
+export type OrganizationListState =
+  | { kind: "ready"; organizations: readonly OnboardingOrganizationSummary[] }
+  | { kind: "demo" }
+  | { kind: "unavailable" };
+
+const organizationHref = (organization: OnboardingOrganizationSummary) =>
+  `/internal/organizations/${organization.organizationId}` as Route;
 
 /** The customer and partner organizations at /internal/organizations. */
 export async function OrganizationList({
-  organizations,
+  state,
   canWrite,
 }: {
-  /** Null when the list could not be read. */
-  organizations: readonly OnboardingOrganizationSummary[] | null;
+  state: OrganizationListState;
   canWrite: boolean;
 }) {
   const [t, locale] = await Promise.all([
     getTranslations(),
     getFormattingLocale(),
   ]);
+  const signIn = (organization: OnboardingOrganizationSummary) =>
+    organization.identityProviderLinked
+      ? t("operations.organizations.signIn.ready")
+      : t("operations.organizations.signIn.pending");
+  const created = (organization: OnboardingOrganizationSummary) =>
+    formatContractDate(handoffDay(organization.createdAt), locale);
   return (
-    <main className={styles.main} id="main-content">
-      <header className={styles.header}>
-        <h1>{t("operations.organizations.title")}</h1>
-        <p>{t("operations.organizations.description")}</p>
-      </header>
-      {canWrite ? (
-        <div className={styles.actions}>
-          <Link
-            className={buttonClassName({ variant: "primary" })}
-            href="/internal/organizations/new"
-          >
-            {t("operations.organizations.new")}
-          </Link>
-        </div>
-      ) : null}
-      {organizations === null ? (
-        <StateBanner
+    <main className={pageStyles.page} id="main-content">
+      <PageHeader
+        title={t("operations.organizations.title")}
+        description={t("operations.organizations.description")}
+        actions={
+          // Creating one needs the store the list reads; hide it with the list.
+          canWrite && state.kind === "ready" ? (
+            <Link
+              className={buttonClassName({ variant: "primary" })}
+              href="/internal/organizations/new"
+            >
+              {t("operations.organizations.new")}
+            </Link>
+          ) : undefined
+        }
+      />
+      {state.kind === "demo" ? (
+        <InlineNotice
+          tone="info"
+          title={t("operations.organizations.demoTitle")}
+          description={t("operations.organizations.demoBody")}
+        />
+      ) : state.kind === "unavailable" ? (
+        <InlineNotice
           tone="danger"
           title={t("operations.organizations.unavailable")}
         />
-      ) : organizations.length === 0 ? (
+      ) : state.organizations.length === 0 ? (
         <EmptyState
           title={t("operations.organizations.empty.title")}
           description={t("operations.organizations.empty.description")}
         />
       ) : (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">{t("operations.organizations.column.name")}</th>
-                <th scope="col">{t("operations.organizations.column.side")}</th>
-                <th scope="col">
-                  {t("operations.organizations.column.country")}
-                </th>
-                <th scope="col">
-                  {t("operations.organizations.column.signIn")}
-                </th>
-                <th scope="col">
-                  {t("operations.organizations.column.created")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {organizations.map((organization) => (
-                <tr key={organization.organizationId}>
-                  <td>
-                    <Link
-                      href={
-                        `/internal/organizations/${organization.organizationId}` as Route
-                      }
-                    >
-                      {organization.legalName}
-                    </Link>
-                  </td>
-                  <td>{t(organizationSideLabels[organization.side])}</td>
-                  <td>{organization.country}</td>
-                  <td>
-                    {organization.identityProviderLinked
-                      ? t("operations.organizations.signIn.ready")
-                      : t("operations.organizations.signIn.pending")}
-                  </td>
-                  <td>
-                    {formatContractDate(
-                      handoffDay(organization.createdAt),
-                      locale,
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className={styles.desktopOnly}>
+            <Table
+              caption={t("operations.organizations.title")}
+              captionHidden
+              density="compact"
+              headers={[
+                t("operations.organizations.column.name"),
+                t("operations.organizations.column.side"),
+                t("operations.organizations.column.country"),
+                t("operations.organizations.column.signIn"),
+                t("operations.organizations.column.created"),
+              ]}
+              rowKeys={state.organizations.map((o) => o.organizationId)}
+              rows={state.organizations.map((organization) => [
+                <Link
+                  key="name"
+                  className={styles.rowLink}
+                  href={organizationHref(organization)}
+                >
+                  {organization.legalName}
+                </Link>,
+                t(organizationSideLabels[organization.side]),
+                countryName(organization.country),
+                signIn(organization),
+                created(organization),
+              ])}
+            />
+          </div>
+          <ul className={`${styles.mobileOnly} ${styles.mobileList}`}>
+            {state.organizations.map((organization) => (
+              <li
+                className={styles.mobileCard}
+                key={organization.organizationId}
+              >
+                <h2>
+                  <Link href={organizationHref(organization)}>
+                    {organization.legalName}
+                  </Link>
+                </h2>
+                <dl>
+                  <div>
+                    <dt>{t("operations.organizations.column.side")}</dt>
+                    <dd>{t(organizationSideLabels[organization.side])}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("operations.organizations.column.country")}</dt>
+                    <dd>{countryName(organization.country)}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("operations.organizations.column.signIn")}</dt>
+                    <dd>{signIn(organization)}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("operations.organizations.column.created")}</dt>
+                    <dd>{created(organization)}</dd>
+                  </div>
+                </dl>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </main>
   );
+}
+
+/** An organization page with nothing to show: off in the demo, or unreadable. */
+export function OrganizationPageState({
+  heading,
+  state,
+  unavailable,
+}: {
+  heading: MessageId;
+  state: "demo" | "unavailable";
+  unavailable: MessageId;
+}) {
+  return OperationsPageState({
+    heading,
+    parent: {
+      label: "operations.organizations.title",
+      href: "/internal/organizations",
+    },
+    state,
+    demo: {
+      title: "operations.organizations.demoTitle",
+      body: "operations.organizations.demoBody",
+    },
+    unavailable,
+    className: pageStyles.page,
+  });
 }
 
 /** One organization: its account, people and where it came from. */
@@ -133,22 +202,30 @@ export async function OrganizationDetail({
     return label ? t(label) : role;
   };
   return (
-    <main className={styles.main} id="main-content">
-      <header className={styles.header}>
-        <Link href="/internal/organizations">
-          {t("operations.organizations.detail.back")}
-        </Link>
-        <h1>{organization.legalName}</h1>
-        <p className={styles.rowHeading}>
-          <StatusBadge>
-            {t(organizationSideLabels[organization.side])}
-          </StatusBadge>
-          <span>{organization.country}</span>
-          <span>
-            {formatContractDate(handoffDay(organization.createdAt), locale)}
+    <main className={pageStyles.page} id="main-content">
+      <Breadcrumbs
+        label={breadcrumbsLabel(t)}
+        items={[
+          {
+            label: t("operations.organizations.title"),
+            href: "/internal/organizations",
+          },
+          { label: organization.legalName },
+        ]}
+        renderLink={(href, label) => <Link href={href as Route}>{label}</Link>}
+      />
+      <PageHeader
+        title={organization.legalName}
+        metadata={
+          <span className={styles.rowHeading}>
+            <span>{t(organizationSideLabels[organization.side])}</span>
+            <span>{countryName(organization.country)}</span>
+            <span>
+              {formatContractDate(handoffDay(organization.createdAt), locale)}
+            </span>
           </span>
-        </p>
-      </header>
+        }
+      />
       {created ? (
         <StateBanner
           tone="success"
@@ -255,7 +332,7 @@ export async function HandoffOrganizationStep({
   return (
     <section className={styles.card} aria-labelledby="handoff-organization">
       <h2 id="handoff-organization">
-        {t("operations.organizations.handoff.setUp")}
+        {t("operations.handoff.detail.organization")}
       </h2>
       <p className={styles.muted}>
         {t("operations.organizations.handoff.next")}

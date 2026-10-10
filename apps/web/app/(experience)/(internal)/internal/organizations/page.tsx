@@ -23,7 +23,11 @@ async function Page() {
   ]);
   return (
     <OrganizationList
-      organizations={loaded.kind === "ready" ? loaded.value : null}
+      state={
+        loaded.kind === "ready"
+          ? { kind: "ready", organizations: loaded.value }
+          : { kind: loaded.kind === "demo" ? "demo" : "unavailable" }
+      }
       canWrite={staffMayUse(session, "operations:write")}
     />
   );

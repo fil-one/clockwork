@@ -21,6 +21,7 @@ export async function OperationsPageState({
   state,
   demo,
   unavailable,
+  className = styles.main,
 }: {
   heading: MessageId;
   /** The list page this one sits under. */
@@ -28,10 +29,12 @@ export async function OperationsPageState({
   state: "demo" | "unavailable";
   demo: { title: MessageId; body?: MessageId };
   unavailable: MessageId;
+  /** The page's container, when it is not the handoff one. */
+  className?: string | undefined;
 }) {
   const t = await getTranslations();
   return (
-    <main className={styles.main} id="main-content">
+    <main className={className} id="main-content">
       {parent ? (
         <Breadcrumbs
           label={breadcrumbsLabel(t)}

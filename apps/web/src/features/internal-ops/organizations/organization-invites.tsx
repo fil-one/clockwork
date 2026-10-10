@@ -187,7 +187,7 @@ export function OrganizationInvites({
                 <span>{roleLabel(invite.role)}</span>
                 <StatusBadge
                   tone={
-                    invite.state === "pending" || invite.state === "void"
+                    invite.state === "pending"
                       ? "warning"
                       : invite.state === "accepted"
                         ? "success"
