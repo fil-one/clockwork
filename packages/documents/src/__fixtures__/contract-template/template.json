@@ -2,13 +2,13 @@
   "id": "test-fixture",
   "contractType": "other",
   "name": "Engine Test Fixture",
-  "version": "fixture-1",
+  "version": "fixture-2",
   "requiresApproval": true,
   "source": {
-    "path": "packages/documents/src/__fixtures__/contract-template/source.txt",
-    "sha256": "9b751e680368707f62a6baf50b45da61801e9849e49c596c3776a36c433c1afd",
+    "path": "packages/documents/src/__fixtures__/contract-template/source-fixture-2.txt",
+    "sha256": "0fbd388790655e2fbce0ea685b4aa6323a214bb4c81c35f32d487e9913aa36d3",
     "counselApprovedBy": "Not applicable (test fixture)",
-    "counselApprovedOn": "2026-10-04"
+    "counselApprovedOn": "2026-10-10"
   },
   "fields": [
     {
@@ -34,6 +34,12 @@
       "required": false,
       "maxLength": 120,
       "label": { "en": "Fixture note" }
+    },
+    {
+      "id": "fixture_lines",
+      "kind": "line_items",
+      "required": true,
+      "label": { "en": "Fixture line items" }
     }
   ],
   "document": {
@@ -47,7 +53,9 @@
       {
         "type": "paragraph",
         "text": "Reference [[fixture_reference]], tier [[fixture_tier]], note [[fixture_note]]."
-      }
+      },
+      { "type": "heading", "text": "Fixture lines" },
+      { "type": "paragraph", "text": "[[fixture_lines]]" }
     ]
   }
 }

@@ -26,6 +26,7 @@ import type {
   SalesAudience,
   SalesCollateralKind,
   SalesCollateralStatus,
+  TemplateValue,
 } from "@clockwork/contracts";
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -151,7 +152,7 @@ export const contractSigning = pgTable("commerce_contract_signing", {
   templateVersion: text("template_version").notNull(),
   templateHash: text("template_hash").notNull(),
   documentName: text("document_name").notNull(),
-  input: jsonb("input").$type<Record<string, string>>().notNull(),
+  input: jsonb("input").$type<Record<string, TemplateValue>>().notNull(),
   counterpartySigner: jsonb("counterparty_signer")
     .$type<ContractSigner>()
     .notNull(),

@@ -480,6 +480,85 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.prepare.noCountersignerBody": {
     en: "Ask a Commerce administrator to add an active countersigner in the MNDA register.",
   },
+  "operations.contracts.lineItems.currency": { en: "Currency" },
+  "operations.contracts.lineItems.currencyImported": {
+    en: "Set by the imported pricing scenario.",
+  },
+  "operations.contracts.lineItems.line": { en: "Line {number}" },
+  "operations.contracts.lineItems.sku": { en: "Item" },
+  "operations.contracts.lineItems.description": { en: "Description" },
+  "operations.contracts.lineItems.region": { en: "Region" },
+  "operations.contracts.lineItems.unit": { en: "Unit" },
+  "operations.contracts.lineItems.unitPrice": {
+    en: "Unit price ({currency})",
+  },
+  "operations.contracts.lineItems.quantity": { en: "Quantity" },
+  "operations.contracts.lineItems.term": { en: "Term (months)" },
+  "operations.contracts.lineItems.discount": { en: "Discount (%)" },
+  "operations.contracts.lineItems.extended": {
+    en: "Extended price {amount}",
+  },
+  "operations.contracts.lineItems.incomplete": {
+    en: "Enter the unit price, quantity, term and discount to price this line.",
+  },
+  "operations.contracts.lineItems.belowMinimum": {
+    en: "This is below the rate's minimum of {minimum} {unit}.",
+  },
+  "operations.contracts.lineItems.add": { en: "Add line" },
+  "operations.contracts.lineItems.remove": { en: "Remove line {number}" },
+  "operations.contracts.lineItems.subtotal": {
+    en: "Subtotal before discounts",
+  },
+  "operations.contracts.lineItems.discounts": { en: "Discounts" },
+  "operations.contracts.lineItems.total": { en: "Total" },
+  "operations.contracts.lineItems.noTotal": {
+    en: "The total appears when every line is complete.",
+  },
+  "operations.contracts.lineItems.replace": {
+    en: "Replace the lines already entered with this scenario's lines?",
+  },
+  "operations.contracts.lineItems.import.open": {
+    en: "Import from pricing scenario",
+  },
+  "operations.contracts.lineItems.import.loading": {
+    en: "Loading scenarios…",
+  },
+  "operations.contracts.lineItems.import.choose": { en: "Saved scenario" },
+  "operations.contracts.lineItems.import.option": {
+    en: "{name}, {company} ({total})",
+  },
+  "operations.contracts.lineItems.import.submit": { en: "Import lines" },
+  "operations.contracts.lineItems.import.none": {
+    en: "No saved pricing scenarios yet. Save one on the pricing page to import it here.",
+  },
+  "operations.contracts.lineItems.import.done": {
+    en: "Lines from the scenario {name}, list prices as of {date}. You can still edit them; the contract's pricing notes name any line that no longer matches the scenario.",
+  },
+  "operations.contracts.lineItems.import.detach": { en: "Detach scenario" },
+  "operations.contracts.lineItems.import.lineRefused": {
+    en: "Line {number} of this scenario cannot be used in the agreement. {reason}",
+  },
+  "operations.contracts.lineItems.import.failed": {
+    en: "The scenario was not imported",
+  },
+  "operations.contracts.lineItems.import.unavailable": {
+    en: "Saved pricing scenarios are not available here.",
+  },
+  "operations.contracts.lineItems.error.invalid": {
+    en: "The line items could not be printed. Check every line and prepare the document again.",
+  },
+  "operations.contracts.lineItems.error.characters": {
+    en: "Use Latin letters, digits and common punctuation, without angle brackets, square brackets or braces.",
+  },
+  "operations.contracts.lineItems.error.belowMinimum": {
+    en: "A line is below its rate's minimum quantity. Raise it to the minimum.",
+  },
+  "operations.contracts.lineItems.error.lineTotal": {
+    en: "A line's extended price does not match its entries. Check the line and try again.",
+  },
+  "operations.contracts.lineItems.error.lines": {
+    en: "Complete every line: item, unit, unit price, quantity, term and discount.",
+  },
   "operations.contracts.signing.title": { en: "Signature" },
   "operations.contracts.signing.template": {
     en: "Prepared from template version {version}.",

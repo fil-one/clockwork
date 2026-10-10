@@ -149,6 +149,14 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
   CONTRACT_TEMPLATE_NOT_FOUND: "operations.contracts.error.templateNotFound",
   CONTRACT_TEMPLATE_VALUE_CHARACTERS:
     "operations.contracts.error.valueCharacters",
+  CONTRACT_TEMPLATE_LINE_ITEMS_INVALID:
+    "operations.contracts.lineItems.error.invalid",
+  CONTRACT_TEMPLATE_FIELD_INVALID:
+    "operations.contracts.lineItems.error.invalid",
+  PRICING_SCENARIO_NOT_FOUND:
+    "operations.sales.pricing.scenario.error.notFound",
+  PRICING_SCENARIOS_UNAVAILABLE:
+    "operations.contracts.lineItems.import.unavailable",
   CONTRACT_SIGNING_NOT_CONFIGURED:
     "operations.contracts.error.signingNotConfigured",
   COLLATERAL_LINK_OR_FILE: "operations.salesLibrary.error.linkOrFile",
@@ -182,6 +190,10 @@ const fieldMessages: Readonly<Record<string, MessageId>> = {
   https: "operations.salesLibrary.error.https",
   number: "operations.contracts.field.error.number",
   email: "operations.contracts.field.error.email",
+  characters: "operations.contracts.lineItems.error.characters",
+  below_minimum: "operations.contracts.lineItems.error.belowMinimum",
+  line_total: "operations.contracts.lineItems.error.lineTotal",
+  line_items: "operations.contracts.lineItems.error.lines",
 };
 
 export function fieldMessage(code: string): MessageId {

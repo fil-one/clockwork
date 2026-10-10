@@ -136,13 +136,14 @@ These tokens are always available and need no field:
 
 #### Fields
 
-| `kind`   | Form control   | Value in the PDF                                                            |
-| -------- | -------------- | --------------------------------------------------------------------------- |
-| `text`   | Text box       | As typed, up to `maxLength` (default 200)                                   |
-| `email`  | Email box      | As typed, lowercased                                                        |
-| `date`   | Date picker    | `YYYY-MM-DD`                                                                |
-| `number` | Numeric box    | Whole number                                                                |
-| `choice` | Drop-down list | The option's `value` (so write values as they should read in the agreement) |
+| `kind`       | Form control     | Value in the PDF                                                            |
+| ------------ | ---------------- | --------------------------------------------------------------------------- |
+| `text`       | Text box         | As typed, up to `maxLength` (default 200)                                   |
+| `email`      | Email box        | As typed, lowercased                                                        |
+| `date`       | Date picker      | `YYYY-MM-DD`                                                                |
+| `number`     | Numeric box      | Whole number                                                                |
+| `choice`     | Drop-down list   | The option's `value` (so write values as they should read in the agreement) |
+| `line_items` | Line-item editor | A priced table; see [Line items](#line-items)                               |
 
 `label`, `help` and option labels need `en`; add `es`, `fr`, `de`, `ja`, `pt`,
 `zh` and `ar` so sellers see their own language. A missing language shows the
@@ -153,6 +154,64 @@ correctly without it.
 Values are limited to the characters the PDF font can draw (Latin script) and
 may not contain `< > [ ] { }`, so a value can never turn into a token or a
 signing tag.
+
+#### Line items
+
+An order form, SOW or DPA schedule that prices services declares a `line_items`
+field and puts its token in a paragraph of its own, where the table goes:
+
+```json
+{
+  "id": "order_lines",
+  "kind": "line_items",
+  "required": true,
+  "label": { "en": "Order lines" }
+}
+```
+
+```json
+{ "type": "paragraph", "text": "[[order_lines]]" }
+```
+
+The token prints as a table: item and region with an optional description, unit
+price, quantity, term, discount and extended price, then the subtotal before
+discounts, the discounts and the total with its currency. It uses the indicative
+pricing summary's fonts and money formatting. A `line_items` field is always
+required and takes no `maxLength`; its token cannot sit inside other text, in a
+heading or in the title, or the template fails to load.
+
+Sellers type lines in or choose **Import from pricing scenario**, which copies a
+saved scenario's lines and currency (their own scenarios, or every one for a
+commerce administrator). Every line stays editable, unit price included, and
+**Detach scenario** drops the link to the scenario while keeping the lines.
+
+When the contract is prepared, the server checks:
+
+- The table has 1 to 20 lines in one currency.
+- Each line's extended price equals what the pricing calculator computes from
+  its unit price, quantity, term and discount.
+- Each line's quantity is at least the minimum of the in-force rate with the
+  same item, region and unit, read from the price books at that moment. The
+  browser's own figure is ignored. A line that matches no in-force rate, such as
+  a service typed in by hand, has no minimum.
+- Cells use the pricing summary's Latin characters, without `< > [ ] { }` and
+  without invisible format characters such as zero-width spaces or right-to-left
+  overrides.
+
+Unit prices are not checked against a price book: a seller may enter any price,
+and the approval step is where a price is questioned.
+
+A table imported from a scenario is named in the contract's pricing notes,
+compared with the scenario as it is when the contract is prepared. The note
+gives the scenario's version and the day its list prices were read only when the
+scenario is unchanged and every line still carries its scenario line's item,
+region, unit, unit price, minimum and discount. Otherwise it says the lines were
+edited after import and names them, or that the scenario has changed since. A
+detached table gets no note. A scenario the seller can no longer open stops the
+preparation until it is detached.
+
+The table's header and total labels are Commerce's wording, so counsel approves
+them with the rest of the specimen.
 
 ### 3. Register it
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { TemplateValue } from "./contract-templates";
 
 /**
  * The staff contract register: executed and in-flight agreements with
@@ -243,7 +244,7 @@ export interface ContractSigningRecord {
   templateVersion: string;
   templateHash: string;
   documentName: string;
-  input: Record<string, string>;
+  input: Record<string, TemplateValue>;
   counterpartySigner: ContractSigner;
   countersigner: ContractSigner & { id: string };
   preparerId: string;

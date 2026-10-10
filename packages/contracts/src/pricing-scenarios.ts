@@ -41,6 +41,8 @@ const quantity = z
   .refine((value) => /[1-9]/.test(value), "too_small");
 const termMonths = z.int().min(1).max(120);
 const discountBps = z.int().min(0).max(10_000);
+/** The entry rules, shared with contract template line items. */
+export const pricingEntrySchemas = { quantity, termMonths, discountBps };
 
 /** One line as the seller enters it. Prices are never taken from the browser. */
 export const PricingScenarioLineInputSchema = z

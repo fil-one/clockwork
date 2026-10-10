@@ -17,6 +17,7 @@ import {
 import { ContractSigningWorkflow } from "@clockwork/workflows/contracts";
 import { availableContractTemplate } from "@clockwork/documents";
 import { fixtureContractTemplateRegistry } from "../../../../../../packages/documents/src/__fixtures__/contract-template";
+import { rateMinimums } from "./line-items";
 import { prepareInputSchema } from "./prepare-input";
 import { POST as signWellWebhook } from "../../../../app/api/v1/webhooks/signwell/route";
 
@@ -48,6 +49,38 @@ const stores = new ContractDocumentStores(
 );
 const register = new ContractRepository(db, stores);
 const signing = new ContractSigningRepository(db, stores);
+
+// The fixture's line-item table: one row at the rate's list price.
+const fixtureLines = {
+  currency: "USD",
+  rows: [
+    {
+      sku: "STORAGE-TB",
+      description: "Hot storage",
+      region: "us-east",
+      unit: "TB-month",
+      quantity: "500",
+      termMonths: 12,
+      unitPriceMinor: "1500",
+      minimumQuantity: "10",
+      discountBps: 1000,
+      extendedMinor: "8100000",
+    },
+  ],
+};
+// The in-force rate for that row, whose minimum the server applies.
+const minimums = rateMinimums([
+  {
+    rateCards: [
+      {
+        sku: "STORAGE-TB",
+        region: "us-east",
+        unit: "TB-month",
+        minimumQuantity: "100",
+      },
+    ],
+  },
+]);
 
 interface FakeDocument {
   id: string;
@@ -174,7 +207,7 @@ it("prepares from a template, enforces two-person approval, sends, and archives 
   const marker = randomUUID().slice(0, 8);
 
   // 1. Prepare: the seller's values are validated against the template.
-  const input = prepareInputSchema(template.fields).parse({
+  const input = prepareInputSchema(template.fields, minimums).parse({
     id: randomUUID(),
     templateId: template.id,
     counterpartyName: `Bluefin Data ${marker}`,
@@ -184,7 +217,11 @@ it("prepares from a template, enforces two-person approval, sends, and archives 
     signerTitle: "CEO",
     countersignerId: countersigner.id,
     ownerName: "R.W. Holleman",
-    values: { fixture_reference: "REF-7", fixture_tier: "beta" },
+    values: {
+      fixture_reference: "REF-7",
+      fixture_tier: "beta",
+      fixture_lines: fixtureLines,
+    },
   });
   const signer = {
     name: input.signerName,
@@ -243,6 +280,14 @@ it("prepares from a template, enforces two-person approval, sends, and archives 
   expect(prepared.signing).toMatchObject({
     approvalState: "pending",
     templateHash: template.templateHash,
+    // The table is stored with the other values, with the in-force rate's
+    // minimum in place of the "10" the browser sent.
+    input: {
+      fixture_lines: {
+        ...fixtureLines,
+        rows: [{ ...fixtureLines.rows[0], minimumQuantity: "100" }],
+      },
+    },
   });
 
   // 2. Sending before approval never reaches SignWell.
@@ -340,7 +385,7 @@ async function preparedContract(preparer: {
     email: `alex.${marker}@example.com`,
     title: "CEO",
   };
-  const { values } = prepareInputSchema(template.fields).parse({
+  const { values } = prepareInputSchema(template.fields, minimums).parse({
     id,
     templateId: template.id,
     counterpartyName: `Deleted Data ${marker}`,
@@ -350,7 +395,11 @@ async function preparedContract(preparer: {
     signerTitle: signer.title,
     countersignerId: countersigner.id,
     ownerName: "R.W. Holleman",
-    values: { fixture_reference: "REF-8", fixture_tier: "beta" },
+    values: {
+      fixture_reference: "REF-8",
+      fixture_tier: "beta",
+      fixture_lines: fixtureLines,
+    },
   });
   const rendered = await template.render({
     contractId: id,

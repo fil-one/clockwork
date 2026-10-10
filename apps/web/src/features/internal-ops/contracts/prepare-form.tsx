@@ -4,7 +4,11 @@ import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, type FormEvent } from "react";
-import type { LocalizedText, TemplateField } from "@clockwork/contracts";
+import type {
+  LocalizedText,
+  TemplateField,
+  TemplateValue,
+} from "@clockwork/contracts";
 import {
   Button,
   Fieldset,
@@ -18,6 +22,11 @@ import { useLocale, useTranslations } from "@/src/i18n/client";
 import type { MessageId } from "@/src/i18n";
 import { prepareContract } from "./actions";
 import { errorMessage, fieldMessage } from "./copy";
+import {
+  LineItemsEditor,
+  initialTable,
+  lineItemsFormValue,
+} from "./line-items-editor";
 import { SessionExpiredReload } from "../session-expiry";
 import styles from "./contracts.module.css";
 
@@ -45,6 +54,7 @@ export function PrepareForm({
   ownerName,
   today,
   signingReady,
+  initialValues,
 }: {
   template: {
     id: string;
@@ -55,6 +65,8 @@ export function PrepareForm({
   ownerName: string;
   today: string;
   signingReady: boolean;
+  /** Field values to start from; a line-item table starts its editor. */
+  initialValues?: Readonly<Record<string, TemplateValue>>;
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -88,7 +100,12 @@ export function PrepareForm({
       countersignerId: text("countersignerId"),
       ownerName: text("ownerName"),
       values: Object.fromEntries(
-        template.fields.map((field) => [field.id, text(`value.${field.id}`)]),
+        template.fields.map((field) => [
+          field.id,
+          field.kind === "line_items"
+            ? lineItemsFormValue(text(`value.${field.id}`))
+            : text(`value.${field.id}`),
+        ]),
       ),
     });
     setBusy(false);
@@ -223,7 +240,13 @@ export function PrepareForm({
                   ? {}
                   : { optionalLabel: t("operations.contracts.form.optional") }),
               };
-              return field.kind === "choice" ? (
+              return field.kind === "line_items" ? (
+                <LineItemsEditor
+                  key={field.id}
+                  {...common}
+                  initialValue={initialTable(initialValues?.[field.id])}
+                />
+              ) : field.kind === "choice" ? (
                 <Select
                   key={field.id}
                   {...common}
