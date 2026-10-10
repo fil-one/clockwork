@@ -15,8 +15,9 @@ const artifactRoot = path.resolve(
 );
 const serial = process.env.CLOCKWORK_RELEASE_SERIAL === "1";
 if (
-  (process.env.CLOCKWORK_RELEASE_SHARD === "ui" ||
-    process.env.CLOCKWORK_RELEASE_SHARD === "demo") &&
+  ["ui-1", "ui-2", "demo"].includes(
+    process.env.CLOCKWORK_RELEASE_SHARD ?? "",
+  ) &&
   process.platform !== "darwin"
 )
   throw new Error(

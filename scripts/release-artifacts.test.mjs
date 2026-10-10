@@ -23,6 +23,7 @@ import {
   RELEASE_REQUIRED_RUNTIME_ENVIRONMENT,
   RELEASE_SUITE_ASSERTIONS,
   RELEASE_SUITE_NAMES,
+  RELEASE_UI_SPEC_FILES,
   RELEASE_UNWIRED_SCRIPT_TESTS,
   semanticArtifactInventoryFingerprint,
   sourceIdentityKey,
@@ -336,10 +337,12 @@ test("rejects cross-index application, provider, and database port overlaps", ()
     releasePortAllocationIssues({
       suiteNames: [
         "static",
+        "lint",
         "unit",
         "integration",
         "build",
-        "ui",
+        "ui-1",
+        "ui-2",
         "demo",
         "proof",
       ],
@@ -520,10 +523,12 @@ test("accepts a complete passing release summary with one source identity", () =
         installationPolicy,
         results: [
           "static",
+          "lint",
           "unit",
           "integration",
           "build",
-          "ui",
+          "ui-1",
+          "ui-2",
           "demo",
           "proof",
         ].map(result),
@@ -719,10 +724,12 @@ test("rejects a duration over budget even when the summary flag is stale", () =>
     installationPolicy,
     results: [
       "static",
+      "lint",
       "unit",
       "integration",
       "build",
-      "ui",
+      "ui-1",
+      "ui-2",
       "demo",
       "proof",
     ].map(result),
@@ -1347,14 +1354,60 @@ test("gives every CI shard its own application port", () => {
 });
 
 test("pins the CI shards to the macOS runner that owns the screenshot baselines", () => {
-  // `apps/web/playwright.config.ts` throws for either visual shard off Darwin.
-  const visual = new Set(["ui", "demo"]);
+  // `apps/web/playwright.config.ts` throws for any visual shard off Darwin.
+  const visual = new Set(["ui-1", "ui-2", "demo"]);
   for (const { shard, runner } of workflowShards)
     if (visual.has(shard)) assert.match(runner, /^macos-/);
 });
 
+test("runs every browser test in exactly one ui shard", async () => {
+  // The `ui-*` shards name their spec files, so a spec added to
+  // `apps/web/e2e` and to neither list would never run. Discover the specs on
+  // disk instead of restating them: the two lists must partition every spec
+  // the `functional-chromium` and `chromium` projects select, which is all of
+  // them except the ones the demo and proof shards run.
+  const ownShards = new Set(["demo.spec.ts", "production-proof.spec.ts"]);
+  const specs = (
+    await readdir(new URL("../apps/web/e2e/", import.meta.url), {
+      withFileTypes: true,
+    })
+  )
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".spec.ts"))
+    .map((entry) => entry.name)
+    .filter((name) => !ownShards.has(name))
+    .map((name) => `e2e/${name}`)
+    .sort();
+  assert.ok(specs.length > 0, "found no browser specs in apps/web/e2e");
+  assert.deepEqual(Object.keys(RELEASE_UI_SPEC_FILES), ["ui-1", "ui-2"]);
+  const named = Object.values(RELEASE_UI_SPEC_FILES).flat();
+  assert.equal(new Set(named).size, named.length, "a spec is in both halves");
+  assert.deepEqual([...named].sort(), specs);
+  // Playwright reads each file argument as a pattern over the full path, so
+  // each must pick out its own spec and no other.
+  for (const file of named)
+    assert.deepEqual(
+      specs.filter((spec) => spec.includes(file)),
+      [file],
+    );
+  for (const [suite, files] of Object.entries(RELEASE_UI_SPEC_FILES)) {
+    const browserCommands = expectedReleaseCommands(suite, false).filter(
+      (command) => command.includes("playwright"),
+    );
+    assert.equal(browserCommands.length, 1);
+    const [command] = browserCommands;
+    assert.deepEqual(command.slice(-files.length), [...files]);
+    assert.ok(command.includes("--project=functional-chromium"));
+    // `visual.spec.ts` alone belongs to the `chromium` project, and that
+    // project's dependency on `functional-chromium` would rerun every
+    // functional spec in its shard unless `--no-deps` drops it.
+    const visual = files.includes("e2e/visual.spec.ts");
+    assert.equal(command.includes("--project=chromium"), visual, suite);
+    assert.equal(command.includes("--no-deps"), visual, suite);
+  }
+});
+
 test("raises the CI heap ceiling above the measured type-aware lint peak", () => {
-  // The static shard peaks at 3.66 GiB linting the whole workspace program,
+  // The lint shard peaks at 3.66 GiB linting the whole workspace program,
   // which aborts (SIGABRT, exit 134) against Node's default ~4 GiB old space
   // on a runner with less headroom than a developer machine. Measured, not
   // assumed: `NODE_OPTIONS=--max-old-space-size=3072 pnpm exec eslint .`
