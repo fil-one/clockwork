@@ -24,6 +24,7 @@ const filOneOrganization = "30000000-0000-4000-8000-000000000008";
 const seller = { kind: "user" as const, id: staffId, display: "Iris Operator" };
 const otherSeller = { kind: "user" as const, id: randomUUID(), display: "B" };
 const tag = randomUUID().slice(0, 8);
+const twinId = randomUUID();
 const today = "2026-10-10";
 const partners: string[] = [];
 const deals: string[] = [];
@@ -32,6 +33,8 @@ afterAll(async () => {
   // Audit events are append-only and stay behind.
   await client`delete from commerce_partner_deals where id = any(${deals})`;
   await client`delete from commerce_partners where id = any(${partners})`;
+  await client`delete from memberships where user_id = ${twinId}`;
+  await client`delete from commerce_users where id = ${twinId}`;
   await client.end();
 });
 
@@ -122,6 +125,18 @@ describe("PartnerRepository", () => {
     await expect(repo.save(raw, otherSeller)).rejects.toThrow(
       "PARTNER_IDEMPOTENCY_CONFLICT",
     );
+    // The first answer was lost and the seller changed the form before
+    // sending again: refused, not silently dropped.
+    await expect(
+      repo.save({ ...raw, nextStep: "Call them on Monday" }, seller),
+    ).rejects.toThrow("PARTNER_IDEMPOTENCY_CONFLICT");
+    // The same rate typed another way is the same record.
+    await expect(
+      repo.save(
+        { ...raw, terms: { ...raw.terms, commissionPct: "017.50" } },
+        seller,
+      ),
+    ).resolves.toMatchObject({ id: created.id, version: 1 });
 
     const edited = await repo.save(
       {
@@ -133,6 +148,11 @@ describe("PartnerRepository", () => {
       otherSeller,
     );
     expect(edited).toMatchObject({ status: "terms_agreed", version: 2 });
+    // Another staff member with the same display name is still a new owner.
+    await client`insert into commerce_users (id, workos_user_id, email, name, is_internal_staff)
+      values (${twinId}, ${`twin-${tag}`}, ${`twin-${tag}@clockwork.test`}, 'Iris Operator', true)`;
+    await client`insert into memberships (organization_id, user_id, role)
+      values (${filOneOrganization}, ${twinId}, 'revenue')`;
     expect(edited.terms.commissionPct).toBe("20");
     await expect(
       repo.save({ ...raw, expectedVersion: 1 }, seller),
@@ -154,8 +174,26 @@ describe("PartnerRepository", () => {
       "partner.updated",
     ]);
 
+    const reassigned = await repo.save(
+      {
+        ...raw,
+        expectedVersion: 2,
+        status: "terms_agreed",
+        terms: { ...raw.terms, commissionPct: "20" },
+        ownerId: twinId,
+      },
+      seller,
+    );
+    expect(reassigned).toMatchObject({ ownerId: twinId, version: 3 });
+    const [ownerChange] = await client<{ changes: Record<string, unknown> }[]>`
+      select after->'changes' as changes from audit_events
+      where aggregate_type = 'partner' and aggregate_id = ${created.id}
+        and aggregate_version = 3`;
+    expect(ownerChange?.changes).toEqual({
+      ownerId: { from: staffId, to: twinId },
+    });
     const detail = await repo.get(created.id, today);
-    expect(detail.activity[0]).toMatchObject({
+    expect(detail.activity[1]).toMatchObject({
       eventType: "partner.updated",
       actorName: "B",
       changes: {
@@ -219,7 +257,16 @@ describe("PartnerRepository", () => {
       seller,
     );
     const days = await repo.protectionDays();
-    const registered = await repo.saveDeal(dealInput(first.id), seller, today);
+    const firstDeal = dealInput(first.id);
+    const registered = await repo.saveDeal(firstDeal, seller, today);
+    // A resend after a lost answer: the same deal returns, an edited one is
+    // refused.
+    await expect(
+      repo.saveDeal(firstDeal, seller, today),
+    ).resolves.toMatchObject({ deal: { id: registered.deal.id, version: 1 } });
+    await expect(
+      repo.saveDeal({ ...firstDeal, notes: "Changed my mind" }, seller, today),
+    ).rejects.toThrow("PARTNER_DEAL_IDEMPOTENCY_CONFLICT");
     expect(registered.deal).toMatchObject({
       status: "registered",
       protectedUntil: addPartnerDays(today, days),

@@ -188,6 +188,7 @@ function comparable(record: PartnerRecord): Record<string, unknown> {
     region: rest.region,
     models: rest.models,
     status: rest.status,
+    ownerId: rest.ownerId,
     ownerName: rest.ownerName,
     organizationId: rest.organizationId,
     contacts: rest.contacts,
@@ -221,6 +222,7 @@ function inputComparable(
     region: input.region,
     models: input.models,
     status: input.status,
+    ownerId: input.ownerId,
     ownerName,
     organizationId: input.organizationId,
     contacts: input.contacts,
@@ -307,6 +309,8 @@ function databaseRefusal(error: unknown): string | undefined {
 }
 
 const openStatuses = [...openPartnerDealStatuses];
+/** Overlapping registrations shown per end client. */
+const conflictsPerEndClient = 25;
 
 /**
  * Staff partner records and their registered deals (001466). Holders of
@@ -476,10 +480,25 @@ export class PartnerRepository {
         return record;
       }
       if (input.expectedVersion === undefined) {
-        // A retried first save: the same person, the record already stored.
-        if (current.createdById !== actor.id || current.version !== 1)
+        // A retried first save returns the stored record only when it is the
+        // same person sending the same record. Anything else, such as an edit
+        // made after a save whose answer was lost, is refused rather than
+        // silently dropped.
+        const stored = partnerView(
+          current,
+          await organizationName(tx, current.organizationId),
+        );
+        if (
+          current.createdById !== actor.id ||
+          Object.keys(
+            partnerChanges(
+              comparable(stored),
+              inputComparable(input, ownerName),
+            ),
+          ).length > 0
+        )
           throw new Error("PARTNER_IDEMPOTENCY_CONFLICT");
-        return partnerView(current, null);
+        return stored;
       }
       if (current.version !== input.expectedVersion)
         throw new Error("PARTNER_VERSION_CONFLICT");
@@ -579,8 +598,16 @@ export class PartnerRepository {
         if (current.partnerId !== input.partnerId)
           throw new Error("PARTNER_DEAL_PARTNER_MISMATCH");
         if (input.expectedVersion === undefined) {
-          if (current.createdById !== actor.id || current.version !== 1)
-            throw new Error("PARTNER_IDEMPOTENCY_CONFLICT");
+          // As for partners: the same person sending the same deal, or a
+          // refusal the form words as "already saved, reload".
+          const differs = Object.keys(
+            partnerChanges(dealComparable(dealView(current, null)), {
+              ...columns,
+              estimatedSize: trimPartnerDecimal(columns.estimatedSize),
+            }),
+          ).length;
+          if (current.createdById !== actor.id || differs)
+            throw new Error("PARTNER_DEAL_IDEMPOTENCY_CONFLICT");
           saved = current;
         } else {
           if (current.version !== input.expectedVersion)
@@ -915,16 +942,23 @@ async function conflictsFor(
   const keys = [...new Set(normalized.filter(Boolean))];
   const found = new Map<string, PartnerDealConflict[]>();
   if (!keys.length) return found;
-  const rows = await tx
+  // At most this many registrations per end client, oldest first, however
+  // many end clients one read asks about.
+  const ranked = tx
     .select({
       dealId: commercePartnerDeals.id,
       partnerId: commercePartnerDeals.partnerId,
-      partnerName: commercePartners.name,
+      partnerName: sql<string>`${commercePartners.name}`.as("partner_name"),
       endClient: commercePartnerDeals.endClient,
       normalized: commercePartnerDeals.normalizedEndClient,
       status: commercePartnerDeals.status,
       registeredOn: commercePartnerDeals.registeredOn,
       protectedUntil: commercePartnerDeals.protectedUntil,
+      rank: sql<number>`row_number() over (
+        partition by ${commercePartnerDeals.normalizedEndClient}
+        order by ${commercePartnerDeals.registeredOn}, ${commercePartnerDeals.id})`.as(
+        "rank",
+      ),
     })
     .from(commercePartnerDeals)
     .innerJoin(
@@ -941,8 +975,21 @@ async function conflictsFor(
           : undefined,
       ),
     )
-    .orderBy(asc(commercePartnerDeals.registeredOn))
-    .limit(100);
+    .as("ranked");
+  const rows = await tx
+    .select({
+      dealId: ranked.dealId,
+      partnerId: ranked.partnerId,
+      partnerName: ranked.partnerName,
+      endClient: ranked.endClient,
+      normalized: ranked.normalized,
+      status: ranked.status,
+      registeredOn: ranked.registeredOn,
+      protectedUntil: ranked.protectedUntil,
+    })
+    .from(ranked)
+    .where(lte(ranked.rank, conflictsPerEndClient))
+    .orderBy(asc(ranked.registeredOn), asc(ranked.dealId));
   for (const { normalized: key, ...conflict } of rows) {
     if (!key) continue;
     found.set(key, [...(found.get(key) ?? []), conflict]);
@@ -1052,6 +1099,18 @@ async function resolveOwner(
   const [owner] = await staffOwners(tx, [ownerId]);
   if (!owner) throw new Error("PARTNER_OWNER_NOT_STAFF");
   return owner.name;
+}
+
+async function organizationName(
+  tx: RuntimeTransaction,
+  organizationId: string | null,
+): Promise<string | null> {
+  if (!organizationId) return null;
+  const [found] = await tx
+    .select({ name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId));
+  return found?.name ?? null;
 }
 
 async function assertOrganization(

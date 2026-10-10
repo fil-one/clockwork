@@ -65,6 +65,16 @@ describe("PartnerInputSchema", () => {
     },
   );
 
+  it("stores one spelling per rate", () => {
+    expect(
+      PartnerInputSchema.parse({
+        id,
+        name: "N",
+        terms: { commissionPct: "017.50", marginPct: "20.0" },
+      }).terms,
+    ).toMatchObject({ commissionPct: "17.5", marginPct: "20" });
+  });
+
   it.each([
     ["100.01", "percent_range"],
     ["-5", "percent_format"],

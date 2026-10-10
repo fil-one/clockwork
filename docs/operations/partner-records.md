@@ -23,6 +23,14 @@ everything; the partner never sees it.
 - Sanity bounds only: rates from 0 to 100 with up to four decimals, sizes above
   zero, protection that does not end before registration. No commission ceiling
   and no approval step.
+- Editable on purpose: a deal's registration date and status can be changed
+  freely, in any direction, by anyone who may edit partners (an expired deal can
+  be set back to registered, a registration can be back-dated). There is no
+  transition rule; every change is recorded in History with its before and after
+  values.
+- Retries: a first save sent again with the same id returns the stored record
+  only when nothing differs; an edit made after a save whose answer was lost is
+  refused with a reload message, never dropped silently.
 - Overlaps: an end client is matched across partners with
   `commerce_mnda_normalize_company`, the same normalizer the MNDA and contract
   duplicate warnings use. Another partner's open registration (registered,

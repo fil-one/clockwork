@@ -272,8 +272,12 @@ export const staffPartnerMessages = defineStaffMessages({
     en: "Someone else changed this partner while you were editing. Reload to see their changes, then make yours again.",
   },
   "operations.partners.error.PARTNER_IDEMPOTENCY_CONFLICT": {
-    en: "This was already saved by someone else. Reload the page.",
+    en: "This partner was already saved, without your latest changes. Open it to see what was saved, then edit it.",
   },
+  "operations.partners.error.PARTNER_DEAL_IDEMPOTENCY_CONFLICT": {
+    en: "This deal was already saved, without your latest changes. Reload the page to see what was saved, then edit it.",
+  },
+  "operations.partners.form.openSaved": { en: "Open the saved partner" },
   "operations.partners.error.PARTNER_OWNER_NOT_STAFF": {
     en: "The owner must be a Fil One staff member with the sales workspace.",
   },

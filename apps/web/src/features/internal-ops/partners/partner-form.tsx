@@ -166,7 +166,18 @@ export function PartnerForm({
                     <SessionExpiredReload onReloaded={() => setFailure(null)} />
                   ),
                 }
-              : {})}
+              : failure === "PARTNER_IDEMPOTENCY_CONFLICT" && id.current
+                ? {
+                    action: (
+                      <Link
+                        className={buttonClassName({ variant: "secondary" })}
+                        href={partnerHref(id.current)}
+                      >
+                        {t("operations.partners.form.openSaved")}
+                      </Link>
+                    ),
+                  }
+                : {})}
           />
         </div>
       ) : null}

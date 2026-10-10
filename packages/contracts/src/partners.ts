@@ -99,6 +99,14 @@ const text = (max: number) =>
     .transform((value) => value.replace(/\r\n?/g, "\n").trim())
     .default("");
 
+/** One spelling per number: "017.50" and "17.5" are both "17.5". */
+function canonicalDecimal(value: string): string {
+  const [whole = "0", fraction = ""] = value.split(".");
+  const integer = whole.replace(/^0+(?=\d)/, "");
+  const decimals = fraction.replace(/0+$/, "");
+  return decimals ? `${integer}.${decimals}` : integer;
+}
+
 /**
  * A percentage from 0 to 100 with up to four decimals, as typed ("17.5",
  * "32"). Sanity bounds only: no commission or margin ceiling applies here.
@@ -112,10 +120,16 @@ export const partnerPercentSchema = z
       .string()
       .regex(/^\d{1,3}(\.\d{1,4})?$/, "percent_format")
       .refine((value) => Number(value) <= 100, "percent_range"),
-  );
+  )
+  .transform(canonicalDecimal);
+// An empty field is no rate; anything else must be a rate, so its own refusal
+// (format or range) reaches the form.
 const percent = z
-  .union([partnerPercentSchema, z.literal(""), z.null()])
-  .transform((value) => (value ? value : null))
+  .preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? null : value,
+    partnerPercentSchema.nullable(),
+  )
   .default(null);
 
 /** A positive size with up to three decimals ("250", "1.5"). */
@@ -128,7 +142,8 @@ export const partnerSizeSchema = z
       .string()
       .regex(/^\d{1,12}(\.\d{1,3})?$/, "size_format")
       .refine((value) => Number(value) > 0, "size_range"),
-  );
+  )
+  .transform(canonicalDecimal);
 
 // A calendar day this century, so protection arithmetic stays in range.
 const isoDate = z.iso
@@ -261,8 +276,11 @@ export const PartnerDealInputSchema = z
     /** Empty takes the channel policy's protection from `registeredOn`. */
     protectedUntil: optionalDate,
     estimatedSize: z
-      .union([partnerSizeSchema, z.literal(""), z.null()])
-      .transform((value) => (value ? value : null))
+      .preprocess(
+        (value) =>
+          typeof value === "string" && value.trim() === "" ? null : value,
+        partnerSizeSchema.nullable(),
+      )
       .default(null),
     sizeUnit: z
       .union([z.enum(partnerSizeUnits), z.literal(""), z.null()])
@@ -454,6 +472,7 @@ export const partnerErrorCodes = [
   "PARTNER_NOT_FOUND",
   "PARTNER_VERSION_CONFLICT",
   "PARTNER_IDEMPOTENCY_CONFLICT",
+  "PARTNER_DEAL_IDEMPOTENCY_CONFLICT",
   "PARTNER_OWNER_NOT_STAFF",
   "PARTNER_ORGANIZATION_NOT_FOUND",
   "PARTNER_DEAL_NOT_FOUND",

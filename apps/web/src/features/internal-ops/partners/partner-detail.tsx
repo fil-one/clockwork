@@ -50,6 +50,7 @@ const fieldLabels: Readonly<Record<string, MessageId>> = {
   region: "operations.partners.field.region",
   models: "operations.partners.field.models",
   status: "operations.partners.field.status",
+  ownerId: "operations.partners.field.owner",
   ownerName: "operations.partners.field.owner",
   organizationId: "operations.partners.field.organization",
   contacts: "operations.partners.contacts.title",
@@ -77,10 +78,15 @@ const fieldLabels: Readonly<Record<string, MessageId>> = {
 };
 
 function changedFields(entry: PartnerActivity, t: Translator): string {
-  const names = Object.keys(entry.changes).map((key) => {
-    const label = fieldLabels[key];
-    return label ? t(label) : key;
-  });
+  // The owner's id and name change together; name the field once.
+  const names = [
+    ...new Set(
+      Object.keys(entry.changes).map((key) => {
+        const label = fieldLabels[key];
+        return label ? t(label) : key;
+      }),
+    ),
+  ];
   return names.length
     ? names.join(", ")
     : t("operations.partners.history.nothing");
@@ -118,8 +124,9 @@ function historyLine(entry: PartnerActivity, t: Translator): string {
 function Facts({ items }: { items: readonly [string, ReactNode][] }) {
   return (
     <dl className={styles.facts}>
-      {items.map(([term, detail]) => (
-        <Fragment key={term}>
+      {/* Free-form rows may repeat a label, so position is the key. */}
+      {items.map(([term, detail], index) => (
+        <Fragment key={index}>
           <dt>{term}</dt>
           <dd>{detail}</dd>
         </Fragment>
