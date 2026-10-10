@@ -260,11 +260,12 @@ describe("template picker", () => {
     expect(
       screen.queryByRole("article", { name: "Channel partnership agreement" }),
     ).toBeNull();
+    const pendingLine = screen.getByText(
+      /^Not yet supplied by legal: Channel partnership agreement\. Record these manually once signed\./u,
+    );
     expect(
-      screen.getByText(
-        "Not yet supplied by legal: Channel partnership agreement. Record these manually once signed.",
-      ),
-    ).toBeInTheDocument();
+      within(pendingLine).getByRole("link", { name: "Record a contract" }),
+    ).toHaveAttribute("href", "/internal/contracts/new");
     const ready = screen.getByRole("article", { name: "Other" });
     expect(
       within(ready).getByRole("link", { name: "Prepare Other" }),

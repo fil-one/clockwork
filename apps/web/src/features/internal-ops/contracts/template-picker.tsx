@@ -122,6 +122,14 @@ export function TemplatePicker({
               {t("operations.contracts.templates.pendingList", {
                 names: pending.join(", "),
               })}
+              {canWrite ? (
+                <>
+                  {" "}
+                  <Link href="/internal/contracts/new">
+                    {t("operations.contracts.action.record")}
+                  </Link>
+                </>
+              ) : null}
             </p>
           ) : null}
         </>

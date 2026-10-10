@@ -575,7 +575,7 @@ export const contractMessages = defineStaffMessages({
     en: "Record the contract again",
   },
   "operations.contracts.signing.closeThisOne": {
-    en: "Set this record to Terminated",
+    en: "Edit this record",
   },
   "operations.contracts.error.paperUnreadable": {
     en: "This PDF could not be read because it is encrypted or damaged, even if it opens in a viewer. Print it to a new PDF, upload that, and try again.",

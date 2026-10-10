@@ -878,7 +878,10 @@ describe("counterparty paper", () => {
     );
     // The old record is closed by hand, so it is not counted twice.
     expect(
-      screen.getByRole("link", { name: "Set this record to Terminated" }),
+      screen.getByText(/Then set this record to Terminated/u),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Edit this record" }),
     ).toHaveAttribute(
       "href",
       `/internal/contracts/${fixtureSigningRecord.contractId}/edit`,

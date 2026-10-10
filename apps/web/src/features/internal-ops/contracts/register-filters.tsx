@@ -133,7 +133,7 @@ export function RegisterFilters({ query }: { query: FilterQuery }) {
 
   return (
     <form
-      className={`${styles.card} ${styles.filterForm}`}
+      className={styles.filterForm}
       onSubmit={submit}
       role="search"
       aria-label={t("operations.contracts.filters.label")}
