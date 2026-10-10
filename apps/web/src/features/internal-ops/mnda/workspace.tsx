@@ -292,6 +292,7 @@ export function MndaWorkspace({
             {t("operations.mnda.export")}
           </a>
           <Button
+            disabled={data.demo}
             onClick={() =>
               open({ kind: "form", values: emptyValues(data.signers) })
             }
@@ -300,7 +301,9 @@ export function MndaWorkspace({
           </Button>
         </div>
       </header>
-      {!data.ready ? (
+      {data.demo ? (
+        <StateBanner tone="info" title={t("operations.mnda.demo")} />
+      ) : !data.ready ? (
         <StateBanner tone="warning" title={t("operations.mnda.notReady")} />
       ) : null}
       {data.testMode ? (
@@ -580,7 +583,7 @@ export function MndaWorkspace({
                             <Button
                               variant="secondary"
                               size="small"
-                              disabled={busy}
+                              disabled={busy || data.demo}
                               onClick={() =>
                                 open({ kind: "preview", record: r })
                               }
@@ -681,7 +684,7 @@ export function MndaWorkspace({
                                 <Button
                                   variant="quiet"
                                   size="small"
-                                  disabled={busy}
+                                  disabled={busy || data.demo}
                                 >
                                   {t("operations.mnda.discardDraft")}
                                 </Button>
@@ -703,6 +706,7 @@ export function MndaWorkspace({
                             <Button
                               variant="quiet"
                               size="small"
+                              disabled={data.demo}
                               onClick={() =>
                                 open({
                                   kind: "form",

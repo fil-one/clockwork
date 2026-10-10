@@ -413,6 +413,34 @@ it("keeps sending disabled when the provider is not configured", async () => {
   ).toBeDisabled();
 });
 
+it("turns off every control the demo would refuse and says why", () => {
+  render(
+    <MndaWorkspace
+      initial={{
+        ...data([fixtureRecord, { ...sent, id: fixtureInput.countersignerId }]),
+        ready: false,
+        demo: true,
+      }}
+      initialQuery={query}
+    />,
+  );
+  expect(
+    screen.getByText(/Demo register: the companies and people are fictional/),
+  ).toBeVisible();
+  expect(
+    screen.queryByText(/Sending is unavailable until the signing connection/),
+  ).toBeNull();
+  for (const name of [
+    "New MNDA",
+    "Continue",
+    "Discard draft",
+    "Duplicate",
+    /^Remind/,
+  ])
+    for (const button of screen.getAllByRole("button", { name }))
+      expect(button).toBeDisabled();
+});
+
 it("offers void and email fixes only to the preparer, and never after the partner signed", () => {
   const colleague = {
     ...sent,

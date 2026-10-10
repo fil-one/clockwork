@@ -7,12 +7,13 @@ import {
 } from "@clockwork/contracts";
 import { contractToday } from "@clockwork/domain/contract-terms";
 import { getRequestCommerceSession } from "@/src/auth/session";
+import { demoNow } from "@/src/features/experience-server/demo-clock";
+import { contractReader, contractRegisterReader } from "./demo-access";
 import {
   ContractAccessError,
   contractRepository,
   contractSigningConfiguration,
   contractSigningRepository,
-  contractStaff,
   contractTemplateRegistry,
   sessionHas,
   type ContractAccessFailure,
@@ -32,7 +33,7 @@ export async function loadWith<T>(
   load: (session: ContractStaffSession) => Promise<T>,
 ): Promise<Loaded<T>> {
   try {
-    const session = await contractStaff(permission, getRequestCommerceSession);
+    const session = await contractReader(permission, getRequestCommerceSession);
     return { kind: "ready", ...(await load(session)) };
   } catch (error) {
     if (error instanceof ContractAccessError)
@@ -64,11 +65,15 @@ export function loadRegister(
   return loadWith("contract:read", async (session) => {
     const query: ContractListQuery =
       ContractListQuerySchema.parse(searchParams);
-    const today = contractToday();
+    const today = contractToday(demoNow());
     return {
       query,
       today,
-      result: await contractRepository().list(query, today, listScope(session)),
+      result: await contractRegisterReader(session).list(
+        query,
+        today,
+        listScope(session),
+      ),
       canOpenMndas: listScope(session).includeMndas,
       ...permissions(session),
     };
@@ -78,8 +83,8 @@ export function loadRegister(
 export function loadContract(id: string) {
   return loadWith("contract:read", async (session) => {
     if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("CONTRACT_NOT_FOUND");
-    const today = contractToday();
-    const detail = await contractRepository().get(id, today);
+    const today = contractToday(demoNow());
+    const detail = await contractRegisterReader(session).get(id, today);
     return {
       ...detail,
       today,
@@ -91,11 +96,11 @@ export function loadContract(id: string) {
 }
 
 export function loadRenewals(window: unknown) {
-  return loadWith("contract:read", async () => {
+  return loadWith("contract:read", async (session) => {
     const days =
       contractRenewalWindows.find((w) => String(w) === String(window)) ?? 90;
-    const today = contractToday();
-    const repository = contractRepository();
+    const today = contractToday(demoNow());
+    const repository = contractRegisterReader(session);
     return {
       days,
       today,
@@ -153,7 +158,7 @@ export function loadPrepare(templateId: string) {
       ownerName: session.profile.name,
       signingReady: contractSigningConfiguration().ready,
       testMode: contractSigningConfiguration().testMode,
-      today: contractToday(),
+      today: contractToday(demoNow()),
     };
   });
 }
@@ -161,9 +166,9 @@ export function loadPrepare(templateId: string) {
 export function loadContractForm(id?: string) {
   return loadWith("contract:write", async (session) => ({
     ownerName: session.profile.name,
-    today: contractToday(),
+    today: contractToday(demoNow()),
     contract: id
-      ? (await contractRepository().get(id, contractToday())).contract
+      ? (await contractRepository().get(id, contractToday(demoNow()))).contract
       : null,
   }));
 }

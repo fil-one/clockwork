@@ -33,12 +33,12 @@ export async function mndaStaff(
   permission: MndaPermission = "mnda:send",
   readSession: () => Promise<CommerceSession> = getCommerceSession,
 ) {
+  if (explicitDemoIdentityEnabled()) throw new Error("MNDA_DEMO_UNAVAILABLE");
   const session = await readSession();
   if (
     !session.isInternalStaff ||
     session.impersonation ||
-    session.assistedSession ||
-    explicitDemoIdentityEnabled()
+    session.assistedSession
   )
     throw new Error("MNDA_FORBIDDEN");
   if (!session.mfaVerified) throw new Error("MNDA_MFA_REQUIRED");

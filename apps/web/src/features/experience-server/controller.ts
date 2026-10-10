@@ -49,6 +49,7 @@ import {
   projectionInput,
   type ProjectionSource,
 } from "./projection-source";
+import { demoNow } from "./demo-clock";
 import { createOpaqueEsignState, publicRenderRequest } from "./repository";
 import type { ExperienceRepository } from "./repository-port";
 import { requireProjectionActionAuthority } from "./projection-authorization";
@@ -405,7 +406,7 @@ export async function handleExperienceRequest(
     const session = requireAuthenticatedSession(
       await resolver.resolve(request),
     );
-    const now = dependencies.now?.() ?? new Date();
+    const now = dependencies.now?.() ?? demoNow();
     let resolvedRepository = dependencies.repository;
     const repository = () =>
       (resolvedRepository ??= configuredExperienceRepository());

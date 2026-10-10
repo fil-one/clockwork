@@ -17,6 +17,9 @@ import {
 } from "@clockwork/contracts";
 import type { MndaContractMatch, MndaRegisterMatch } from "@clockwork/db";
 import { mndaTemplateHash, renderMnda } from "@clockwork/documents";
+import { demoNow } from "@/src/features/experience-server/demo-clock";
+import { demoMndaRegister } from "./demo-register";
+import { demoMndaViewer, demoMndaWorkspaceData } from "./demo-workspace";
 import { mndaSettingsData, mndaWorkspaceData } from "./page-data";
 import { mndaFailure, mndaInvalid } from "./results";
 import {
@@ -38,6 +41,8 @@ export interface MndaWorkspaceData {
   testMode: boolean;
   canManage: boolean;
   viewerId: string;
+  /** Fictional demo records; nothing can be prepared, sent or changed. */
+  demo?: boolean;
 }
 export interface MndaDuplicates {
   mndas: MndaRegisterMatch[];
@@ -68,7 +73,11 @@ async function attempt<T>(fn: () => Promise<T>): Promise<MndaResult<T>> {
 export async function loadMndas(
   rawQuery: unknown = {},
 ): Promise<MndaResult<MndaWorkspaceData>> {
-  return attempt(async () => mndaWorkspaceData(await mndaStaff(), rawQuery));
+  return attempt(async () => {
+    const viewer = await demoMndaViewer();
+    if (viewer) return demoMndaWorkspaceData(viewer, rawQuery);
+    return mndaWorkspaceData(await mndaStaff(), rawQuery);
+  });
 }
 
 /** Only the register, for the open page's refresh: countersigners and the
@@ -77,6 +86,15 @@ export async function loadMndaRegister(
   rawQuery: unknown = {},
 ): Promise<MndaResult<Pick<MndaWorkspaceData, "register">>> {
   return attempt(async () => {
+    const viewer = await demoMndaViewer();
+    if (viewer)
+      return {
+        register: demoMndaRegister(
+          MndaRegisterQuerySchema.parse(rawQuery),
+          viewer,
+          demoNow(),
+        ),
+      };
     const session = await mndaStaff();
     const query = MndaRegisterQuerySchema.parse(rawQuery);
     return { register: await mndaRepository().list(query, session.userId) };

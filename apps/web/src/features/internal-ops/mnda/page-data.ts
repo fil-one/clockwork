@@ -2,6 +2,7 @@ import "server-only";
 import { MndaRegisterQuerySchema, type MndaResult } from "@clockwork/contracts";
 import { getRequestCommerceSession } from "@/src/auth/session";
 import type { MndaSettingsData, MndaWorkspaceData } from "./actions";
+import { demoMndaViewer, demoMndaWorkspaceData } from "./demo-workspace";
 import { mndaFailure } from "./results";
 import {
   mndaCanManage,
@@ -56,12 +57,14 @@ async function pageResult<T>(load: () => Promise<T>): Promise<MndaResult<T>> {
 /** The register page's first load. It shares the layout's request-cached
  * session; the same read called as an action verifies the session afresh. */
 export function loadMndaPage(rawQuery: unknown) {
-  return pageResult(async () =>
-    mndaWorkspaceData(
+  return pageResult(async () => {
+    const viewer = await demoMndaViewer(getRequestCommerceSession);
+    if (viewer) return demoMndaWorkspaceData(viewer, rawQuery);
+    return mndaWorkspaceData(
       await mndaStaff("mnda:send", getRequestCommerceSession),
       rawQuery,
-    ),
-  );
+    );
+  });
 }
 
 export function loadMndaSettingsPage() {

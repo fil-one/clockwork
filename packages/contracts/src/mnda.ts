@@ -386,6 +386,7 @@ export const mndaErrorCodes = [
   "signed_in_signwell",
   "reason_required",
   "session_expired",
+  "demo_unavailable",
   "unexpected",
 ] as const;
 export type MndaErrorCode = (typeof mndaErrorCodes)[number];

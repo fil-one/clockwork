@@ -61,8 +61,9 @@ export const contractHomeSource: SalesHomeSource = {
     action: "operations.sales.home.contracts.openRegister",
   },
   async load(context: SalesHomeContext) {
-    // The guided demo has no contract register; the section stays hidden.
-    if (!context.providerBacked) return [];
+    // The guided demo's register has no signing requests; the section stays
+    // hidden.
+    if (context.demo) return [];
     // Every contract read passes the register's own check (second factor,
     // own session), not only the page's.
     await contractStaff("contract:read");

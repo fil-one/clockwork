@@ -884,7 +884,9 @@ test.describe("playable product-demo workflows", () => {
     }
   });
 
-  test("operator refreshes stale queue projections through the secured demo route", async ({
+  // The stale warning and its Refresh control are covered by
+  // queue-workspace.refresh.test.tsx; the demo's own queue reads as current.
+  test("operator queue opens current, with targets placed relative to today", async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -894,29 +896,69 @@ test.describe("playable product-demo workflows", () => {
     try {
       await startAs(page, "Ada Mercer");
       await gotoHydrated(page, "/internal/queues");
-      const refresh = page.getByRole("button", { name: "Refresh data" });
-      await expect(refresh).toBeVisible();
-      const [response] = await Promise.all([
-        page.waitForResponse(
-          (candidate) =>
-            candidate.url().endsWith("/api/demo/projections/queues/refresh") &&
-            candidate.request().method() === "POST",
-        ),
-        refresh.click(),
-      ]);
-      expect(response.status()).toBe(200);
       await expect(
-        page.getByRole("button", { name: "Refresh data" }),
-      ).toHaveCount(0);
+        page.getByRole("heading", { level: 1, name: "Operational queues" }),
+      ).toBeVisible();
       await expect(
         page.getByText("At least one record is past its refresh window."),
       ).toHaveCount(0);
       await expect(
-        page.getByRole("heading", { level: 1, name: "Operational queues" }),
+        page.getByRole("button", { name: "Refresh data" }),
+      ).toHaveCount(0);
+      // Seeded three days ahead of the seed clock, the legal review is not yet
+      // breached on any day the demo is opened.
+      await expect(
+        page
+          .getByRole("row", { name: /Customer paper review · Meridian/ })
+          .getByText("Healthy"),
       ).toBeVisible();
     } finally {
       if (!page.isClosed()) await resetDemoData(page).catch(() => undefined);
     }
+  });
+
+  test("seller reads fictional MNDAs, contracts and collateral without sending anything", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await passGate(page);
+    await resetDemoData(page);
+    await startAs(page, "Priya Raman");
+
+    const rail = page.getByRole("navigation", { name: "Primary navigation" });
+    await expect(rail.getByRole("link", { name: "MNDAs" })).toBeVisible();
+
+    await gotoHydrated(page, "/internal/mndas");
+    await expect(
+      page.getByText(/Demo register: the companies and people are fictional/),
+    ).toBeVisible();
+    await expect(page.getByText("Saltmarsh Climate Data Ltd")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Remind Rafael Ortega/ }),
+    ).toBeDisabled();
+    const pdf = await page.request.get(
+      "/internal/mndas/61000000-0000-4000-8000-000000000005/pdf?kind=original",
+    );
+    expect(pdf.headers()["content-type"]).toBe("application/pdf");
+    expect((await pdf.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
+
+    await gotoHydrated(page, "/internal/contracts");
+    await expect(
+      page.getByRole("link", { name: "Brightwater Systems Integrators Ltd" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Record a contract" }),
+    ).toHaveCount(0);
+    await gotoHydrated(page, "/internal/contracts/notices");
+    await expect(
+      page.getByText("Fernhill Research Institute").first(),
+    ).toBeVisible();
+
+    await gotoHydrated(page, "/internal/sales-library");
+    await expect(page.getByText("Archive tier one-pager")).toBeVisible();
+    await expect(
+      page.getByText(/Demo library: these items are fictional/),
+    ).toBeVisible();
   });
 
   test("partner registration, priced quote, and renewal decisions remain visible", async ({

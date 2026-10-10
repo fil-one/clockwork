@@ -56,5 +56,6 @@ export const mndaErrorLabels: Record<MndaErrorCode, MessageId> = {
   signed_in_signwell: "operations.mnda.error.signedInSignWell",
   reason_required: "operations.mnda.error.reasonRequired",
   session_expired: "operations.session.expired",
+  demo_unavailable: "operations.mnda.error.demoUnavailable",
   unexpected: "operations.mnda.error.unexpected",
 };

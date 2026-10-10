@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { demoNow } from "@/src/features/experience-server/demo-clock";
+import { demoMndaRecords } from "@/src/features/internal-ops/mnda/demo-register";
+import {
+  demoMndaPdf,
+  demoMndaViewer,
+} from "@/src/features/internal-ops/mnda/demo-workspace";
 import {
   mndaActor,
   mndaRepository,
@@ -18,9 +24,11 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  let session: MndaSession;
+  let session: MndaSession | null = null;
+  let demo: Awaited<ReturnType<typeof demoMndaViewer>>;
   try {
-    session = await mndaStaff();
+    demo = await demoMndaViewer();
+    if (!demo) session = await mndaStaff();
   } catch {
     return new Response(null, { status: 403 });
   }
@@ -30,6 +38,28 @@ export async function GET(
     .enum(["original", "executed"])
     .safeParse(search.get("kind") ?? "original");
   if (!id.success || !kind.success) return new Response(null, { status: 404 });
+  const disposition = search.get("download") === "1" ? "attachment" : "inline";
+  if (demo) {
+    // The demo stores no documents and nothing was signed: every request,
+    // completed or not, opens the unsigned agreement rendered from its
+    // fictional details, named as a draft.
+    const record = demoMndaRecords(demo, demoNow()).find(
+      (candidate) => candidate.id === id.data,
+    );
+    if (!record) return new Response(null, { status: 404 });
+    return new Response(await demoMndaPdf(record), {
+      headers: {
+        "content-type": "application/pdf",
+        "content-disposition": contentDisposition(
+          mndaPdfFilename(record, "original"),
+          disposition,
+        ),
+        "cache-control": "private, no-store",
+        "x-content-type-options": "nosniff",
+      },
+    });
+  }
+  if (!session) return new Response(null, { status: 403 });
   try {
     const repository = mndaRepository();
     const record = await repository.get(id.data);
@@ -44,7 +74,7 @@ export async function GET(
         "content-type": "application/pdf",
         "content-disposition": contentDisposition(
           mndaPdfFilename(record, kind.data),
-          search.get("download") === "1" ? "attachment" : "inline",
+          disposition,
         ),
         "cache-control": "private, no-store",
         "x-content-type-options": "nosniff",
