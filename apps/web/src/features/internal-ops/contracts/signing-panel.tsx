@@ -20,6 +20,7 @@ import {
   buttonClassName,
   type ProgressStep,
 } from "@clockwork/ui";
+import type { MessageId } from "@/src/i18n";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { formatOperationalTimestamp } from "../presentation";
 import { decideContract, operateContract, voidContract } from "./actions";
@@ -28,6 +29,12 @@ import { SessionExpiredReload } from "../session-expiry";
 import styles from "./contracts.module.css";
 
 type Operation = "send" | "sync" | "remind" | "cancel";
+
+/** Why SignWell's copy is not applied, for the two mismatch codes. */
+const mismatchNotes: Readonly<Record<string, MessageId>> = {
+  signwell_signers_mismatch: "operations.contracts.signing.signersMismatch",
+  signwell_binding_mismatch: "operations.contracts.signing.bindingMismatch",
+};
 
 const sentStates = ["sent", "viewed", "awaiting_countersignature"];
 
@@ -124,6 +131,12 @@ export function SigningPanel({
   const deleted =
     signing.state === "attention" &&
     signing.error === contractDeletedInSignWell;
+  const mismatch =
+    signing.state === "attention"
+      ? mismatchNotes[signing.error ?? ""]
+      : undefined;
+  // Waits for a person to void it; sending or refreshing changes nothing.
+  const held = deleted || Boolean(mismatch);
   // Voiding a colleague's request takes an approver, as the server checks.
   const canVoid =
     canWrite &&
@@ -191,7 +204,7 @@ export function SigningPanel({
           description={t("operations.contracts.signing.notReadyBody")}
         />
       ) : null}
-      {signing.error && !terminal && !deleted ? (
+      {signing.error === "provider_unavailable" && !terminal ? (
         <InlineNotice
           tone="warning"
           title={t("operations.contracts.error.provider")}
@@ -202,6 +215,12 @@ export function SigningPanel({
           tone="warning"
           title={t("operations.contracts.signing.deletedTitle")}
           description={t("operations.contracts.signing.deletedBody")}
+        />
+      ) : mismatch ? (
+        <InlineNotice
+          tone="warning"
+          title={t(mismatch)}
+          description={t("operations.contracts.signing.mismatchNext")}
         />
       ) : signing.state === "attention" ? (
         <InlineNotice
@@ -324,7 +343,7 @@ export function SigningPanel({
         {canWrite &&
         approvalOk &&
         !terminal &&
-        !deleted &&
+        !held &&
         !sentStates.includes(signing.state) ? (
           <Button
             disabled={busy !== null || !signingReady}
@@ -334,7 +353,7 @@ export function SigningPanel({
             {t("operations.contracts.signing.send")}
           </Button>
         ) : null}
-        {canWrite && signing.providerId && !terminal && !deleted ? (
+        {canWrite && signing.providerId && !terminal && !held ? (
           <Button
             variant="secondary"
             disabled={busy !== null || !signingReady}
