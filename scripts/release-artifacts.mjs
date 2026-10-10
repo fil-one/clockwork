@@ -137,8 +137,6 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
     "dependency-audit",
     "generated-dry-run",
     "qualification-inventory",
-    "traceability",
-    "citation-liveness",
   ]),
   // Type-aware lint is the longest static step (178s of 449s on main,
   // 2026-10-05), so it runs on its own runner beside the rest.
@@ -146,11 +144,8 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
   unit: Object.freeze([
     "workspace-unit",
     "release-artifact-unit",
-    "release-benchmark-unit",
     "dependency-advisory-unit",
     "schema-drift-unit",
-    "traceability-validator-unit",
-    "citation-liveness-unit",
     "database-test-runner-unit",
     "secretlint-config-unit",
     "demo-deploy-environment-unit",
@@ -198,9 +193,16 @@ export const RELEASE_SUITE_ASSERTIONS = Object.freeze({
  * fails, and an entry naming a file that IS wired fails, so the exemption cannot
  * outlive its reason.
  *
- * Empty today: every `scripts/*.test.mjs` in the tree is wired into both lists.
+ * The launch-ledger tests read `docs/traceability/launch-requirements.json`, so
+ * they run with the ledger checks in `pnpm check:launch` before a commerce
+ * launch rather than on every change.
  */
-export const RELEASE_UNWIRED_SCRIPT_TESTS = Object.freeze({});
+export const RELEASE_UNWIRED_SCRIPT_TESTS = Object.freeze({
+  "scripts/validate-traceability.test.mjs":
+    "Reads the launch ledger; runs in pnpm check:launch before a commerce launch.",
+  "scripts/check-citation-liveness.test.mjs":
+    "Reads the launch ledger; runs in pnpm check:launch before a commerce launch.",
+});
 
 export function releaseDatabaseProjectId({ revision, runId, suite, portBase }) {
   if (!/^(integration|proof)$/.test(String(suite)))
@@ -255,8 +257,6 @@ export function expectedReleaseCommands(name, serial) {
       ["pnpm", "audit", "--audit-level=low"],
       ["node", "scripts/check-generated-dry-run.mjs"],
       ["node", "scripts/validate-release-test-inventory.mjs"],
-      ["pnpm", "check:traceability"],
-      ["pnpm", "check:citation-liveness"],
     ],
     lint: [["pnpm", "lint"]],
     unit: [
@@ -267,11 +267,8 @@ export function expectedReleaseCommands(name, serial) {
         ...serialVitestArguments(serial),
       ]),
       ["node", "--test", "scripts/release-artifacts.test.mjs"],
-      ["node", "--test", "scripts/benchmark-release.test.mjs"],
       ["node", "--test", "scripts/dependency-advisories.test.mjs"],
       ["node", "--test", "scripts/check-schema-drift.test.mjs"],
-      ["node", "--test", "scripts/validate-traceability.test.mjs"],
-      ["node", "--test", "scripts/check-citation-liveness.test.mjs"],
       ["node", "--test", "scripts/run-db-tests.test.mjs"],
       ["node", "--test", "scripts/secretlint-config.test.mjs"],
       ["node", "--test", "scripts/check-demo-deploy-environment.test.mjs"],
@@ -1103,119 +1100,5 @@ export function releaseSummaryIssues(
     );
     issues.push(...releaseResultIssues(result, identity));
   }
-  return issues;
-}
-
-export function releaseStressSummaryIssues(summary) {
-  const issues = [];
-  if (!summary || typeof summary !== "object")
-    return ["stress summary is missing"];
-  if (!/^[A-Za-z0-9_-]{1,48}$/.test(String(summary.token ?? "")))
-    issues.push("stress summary token is invalid");
-  if (!sourceIdentityKey(summary.sourceIdentity))
-    issues.push("stress summary source identity is invalid");
-  if (
-    !Number.isInteger(summary.stressRuns) ||
-    summary.stressRuns < 2 ||
-    summary.stressRuns > 10
-  )
-    issues.push("stress run count is invalid");
-  if (summary.serialAccepted !== true)
-    issues.push("serial qualification was not accepted");
-  if (summary.parallelAccepted !== true)
-    issues.push("parallel qualification was not accepted");
-  if (summary.comparisonAccepted !== true)
-    issues.push("serial/parallel comparison was not accepted");
-  if (summary.stressAccepted !== true)
-    issues.push("stress qualification was not accepted");
-  if (summary.accepted !== true) issues.push("stress summary was not accepted");
-  if (summary.interrupted === true)
-    issues.push("stress qualification was interrupted");
-  if (summary.forceKilled === true)
-    issues.push("stress qualification force-killed a release child");
-  if (
-    summary.suitesScript !== undefined &&
-    summary.suitesScript !== "scripts/release-suites.mjs"
-  )
-    issues.push(
-      `stress qualification ran a substituted release suite script: ${String(summary.suitesScript)}`,
-    );
-  if (summary.phases !== undefined) {
-    if (!Array.isArray(summary.phases)) {
-      issues.push("stress summary phase inventory is invalid");
-    } else {
-      for (const phase of summary.phases)
-        if (phase?.status !== "passed")
-          issues.push(
-            `stress phase did not pass: ${String(phase?.label)} (${String(phase?.status)})`,
-          );
-    }
-  }
-  if (summary.withinBudget !== true)
-    issues.push("stress summary exceeded its budget");
-  if (!Number.isFinite(summary.durationMs) || summary.durationMs < 0)
-    issues.push("stress summary duration is invalid");
-  if (!Number.isFinite(summary.budgetMs) || summary.budgetMs <= 0)
-    issues.push("stress summary budget is invalid");
-  if (
-    Number.isFinite(summary.durationMs) &&
-    Number.isFinite(summary.budgetMs) &&
-    summary.durationMs > summary.budgetMs
-  )
-    issues.push("stress summary duration exceeds its recorded budget");
-  if (!Array.isArray(summary.failures) || summary.failures.length !== 0)
-    issues.push("stress summary contains failures");
-  const stressEvidence = Array.isArray(summary.stressEvidence)
-    ? summary.stressEvidence
-    : [];
-  if (stressEvidence.length !== summary.stressRuns)
-    issues.push("stress evidence count differs from the requested runs");
-  const stressSummaryPaths = stressEvidence.map((item) => item?.summaryPath);
-  if (new Set(stressSummaryPaths).size !== stressSummaryPaths.length)
-    issues.push("stress evidence paths contain duplicates");
-  for (const [index, evidence] of stressEvidence.entries()) {
-    if (evidence?.summaryPath !== `stress-${index + 1}/summary.json`)
-      issues.push(`stress evidence ${index + 1} path is invalid`);
-    if (!Number.isFinite(evidence?.durationMs) || evidence.durationMs < 0)
-      issues.push(`stress evidence ${index + 1} duration is invalid`);
-    if (!Array.isArray(evidence?.issues) || evidence.issues.length !== 0)
-      issues.push(`stress evidence ${index + 1} contains issues`);
-    if (evidence?.sameSourceIdentity !== true)
-      issues.push(`stress evidence ${index + 1} source identity differs`);
-    if (evidence?.equivalent !== true)
-      issues.push(`stress evidence ${index + 1} is not equivalent`);
-    if (evidence?.accepted !== true)
-      issues.push(`stress evidence ${index + 1} was not accepted`);
-  }
-  const evidenceFiles = Array.isArray(summary.evidenceFiles)
-    ? summary.evidenceFiles
-    : [];
-  const expectedEvidencePaths = [
-    "serial/summary.json",
-    "parallel/summary.json",
-    "comparison.json",
-    ...Array.from(
-      { length: Number.isInteger(summary.stressRuns) ? summary.stressRuns : 0 },
-      (_, index) => `stress-${index + 1}/summary.json`,
-    ),
-  ];
-  const evidencePaths = evidenceFiles.map((file) => file?.path);
-  if (
-    evidenceFiles.length !== expectedEvidencePaths.length ||
-    JSON.stringify([...evidencePaths].sort()) !==
-      JSON.stringify([...expectedEvidencePaths].sort())
-  )
-    issues.push("stress evidence file inventory is incomplete");
-  if (new Set(evidencePaths).size !== evidencePaths.length)
-    issues.push("stress evidence file inventory contains duplicates");
-  for (const file of evidenceFiles)
-    if (
-      typeof file?.path !== "string" ||
-      !expectedEvidencePaths.includes(file.path) ||
-      !Number.isInteger(file?.bytes) ||
-      file.bytes <= 0 ||
-      !validHex(file?.sha256, 64)
-    )
-      issues.push("stress evidence file inventory is invalid");
   return issues;
 }

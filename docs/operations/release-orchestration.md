@@ -59,12 +59,7 @@ Only these nondeterministic fields are normalized before comparison:
 - Playwright wall-clock durations, start/end timestamps, worker indexes, and ISO
   runtime timestamps.
 
-Binary artifacts are never normalized. Their exact bytes are hashed. The
-serial/parallel comparison fails if a shard is missing, a status or retry policy
-differs, an assertion/coverage/artifact fingerprint differs, or parallel
-execution does not improve wall time by at least 30 seconds or 15 percent.
-`pnpm release:benchmark <optional-token>` runs the actual serial candidate, the
-actual parallel candidate, and the comparison in one command.
+Binary artifacts are never normalized. Their exact bytes are hashed.
 
 ## Retry and cleanup policy
 

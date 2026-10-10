@@ -141,6 +141,7 @@ Everything is a workspace-root `pnpm` script; Turborepo fans them out.
 | `pnpm check:generated`         | Fail if generated artifacts drift from the routes                                                 |
 | `pnpm check:traceability`      | Validate `docs/traceability/launch-requirements.json` against its schema                          |
 | `pnpm check:citation-liveness` | Require every `path#symbol` ledger citation to have a syntax-resolved non-test implementation use |
+| `pnpm check:launch`            | Both ledger checks above plus their tests; run before a commerce launch, not per pull request     |
 | `pnpm scan:secrets`            | secretlint over the whole tree                                                                    |
 | `pnpm audit:dependencies`      | `pnpm audit --audit-level=high`                                                                   |
 | `pnpm test:unit`               | Unit suites plus the release-script tests                                                         |
@@ -189,7 +190,7 @@ Four gates compose the full check, and each one is runnable on its own:
 
 ```sh
 pnpm verify:static     # typecheck, format, lint, boundaries, secrets, audit,
-                       # generated drift, traceability grammar + citation liveness
+                       # generated drift
 pnpm verify:database   # db reset, pgTAP, unit + integration tests
 pnpm verify:build      # application and Storybook builds
 pnpm verify:ui         # Storybook component tests and Playwright e2e

@@ -44,8 +44,6 @@
 /scripts/release-artifacts.test.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
 /scripts/release-suites.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
 /scripts/validate-release-join.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
-/scripts/benchmark-release.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
-/scripts/benchmark-release.test.mjs @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
 
 /supabase/config.toml @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward
 /supabase/migrations/ @jameskurz-filecoin @alanshaw @bajtos @relotnek @hannahhoward

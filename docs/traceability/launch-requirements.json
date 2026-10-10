@@ -44,17 +44,12 @@
       "historical": "A delivery instruction or topology statement retained solely as provenance and superseded for current execution."
     },
     "rule": "At repository-qualified review, partial and unimplemented are forbidden. Implemented means repository proof is complete; external-gated means repository proof is complete and only exact registered live input remains; historical is immutable provenance.",
-    "mappingSemantics": "Implementation arrays are evidence-discovery locators. Path-like values are exact repository paths; API/database values may be exact operations or objects; remaining human-readable labels are search terms to combine with the checked-in baseline manifests. A locator is not proof of completion, and exact executable test files remain discoverable through the tests baseline manifest where a row uses a suite label.",
+    "mappingSemantics": "Implementation arrays are evidence-discovery locators. Path-like values are exact repository paths; API/database values may be exact operations or objects; remaining human-readable labels are search terms to combine with the checked-in evidence manifests. A locator is not proof of completion, and where a row uses a suite label, the executable test files are found by searching the repository for that label.",
     "evidenceManifests": [
-      "docs/baseline/routes-api-auth.json",
-      "docs/baseline/schema.json",
-      "docs/baseline/database.json",
-      "docs/baseline/openapi-clients.json",
-      "docs/baseline/workflows.json",
-      "docs/baseline/artifacts-documents.json",
-      "docs/baseline/environment-gates-capabilities.json",
-      "docs/baseline/tests-baseline-artifacts.json",
-      "docs/baseline/artifact-hashes.json"
+      "packages/api/src/generated/openapi.json",
+      "supabase/migrations",
+      "deploy/app/schedule-manifest.json",
+      "docs/security/access-matrix.md"
     ],
     "backlogReferenceAliases": {
       "P0 POC partner-relationship authorization": "P0-22",
@@ -3873,7 +3868,7 @@
       "externalGates": [],
       "backlog": [],
       "status": "implemented",
-      "rationale": "The listed product toolchain is in use as declared, and the validation toolchain checks this ledger's own evidence. `checkCitationGrammar` requires a `path#symbol` citation to name a real file declaring that symbol. `analyzeCitationLiveness` requires syntax-resolved non-test implementation use: its TypeScript/JavaScript import/export binding graph rejects comments, strings, unused bindings, overload-only declarations, lexical shadows and unrelated same-name declarations, while its SQL path removes comments before its narrower lexical check. Both run in `verify:static`; the release static assertion inventory binds each to its own command, the baseline qualification inventory runs both, and their regression suites run in root `test:unit`. The real ledger passes without a liveness exception. The gate explicitly does not claim whole-program entrypoint reachability or semantic sufficiency, and grandfathered prose continues to convert row by row rather than being misrepresented as checked."
+      "rationale": "The listed product toolchain is in use as declared, and the validation toolchain checks this ledger's own evidence. `checkCitationGrammar` requires a `path#symbol` citation to name a real file declaring that symbol. `analyzeCitationLiveness` requires syntax-resolved non-test implementation use: its TypeScript/JavaScript import/export binding graph rejects comments, strings, unused bindings, overload-only declarations, lexical shadows and unrelated same-name declarations, while its SQL path removes comments before its narrower lexical check. Both run with their regression suites in `pnpm check:launch` before a commerce launch. The real ledger passes without a liveness exception. The gate explicitly does not claim whole-program entrypoint reachability or semantic sufficiency, and grandfathered prose continues to convert row by row rather than being misrepresented as checked."
     },
     {
       "id": "SPEC-18-VAL-02",
@@ -3891,8 +3886,7 @@
       "portalDocument": [],
       "tests": [
         "scripts/release-artifacts.test.mjs",
-        "scripts/dependency-advisories.test.mjs",
-        "scripts/benchmark-release.test.mjs"
+        "scripts/dependency-advisories.test.mjs"
       ],
       "externalGates": ["EXT-ACC-01"],
       "backlog": ["P0-48"],
@@ -4529,10 +4523,7 @@
       "api": [],
       "database": [],
       "workflowProvider": ["Git refs and worktrees"],
-      "portalDocument": [
-        "docs/implementation-lanes.md",
-        "docs/baseline/git-provenance.json"
-      ],
+      "portalDocument": ["docs/implementation-lanes.md"],
       "tests": ["merge-base ancestry and clean-tree verification"],
       "externalGates": [],
       "backlog": [],
