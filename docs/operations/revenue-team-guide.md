@@ -2,10 +2,11 @@
 
 Fil One Commerce at `https://commerce.fil.one` is where the revenue team sends
 mutual NDAs (MNDAs), keeps the contract register, finds sales material and
-checks indicative pricing. Billing, provisioning and the operations tools are
-not part of the sales workspace, and you will not see them.
+checks indicative pricing. Sellers do not see billing, provisioning or the
+operations tools.
 
-<!-- Demo training link: add the link to the seller training demo here. -->
+Practice in the demo: https://clockwork-commerce-demo.netlify.app. It uses
+made-up companies and sends nothing.
 
 ## Getting access
 
@@ -23,10 +24,12 @@ New sellers get the **Revenue** role: Home, MNDAs, Contracts, Sales library and
 Pricing. Commerce administrators also see Team, the owner console, MNDA settings
 and the operations groups.
 
-The portal asks for the 6-digit code from your authenticator. A verification
-lasts eight hours, and sensitive actions may ask again if your last check is
-more than five minutes old. Lost your phone or authenticator? Ask a commerce
-administrator to reset your access. Nobody else can enroll a factor for you.
+Commerce asks for the 6-digit code from your authenticator. A verification lasts
+eight hours, and sensitive actions may ask again if your last check is more than
+five minutes old. If a page reports a problem after you have been signed in for
+a while, choose **Verify sign-in**, enter a fresh code and try again. Lost your
+phone or authenticator? Ask a commerce administrator to reset your access.
+Nobody else can enroll a factor for you.
 
 ## Send an MNDA
 
@@ -54,30 +57,32 @@ to the field.
 completed in the last 30 days, and your unsent drafts. Each line opens the
 register filtered to those MNDAs; the team total opens everyone's.
 
-If you work on contracts, Home also counts the contracts you recorded or
-prepared that are out for signature or need attention. Approvers see the
-contracts someone else prepared that are waiting for their approval.
+Home also counts the contracts you recorded or prepared that are out for
+signature or need attention. Approvers see the contracts someone else prepared
+that are waiting for their approval.
 
 The MNDA register filters by status (Waiting on partner, Waiting on Fil One,
 Needs attention, Signed, Drafts, Closed), **Only mine** and search. Each row
-shows when it was sent and how many days it has been open. The page refreshes
-itself every 15 seconds while the tab is visible; **Refresh** on a row checks
-SignWell at once.
+shows when it was sent and how many days it has been open. While the tab is
+visible, the page reloads the register from Commerce every 15 seconds.
+**Refresh** on a row asks SignWell for the latest status at once; otherwise
+Commerce checks SignWell on a schedule.
 
 Commerce does not email you when a status changes. When both sides have signed,
 SignWell emails the signed agreement to both signers and to you.
 
 ### What a note on a row means
 
-| What the row says                                  | What to do                                               |
-| -------------------------------------------------- | -------------------------------------------------------- |
-| The partner's email bounced.                       | **Fix email**. SignWell sends it to the new address.     |
-| SignWell stopped this request.                     | **Void** it, then **Send again**.                        |
-| Deleted in SignWell.                               | **Void** it here to close it, then send again if needed. |
-| The signers in SignWell no longer match this MNDA. | **Void** it, then **Send again**.                        |
-| SignWell's copy does not belong to this MNDA.      | **Void** it, then **Send again**.                        |
-| Sending did not finish.                            | **Continue** and send again. The partner never gets two. |
-| SignWell did not answer the last check.            | **Refresh** in a minute.                                 |
+| What the row says                                                            | What to do                                                                                                                           |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| The partner's email bounced.                                                 | **Fix email**. SignWell sends it to the new address.                                                                                 |
+| SignWell stopped this request.                                               | **Void** it, then **Send again**.                                                                                                    |
+| Deleted in SignWell.                                                         | **Void** it here to close it, then send again if needed.                                                                             |
+| The signers in SignWell no longer match this MNDA.                           | If you just fixed the partner's email, choose **Fix email** again with the same address. Otherwise **Void** it, then **Send again**. |
+| Someone signed this MNDA in SignWell, but SignWell's copy does not match it. | Ask a commerce administrator to resolve it in SignWell. **Void** and **Fix email** are not offered.                                  |
+| SignWell's copy does not belong to this MNDA.                                | **Void** it, then **Send again**.                                                                                                    |
+| Sending did not finish.                                                      | **Continue** and send again. The partner never gets two.                                                                             |
+| SignWell did not answer the last check.                                      | **Refresh** in a minute.                                                                                                             |
 
 An MNDA the partner declined, or did not sign within 30 days, moves to
 **Closed**. **Send again** starts a new draft from it.
@@ -93,21 +98,24 @@ are at least a minute apart.
 **Fix email** replaces the partner's email while they have not started signing.
 SignWell sends the request to the new address; the signer's name stays the same.
 
-If a different person will sign for the partner, choose **Someone else will
-sign**. Commerce voids the MNDA and opens a new draft with the same company
-details and a blank signer.
+If a different person will sign for the partner, choose **Fix email**, then
+**Someone else will sign**, and confirm the void. Commerce voids the MNDA and
+opens a new draft with the same company details and a blank signer.
+
+You can fix or void the MNDAs you prepared; a commerce administrator can do
+either for any MNDA.
 
 Once the partner has started signing, the email cannot change: void the MNDA and
 send a new one.
 
 ## Void an MNDA
 
-**Void** works for drafts, sent and opened MNDAs, and those needing attention,
-until the partner signs. Enter a reason. Commerce checks SignWell, stops the
-request and keeps the original PDF, the reason and the history.
+**Void** works on sent, opened or **Needs attention** MNDAs until the partner
+signs. Enter a reason. Commerce checks SignWell, stops the request and keeps the
+original PDF, the reason and the history. An unsent draft has **Discard draft**
+instead.
 
-Only the person who prepared the MNDA or a commerce administrator can void it.
-If the partner has already signed, it cannot be voided: tell the Fil One
+If the partner has already signed, the MNDA cannot be voided: tell the Fil One
 countersigner not to sign it.
 
 ## Contracts
@@ -118,11 +126,13 @@ countersigner not to sign it.
   show **Template pending from legal** until counsel approves them.
 - A prepared contract that needs approval waits for someone with approval rights
   other than you. They approve it or send it back with a note.
-- After sending, a contract has **Remind** and **Void**. The person who prepared
-  it, or someone with approval rights, can void it until the counterparty signs.
-  It has no **Fix email**: if a signer's email is wrong, void it and prepare it
-  again, or ask a commerce administrator.
-- **Renewal notices** lists agreements with a renewal or notice date coming up.
+- After sending, a contract has **Remind** and **Void**. Until the counterparty
+  signs, the person who prepared it, a legal approver or a commerce
+  administrator can void it; finance approvers cannot. It has no **Fix email**:
+  if a signer's email is wrong, void it and prepare it again, or ask a commerce
+  administrator.
+- **Renewal notices** lists executed contracts that renew automatically and
+  whose notice deadline is coming up.
 
 ## Find a signed PDF
 
@@ -137,7 +147,7 @@ countersigner not to sign it.
 - MNDAs: **Export CSV** downloads the register as filtered, up to the newest
   10,000 rows.
 - Contracts: **Export CSV** on the Contracts page downloads the filtered
-  register, including signed MNDAs.
+  register, including signed MNDAs, up to 5,000 rows.
 
 Every download and export is recorded under your name.
 
@@ -167,5 +177,5 @@ Press `⌘K` (or `Ctrl+K`) anywhere to search pages, for example "NDA" or
 - Access, roles and MFA resets: a commerce administrator (James Kurz,
   `james@fil.one`, or R.W. Holleman, Head of Revenue).
 - Who can sign for Fil One, and legal wording: James Kurz.
-- Something not working: tell a commerce administrator what you were doing and
-  include the request ID shown on the error message.
+- Something not working: tell a commerce administrator what you were doing, and
+  include the request ID if the error shows one.

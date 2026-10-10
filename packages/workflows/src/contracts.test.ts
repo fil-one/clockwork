@@ -376,3 +376,90 @@ it("names the executed copy within the file name limit", async () => {
   expect(fileName.length).toBeLessThanOrEqual(200);
   expect(fileName.endsWith(" (executed).pdf")).toBe(true);
 });
+
+it("refuses to void when the counterparty signed and the countersigner's email bounced", async () => {
+  const { workflow, doc, record, provider } = setup(sent);
+  doc.status = "Sent";
+  const [counterparty, filOne] = doc.recipients;
+  if (!counterparty || !filOne) throw new Error("recipients missing");
+  counterparty.status = "signed";
+  filOne.bounced = true;
+  await expect(
+    workflow.void(record().contractId, actor, "Wrong legal entity"),
+  ).rejects.toThrow("CONTRACT_NOT_VOIDABLE");
+  expect(record().state).toBe("attention");
+  expect(provider.cancel).not.toHaveBeenCalled();
+});
+
+it("holds a contract whose SignWell copy names other signers, and answers the wakeup", async () => {
+  const { workflow, doc, record, notes, provider } = setup(sent);
+  doc.status = "Completed";
+  const [counterparty] = doc.recipients;
+  if (!counterparty) throw new Error("recipients missing");
+  counterparty.email = "someone-else@example.com";
+  await expect(
+    workflow.sync(record().contractId, signwell),
+  ).resolves.toMatchObject({
+    state: "attention",
+    error: "signwell_signers_mismatch",
+  });
+  // Nothing from the mismatched copy is applied, not even its completion.
+  expect(provider.completedPdf).not.toHaveBeenCalled();
+  expect(notes).toEqual([
+    {
+      eventType: "contract.signwell_mismatch",
+      detail: { reason: "signwell_signers_mismatch" },
+    },
+  ]);
+  await workflow.sync(record().contractId, signwell);
+  expect(notes).toHaveLength(1);
+  await expect(workflow.remind(record().contractId, actor)).rejects.toThrow(
+    "CONTRACT_NOT_PENDING",
+  );
+});
+
+it("records a binding mismatch found while sending and never sends", async () => {
+  const { workflow, doc, record, provider } = setup({
+    providerId: "019a44ac-0000-7000-8000-0000000000d5",
+    state: "ready",
+  });
+  doc.status = "Draft";
+  doc.metadata.commerce_contract_id = "019a44ac-0000-7000-8000-0000000000ee";
+  await expect(workflow.send(record().contractId, actor)).rejects.toThrow(
+    "CONTRACT_NEEDS_ATTENTION",
+  );
+  expect(record()).toMatchObject({
+    state: "attention",
+    error: "signwell_binding_mismatch",
+  });
+  expect(provider.send).not.toHaveBeenCalled();
+});
+
+it("keeps deleted_in_signwell when a send finds the draft gone, and records it once", async () => {
+  const { workflow, record, notes, deleteInSignWell } = setup({
+    providerId: "019a44ac-0000-7000-8000-0000000000d5",
+    state: "ready",
+  });
+  deleteInSignWell();
+  await expect(workflow.send(record().contractId, actor)).rejects.toThrow(
+    "CONTRACT_NEEDS_ATTENTION",
+  );
+  expect(record()).toMatchObject({
+    state: "attention",
+    error: "deleted_in_signwell",
+  });
+  await workflow.sync(record().contractId, signwell);
+  expect(
+    notes.filter((n) => n?.eventType === "contract.deleted_in_signwell"),
+  ).toHaveLength(1);
+});
+
+it("voids a mismatched copy that nobody signed", async () => {
+  const { workflow, doc, record, provider } = setup(sent);
+  doc.status = "Sent";
+  doc.metadata.template_sha256 = "f".repeat(64);
+  await expect(
+    workflow.void(record().contractId, actor, "SignWell copy changed"),
+  ).resolves.toMatchObject({ state: "canceled" });
+  expect(provider.cancel).toHaveBeenCalledOnce();
+});

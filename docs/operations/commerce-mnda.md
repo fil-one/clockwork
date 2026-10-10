@@ -105,16 +105,26 @@ Each row shows the sent date and the days outstanding while the MNDA is open.
 **Needs attention** rows say why and what to do: a bounced partner email ("Fix
 the email and SignWell sends it again"), a request SignWell stopped ("Void it,
 then send it again"), a document deleted directly in SignWell ("Void it here to
-close it"), or a SignWell copy that no longer matches the MNDA ("Void it, then
-send it again"). A copy no longer matches when its signers differ from the
-MNDA's partner and Fil One countersigner (for example a recipient changed
-directly in SignWell; error `signwell_signers_mismatch`) or when it is not bound
-to this request (`signwell_binding_mismatch`). Commerce applies nothing from
-such a copy and audits it as `mnda.signwell_mismatch`. Void deletes it in
-SignWell unless SignWell shows that someone signed it; then the void is refused.
-If SignWell's copy matches again, the next refresh restores the status. A send
-that did not finish says so; **Continue** opens its preview and sending again
-never creates a second SignWell request.
+close it"), or a SignWell copy that no longer matches the MNDA. A copy no longer
+matches when its signers differ from the MNDA's partner and Fil One
+countersigner (for example a recipient changed directly in SignWell; error
+`signwell_signers_mismatch`) or when it is not bound to this request
+(`signwell_binding_mismatch`). Commerce applies nothing from such a copy and
+audits it as `mnda.signwell_mismatch`. If SignWell's copy matches again, the
+next refresh restores the status.
+
+- Nobody has signed SignWell's copy: **Void** deletes the SignWell document, for
+  a binding mismatch as well as a signer mismatch, and records the void here.
+  Then send it again. When the seller had just fixed the partner email and
+  SignWell applied the change late, **Fix email** with the same address records
+  it and the row returns to its status.
+- Someone signed SignWell's copy (`signwell_signed_mismatch`): the row says to
+  ask a commerce administrator, and Void is refused, because only a person in
+  SignWell can decide whether that signature stands. See
+  [Recovery and verification](#recovery-and-verification).
+
+A send that did not finish says so; **Continue** opens its preview and sending
+again never creates a second SignWell request.
 
 **Export CSV** downloads the filtered register (company, partner signer and
 email, status, countersigner, preparer, created, sent, days outstanding,
@@ -257,6 +267,18 @@ walks a new seller through it.
 - Sending a draft whose SignWell document was deleted, or whose SignWell copy no
   longer matches, records the reason on the row instead of a connection problem,
   and the preview says the MNDA was not sent.
+- A row marked "Someone signed this MNDA in SignWell"
+  (`signwell_signed_mismatch`) is resolved by a commerce administrator in
+  SignWell. Open the document in SignWell and compare its signers with the row.
+  If the signature must not stand, delete the document in SignWell, choose
+  **Refresh** on the row (it moves to "Deleted in SignWell"), then **Void** it
+  with a reason and send a new MNDA. If it should stand, first download the
+  signed PDF from SignWell and record it in the contract register as an MNDA
+  with that PDF attached, then delete it in SignWell, refresh and void the row
+  with a reason that names the register entry. Whether SignWell lets an
+  administrator delete a document someone has signed has not been confirmed; if
+  it does not, leave the document in SignWell. The row then stays marked, and
+  for a signature that stands the register entry is the record.
 - Choose tests using [change validation](#change-validation). When a complete
   provider qualification is needed, use non-binding test mode with embedded
   signing and notifications off; exercise both signers and retrieve the final

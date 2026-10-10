@@ -1660,10 +1660,10 @@ The staff tools the revenue team uses at `commerce.fil.one`: MNDAs, the contract
 register and template signing, the sales library and indicative pricing, the
 staff home page and roles, and the permission model underneath them. They run
 without a commerce account, billing or provisioning (ADR 0011), so no launch
-requirement in the ledger depends on them and they carry no P0 ID. Markers have
-the meanings defined at the top of this file. Operator detail lives in
-`docs/operations/commerce-mnda.md`, `docs/operations/contract-templates.md`,
-`docs/operations/self-approval.md` and `docs/operations/revenue-team-guide.md`.
+requirement in the ledger depends on them and they carry no P0 ID. Operator
+detail lives in `docs/operations/commerce-mnda.md`,
+`docs/operations/contract-templates.md`, `docs/operations/self-approval.md` and
+`docs/operations/revenue-team-guide.md`.
 
 ### MNDA workflow
 
@@ -1693,13 +1693,17 @@ the meanings defined at the top of this file. Operator detail lives in
   (`supabase/migrations/001442_commerce_mnda_register.sql`,
   `apps/web/src/features/internal-ops/mnda/register.ts`). **Needs attention**
   rows name the reason and the next step: bounced email, request stopped,
-  document deleted in SignWell, or a SignWell copy whose signers or binding no
-  longer match. **Fix email**, **Someone else will sign** and **Void** run in
-  Commerce; void re-reads SignWell first and is refused once the partner has
-  signed. The duplicate warning checks earlier MNDAs and the contract register
-  under one normalizer (`commerce_mnda_normalize_company`). Countersigners and
-  the notice email are limited to `signatory:manage`. Every PDF download and
-  export is audited.
+  document deleted in SignWell, a SignWell copy whose signers or binding no
+  longer match, or a mismatched copy someone has signed
+  (`signwell_signed_mismatch`), which a commerce administrator resolves in
+  SignWell. **Fix email**, **Someone else will sign** and **Void** run in
+  Commerce. Void re-reads SignWell first and is refused whenever SignWell's copy
+  shows any signature. **Fix email** is also offered on a signer mismatch: when
+  the address entered is the one SignWell already shows, it is recorded and the
+  next read rechecks the rest. The duplicate warning checks earlier MNDAs and
+  the contract register under one normalizer
+  (`commerce_mnda_normalize_company`). Countersigners and the notice email are
+  limited to `signatory:manage`. Every PDF download and export is audited.
 - **Missed callbacks and expired sessions `[COMPLETE]`:** the scheduled task
   `system.esign.reconcile.v1` re-reads open MNDAs and template contracts every
   15 minutes in rotation, at most 50 of each per run
@@ -1726,8 +1730,9 @@ the meanings defined at the top of this file. Operator detail lives in
 - **Live SignWell behavior of corrections and partner fields
   `[EXTERNAL-ONLY]`:** as of 2026-10-10, **Fix email**
   (`PATCH /documents/{id}/recipients`), void (`DELETE /documents/{id}`),
-  copied-contact completion notices, and the partner-completed field values on
-  the executed PDF are proven against fakes and the adapter contract, not
+  copied-contact completion notices, the partner-completed field values on the
+  executed PDF, and whether SignWell lets an administrator delete a document
+  someone has signed are proven against fakes and the adapter contract, not
   against SignWell. The input is one test-mode run of each against the staging
   account (`EXT-PROVIDER-01`).
 - **SignWell callback host `[EXTERNAL-ONLY]`:** the callback URLs are
@@ -1762,8 +1767,12 @@ the meanings defined at the top of this file. Operator detail lives in
   the MNDA's bind-then-send, lease and re-read rules
   (`packages/workflows/src/contracts.ts`,
   `packages/integrations/src/esign/signwell-contracts.ts`). Void runs in
-  Commerce and survives a document deleted in SignWell; reminders are spaced
-  from the last reminder
+  Commerce, survives a document deleted in SignWell, and is refused whenever
+  SignWell's copy shows any signature. A copy whose signers or binding do not
+  match is held in attention with nothing applied from it, keeps **Check
+  status**, and clears on the next read that matches. History entries for voids,
+  reminders and SignWell deletions read in words, with the void reason and the
+  reminder's recipient. Reminders are spaced from the last reminder
   (`supabase/migrations/001451_contract_signing_reminders.sql`).
   `scripts/render-contract-specimen.ts` renders a specimen for counsel.
   Evidence: `packages/workflows/src/contracts.test.ts`,
@@ -1819,18 +1828,22 @@ the meanings defined at the top of this file. Operator detail lives in
   (`apps/web/src/features/internal-ops/sales-pricing/books.ts`). Signed prices
   remain `EXT-COMMERCIAL-01`. Evidence:
   `apps/web/src/features/internal-ops/sales-pricing/pricing.test.tsx`.
-- **CRM `[EXTERNAL-ONLY]`:** prospects, contacts, activities and pipeline live
-  in HubSpot, outside this repository. The outbound CRM projection exists and is
-  inert behind `CLOCKWORK_CRM_ENABLED` and `EXT-PROVIDER-01`; MNDA and contract
-  records carry no CRM reference. A HubSpot client follows provider selection.
+- **CRM provider `[EXTERNAL-ONLY]`:** prospects, contacts, activities and
+  pipeline live in HubSpot, outside this repository. The outbound CRM projection
+  exists and is inert behind `CLOCKWORK_CRM_ENABLED` and `EXT-PROVIDER-01`; a
+  HubSpot client follows provider selection.
+- **CRM link for revenue records `[OPEN]`:** MNDA and contract records carry no
+  CRM company reference, so joining them to HubSpot means matching on company
+  name.
 
 ### Staff home and roles
 
 - **Revenue role and sales workspace `[COMPLETE]`:** `revenue` (Fil One seller)
-  holds `mnda:send`, `contract:read`, `contract:write` and `sales:read` and no
-  operations, billing or provisioning permission. The sales rail shows Home,
-  MNDAs, Contracts, Sales library and Pricing, plus Owner console and Team for
-  holders of `staff:manage` (`apps/web/src/features/shell/navigation.ts`,
+  holds `mnda:send`, `contract:read`, `contract:write`, `sales:read`,
+  `audit:read` and `audit:append`, and no operations, billing or provisioning
+  permission. The sales rail shows Home, MNDAs, Contracts, Sales library and
+  Pricing, plus Owner console and Team for holders of `staff:manage`
+  (`apps/web/src/features/shell/navigation.ts`,
   `supabase/migrations/001441_revenue_roles.sql`). Home ("My work") counts the
   reader's MNDAs waiting on the partner, waiting on Fil One, completed in the
   last 30 days and unsent drafts, and the contracts they recorded or prepared
@@ -1844,8 +1857,8 @@ the meanings defined at the top of this file. Operator detail lives in
 - **Team page `[COMPLETE]`:** a commerce administrator adds staff, grants and
   removes roles, and removes access at `/internal/team`, with every change
   audited. The last commerce administrator cannot be removed or demoted
-  (`packages/db/src/repositories/system/staff-team.ts`). Granting
-  `commerce_admin` takes one administrator. Evidence:
+  (`packages/db/src/repositories/system/staff-team.ts`). One commerce
+  administrator can grant `commerce_admin` without a second approval. Evidence:
   `packages/db/src/repositories/system/staff-team.integration.test.ts`,
   `packages/db/src/repositories/system/staff-team-administrators.integration.test.ts`.
 - **Staff first sign-in `[EXTERNAL-ONLY]`:** each person verifies their email
@@ -1889,10 +1902,6 @@ the meanings defined at the top of this file. Operator detail lives in
 - **Read-only "view as" `[OPEN]`:** staff can act for a customer only through an
   assisted session. A mode that renders a tenant portal with a chosen role's
   permissions and refuses every write does not exist.
-- **Repository settings `[EXTERNAL-ONLY]`:** as of 2026-10-10 the repository's
-  `Main` branch ruleset exists with enforcement disabled, and the Actions
-  setting for approving workflow runs from fork pull requests is unverified.
-  Both are organization administration under `EXT-ACC-01`.
 
 ## P1 — external activation and approval gates
 

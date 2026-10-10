@@ -217,7 +217,12 @@ preparer can void their own request; anyone else needs contract approval rights.
 
 If someone deletes the document in SignWell directly, the next refresh or
 callback marks the request **SignWell no longer has this document** instead of
-failing, and callbacks keep succeeding. Void it in Commerce to close it.
+failing, and callbacks keep succeeding. Void it in Commerce to close it. The
+same holds when SignWell's copy names other signers or does not belong to the
+contract: nothing from that copy is applied, the request waits in attention
+(`signwell_signers_mismatch` or `signwell_binding_mismatch`), and it can be
+voided. A request is never voided once SignWell shows the counterparty's
+signature, even when a bounced countersigner email has put it in attention.
 
 Reminders go to whoever signs next and are spaced at least a minute apart,
 counted from the last reminder. Each one is recorded in the contract's history

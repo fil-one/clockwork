@@ -38,6 +38,8 @@ vi.mock("./upload-client", async (original) => ({
   ...(await original<typeof UploadClient>()),
   uploadContractFile: mocks.upload,
 }));
+import { translatorFor } from "@/src/i18n/catalogs";
+import { ContractDetail } from "./contract-detail";
 import { ContractDocuments } from "./contract-documents";
 import { ContractForm } from "./contract-form";
 import { SigningPanel } from "./signing-panel";
@@ -354,6 +356,28 @@ describe("signing panel", () => {
     expect(screen.getByRole("button", { name: "Void" })).toBeInTheDocument();
   });
 
+  it("explains a mismatched SignWell copy and offers to void or check it again", () => {
+    panel({
+      state: "attention",
+      error: "signwell_signers_mismatch",
+      providerId: "x",
+    });
+    expect(
+      screen.getByText(
+        "The signers in SignWell no longer match this contract, so its status is not updated until they match again.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/did not respond as expected/)).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Send for signature" }),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Void" })).toBeInTheDocument();
+    // The hold clears once SignWell's copy matches, so a check stays offered.
+    expect(
+      screen.getByRole("button", { name: "Check status" }),
+    ).toBeInTheDocument();
+  });
+
   it("explains a SignWell failure in words", async () => {
     mocks.operateContract.mockResolvedValue({
       ok: false,
@@ -441,5 +465,55 @@ describe("contract documents", () => {
     );
     expect(screen.getByText("No documents yet")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Upload" })).toBeNull();
+  });
+});
+
+describe("contract history", () => {
+  const event = (eventType: string, changes: Record<string, unknown> = {}) => ({
+    id: `${eventType}-id`,
+    eventType,
+    actorName: "R.W. Holleman",
+    changes,
+    occurredAt: "2026-10-09T12:00:00.000Z",
+  });
+
+  it("names voids, reminders and SignWell findings in words, with the void reason", () => {
+    render(
+      <ContractDetail
+        t={translatorFor("en")}
+        locale="en-US"
+        contract={fixtureContractRecord}
+        files={[]}
+        activity={[
+          event("contract.voided", {
+            status: { from: "out_for_signature", to: "draft" },
+            reason: "Wrong legal entity",
+          }),
+          event("contract.reminded", { recipient: "fil-one" }),
+          event("contract.reminded", { recipient: "counterparty" }),
+          event("contract.deleted_in_signwell"),
+          event("contract.signwell_mismatch", {
+            reason: "signwell_signers_mismatch",
+          }),
+        ]}
+        signing={null}
+        today="2026-10-09"
+        canWrite
+        canApprove={false}
+        isPreparer={false}
+        signingReady
+      />,
+    );
+    const history = screen.getByRole("region", { name: "Activity" });
+    for (const text of [
+      "Voided",
+      "Reason: Wrong legal entity",
+      "Reminder sent to the Fil One countersigner",
+      "Reminder sent to the counterparty signer",
+      "Found deleted in SignWell",
+      "SignWell's copy stopped matching this contract",
+    ])
+      expect(within(history).getByText(text)).toBeInTheDocument();
+    expect(within(history).queryByText(/^contract\./)).toBeNull();
   });
 });

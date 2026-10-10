@@ -5,6 +5,7 @@ import {
   terminalContractSigningStates,
   type Actor,
   type ContractSigningRecord,
+  type ContractSigningState,
 } from "@clockwork/contracts";
 import type { ContractSigningRepository } from "@clockwork/db";
 import {
@@ -31,6 +32,27 @@ export type ContractSigningClient = Pick<
 export const contractReminderCooldownMs = 60_000;
 const notFound = (error: unknown) =>
   error instanceof Error && error.message === "SIGNWELL_HTTP_404";
+/** SignWell's copy disagrees with the record. Nothing is applied from it; the
+ * request waits in `attention` until a person voids it. */
+const mismatchReasons: Readonly<Record<string, string>> = {
+  SIGNWELL_SIGNERS_MISMATCH: "signwell_signers_mismatch",
+  SIGNWELL_BINDING_MISMATCH: "signwell_binding_mismatch",
+};
+const mismatchReason = (error: unknown) =>
+  error instanceof Error ? mismatchReasons[error.message] : undefined;
+const mismatched = (record: ContractSigningRecord) =>
+  record.state === "attention" &&
+  Object.values(mismatchReasons).some((reason) => reason === record.error);
+/** Whether SignWell's copy shows anyone's signature, whatever state the
+ * workflow derives from it (a bounced countersigner reads as `attention`, and
+ * a mismatched copy, whose recipients may not be ours, is never applied). */
+const counterpartySigned = (doc: SignWellContractDocument) =>
+  doc.status.toLowerCase() === "completed" ||
+  doc.recipients.some((r) =>
+    ["signed", "completed"].includes(r.status?.toLowerCase() ?? ""),
+  );
+/** Already recorded on the request; the signing panel says what to do. */
+const needsAttention = () => new Error("CONTRACT_NEEDS_ATTENTION");
 
 type Repository = Pick<
   ContractSigningRepository,
@@ -65,7 +87,14 @@ export class ContractSigningWorkflow {
     doc: SignWellContractDocument,
     actor: Actor,
   ) {
-    const state = contractSignWellState(doc, record);
+    let state: ContractSigningState;
+    try {
+      state = contractSignWellState(doc, record);
+    } catch (failure) {
+      const reason = mismatchReason(failure);
+      if (!reason) throw failure;
+      return this.mismatch(record, token, reason, actor);
+    }
     if (state === record.state && !record.error) return record;
     const executed =
       state === "completed"
@@ -100,6 +129,29 @@ export class ContractSigningWorkflow {
       actor,
       undefined,
       { eventType: "contract.deleted_in_signwell" },
+    );
+  }
+
+  /**
+   * SignWell's copy names other signers or is not bound to this contract. The
+   * request waits for a person and keeps its state otherwise: nothing from
+   * the mismatched copy is applied.
+   */
+  private mismatch(
+    record: ContractSigningRecord,
+    token: string,
+    reason: string,
+    actor: Actor,
+  ) {
+    if (record.state === "attention" && record.error === reason)
+      return Promise.resolve(record);
+    return this.repo.update(
+      record.contractId,
+      token,
+      { state: "attention", error: reason },
+      actor,
+      undefined,
+      { eventType: "contract.signwell_mismatch", detail: { reason } },
     );
   }
 
@@ -152,19 +204,25 @@ export class ContractSigningWorkflow {
         );
       }
       if (!current.providerId) throw new Error("CONTRACT_PROVIDER_ID_REQUIRED");
-      let doc = await this.provider.getContract(current.providerId);
+      let doc = await this.fetch(current.providerId);
       // SignWell extracts text tags asynchronously after accepting a draft.
       // Each round renews the lease, so a slow provider cannot outlive it.
       for (
         let attempt = 0;
-        contractSignWellState(doc, current) === "preparing" && attempt < 8;
+        doc &&
+        contractSignWellState(doc, current) === "preparing" &&
+        attempt < 8;
         attempt++
       ) {
         await this.wait(1500);
         await this.repo.extendLease(contractId, token);
-        doc = await this.provider.getContract(current.providerId);
+        doc = await this.fetch(current.providerId);
       }
       await this.repo.extendLease(contractId, token);
+      if (!doc) {
+        await this.gone(current, token, actor);
+        throw needsAttention();
+      }
       if (contractSignWellState(doc, current) !== "ready")
         return await this.apply(current, token, doc, actor);
       assertContractSigningFields(doc);
@@ -175,21 +233,39 @@ export class ContractSigningWorkflow {
         actor,
       );
       await this.provider.send(current.providerId, current.testMode);
-      return await this.apply(
-        await this.repo.get(contractId),
-        token,
-        await this.provider.getContract(current.providerId),
-        actor,
-      );
+      const sent = await this.fetch(current.providerId);
+      current = await this.repo.get(contractId);
+      if (!sent) {
+        await this.gone(current, token, actor);
+        throw needsAttention();
+      }
+      return await this.apply(current, token, sent, actor);
     } catch (error) {
-      // Approval is a precondition, not a provider failure.
-      if (!(
-        error instanceof Error && error.message === "CONTRACT_APPROVAL_REQUIRED"
-      ))
-        // Never include provider response bodies, keys or signing links.
-        await this.repo
-          .update(contractId, token, { error: "provider_unavailable" }, actor)
-          .catch(() => {});
+      // Approval is a precondition, not a provider failure, and a deleted or
+      // mismatched document is already recorded with its reason.
+      if (
+        error instanceof Error &&
+        ["CONTRACT_APPROVAL_REQUIRED", "CONTRACT_NEEDS_ATTENTION"].includes(
+          error.message,
+        )
+      )
+        throw error;
+      const reason = current.providerId ? mismatchReason(error) : undefined;
+      // Never include provider response bodies, keys or signing links.
+      const recorded = await (
+        reason
+          ? this.mismatch(current, token, reason, actor)
+          : this.repo.update(
+              contractId,
+              token,
+              { error: "provider_unavailable" },
+              actor,
+            )
+      ).then(
+        () => true,
+        () => false,
+      );
+      if (reason && recorded) throw needsAttention();
       throw error;
     } finally {
       await this.repo.release(contractId, token);
@@ -229,6 +305,7 @@ export class ContractSigningWorkflow {
         throw new Error("CONTRACT_NOT_PENDING");
       }
       const current = await this.apply(record, token, doc, actor);
+      if (mismatched(current)) throw new Error("CONTRACT_NOT_PENDING");
       if (
         !["sent", "viewed", "awaiting_countersignature"].includes(current.state)
       )
@@ -303,6 +380,9 @@ export class ContractSigningWorkflow {
             return current;
           if (!contractVoidableStates.includes(current.state))
             throw new Error("CONTRACT_NOT_VOIDABLE");
+          // A bounced countersigner or a mismatched copy reads as
+          // `attention`; SignWell's own copy says whether anyone signed.
+          if (counterpartySigned(doc)) throw new Error("CONTRACT_NOT_VOIDABLE");
           await this.deleteInSignWell(current, token, actor);
         }
       }
