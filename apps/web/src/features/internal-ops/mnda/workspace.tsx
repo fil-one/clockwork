@@ -95,6 +95,11 @@ function rowNote(
       reason: "operations.mnda.note.signedMismatch",
       next: "operations.mnda.note.signedMismatchNext",
     };
+  if (r.state === "attention" && r.error === "signwell_fields_mismatch")
+    return {
+      reason: "operations.mnda.note.fieldsMismatch",
+      next: "operations.mnda.note.fieldsMismatchNext",
+    };
   if (r.state === "attention" && r.error === "signwell_binding_mismatch")
     return {
       reason: "operations.mnda.note.bindingMismatch",

@@ -44,6 +44,7 @@ const mismatchNotes: Readonly<Record<string, MessageId>> = {
   signwell_signers_mismatch: "operations.contracts.signing.signersMismatch",
   signwell_binding_mismatch: "operations.contracts.signing.bindingMismatch",
   signwell_signed_mismatch: "operations.contracts.signing.signedMismatch",
+  signwell_fields_mismatch: "operations.contracts.signing.fieldsMismatch",
 };
 
 /** Refusals that come after the request's new state was stored. */
@@ -106,15 +107,22 @@ function steps(
       label: label("operations.contracts.signing.step.sent"),
       state: state(reached >= 4, approved && reached < 4),
     },
-    {
-      id: "counterparty",
-      label: label("operations.contracts.signing.step.counterparty"),
-      state: state(reached >= 6, reached >= 4 && reached < 6),
-    },
+    ...(signing.counterpartySigns
+      ? [
+          {
+            id: "counterparty",
+            label: label("operations.contracts.signing.step.counterparty"),
+            state: state(reached >= 6, reached >= 4 && reached < 6),
+          },
+        ]
+      : []),
     {
       id: "countersigned",
       label: label("operations.contracts.signing.step.countersigned"),
-      state: state(reached === 7, reached === 6),
+      // Fil One alone signs counterparty paper signed already.
+      state: signing.counterpartySigns
+        ? state(reached === 7, reached === 6)
+        : state(reached === 7, reached >= 4 && reached < 7),
     },
   );
   return list;
@@ -183,6 +191,7 @@ export function SigningPanel({
   // or SignWell showing another address puts the request in attention first.
   const canCorrect =
     canVoid &&
+    signing.counterpartySigns &&
     (["sent", "viewed"].includes(signing.state) ||
       (signing.state === "attention" &&
         ["recipient_bounced", "signwell_signers_mismatch"].includes(
@@ -190,6 +199,11 @@ export function SigningPanel({
         )));
   const bounced =
     signing.state === "attention" && signing.error === "recipient_bounced";
+  const paper = signing.documentType === "counterparty_paper";
+  // Who a reminder goes to: Fil One once the counterparty has signed, or
+  // from the start when Fil One alone signs.
+  const filOneNext =
+    signing.state === "awaiting_countersignature" || !signing.counterpartySigns;
 
   async function run(
     key: string,
@@ -219,9 +233,12 @@ export function SigningPanel({
             {t("operations.contracts.signing.title")}
           </h2>
           <p>
-            {t("operations.contracts.signing.template", {
-              version: signing.templateVersion,
-            })}
+            {t(
+              paper
+                ? "operations.contracts.signing.paperSource"
+                : "operations.contracts.signing.template",
+              { version: signing.templateVersion },
+            )}
           </p>
         </div>
         <StatusBadge
@@ -273,7 +290,9 @@ export function SigningPanel({
           description={t(
             signedMismatch
               ? "operations.contracts.signing.signedMismatchNext"
-              : "operations.contracts.signing.mismatchNext",
+              : paper
+                ? "operations.contracts.signing.mismatchNextPaper"
+                : "operations.contracts.signing.mismatchNext",
           )}
         />
       ) : bounced ? (
@@ -288,12 +307,33 @@ export function SigningPanel({
           title={t("operations.contracts.signing.attentionTitle")}
           description={t("operations.contracts.signing.attentionBody")}
         />
+      ) : paper &&
+        ["declined", "expired", "canceled"].includes(signing.state) ? (
+        <InlineNotice
+          tone="info"
+          title={t("operations.contracts.signing.paperClosedTitle")}
+          description={t("operations.contracts.signing.paperClosedBody")}
+          {...(canWrite
+            ? {
+                action: (
+                  <Link
+                    className={buttonClassName({ variant: "secondary" })}
+                    href={
+                      `/internal/contracts/new?from=${signing.contractId}` as Route
+                    }
+                  >
+                    {t("operations.contracts.signing.recordAgain")}
+                  </Link>
+                ),
+              }
+            : {})}
+        />
       ) : signing.cancelCode === "signer_change" ? (
         <InlineNotice
           tone="info"
           title={t("operations.contracts.signing.signerChangeTitle")}
           description={t("operations.contracts.signing.signerChangeBody")}
-          {...(canWrite
+          {...(canWrite && !paper
             ? {
                 action: (
                   <Link
@@ -327,7 +367,9 @@ export function SigningPanel({
         items={[
           {
             term: t("operations.contracts.signing.counterpartySigner"),
-            detail: `${signing.counterpartySigner.name}, ${signing.counterpartySigner.title} (${contractSignerEmail(signing)})`,
+            detail: signing.counterpartySigns
+              ? `${signing.counterpartySigner.name}, ${signing.counterpartySigner.title} (${contractSignerEmail(signing)})`
+              : t("operations.contracts.signing.signedOnPaper"),
           },
           {
             term: t("operations.contracts.signing.countersigner"),
@@ -475,14 +517,13 @@ export function SigningPanel({
             onClick={() => void operate("remind")}
           >
             {t(
-              signing.state === "awaiting_countersignature"
+              filOneNext
                 ? "operations.contracts.signing.remindCountersigner"
                 : "operations.contracts.signing.remindCounterparty",
               {
-                name:
-                  signing.state === "awaiting_countersignature"
-                    ? signing.countersigner.name
-                    : signing.counterpartySigner.name,
+                name: filOneNext
+                  ? signing.countersigner.name
+                  : signing.counterpartySigner.name,
               },
             )}
           </Button>
@@ -507,10 +548,16 @@ export function SigningPanel({
             signing={signing}
             disabled={busy !== null || !signingReady}
             onDone={() => router.refresh()}
-            onSomeoneElse={() => {
-              setSignerChange(true);
-              setVoiding(true);
-            }}
+            // Counterparty paper has one signing request per contract, so a
+            // different signer is not prepared again from here.
+            {...(paper
+              ? {}
+              : {
+                  onSomeoneElse: () => {
+                    setSignerChange(true);
+                    setVoiding(true);
+                  },
+                })}
           />
         ) : null}
         {canVoid ? (
@@ -572,11 +619,17 @@ export function SigningPanel({
         open={confirmSend}
         onOpenChange={setConfirmSend}
         title={t("operations.contracts.signing.confirmSendTitle")}
-        description={t("operations.contracts.signing.confirmSendBody", {
-          signer: signing.counterpartySigner.name,
-          email: signing.counterpartySigner.email,
-          countersigner: signing.countersigner.name,
-        })}
+        description={
+          signing.counterpartySigns
+            ? t("operations.contracts.signing.confirmSendBody", {
+                signer: signing.counterpartySigner.name,
+                email: signing.counterpartySigner.email,
+                countersigner: signing.countersigner.name,
+              })
+            : t("operations.contracts.signing.confirmSendFilOneBody", {
+                countersigner: signing.countersigner.name,
+              })
+        }
         closeLabel={t("operations.contracts.form.cancel")}
         trigger={<span hidden />}
         footer={
@@ -680,7 +733,8 @@ function CorrectSignerDialog({
   signing: ContractSigningRecord;
   disabled: boolean;
   onDone: () => void;
-  onSomeoneElse: () => void;
+  /** Absent where the request cannot be prepared again for someone else. */
+  onSomeoneElse?: () => void;
 }) {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
@@ -730,15 +784,17 @@ function CorrectSignerDialog({
       closeLabel={t("operations.contracts.form.cancel")}
       footer={
         <>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setOpen(false);
-              onSomeoneElse();
-            }}
-          >
-            {t("operations.contracts.signing.correct.someoneElse")}
-          </Button>
+          {onSomeoneElse ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setOpen(false);
+                onSomeoneElse();
+              }}
+            >
+              {t("operations.contracts.signing.correct.someoneElse")}
+            </Button>
+          ) : null}
           <Button
             loading={busy}
             disabled={error !== null && notCorrectable.has(error)}

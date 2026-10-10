@@ -293,8 +293,58 @@ export interface ContractSigningRecord {
   cancelCode: ContractCancelCode | null;
   /** Typed by the person who voided it. */
   cancelReason: string | null;
+  /** A counsel template, or the counterparty's paper with a Fil One
+   * signature page; for counterparty paper `templateHash` pins their PDF. */
+  documentType: ContractSigningDocumentType;
+  /** The counterparty signs in SignWell first. False only for counterparty
+   * paper they already signed, where Fil One alone signs. */
+  counterpartySigns: boolean;
   version: number;
 }
+
+export const contractSigningDocumentTypes = [
+  "contract_template",
+  "counterparty_paper",
+] as const;
+export type ContractSigningDocumentType =
+  (typeof contractSigningDocumentTypes)[number];
+
+/** The uploaded kinds a counterparty-paper request can be sent from. */
+export const counterpartyPaperFileKinds: readonly ContractFileKind[] = [
+  "main",
+  "counterparty_draft",
+];
+/** Counterparty paper is approved by someone other than the preparer, or
+ * self-approved under `approval:self`, before it is sent. */
+export const counterpartyPaperRequiresApproval = true;
+
+/** Sends a recorded contract on the counterparty's paper for the Fil One
+ * countersignature: either they signed on paper already and Fil One alone
+ * signs, or they sign in SignWell first. */
+export const SendCounterpartyPaperSchema = z.discriminatedUnion("signers", [
+  z
+    .object({
+      contractId: z.uuid(),
+      fileId: z.uuid(),
+      countersignerId: z.uuid({ message: "required" }),
+      signers: z.literal("fil-one"),
+    })
+    .strict(),
+  z
+    .object({
+      contractId: z.uuid(),
+      fileId: z.uuid(),
+      countersignerId: z.uuid({ message: "required" }),
+      signers: z.literal("counterparty_then_fil_one"),
+      signerName: z.string().trim().min(1, { message: "required" }).max(120),
+      signerEmail: z
+        .email({ message: "email" })
+        .max(254)
+        .transform((v) => v.toLowerCase()),
+      signerTitle: z.string().trim().min(1, { message: "required" }).max(120),
+    })
+    .strict(),
+]);
 
 /** The address SignWell should have for the counterparty now. */
 export function contractSignerEmail(

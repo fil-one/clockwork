@@ -37,7 +37,7 @@ export interface SigningView {
   remindedAt: string | null;
   /** Approved, or the request needs no approval. */
   approved: boolean;
-  /** By SignWell recipient id. */
+  /** By SignWell recipient id: the declared signers who sign this request. */
   signers: Readonly<Record<string, SigningSigner>>;
   /** Addresses SignWell must copy on the completed document. */
   copiedContacts: readonly string[];
@@ -174,9 +174,14 @@ const message = (error: unknown) =>
   error instanceof Error ? error.message.slice(0, 120) : "";
 /** SignWell's copy disagrees with the record. Nothing is applied from it; the
  * request waits in `attention` until a person voids it. */
+const signWellFieldsMismatch = "signwell_fields_mismatch";
 const mismatchReasons: Readonly<Record<string, string>> = {
   SIGNWELL_SIGNERS_MISMATCH: "signwell_signers_mismatch",
   SIGNWELL_BINDING_MISMATCH: "signwell_binding_mismatch",
+  // The unsent draft carries fields other than the declared ones, such as a
+  // PDF's own form fields; sending it again cannot change that.
+  SIGNWELL_SIGNING_FIELDS_MISMATCH: signWellFieldsMismatch,
+  SIGNWELL_SIGNING_ORDER_MISMATCH: signWellFieldsMismatch,
 };
 const mismatchReason = (error: unknown) =>
   error instanceof Error ? mismatchReasons[error.message] : undefined;
@@ -256,6 +261,12 @@ export class SigningEngine<R> {
   private get slots() {
     return [...this.type.slots].sort((a, b) => a.order - b.order);
   }
+  /** The declared signers who sign this request, in order: a slot the
+   * store's view leaves out does not sign it (counterparty paper the
+   * counterparty signed already). */
+  private signing(view: SigningView) {
+    return this.slots.filter((slot) => slot.id in view.signers);
+  }
   /** The signer whose email staff may correct; the stores keep one pending
    * and one confirmed correction per request. */
   private get correctable() {
@@ -279,7 +290,7 @@ export class SigningEngine<R> {
       templateHash: view.templateHash,
       testMode: view.testMode,
       providerId: view.providerId,
-      signers: this.slots.map(({ id }) => ({
+      signers: this.signing(view).map(({ id }) => ({
         id,
         emails: view.signers[id]?.accepted ?? [],
       })),
@@ -306,6 +317,14 @@ export class SigningEngine<R> {
       if (!reason) throw error;
       return this.mismatch(record, token, mismatchFor(doc, reason), actor);
     }
+    // A draft held for its fields stays held: its state reads as ready, but
+    // only voiding it moves the request on.
+    if (
+      view.state === "attention" &&
+      view.error === signWellFieldsMismatch &&
+      (state === "ready" || state === "preparing")
+    )
+      return record;
     const error = state === "attention" ? signWellAttentionReason(doc) : null;
     const patch: SigningPatch = {};
     const slot = this.correctable;
@@ -472,12 +491,30 @@ export class SigningEngine<R> {
       const providerId = bound.providerId;
       if (!providerId) throw failure("PROVIDER_ID_REQUIRED");
       let doc = (seen = await this.fetch(providerId));
+      const expected = this.signing(bound).map((slot) => ({
+        id: slot.id,
+        fields: slot.fields(record),
+      }));
+      // A draft whose fields do not match yet may still be extracting them.
+      const fieldsMatch = (draft: SignWellSigningDocument) => {
+        try {
+          assertSignWellFields(draft, expected);
+          return true;
+        } catch (error) {
+          if (mismatchReason(error) === signWellFieldsMismatch) return false;
+          throw error;
+        }
+      };
       // SignWell extracts text tags asynchronously after accepting a draft.
-      // Keep the saved binding while allowing a bounded processing interval.
+      // Keep the saved binding while allowing a bounded processing interval,
+      // and hold a draft for its fields only once that interval has passed.
       // Each round renews the lease, so a slow provider cannot outlive it.
       for (
         let attempt = 0;
-        doc && this.state(doc, bound) === "preparing" && attempt < 8;
+        doc &&
+        attempt < 8 &&
+        (this.state(doc, bound) === "preparing" ||
+          (this.state(doc, bound) === "ready" && !fieldsMatch(doc)));
         attempt++
       ) {
         await this.wait(1500);
@@ -499,13 +536,7 @@ export class SigningEngine<R> {
         if (!outForSignature.includes(state)) throw failure("NOT_PENDING");
         return settled;
       }
-      assertSignWellFields(
-        doc,
-        this.slots.map((slot) => ({
-          id: slot.id,
-          fields: slot.fields(record),
-        })),
-      );
+      assertSignWellFields(doc, expected);
       let note: SigningNote | undefined;
       if (this.type.copySender) {
         const copied = checkSignWellCopiedContacts(doc, bound.copiedContacts);
@@ -629,7 +660,9 @@ export class SigningEngine<R> {
       await this.signWell.remind(view.providerId);
       // Once the first signer has signed, the next one is reminded.
       const next =
-        this.slots[settled.state === "awaiting_countersignature" ? 1 : 0];
+        this.signing(settled)[
+          settled.state === "awaiting_countersignature" ? 1 : 0
+        ];
       return await this.store.update(
         current,
         token,
@@ -759,7 +792,13 @@ export class SigningEngine<R> {
     try {
       const view = this.store.view(record);
       const update = this.signWell.updateRecipient?.bind(this.signWell);
-      if (!slot || !update || !view.providerId || terminal.includes(view.state))
+      if (
+        !slot ||
+        !update ||
+        !view.providerId ||
+        terminal.includes(view.state) ||
+        !view.signers[slot.id]
+      )
         throw failure("NOT_CORRECTABLE");
       if (
         Object.entries(view.signers).some(

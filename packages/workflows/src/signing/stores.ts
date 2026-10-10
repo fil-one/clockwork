@@ -113,17 +113,22 @@ export function contractSigningStore(
       error: r.error,
       remindedAt: r.remindedAt,
       approved: ["not_required", "approved"].includes(r.approvalState),
+      // Counterparty paper they signed already goes to Fil One alone.
       signers: {
-        counterparty: {
-          name: r.counterpartySigner.name,
-          email: contractSignerEmail(r),
-          accepted: [
-            r.counterpartySigner.email,
-            r.correctedSignerEmail,
-            r.pendingSignerEmail,
-          ].filter((email): email is string => Boolean(email)),
-          pending: r.pendingSignerEmail,
-        },
+        ...(r.counterpartySigns
+          ? {
+              counterparty: {
+                name: r.counterpartySigner.name,
+                email: contractSignerEmail(r),
+                accepted: [
+                  r.counterpartySigner.email,
+                  r.correctedSignerEmail,
+                  r.pendingSignerEmail,
+                ].filter((email): email is string => Boolean(email)),
+                pending: r.pendingSignerEmail,
+              },
+            }
+          : {}),
         "fil-one": {
           name: r.countersigner.name,
           email: r.countersigner.email,

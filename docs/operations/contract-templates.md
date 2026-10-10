@@ -297,6 +297,21 @@ and needs approval again where the template requires it; the voided one stays in
 the register as a draft. The same people who may void a request may fix its
 email.
 
+A contract recorded on the counterparty's paper can be signed the same way.
+**Send for Fil One signature** on an unsigned contract with an uploaded main PDF
+or counterparty draft appends a Fil One signature page to the chosen PDF and
+prepares it for SignWell, pinned to that PDF's SHA-256. Choose **Fil One only**
+when the counterparty already signed the PDF, or **The counterparty, then Fil
+One** to have them sign the added page first. It always needs approval, and the
+signing panel then works as for a template contract. Form fields in their PDF
+are drawn into the page exactly as they look and removed, so SignWell asks only
+for the signatures on the added page. A PDF whose form cannot be drawn exactly
+is refused: print it to a flat PDF, upload that and send it again. A draft
+SignWell still finds other fields in is held for a void and never sent. The PDF
+it was sent from cannot be removed, and a contract has one request: after a
+void, decline or expiry, record the contract again to resend it. The signature
+page wording is interim until counsel supplies it.
+
 Reminders go to whoever signs next and are spaced at least a minute apart,
 counted from the last reminder. Each one is recorded in the contract's history
 as `contract.reminded` with its recipient.

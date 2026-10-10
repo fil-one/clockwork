@@ -1103,6 +1103,177 @@ describe("template signing persistence", () => {
   });
 });
 
+describe("counterparty paper for the Fil One signature (001460)", () => {
+  /** A recorded contract on their paper with their signed PDF attached. */
+  const recorded = async (patch: Partial<ContractInput> = {}) => {
+    const input = contract(randomUUID(), {
+      status: "in_negotiation",
+      ...patch,
+    });
+    await repo.create(input, actor);
+    const file = await repo.addFile(
+      input.id,
+      { kind: "counterparty_draft", fileName: "Their paper.pdf", bytes: pdf() },
+      actor,
+    );
+    const [countersigner] = await signing.countersigners();
+    if (!countersigner) throw new Error("seed countersigner missing");
+    const prepared = {
+      contractId: input.id,
+      source: { fileId: file.id, sha256: file.sha256 },
+      documentName: `Fil One countersignature - ${input.counterpartyName}`,
+      signaturePageVersion: "interim-2026-10-10",
+      counterpartySigner: null,
+      countersignerId: countersigner.id,
+      testMode: true,
+      pdf: pdf("their paper with the Fil One page"),
+      fileName: "Countersignature.pdf",
+    };
+    return { input, file, prepared };
+  };
+
+  it("prepares their PDF pinned by its hash, needing approval, once per contract", async () => {
+    const { input, file, prepared } = await recorded();
+    const { record, duplicate } = await signing.prepareCounterpartyPaper(
+      prepared,
+      actor,
+    );
+    expect(duplicate).toBe(false);
+    expect(record).toMatchObject({
+      documentType: "counterparty_paper",
+      counterpartySigns: false,
+      templateId: "counterparty-paper",
+      templateHash: file.sha256,
+      input: { source_file_id: file.id },
+      approvalRequired: true,
+      approvalState: "pending",
+      state: "draft",
+    });
+    // A retry is the same request; another choice of signers is not.
+    await expect(
+      signing.prepareCounterpartyPaper(prepared, actor),
+    ).resolves.toMatchObject({ duplicate: true });
+    await expect(
+      signing.prepareCounterpartyPaper(
+        {
+          ...prepared,
+          counterpartySigner: {
+            name: "Alex",
+            email: "alex@example.com",
+            title: "CEO",
+          },
+        },
+        actor,
+      ),
+    ).rejects.toThrow("CONTRACT_SIGNING_EXISTS");
+    const detail = await repo.get(input.id, "2026-10-10");
+    expect(detail.files.map((f) => f.kind).sort()).toEqual([
+      "counterparty_draft",
+      "generated",
+    ]);
+    expect(detail.activity[0]).toMatchObject({
+      eventType: "contract.prepared",
+      changes: { documentType: "counterparty_paper", sha256: file.sha256 },
+    });
+    // Their PDF stays while it is the paper being signed.
+    await expect(repo.removeFile(input.id, file.id, actor)).rejects.toThrow(
+      "CONTRACT_FILE_SENT_FOR_SIGNATURE",
+    );
+    // While it is out for signature, its status follows SignWell.
+    const lease = await signing.claim(input.id);
+    await signing.decide(input.id, { approve: true }, approver);
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "sent", providerId: randomUUID() },
+      actor,
+    );
+    await signing.release(input.id, lease.token);
+    const sent = await repo.get(input.id, "2026-10-10");
+    expect(sent.contract.status).toBe("out_for_signature");
+    await expect(
+      repo.update(
+        input.id,
+        sent.contract.version,
+        { ...input, status: "executed" },
+        actor,
+      ),
+    ).rejects.toThrow("CONTRACT_STATUS_FOLLOWS_SIGNING");
+  });
+
+  it("treats a retry as the same request only for the same signers", async () => {
+    const { prepared: base } = await recorded();
+    const prepared = {
+      ...base,
+      counterpartySigner: {
+        name: "Alex Example",
+        email: "alex@example.com",
+        title: "CEO",
+      },
+    };
+    await signing.prepareCounterpartyPaper(prepared, actor);
+    await expect(
+      signing.prepareCounterpartyPaper(prepared, actor),
+    ).resolves.toMatchObject({ duplicate: true });
+    for (const changed of [
+      {
+        ...prepared,
+        counterpartySigner: { ...prepared.counterpartySigner, name: "Sam" },
+      },
+      {
+        ...prepared,
+        counterpartySigner: {
+          ...prepared.counterpartySigner,
+          email: "sam@example.com",
+        },
+      },
+      { ...prepared, countersignerId: randomUUID() },
+    ])
+      await expect(
+        signing.prepareCounterpartyPaper(changed, actor),
+      ).rejects.toThrow("CONTRACT_SIGNING_EXISTS");
+  });
+
+  it("does not return or replace a closed request when the same paper is sent again", async () => {
+    const { input, prepared } = await recorded();
+    await signing.prepareCounterpartyPaper(prepared, actor);
+    const lease = await signing.claim(input.id);
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "canceled", error: null, cancelCode: "discarded" },
+      actor,
+    );
+    await signing.release(input.id, lease.token);
+    await expect(
+      signing.prepareCounterpartyPaper(prepared, actor),
+    ).rejects.toThrow("CONTRACT_SIGNING_EXISTS");
+  });
+
+  it("refuses our paper, an executed contract and a PDF it was not read from", async () => {
+    const ours = await recorded({ paper: "ours" });
+    await expect(
+      signing.prepareCounterpartyPaper(ours.prepared, actor),
+    ).rejects.toThrow("CONTRACT_PAPER_NOT_SENDABLE");
+    const executed = await recorded({ status: "executed" });
+    await expect(
+      signing.prepareCounterpartyPaper(executed.prepared, actor),
+    ).rejects.toThrow("CONTRACT_PAPER_NOT_SENDABLE");
+    const changed = await recorded();
+    await expect(
+      signing.prepareCounterpartyPaper(
+        {
+          ...changed.prepared,
+          source: { fileId: changed.file.id, sha256: "a".repeat(64) },
+        },
+        actor,
+      ),
+    ).rejects.toThrow("CONTRACT_FILE_NOT_FOUND");
+    // Nothing was kept from a refused preparation.
+    expect((await repo.get(changed.input.id, "2026-10-10")).signing).toBeNull();
+  });
+});
+
 describe("document lifetime", () => {
   it("refuses to delete stored bytes that a record still references", async () => {
     const marker = randomUUID();

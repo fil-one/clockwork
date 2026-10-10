@@ -209,6 +209,7 @@ export function ContractForm({
   today,
   initialType,
   fromMnda,
+  copyOf,
 }: {
   contract: ContractRecord | null;
   ownerName: string;
@@ -216,6 +217,8 @@ export function ContractForm({
   initialType?: ContractType;
   /** A signed MNDA with the same counterparty, which fills the name. */
   fromMnda?: ContractFormMnda;
+  /** A record this new one replaces, whose details it starts from. */
+  copyOf?: ContractRecord;
 }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
@@ -223,7 +226,12 @@ export function ContractForm({
   const formId = useId();
   const id = useRef(contract?.id ?? crypto.randomUUID());
   const [draft, setDraft] = useState(() =>
-    draftFrom(contract, ownerName, initialType, fromMnda),
+    draftFrom(
+      contract ?? (copyOf ? { ...copyOf, status: "in_negotiation" } : null),
+      ownerName,
+      initialType,
+      fromMnda,
+    ),
   );
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [problems, setProblems] = useState<Record<string, string>>({});

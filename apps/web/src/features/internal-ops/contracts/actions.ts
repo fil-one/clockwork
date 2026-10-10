@@ -1,11 +1,16 @@
 "use server";
 
 import { z } from "zod";
-import { availableContractTemplate } from "@clockwork/documents";
+import {
+  availableContractTemplate,
+  counterpartySignaturePageVersion,
+  renderCounterpartyPaper,
+} from "@clockwork/documents";
 import {
   ContractCorrectSignerSchema,
   ContractInputSchema,
   ContractVoidSchema,
+  SendCounterpartyPaperSchema,
   contractPdfFileName,
   contractSignerEmail,
 } from "@clockwork/contracts";
@@ -306,5 +311,67 @@ export async function correctContractSigner(raw: unknown) {
       signerEmail,
     );
     return { state: record.state, signerEmail: contractSignerEmail(record) };
+  });
+}
+
+/**
+ * Prepares a recorded contract on the counterparty's paper for the Fil One
+ * countersignature: the chosen uploaded PDF, read and checked against its
+ * hash, with the Fil One signature page appended. The seller chooses whether
+ * the counterparty signs in SignWell first or signed their paper already.
+ * Approval and sending then follow the signing panel, as for templates.
+ */
+export async function prepareCounterpartyPaper(raw: unknown) {
+  return attempt(async () => {
+    const session = await contractStaff("contract:write");
+    const input = SendCounterpartyPaperSchema.parse(raw);
+    const { file, contract, bytes } = await contractRepository().readFile(
+      input.contractId,
+      input.fileId,
+    );
+    if (!contract) throw new Error("CONTRACT_NOT_FOUND");
+    const repository = contractSigningRepository();
+    const countersigner = (await repository.countersigners()).find(
+      (signer) => signer.id === input.countersignerId,
+    );
+    if (!countersigner) throw new Error("CONTRACT_COUNTERSIGNER_UNAVAILABLE");
+    const counterpartySigner =
+      input.signers === "fil-one"
+        ? null
+        : {
+            name: input.signerName,
+            email: input.signerEmail,
+            title: input.signerTitle,
+          };
+    if (
+      counterpartySigner &&
+      countersigner.email.toLowerCase() === counterpartySigner.email
+    )
+      throw new Error("CONTRACT_DISTINCT_SIGNERS_REQUIRED");
+    const rendered = await renderCounterpartyPaper(bytes, {
+      contractId: input.contractId,
+      counterpartyName: contract.counterpartyName,
+      sourceSha256: file.sha256,
+      counterpartySigner,
+      countersigner,
+      preparedOn: new Date().toISOString().slice(0, 10),
+    });
+    const documentName =
+      `Fil One countersignature - ${contract.counterpartyName}`.slice(0, 200);
+    const { record } = await repository.prepareCounterpartyPaper(
+      {
+        contractId: input.contractId,
+        source: { fileId: file.id, sha256: file.sha256 },
+        documentName,
+        signaturePageVersion: counterpartySignaturePageVersion,
+        counterpartySigner,
+        countersignerId: countersigner.id,
+        testMode: contractSigningConfiguration().testMode,
+        pdf: rendered.bytes,
+        fileName: contractPdfFileName(documentName),
+      },
+      contractActor(session),
+    );
+    return { state: record.state };
   });
 }

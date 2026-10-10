@@ -361,7 +361,8 @@ export const signingScenarios: readonly SigningScenario[] = [
     async run(make) {
       const h = make();
       h.doc.fields = [];
-      await expect(h.send()).rejects.toThrow("SIGNING_FIELDS");
+      await expect(h.send()).rejects.toThrow(h.code("NEEDS_ATTENTION"));
+      expect(h.record().error).toBe("signwell_fields_mismatch");
       expect(h.provider.send).not.toHaveBeenCalled();
       await expect(h.cancel()).rejects.toThrow(h.code("VOID_REQUIRED"));
       expect(h.provider.cancel).not.toHaveBeenCalled();
@@ -488,6 +489,49 @@ export const signingScenarios: readonly SigningScenario[] = [
       expect(bounced.record().state).toBe("attention");
       for (const h of [signed, completed, bounced])
         expect(h.provider.cancel).not.toHaveBeenCalled();
+    },
+  },
+  {
+    name: "waits for a draft whose fields SignWell is still extracting, then sends it",
+    async run(make) {
+      const h = make();
+      const extracted = structuredClone(h.doc.fields);
+      // The draft reads as Draft before its text tags have all become fields.
+      h.doc.fields = [[]];
+      let reads = 0;
+      h.provider.get.mockImplementation(async () => {
+        if (++reads > 1) h.doc.fields = extracted;
+        return structuredClone(h.doc);
+      });
+      expect((await h.send()).state).toBe("sent");
+      expect(h.wait).toHaveBeenCalledOnce();
+      expect(h.provider.send).toHaveBeenCalledOnce();
+      expect(h.record().error).toBeNull();
+    },
+  },
+  {
+    name: "holds a draft with fields it did not place until it is voided, sending nothing",
+    async run(make) {
+      const h = make();
+      // A field SignWell found in the PDF itself, beside the declared ones.
+      h.doc.fields[0]?.push({
+        recipient_id: "counterparty",
+        type: "text",
+        required: true,
+      });
+      await expect(h.send()).rejects.toThrow(h.code("NEEDS_ATTENTION"));
+      // Held only once the bounded wait for SignWell's extraction ran out.
+      expect(h.wait).toHaveBeenCalledTimes(8);
+      const held = { state: "attention", error: "signwell_fields_mismatch" };
+      expect(h.record()).toMatchObject(held);
+      // Neither a retry nor a refresh releases it or reaches SignWell's send.
+      await expect(h.send()).rejects.toThrow(h.code("NEEDS_ATTENTION"));
+      expect(await h.sync()).toMatchObject(held);
+      expect(h.provider.send).not.toHaveBeenCalled();
+      expect(
+        await h.void({ reason: "Their PDF has form fields" }),
+      ).toMatchObject({ state: "canceled" });
+      expect(h.provider.cancel).toHaveBeenCalledExactlyOnceWith(h.doc.id);
     },
   },
   {

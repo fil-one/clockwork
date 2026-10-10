@@ -26,7 +26,11 @@ vi.mock("@/src/auth/session", () => ({
 }));
 vi.mock("@/src/db/service", () => ({ getServiceDatabase: vi.fn() }));
 vi.mock("../mnda/server", () => ({ mndaRepository: () => mocks.mnda }));
-import { loadContractForm, loadPrepare } from "./loaders";
+import {
+  counterpartyPaperSources,
+  loadContractForm,
+  loadPrepare,
+} from "./loaders";
 
 const signed = {
   ...fixtureRecord,
@@ -164,5 +168,60 @@ describe("preparing a template again for someone else", () => {
       start: null,
     });
     expect(mocks.signing.get).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("recording a contract again", () => {
+  it("starts from the record it replaces, and from nothing for an unknown or bad id", async () => {
+    mocks.contracts.get.mockResolvedValueOnce({
+      contract: fixtureContractRecord,
+    });
+    await expect(
+      loadContractForm(undefined, undefined, fixtureContractRecord.id),
+    ).resolves.toMatchObject({ kind: "ready", copyOf: fixtureContractRecord });
+    mocks.contracts.get.mockRejectedValueOnce(new Error("CONTRACT_NOT_FOUND"));
+    await expect(
+      loadContractForm(undefined, undefined, fixtureContractRecord.id),
+    ).resolves.toMatchObject({ kind: "ready", copyOf: null });
+    await expect(
+      loadContractForm(undefined, undefined, "../x"),
+    ).resolves.toMatchObject({ kind: "ready", copyOf: null });
+    expect(mocks.contracts.get).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("counterparty paper sources", () => {
+  const file = (kind: string) =>
+    ({ id: kind, kind }) as unknown as Parameters<
+      typeof counterpartyPaperSources
+    >[0]["files"][number];
+  const files = ["main", "counterparty_draft", "redline", "attachment"].map(
+    file,
+  );
+  const open = {
+    ...fixtureContractRecord,
+    status: "in_negotiation" as const,
+    executedAt: null,
+  };
+
+  it("offers their main PDF and drafts on an unsigned contract on their paper", () => {
+    expect(
+      counterpartyPaperSources({ contract: open, files, signing: null }).map(
+        (f) => f.kind,
+      ),
+    ).toEqual(["main", "counterparty_draft"]);
+  });
+
+  it("offers nothing on our paper, once executed, or once a request exists", () => {
+    for (const detail of [
+      { contract: { ...open, paper: "ours" as const }, files, signing: null },
+      {
+        contract: { ...open, status: "executed" as const },
+        files,
+        signing: null,
+      },
+      { contract: open, files, signing: fixtureSigningRecord },
+    ])
+      expect(counterpartyPaperSources(detail)).toEqual([]);
   });
 });

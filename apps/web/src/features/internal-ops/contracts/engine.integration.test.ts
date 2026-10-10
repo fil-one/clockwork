@@ -3,6 +3,7 @@
 // the test-only fixture; it is never registered in production.
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import { afterAll, expect, it, vi } from "vitest";
+import type { TemplateLineItems } from "@clockwork/contracts";
 import {
   ContractDocumentStores,
   ContractRepository,
@@ -15,7 +16,11 @@ import {
   verifySignWellWakeup,
 } from "@clockwork/integrations";
 import { ContractSigningWorkflow } from "@clockwork/workflows/contracts";
-import { availableContractTemplate } from "@clockwork/documents";
+import {
+  availableContractTemplate,
+  counterpartySignaturePageVersion,
+  renderCounterpartyPaper,
+} from "@clockwork/documents";
 import { fixtureContractTemplateRegistry } from "../../../../../../packages/documents/src/__fixtures__/contract-template";
 import { rateMinimums } from "./line-items";
 import { prepareInputSchema } from "./prepare-input";
@@ -67,7 +72,7 @@ const fixtureLines = {
       extendedMinor: "8100000",
     },
   ],
-};
+} satisfies TemplateLineItems;
 // The in-force rate for that row, whose minimum the server applies.
 const minimums = rateMinimums([
   {
@@ -102,6 +107,7 @@ interface FakeDocument {
 function fakeSignWell() {
   const documents = new Map<string, FakeDocument>();
   const calls: string[] = [];
+  const uploads: Buffer[] = [];
   const json = (body: unknown) =>
     new Response(JSON.stringify(body), {
       headers: { "content-type": "application/json" },
@@ -123,6 +129,7 @@ function fakeSignWell() {
         files: { file_base64: string }[];
       };
       expect(body.draft).toBe(true);
+      uploads.push(Buffer.from(body.files[0]?.file_base64 ?? "", "base64"));
       expect(
         Buffer.from(body.files[0]?.file_base64 ?? "", "base64")
           .subarray(0, 5)
@@ -184,7 +191,7 @@ function fakeSignWell() {
   };
   const transport: typeof fetch = (input, init) =>
     Promise.resolve(respond(input, init));
-  return { transport, documents, calls };
+  return { transport, documents, calls, uploads };
 }
 
 function wakeup(providerId: string, secret: string) {
@@ -612,14 +619,26 @@ it("fixes a bounced counterparty email, then voids for a different signer", asyn
     {
       eventType: "contract.signer_corrected",
       changes: {
-        before: { signerEmail: original },
-        signerEmail: "right@example.com",
+        signerEmail: { from: original, to: "right@example.com" },
       },
     },
     {
       eventType: "contract.signer_correction_requested",
       changes: {
-        before: { signerEmail: original },
+        signerEmail: { from: original, to: "right@example.com" },
+      },
+    },
+  ]);
+  // The replaced address is the audit events' before-image, once.
+  const audit = await client<{ before: unknown; after: unknown }[]>`
+    select before, after from audit_events
+    where aggregate_id = ${id} and event_type = 'contract.signer_corrected'`;
+  expect(audit).toEqual([
+    {
+      before: { signerEmail: original },
+      after: {
+        eventType: "contract.signer_corrected",
+        fields: ["signerEmail"],
         signerEmail: "right@example.com",
       },
     },
@@ -641,4 +660,122 @@ it("fixes a bounced counterparty email, then voids for a different signer", asyn
     eventType: "contract.voided",
     changes: { cancelCode: "signer_change" },
   });
+}, 60_000);
+
+it("sends counterparty paper they signed already to Fil One alone and archives it", async () => {
+  const preparer = { kind: "user" as const, id: randomUUID(), display: "R.W." };
+  const approver = { kind: "user" as const, id: randomUUID(), display: "J." };
+  const marker = randomUUID().slice(0, 8);
+  const id = randomUUID();
+  // Their signed PDF: any real PDF from another writer will do.
+  const theirs = await availableContractTemplate(
+    fixtureContractTemplateRegistry,
+    "test-fixture",
+  ).render({
+    contractId: id,
+    counterpartyName: "Their Co",
+    effectiveDate: "2026-10-01",
+    values: {
+      fixture_reference: "THEIRS",
+      fixture_tier: "beta",
+      fixture_note: "",
+      fixture_lines: fixtureLines,
+    },
+    signer: { name: "Pat", email: "pat@example.com", title: "CEO" },
+    countersigner: { name: "Sam", email: "sam@example.com", title: "CFO" },
+  });
+  await register.create(
+    {
+      id,
+      counterpartyName: `Paper Data ${marker}`,
+      title: "Reseller agreement",
+      contractType: "channel_partnership",
+      paper: "theirs",
+      status: "in_negotiation",
+      effectiveDate: null,
+      initialTermMonths: null,
+      autoRenew: false,
+      renewalTermMonths: null,
+      noticePeriodDays: null,
+      valueMinor: null,
+      currency: null,
+      pricingNotes: "",
+      ownerName: "R.W. Holleman",
+      internalNotes: "",
+      tags: [],
+    },
+    preparer,
+  );
+  const file = await register.addFile(
+    id,
+    {
+      kind: "counterparty_draft",
+      fileName: "Signed by them.pdf",
+      bytes: theirs.bytes,
+    },
+    preparer,
+  );
+  const [countersigner] = await signing.countersigners();
+  if (!countersigner) throw new Error("A seeded countersigner is required");
+  const rendered = await renderCounterpartyPaper(theirs.bytes, {
+    contractId: id,
+    counterpartyName: `Paper Data ${marker}`,
+    sourceSha256: file.sha256,
+    counterpartySigner: null,
+    countersigner,
+    preparedOn: "2026-10-10",
+  });
+  await signing.prepareCounterpartyPaper(
+    {
+      contractId: id,
+      source: { fileId: file.id, sha256: file.sha256 },
+      documentName: `Fil One countersignature - Paper Data ${marker}`,
+      signaturePageVersion: counterpartySignaturePageVersion,
+      counterpartySigner: null,
+      countersignerId: countersigner.id,
+      testMode: true,
+      pdf: rendered.bytes,
+      fileName: "Countersignature.pdf",
+    },
+    preparer,
+  );
+
+  const signWell = fakeSignWell();
+  const workflow = new ContractSigningWorkflow(
+    signing,
+    new SignWellContractClient("test-key", signWell.transport),
+    () => Promise.resolve(),
+  );
+  await expect(workflow.send(id, preparer)).rejects.toThrow(
+    "CONTRACT_APPROVAL_REQUIRED",
+  );
+  await workflow.decide(id, { approve: true }, approver);
+  await expect(workflow.send(id, preparer)).resolves.toMatchObject({
+    state: "sent",
+  });
+  const [document] = [...signWell.documents.values()];
+  if (!document) throw new Error("SignWell document missing");
+  // Fil One alone signs the merged PDF, bound to their PDF's hash.
+  expect(document.recipients.map((r) => r.id)).toEqual(["fil-one"]);
+  expect(document.metadata.template_sha256).toBe(file.sha256);
+  expect(signWell.uploads[0]?.equals(rendered.bytes)).toBe(true);
+
+  await workflow.remind(id, preparer);
+  document.status = "Completed";
+  expect((await workflow.sync(id, preparer)).state).toBe("completed");
+  const done = await register.get(id, "2026-10-10");
+  expect(done.contract.status).toBe("executed");
+  expect(done.files.map((f) => f.kind).sort()).toEqual([
+    "counterparty_draft",
+    "executed",
+    "generated",
+  ]);
+  expect(done.activity.map((a) => a.eventType)).toEqual(
+    expect.arrayContaining([
+      "contract.prepared",
+      "contract.approved",
+      "contract.reminded",
+      "contract.signing_completed",
+    ]),
+  );
 }, 60_000);

@@ -1811,9 +1811,21 @@ detail lives in `docs/operations/commerce-mnda.md`,
   page links its own needs-attention and out-for-signature counts to it, while
   approvals awaiting the reader's decision link only the team count
   (`apps/web/src/features/internal-ops/sales-home/contract-source.ts`).
-- **Counterparty paper for Fil One signature `[OPEN]`:** a partner's own PDF can
-  be recorded with its redlines but not sent through SignWell for the Fil One
-  countersignature. Signing runs only for contracts prepared from a template.
+- **Counterparty paper for Fil One signature `[COMPLETE]`:** **Send for Fil One
+  signature** on an unsigned contract on the counterparty's paper sends one of
+  its uploaded PDFs, pinned by its SHA-256, with a Fil One signature page
+  appended, either to Fil One alone (they signed already) or to the counterparty
+  first. It is a second declaration on the signing engine
+  (`counterpartyPaperSigning`) over the contract table
+  (`supabase/migrations/001460_contract_counterparty_paper.sql`), with approval,
+  reminders, correction, void and the executed PDF as for templates. The
+  procedure it follows is
+  [adding a signed document type](operations/add-a-document-type.md). One
+  request per contract: a voided one is not sent again on the same record.
+- **Counterparty paper signature page and live run `[EXTERNAL-ONLY]`:** the
+  signature page wording is interim pending counsel (`EXT-LEGAL-01`), and no
+  counterparty-paper request has yet been signed in SignWell, in test mode or
+  live.
 - **Renewal reminders outside the app `[OPEN]`:** notice deadlines appear in the
   notices list and on the contract record only. Email or chat reminders need a
   scheduled task and a sender, and the sender waits on a notification provider

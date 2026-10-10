@@ -258,6 +258,33 @@ it("explains a SignWell copy that no longer matches, and sends a signed one to a
   ).toBeNull();
 });
 
+it("explains a SignWell draft whose fields do not match the template, and offers a void", () => {
+  render(
+    <MndaWorkspace
+      initial={data([
+        { ...sent, state: "attention", error: "signwell_fields_mismatch" },
+      ])}
+      initialQuery={query}
+    />,
+  );
+  const row = within(
+    screen.getByText("Example Corporation").closest("tr") as HTMLElement,
+  );
+  expect(
+    row.getByText(
+      /SignWell's copy of this MNDA has fields that do not match the template\./,
+    ),
+  ).toBeVisible();
+  expect(
+    row.getByText(
+      /Void it and send again\. If it happens again, contact engineering\./,
+    ),
+  ).toBeVisible();
+  expect(row.queryByText(/SignWell stopped/)).toBeNull();
+  expect(row.getByRole("button", { name: "Void" })).toBeVisible();
+  expect(row.queryByRole("button", { name: "Fix email" })).toBeNull();
+});
+
 it("no longer offers the partner-completes mode, and copies an old one into the default mode", async () => {
   const legacy: MndaRecord = {
     ...sent,

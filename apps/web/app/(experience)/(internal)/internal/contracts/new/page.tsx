@@ -20,14 +20,20 @@ export default async function Page({
   searchParams: Promise<{
     type?: string | string[];
     mnda?: string | string[];
+    /** A record this one replaces; the form starts from its details. */
+    from?: string | string[];
   }>;
 }) {
-  const { type, mnda } = await searchParams;
+  const { type, mnda, from } = await searchParams;
   // A signed MNDA fills the counterparty; an id the reader cannot open
   // starts an empty form.
   const [t, loaded] = await Promise.all([
     getTranslations(),
-    loadContractForm(undefined, typeof mnda === "string" ? mnda : undefined),
+    loadContractForm(
+      undefined,
+      typeof mnda === "string" ? mnda : undefined,
+      typeof from === "string" ? from : undefined,
+    ),
   ]);
   if (loaded.kind !== "ready")
     return (
@@ -53,6 +59,7 @@ export default async function Page({
         today={loaded.today}
         {...(initialType ? { initialType } : {})}
         {...(loaded.mnda ? { fromMnda: loaded.mnda } : {})}
+        {...(loaded.copyOf ? { copyOf: loaded.copyOf } : {})}
       />
     </main>
   );

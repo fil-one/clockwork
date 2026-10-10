@@ -131,6 +131,7 @@ export function contractSigningWorkflow(
     Promise.reject(new Error("CONTRACT_SIGNING_NOT_CONFIGURED"));
   return new ContractSigningWorkflow(contractSigningRepository(), {
     createContractDraft: unavailable,
+    createCounterpartyPaperDraft: unavailable,
     getContract: unavailable,
     send: unavailable,
     remind: unavailable,

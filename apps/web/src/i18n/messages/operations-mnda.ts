@@ -203,6 +203,12 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.note.signersMismatch": {
     en: "The signers in SignWell no longer match this MNDA, so its status is not updated.",
   },
+  "operations.mnda.note.fieldsMismatch": {
+    en: "SignWell's copy of this MNDA has fields that do not match the template.",
+  },
+  "operations.mnda.note.fieldsMismatchNext": {
+    en: "Void it and send again. If it happens again, contact engineering.",
+  },
   "operations.mnda.note.bindingMismatch": {
     en: "SignWell's copy does not belong to this MNDA, so its status is not updated.",
   },

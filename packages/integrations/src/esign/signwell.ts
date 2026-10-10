@@ -368,8 +368,13 @@ export function signWellSigningState(
   if (status === "draft") return "ready";
   if (status === "sending") return "sending";
   if (!["sent", "pending", "viewed"].includes(status)) return "attention";
+  // With a single signer there is no countersignature to wait for: their
+  // signature completes the document.
   const first = doc.recipients.find((r) => r.id === binding.signers[0]?.id);
-  if (["signed", "completed"].includes(first?.status?.toLowerCase() ?? ""))
+  if (
+    binding.signers.length > 1 &&
+    ["signed", "completed"].includes(first?.status?.toLowerCase() ?? "")
+  )
     return "awaiting_countersignature";
   if (status === "viewed" || status === "pending") return "viewed";
   return "sent";

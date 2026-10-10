@@ -18,6 +18,7 @@
     "@clockwork/contracts": "workspace:*",
     "@clockwork/domain": "workspace:*",
     "@react-pdf/renderer": "catalog:",
+    "pdf-lib": "1.17.1",
     "react": "catalog:"
   },
   "devDependencies": {

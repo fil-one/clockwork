@@ -21,6 +21,7 @@ import type {
   ContractFileKind,
   ContractPaper,
   ContractSigner,
+  ContractSigningDocumentType,
   ContractSigningState,
   ContractStatus,
   ContractType,
@@ -196,6 +197,12 @@ export const contractSigning = pgTable("commerce_contract_signing", {
   pendingSignerEmail: text("pending_signer_email"),
   cancelCode: text("cancel_code").$type<ContractCancelCode>(),
   cancelReason: text("cancel_reason"),
+  /** A counsel template, or the counterparty's paper (001460). */
+  documentType: text("document_type")
+    .$type<ContractSigningDocumentType>()
+    .notNull()
+    .default("contract_template"),
+  counterpartySigns: boolean("counterparty_signs").notNull().default(true),
 });
 
 export const salesCollateral = pgTable(
