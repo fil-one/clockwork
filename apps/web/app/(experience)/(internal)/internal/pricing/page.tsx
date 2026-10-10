@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 
-import { DatabasePriceBookAdministrationReader } from "@clockwork/db";
+import { DatabaseIndicativePriceBookReader } from "@clockwork/db";
 
 import { getOptionalServiceDatabase } from "@/src/db/service";
-import { loadPriceBookRecords } from "@/src/features/internal-ops/price-books/server-price-book-loader";
 import { indicativePriceBooks } from "@/src/features/internal-ops/sales-pricing/books";
 import styles from "@/src/features/internal-ops/sales-pricing/pricing.module.css";
 import { PricingWorkspace } from "@/src/features/internal-ops/sales-pricing/pricing-workspace";
+import { loadIndicativePriceBookRecords } from "@/src/features/internal-ops/sales-pricing/server-books";
 import { withStaffPermission } from "@/src/features/shell/staff-access";
 import {
   getFormattingLocale,
@@ -32,8 +32,8 @@ async function Page() {
     getFormattingLocale(),
   ]);
   const database = getOptionalServiceDatabase();
-  const result = await loadPriceBookRecords(
-    database ? new DatabasePriceBookAdministrationReader(database) : undefined,
+  const result = await loadIndicativePriceBookRecords(
+    database ? new DatabaseIndicativePriceBookReader(database) : undefined,
     { locale },
   );
   const dateFormat = new Intl.DateTimeFormat(formattingLocale, {

@@ -4,7 +4,8 @@
 #
 # Four steps, in this order:
 #   1. rds-prelude.sql       -- the objects Supabase ships and RDS does not
-#   2. supabase db push      -- supabase/migrations, the canonical schema
+#   2. supabase db push      -- supabase/migrations, the canonical schema,
+#                               then a check that no index was left invalid
 #   3. bootstrap-production  -- the staff organization, from BOOTSTRAP_MANIFEST
 #                               when there is one; a no-op once applied
 #   4. production-roles.sql  -- give the two application roles their passwords
@@ -88,6 +89,16 @@ psql "$DIRECT_DATABASE_URL" -v ON_ERROR_STOP=1 -f /app/deploy/docker/rds-prelude
 
 echo "migrate: applying supabase/migrations"
 supabase db push --db-url "$DIRECT_DATABASE_URL" --workdir /app --yes
+
+# A `create index concurrently` that fails part-way leaves an invalid index
+# behind. The retried push then skips it (`if not exists`) and records the
+# migration as applied, and the planner never uses the index. Stop here instead,
+# naming the index; deploy/README.md has the recovery.
+invalid_indexes="$(psql "$DIRECT_DATABASE_URL" -v ON_ERROR_STOP=1 -tAc "select string_agg(indexrelid::regclass::text, ', ' order by indexrelid::regclass::text) from pg_index where not indisvalid")"
+if [ -n "$invalid_indexes" ]; then
+  echo "migrate: invalid indexes after db push: ${invalid_indexes}" >&2
+  exit 1
+fi
 
 # The production bootstrap (docs/operations/production-bootstrap.md) creates
 # the staff organization and memberships from the manifest, on the first run

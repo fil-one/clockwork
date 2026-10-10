@@ -759,6 +759,10 @@ export const experienceMfaReceipts = pgTable(
       table.workosOrganizationId,
       table.verifiedAt.desc(),
     ),
+    index("experience_mfa_receipt_user_idx").on(
+      table.workosUserId,
+      table.verifiedAt.desc(),
+    ),
     check(
       "experience_mfa_receipt_window_check",
       sql`${table.expiresAt} > ${table.verifiedAt} and ${table.expiresAt} <= ${table.verifiedAt} + interval '8 hours'`,
