@@ -36,7 +36,10 @@ administrators also see Team, signing settings and the operations groups.
 2. Enter the partner's legal name and the signer's name and email. Leave
    anything you do not know blank; the partner fills it in when signing. Use
    Latin-script names and addresses, and write the entity type without "a" or
-   "an" (for example `Delaware corporation`).
+   "an" (for example `Delaware corporation`). If Commerce already has an MNDA
+   with that company, or the contract register lists any agreement with it, a
+   note under the company name says so, with links. Check it before sending
+   another.
 3. Preview the PDF and check the names. Then send. The partner receives an email
    from SignWell, our signing service.
 4. The partner signs first. A Fil One signer (James by default) countersigns
@@ -46,6 +49,9 @@ Commerce does not email you when something changes. Check **Home**: it counts
 your MNDAs waiting on the partner, waiting on Fil One, completed in the last 30
 days, and your unsent drafts, and each line opens the register filtered to those
 MNDAs.
+
+An MNDA marked **Needs attention** says why and what to do next. If SignWell's
+copy no longer matches the MNDA, void it and send it again.
 
 If an MNDA went to the wrong person or needs to be withdrawn after sending, ask
 a commerce administrator. That step happens in SignWell today.

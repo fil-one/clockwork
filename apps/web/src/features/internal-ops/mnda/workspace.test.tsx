@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   prepare: vi.fn(),
   operate: vi.fn(),
   load: vi.fn(),
+  loadRegister: vi.fn(),
   duplicates: vi.fn(),
   void: vi.fn(),
   correct: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock("./actions", () => ({
   prepareMnda: mocks.prepare,
   operateMnda: mocks.operate,
   loadMndas: mocks.load,
+  loadMndaRegister: mocks.loadRegister,
   findMndaDuplicates: mocks.duplicates,
   voidMnda: mocks.void,
   correctMndaSigner: mocks.correct,
@@ -63,7 +65,14 @@ function fill(values: Partial<Record<string, string>>) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.load.mockResolvedValue({ ok: true, value: data() });
-  mocks.duplicates.mockResolvedValue({ ok: true, value: [] });
+  mocks.loadRegister.mockResolvedValue({
+    ok: true,
+    value: { register: data().register },
+  });
+  mocks.duplicates.mockResolvedValue({
+    ok: true,
+    value: { mndas: [], contracts: [] },
+  });
   mocks.prepare.mockResolvedValue({ ok: true, value: fixtureRecord });
   mocks.operate.mockResolvedValue({
     ok: true,
@@ -147,19 +156,31 @@ it("shows specific messages next to each field and focuses the first problem", a
   ).toBeVisible();
 });
 
-it("warns before papering a company that already has an MNDA", async () => {
+it("warns before papering a company that already has an MNDA or a register contract", async () => {
   mocks.duplicates.mockResolvedValue({
     ok: true,
-    value: [
-      {
-        id: sent.id,
-        company: "Example Corporation",
-        state: "completed",
-        createdAt: "2026-09-28T00:00:00Z",
-        completedAt: "2026-09-28T00:00:00Z",
-        ownerName: "R.W. Holleman",
-      },
-    ],
+    value: {
+      mndas: [
+        {
+          id: sent.id,
+          company: "Example Corporation",
+          state: "completed",
+          createdAt: "2026-09-28T00:00:00Z",
+          completedAt: "2026-09-28T00:00:00Z",
+          ownerName: "R.W. Holleman",
+        },
+      ],
+      contracts: [
+        {
+          id: "019a44ac-0000-7000-8000-0000000000c1",
+          counterpartyName: "EXAMPLE, Inc.",
+          contractType: "nda_one_way",
+          status: "executed",
+          effectiveDate: "2025-04-01",
+          ownerName: "Morgan Lee",
+        },
+      ],
+    },
   });
   render(<MndaWorkspace initial={data()} initialQuery={query} />);
   fireEvent.click(screen.getByRole("button", { name: "New MNDA" }));
@@ -175,6 +196,91 @@ it("warns before papering a company that already has an MNDA", async () => {
     screen.getByRole("link", { name: "Example Corporation" }),
   ).toHaveAttribute("href", "/internal/mndas?q=Example%20Corporation");
   expect(screen.getByText(/Signed, .*R\.W\. Holleman/)).toBeVisible();
+  expect(
+    screen.getByText("The contract register already lists this company"),
+  ).toBeVisible();
+  expect(screen.getByRole("link", { name: "EXAMPLE, Inc." })).toHaveAttribute(
+    "href",
+    "/internal/contracts/019a44ac-0000-7000-8000-0000000000c1",
+  );
+  expect(
+    screen.getByText(/, Executed, effective Apr 1, 2025, owner Morgan Lee/),
+  ).toBeVisible();
+});
+
+it("explains a SignWell copy that no longer matches, and offers only a void", () => {
+  render(
+    <MndaWorkspace
+      initial={data([
+        { ...sent, state: "attention", error: "signwell_signers_mismatch" },
+      ])}
+      initialQuery={query}
+    />,
+  );
+  expect(
+    screen.getByText(/The signers in SignWell no longer match this MNDA/),
+  ).toBeVisible();
+  expect(screen.getByText(/Void it, then send it again\./)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Void" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Fix email" })).toBeNull();
+});
+
+it("no longer offers the partner-completes mode, and copies an old one into the default mode", async () => {
+  const legacy: MndaRecord = {
+    ...sent,
+    state: "completed",
+    input: {
+      ...fixtureInput,
+      detailsMode: "recipient",
+      company: "Deal 42 reference",
+      shortName: "",
+      entityDescription: "",
+      streetAddress: "",
+      locality: "",
+      noticesContact: "",
+      noticesEmail: "",
+      signerTitle: "",
+    },
+  };
+  render(<MndaWorkspace initial={data([legacy])} initialQuery={query} />);
+  expect(screen.getByText("Deal 42 reference")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Send again" }));
+  expect(await screen.findByLabelText(/Counterparty legal name/)).toHaveValue(
+    "",
+  );
+  expect(screen.getByLabelText(/Counterparty signer name/)).toHaveValue(
+    fixtureInput.signerName,
+  );
+  expect(
+    screen.getAllByRole("radio").map((r) => r.getAttribute("value")),
+  ).toEqual(["mixed", "team"]);
+  expect(screen.getByRole("radio", { checked: true })).toHaveAttribute(
+    "value",
+    "mixed",
+  );
+});
+
+it("refreshes only the register while the page is open", async () => {
+  vi.useFakeTimers();
+  try {
+    const refreshed = { ...sent, state: "viewed" as const };
+    mocks.loadRegister.mockResolvedValue({
+      ok: true,
+      value: {
+        register: { records: [refreshed], total: 1, page: 1, pageSize: 25 },
+      },
+    });
+    render(<MndaWorkspace initial={data([sent])} initialQuery={query} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(mocks.loadRegister).toHaveBeenCalledWith(query);
+    expect(mocks.load).not.toHaveBeenCalled();
+    expect(screen.getByText("Opened by partner")).toBeVisible();
+    expect(screen.getByRole("button", { name: "New MNDA" })).toBeVisible();
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("explains blocked requests in plain words with the next step", () => {
