@@ -19,6 +19,12 @@
 // role held, and the permissions they confer). Any row gained or lost that is
 // not listed in `expectedDifferences` fails the run, and so does an expected
 // difference that no longer happens.
+//
+// With `--unchanged-from <migration>` (for example 001454) the upgrade stops
+// before that migration, the comparison above runs there, and the remaining
+// migrations must then change nothing: every person, signing the same claim,
+// must be admitted to exactly the same rows for every command, and every table
+// whose policies those migrations rewrite must hold rows.
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import process from "node:process";
@@ -568,6 +574,7 @@ async function abilities(
 async function main() {
   const server = argument("--server");
   if (!server) throw new Error("--server <postgres url> is required");
+  const unchangedFrom = argument("--unchanged-from");
   const admin = postgres(server, { max: 1, onnotice: () => {} });
   await admin.unsafe(`drop database if exists ${database} with (force)`);
   await admin.unsafe(`create database ${database}`);
@@ -621,7 +628,9 @@ async function main() {
     });
     const applied = await migrate(
       upgrade,
-      (name) => name >= firstUpgradeMigration,
+      (name) =>
+        name >= firstUpgradeMigration &&
+        (unchangedFrom === undefined || name < unchangedFrom),
     );
     await upgrade.end();
     const backfillNotices = notices.filter(
@@ -717,6 +726,10 @@ async function main() {
       rows: string[];
     }
     const observed: Difference[] = [];
+    const upgraded = new Map<
+      string,
+      { claim: object; abilities: Map<string, Set<string>> }
+    >();
     for (const persona of people) {
       const [membership] = await sql<
         { roles: Role[]; side: OrganizationSide }[]
@@ -732,11 +745,9 @@ async function main() {
         failures.push(
           `${persona.key} is labelled ${persona.side} but the backfill stored ${membership.side}`,
         );
-      const after = await abilities(
-        sql,
-        claims(persona, "after", membership.roles, membership.side),
-        identitiesAfter,
-      );
+      const claim = claims(persona, "after", membership.roles, membership.side);
+      const after = await abilities(sql, claim, identitiesAfter);
+      upgraded.set(persona.key, { claim, abilities: after });
       const previous =
         snapshots.get(persona.key) ?? new Map<string, Set<string>>();
       for (const [key, then] of previous) {
@@ -797,6 +808,59 @@ async function main() {
     if (unobserved.length)
       failures.push(`${unobserved.length} expected differences did not happen`);
 
+    // The migrations from --unchanged-from on must not change any ability.
+    let unchanged: object | undefined;
+    if (unchangedFrom !== undefined) {
+      const later = await migrate(sql, (name) => name >= unchangedFrom);
+      if (later.length === 0)
+        failures.push(`no migration from ${unchangedFrom} on was applied`);
+      const policiesLater = await policies(sql);
+      const tables = rewrittenTables(policiesAfter, policiesLater);
+      const policyCount = policiesLater.filter(
+        (policy) =>
+          !policiesAfter.some(
+            (previous) => JSON.stringify(previous) === JSON.stringify(policy),
+          ),
+      ).length;
+      for (const table of tables)
+        if (!identitiesAfter.has(table))
+          failures.push(`${table} has rewritten policies but is not compared`);
+        else if ((rowsAfter.get(table)?.size ?? 0) === 0)
+          failures.push(
+            `${table} has no rows, so its rewritten policies are untested`,
+          );
+      const changed: string[] = [];
+      for (const persona of people) {
+        const previous = upgraded.get(persona.key);
+        if (!previous) continue;
+        const now = await abilities(sql, previous.claim, identitiesAfter);
+        for (const key of new Set([
+          ...previous.abilities.keys(),
+          ...now.keys(),
+        ])) {
+          const then = previous.abilities.get(key) ?? new Set<string>();
+          const rows = now.get(key) ?? new Set<string>();
+          const gained = [...rows].filter((id) => !then.has(id)).sort();
+          const lost = [...then].filter((id) => !rows.has(id)).sort();
+          if (gained.length || lost.length)
+            changed.push(
+              `${persona.key} ${key} gained [${gained.join(", ")}] lost [${lost.join(", ")}]`,
+            );
+        }
+      }
+      if (changed.length)
+        failures.push(
+          `${changed.length} abilities changed from ${unchangedFrom} on`,
+        );
+      unchanged = {
+        migrations: later,
+        rewrittenTables: tables.length,
+        rewrittenPolicies: policyCount,
+        personasCompared: upgraded.size,
+        changed,
+      };
+    }
+
     console.log(
       JSON.stringify(
         {
@@ -812,6 +876,7 @@ async function main() {
           expectedDifferences: matched,
           unexpectedDifferences: unexpected,
           expectedButNotObserved: unobserved,
+          ...(unchanged ? { unchanged } : {}),
           failures,
         },
         null,

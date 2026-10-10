@@ -104,7 +104,7 @@ select is(
 select ok(
   (select qual from pg_policies where tablename = 'experience_portal_projections'
      and policyname = 'experience_projection_read')
-    ~ 'app_has_permission\(''deal:register''::text\) AND app_has_permission\(''account:write''::text\)',
+    ~ 'app_has_permission\(''deal:register''::text\)( AS app_has_permission\))? AND (\( SELECT )?app_has_permission\(''account:write''::text\)',
   'partner administrator channels need both partner permissions');
 
 -- No row policy names a role any more, and the role helpers are gone.
