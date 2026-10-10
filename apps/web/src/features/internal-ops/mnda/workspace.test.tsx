@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   duplicates: vi.fn(),
   void: vi.fn(),
   correct: vi.fn(),
+  refresh: vi.fn(),
 }));
 vi.mock("./actions", () => ({
   prepareMnda: mocks.prepare,
@@ -30,6 +31,9 @@ vi.mock("./actions", () => ({
   findMndaDuplicates: mocks.duplicates,
   voidMnda: mocks.void,
   correctMndaSigner: mocks.correct,
+}));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: mocks.refresh }),
 }));
 import { MndaWorkspace } from "./workspace";
 
@@ -414,4 +418,50 @@ it("offers void and email fixes only to the preparer, and never after the partne
     row("Colleague Co").getByRole("button", { name: /^Remind/ }),
   ).toBeVisible();
   expect(row("Signed Co").queryByRole("button", { name: "Void" })).toBeNull();
+});
+
+it("refreshes an expired session through a navigation and retries the poll once", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  try {
+    mocks.load
+      .mockResolvedValueOnce({ ok: false, code: "session_expired" })
+      .mockResolvedValueOnce({ ok: true, value: data([sent]) });
+    render(<MndaWorkspace initial={data()} initialQuery={query} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(await screen.findByText("Example Corporation")).toBeVisible();
+    expect(mocks.refresh).toHaveBeenCalledOnce();
+    expect(mocks.load).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("asks to reload an expired session and keeps what was typed", async () => {
+  mocks.prepare.mockResolvedValueOnce({ ok: false, code: "session_expired" });
+  render(<MndaWorkspace initial={data()} initialQuery={query} />);
+  fireEvent.click(screen.getByRole("button", { name: "New MNDA" }));
+  fill({
+    signerName: fixtureInput.signerName,
+    signerEmail: fixtureInput.signerEmail,
+    company: fixtureInput.company,
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
+  expect(
+    await screen.findByText("Your session expired. Reload to continue."),
+  ).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Reload" }));
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Your session expired. Reload to continue."),
+    ).toBeNull(),
+  );
+  expect(mocks.refresh).toHaveBeenCalledOnce();
+  expect(screen.getByLabelText(/Counterparty legal name/)).toHaveValue(
+    fixtureInput.company,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Prepare preview" }));
+  await screen.findByRole("heading", { name: "Review before sending" });
+  expect(mocks.prepare).toHaveBeenCalledTimes(2);
 });

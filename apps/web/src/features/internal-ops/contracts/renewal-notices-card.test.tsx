@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ staff: vi.fn(), summary: vi.fn() }));
+vi.mock("@/src/auth/session", () => ({ getRequestCommerceSession: vi.fn() }));
 vi.mock("./server", () => ({
   contractStaff: mocks.staff,
   contractRepository: () => ({ renewalSummary: mocks.summary }),

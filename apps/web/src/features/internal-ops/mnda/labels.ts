@@ -54,5 +54,6 @@ export const mndaErrorLabels: Record<MndaErrorCode, MessageId> = {
   already_completed: "operations.mnda.error.alreadyCompleted",
   needs_attention: "operations.mnda.error.needsAttention",
   reason_required: "operations.mnda.error.reasonRequired",
+  session_expired: "operations.session.expired",
   unexpected: "operations.mnda.error.unexpected",
 };

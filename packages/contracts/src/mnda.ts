@@ -384,6 +384,7 @@ export const mndaErrorCodes = [
   "already_completed",
   "needs_attention",
   "reason_required",
+  "session_expired",
   "unexpected",
 ] as const;
 export type MndaErrorCode = (typeof mndaErrorCodes)[number];

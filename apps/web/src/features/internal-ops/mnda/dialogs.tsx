@@ -9,6 +9,7 @@ import { Button, Dialog, Input, Textarea } from "@clockwork/ui";
 import { useTranslations } from "@/src/i18n/client";
 import { correctMndaSigner, voidMnda } from "./actions";
 import { mndaErrorLabels } from "./labels";
+import { SessionExpiredReload } from "../session-expiry";
 import styles from "./workspace.module.css";
 
 /**
@@ -113,6 +114,9 @@ export function VoidDialog({
         <p className={styles.fieldError} role="alert">
           {t(mndaErrorLabels[error])}
         </p>
+      ) : null}
+      {error === "session_expired" ? (
+        <SessionExpiredReload onReloaded={() => setError(null)} />
       ) : null}
     </Dialog>
   );
@@ -282,6 +286,9 @@ export function CorrectSignerDialog({
           setError(null);
         }}
       />
+      {error === "session_expired" ? (
+        <SessionExpiredReload onReloaded={() => setError(null)} />
+      ) : null}
     </Dialog>
   );
 }

@@ -43,11 +43,16 @@ export function sessionHas(
  * narrow, so this check is the guard: a real internal staff session verified
  * with a second factor, not impersonating or assisting, holding the
  * permission the operation needs. Demo identities never reach real documents.
+ * Page renders pass the request-cached session reader; actions and route
+ * handlers keep the default, which reads the session afresh.
  */
-export async function contractStaff(permission: Permission) {
+export async function contractStaff(
+  permission: Permission,
+  readSession: () => Promise<CommerceSession> = getCommerceSession,
+) {
   if (explicitDemoIdentityEnabled())
     throw new ContractAccessError("CONTRACT_DEMO_UNAVAILABLE");
-  const session = await getCommerceSession();
+  const session = await readSession();
   if (
     !session.isInternalStaff ||
     session.impersonation ||

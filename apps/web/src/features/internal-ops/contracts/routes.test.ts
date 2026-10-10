@@ -114,6 +114,20 @@ describe("contract file upload", () => {
     expect(mocks.repository.addFile).not.toHaveBeenCalled();
   });
 
+  it("answers an expired session with 401 and its own code", async () => {
+    mocks.session.mockRejectedValue(new Error("SESSION_EXPIRED"));
+    const response = await upload(
+      uploadRequest(form()),
+      params({ id: contractId }),
+    );
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      code: "SESSION_EXPIRED",
+    });
+    expect(mocks.repository.addFile).not.toHaveBeenCalled();
+  });
+
   it("stores the PDF for a seller and refuses kinds staff may not upload", async () => {
     as("revenue");
     mocks.repository.addFile.mockResolvedValue({ id: fileId });

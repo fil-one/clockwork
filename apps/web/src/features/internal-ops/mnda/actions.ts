@@ -17,6 +17,7 @@ import {
 } from "@clockwork/contracts";
 import type { MndaContractMatch, MndaRegisterMatch } from "@clockwork/db";
 import { mndaTemplateHash, renderMnda } from "@clockwork/documents";
+import { mndaSettingsData, mndaWorkspaceData } from "./page-data";
 import { mndaFailure, mndaInvalid } from "./results";
 import {
   mndaActor,
@@ -67,24 +68,7 @@ async function attempt<T>(fn: () => Promise<T>): Promise<MndaResult<T>> {
 export async function loadMndas(
   rawQuery: unknown = {},
 ): Promise<MndaResult<MndaWorkspaceData>> {
-  return attempt(async () => {
-    const session = await mndaStaff();
-    const query = MndaRegisterQuerySchema.parse(rawQuery);
-    const repository = mndaRepository();
-    const [register, signers, settings] = await Promise.all([
-      repository.list(query, session.userId),
-      mndaSigners(),
-      repository.settings(),
-    ]);
-    return {
-      register,
-      signers: signers.filter((s) => s.active),
-      noticeEmail: settings.noticeEmail,
-      ...mndaConfiguration(),
-      canManage: mndaCanManage(session),
-      viewerId: session.userId,
-    };
-  });
+  return attempt(async () => mndaWorkspaceData(await mndaStaff(), rawQuery));
 }
 
 /** Only the register, for the open page's refresh: countersigners and the
@@ -241,10 +225,7 @@ export async function loadMndaSettings(): Promise<
 > {
   return attempt(async () => {
     await mndaStaff("signatory:manage");
-    return {
-      signers: await mndaSigners(),
-      settings: await mndaRepository().settings(),
-    };
+    return mndaSettingsData();
   });
 }
 

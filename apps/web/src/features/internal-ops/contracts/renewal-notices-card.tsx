@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { contractToday } from "@clockwork/domain/contract-terms";
 import { buttonClassName } from "@clockwork/ui";
+import { getRequestCommerceSession } from "@/src/auth/session";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { formatContractDate } from "./copy";
 import { contractRepository, contractStaff } from "./server";
@@ -84,7 +85,7 @@ export async function RenewalNoticesSummary({
 export async function RenewalNoticesCard() {
   let summary: RenewalSummary;
   try {
-    await contractStaff("contract:read");
+    await contractStaff("contract:read", getRequestCommerceSession);
     summary = await contractRepository().renewalSummary(contractToday());
   } catch {
     return null;

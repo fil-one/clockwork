@@ -12,6 +12,7 @@ import { MndaWorkflow } from "@clockwork/workflows/mnda";
 import {
   explicitDemoIdentityEnabled,
   getCommerceSession,
+  type CommerceSession,
 } from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
 
@@ -24,10 +25,15 @@ export type MndaPermission = Extract<
 
 /**
  * Every MNDA action and route re-checks the real staff session here. Assisted,
- * impersonated and demo sessions never act on legal documents.
+ * impersonated and demo sessions never act on legal documents. Page renders
+ * pass the request-cached session reader; actions and route handlers keep the
+ * default, which reads the session afresh.
  */
-export async function mndaStaff(permission: MndaPermission = "mnda:send") {
-  const session = await getCommerceSession();
+export async function mndaStaff(
+  permission: MndaPermission = "mnda:send",
+  readSession: () => Promise<CommerceSession> = getCommerceSession,
+) {
+  const session = await readSession();
   if (
     !session.isInternalStaff ||
     session.impersonation ||
