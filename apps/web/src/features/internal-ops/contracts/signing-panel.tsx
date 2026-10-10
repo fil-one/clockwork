@@ -4,6 +4,8 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  contractDeletedInSignWell,
+  contractVoidableStates,
   terminalContractSigningStates,
   type ContractSigningRecord,
 } from "@clockwork/contracts";
@@ -18,13 +20,21 @@ import {
   buttonClassName,
   type ProgressStep,
 } from "@clockwork/ui";
+import type { MessageId } from "@/src/i18n";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { formatOperationalTimestamp } from "../presentation";
-import { decideContract, operateContract } from "./actions";
+import { decideContract, operateContract, voidContract } from "./actions";
 import { approvalStateLabels, errorMessage, signingStateLabels } from "./copy";
+import { SessionExpiredReload } from "../session-expiry";
 import styles from "./contracts.module.css";
 
 type Operation = "send" | "sync" | "remind" | "cancel";
+
+/** Why SignWell's copy is not applied, for the two mismatch codes. */
+const mismatchNotes: Readonly<Record<string, MessageId>> = {
+  signwell_signers_mismatch: "operations.contracts.signing.signersMismatch",
+  signwell_binding_mismatch: "operations.contracts.signing.bindingMismatch",
+};
 
 const sentStates = ["sent", "viewed", "awaiting_countersignature"];
 
@@ -110,11 +120,30 @@ export function SigningPanel({
   const [reason, setReason] = useState("");
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [confirmSend, setConfirmSend] = useState(false);
+  const [voiding, setVoiding] = useState(false);
+  const [voidReason, setVoidReason] = useState("");
+  const [voidReasonError, setVoidReasonError] = useState<string | null>(null);
   const terminal = terminalContractSigningStates.includes(signing.state);
   const approvalOk =
     signing.approvalState === "not_required" ||
     signing.approvalState === "approved";
   const unsent = !signing.providerId && !terminal;
+  const deleted =
+    signing.state === "attention" &&
+    signing.error === contractDeletedInSignWell;
+  const mismatch =
+    signing.state === "attention"
+      ? mismatchNotes[signing.error ?? ""]
+      : undefined;
+  // Waits for a person to void it; sending changes nothing. A mismatched copy
+  // can still be refreshed: the hold clears once SignWell's copy matches.
+  const held = deleted || Boolean(mismatch);
+  // Voiding a colleague's request takes an approver, as the server checks.
+  const canVoid =
+    canWrite &&
+    (isPreparer || canApprove) &&
+    Boolean(signing.providerId) &&
+    contractVoidableStates.includes(signing.state);
 
   async function run(
     key: string,
@@ -176,13 +205,25 @@ export function SigningPanel({
           description={t("operations.contracts.signing.notReadyBody")}
         />
       ) : null}
-      {signing.error && !terminal ? (
+      {signing.error === "provider_unavailable" && !terminal ? (
         <InlineNotice
           tone="warning"
           title={t("operations.contracts.error.provider")}
         />
       ) : null}
-      {signing.state === "attention" ? (
+      {deleted ? (
+        <InlineNotice
+          tone="warning"
+          title={t("operations.contracts.signing.deletedTitle")}
+          description={t("operations.contracts.signing.deletedBody")}
+        />
+      ) : mismatch ? (
+        <InlineNotice
+          tone="warning"
+          title={t(mismatch)}
+          description={t("operations.contracts.signing.mismatchNext")}
+        />
+      ) : signing.state === "attention" ? (
         <InlineNotice
           tone="warning"
           title={t("operations.contracts.signing.attentionTitle")}
@@ -194,6 +235,13 @@ export function SigningPanel({
           tone="danger"
           title={t(errorMessage(error))}
           live="assertive"
+          {...(error === "SESSION_EXPIRED"
+            ? {
+                action: (
+                  <SessionExpiredReload onReloaded={() => setError(null)} />
+                ),
+              }
+            : {})}
         />
       ) : null}
 
@@ -296,6 +344,7 @@ export function SigningPanel({
         {canWrite &&
         approvalOk &&
         !terminal &&
+        !held &&
         !sentStates.includes(signing.state) ? (
           <Button
             disabled={busy !== null || !signingReady}
@@ -305,7 +354,7 @@ export function SigningPanel({
             {t("operations.contracts.signing.send")}
           </Button>
         ) : null}
-        {canWrite && signing.providerId && !terminal ? (
+        {canWrite && signing.providerId && !terminal && !deleted ? (
           <Button
             variant="secondary"
             disabled={busy !== null || !signingReady}
@@ -350,12 +399,20 @@ export function SigningPanel({
             {t("operations.contracts.signing.discard")}
           </Button>
         ) : null}
+        {canVoid ? (
+          <Button
+            variant="quiet"
+            disabled={busy !== null || !signingReady}
+            onClick={() => {
+              setVoidReason("");
+              setVoidReasonError(null);
+              setVoiding(true);
+            }}
+          >
+            {t("operations.contracts.signing.void.action")}
+          </Button>
+        ) : null}
       </div>
-      {canWrite && signing.providerId && !terminal ? (
-        <p className={styles.muted}>
-          {t("operations.contracts.signing.voidInSignWell")}
-        </p>
-      ) : null}
 
       {rejecting ? (
         <form
@@ -420,6 +477,56 @@ export function SigningPanel({
         }
       >
         {null}
+      </Dialog>
+      <Dialog
+        open={voiding}
+        onOpenChange={setVoiding}
+        title={t("operations.contracts.signing.void.title")}
+        description={t("operations.contracts.signing.void.description", {
+          signer: signing.counterpartySigner.name,
+        })}
+        closeLabel={t("operations.contracts.signing.void.keep")}
+        trigger={<span hidden />}
+        footer={
+          <Button
+            variant="danger"
+            loading={busy === "void"}
+            loadingLabel={t("operations.contracts.signing.void.working")}
+            onClick={() => {
+              if (voidReason.trim().length < 3) {
+                setVoidReasonError(
+                  t("operations.contracts.signing.void.reasonRequired"),
+                );
+                return;
+              }
+              void run("void", () =>
+                voidContract({
+                  contractId: signing.contractId,
+                  reason: voidReason.trim(),
+                }),
+              ).then(() => setVoiding(false));
+            }}
+          >
+            {t("operations.contracts.signing.void.confirm")}
+          </Button>
+        }
+      >
+        <p className={styles.muted}>
+          {t("operations.contracts.signing.void.evidence")}
+        </p>
+        <Textarea
+          label={t("operations.contracts.signing.void.reason")}
+          help={t("operations.contracts.signing.void.reasonHelp")}
+          value={voidReason}
+          onChange={(e) => {
+            setVoidReason(e.target.value);
+            setVoidReasonError(null);
+          }}
+          maxLength={500}
+          rows={3}
+          required
+          error={voidReasonError ?? undefined}
+        />
       </Dialog>
     </section>
   );

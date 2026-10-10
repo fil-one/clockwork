@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/src/auth/session", () => ({
   getCommerceSession: mocks.session,
+  getRequestCommerceSession: mocks.session,
   explicitDemoIdentityEnabled: () => true,
 }));
 vi.mock("@/src/db/service", () => ({ getServiceDatabase: vi.fn() }));
@@ -21,7 +22,13 @@ vi.mock("@clockwork/documents", () => ({
   mndaTemplateHash: "b".repeat(64),
   renderMnda: mocks.render,
 }));
-import { loadMndas, operateMnda, prepareMnda } from "./actions";
+import {
+  loadMndaRegister,
+  loadMndas,
+  operateMnda,
+  prepareMnda,
+} from "./actions";
+import { loadMndaPage } from "./page-data";
 import { GET as exportCsv } from "../../../../app/(experience)/(internal)/internal/mndas/export/route";
 import { GET as pdf } from "../../../../app/(experience)/(internal)/internal/mndas/[id]/pdf/route";
 
@@ -67,6 +74,14 @@ it("reads the fictional register without the database or SignWell", async () => 
   );
   expect(mocks.repository).not.toHaveBeenCalled();
   expect(mocks.signWell).not.toHaveBeenCalled();
+});
+
+it("serves the page's first load and its quiet refresh from the demo", async () => {
+  const page = await loadMndaPage({});
+  expect(page).toMatchObject({ ok: true, value: { demo: true } });
+  const refresh = await loadMndaRegister({});
+  expect(refresh.ok && Object.keys(refresh.value)).toEqual(["register"]);
+  expect(mocks.repository).not.toHaveBeenCalled();
 });
 
 it("filters the demo register the way the repository does", async () => {
@@ -129,6 +144,14 @@ it("exports the demo register and renders demo agreements unsigned", async () =>
   expect(response.headers.get("content-type")).toBe("application/pdf");
   // Nothing was signed in the demo, so the file is named as a draft.
   expect(response.headers.get("content-disposition")).toContain("_draft.pdf");
+  // Opening the same agreement again reuses the first rendering.
+  const again = await pdf(
+    new Request(
+      "https://commerce.test/internal/mndas/61000000-0000-4000-8000-000000000005/pdf",
+    ),
+    { params: Promise.resolve({ id: "61000000-0000-4000-8000-000000000005" }) },
+  );
+  expect(again.status).toBe(200);
   expect(mocks.render).toHaveBeenCalledTimes(1);
 
   const missing = await pdf(

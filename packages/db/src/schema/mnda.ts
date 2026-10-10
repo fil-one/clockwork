@@ -55,6 +55,8 @@ export const mndaRequests = pgTable("commerce_mnda_requests", {
     .defaultNow(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   remindedAt: timestamp("reminded_at", { withTimezone: true }),
+  /** Scheduled SignWell check bookkeeping; not a change to the request. */
+  reconciledAt: timestamp("reconciled_at", { withTimezone: true }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   cancelCode: text("cancel_code").$type<MndaCancelCode>(),
   cancelReason: text("cancel_reason"),

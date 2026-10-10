@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { contractToday } from "@clockwork/domain/contract-terms";
 import { buttonClassName } from "@clockwork/ui";
+import { getRequestCommerceSession } from "@/src/auth/session";
+import { demoNow } from "@/src/features/experience-server/demo-clock";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { formatContractDate } from "./copy";
 import { contractReader, contractRegisterReader } from "./demo-access";
@@ -84,8 +86,13 @@ export async function RenewalNoticesSummary({
 export async function RenewalNoticesCard() {
   let summary: RenewalSummary;
   try {
-    await contractReader("contract:read");
-    summary = await contractRegisterReader().renewalSummary(contractToday());
+    const session = await contractReader(
+      "contract:read",
+      getRequestCommerceSession,
+    );
+    summary = await contractRegisterReader(session).renewalSummary(
+      contractToday(demoNow()),
+    );
   } catch {
     return null;
   }

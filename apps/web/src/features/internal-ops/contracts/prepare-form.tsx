@@ -18,6 +18,7 @@ import { useLocale, useTranslations } from "@/src/i18n/client";
 import type { MessageId } from "@/src/i18n";
 import { prepareContract } from "./actions";
 import { errorMessage, fieldMessage } from "./copy";
+import { SessionExpiredReload } from "../session-expiry";
 import styles from "./contracts.module.css";
 
 export interface Countersigner {
@@ -137,6 +138,13 @@ export function PrepareForm({
           title={t("operations.contracts.prepare.notPrepared")}
           description={t(errorMessage(error))}
           live="assertive"
+          {...(error === "SESSION_EXPIRED"
+            ? {
+                action: (
+                  <SessionExpiredReload onReloaded={() => setError(null)} />
+                ),
+              }
+            : {})}
         />
       ) : null}
       {template.requiresApproval ? (

@@ -15,7 +15,7 @@ import {
   addContractMonths,
   contractTermSchedule,
 } from "@clockwork/domain/contract-terms";
-import { demoMndaRecords } from "../mnda/demo-register";
+import { demoMndaRecords, type DemoMndaViewer } from "../mnda/demo-register";
 
 /**
  * The contract register and sales library the guided demo shows. Every
@@ -268,9 +268,10 @@ function listRow(record: ContractRecord): ContractListRow {
   };
 }
 
-/** Completed demo MNDAs, read-only in the register as in production. */
-function mndaRows(now: Date): ContractListRow[] {
-  return demoMndaRecords({ id: "", name: "", email: "" }, now)
+/** Completed demo MNDAs, read-only in the register as in production. The
+ * reader's own MNDAs carry the reader's name, as in the MNDA register. */
+function mndaRows(now: Date, viewer: DemoMndaViewer): ContractListRow[] {
+  return demoMndaRecords(viewer, now)
     .filter((record) => record.state === "completed")
     .map((record) => ({
       id: record.id,
@@ -358,12 +359,12 @@ function filtered(
 }
 
 /** The read side of `ContractRepository`, over the demo fixtures. */
-export function demoContractRegister(now: Date = new Date()) {
+export function demoContractRegister(now: Date, viewer: DemoMndaViewer) {
   const today = now.toISOString().slice(0, 10);
   const records = () => fixtures.map((f) => contract(f, now, today));
   const rows = (scope: ContractListScope) => [
     ...records().map(listRow),
-    ...(scope.includeMndas ? mndaRows(now) : []),
+    ...(scope.includeMndas ? mndaRows(now, viewer) : []),
   ];
   const executedNotices = () =>
     records()

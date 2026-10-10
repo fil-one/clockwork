@@ -21,7 +21,8 @@ export interface SalesHomeRow {
 export interface SalesHomeContext {
   userId: string;
   permissions: readonly Permission[];
-  providerBacked: boolean;
+  /** The guided demo: sources read their fictional registers. */
+  demo: boolean;
   now: Date;
 }
 

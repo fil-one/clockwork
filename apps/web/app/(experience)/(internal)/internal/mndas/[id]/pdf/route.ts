@@ -1,8 +1,10 @@
 import { z } from "zod";
-import { renderMnda } from "@clockwork/documents";
 import { demoNow } from "@/src/features/experience-server/demo-clock";
 import { demoMndaRecords } from "@/src/features/internal-ops/mnda/demo-register";
-import { demoMndaViewer } from "@/src/features/internal-ops/mnda/demo-workspace";
+import {
+  demoMndaPdf,
+  demoMndaViewer,
+} from "@/src/features/internal-ops/mnda/demo-workspace";
 import {
   mndaActor,
   mndaRepository,
@@ -45,10 +47,7 @@ export async function GET(
       (candidate) => candidate.id === id.data,
     );
     if (!record) return new Response(null, { status: 404 });
-    const pdf = await renderMnda(record.input, record.countersigner, {
-      noticeEmail: record.noticeEmail ?? record.countersigner.email,
-    });
-    return new Response(new Uint8Array(pdf.bytes), {
+    return new Response(await demoMndaPdf(record), {
       headers: {
         "content-type": "application/pdf",
         "content-disposition": contentDisposition(

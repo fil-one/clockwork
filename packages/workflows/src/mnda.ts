@@ -2,7 +2,9 @@ import {
   mndaSignerEmail,
   mndaVoidableStates,
   type Actor,
+  type MndaAttentionReason,
   type MndaRecord,
+  type MndaState,
 } from "@clockwork/contracts";
 import {
   type MndaRepository,
@@ -27,6 +29,26 @@ const httpStatus = (error: unknown) =>
   error instanceof Error
     ? /^SIGNWELL_HTTP_(\d{3})$/.exec(error.message)?.[1]
     : undefined;
+/** SignWell's copy disagrees with the record. Nothing is applied from it; the
+ * request waits in `attention` until a person voids it. */
+const mismatchReasons: Readonly<Record<string, MndaAttentionReason>> = {
+  SIGNWELL_SIGNERS_MISMATCH: "signwell_signers_mismatch",
+  SIGNWELL_BINDING_MISMATCH: "signwell_binding_mismatch",
+};
+const mismatchReason = (error: unknown) =>
+  error instanceof Error ? mismatchReasons[error.message] : undefined;
+const mismatched = (record: MndaRecord) =>
+  record.state === "attention" &&
+  (record.error === "signwell_signed_mismatch" ||
+    Object.values(mismatchReasons).some((reason) => reason === record.error));
+/** Signed by anyone, as SignWell's own copy reports it. */
+const signedInSignWell = (doc: SignWellDocument) =>
+  doc.status.toLowerCase() === "completed" ||
+  doc.recipients.some((r) =>
+    ["signed", "completed"].includes(r.status?.toLowerCase() ?? ""),
+  );
+/** Already recorded on the request; the register says what to do. */
+const needsAttention = () => new Error("MNDA_NEEDS_ATTENTION");
 
 /** How a void is explained: a typed reason, or the signer-change code. */
 export type MndaVoidReason = { reason: string } | { code: "signer_change" };
@@ -51,7 +73,21 @@ export class MndaWorkflow {
     doc: SignWellDocument,
     actor: Actor,
   ) {
-    const state = signWellState(doc, record);
+    let state: MndaState;
+    try {
+      state = signWellState(doc, record);
+    } catch (failure) {
+      const reason = mismatchReason(failure);
+      if (!reason) throw failure;
+      // Someone signed SignWell's copy: only a person in SignWell can decide
+      // whether it stands, so it is never voided from here.
+      return this.mismatch(
+        record,
+        token,
+        signedInSignWell(doc) ? "signwell_signed_mismatch" : reason,
+        actor,
+      );
+    }
     const error = state === "attention" ? signWellAttentionReason(doc) : null;
     const patch: MndaUpdatePatch = {};
     if (record.pendingSignerEmail) {
@@ -105,6 +141,28 @@ export class MndaWorkflow {
       { eventType: "mnda.deleted_in_signwell" },
     );
   }
+  /**
+   * SignWell's copy names other signers or is not bound to this request. The
+   * request waits for a person and keeps its state otherwise: nothing from
+   * the mismatched copy is applied.
+   */
+  private mismatch(
+    record: MndaRecord,
+    token: string,
+    reason: MndaAttentionReason,
+    actor: Actor,
+  ) {
+    if (record.state === "attention" && record.error === reason)
+      return Promise.resolve(record);
+    return this.repo.update(
+      record.id,
+      token,
+      { state: "attention", error: reason },
+      actor,
+      undefined,
+      { eventType: "mnda.signwell_mismatch", detail: { reason } },
+    );
+  }
   /** The document, or null when SignWell answers 404 twice in a row. */
   private async fetch(providerId: string) {
     for (let attempt = 0; ; attempt++) {
@@ -140,16 +198,20 @@ export class MndaWorkflow {
         );
       }
       if (!current.providerId) throw new Error("MNDA_PROVIDER_ID_REQUIRED");
-      let doc = await this.provider.get(current.providerId);
+      let doc = await this.fetch(current.providerId);
       // SignWell extracts text tags asynchronously after accepting a draft.
       // Keep the saved binding while allowing a bounded processing interval.
       for (
         let attempt = 0;
-        signWellState(doc, current) === "preparing" && attempt < 8;
+        doc && signWellState(doc, current) === "preparing" && attempt < 8;
         attempt++
       ) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
-        doc = await this.provider.get(current.providerId);
+        doc = await this.fetch(current.providerId);
+      }
+      if (!doc) {
+        await this.gone(current, token, actor);
+        throw needsAttention();
       }
       if (signWellState(doc, current) !== "ready")
         return await this.apply(current, token, doc, actor);
@@ -177,13 +239,35 @@ export class MndaWorkflow {
         actor,
       );
     } catch (error) {
-      // Never include provider response bodies, keys, or signing links in errors.
-      await this.repo.update(
-        id,
-        token,
-        { error: "provider_unavailable" },
-        actor,
+      // A deleted or mismatched document is already recorded with its reason.
+      if (error instanceof Error && error.message === "MNDA_NEEDS_ATTENTION")
+        throw error;
+      const reason = current.providerId ? mismatchReason(error) : undefined;
+      // Never include provider response bodies, keys, or signing links in
+      // errors. Recording the failure must not replace it, for example when
+      // the lease was lost meanwhile.
+      const recorded = await (
+        reason
+          ? this.mismatch(current, token, reason, actor)
+          : this.repo.update(
+              id,
+              token,
+              { error: "provider_unavailable" },
+              actor,
+            )
+      ).then(
+        () => true,
+        (failure: unknown) => {
+          // i18n-exempt: operator log; identifiers and error codes only
+          console.warn("MNDA send failure not recorded", {
+            mndaId: id,
+            error:
+              failure instanceof Error ? failure.message.slice(0, 120) : "",
+          });
+          return false;
+        },
       );
+      if (reason && recorded) throw needsAttention();
       throw error;
     } finally {
       await this.repo.release(id, token);
@@ -213,6 +297,7 @@ export class MndaWorkflow {
         throw new Error("MNDA_NOT_PENDING");
       }
       const current = await this.apply(record, token, doc, actor);
+      if (mismatched(current)) throw new Error("MNDA_NOT_PENDING");
       if (
         !["sent", "viewed", "awaiting_countersignature"].includes(current.state)
       )
@@ -283,6 +368,15 @@ export class MndaWorkflow {
           if (terminalMndaStates.includes(current.state)) return current;
           if (!mndaVoidableStates.includes(current.state))
             throw new Error("MNDA_NOT_VOIDABLE");
+          // The state may not show a signature: a mismatched copy is not
+          // applied, and a bounce outranks the partner's signature. Never
+          // delete a document anyone signed.
+          if (signedInSignWell(doc))
+            throw new Error(
+              mismatched(current)
+                ? "MNDA_SIGNED_IN_SIGNWELL"
+                : "MNDA_NOT_VOIDABLE",
+            );
           await this.deleteInSignWell(current, token, actor);
         }
       }
@@ -353,6 +447,30 @@ export class MndaWorkflow {
       }
       const current = await this.apply(record, token, doc, actor);
       const counterparty = doc.recipients.find((r) => r.id === "counterparty");
+      // A correction SignWell applied after its answer was lost, and after a
+      // refresh dropped it, shows as other signers. When SignWell already has
+      // exactly this email, record it; the next read still checks the rest.
+      // Never once someone has signed: that row is an administrator's to
+      // resolve in SignWell.
+      if (
+        current.error === "signwell_signers_mismatch" &&
+        counterparty?.email.toLowerCase() === signerEmail
+      ) {
+        const settled = await this.repo.update(
+          id,
+          token,
+          { correctedSignerEmail: signerEmail, pendingSignerEmail: null },
+          actor,
+          undefined,
+          {
+            eventType: "mnda.signer_corrected",
+            before: { signerEmail: mndaSignerEmail(current) },
+            detail: { signerEmail },
+          },
+        );
+        return await this.apply(settled, token, doc, actor);
+      }
+      if (mismatched(current)) throw new Error("MNDA_NOT_CORRECTABLE");
       if (["signed", "completed"].includes(counterparty?.status ?? ""))
         throw new Error("MNDA_SIGNER_STARTED");
       if (!["sent", "viewed", "attention"].includes(current.state))

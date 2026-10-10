@@ -158,6 +158,12 @@
       "stages": ["staging", "production"]
     },
     {
+      "taskId": "system.esign.reconcile.v1",
+      "cron": "*/15 * * * *",
+      "scheduleExpression": "cron(*/15 * * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
       "taskId": "system.outbox.dispatch.v1",
       "cron": "* * * * *",
       "scheduleExpression": "cron(* * * * ? *)",

@@ -1507,6 +1507,11 @@ export const auditEvents = pgTable(
     ),
     index("audit_account_timeline_idx").on(table.accountId, table.occurredAt),
     index("audit_request_idx").on(table.requestId),
+    index("audit_event_type_timeline_idx").on(
+      table.eventType,
+      table.occurredAt.desc(),
+      table.id.desc(),
+    ),
   ],
 );
 

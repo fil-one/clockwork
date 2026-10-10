@@ -12,6 +12,7 @@ export * from "./repositories/experience";
 export * from "./schema";
 export * from "./transaction";
 export * from "./repositories/mnda";
+export * from "./repositories/esign-reconciliation";
 export * from "./repositories/sales-home";
 export * from "./repositories/contract-documents";
 export * from "./repositories/contracts";

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/src/auth/session", () => ({
   getCommerceSession: mocks.session,
+  getRequestCommerceSession: mocks.session,
   explicitDemoIdentityEnabled: mocks.demo,
 }));
 vi.mock("@/src/db/service", () => ({ getServiceDatabase: mocks.database }));
@@ -23,6 +24,11 @@ const now = new Date("2027-03-15T10:00:00.000Z");
 const today = "2027-03-15";
 const query = (raw: Record<string, string> = {}) =>
   ContractListQuerySchema.parse(raw);
+const viewer = {
+  id: "21000000-0000-4000-8000-000000000010",
+  name: "Priya Raman",
+  email: "priya.raman@fil-one-internal.test",
+};
 const seller = {
   userId: "21000000-0000-4000-8000-000000000010",
   profile: { name: "Priya Raman", email: "priya.raman@fil-one-internal.test" },
@@ -40,7 +46,7 @@ beforeEach(() => {
 
 describe("demo contract register", () => {
   it("places renewal and notice deadlines relative to the day it is read", async () => {
-    const register = demoContractRegister(now);
+    const register = demoContractRegister(now, viewer);
     const due = await register.renewalsDue(today, 30);
     expect(
       due.map((row) => [row.counterpartyName, row.noticeDeadline]),
@@ -62,12 +68,18 @@ describe("demo contract register", () => {
   });
 
   it("filters, sorts and pages like the repository and joins signed MNDAs", async () => {
-    const register = demoContractRegister(now);
+    const register = demoContractRegister(now, viewer);
     const all = await register.list(query(), today, { includeMndas: true });
     const withoutMndas = await register.list(query(), today, {
       includeMndas: false,
     });
     expect(all.total).toBe(withoutMndas.total + 3);
+    // The reader's own signed MNDA carries the reader's name, never a blank.
+    const mndaOwners = all.rows
+      .filter((row) => row.source === "mnda")
+      .map((row) => row.ownerName);
+    expect(mndaOwners).toContain("Priya Raman");
+    expect(mndaOwners.every(Boolean)).toBe(true);
     expect(all.rows[0]?.updatedAt).toBe(
       [...all.rows].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
         ?.updatedAt,
@@ -94,7 +106,7 @@ describe("demo contract register", () => {
   });
 
   it("opens a record with its history and reports an unknown one missing", async () => {
-    const register = demoContractRegister(now);
+    const register = demoContractRegister(now, viewer);
     const detail = await register.get(
       "62000000-0000-4000-8000-000000000001",
       today,

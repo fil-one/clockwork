@@ -15,8 +15,9 @@ workspace, and you will not see them.
    one-time code by email; enter it to confirm the address.
 3. You land on **Home**, which shows your own work.
 
-New sellers get the **Revenue** role: Home, MNDAs and Pricing. Commerce
-administrators also see Team, signing settings and the operations groups.
+New sellers get the **Revenue** role: Home, MNDAs, Contracts and Pricing.
+Commerce administrators also see Team, signing settings and the operations
+groups.
 
 ## MFA
 
@@ -36,7 +37,10 @@ administrators also see Team, signing settings and the operations groups.
 2. Enter the partner's legal name and the signer's name and email. Leave
    anything you do not know blank; the partner fills it in when signing. Use
    Latin-script names and addresses, and write the entity type without "a" or
-   "an" (for example `Delaware corporation`).
+   "an" (for example `Delaware corporation`). If Commerce already has an MNDA
+   with that company, or the contract register lists any agreement with it, a
+   note under the company name says so, with links. Check it before sending
+   another.
 3. Preview the PDF and check the names. Then send. The partner receives an email
    from SignWell, our signing service.
 4. The partner signs first. A Fil One signer (James by default) countersigns
@@ -45,19 +49,33 @@ administrators also see Team, signing settings and the operations groups.
 Commerce does not email you when something changes. Check **Home**: it counts
 your MNDAs waiting on the partner, waiting on Fil One, completed in the last 30
 days, and your unsent drafts, and each line opens the register filtered to those
-MNDAs.
+MNDAs. If you can work on contracts, Home also counts the contracts you recorded
+or prepared that are out for signature or need attention (SignWell reported a
+problem, a send did not finish, or an approver sent one back). Approvers also
+see contracts prepared by someone else that are waiting for their approval. The
+team total on each line opens the contract register filtered to those contracts.
 
-If an MNDA went to the wrong person or needs to be withdrawn after sending, ask
-a commerce administrator. That step happens in SignWell today.
+An MNDA marked **Needs attention** says why and what to do next. If SignWell's
+copy no longer matches the MNDA, void it and send it again. If someone already
+signed SignWell's copy, ask a commerce administrator.
+
+If the partner's email bounced or was mistyped, choose **Fix email** on the row
+while the partner has not signed; SignWell sends the request to the new address.
+To withdraw an MNDA the partner has not signed, choose **Void** and give a
+reason; the partner can no longer sign it. If a different person will sign for
+the partner, choose **Fix email**, then **Someone else will sign**. You can fix
+or void the MNDAs you prepared; a commerce administrator can do either for any
+MNDA.
 
 ## Where things are
 
-| Page    | What it is for                                                                                              |
-| ------- | ----------------------------------------------------------------------------------------------------------- |
-| Home    | Your MNDAs by what they are waiting on, and the start guide.                                                |
-| MNDAs   | The register: send, remind, check status, download originals and signed copies.                             |
-| Pricing | Indicative prices for a conversation, worked out from the current price book. Not a quote and not an offer. |
-| Team    | Commerce administrators only: add staff, change roles, remove access.                                       |
+| Page      | What it is for                                                                                              |
+| --------- | ----------------------------------------------------------------------------------------------------------- |
+| Home      | Your MNDAs and contracts by what they are waiting on, and the start guide.                                  |
+| MNDAs     | The register: send, remind, check status, download originals and signed copies.                             |
+| Contracts | Every agreement. Prepare from approved templates, send, remind, and void a sent request with a reason.      |
+| Pricing   | Indicative prices for a conversation, worked out from the current price book. Not a quote and not an offer. |
+| Team      | Commerce administrators only: add staff, change roles, remove access.                                       |
 
 Press `⌘K` (or `Ctrl+K`) anywhere to search pages, for example "NDA" or
 "pricing".

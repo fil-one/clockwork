@@ -10,7 +10,7 @@ import {
   type PendingApprovalControl,
 } from "@clockwork/db";
 
-import { getCommerceSession } from "@/src/auth/session";
+import { getRequestCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { mayApproveOwnRequests } from "../self-approval/model";
@@ -196,7 +196,7 @@ async function loadApprovals(
 export async function loadOwnerConsole(
   now: Date = new Date(),
 ): Promise<OwnerConsoleView> {
-  const session = await getCommerceSession();
+  const session = await getRequestCommerceSession();
   const database = getOptionalServiceDatabase();
   if (!session.providerBacked || !database)
     return demoOwnerConsole(session.userId);

@@ -4,6 +4,7 @@ import type { ContractRepository, SalesLibraryRepository } from "@clockwork/db";
 import {
   explicitDemoIdentityEnabled,
   getCommerceSession,
+  type CommerceSession,
 } from "@/src/auth/session";
 import { demoNow } from "@/src/features/experience-server/demo-clock";
 import { demoContractRegister, demoSalesLibrary } from "./demo-register";
@@ -31,11 +32,13 @@ const demoPermissions: readonly Permission[] = [
  */
 export async function contractReader(
   permission: Permission,
+  readSession: () => Promise<CommerceSession> = getCommerceSession,
 ): Promise<ContractStaffSession> {
-  if (!explicitDemoIdentityEnabled()) return contractStaff(permission);
+  if (!explicitDemoIdentityEnabled())
+    return contractStaff(permission, readSession);
   if (permission !== "contract:read" && permission !== "sales:read")
     throw new ContractAccessError("CONTRACT_DEMO_UNAVAILABLE");
-  const session = await getCommerceSession();
+  const session = await readSession();
   if (
     !session.isInternalStaff ||
     session.impersonation ||
@@ -59,10 +62,17 @@ type RegisterReader = Pick<
   | "renewalSummary"
 >;
 
-/** The register's reads: the demo fixtures in the guided demo. */
-export function contractRegisterReader(): RegisterReader {
+/** The register's reads: the demo fixtures in the guided demo, as the
+ * signed-in persona sees them. */
+export function contractRegisterReader(
+  session: ContractStaffSession,
+): RegisterReader {
   return explicitDemoIdentityEnabled()
-    ? demoContractRegister(demoNow())
+    ? demoContractRegister(demoNow(), {
+        id: session.userId,
+        name: session.profile.name,
+        email: session.profile.email,
+      })
     : contractRepository();
 }
 

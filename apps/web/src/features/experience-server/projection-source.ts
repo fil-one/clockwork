@@ -320,7 +320,7 @@ function internalRecords(): DemoRecord[] {
           ar: "الموافقة على استعادة التهيئة",
         }),
         statusLabel: demoMessage("experience.data.status.dueTodayHighRisk"),
-        owner: "James Kurz",
+        owner: "Rowan Hale",
         nextAction: demoMessage("experience.data.next.reviewProviderEvidence"),
         allowedActions: ["review_exception"],
       },

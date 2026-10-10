@@ -21,6 +21,8 @@ import {
   mndaExportLimit,
   mndaStates,
   type Actor,
+  type ContractStatus,
+  type ContractType,
   type MndaCancelCode,
   type MndaRecord,
   type MndaRegisterPage,
@@ -37,6 +39,7 @@ import {
   mndaArtifacts,
   mndaSettings,
 } from "../schema/mnda";
+import { commerceContracts } from "../schema/contracts";
 import { withInternalTransaction } from "../transaction";
 import { appendAuditAndOutbox } from "./audit-outbox";
 
@@ -97,6 +100,15 @@ export interface MndaRegisterMatch {
   state: MndaState;
   createdAt: string;
   completedAt: string | null;
+  ownerName: string;
+}
+/** A contract register row for the same company. */
+export interface MndaContractMatch {
+  id: string;
+  counterpartyName: string;
+  contractType: ContractType;
+  status: ContractStatus;
+  effectiveDate: string | null;
   ownerName: string;
 }
 export interface MndaOwner {
@@ -292,6 +304,39 @@ export class MndaRepository {
         createdAt: r.createdAt.toISOString(),
         completedAt: r.completedAt?.toISOString() ?? null,
       }));
+    });
+  }
+  /**
+   * Contract register rows for the same company, with the MNDA normalizer
+   * applied to both sides. Read only. A draft whose signing request was
+   * voided never became an agreement and is left out. The register is small
+   * and hand-kept, so the comparison runs in the query; an expression index
+   * on the same call can be added later without changing it.
+   */
+  contractDuplicates(company: string) {
+    return this.tx(async (tx) => {
+      const rows = await tx
+        .select({
+          id: commerceContracts.id,
+          counterpartyName: commerceContracts.counterpartyName,
+          contractType: commerceContracts.contractType,
+          status: commerceContracts.status,
+          effectiveDate: commerceContracts.effectiveDate,
+          ownerName: commerceContracts.ownerName,
+        })
+        .from(commerceContracts)
+        .where(
+          and(
+            sql`public.commerce_mnda_normalize_company(${company}) <> ''`,
+            sql`public.commerce_mnda_normalize_company(${commerceContracts.counterpartyName}) = public.commerce_mnda_normalize_company(${company})`,
+            sql`not (${commerceContracts.status} = 'draft' and exists (
+              select 1 from public.commerce_contract_signing s
+              where s.contract_id = ${commerceContracts.id} and s.state = 'canceled'))`,
+          ),
+        )
+        .orderBy(desc(commerceContracts.updatedAt))
+        .limit(5);
+      return rows satisfies MndaContractMatch[];
     });
   }
   signers() {

@@ -83,7 +83,7 @@ export const mndaHomeSource: SalesHomeSource = {
     );
     // The guided demo counts its fictional register, so each row opens the
     // same filtered list it counted.
-    if (!context.providerBacked)
+    if (context.demo)
       return mndaHomeRows(
         demoMndaHomeCounts(
           { id: context.userId, name: "", email: "" },

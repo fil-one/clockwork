@@ -4,6 +4,7 @@ import { expect, it, vi } from "vitest";
 import type { Actor, ContractSigningRecord } from "@clockwork/contracts";
 import type { SignWellContractDocument } from "@clockwork/integrations";
 import { fixtureSigningRecord } from "../../contracts/src/contract-fixture";
+import type { ContractSigningNote } from "@clockwork/db";
 import {
   ContractSigningWorkflow,
   type ContractSigningClient,
@@ -46,6 +47,8 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
   };
   let archived: { bytes: Uint8Array; fileName: string } | undefined;
   const updates: Record<string, unknown>[] = [];
+  const notes: (ContractSigningNote | undefined)[] = [];
+  let deleted = false;
   const repo = {
     async claim() {
       if (leased) throw new Error("CONTRACT_BUSY");
@@ -69,10 +72,20 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
       next: Record<string, unknown>,
       _actor: Actor,
       executed?: { bytes: Uint8Array; fileName: string },
+      note?: ContractSigningNote,
     ) {
       updates.push(next);
+      notes.push(note);
       if (executed) archived = executed;
-      record = { ...record, ...next, version: record.version + 1 };
+      const { remindedAt, ...rest } = next;
+      record = {
+        ...record,
+        ...rest,
+        ...(remindedAt instanceof Date
+          ? { remindedAt: remindedAt.toISOString() }
+          : {}),
+        version: record.version + 1,
+      };
       return structuredClone(record);
     },
   };
@@ -80,6 +93,7 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
   const provider: ContractSigningClient = {
     createContractDraft: vi.fn(async () => structuredClone(doc)),
     getContract: vi.fn(async () => {
+      if (deleted) throw new Error("SIGNWELL_HTTP_404");
       // Field extraction finishes after the first read.
       if (++reads > 1 && doc.status === "Created") doc.status = "Draft";
       return structuredClone(doc);
@@ -88,6 +102,9 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
       doc.status = "Sent";
     }),
     remind: vi.fn(async () => {}),
+    cancel: vi.fn(async () => {
+      deleted = true;
+    }),
     completedPdf: vi.fn(async () => Buffer.from("%PDF-executed-with-audit")),
   };
   const wait = vi.fn(async () => {});
@@ -97,6 +114,10 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
     provider,
     doc,
     updates,
+    notes,
+    deleteInSignWell: () => {
+      deleted = true;
+    },
     record: () => record,
     archived: () => archived,
     wait,
@@ -187,8 +208,152 @@ it("only cancels drafts that were never sent", async () => {
     state: "sent",
   });
   await expect(workflow.cancel(record().contractId, actor)).rejects.toThrow(
-    "CONTRACT_CANCEL_IN_SIGNWELL",
+    "CONTRACT_VOID_REQUIRED",
   );
+});
+
+const sent = {
+  providerId: "019a44ac-0000-7000-8000-0000000000d5",
+  state: "sent",
+} as const;
+const signwell: Actor = { kind: "provider", id: "signwell" };
+
+it("marks a document deleted in SignWell for attention instead of failing every refresh", async () => {
+  const { workflow, doc, record, provider, notes, deleteInSignWell } =
+    setup(sent);
+  doc.status = "Sent";
+  deleteInSignWell();
+  const first = await workflow.sync(record().contractId, signwell);
+  expect(first).toMatchObject({
+    state: "attention",
+    error: "deleted_in_signwell",
+  });
+  // One 404 is retried before the document is taken as gone.
+  expect(provider.getContract).toHaveBeenCalledTimes(2);
+  expect(notes).toEqual([{ eventType: "contract.deleted_in_signwell" }]);
+  // Later wakeups change nothing and record nothing more.
+  await workflow.sync(record().contractId, signwell);
+  expect(notes).toHaveLength(1);
+  await expect(workflow.remind(record().contractId, actor)).rejects.toThrow(
+    "CONTRACT_NOT_PENDING",
+  );
+});
+
+it("retries a single 404 and carries on when SignWell answers", async () => {
+  const { workflow, doc, record, provider } = setup(sent);
+  doc.status = "Sent";
+  vi.mocked(provider.getContract).mockRejectedValueOnce(
+    new Error("SIGNWELL_HTTP_404"),
+  );
+  await expect(
+    workflow.sync(record().contractId, signwell),
+  ).resolves.toMatchObject({ state: "sent", error: null });
+});
+
+it("spaces reminders by the last reminder, not by the last refresh", async () => {
+  const { workflow, doc, record, provider, notes } = setup({
+    ...sent,
+    updatedAt: new Date().toISOString(),
+  });
+  doc.status = "Sent";
+  const reminded = await workflow.remind(record().contractId, actor);
+  expect(provider.remind).toHaveBeenCalledOnce();
+  expect(reminded.remindedAt).not.toBeNull();
+  expect(notes.at(-1)).toEqual({
+    eventType: "contract.reminded",
+    detail: { recipient: "counterparty" },
+  });
+  await expect(workflow.remind(record().contractId, actor)).rejects.toThrow(
+    "CONTRACT_REMINDER_TOO_SOON",
+  );
+  expect(provider.remind).toHaveBeenCalledOnce();
+});
+
+it("reminds the Fil One countersigner once the counterparty has signed", async () => {
+  const { workflow, doc, record, notes } = setup({
+    ...sent,
+    remindedAt: new Date(Date.now() - 120_000).toISOString(),
+  });
+  doc.status = "Sent";
+  const counterparty = doc.recipients[0];
+  if (counterparty) counterparty.status = "signed";
+  await workflow.remind(record().contractId, actor);
+  expect(notes.at(-1)).toEqual({
+    eventType: "contract.reminded",
+    detail: { recipient: "fil-one" },
+  });
+});
+
+it("voids a sent request: deletes the SignWell copy, then records the reason", async () => {
+  const { workflow, doc, record, provider, notes } = setup(sent);
+  doc.status = "Sent";
+  const voided = await workflow.void(
+    record().contractId,
+    actor,
+    "Wrong legal entity",
+  );
+  expect(voided.state).toBe("canceled");
+  expect(provider.cancel).toHaveBeenCalledExactlyOnceWith(sent.providerId);
+  expect(notes.at(-1)).toEqual({
+    eventType: "contract.voided",
+    detail: { reason: "Wrong legal entity" },
+  });
+});
+
+it("closes a request whose document was deleted in SignWell without calling delete", async () => {
+  const { workflow, record, provider, deleteInSignWell } = setup({
+    ...sent,
+    state: "attention",
+    error: "deleted_in_signwell",
+  });
+  deleteInSignWell();
+  await expect(
+    workflow.void(record().contractId, actor, "Deleted in SignWell"),
+  ).resolves.toMatchObject({ state: "canceled", error: null });
+  expect(provider.cancel).not.toHaveBeenCalled();
+});
+
+it("refuses to void once the counterparty has signed, and keeps a completed contract", async () => {
+  const signed = setup(sent);
+  signed.doc.status = "Sent";
+  const counterparty = signed.doc.recipients[0];
+  if (counterparty) counterparty.status = "signed";
+  await expect(
+    signed.workflow.void(signed.record().contractId, actor, "Too late"),
+  ).rejects.toThrow("CONTRACT_NOT_VOIDABLE");
+  expect(signed.record().state).toBe("awaiting_countersignature");
+  expect(signed.provider.cancel).not.toHaveBeenCalled();
+
+  const completed = setup(sent);
+  completed.doc.status = "Completed";
+  await expect(
+    completed.workflow.void(completed.record().contractId, actor, "Too late"),
+  ).rejects.toThrow("CONTRACT_ALREADY_COMPLETED");
+  expect(completed.archived()).toBeDefined();
+});
+
+it("treats an unclear delete as done when a re-read finds the document gone", async () => {
+  const { workflow, doc, record, provider, deleteInSignWell } = setup(sent);
+  doc.status = "Sent";
+  vi.mocked(provider.cancel).mockImplementationOnce(async () => {
+    deleteInSignWell();
+    throw new Error("SIGNWELL_HTTP_502");
+  });
+  await expect(
+    workflow.void(record().contractId, actor, "Wrong legal entity"),
+  ).resolves.toMatchObject({ state: "canceled" });
+});
+
+it("keeps the request open when SignWell refuses the delete", async () => {
+  const { workflow, doc, record, provider } = setup(sent);
+  doc.status = "Sent";
+  vi.mocked(provider.cancel).mockRejectedValueOnce(
+    new Error("SIGNWELL_HTTP_422"),
+  );
+  await expect(
+    workflow.void(record().contractId, actor, "Wrong legal entity"),
+  ).rejects.toThrow("SIGNWELL_HTTP_422");
+  expect(record().state).toBe("sent");
 });
 
 it("names the executed copy within the file name limit", async () => {
@@ -210,4 +375,91 @@ it("names the executed copy within the file name limit", async () => {
   const fileName = archived()?.fileName ?? "";
   expect(fileName.length).toBeLessThanOrEqual(200);
   expect(fileName.endsWith(" (executed).pdf")).toBe(true);
+});
+
+it("refuses to void when the counterparty signed and the countersigner's email bounced", async () => {
+  const { workflow, doc, record, provider } = setup(sent);
+  doc.status = "Sent";
+  const [counterparty, filOne] = doc.recipients;
+  if (!counterparty || !filOne) throw new Error("recipients missing");
+  counterparty.status = "signed";
+  filOne.bounced = true;
+  await expect(
+    workflow.void(record().contractId, actor, "Wrong legal entity"),
+  ).rejects.toThrow("CONTRACT_NOT_VOIDABLE");
+  expect(record().state).toBe("attention");
+  expect(provider.cancel).not.toHaveBeenCalled();
+});
+
+it("holds a contract whose SignWell copy names other signers, and answers the wakeup", async () => {
+  const { workflow, doc, record, notes, provider } = setup(sent);
+  doc.status = "Completed";
+  const [counterparty] = doc.recipients;
+  if (!counterparty) throw new Error("recipients missing");
+  counterparty.email = "someone-else@example.com";
+  await expect(
+    workflow.sync(record().contractId, signwell),
+  ).resolves.toMatchObject({
+    state: "attention",
+    error: "signwell_signers_mismatch",
+  });
+  // Nothing from the mismatched copy is applied, not even its completion.
+  expect(provider.completedPdf).not.toHaveBeenCalled();
+  expect(notes).toEqual([
+    {
+      eventType: "contract.signwell_mismatch",
+      detail: { reason: "signwell_signers_mismatch" },
+    },
+  ]);
+  await workflow.sync(record().contractId, signwell);
+  expect(notes).toHaveLength(1);
+  await expect(workflow.remind(record().contractId, actor)).rejects.toThrow(
+    "CONTRACT_NOT_PENDING",
+  );
+});
+
+it("records a binding mismatch found while sending and never sends", async () => {
+  const { workflow, doc, record, provider } = setup({
+    providerId: "019a44ac-0000-7000-8000-0000000000d5",
+    state: "ready",
+  });
+  doc.status = "Draft";
+  doc.metadata.commerce_contract_id = "019a44ac-0000-7000-8000-0000000000ee";
+  await expect(workflow.send(record().contractId, actor)).rejects.toThrow(
+    "CONTRACT_NEEDS_ATTENTION",
+  );
+  expect(record()).toMatchObject({
+    state: "attention",
+    error: "signwell_binding_mismatch",
+  });
+  expect(provider.send).not.toHaveBeenCalled();
+});
+
+it("keeps deleted_in_signwell when a send finds the draft gone, and records it once", async () => {
+  const { workflow, record, notes, deleteInSignWell } = setup({
+    providerId: "019a44ac-0000-7000-8000-0000000000d5",
+    state: "ready",
+  });
+  deleteInSignWell();
+  await expect(workflow.send(record().contractId, actor)).rejects.toThrow(
+    "CONTRACT_NEEDS_ATTENTION",
+  );
+  expect(record()).toMatchObject({
+    state: "attention",
+    error: "deleted_in_signwell",
+  });
+  await workflow.sync(record().contractId, signwell);
+  expect(
+    notes.filter((n) => n?.eventType === "contract.deleted_in_signwell"),
+  ).toHaveLength(1);
+});
+
+it("voids a mismatched copy that nobody signed", async () => {
+  const { workflow, doc, record, provider } = setup(sent);
+  doc.status = "Sent";
+  doc.metadata.template_sha256 = "f".repeat(64);
+  await expect(
+    workflow.void(record().contractId, actor, "SignWell copy changed"),
+  ).resolves.toMatchObject({ state: "canceled" });
+  expect(provider.cancel).toHaveBeenCalledOnce();
 });

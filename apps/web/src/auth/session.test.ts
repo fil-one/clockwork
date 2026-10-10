@@ -8,6 +8,7 @@ import {
 import { DEMO_PRODUCTION_ENVIRONMENT_KEYS } from "@clockwork/testing/demo-state";
 import { demoAccountIds } from "@clockwork/testing/personas";
 import type { UserInfo } from "@workos-inc/authkit-nextjs";
+import type * as WorkosNode from "@workos-inc/node";
 
 const authMocks = vi.hoisted(() => ({
   assistedCookie: undefined as string | undefined,
@@ -31,7 +32,8 @@ vi.mock("@workos-inc/authkit-nextjs", () => ({
   withAuth: authMocks.withAuth,
 }));
 
-vi.mock("@workos-inc/node", () => ({
+vi.mock("@workos-inc/node", async (importOriginal) => ({
+  ...(await importOriginal<typeof WorkosNode>()),
   WorkOS: class {
     userManagement = { loadSealedSession: authMocks.loadSealedSession };
     constructor(_apiKey: string, options: { clientId: string }) {
@@ -93,6 +95,7 @@ import {
   explicitDemoIdentityEnabled,
   getCommerceSession,
   requireRecentAuthentication,
+  SessionExpiredError,
   WorkosNextSessionResolver,
 } from "./session";
 
@@ -319,7 +322,7 @@ describe("WorkOS commerce session mapping", () => {
     expect(authMocks.withAuth).not.toHaveBeenCalled();
   });
 
-  it("requires a resolved WorkOS user on the direct action path", async () => {
+  it("refuses an expired access token on the direct action path as session expired", async () => {
     authMocks.requestHeaders.set(
       "content-type",
       "multipart/form-data; boundary=x",
@@ -329,9 +332,33 @@ describe("WorkOS commerce session mapping", () => {
       reason: "invalid_jwt",
     });
 
-    await expect(getCommerceSession()).rejects.toThrow(
-      "WorkOS authentication is required",
+    const refusal = getCommerceSession();
+    await expect(refusal).rejects.toBeInstanceOf(SessionExpiredError);
+    await expect(refusal).rejects.toThrow("SESSION_EXPIRED");
+    expect(authMocks.resolveWorkosIdentity).not.toHaveBeenCalled();
+    expect(authMocks.withAuth).not.toHaveBeenCalled();
+  });
+
+  it("refuses a direct action without a session cookie as session expired", async () => {
+    authMocks.requestHeaders.set("next-action", "a".repeat(40));
+    authMocks.requestCookies.delete("wos-session");
+
+    await expect(getCommerceSession()).rejects.toBeInstanceOf(
+      SessionExpiredError,
     );
+    expect(authMocks.loadSealedSession).not.toHaveBeenCalled();
+  });
+
+  it("keeps other sealed-cookie failures as a plain authentication refusal", async () => {
+    authMocks.requestHeaders.set("next-action", "a".repeat(40));
+    authMocks.authenticateCookie.mockResolvedValue({
+      authenticated: false,
+      reason: "invalid_session_cookie",
+    });
+
+    const refusal = getCommerceSession();
+    await expect(refusal).rejects.toThrow("WorkOS authentication is required");
+    await expect(refusal).rejects.not.toBeInstanceOf(SessionExpiredError);
     expect(authMocks.resolveWorkosIdentity).not.toHaveBeenCalled();
   });
 

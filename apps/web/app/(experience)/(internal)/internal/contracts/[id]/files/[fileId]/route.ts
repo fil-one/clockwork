@@ -5,22 +5,31 @@ import {
   withDocumentSlot,
 } from "@/src/features/internal-ops/contracts/http";
 import {
+  contractActor,
   contractRepository,
   contractStaff,
 } from "@/src/features/internal-ops/contracts/server";
 
-/** Streams a stored contract PDF after checking it against its hash.
- * `?view=1` opens it in the browser instead of saving it. */
+/** Streams a stored contract PDF after checking it against its hash, and
+ * audits who opened it. `?view=1` opens it in the browser instead of saving
+ * it. */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string; fileId: string }> },
 ) {
   try {
-    await contractStaff("contract:read");
+    const session = await contractStaff("contract:read");
     const { id, fileId } = await params;
+    const repository = contractRepository();
     const { file, bytes } = await withDocumentSlot(() =>
-      contractRepository().readFile(z.uuid().parse(id), z.uuid().parse(fileId)),
+      repository.readFile(z.uuid().parse(id), z.uuid().parse(fileId)),
     );
+    await repository.recordAccess(contractActor(session), {
+      kind: "file",
+      contractId: id,
+      fileId: file.id,
+      fileKind: file.kind,
+    });
     return pdfResponse(
       bytes,
       file.fileName,

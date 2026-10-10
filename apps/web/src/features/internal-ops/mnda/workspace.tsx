@@ -21,13 +21,19 @@ import {
 } from "@clockwork/ui";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import type { MessageId } from "@/src/i18n";
-import { loadMndas, operateMnda, type MndaWorkspaceData } from "./actions";
+import {
+  loadMndaRegister,
+  loadMndas,
+  operateMnda,
+  type MndaWorkspaceData,
+} from "./actions";
 import { MndaComposer, type ComposerStart } from "./composer";
 import { CorrectSignerDialog, DiscardDialog, VoidDialog } from "./dialogs";
 import { emptyValues, valuesFromRecord } from "./form-model";
 import { formatMndaDate } from "./format";
 import { mndaErrorLabels, mndaGroupLabels, mndaStateLabels } from "./labels";
 import { mndaDaysOutstanding, mndaPdfHref } from "./register";
+import { SessionExpiredReload, useSessionRefresh } from "../session-expiry";
 import styles from "./workspace.module.css";
 
 const terminal = (r: MndaRecord) =>
@@ -77,6 +83,21 @@ function rowNote(
     return {
       reason: "operations.mnda.note.deletedInSignWell",
       next: "operations.mnda.note.deletedNext",
+    };
+  if (r.state === "attention" && r.error === "signwell_signers_mismatch")
+    return {
+      reason: "operations.mnda.note.signersMismatch",
+      next: "operations.mnda.note.signersMismatchNext",
+    };
+  if (r.state === "attention" && r.error === "signwell_signed_mismatch")
+    return {
+      reason: "operations.mnda.note.signedMismatch",
+      next: "operations.mnda.note.signedMismatchNext",
+    };
+  if (r.state === "attention" && r.error === "signwell_binding_mismatch")
+    return {
+      reason: "operations.mnda.note.bindingMismatch",
+      next: "operations.mnda.note.stoppedNext",
     };
   if (r.state === "attention")
     return r.error === "recipient_bounced"
@@ -129,6 +150,7 @@ export function MndaWorkspace({
   const [message, setMessage] = useState<{
     tone: "success" | "danger";
     text: string;
+    expired?: boolean;
   } | null>(null);
   const [composer, setComposer] = useState<{
     key: number;
@@ -140,20 +162,32 @@ export function MndaWorkspace({
   const queryRef = useRef(query);
   queryRef.current = query;
   const composerRef = useRef<HTMLDivElement>(null);
+  const refreshSession = useSessionRefresh();
 
-  const reload = useCallback(async (next: MndaRegisterQuery, quiet = false) => {
-    if (!quiet) setLoading(true);
-    try {
-      const result = await loadMndas(next);
-      if (next !== queryRef.current) return;
-      if (result.ok) {
-        setData(result.value);
-        setLoadFailed(false);
-      } else if (!quiet) setLoadFailed(true);
-    } finally {
-      if (!quiet) setLoading(false);
-    }
-  }, []);
+  const reload = useCallback(
+    async (next: MndaRegisterQuery, quiet = false) => {
+      if (!quiet) setLoading(true);
+      try {
+        // Refreshes re-read only the register.
+        const load = quiet ? loadMndaRegister : loadMndas;
+        let result = await load(next);
+        // Reads are safe to repeat once a navigation has refreshed the session.
+        if (!result.ok && result.code === "session_expired") {
+          await refreshSession();
+          result = await load(next);
+        }
+        if (next !== queryRef.current) return;
+        if (result.ok) {
+          const value = result.value;
+          setData((current) => ({ ...current, ...value }));
+          setLoadFailed(false);
+        } else if (!quiet) setLoadFailed(true);
+      } finally {
+        if (!quiet) setLoading(false);
+      }
+    },
+    [refreshSession],
+  );
   const changeQuery = (patch: Partial<MndaRegisterQuery>) => {
     const next = { ...queryRef.current, page: 1, ...patch };
     setQuery(next);
@@ -200,7 +234,11 @@ export function MndaWorkspace({
     try {
       const result = await operateMnda({ id: record.id, operation });
       if (!result.ok) {
-        setMessage({ tone: "danger", text: t(mndaErrorLabels[result.code]) });
+        setMessage({
+          tone: "danger",
+          text: t(mndaErrorLabels[result.code]),
+          expired: result.code === "session_expired",
+        });
         return false;
       }
       if (operation === "remind")
@@ -254,6 +292,7 @@ export function MndaWorkspace({
             {t("operations.mnda.export")}
           </a>
           <Button
+            disabled={data.demo}
             onClick={() =>
               open({ kind: "form", values: emptyValues(data.signers) })
             }
@@ -275,6 +314,13 @@ export function MndaWorkspace({
           tone={message.tone}
           live={message.tone === "danger" ? "assertive" : "polite"}
           title={message.text}
+          {...(message.expired
+            ? {
+                action: (
+                  <SessionExpiredReload onReloaded={() => setMessage(null)} />
+                ),
+              }
+            : {})}
           dismiss={
             <Button
               variant="quiet"
@@ -436,15 +482,20 @@ export function MndaWorkspace({
                   // Voiding, discarding and fixing the email belong to the
                   // preparer or a signatory manager; anyone may remind.
                   const mine = data.canManage || r.ownerId === data.viewerId;
+                  // Someone signed SignWell's copy: resolved in SignWell.
                   const voidable =
-                    mine && bound && mndaVoidableStates.includes(r.state);
+                    mine &&
+                    bound &&
+                    mndaVoidableStates.includes(r.state) &&
+                    r.error !== "signwell_signed_mismatch";
                   // A stopped request needs a void; only a bounce is fixed in place.
                   const correctable =
                     mine &&
                     bound &&
                     (["sent", "viewed"].includes(r.state) ||
                       (r.state === "attention" &&
-                        r.error === "recipient_bounced"));
+                        (r.error === "recipient_bounced" ||
+                          r.error === "signwell_signers_mismatch")));
                   return (
                     <tr key={r.id}>
                       <td data-label={t("operations.mnda.column.company")}>
@@ -532,7 +583,7 @@ export function MndaWorkspace({
                             <Button
                               variant="secondary"
                               size="small"
-                              disabled={busy}
+                              disabled={busy || data.demo}
                               onClick={() =>
                                 open({ kind: "preview", record: r })
                               }
@@ -633,7 +684,7 @@ export function MndaWorkspace({
                                 <Button
                                   variant="quiet"
                                   size="small"
-                                  disabled={busy}
+                                  disabled={busy || data.demo}
                                 >
                                   {t("operations.mnda.discardDraft")}
                                 </Button>
@@ -655,6 +706,7 @@ export function MndaWorkspace({
                             <Button
                               variant="quiet"
                               size="small"
+                              disabled={data.demo}
                               onClick={() =>
                                 open({
                                   kind: "form",
