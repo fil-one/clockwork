@@ -1792,10 +1792,20 @@ detail lives in `docs/operations/commerce-mnda.md`,
   `packages/documents/src/contract-templates/registry.test.ts`,
   `packages/documents/src/contract-templates/render.integration.test.ts`,
   `apps/web/src/features/internal-ops/contracts/engine.integration.test.ts`.
-- **Signer correction on template contracts `[OPEN]`:** a template contract has
-  no **Fix email** or **Someone else will sign**. A bounced counterparty email
-  shows "A signer's email may have bounced" and points the reader to SignWell or
-  a commerce administrator; the in-Commerce path is void and prepare again.
+- **Signer correction on template contracts `[COMPLETE]`:** the signing panel
+  offers **Fix email** while the counterparty has not started signing, through
+  the engine's `correctSigner` (pending, then confirmed by SignWell, or settled
+  by a re-read when SignWell's answer is lost), and **Someone else will sign**,
+  which voids with the `signer_change` code and opens the template's prepare
+  page with the earlier values and the signer blank (`?from=<contractId>`);
+  approval runs again where the template requires it. The contract table keeps
+  the corrections and a cancel code, frozen once terminal
+  (`supabase/migrations/001459_contract_signer_correction.sql`), and history
+  entries carry the replaced email as their before-image. Evidence:
+  `packages/workflows/src/signing/scenarios.test.ts` (correction scenarios now
+  run for both types),
+  `supabase/tests/1459_contract_signer_correction.test.sql`,
+  `apps/web/src/features/internal-ops/contracts/engine.integration.test.ts`.
 - **Contract register "mine" filter `[COMPLETE]`:** **Recorded by me** lists
   what the reader recorded or prepared and the MNDAs they sent, and the home
   page links its own needs-attention and out-for-signature counts to it, while
@@ -1823,10 +1833,9 @@ detail lives in `docs/operations/commerce-mnda.md`,
   uses its own provider-neutral port
   (`packages/integrations/src/esign/index.ts`).
 - **One signing table `[OPEN]`:** each signing type keeps its own table and
-  repository, so contracts have no cancel code, first-sent time or signer
-  correction until their table does. Whether to move both onto one table is a
-  decision for when a third document type or the lifecycle `agreements` model
-  needs it, not scheduled work.
+  repository, so contracts have no first-sent time until their table does.
+  Whether to move both onto one table is a decision for when a third document
+  type or the lifecycle `agreements` model needs it, not scheduled work.
 - **Template line items `[COMPLETE]`:** a template field of kind `line_items`
   carries a priced table of up to 20 lines in one currency; its `[[token]]`, a
   paragraph of its own, prints the lines, subtotal, discounts and total with the

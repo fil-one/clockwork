@@ -1,9 +1,23 @@
+import type * as Server from "./server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  fixtureContractRecord,
+  fixtureSigningRecord,
+} from "../../../../../../packages/contracts/src/contract-fixture";
 import { fixtureRecord } from "../../../../../../packages/contracts/src/mnda-fixture";
+import { fixtureContractTemplateRegistry } from "../../../../../../packages/documents/src/__fixtures__/contract-template";
 
 const mocks = vi.hoisted(() => ({
   session: vi.fn(),
   mnda: { get: vi.fn() },
+  contracts: { get: vi.fn() },
+  signing: { get: vi.fn(), countersigners: vi.fn() },
+}));
+vi.mock("./server", async (original) => ({
+  ...(await original<typeof Server>()),
+  contractRepository: () => mocks.contracts,
+  contractSigningRepository: () => mocks.signing,
+  contractTemplateRegistry: () => fixtureContractTemplateRegistry,
 }));
 vi.mock("@/src/auth/session", () => ({
   getCommerceSession: mocks.session,
@@ -12,7 +26,7 @@ vi.mock("@/src/auth/session", () => ({
 }));
 vi.mock("@/src/db/service", () => ({ getServiceDatabase: vi.fn() }));
 vi.mock("../mnda/server", () => ({ mndaRepository: () => mocks.mnda }));
-import { loadContractForm } from "./loaders";
+import { loadContractForm, loadPrepare } from "./loaders";
 
 const signed = {
   ...fixtureRecord,
@@ -73,5 +87,82 @@ describe("recording a contract from an MNDA", () => {
       { kind: "ready", mnda: null },
     );
     expect(mocks.mnda.get).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("preparing a template again for someone else", () => {
+  beforeEach(() => {
+    mocks.signing.countersigners.mockResolvedValue([]);
+    mocks.signing.get.mockResolvedValue({
+      ...fixtureSigningRecord,
+      contractId: fixtureContractRecord.id,
+      input: {
+        fixture_reference: "REF-7",
+        retired_field: "x",
+        fixture_lines: {
+          currency: "USD" as const,
+          rows: [
+            {
+              sku: "SUPPORT",
+              description: "",
+              region: "",
+              unit: "month",
+              quantity: "12",
+              termMonths: 1,
+              unitPriceMinor: "100000",
+              minimumQuantity: "0",
+              discountBps: 0,
+              extendedMinor: "1200000",
+            },
+          ],
+        },
+      },
+    });
+    mocks.contracts.get.mockResolvedValue({ contract: fixtureContractRecord });
+  });
+
+  it("starts from the earlier values, with the signer left out", async () => {
+    const loaded = await loadPrepare("test-fixture", fixtureContractRecord.id);
+    expect(loaded).toMatchObject({
+      kind: "ready",
+      start: {
+        counterpartyName: fixtureContractRecord.counterpartyName,
+        effectiveDate: fixtureContractRecord.effectiveDate,
+        ownerName: fixtureContractRecord.ownerName,
+        countersignerId: fixtureSigningRecord.countersigner.id,
+        // Only the template's current fields, blank where none was kept.
+        values: {
+          fixture_reference: "REF-7",
+          fixture_tier: "",
+          fixture_note: "",
+          // A line-item table is carried whole.
+          fixture_lines: { currency: "USD", rows: [{ sku: "SUPPORT" }] },
+        },
+      },
+    });
+    expect(JSON.stringify(loaded)).not.toContain(
+      fixtureSigningRecord.counterpartySigner.email,
+    );
+  });
+
+  it("starts empty from another template, an unknown contract or a bad id", async () => {
+    mocks.signing.get.mockResolvedValueOnce({
+      ...fixtureSigningRecord,
+      templateId: "customer-msa",
+    });
+    await expect(
+      loadPrepare("test-fixture", fixtureContractRecord.id),
+    ).resolves.toMatchObject({ kind: "ready", start: null });
+    mocks.signing.get.mockRejectedValueOnce(
+      new Error("CONTRACT_SIGNING_NOT_FOUND"),
+    );
+    await expect(
+      loadPrepare("test-fixture", fixtureContractRecord.id),
+    ).resolves.toMatchObject({ kind: "ready", start: null });
+    await expect(loadPrepare("test-fixture", "../x")).resolves.toMatchObject({
+      kind: "ready",
+      start: null,
+    });
+    expect(mocks.signing.get).toHaveBeenCalledTimes(2);
   });
 });

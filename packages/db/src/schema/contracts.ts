@@ -16,6 +16,7 @@ import {
 import { sql } from "drizzle-orm";
 import type {
   ContractApprovalState,
+  ContractCancelCode,
   ContractCurrency,
   ContractFileKind,
   ContractPaper,
@@ -189,6 +190,12 @@ export const contractSigning = pgTable("commerce_contract_signing", {
   remindedAt: timestamp("reminded_at", { withTimezone: true }),
   /** Scheduled SignWell check bookkeeping; not a change to the request. */
   reconciledAt: timestamp("reconciled_at", { withTimezone: true }),
+  /** The counterparty email after a correction SignWell confirmed (001459). */
+  correctedSignerEmail: text("corrected_signer_email"),
+  /** A correction sent to SignWell and not yet confirmed. */
+  pendingSignerEmail: text("pending_signer_email"),
+  cancelCode: text("cancel_code").$type<ContractCancelCode>(),
+  cancelReason: text("cancel_reason"),
 });
 
 export const salesCollateral = pgTable(

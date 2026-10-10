@@ -70,19 +70,24 @@ describe("the signing engine refuses a declaration it cannot honour", () => {
   });
 
   it("declares a correctable signer only where the store and client can correct it", () => {
-    const correctable = {
-      ...contractSigning,
-      slots: contractSigning.slots.map((slot, index) => ({
-        ...slot,
-        correctable: index === 0,
-      })),
+    const uncorrectable = {
+      ...contractStore(),
+      capabilities: new Set<"cancel_code">(["cancel_code"]),
     };
     expect(
       () =>
         new SigningEngine<ContractSigningRecord>(
-          correctable,
-          contractStore(),
+          contractSigning,
+          uncorrectable,
           signWell(),
+        ),
+    ).toThrow("CONTRACT declares a correctable signer");
+    expect(
+      () =>
+        new SigningEngine<ContractSigningRecord>(
+          contractSigning,
+          contractStore(),
+          signWell(false),
         ),
     ).toThrow("CONTRACT declares a correctable signer");
     expect(
@@ -108,31 +113,35 @@ describe("the contract store", () => {
   const record = structuredClone(fixtureSigningRecord);
   const actor = { kind: "user" as const, id: randomUUID() };
 
-  it("declares no cancel code, signer correction or captured fields", () => {
-    expect([...contractStore().capabilities]).toEqual([]);
+  it("keeps signer corrections and cancel codes (001459), not captured fields", () => {
+    expect([...contractStore().capabilities]).toEqual([
+      "signer_correction",
+      "cancel_code",
+    ]);
   });
 
   it("refuses a change it cannot store rather than drop part of it", async () => {
     const update = vi.fn(async () => record);
     const store = contractStore(update);
     await expect(
-      store.update(record, "token", { pendingSignerEmail: "a@b.co" }, actor),
-    ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
-    await expect(
-      store.update(record, "token", { correctedSignerEmail: "a@b.co" }, actor),
+      store.update(
+        record,
+        "token",
+        { state: "canceled", cancelCode: "superseded" },
+        actor,
+      ),
     ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
     await expect(
       store.update(
         record,
         "token",
-        { state: "canceled", cancelCode: "voided", cancelReason: "Wrong" },
+        { sentAt: new Date() } as unknown as { state: "sent" },
         actor,
       ),
     ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
     await expect(
-      store.update(record, "token", { error: null }, actor, undefined, {
-        eventType: "contract.signer_corrected",
-        before: { signerEmail: "a@b.co" },
+      store.update(record, "token", { state: "sent" }, actor, undefined, {
+        detail: { copiedContacts: "verified" },
       }),
     ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
     await expect(
@@ -149,11 +158,55 @@ describe("the contract store", () => {
       }),
     ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
     expect(update).not.toHaveBeenCalled();
-    await store.update(record, "token", { state: "sent", error: null }, actor);
-    expect(update).toHaveBeenCalledExactlyOnceWith(
+  });
+
+  it("passes corrections, cancel codes and before-images to the repository", async () => {
+    const update = vi.fn(async () => record);
+    const store = contractStore(update);
+    await store.update(
+      record,
+      "token",
+      { correctedSignerEmail: "a@b.co", pendingSignerEmail: null },
+      actor,
+      undefined,
+      {
+        eventType: "contract.signer_corrected",
+        before: { signerEmail: "old@b.co" },
+        detail: { signerEmail: "a@b.co" },
+      },
+    );
+    expect(update).toHaveBeenLastCalledWith(
       record.contractId,
       "token",
-      { state: "sent", error: null },
+      { correctedSignerEmail: "a@b.co", pendingSignerEmail: null },
+      actor,
+      undefined,
+      {
+        eventType: "contract.signer_corrected",
+        detail: { signerEmail: "a@b.co" },
+        before: { signerEmail: "old@b.co" },
+      },
+    );
+    await store.update(
+      record,
+      "token",
+      {
+        state: "canceled",
+        error: null,
+        cancelCode: "voided",
+        cancelReason: "Wrong",
+      },
+      actor,
+    );
+    expect(update).toHaveBeenLastCalledWith(
+      record.contractId,
+      "token",
+      {
+        state: "canceled",
+        error: null,
+        cancelCode: "voided",
+        cancelReason: "Wrong",
+      },
       actor,
       undefined,
       undefined,

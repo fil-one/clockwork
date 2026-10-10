@@ -352,6 +352,21 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.activity.signwellMismatch": {
     en: "SignWell's copy stopped matching this contract",
   },
+  "operations.contracts.activity.signerChange": {
+    en: "Voided: someone else will sign",
+  },
+  "operations.contracts.activity.signerCorrectionRequested": {
+    en: "Counterparty email change sent to SignWell: {email}",
+  },
+  "operations.contracts.activity.signerCorrected": {
+    en: "Counterparty email changed to {email}",
+  },
+  "operations.contracts.activity.signerCorrectionDropped": {
+    en: "Counterparty email change not applied by SignWell",
+  },
+  "operations.contracts.activity.signerCorrectionRefused": {
+    en: "SignWell refused the counterparty email change to {email}",
+  },
   "operations.contracts.activity.reason": { en: "Reason: {reason}" },
   "operations.contracts.signing.signersMismatch": {
     en: "The signers in SignWell no longer match this contract, so its status is not updated until they match again.",
@@ -477,6 +492,12 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.prepare.noCountersignerTitle": {
     en: "No Fil One countersigner is set up",
   },
+  "operations.contracts.prepare.fromTitle": {
+    en: "Values from the voided contract",
+  },
+  "operations.contracts.prepare.fromBody": {
+    en: "Enter the person who will sign for the counterparty, check the rest, and prepare the contract again.",
+  },
   "operations.contracts.prepare.noCountersignerBody": {
     en: "Ask a Commerce administrator to add an active countersigner in the MNDA register.",
   },
@@ -599,7 +620,35 @@ export const contractMessages = defineStaffMessages({
     en: "SignWell reports a problem",
   },
   "operations.contracts.signing.attentionBody": {
-    en: "A signer's email may have bounced. Check the document in SignWell, or ask a Commerce administrator.",
+    en: "SignWell stopped this request. Check status, or void it and prepare it again.",
+  },
+  "operations.contracts.signing.bouncedTitle": {
+    en: "A signer's email bounced",
+  },
+  "operations.contracts.signing.bouncedBody": {
+    en: "Fix the counterparty's email, or choose Someone else will sign. If the Fil One countersigner's email bounced, ask a Commerce administrator.",
+  },
+  "operations.contracts.signing.signerChangeTitle": {
+    en: "Voided: someone else will sign",
+  },
+  "operations.contracts.signing.signerChangeBody": {
+    en: "Prepare the contract again for the new signer. The earlier values are filled in.",
+  },
+  "operations.contracts.signing.prepareAgain": { en: "Prepare again" },
+  "operations.contracts.signing.correct.action": { en: "Fix email" },
+  "operations.contracts.signing.correct.title": {
+    en: "Fix the counterparty's email",
+  },
+  "operations.contracts.signing.correct.description": {
+    en: "SignWell sends the request to the new address. The signer stays {name}.",
+  },
+  "operations.contracts.signing.correct.help": {
+    en: "Works until the counterparty starts signing.",
+  },
+  "operations.contracts.signing.correct.confirm": { en: "Send to new email" },
+  "operations.contracts.signing.correct.working": { en: "Updating" },
+  "operations.contracts.signing.correct.someoneElse": {
+    en: "Someone else will sign",
   },
   "operations.contracts.signing.counterpartySigner": {
     en: "Counterparty signer",
@@ -663,6 +712,9 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.signing.void.confirm": { en: "Void contract" },
   "operations.contracts.signing.void.keep": { en: "Keep it" },
   "operations.contracts.signing.void.working": { en: "Voiding" },
+  "operations.contracts.signing.void.signerChangeNote": {
+    en: "After voiding, the template opens with the same values so you can enter the new signer. If the template needs approval, it is approved again.",
+  },
   "operations.contracts.signing.deletedTitle": {
     en: "SignWell no longer has this document",
   },
@@ -751,6 +803,12 @@ export const contractMessages = defineStaffMessages({
   },
   "operations.contracts.error.distinctSigners": {
     en: "The counterparty signer and the Fil One countersigner must be different people.",
+  },
+  "operations.contracts.error.signerStarted": {
+    en: "The counterparty has started signing, so their email can no longer be changed. If someone else must sign, choose Someone else will sign.",
+  },
+  "operations.contracts.error.notCorrectable": {
+    en: "This contract is not waiting for the counterparty, so their email cannot be changed. Check its status and try again.",
   },
   "operations.contracts.error.countersignerUnavailable": {
     en: "That countersigner is no longer available. Choose another.",

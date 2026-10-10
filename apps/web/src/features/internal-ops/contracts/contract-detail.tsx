@@ -109,7 +109,27 @@ function activityTitle(event: ContractActivity, t: Translator) {
     case "contract.rejected":
       return t("operations.contracts.activity.rejected");
     case "contract.voided":
-      return t("operations.contracts.activity.voided");
+      return t(
+        changes.cancelCode === "signer_change"
+          ? "operations.contracts.activity.signerChange"
+          : "operations.contracts.activity.voided",
+      );
+    case "contract.signer_correction_requested":
+    case "contract.signer_corrected":
+    case "contract.signer_correction_refused": {
+      const email =
+        typeof changes.signerEmail === "string" ? changes.signerEmail : "";
+      return t(
+        event.eventType === "contract.signer_corrected"
+          ? "operations.contracts.activity.signerCorrected"
+          : event.eventType === "contract.signer_correction_refused"
+            ? "operations.contracts.activity.signerCorrectionRefused"
+            : "operations.contracts.activity.signerCorrectionRequested",
+        { email },
+      );
+    }
+    case "contract.signer_correction_dropped":
+      return t("operations.contracts.activity.signerCorrectionDropped");
     case "contract.reminded":
       return t(
         changes.recipient === "fil-one"

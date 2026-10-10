@@ -8,6 +8,7 @@ import {
   SigningEngine,
   signingErrors,
   type SigningDecision,
+  type SigningVoidReason,
 } from "./signing/engine";
 import {
   contractSigningStore,
@@ -23,6 +24,7 @@ export type ContractSigningClient = Pick<
   | "send"
   | "remind"
   | "cancel"
+  | "updateRecipient"
   | "completedPdf"
 >;
 
@@ -54,6 +56,8 @@ export class ContractSigningWorkflow {
         send: (id, testMode) => provider.send(id, testMode),
         remind: (id) => provider.remind(id),
         cancel: (id) => provider.cancel(id),
+        updateRecipient: (id, recipient) =>
+          provider.updateRecipient(id, recipient),
         completedPdf: (id) => provider.completedPdf(id),
       },
       wait,
@@ -85,9 +89,16 @@ export class ContractSigningWorkflow {
   cancel(contractId: string, actor: Actor) {
     return this.engine.cancel(contractId, actor).catch(named);
   }
-  /** Voids a request the counterparty has not signed, with a typed reason
-   * kept in the contract's history. */
-  void(contractId: string, actor: Actor, reason: string) {
-    return this.engine.void(contractId, actor, { reason }).catch(named);
+  /** Voids a request the counterparty has not signed, with a typed reason or
+   * the signer-change code, kept on the request and in its history. */
+  void(contractId: string, actor: Actor, why: SigningVoidReason) {
+    return this.engine.void(contractId, actor, why).catch(named);
+  }
+  /** Replaces the counterparty signer's email (a bounce or a typo) on a
+   * request they have not started signing. */
+  correctSigner(contractId: string, actor: Actor, signerEmail: string) {
+    return this.engine
+      .correctSigner(contractId, actor, signerEmail)
+      .catch(named);
   }
 }

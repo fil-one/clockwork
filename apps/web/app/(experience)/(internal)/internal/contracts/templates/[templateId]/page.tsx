@@ -21,13 +21,17 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ templateId: string }>;
+  /** `from`: an earlier contract from this template whose values the form
+   * starts from, for a different counterparty signer. */
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { templateId } = await params;
+  const [{ templateId }, { from }] = await Promise.all([params, searchParams]);
   const [t, loaded] = await Promise.all([
     getTranslations(),
-    loadPrepare(templateId),
+    loadPrepare(templateId, typeof from === "string" ? from : undefined),
   ]);
   if (loaded.kind !== "ready")
     return (
@@ -78,6 +82,7 @@ export default async function Page({
           ownerName={loaded.ownerName}
           today={loaded.today}
           signingReady={loaded.signingReady}
+          start={loaded.start}
         />
       )}
     </main>

@@ -219,9 +219,32 @@ export const contractVoidableStates: readonly ContractSigningState[] = [
 ];
 /** Why a request in `attention` needs a person, beyond SignWell's status. */
 export const contractDeletedInSignWell = "deleted_in_signwell";
-/** Voiding needs a typed reason, saved with the contract's history. */
-export const ContractVoidSchema = z
-  .object({ contractId: z.uuid(), reason: z.string().trim().min(3).max(500) })
+/** Why a signing request closed: discarded before sending, voided with a
+ * typed reason, or voided because a different person will sign. */
+export const contractCancelCodes = [
+  "discarded",
+  "voided",
+  "signer_change",
+] as const;
+export type ContractCancelCode = (typeof contractCancelCodes)[number];
+/** Voiding needs a typed reason, saved with the contract's history, or the
+ * "a different person will sign" code. */
+export const ContractVoidSchema = z.union([
+  z
+    .object({ contractId: z.uuid(), reason: z.string().trim().min(3).max(500) })
+    .strict(),
+  z.object({ contractId: z.uuid(), code: z.literal("signer_change") }).strict(),
+]);
+/** Replaces the counterparty signer's email on a sent request they have not
+ * started signing. */
+export const ContractCorrectSignerSchema = z
+  .object({
+    contractId: z.uuid(),
+    signerEmail: z
+      .email()
+      .max(254)
+      .transform((v) => v.toLowerCase()),
+  })
   .strict();
 
 export const contractApprovalStates = [
@@ -263,7 +286,21 @@ export interface ContractSigningRecord {
   completedAt: string | null;
   /** When a person last sent a manual reminder. */
   remindedAt: string | null;
+  /** The counterparty email after a correction SignWell confirmed. */
+  correctedSignerEmail: string | null;
+  /** A correction sent to SignWell and not yet confirmed. */
+  pendingSignerEmail: string | null;
+  cancelCode: ContractCancelCode | null;
+  /** Typed by the person who voided it. */
+  cancelReason: string | null;
   version: number;
+}
+
+/** The address SignWell should have for the counterparty now. */
+export function contractSignerEmail(
+  r: Pick<ContractSigningRecord, "counterpartySigner" | "correctedSignerEmail">,
+) {
+  return r.correctedSignerEmail ?? r.counterpartySigner.email;
 }
 
 export interface ContractRecord extends ContractTermSchedule {

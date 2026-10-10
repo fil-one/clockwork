@@ -1,4 +1,5 @@
 import {
+  contractSignerEmail,
   contractSigning,
   signatureFields,
   type ContractSigningRecord,
@@ -35,7 +36,7 @@ export class SignWellContractClient extends SignWellSigningClient<"commerce_cont
           {
             id: "counterparty",
             name: record.counterpartySigner.name,
-            email: record.counterpartySigner.email,
+            email: contractSignerEmail(record),
           },
           {
             id: "fil-one",
@@ -67,7 +68,14 @@ export function contractSignWellState(
     testMode: record.testMode,
     providerId: record.providerId,
     signers: [
-      { id: "counterparty", emails: [record.counterpartySigner.email] },
+      {
+        id: "counterparty",
+        emails: [
+          record.counterpartySigner.email,
+          record.correctedSignerEmail,
+          record.pendingSignerEmail,
+        ].filter((email): email is string => Boolean(email)),
+      },
       { id: "fil-one", emails: [record.countersigner.email] },
     ],
   });

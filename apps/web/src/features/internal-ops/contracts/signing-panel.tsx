@@ -3,8 +3,10 @@
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import {
   contractDeletedInSignWell,
+  contractSignerEmail,
   contractVoidableStates,
   terminalContractSigningStates,
   type ContractSigningRecord,
@@ -14,6 +16,7 @@ import {
   DescriptionList,
   Dialog,
   InlineNotice,
+  Input,
   ProgressSteps,
   StatusBadge,
   Textarea,
@@ -23,7 +26,12 @@ import {
 import type { MessageId } from "@/src/i18n";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { formatOperationalTimestamp } from "../presentation";
-import { decideContract, operateContract, voidContract } from "./actions";
+import {
+  correctContractSigner,
+  decideContract,
+  operateContract,
+  voidContract,
+} from "./actions";
 import { approvalStateLabels, errorMessage, signingStateLabels } from "./copy";
 import { SessionExpiredReload } from "../session-expiry";
 import { SelfApprovalDialog } from "../self-approval/self-approval-dialog";
@@ -48,6 +56,11 @@ const storedBeforeRefusal = new Set([
 ]);
 
 const sentStates = ["sent", "viewed", "awaiting_countersignature"];
+
+/** Prepares the same template again with the previous values and the
+ * counterparty signer left blank. */
+export const prepareAgainHref = (signing: ContractSigningRecord) =>
+  `/internal/contracts/templates/${signing.templateId}?from=${signing.contractId}` as Route;
 
 function steps(
   signing: ContractSigningRecord,
@@ -135,6 +148,9 @@ export function SigningPanel({
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [confirmSend, setConfirmSend] = useState(false);
   const [voiding, setVoiding] = useState(false);
+  // The void is for a different counterparty signer: no reason is typed,
+  // and the template opens again afterwards.
+  const [signerChange, setSignerChange] = useState(false);
   const [voidReason, setVoidReason] = useState("");
   const [voidReasonError, setVoidReasonError] = useState<string | null>(null);
   const terminal = terminalContractSigningStates.includes(signing.state);
@@ -163,6 +179,17 @@ export function SigningPanel({
     Boolean(signing.providerId) &&
     !signedMismatch &&
     contractVoidableStates.includes(signing.state);
+  // The counterparty's email can be fixed until they start signing; a bounce
+  // or SignWell showing another address puts the request in attention first.
+  const canCorrect =
+    canVoid &&
+    (["sent", "viewed"].includes(signing.state) ||
+      (signing.state === "attention" &&
+        ["recipient_bounced", "signwell_signers_mismatch"].includes(
+          signing.error ?? "",
+        )));
+  const bounced =
+    signing.state === "attention" && signing.error === "recipient_bounced";
 
   async function run(
     key: string,
@@ -249,11 +276,35 @@ export function SigningPanel({
               : "operations.contracts.signing.mismatchNext",
           )}
         />
+      ) : bounced ? (
+        <InlineNotice
+          tone="warning"
+          title={t("operations.contracts.signing.bouncedTitle")}
+          description={t("operations.contracts.signing.bouncedBody")}
+        />
       ) : signing.state === "attention" ? (
         <InlineNotice
           tone="warning"
           title={t("operations.contracts.signing.attentionTitle")}
           description={t("operations.contracts.signing.attentionBody")}
+        />
+      ) : signing.cancelCode === "signer_change" ? (
+        <InlineNotice
+          tone="info"
+          title={t("operations.contracts.signing.signerChangeTitle")}
+          description={t("operations.contracts.signing.signerChangeBody")}
+          {...(canWrite
+            ? {
+                action: (
+                  <Link
+                    className={buttonClassName({ variant: "secondary" })}
+                    href={prepareAgainHref(signing)}
+                  >
+                    {t("operations.contracts.signing.prepareAgain")}
+                  </Link>
+                ),
+              }
+            : {})}
         />
       ) : null}
       {error ? (
@@ -276,7 +327,7 @@ export function SigningPanel({
         items={[
           {
             term: t("operations.contracts.signing.counterpartySigner"),
-            detail: `${signing.counterpartySigner.name}, ${signing.counterpartySigner.title} (${signing.counterpartySigner.email})`,
+            detail: `${signing.counterpartySigner.name}, ${signing.counterpartySigner.title} (${contractSignerEmail(signing)})`,
           },
           {
             term: t("operations.contracts.signing.countersigner"),
@@ -451,6 +502,17 @@ export function SigningPanel({
             {t("operations.contracts.signing.discard")}
           </Button>
         ) : null}
+        {canCorrect ? (
+          <CorrectSignerDialog
+            signing={signing}
+            disabled={busy !== null || !signingReady}
+            onDone={() => router.refresh()}
+            onSomeoneElse={() => {
+              setSignerChange(true);
+              setVoiding(true);
+            }}
+          />
+        ) : null}
         {canVoid ? (
           <Button
             variant="quiet"
@@ -458,6 +520,7 @@ export function SigningPanel({
             onClick={() => {
               setVoidReason("");
               setVoidReasonError(null);
+              setSignerChange(false);
               setVoiding(true);
             }}
           >
@@ -545,18 +608,25 @@ export function SigningPanel({
             loading={busy === "void"}
             loadingLabel={t("operations.contracts.signing.void.working")}
             onClick={() => {
-              if (voidReason.trim().length < 3) {
+              if (!signerChange && voidReason.trim().length < 3) {
                 setVoidReasonError(
                   t("operations.contracts.signing.void.reasonRequired"),
                 );
                 return;
               }
               void run("void", () =>
-                voidContract({
-                  contractId: signing.contractId,
-                  reason: voidReason.trim(),
-                }),
-              ).then(() => setVoiding(false));
+                voidContract(
+                  signerChange
+                    ? { contractId: signing.contractId, code: "signer_change" }
+                    : {
+                        contractId: signing.contractId,
+                        reason: voidReason.trim(),
+                      },
+                ),
+              ).then((ok) => {
+                setVoiding(false);
+                if (ok && signerChange) router.push(prepareAgainHref(signing));
+              });
             }}
           >
             {t("operations.contracts.signing.void.confirm")}
@@ -566,20 +636,145 @@ export function SigningPanel({
         <p className={styles.muted}>
           {t("operations.contracts.signing.void.evidence")}
         </p>
-        <Textarea
-          label={t("operations.contracts.signing.void.reason")}
-          help={t("operations.contracts.signing.void.reasonHelp")}
-          value={voidReason}
-          onChange={(e) => {
-            setVoidReason(e.target.value);
-            setVoidReasonError(null);
-          }}
-          maxLength={500}
-          rows={3}
-          required
-          error={voidReasonError ?? undefined}
-        />
+        {signerChange ? (
+          <p className={styles.muted}>
+            {t("operations.contracts.signing.void.signerChangeNote")}
+          </p>
+        ) : (
+          <Textarea
+            label={t("operations.contracts.signing.void.reason")}
+            help={t("operations.contracts.signing.void.reasonHelp")}
+            value={voidReason}
+            onChange={(e) => {
+              setVoidReason(e.target.value);
+              setVoidReasonError(null);
+            }}
+            maxLength={500}
+            rows={3}
+            required
+            error={voidReasonError ?? undefined}
+          />
+        )}
       </Dialog>
     </section>
+  );
+}
+
+/** Refusals after which the counterparty's email cannot be fixed here. */
+const notCorrectable = new Set([
+  "CONTRACT_SIGNER_STARTED",
+  "CONTRACT_NOT_CORRECTABLE",
+]);
+
+/**
+ * Fixes a bounced or mistyped counterparty email in place; SignWell sends the
+ * request to the new address and the signer's name stays. When a different
+ * person must sign, the request is voided and the template prepared again.
+ */
+function CorrectSignerDialog({
+  signing,
+  disabled,
+  onDone,
+  onSomeoneElse,
+}: {
+  signing: ContractSigningRecord;
+  disabled: boolean;
+  onDone: () => void;
+  onSomeoneElse: () => void;
+}) {
+  const t = useTranslations();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(contractSignerEmail(signing));
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const fieldId = `contract-correct-email-${signing.contractId}`;
+  async function save() {
+    setBusy(true);
+    try {
+      const result = await correctContractSigner({
+        contractId: signing.contractId,
+        signerEmail: email.trim(),
+      });
+      if (!result.ok) {
+        setError(result.code);
+        document.getElementById(fieldId)?.focus();
+        // SignWell's state was read and stored before these refusals.
+        if (notCorrectable.has(result.code)) onDone();
+        return;
+      }
+      setOpen(false);
+      onDone();
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog
+      title={t("operations.contracts.signing.correct.title")}
+      description={t("operations.contracts.signing.correct.description", {
+        name: signing.counterpartySigner.name,
+      })}
+      trigger={
+        <Button variant="secondary" disabled={disabled}>
+          {t("operations.contracts.signing.correct.action")}
+        </Button>
+      }
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) {
+          setEmail(contractSignerEmail(signing));
+          setError(null);
+        }
+      }}
+      closeLabel={t("operations.contracts.form.cancel")}
+      footer={
+        <>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setOpen(false);
+              onSomeoneElse();
+            }}
+          >
+            {t("operations.contracts.signing.correct.someoneElse")}
+          </Button>
+          <Button
+            loading={busy}
+            disabled={error !== null && notCorrectable.has(error)}
+            loadingLabel={t("operations.contracts.signing.correct.working")}
+            onClick={() => void save()}
+          >
+            {t("operations.contracts.signing.correct.confirm")}
+          </Button>
+        </>
+      }
+    >
+      <Input
+        id={fieldId}
+        type="email"
+        label={t("operations.contracts.prepare.signerEmail")}
+        value={email}
+        maxLength={254}
+        required
+        help={t("operations.contracts.signing.correct.help")}
+        {...(error
+          ? {
+              error: t(
+                error === "INVALID_INPUT"
+                  ? "operations.contracts.field.error.email"
+                  : errorMessage(error),
+              ),
+            }
+          : {})}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          setError(null);
+        }}
+      />
+      {error === "SESSION_EXPIRED" ? (
+        <SessionExpiredReload onReloaded={() => setError(null)} />
+      ) : null}
+    </Dialog>
   );
 }

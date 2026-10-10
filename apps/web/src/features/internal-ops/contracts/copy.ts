@@ -143,6 +143,8 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
   CONTRACT_STILL_PREPARING: "operations.contracts.error.stillPreparing",
   CONTRACT_DISTINCT_SIGNERS_REQUIRED:
     "operations.contracts.error.distinctSigners",
+  CONTRACT_SIGNER_STARTED: "operations.contracts.error.signerStarted",
+  CONTRACT_NOT_CORRECTABLE: "operations.contracts.error.notCorrectable",
   CONTRACT_COUNTERSIGNER_UNAVAILABLE:
     "operations.contracts.error.countersignerUnavailable",
   CONTRACT_TEMPLATE_PENDING_LEGAL: "operations.contracts.error.pendingLegal",

@@ -283,6 +283,20 @@ contract: nothing from that copy is applied, the request waits in attention
 voided. A request is never voided once SignWell shows the counterparty's
 signature, even when a bounced countersigner email has put it in attention.
 
+When the counterparty's email bounced or was mistyped, **Fix email** on the
+signing panel sends the request to the corrected address, until the counterparty
+starts signing. Commerce records the new email as pending, asks SignWell to
+change the recipient, and keeps the email once SignWell shows it; if SignWell's
+answer is lost, the next refresh settles it. The signer's name stays, because it
+may be printed in the agreement. The history records the address replaced. Once
+the counterparty has started signing, or when a different person must sign,
+choose **Someone else will sign**: Commerce voids the request with that reason
+(no reason is typed), and the template's prepare page opens with the earlier
+values and the signer left blank. The new preparation is a new contract record
+and needs approval again where the template requires it; the voided one stays in
+the register as a draft. The same people who may void a request may fix its
+email.
+
 Reminders go to whoever signs next and are spaced at least a minute apart,
 counted from the last reminder. Each one is recorded in the contract's history
 as `contract.reminded` with its recipient.

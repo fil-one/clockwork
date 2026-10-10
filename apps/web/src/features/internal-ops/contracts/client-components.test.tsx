@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   decideContract: vi.fn(),
   operateContract: vi.fn(),
   voidContract: vi.fn(),
+  correctContractSigner: vi.fn(),
   prepareContract: vi.fn(),
   findContractDuplicates: vi.fn(),
   upload: vi.fn(),
@@ -33,6 +34,7 @@ vi.mock("./actions", () => ({
   decideContract: mocks.decideContract,
   operateContract: mocks.operateContract,
   voidContract: mocks.voidContract,
+  correctContractSigner: mocks.correctContractSigner,
   prepareContract: mocks.prepareContract,
   findContractDuplicates: mocks.findContractDuplicates,
 }));
@@ -572,6 +574,108 @@ describe("signing panel", () => {
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalledOnce());
   });
 
+  it("fixes a bounced counterparty email in place, without sending the reader to SignWell", async () => {
+    mocks.correctContractSigner.mockResolvedValue({
+      ok: true,
+      value: { state: "sent", signerEmail: "right@example.com" },
+    });
+    panel({ state: "attention", error: "recipient_bounced", providerId: "x" });
+    expect(screen.getByText("A signer's email bounced")).toBeInTheDocument();
+    expect(screen.queryByText(/Check the document in SignWell/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Fix email" }));
+    const dialog = await screen.findByRole("dialog");
+    const email = within(dialog).getByLabelText(/Signer's email/);
+    expect(email).toHaveValue("alex@example.com");
+    fireEvent.change(email, { target: { value: " right@example.com " } });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Send to new email" }),
+    );
+    await waitFor(() =>
+      expect(mocks.correctContractSigner).toHaveBeenCalledWith({
+        contractId: fixtureSigningRecord.contractId,
+        signerEmail: "right@example.com",
+      }),
+    );
+    expect(mocks.refresh).toHaveBeenCalled();
+  });
+
+  it("says when the counterparty has started signing and stops offering the fix", async () => {
+    mocks.correctContractSigner.mockResolvedValue({
+      ok: false,
+      code: "CONTRACT_SIGNER_STARTED",
+    });
+    panel({ state: "viewed", providerId: "x" });
+    fireEvent.click(screen.getByRole("button", { name: "Fix email" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText(/Signer's email/), {
+      target: { value: "right@example.com" },
+    });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Send to new email" }),
+    );
+    expect(
+      await within(dialog).findByText(/has started signing/),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "Send to new email" }),
+    ).toBeDisabled();
+    expect(mocks.refresh).toHaveBeenCalled();
+  });
+
+  it("offers no fix once the counterparty has signed, or to a colleague without approval", () => {
+    panel({ state: "awaiting_countersignature", providerId: "x" });
+    expect(screen.queryByRole("button", { name: "Fix email" })).toBeNull();
+    panel(
+      { state: "sent", providerId: "x" },
+      { canApprove: false, isPreparer: false },
+    );
+    expect(screen.queryByRole("button", { name: "Fix email" })).toBeNull();
+  });
+
+  it("voids for someone else without a reason and opens the template with the earlier values", async () => {
+    mocks.voidContract.mockResolvedValue({
+      ok: true,
+      value: { state: "canceled" },
+    });
+    panel({ state: "sent", providerId: "x" });
+    fireEvent.click(screen.getByRole("button", { name: "Fix email" }));
+    fireEvent.click(
+      within(await screen.findByRole("dialog")).getByRole("button", {
+        name: "Someone else will sign",
+      }),
+    );
+    const dialog = await screen.findByRole("dialog", {
+      name: "Void this contract?",
+    });
+    expect(within(dialog).queryByRole("textbox")).toBeNull();
+    expect(
+      within(dialog).getByText(/the template opens with the same values/),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Void contract" }),
+    );
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledWith(
+        `/internal/contracts/templates/${fixtureSigningRecord.templateId}?from=${fixtureSigningRecord.contractId}`,
+      ),
+    );
+    expect(mocks.voidContract).toHaveBeenCalledWith({
+      contractId: fixtureSigningRecord.contractId,
+      code: "signer_change",
+    });
+  });
+
+  it("links a request voided for someone else to a new preparation", () => {
+    panel({ state: "canceled", providerId: "x", cancelCode: "signer_change" });
+    expect(
+      screen.getByText("Voided: someone else will sign"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Prepare again" })).toHaveAttribute(
+      "href",
+      `/internal/contracts/templates/${fixtureSigningRecord.templateId}?from=${fixtureSigningRecord.contractId}`,
+    );
+  });
+
   it("explains a SignWell failure in words, without reloading", async () => {
     mocks.operateContract.mockResolvedValue({
       ok: false,
@@ -690,6 +794,16 @@ describe("contract history", () => {
           event("contract.signwell_mismatch", {
             reason: "signwell_signers_mismatch",
           }),
+          event("contract.voided", { cancelCode: "signer_change" }),
+          event("contract.signer_correction_requested", {
+            before: { signerEmail: "alex@example.com" },
+            signerEmail: "right@example.com",
+          }),
+          event("contract.signer_corrected", {
+            before: { signerEmail: "alex@example.com" },
+            signerEmail: "right@example.com",
+          }),
+          event("contract.signer_correction_dropped"),
         ]}
         signing={null}
         today="2026-10-09"
@@ -707,6 +821,10 @@ describe("contract history", () => {
       "Reminder sent to the counterparty signer",
       "Found deleted in SignWell",
       "SignWell's copy stopped matching this contract",
+      "Voided: someone else will sign",
+      "Counterparty email change sent to SignWell: right@example.com",
+      "Counterparty email changed to right@example.com",
+      "Counterparty email change not applied by SignWell",
     ])
       expect(within(history).getByText(text)).toBeInTheDocument();
     expect(within(history).queryByText(/^contract\./)).toBeNull();
