@@ -37,6 +37,7 @@ jobs:
       environment: staging
       workspace: staging
       ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      typechecked_in_ci: ${{ github.event_name == 'workflow_run' }}
     secrets: inherit
 
   production:
@@ -49,6 +50,7 @@ jobs:
       environment: production
       workspace: prod
       ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      typechecked_in_ci: ${{ github.event_name == 'workflow_run' }}
     secrets: inherit
 
   notify-failure:

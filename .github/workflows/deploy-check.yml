@@ -60,9 +60,13 @@ jobs:
           cp .env.terraform.tpl .env.terraform
           make .env.production.local
         working-directory: deploy
+      # Builds the image the way the deploy on main does. CI runs on this same
+      # pull request and type-checks every package there, so this job checks
+      # that the image builds rather than repeating that work.
       - name: Build the image
         run:
-          docker buildx build --platform linux/arm64 -t clockwork:check --load .
+          docker buildx build --platform linux/arm64 --build-arg
+          CLOCKWORK_TYPECHECKED_IN_CI=1 -t clockwork:check --load .
       - name: Check the migration tooling is in the image
         run:
           docker run --rm --entrypoint sh clockwork:check -c 'psql --version &&

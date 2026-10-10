@@ -20,6 +20,13 @@ on:
         description: commit to deploy
         required: true
         type: string
+      typechecked_in_ci:
+        description:
+          true when CI has passed for ref on main; the image build then skips
+          the type check CI already ran
+        required: false
+        type: boolean
+        default: false
 
 env:
   TOFU_VERSION: 1.12.5
@@ -127,6 +134,9 @@ jobs:
       - name: Build and push the image
         run: make docker-push
         working-directory: deploy
+        env:
+          CLOCKWORK_TYPECHECKED_IN_CI:
+            ${{ inputs.typechecked_in_ci && '1' || '0' }}
 
       - name: Migrate the database
         run: make migrate
