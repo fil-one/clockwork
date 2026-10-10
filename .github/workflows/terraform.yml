@@ -126,6 +126,10 @@ jobs:
           tofu_wrapper: false
 
       - uses: docker/setup-buildx-action@v3
+        with:
+          # The runner is discarded with the job, so removing the builder in
+          # the post step (13 to 28 seconds) cleans up nothing that outlives it.
+          cleanup: false
 
       - name: Initialise
         run: make init
