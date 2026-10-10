@@ -1,5 +1,11 @@
 import type { ContractSigningRecord } from "./contract-register";
-import { mndaSigningFields, type MndaRecord, type MndaState } from "./mnda";
+import {
+  mndaDetailFields,
+  mndaSearchableDetailFields,
+  mndaSigningFields,
+  type MndaRecord,
+  type MndaState,
+} from "./mnda";
 
 /** Every signing request moves through these states, whatever its type. */
 export type SigningState = MndaState;
@@ -20,6 +26,14 @@ export interface SigningSlot<R> {
   /** Staff may replace this signer's email after sending, while they have
    * not started signing. */
   correctable: boolean;
+}
+
+/** A text field the first signer completes whose value is kept on the
+ * request with completion. */
+export interface SigningCapture {
+  apiId: string;
+  /** The register search matches the kept value. */
+  searchable: boolean;
 }
 
 /**
@@ -45,6 +59,10 @@ export interface SigningDocumentType<R> {
   errorPrefix: string;
   /** History events read `<prefix>.voided`. */
   auditPrefix: string;
+  /** Fields whose values the first signer's completed copy keeps. Only the
+   * ones a request asked that signer for are read; the store must be able
+   * to keep them. */
+  capture?: readonly SigningCapture[];
 }
 
 /** A signature and its date, required of every signer. */
@@ -91,6 +109,12 @@ export const mndaSigning: SigningDocumentType<MndaRecord> = {
   copySender: true,
   errorPrefix: "MNDA",
   auditPrefix: "mnda",
+  // Kept so the register finds the MNDA by what the partner entered, not
+  // only by what staff typed before sending.
+  capture: mndaDetailFields.map(({ id }) => ({
+    apiId: id,
+    searchable: mndaSearchableDetailFields.includes(id),
+  })),
 };
 
 /** A contract prepared from a template: the counterparty signs first, then

@@ -42,6 +42,10 @@ export function signWellDocumentSchema<K extends string>(bindingKey: K) {
           type: z.string(),
           required: z.boolean(),
           api_id: z.string().nullable().optional(),
+          // What the signer entered. Whether SignWell reports it is not yet
+          // confirmed, and a value of another type (a checkbox's) reads as
+          // unreported rather than failing the whole document.
+          value: z.string().nullable().optional().catch(null),
         }),
       ),
     ),
@@ -434,6 +438,47 @@ export function assertSignWellFields(
     )
   )
     throw new Error("SIGNWELL_SIGNING_FIELDS_MISMATCH");
+}
+/** Kept values stop at this many characters, a closing "…" included when a
+ * value was cut; the executed PDF holds the full text. */
+export const signWellFieldValueLimit = 180;
+/**
+ * The values one signer entered in the named text fields, trimmed, with
+ * control characters replaced and cut to `signWellFieldValueLimit`. A lone
+ * surrogate becomes U+FFFD: Postgres refuses it in jsonb, which would fail
+ * the whole completion. A field SignWell reports without a value is left
+ * out, so the caller sees what is missing.
+ */
+export function signWellFieldValues(
+  doc: SignWellSigningDocument,
+  recipientId: string,
+  apiIds: readonly string[],
+): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const field of doc.fields.flat()) {
+    if (
+      field.recipient_id !== recipientId ||
+      !field.api_id ||
+      !apiIds.includes(field.api_id) ||
+      Object.hasOwn(values, field.api_id)
+    )
+      continue;
+    const chars = [
+      ...(field.value ?? "")
+        .toWellFormed()
+        .replace(/\p{Cc}+/gu, " ")
+        .trim(),
+    ];
+    const value =
+      chars.length > signWellFieldValueLimit
+        ? `${chars
+            .slice(0, signWellFieldValueLimit - 1)
+            .join("")
+            .trimEnd()}…`
+        : chars.join("");
+    if (value) values[field.api_id] = value;
+  }
+  return values;
 }
 /** Without a record, only the signatures and signing dates are checked. */
 export function assertSignWellSigningFields(

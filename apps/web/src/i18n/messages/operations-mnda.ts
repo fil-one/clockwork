@@ -143,6 +143,7 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.state.attention": { en: "Needs attention" },
 
   "operations.mnda.column.company": { en: "Company" },
+  "operations.mnda.signedAs": { en: "Signed as {name}" },
   "operations.mnda.column.sent": { en: "Sent" },
   "operations.mnda.column.outstanding": { en: "Outstanding" },
   "operations.mnda.notSent": { en: "Not sent" },

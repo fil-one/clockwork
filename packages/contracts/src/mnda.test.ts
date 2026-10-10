@@ -6,7 +6,9 @@ import {
   mndaVoidableStates,
   MndaInputSchema,
   MndaSettingsSchema,
+  mndaDetailFields,
   mndaNoticeEmail,
+  mndaPartnerLegalName,
   mndaRegisterSearchParams,
   mndaSignerEmail,
   mndaSigningFields,
@@ -14,6 +16,7 @@ import {
   parseMndaRegisterParams,
 } from "./mnda";
 import { fixtureInput, fixtureRecord } from "./mnda-fixture";
+import { mndaSigning } from "./signing";
 
 it("accepts Latin Extended names the agreement font prints and rejects reserved or non-Latin text", () => {
   for (const company of ["Łódź Société Générale", "Nguyễn Ştefan GmbH"])
@@ -182,4 +185,34 @@ it("refuses new partner-completes drafts while existing ones still parse", () =>
     expect(
       MndaDraftInputSchema.safeParse({ ...fixtureInput, detailsMode }).success,
     ).toBe(true);
+});
+
+it("captures every partner-completed field and searches the legal name, jurisdiction and signer", () => {
+  expect(mndaSigning.capture?.map((c) => c.apiId).sort()).toEqual(
+    mndaDetailFields.map((f) => f.id).sort(),
+  );
+  expect(
+    mndaSigning.capture
+      ?.filter((c) => c.searchable)
+      .map((c) => c.apiId)
+      .sort(),
+  ).toEqual([
+    "company_intro",
+    "company_notice",
+    "company_sign",
+    "entity",
+    "signer_name",
+  ]);
+  expect(mndaPartnerLegalName(fixtureRecord)).toBeNull();
+  expect(mndaPartnerLegalName({ partnerDetails: {} })).toBeNull();
+  expect(
+    mndaPartnerLegalName({
+      partnerDetails: { company_intro: "Acme Holdings", company_sign: " " },
+    }),
+  ).toBe("Acme Holdings");
+  expect(
+    mndaPartnerLegalName({
+      partnerDetails: { company_intro: "Acme", company_sign: "Acme LLC" },
+    }),
+  ).toBe("Acme LLC");
 });

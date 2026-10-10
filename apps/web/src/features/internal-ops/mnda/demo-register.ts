@@ -1,6 +1,7 @@
 // i18n-exempt-file: fictional demo records (company names, people, reasons typed by a seller); never interface copy
 import {
   MndaRegisterQuerySchema,
+  mndaSearchableDetailFields,
   type MndaRecord,
   type MndaRegisterPage,
   type MndaRegisterQuery,
@@ -76,6 +77,9 @@ interface Fixture {
   completedDaysAgo?: number;
   error?: string;
   cancel?: { code: MndaRecord["cancelCode"]; reason: string | null };
+  /** Staff left the entity and signer title for the partner, who completed
+   * them at signing. */
+  partnerCompleted?: true;
 }
 
 const fixtures: readonly Fixture[] = [
@@ -256,6 +260,7 @@ const fixtures: readonly Fixture[] = [
     createdDaysAgo: 52,
     sentDaysAgo: 51,
     completedDaysAgo: 47,
+    partnerCompleted: true,
   },
 ];
 
@@ -283,17 +288,17 @@ function record(fixture: Fixture, viewer: DemoMndaViewer, now: Date) {
     id,
     input: {
       id,
-      detailsMode: "team",
+      detailsMode: fixture.partnerCompleted ? "mixed" : "team",
       company: fixture.company,
       shortName: fixture.shortName,
-      entityDescription: fixture.entity,
+      entityDescription: fixture.partnerCompleted ? "" : fixture.entity,
       streetAddress: fixture.street,
       locality: fixture.locality,
       noticesContact: signerName,
       noticesEmail: signerEmail,
       signerName,
       signerEmail,
-      signerTitle,
+      signerTitle: fixture.partnerCompleted ? "" : signerTitle,
       countersignerId: countersigner.id,
       effectiveDate: createdAt.slice(0, 10),
     },
@@ -315,6 +320,9 @@ function record(fixture: Fixture, viewer: DemoMndaViewer, now: Date) {
     completedAt: fixture.state === "completed" ? closedAt : null,
     cancelCode: fixture.cancel?.code ?? null,
     cancelReason: fixture.cancel?.reason ?? null,
+    partnerDetails: fixture.partnerCompleted
+      ? { entity: fixture.entity, signer_title: signerTitle }
+      : null,
     error: fixture.error ?? null,
     version: 1,
   } satisfies MndaRecord;
@@ -348,6 +356,9 @@ function matches(
     record.input.signerEmail,
     record.correctedSignerEmail ?? "",
     record.ownerName,
+    ...mndaSearchableDetailFields.map(
+      (id) => record.partnerDetails?.[id] ?? "",
+    ),
   ].some((value) => value.toLowerCase().includes(needle));
 }
 

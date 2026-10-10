@@ -4,6 +4,7 @@ import {
   mndaExportLimit,
   mndaRegisterSearchParams,
   mndaVoidableStates,
+  mndaPartnerLegalName,
   mndaSignerEmail,
   mndaStatusGroups,
   type MndaRecord,
@@ -497,12 +498,20 @@ export function MndaWorkspace({
                       (r.state === "attention" &&
                         (r.error === "recipient_bounced" ||
                           r.error === "signwell_signers_mismatch")));
+                  const signedAs = mndaPartnerLegalName(r);
                   return (
                     <tr key={r.id}>
                       <td data-label={t("operations.mnda.column.company")}>
                         <strong className={styles.company}>
                           {r.input.company}
                         </strong>
+                        {signedAs &&
+                        signedAs.toLowerCase() !==
+                          r.input.company.trim().toLowerCase() ? (
+                          <span className={styles.muted}>
+                            {t("operations.mnda.signedAs", { name: signedAs })}
+                          </span>
+                        ) : null}
                         <span className={styles.muted}>
                           {r.input.signerName} · {mndaSignerEmail(r)}
                         </span>

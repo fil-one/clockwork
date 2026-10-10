@@ -86,8 +86,9 @@ countersigner's email.
 ## Register
 
 The register pages through every MNDA, newest first. Search covers company,
-partner signer name and email, and preparer. Status filters and **Only mine**
-live in the address, so links can open a filtered view:
+partner signer name and email, preparer, and what the partner entered at signing
+(see [partner-completed details](#partner-completed-details)). Status filters
+and **Only mine** live in the address, so links can open a filtered view:
 
 | Filter             | Address                                            |
 | ------------------ | -------------------------------------------------- |
@@ -135,7 +136,8 @@ unchanged for 10 minutes.
 
 **Export CSV** downloads the filtered register (company, partner signer and
 email, status, countersigner, preparer, created, sent, days outstanding,
-completed, effective date, test mode, void reason, request ID). PDFs download as
+completed, effective date, test mode, void reason, request ID, then the
+partner-completed details). PDFs download as
 `Fil-One-MNDA_<Company>_<date>_draft.pdf` (effective date) or `..._signed.pdf`
 (completion date). An export stops at the newest 10,000 matching MNDAs; the page
 says so above the register when more match, and the response carries
@@ -400,6 +402,20 @@ document is titled "Mutual NDA: Fil One" in this mode and "Mutual NDA: Fil One
 and {legal name}" otherwise. The internal reference is not substituted for the
 partner's legal name; the executed PDF is the authoritative record of
 partner-entered details.
+
+When an MNDA completes, Commerce reads the values the partner entered from
+SignWell's completed document and keeps them on the MNDA, in the same change
+that records completion and archives the executed PDF. They never change
+afterwards. Each value is kept to 180 characters; a longer one ends in "…". The
+register finds the MNDA by the partner's legal name, jurisdiction and entity
+type, or signer name; the duplicate warning matches the partner's legal name; a
+row whose partner signed under a different legal name shows "Signed as {name}";
+and the CSV export adds the partner's values, with `reported` or `not_reported`
+in **Partner details**. If SignWell reports no values, the MNDA still completes,
+the history records `mnda.fields_unreported` with the missing field IDs, and the
+executed PDF remains the only record of what the partner entered. As of
+2026-10-10, whether live SignWell reports these values has not been confirmed
+(`EXT-PROVIDER-01`).
 
 ## Production address
 
