@@ -22,7 +22,11 @@ async function Page({
   const loaded = await loadHandoffQueue(status);
   return (
     <HandoffQueue
-      requests={loaded.kind === "ready" ? loaded.value.requests : null}
+      state={
+        loaded.kind === "ready"
+          ? { kind: "ready", ...loaded.value }
+          : { kind: loaded.kind === "demo" ? "demo" : "unavailable" }
+      }
       status={status}
     />
   );

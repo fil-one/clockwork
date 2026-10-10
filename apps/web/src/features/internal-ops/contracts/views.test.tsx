@@ -1,15 +1,22 @@
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ContractListQuerySchema,
   type ContractListRow,
 } from "@clockwork/contracts";
+const mocks = vi.hoisted(() => ({ replace: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: mocks.replace }),
+}));
 import { translatorFor } from "@/src/i18n/catalogs";
 import { RegisterView, registerHref } from "./register-view";
 import { RenewalsView } from "./renewals-view";
 import { TemplatePicker } from "./template-picker";
 
 const t = translatorFor("en");
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 const row = (patch: Partial<ContractListRow> = {}): ContractListRow => ({
   id: "019a44ac-0000-7000-8000-0000000000c1",
   source: "register",
@@ -93,9 +100,10 @@ describe("contract register", () => {
       "href",
       "/internal/contracts/019a44ac-0000-7000-8000-0000000000c1",
     );
+    // An MNDA row opens that counterparty's signed MNDAs.
     expect(
       within(table).getByRole("link", { name: "Northwind" }),
-    ).toHaveAttribute("href", "/internal/mndas");
+    ).toHaveAttribute("href", "/internal/mndas?status=completed&q=Northwind");
     expect(
       within(table).getByText("From the MNDA register"),
     ).toBeInTheDocument();
@@ -136,7 +144,7 @@ describe("contract register", () => {
       screen.queryByRole("link", { name: "Record a contract" }),
     ).toBeNull();
     expect(
-      screen.getByRole("link", { name: "Renewal notices" }),
+      screen.getByRole("link", { name: "Contract renewal notices" }),
     ).toBeInTheDocument();
   });
 
@@ -226,17 +234,19 @@ describe("renewal notices", () => {
 });
 
 describe("template picker", () => {
-  it("shows pending templates as coming from legal and never selectable", () => {
+  const pending = {
+    id: "channel-partnership",
+    contractType: "channel_partnership",
+    status: "pending_legal",
+  } as const;
+
+  it("lists ready templates and names the pending ones in one line", () => {
     render(
       <TemplatePicker
         t={t}
         canWrite
         templates={[
-          {
-            id: "channel-partnership",
-            contractType: "channel_partnership",
-            status: "pending_legal",
-          },
+          pending,
           {
             id: "test-fixture",
             contractType: "other",
@@ -247,27 +257,42 @@ describe("template picker", () => {
         ]}
       />,
     );
-    const pending = screen.getByRole("article", {
-      name: "Channel partnership agreement",
-    });
     expect(
-      within(pending).getByText("Template pending from legal"),
-    ).toBeInTheDocument();
-    expect(
-      within(pending).queryByRole("link", { name: /^Prepare/ }),
+      screen.queryByRole("article", { name: "Channel partnership agreement" }),
     ).toBeNull();
     expect(
-      within(pending).getByRole("link", {
-        name: "Record a Channel partnership agreement manually",
-      }),
-    ).toHaveAttribute(
-      "href",
-      "/internal/contracts/new?type=channel_partnership",
-    );
+      screen.getByText(
+        "Not yet supplied by legal: Channel partnership agreement. Record these manually once signed.",
+      ),
+    ).toBeInTheDocument();
     const ready = screen.getByRole("article", { name: "Other" });
     expect(
       within(ready).getByRole("link", { name: "Prepare Other" }),
     ).toHaveAttribute("href", "/internal/contracts/templates/test-fixture");
+    expect(
+      within(screen.getByRole("navigation", { name: "Breadcrumb" })).getByRole(
+        "link",
+        { name: "Contracts" },
+      ),
+    ).toHaveAttribute("href", "/internal/contracts");
+  });
+
+  it("points to recording a signed agreement while legal has supplied none", () => {
+    render(<TemplatePicker t={t} canWrite templates={[pending]} />);
+    expect(
+      screen.getByRole("heading", {
+        name: "Legal has not supplied contract templates yet",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Record a signed agreement instead. Coming from legal: Channel partnership agreement.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Record a contract" }),
+    ).toHaveAttribute("href", "/internal/contracts/new");
+    expect(screen.queryByRole("link", { name: /^Prepare/ })).toBeNull();
   });
 });
 
@@ -277,9 +302,63 @@ describe("register signing outcomes, MNDA links and export limit", () => {
       row({ status: "draft", signingState: "declined", documentCount: 1 }),
     ]);
     expect(screen.getAllByText("Declined")[0]).toBeInTheDocument();
+    // Signing outcomes sit in their own group of the status filter.
+    const group = screen.getByRole("group", { name: "Signing" });
     expect(
-      screen.getByRole("option", { name: "Draft: signer declined" }),
+      within(group).getByRole("option", { name: "Signer declined" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Signed" }).parentElement?.tagName,
+    ).toBe("SELECT");
+  });
+
+  it("applies a filter as soon as it changes, keeping the sort", () => {
+    render(
+      <RegisterView
+        t={t}
+        locale="en-US"
+        query={query({ sort: "counterparty", direction: "asc" })}
+        result={{ rows: [row()], total: 1, page: 1, pageSize: 25 }}
+        today="2026-10-04"
+        canWrite
+        canOpenMndas
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
+    fireEvent.change(screen.getByRole("combobox", { name: "Status" }), {
+      target: { value: "signing_declined" },
+    });
+    expect(mocks.replace).toHaveBeenLastCalledWith(
+      "/internal/contracts?status=signing_declined&sort=counterparty&direction=asc",
+      { scroll: false },
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: "Recorded by me" }));
+    expect(mocks.replace).toHaveBeenLastCalledWith(
+      "/internal/contracts?status=signing_declined&mine=1&sort=counterparty&direction=asc",
+      { scroll: false },
+    );
+  });
+
+  it("runs a search when typing pauses, and folds the filters behind a counted button", () => {
+    vi.useFakeTimers();
+    try {
+      renderRegister([row()], { status: "executed", mine: "1" });
+      const toggle = screen.getByRole("button", { name: "Filters (2)" });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      fireEvent.change(screen.getByRole("searchbox", { name: "Search" }), {
+        target: { value: "blue " },
+      });
+      expect(mocks.replace).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(400);
+      expect(mocks.replace).toHaveBeenCalledWith(
+        "/internal/contracts?q=blue&status=executed&mine=1",
+        { scroll: false },
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not link MNDA rows for readers who cannot open the MNDA register", () => {

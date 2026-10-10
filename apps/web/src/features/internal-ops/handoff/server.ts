@@ -37,15 +37,22 @@ export function handoffRepository() {
 export const mayWorkHandoffs = (session: ContractStaffSession) =>
   sessionHas(session, "operations:write");
 
+/**
+ * `demo` is the guided demo, which keeps no handoffs or organizations; it
+ * reads as turned off rather than as a failure.
+ */
 export type Loaded<T> =
-  { kind: "ready"; value: T } | { kind: "unavailable" } | { kind: "forbidden" };
+  | { kind: "ready"; value: T }
+  | { kind: "demo" }
+  | { kind: "unavailable" }
+  | { kind: "forbidden" };
 
 async function load<T>(
   permission: "operations:read" | "contract:write",
   read: (session: ContractStaffSession) => Promise<T>,
 ): Promise<Loaded<T>> {
-  if (explicitDemoIdentityEnabled() || !getOptionalServiceDatabase())
-    return { kind: "unavailable" };
+  if (explicitDemoIdentityEnabled()) return { kind: "demo" };
+  if (!getOptionalServiceDatabase()) return { kind: "unavailable" };
   let session: ContractStaffSession;
   try {
     session = await contractStaff(permission, getRequestCommerceSession);
@@ -64,14 +71,24 @@ async function load<T>(
   }
 }
 
-/** The operations queue, optionally one status. */
+/**
+ * The operations queue, optionally one status, with the newest requests of
+ * every status for the filter counts.
+ */
 export function loadHandoffQueue(status: HandoffStatus | undefined) {
-  return load<{ requests: HandoffRequestRecord[] }>(
-    "operations:read",
-    async () => ({
-      requests: await handoffRepository().list({ kind: "all" }, status),
-    }),
-  );
+  return load<{
+    requests: HandoffRequestRecord[];
+    recent: HandoffRequestRecord[];
+  }>("operations:read", async () => {
+    const repository = handoffRepository();
+    const recent = await repository.list({ kind: "all" });
+    return {
+      requests: status
+        ? await repository.list({ kind: "all" }, status)
+        : recent,
+      recent,
+    };
+  });
 }
 
 /** One request, with what operations may do to it. */

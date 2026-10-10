@@ -12,15 +12,11 @@
   min-width: 0;
 }
 
-.header h1 {
-  margin: 0;
-  font-family: var(--cw-font-display);
-  font-size: var(--cw-text-display);
-  font-weight: 600;
-  line-height: var(--cw-leading-tight);
+.main :global(.cw-page-header),
+.main :global(.cw-breadcrumbs ol) {
+  margin-bottom: 0;
 }
 
-.header p,
 .muted {
   max-width: 68ch;
   margin: var(--cw-space-1) 0 0;
@@ -53,43 +49,103 @@
   gap: var(--cw-space-3);
 }
 
-.filters {
+/* Status filters: the same pills as the renewal-notice windows. */
+.pills {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: var(--cw-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.filters a[aria-current="page"] {
-  font-weight: 600;
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--cw-border);
+  border-radius: 999px;
+  color: var(--cw-ink-soft);
+  font-size: var(--cw-text-sm);
+  font-weight: 500;
   text-decoration: none;
 }
 
-.tableWrap {
-  overflow-x: auto;
+.pill:hover {
+  border-color: var(--cw-action);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--cw-text-md);
+.pill[aria-current="page"] {
+  border-color: var(--cw-action-border);
+  background: var(--cw-action-soft);
+  color: var(--cw-action-ink);
 }
 
-.table th,
-.table td {
-  padding: var(--cw-space-2) var(--cw-space-3);
-  border-bottom: 1px solid var(--cw-border);
-  text-align: start;
-  vertical-align: top;
+.pill:focus-visible {
+  outline: 2px solid var(--cw-action);
+  outline-offset: 2px;
 }
 
-.table th {
-  color: var(--cw-muted);
-  font-size: var(--cw-text-sm);
+.rowLink {
+  color: var(--cw-ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.rowLink:hover,
+.rowLink:focus-visible {
+  color: var(--cw-action-strong);
+  text-decoration: underline;
+}
+
+/* Below 640px each row becomes a card, as in the contract register. */
+.mobileList {
+  display: grid;
+  gap: var(--cw-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mobileCard {
+  display: grid;
+  gap: var(--cw-space-2);
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-surface);
+  padding: var(--cw-space-4);
+}
+
+.mobileCard h2 {
+  margin: 0;
+  font-size: var(--cw-text-lg);
   font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.mobileCard h2 a {
+  color: var(--cw-ink);
+  text-decoration: none;
+}
+
+.mobileCard dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cw-space-2) var(--cw-space-3);
+  margin: 0;
+}
+
+.mobileCard dt {
+  color: var(--cw-muted);
+  font-size: var(--cw-text-xs);
+}
+
+.mobileCard dd {
+  margin: 0.1rem 0 0;
+  color: var(--cw-ink);
+  font-size: var(--cw-text-md);
+  overflow-wrap: anywhere;
 }
 
 .list {
@@ -162,5 +218,19 @@
 
   .facts dd {
     margin-bottom: var(--cw-space-2);
+  }
+}
+
+.mobileOnly {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .desktopOnly {
+    display: none;
+  }
+
+  .mobileOnly {
+    display: grid;
   }
 }

@@ -70,6 +70,43 @@
   padding-bottom: 1px;
 }
 
+/* The register filters fold behind one button on a phone. */
+.filterForm {
+  display: grid;
+  gap: var(--cw-space-3);
+}
+
+.filterToggle {
+  display: none;
+  justify-self: start;
+}
+
+@media (max-width: 40rem) {
+  /* Folded, the filters are one button; unfolded, the fields take the card. */
+  .card.filterForm {
+    border: 0;
+    background: none;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .filterToggle {
+    display: inline-flex;
+  }
+
+  .filterFields:not([data-open]) {
+    display: none;
+  }
+
+  .filterFields[data-open] {
+    border: 1px solid var(--cw-border);
+    border-radius: var(--cw-radius-lg);
+    background: var(--cw-surface);
+    box-shadow: var(--cw-shadow-xs);
+    padding: var(--cw-space-4);
+  }
+}
+
 .resultBar {
   display: flex;
   flex-wrap: wrap;

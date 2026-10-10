@@ -25,7 +25,7 @@ async function Page({
   if (!/^[0-9a-f-]{36}$/iu.test(id)) notFound();
   const loaded = await loadOrganization(id);
   if (loaded.kind === "forbidden") notFound();
-  if (loaded.kind === "unavailable") throw new Error("ONBOARDING_UNAVAILABLE");
+  if (loaded.kind !== "ready") throw new Error("ONBOARDING_UNAVAILABLE");
   const { organization, invites, canWrite } = loaded.value;
   return (
     <OrganizationDetail

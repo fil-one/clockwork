@@ -22,6 +22,7 @@ import {
   type UploadableContractFileKind,
 } from "@clockwork/contracts";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { useReaderTimeZone } from "../local-timestamp";
 import { formatOperationalTimestamp } from "../presentation";
 import { removeContractFile } from "./actions";
 import { contractFileKindLabels, errorMessage, formatFileSize } from "./copy";
@@ -45,6 +46,8 @@ export function ContractDocuments({
 }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
+  // Times read in the reader's own zone, as on the owner console.
+  const timeZone = useReaderTimeZone();
   const router = useRouter();
   const [kind, setKind] = useState<UploadableContractFileKind>(suggestedKind);
   const [file, setFile] = useState<File | null>(null);
@@ -146,6 +149,7 @@ export function ContractDocuments({
                       time: formatOperationalTimestamp(
                         document.createdAt,
                         locale,
+                        timeZone,
                       ),
                     })}
                   </span>

@@ -25,6 +25,7 @@ import {
 } from "@clockwork/ui";
 import type { MessageId } from "@/src/i18n";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { useReaderTimeZone } from "../local-timestamp";
 import { formatOperationalTimestamp } from "../presentation";
 import {
   correctContractSigner,
@@ -32,7 +33,12 @@ import {
   operateContract,
   voidContract,
 } from "./actions";
-import { approvalStateLabels, errorMessage, signingStateLabels } from "./copy";
+import {
+  approvalStateLabels,
+  errorMessage,
+  signingStateLabel,
+  signingStateTone,
+} from "./copy";
 import { SessionExpiredReload } from "../session-expiry";
 import { SelfApprovalDialog } from "../self-approval/self-approval-dialog";
 import styles from "./contracts.module.css";
@@ -148,6 +154,8 @@ export function SigningPanel({
 }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
+  // Times read in the reader's own zone, as on the owner console.
+  const timeZone = useReaderTimeZone();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -242,15 +250,12 @@ export function SigningPanel({
           </p>
         </div>
         <StatusBadge
-          tone={
-            signing.state === "completed"
-              ? "success"
-              : signing.state === "attention" || signing.error
-                ? "warning"
-                : "info"
-          }
+          tone={signingStateTone(signing.state, {
+            error: signing.error,
+            approvalPending: signing.approvalState === "pending",
+          })}
         >
-          {t(signingStateLabels[signing.state])}
+          {t(signingStateLabel(signing.state, signing.cancelCode))}
         </StatusBadge>
       </div>
       <ProgressSteps
@@ -315,15 +320,28 @@ export function SigningPanel({
           description={t("operations.contracts.signing.paperClosedBody")}
           {...(canWrite
             ? {
+                // Two existing steps, in order: record the contract again
+                // from this one, then close this record so it is not
+                // counted twice.
                 action: (
-                  <Link
-                    className={buttonClassName({ variant: "secondary" })}
-                    href={
-                      `/internal/contracts/new?from=${signing.contractId}` as Route
-                    }
-                  >
-                    {t("operations.contracts.signing.recordAgain")}
-                  </Link>
+                  <span className={styles.headerActions}>
+                    <Link
+                      className={buttonClassName({ variant: "secondary" })}
+                      href={
+                        `/internal/contracts/new?from=${signing.contractId}` as Route
+                      }
+                    >
+                      {t("operations.contracts.signing.recordAgain")}
+                    </Link>
+                    <Link
+                      className={buttonClassName({ variant: "quiet" })}
+                      href={
+                        `/internal/contracts/${signing.contractId}/edit` as Route
+                      }
+                    >
+                      {t("operations.contracts.signing.closeThisOne")}
+                    </Link>
+                  </span>
                 ),
               }
             : {})}
@@ -377,7 +395,7 @@ export function SigningPanel({
           },
           {
             term: t("operations.contracts.signing.preparedBy"),
-            detail: `${signing.preparerName}, ${formatOperationalTimestamp(signing.createdAt, locale)}`,
+            detail: `${signing.preparerName}, ${formatOperationalTimestamp(signing.createdAt, locale, timeZone)}`,
           },
           {
             term: t("operations.contracts.signing.approval"),
@@ -391,7 +409,11 @@ export function SigningPanel({
                     {
                       name: signing.approverName ?? "",
                       time: signing.decidedAt
-                        ? formatOperationalTimestamp(signing.decidedAt, locale)
+                        ? formatOperationalTimestamp(
+                            signing.decidedAt,
+                            locale,
+                            timeZone,
+                          )
                         : "",
                     },
                   )

@@ -32,7 +32,7 @@ async function Page({
     loadOnboardingHandoff(handoffId),
   ]);
   if (loaded.kind === "forbidden") notFound();
-  if (loaded.kind === "unavailable") throw new Error("ONBOARDING_UNAVAILABLE");
+  if (loaded.kind !== "ready") throw new Error("ONBOARDING_UNAVAILABLE");
   const handoff = loaded.value;
   const ready =
     !handoff || (handoff.status === "in_progress" && !handoff.organizationId);

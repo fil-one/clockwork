@@ -152,7 +152,9 @@ describe("record a contract", () => {
       within(summary).getByText(/Counterparty legal name: Required/),
     ).toBeInTheDocument();
     expect(
-      within(summary).getByText(/Initial term: Enter a whole number/),
+      within(summary).getByText(
+        /Initial term: Enter the term in whole months, for example 12\./,
+      ),
     ).toBeInTheDocument();
     expect(mocks.saveContract).not.toHaveBeenCalled();
   });
@@ -820,7 +822,7 @@ describe("counterparty paper", () => {
       );
     detail(null);
     expect(
-      screen.getByRole("heading", { name: "Send for Fil One signature" }),
+      screen.getByRole("heading", { name: "Prepare for signature" }),
     ).toBeInTheDocument();
     cleanup();
     detail({
@@ -832,7 +834,7 @@ describe("counterparty paper", () => {
       providerId: "x",
     });
     expect(
-      screen.queryByRole("heading", { name: "Send for Fil One signature" }),
+      screen.queryByRole("heading", { name: "Prepare for signature" }),
     ).toBeNull();
     expect(
       screen.getByText(
@@ -876,8 +878,12 @@ describe("counterparty paper", () => {
     );
     // The old record is closed by hand, so it is not counted twice.
     expect(
-      screen.getByText(/set its status to Terminated/),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: "Set this record to Terminated" }),
+    ).toHaveAttribute(
+      "href",
+      `/internal/contracts/${fixtureSigningRecord.contractId}/edit`,
+    );
+    expect(screen.getByText("Voided")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Prepare again" })).toBeNull();
   });
 
@@ -969,7 +975,7 @@ describe("contract documents", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Remove" }));
     expect(
       await screen.findByText(
-        /Documents on an executed contract cannot be removed/,
+        /Documents on a signed contract cannot be removed/,
       ),
     ).toBeInTheDocument();
   });
@@ -1053,5 +1059,44 @@ describe("contract history", () => {
     ])
       expect(within(history).getByText(text)).toBeInTheDocument();
     expect(within(history).queryByText(/^contract\./)).toBeNull();
+  });
+
+  it("sits under a breadcrumb trail and spells out what is not set", () => {
+    render(
+      <ContractDetail
+        t={translatorFor("en")}
+        locale="en-US"
+        contract={{
+          ...fixtureContractRecord,
+          termEndDate: null,
+          renewalDate: null,
+          noticeDeadline: null,
+        }}
+        files={[]}
+        activity={[]}
+        signing={null}
+        today="2026-10-09"
+        canWrite
+        canApprove={false}
+        isPreparer={false}
+        signingReady
+      />,
+    );
+    const trail = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(
+      within(trail).getByRole("link", { name: "Contracts" }),
+    ).toHaveAttribute("href", "/internal/contracts");
+    expect(within(trail).getByText("Bluefin Data Co.")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      screen.queryByRole("link", { name: "Back to contracts" }),
+    ).toBeNull();
+    const terms = screen.getByRole("region", { name: "Key terms" });
+    expect(within(terms).getAllByText("Not set").length).toBeGreaterThan(0);
+    // No bare dash placeholder on the record page.
+    expect(within(terms).queryByText("\u2014")).toBeNull();
+    expect(screen.getByText("None")).toBeInTheDocument();
   });
 });

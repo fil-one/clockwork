@@ -144,8 +144,15 @@ export function PrepareForm({
     }
   }
 
+  // A template value is worded by its kind; a standard field by its name.
+  const fieldKey = (path: string) => {
+    const field = template.fields.find((f) => `values.${f.id}` === path);
+    return field ? `kind:${field.kind}` : path;
+  };
   const fieldError = (path: string) =>
-    problems[path] ? t(fieldMessage(problems[path])) : undefined;
+    problems[path]
+      ? t(fieldMessage(problems[path], fieldKey(path)))
+      : undefined;
   const issues = Object.entries(problems).map(([path, code]) => {
     const standard = standardFields.find(([key]) => key === path);
     const field = template.fields.find((f) => `values.${f.id}` === path);
@@ -156,7 +163,7 @@ export function PrepareForm({
         : t("operations.contracts.form.check");
     return {
       id: path,
-      label: `${label}: ${t(fieldMessage(code))}`,
+      label: `${label}: ${t(fieldMessage(code, fieldKey(path)))}`,
       href: `#${formId}-${path.replace(".", "-")}`,
     };
   });

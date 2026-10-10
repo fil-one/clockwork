@@ -3,8 +3,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import type { HandoffRequestDetail } from "@clockwork/db";
-import { StatusBadge } from "@clockwork/ui";
+import { Breadcrumbs, PageHeader, StatusBadge } from "@clockwork/ui";
 
+import { breadcrumbsLabel } from "@/src/features/shared/ui-kit-labels";
+import type { Translator } from "@/src/i18n";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 
 import { contractStatusLabels, formatContractDate } from "../contracts/copy";
@@ -16,6 +18,25 @@ import {
   handoffStatusTone,
 } from "./model";
 import styles from "./handoff.module.css";
+
+/** A contract's status and how it came to be signed, in one phrase. */
+function contractState(
+  contract: HandoffRequestDetail["contracts"][number],
+  t: Translator,
+): string {
+  if (contract.status === "executed" && contract.signedVia)
+    return t(
+      contract.signedVia === "commerce"
+        ? "operations.handoff.detail.signedInCommerceOnly"
+        : "operations.handoff.detail.recordedExecutedOnly",
+    );
+  const status = t(contractStatusLabels[contract.status]);
+  return contract.signedVia === "commerce"
+    ? `${status}, ${t("operations.handoff.detail.signedInCommerce")}`
+    : contract.signedVia === "recorded"
+      ? `${status}, ${t("operations.handoff.detail.recordedExecuted")}`
+      : status;
+}
 
 /** One handoff as operations works it. */
 export async function HandoffDetailView({
@@ -37,22 +58,32 @@ export async function HandoffDetailView({
   const none = t("operations.handoff.detail.none");
   return (
     <main className={styles.main} id="main-content">
-      <header className={styles.header}>
-        <Link href="/internal/handoffs">
-          {t("operations.handoff.detail.back")}
-        </Link>
-        <h1>{request.counterpartyLegalName}</h1>
-        <p className={styles.rowHeading}>
-          <StatusBadge tone={handoffStatusTone[request.status]}>
-            {t(handoffStatusLabels[request.status])}
-          </StatusBadge>
-          <span>{t(handoffSideLabels[request.requestedSide])}</span>
-          <span>
-            {request.requestedByName},{" "}
-            {formatContractDate(handoffDay(request.createdAt), locale)}
+      <Breadcrumbs
+        label={breadcrumbsLabel(t)}
+        items={[
+          {
+            label: t("operations.handoff.queue.title"),
+            href: "/internal/handoffs",
+          },
+          { label: request.counterpartyLegalName },
+        ]}
+        renderLink={(href, label) => <Link href={href as Route}>{label}</Link>}
+      />
+      <PageHeader
+        title={request.counterpartyLegalName}
+        description={t("operations.handoff.detail.requested", {
+          name: request.requestedByName,
+          date: formatContractDate(handoffDay(request.createdAt), locale),
+        })}
+        metadata={
+          <span className={styles.rowHeading}>
+            <StatusBadge tone={handoffStatusTone[request.status]}>
+              {t(handoffStatusLabels[request.status])}
+            </StatusBadge>
+            <span>{t(handoffSideLabels[request.requestedSide])}</span>
           </span>
-        </p>
-      </header>
+        }
+      />
       <section className={styles.card} aria-labelledby="handoff-facts">
         <h2 id="handoff-facts">{t("operations.handoff.detail.title")}</h2>
         <dl className={styles.facts}>
@@ -64,13 +95,7 @@ export async function HandoffDetailView({
                   <Link href={`/internal/contracts/${contract.id}` as Route}>
                     {contract.title || contract.counterpartyName}
                   </Link>{" "}
-                  ({t(contractStatusLabels[contract.status])}
-                  {contract.signedVia === "commerce"
-                    ? `, ${t("operations.handoff.detail.signedInCommerce")}`
-                    : contract.signedVia === "recorded"
-                      ? `, ${t("operations.handoff.detail.recordedExecuted")}`
-                      : ""}
-                  )
+                  ({contractState(contract, t)})
                 </li>
               ))}
             </ul>

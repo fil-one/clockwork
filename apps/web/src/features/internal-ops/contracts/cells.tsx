@@ -5,21 +5,26 @@ import {
   contractStatusLabels,
   contractStatusTone,
   signingStateLabels,
+  signingStateTone,
   daysUntil,
   formatContractDate,
 } from "./copy";
 import styles from "./contracts.module.css";
 
-/** A calendar date, or a dash with a spoken "not set". */
+/** A calendar date, or a dash with a spoken "not set". On a record page,
+ * where a dash reads as missing data, `spelled` writes "Not set" out. */
 export function DateValue({
   date,
   t,
   locale,
+  spelled = false,
 }: {
   date: string | null;
   t: Translator;
   locale: string;
+  spelled?: boolean;
 }) {
+  if (!date && spelled) return <span>{t("operations.contracts.notSet")}</span>;
   if (!date)
     return (
       <span>
@@ -36,13 +41,16 @@ export function DeadlineValue({
   today,
   t,
   locale,
+  spelled = false,
 }: {
   date: string | null;
   today: string;
   t: Translator;
   locale: string;
+  spelled?: boolean;
 }) {
-  if (!date) return <DateValue date={null} t={t} locale={locale} />;
+  if (!date)
+    return <DateValue date={null} t={t} locale={locale} spelled={spelled} />;
   const days = daysUntil(date, today);
   return (
     <span className={styles.dateCell}>
@@ -102,20 +110,21 @@ export function StatusValue({
   >;
   t: Translator;
 }) {
-  const stopped =
-    row.status === "draft" &&
-    (row.signingState === "declined" ||
-      row.signingState === "expired" ||
-      row.signingState === "canceled");
+  // A draft whose signing closed unsigned says how; a request that needs a
+  // person says so on any status.
+  const shown =
+    row.signingState === "attention" ||
+    (row.status === "draft" &&
+      (row.signingState === "declined" ||
+        row.signingState === "expired" ||
+        row.signingState === "canceled"));
   return (
     <span className={styles.badges}>
       <StatusBadge tone={contractStatusTone[row.status]}>
         {t(contractStatusLabels[row.status])}
       </StatusBadge>
-      {stopped && row.signingState ? (
-        <StatusBadge
-          tone={row.signingState === "canceled" ? "neutral" : "warning"}
-        >
+      {shown && row.signingState ? (
+        <StatusBadge tone={signingStateTone(row.signingState)}>
           {t(signingStateLabels[row.signingState])}
         </StatusBadge>
       ) : null}
