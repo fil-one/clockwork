@@ -177,6 +177,23 @@ it("warns before papering a company that already has an MNDA", async () => {
   expect(screen.getByText(/Signed, .*R\.W\. Holleman/)).toBeVisible();
 });
 
+it("explains a SignWell copy that no longer matches, and offers only a void", () => {
+  render(
+    <MndaWorkspace
+      initial={data([
+        { ...sent, state: "attention", error: "signwell_signers_mismatch" },
+      ])}
+      initialQuery={query}
+    />,
+  );
+  expect(
+    screen.getByText(/The signers in SignWell no longer match this MNDA/),
+  ).toBeVisible();
+  expect(screen.getByText(/Void it, then send it again\./)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Void" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Fix email" })).toBeNull();
+});
+
 it("explains blocked requests in plain words with the next step", () => {
   render(
     <MndaWorkspace

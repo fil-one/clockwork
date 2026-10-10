@@ -78,6 +78,16 @@ function rowNote(
       reason: "operations.mnda.note.deletedInSignWell",
       next: "operations.mnda.note.deletedNext",
     };
+  if (r.state === "attention" && r.error === "signwell_signers_mismatch")
+    return {
+      reason: "operations.mnda.note.signersMismatch",
+      next: "operations.mnda.note.stoppedNext",
+    };
+  if (r.state === "attention" && r.error === "signwell_binding_mismatch")
+    return {
+      reason: "operations.mnda.note.bindingMismatch",
+      next: "operations.mnda.note.stoppedNext",
+    };
   if (r.state === "attention")
     return r.error === "recipient_bounced"
       ? {

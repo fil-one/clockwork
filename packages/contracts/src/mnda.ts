@@ -364,6 +364,7 @@ export const mndaErrorCodes = [
   "signer_started",
   "not_correctable",
   "already_completed",
+  "needs_attention",
   "reason_required",
   "unexpected",
 ] as const;
@@ -382,6 +383,9 @@ export const mndaAttentionReasons = [
   "recipient_bounced",
   "provider_stopped",
   "deleted_in_signwell",
+  // SignWell's copy names other signers, or is not bound to this request.
+  "signwell_signers_mismatch",
+  "signwell_binding_mismatch",
 ] as const;
 export type MndaAttentionReason = (typeof mndaAttentionReasons)[number];
 
