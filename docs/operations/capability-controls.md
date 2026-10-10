@@ -1,10 +1,15 @@
 # Production capability controls
 
 Production migrations leave new business, legal, billing, partner, marketplace,
-and teardown disabled, including recovery work. The demo seed explicitly turns
-on its fictional development paths; **never apply `supabase/seed.sql` to staging
-or production**. Migration 001423 changes only the old migration-owned defaults,
-so an existing explicit operator decision is preserved.
+and teardown disabled, including recovery work. Price-book administration
+(drafts, import, clone, activation and scheduled activation) needs no switch;
+its permissions, approval, audit and published immutability govern it, and an
+active book opens no quote or order path. See
+[publishing the Fil One list price book](fil-one-list-price-book.md). The demo
+seed explicitly turns on its fictional development paths; **never apply
+`supabase/seed.sql` to staging or production**. Migration 001423 changes only
+the old migration-owned defaults, so an existing explicit operator decision is
+preserved.
 
 Use `/internal/capabilities` with an authenticated, MFA-verified staff identity.
 An internal operator requests activation of either new work or recovery work,

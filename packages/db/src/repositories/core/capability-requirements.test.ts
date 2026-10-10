@@ -39,6 +39,27 @@ describe("core command capability requirements", () => {
       });
   });
 
+  it("needs no switch for price-book administration", () => {
+    for (const action of [
+      "create",
+      "clone",
+      "import",
+      "add_rate",
+      "update_rate",
+      "remove_rate",
+      "update_discount_matrix",
+      "reject_activation",
+      "schedule_activation",
+      "cancel_schedule",
+      "request_activation",
+      "activate",
+      "retire",
+    ])
+      expect(
+        coreCommandCapabilities({ resource: "price_books", action }),
+      ).toEqual({ capabilities: [], recovery: false });
+  });
+
   it("needs nothing for a resource outside the core command set", () => {
     expect(
       coreCommandCapabilities({ resource: "exceptions", action: "review" }),
