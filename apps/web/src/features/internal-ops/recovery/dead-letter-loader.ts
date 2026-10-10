@@ -43,7 +43,10 @@ export async function loadDeadLetterOperations(input: {
         source: "demo",
         readable: true,
       };
-    } catch {
+    } catch (error) {
+      console.error("Demo dead letters could not be read", {
+        error: error instanceof Error ? error.name : "unknown",
+      });
       return {
         operations: [],
         source: "unavailable",
@@ -68,7 +71,10 @@ export async function loadDeadLetterOperations(input: {
       source: "live",
       readable: true,
     };
-  } catch {
+  } catch (error) {
+    console.error("Dead letters could not be read", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
     return {
       operations: [],
       source: "unavailable",

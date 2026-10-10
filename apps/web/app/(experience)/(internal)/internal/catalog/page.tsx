@@ -42,6 +42,7 @@ async function Page() {
         `catalog:${crypto.randomUUID()}`,
       );
   } catch {
+    // An unreadable catalog renders as unavailable, never as empty.
     rows = null;
   }
   const canEdit = contextHasAnyPermission(session, [

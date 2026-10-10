@@ -12,6 +12,7 @@ function httpOrigin(value: string | undefined): string | undefined {
       return undefined;
     return url.origin;
   } catch {
+    // A malformed setting falls through to the next candidate origin.
     return undefined;
   }
 }

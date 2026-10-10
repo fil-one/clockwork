@@ -15,14 +15,6 @@ export function configureCoreFinanceWorkflowEngine(
   configuredInstrumentation = instrumentation;
 }
 
-/** Test-only lifecycle helper; production bootstraps exactly once. */
-export function resetCoreFinanceWorkflowEngineForTest(): void {
-  if (process.env.NODE_ENV === "production")
-    throw new Error("TASK_RUNTIME_RESET_FORBIDDEN");
-  configuredEngine = undefined;
-  configuredInstrumentation = undefined;
-}
-
 export function configuredCoreFinanceWorkflowEngine(): CoreFinanceWorkflowEngine {
   if (!configuredEngine)
     throw new Error(

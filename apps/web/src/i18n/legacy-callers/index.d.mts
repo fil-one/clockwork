@@ -1,5 +1,4 @@
 export interface LegacyCallerLists {
-  readonly localizeCopy: readonly string[];
   readonly literalLocales: readonly string[];
 }
 

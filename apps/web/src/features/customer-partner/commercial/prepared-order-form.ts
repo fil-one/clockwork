@@ -36,8 +36,3 @@ export type PreparedOrderFormLookup =
   | { status: "unavailable" }
   /** The session no longer holds the permission the acceptance needs. */
   | { status: "forbidden" };
-
-/** Asks the server whether the order form for `orderId` has been stored. */
-export type LookupPreparedOrderForm = (
-  orderId: string,
-) => Promise<PreparedOrderFormLookup>;

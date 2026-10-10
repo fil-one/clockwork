@@ -8,8 +8,6 @@ import type {
   ExperienceAudience,
   ProjectionActionReceipt,
   ProjectionChannel,
-  ProjectionPage,
-  ProjectionRecord,
 } from "@/src/features/experience-server/model";
 
 export interface ExperienceClientOptions {
@@ -134,49 +132,6 @@ async function sha256(bytes: ArrayBuffer): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) =>
     byte.toString(16).padStart(2, "0"),
   ).join("");
-}
-
-export function readProjection(
-  input: {
-    audience: ExperienceAudience;
-    channel: ProjectionChannel;
-    accountId?: string;
-    cursor?: string;
-    limit?: number;
-  },
-  options: ExperienceClientOptions = {},
-): Promise<ProjectionPage> {
-  const url = new URL(
-    `/api/experience/projections/${input.audience}/${input.channel}`,
-    typeof window === "undefined" ? "http://localhost" : window.location.origin,
-  );
-  if (input.accountId) url.searchParams.set("accountId", input.accountId);
-  if (input.cursor) url.searchParams.set("cursor", input.cursor);
-  url.searchParams.set("limit", String(input.limit ?? 25));
-  return implementation(options)(url.pathname + url.search, {
-    credentials: "same-origin",
-    cache: "no-store",
-  }).then(result<ProjectionPage>);
-}
-
-export function readProjectionRecord(
-  input: {
-    audience: ExperienceAudience;
-    channel: ProjectionChannel;
-    recordKey: string;
-    accountId?: string;
-  },
-  options: ExperienceClientOptions = {},
-): Promise<ProjectionRecord> {
-  const url = new URL(
-    `/api/experience/projections/${input.audience}/${input.channel}/${encodeURIComponent(input.recordKey)}`,
-    typeof window === "undefined" ? "http://localhost" : window.location.origin,
-  );
-  if (input.accountId) url.searchParams.set("accountId", input.accountId);
-  return implementation(options)(url.pathname + url.search, {
-    credentials: "same-origin",
-    cache: "no-store",
-  }).then(result<ProjectionRecord>);
 }
 
 export function sendProjectionAction(

@@ -40,20 +40,6 @@ export function divideRound(
   return sign * (quotient + (remainder * 2n >= denominator ? 1n : 0n));
 }
 
-export function multiplyQuantity(
-  left: string,
-  right: string,
-  rounding: RoundingMode = "half_up",
-): string {
-  return formatDecimal(
-    divideRound(
-      parseDecimal(left) * parseDecimal(right),
-      QUANTITY_SCALE,
-      rounding,
-    ),
-  );
-}
-
 export function addQuantities(...values: readonly string[]): string {
   return formatDecimal(
     values.reduce((sum, value) => sum + parseDecimal(value, true), 0n),
@@ -79,17 +65,6 @@ export function multiplyMinorByQuantity(
     QUANTITY_SCALE * 10_000n,
     rounding,
   );
-}
-
-export function prorateScaled(
-  scaled: bigint,
-  covered: bigint,
-  total: bigint,
-  rounding: RoundingMode = "half_up",
-): bigint {
-  if (covered < 0n || total <= 0n || covered > total)
-    throw new Error("Invalid proration interval");
-  return divideRound(scaled * covered, total, rounding);
 }
 
 export { QUANTITY_SCALE };

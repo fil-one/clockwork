@@ -1,8 +1,8 @@
 import type { OrganizationSide, Role } from "@clockwork/contracts";
 
 export const DEMO_PERSONA_HEADER = "x-clockwork-persona";
-export const DEMO_ACCOUNT_HEADER = "x-clockwork-account";
-export const DEMO_MFA_HEADER = "x-clockwork-mfa";
+const DEMO_ACCOUNT_HEADER = "x-clockwork-account";
+const DEMO_MFA_HEADER = "x-clockwork-mfa";
 
 export type DemoPersonaKind =
   | "direct_buyer"
@@ -293,10 +293,6 @@ export function demoPersonaHeaders(persona: DemoPersonaKey) {
     [DEMO_ACCOUNT_HEADER]: value.selectedAccountId,
     [DEMO_MFA_HEADER]: String(value.mfaVerified),
   } as const;
-}
-
-export function getDemoPersona(persona: DemoPersonaKey): DemoPersona {
-  return demoPersonas[persona];
 }
 
 const sideByKind = {

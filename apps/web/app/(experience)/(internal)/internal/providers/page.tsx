@@ -59,6 +59,7 @@ async function Page() {
         requestId: `provider-references:${crypto.randomUUID()}`,
       });
   } catch {
+    // An unreadable register renders as unavailable, never as empty.
     rows = null;
   }
   const now = Date.now();

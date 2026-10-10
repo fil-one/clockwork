@@ -48,6 +48,7 @@ export function createCsrfAndOriginMiddleware(
           requestId: request.requestId,
         });
       } catch {
+        // A failed lookup verifies nothing; the request is refused below.
         verifiedCustomOrigin = false;
       }
     }

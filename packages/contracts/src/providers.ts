@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { Actor, EventEnvelope } from "./events";
+import type { EventEnvelope } from "./events";
 import { CurrencySchema, MinorUnitSchema, QuantitySchema } from "./primitives";
 import type {
   AccountId,
@@ -488,10 +488,4 @@ export interface WebhookVerifier<T> {
     signature: string;
     toleranceSeconds?: number;
   }): Promise<WebhookVerificationResult<T>>;
-}
-
-export interface ActionAuditContext {
-  actor: Actor;
-  requestId: string;
-  origin: string;
 }

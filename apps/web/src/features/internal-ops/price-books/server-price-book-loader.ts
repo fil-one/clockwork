@@ -69,9 +69,12 @@ export async function loadPriceBookRecords(
         availability: books.length ? "available" : "empty",
         readAt,
       };
-    } catch {
+    } catch (error) {
       // A canonical demo may fall through to its explicitly labelled fixture.
       // Ordinary deployments still fail closed below.
+      console.error("Price books could not be read", {
+        error: error instanceof Error ? error.name : "unknown",
+      });
     }
   const demoEnabled =
     input.demoEnabled ?? demoDeployIdentityEnabled(process.env);
@@ -82,8 +85,11 @@ export async function loadPriceBookRecords(
         readAt,
         input.locale,
       );
-    } catch {
+    } catch (error) {
       // Corrupt or unreachable demo state is unavailable, never pristine.
+      console.error("Demo price books could not be read", {
+        error: error instanceof Error ? error.name : "unknown",
+      });
     }
   return {
     books: [],

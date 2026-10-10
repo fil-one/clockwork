@@ -36,16 +36,22 @@ export async function loadRuntimeFailureIncidents(input: {
         locale: await getLocale(),
         ...(input.limit === undefined ? {} : { limit: input.limit }),
       });
-    } catch {
+    } catch (error) {
+      console.error("Demo incident queue could not be read", {
+        error: error instanceof Error ? error.name : "unknown",
+      });
       return unreadableIncidentQueue;
     }
   if (!database) return unwiredIncidentQueue;
   try {
     return await readRuntimeFailureIncidents(database, input);
-  } catch {
+  } catch (error) {
     // The exception itself is not surfaced: the runbook's own step 1 forbids
     // putting an exception message where it can be read off a screen, and this
     // page is read off a screen.
+    console.error("Incident queue could not be read", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
     return unreadableIncidentQueue;
   }
 }

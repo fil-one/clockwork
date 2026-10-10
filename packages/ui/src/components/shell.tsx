@@ -487,24 +487,6 @@ export function PageHeader({
   );
 }
 
-export interface ToolbarProps {
-  label: string;
-  children: ReactNode;
-  className?: string;
-}
-
-export function Toolbar({ label, children, className = "" }: ToolbarProps) {
-  return (
-    <div
-      className={`cw-toolbar ${className}`.trim()}
-      role="toolbar"
-      aria-label={label}
-    >
-      {children}
-    </div>
-  );
-}
-
 export interface SectionProps {
   title: ReactNode;
   description?: ReactNode;

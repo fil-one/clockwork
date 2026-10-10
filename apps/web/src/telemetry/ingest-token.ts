@@ -112,6 +112,7 @@ function fromBase64Url(value: string): Uint8Array | undefined {
     const binary = atob(normalized.padEnd(normalized.length + padding, "="));
     return Uint8Array.from(binary, (character) => character.charCodeAt(0));
   } catch {
+    // Malformed base64 decodes to nothing, so it matches no digest.
     return undefined;
   }
 }

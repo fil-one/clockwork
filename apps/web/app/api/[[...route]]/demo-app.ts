@@ -283,6 +283,7 @@ function normalizedHost(value: string | null): string | undefined {
   try {
     parsed = new URL(`http://${value}`);
   } catch {
+    // A host that will not parse is no host.
     return undefined;
   }
   if (parsed.host.toLowerCase() !== value.toLowerCase()) return undefined;

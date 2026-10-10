@@ -35,6 +35,3 @@ export const lifecycleEventTypes = Object.freeze({
   migrationCompleted: "migration.completed",
   marketplaceEntitlementReceived: "entitlement.marketplace_event_received",
 } as const);
-
-export type LifecycleEventType =
-  (typeof lifecycleEventTypes)[keyof typeof lifecycleEventTypes];

@@ -1,9 +1,7 @@
-import type { BrowserContext, Page } from "@playwright/test";
 import { permissionsForRoles } from "@clockwork/contracts";
 import type { Permission, Role } from "@clockwork/contracts";
 
 import {
-  demoPersonaHeaders,
   demoPersonaSide,
   demoPersonas,
   type DemoPersona,
@@ -43,12 +41,4 @@ export function demoSessionForPersona(
       ? { assistedAccountId: persona.assistedAccountId }
       : {}),
   };
-}
-
-/** Applies the same deterministic local-auth headers to Page or BrowserContext. */
-export async function applyDemoPersona(
-  target: Page | BrowserContext,
-  personaKey: DemoPersonaKey,
-): Promise<void> {
-  await target.setExtraHTTPHeaders(demoPersonaHeaders(personaKey));
 }

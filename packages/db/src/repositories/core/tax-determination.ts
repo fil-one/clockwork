@@ -1259,5 +1259,3 @@ function textArray(values: readonly string[]) {
       with ordinality as entry(value, ordinality)
   )`;
 }
-
-export const taxDeterminationInternals = { canonicalJson, determinationIdFor };

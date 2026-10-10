@@ -45,7 +45,6 @@ export const staffProvisioningRoles = [
   "internal_operator",
 ] as const;
 export const StaffProvisioningRoleSchema = z.enum(staffProvisioningRoles);
-export type StaffProvisioningRole = z.infer<typeof StaffProvisioningRoleSchema>;
 
 /** Explicit deployment-owner input; never accepted from a customer request. */
 export const StaffProvisioningSchema = z

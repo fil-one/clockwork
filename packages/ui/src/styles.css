@@ -1166,8 +1166,7 @@ summary {
   font-size: var(--cw-text-sm);
 }
 
-.cw-page-header__actions,
-.cw-toolbar {
+.cw-page-header__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1176,13 +1175,6 @@ summary {
 
 .cw-page-header__actions {
   justify-content: flex-end;
-}
-
-.cw-toolbar {
-  min-height: 3rem;
-  justify-content: space-between;
-  border-block: 1px solid var(--cw-border);
-  padding-block: var(--cw-space-2);
 }
 
 .cw-section {
@@ -3960,7 +3952,6 @@ summary {
   .cw-shell__banner,
   .cw-shell__footer,
   .cw-page-header__actions,
-  .cw-toolbar,
   .cw-document-card__actions,
   .cw-queue-row__actions {
     display: none !important;

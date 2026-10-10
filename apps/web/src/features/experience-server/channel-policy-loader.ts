@@ -24,7 +24,10 @@ export async function loadChannelPolicy(): Promise<ChannelPolicySnapshot | null>
   if (!database) return null;
   try {
     return await new DatabaseChannelPolicyRepository(database).active();
-  } catch {
+  } catch (error) {
+    console.error("Channel policy could not be read", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
     return null;
   }
 }

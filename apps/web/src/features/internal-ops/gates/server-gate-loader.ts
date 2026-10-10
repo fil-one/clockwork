@@ -84,7 +84,10 @@ export async function loadConfiguredGateRecords(
         ).map((gate) => presentGeneratedGate(gate, formattingLocale)),
         source: "Demonstration gate registry", // i18n-exempt: GateRecordSource key; the gate register names it
       };
-    } catch {
+    } catch (error) {
+      console.error("Demo gate registry could not be read", {
+        error: error instanceof Error ? error.name : "unknown",
+      });
       return failClosed(runtimeEnvironment, t);
     }
   if (!service) return failClosed(runtimeEnvironment, t);
@@ -111,7 +114,10 @@ export async function loadConfiguredGateRecords(
       ),
       source: "System gate registry", // i18n-exempt: GateRecordSource key; the gate register names it
     };
-  } catch {
+  } catch (error) {
+    console.error("Gate registry could not be read", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
     return failClosed(runtimeEnvironment, t);
   }
 }

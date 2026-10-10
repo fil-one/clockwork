@@ -51,7 +51,10 @@ export async function getCapabilityState(session: {
   if (!session.providerBacked) return allCapabilitiesEnabled;
   try {
     return capabilityStateFrom(await readCapabilityRows());
-  } catch {
+  } catch (error) {
+    console.error("Capability state could not be read", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
     return capabilityStateFrom([]);
   }
 }

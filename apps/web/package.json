@@ -33,7 +33,6 @@
     "@swc/helpers": "0.5.15",
     "@workos-inc/authkit-nextjs": "catalog:",
     "@workos-inc/node": "catalog:",
-    "hono": "catalog:",
     "drizzle-orm": "catalog:",
     "msw": "catalog:",
     "next": "16.3.8",

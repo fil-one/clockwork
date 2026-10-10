@@ -143,12 +143,6 @@ export function configureOutboxDispatcher(
   configuredDispatcher = dispatcher;
 }
 
-export function resetOutboxDispatcherForTests(): void {
-  if (process.env.NODE_ENV === "production")
-    throw new Error("OUTBOX_DISPATCHER_RESET_FORBIDDEN");
-  configuredDispatcher = undefined;
-}
-
 export function executeConfiguredOutboxDispatcher(workerId: string) {
   if (!configuredDispatcher)
     throw new Error("OUTBOX_DISPATCHER_NOT_CONFIGURED");

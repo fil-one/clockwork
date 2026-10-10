@@ -18,20 +18,13 @@ const literalLocale =
 describe("legacy i18n exemptions", () => {
   for (const [lane, lists] of Object.entries(legacyCallers)) {
     it(`${lane} lists only live callers it owns`, () => {
-      for (const kind of ["localizeCopy", "literalLocales"] as const) {
-        for (const file of lists[kind]) {
-          expect(existsSync(join(root, file)), `${file} is gone`).toBe(true);
-          expect(laneOf(file), `${file} is not a ${lane} file`).toBe(lane);
-          const source = readFileSync(join(root, file), "utf8");
-          if (kind === "localizeCopy")
-            expect(source, `${file} no longer needs ${kind}`).toContain(
-              "@/src/i18n/copy",
-            );
-          else
-            expect(source, `${file} no longer needs ${kind}`).toMatch(
-              literalLocale,
-            );
-        }
+      for (const file of lists.literalLocales) {
+        expect(existsSync(join(root, file)), `${file} is gone`).toBe(true);
+        expect(laneOf(file), `${file} is not a ${lane} file`).toBe(lane);
+        const source = readFileSync(join(root, file), "utf8");
+        expect(source, `${file} no longer needs literalLocales`).toMatch(
+          literalLocale,
+        );
       }
     });
   }

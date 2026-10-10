@@ -1,5 +1,4 @@
 import { renderToBuffer } from "@react-pdf/renderer";
-import React from "react";
 
 import { canonicalizeReactPdf } from "./canonicalize";
 import { CommerceDocument } from "./documents";
@@ -9,39 +8,11 @@ import {
   sha256,
   slugifyFilePart,
 } from "./format";
-import type {
-  AmendmentDocumentInput,
-  CommerceDocumentInput,
-  CommissionStatementDocumentInput,
-  DeletionCertificateDocumentInput,
-  InvoiceDocumentInput,
-  OrderFormDocumentInput,
-  PocDocumentInput,
-  QuoteDocumentInput,
-  RenderedDocument,
-  RenewalConfirmationDocumentInput,
-  ReportDocumentInput,
-} from "./model";
+import type { CommerceDocumentInput, RenderedDocument } from "./model";
 
 const SHA_256_PATTERN = /^(?:sha256:)?[a-fA-F0-9]{64}$/;
 const LOGO_DATA_URI_PATTERN =
   /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/;
-
-type QuotePayload = Omit<QuoteDocumentInput, "kind">;
-type OrderFormPayload = Omit<OrderFormDocumentInput, "kind">;
-type AmendmentPayload = Omit<AmendmentDocumentInput, "kind">;
-type PocPayload = Omit<PocDocumentInput, "kind">;
-type InvoicePayload = Omit<InvoiceDocumentInput, "kind">;
-type CommissionStatementPayload = Omit<
-  CommissionStatementDocumentInput,
-  "kind"
->;
-type RenewalPayload = Omit<RenewalConfirmationDocumentInput, "kind">;
-type DeletionCertificatePayload = Omit<
-  DeletionCertificateDocumentInput,
-  "kind"
->;
-type ReportPayload = Omit<ReportDocumentInput, "kind">;
 
 function validateInput(input: CommerceDocumentInput): void {
   if (input.documentId.trim().length === 0) {
@@ -136,64 +107,4 @@ export async function renderCommerceDocument(
     recordHash: normalizeSha256Hash(input.verification.recordHash),
     version: input.version,
   };
-}
-
-export function renderDirectQuote(input: QuotePayload) {
-  return renderCommerceDocument({ ...input, kind: "direct_quote" });
-}
-
-export function renderPartnerTransferQuote(input: QuotePayload) {
-  return renderCommerceDocument({ ...input, kind: "partner_transfer_quote" });
-}
-
-export function renderPartnerResaleQuote(input: QuotePayload) {
-  return renderCommerceDocument({ ...input, kind: "partner_resale_quote" });
-}
-
-export function renderOrderForm(input: OrderFormPayload) {
-  return renderCommerceDocument({ ...input, kind: "order_form" });
-}
-
-export function renderAmendment(input: AmendmentPayload) {
-  return renderCommerceDocument({ ...input, kind: "amendment" });
-}
-
-export function renderPocSummary(input: PocPayload) {
-  return renderCommerceDocument({ ...input, kind: "poc_summary" });
-}
-
-export function renderPocFinalReport(input: PocPayload) {
-  return renderCommerceDocument({ ...input, kind: "poc_final_report" });
-}
-
-export function renderInvoiceCompanion(input: InvoicePayload) {
-  return renderCommerceDocument({ ...input, kind: "invoice_companion" });
-}
-
-export function renderReceipt(input: InvoicePayload) {
-  return renderCommerceDocument({ ...input, kind: "receipt" });
-}
-
-export function renderCommissionStatement(input: CommissionStatementPayload) {
-  return renderCommerceDocument({ ...input, kind: "commission_statement" });
-}
-
-export function renderRenewalConfirmation(input: RenewalPayload) {
-  return renderCommerceDocument({ ...input, kind: "renewal_confirmation" });
-}
-
-export function renderDeclineConfirmation(input: RenewalPayload) {
-  return renderCommerceDocument({ ...input, kind: "decline_confirmation" });
-}
-
-export function renderDeletionCertificate(input: DeletionCertificatePayload) {
-  return renderCommerceDocument({ ...input, kind: "deletion_certificate" });
-}
-
-export function renderReconciliationReport(input: ReportPayload) {
-  return renderCommerceDocument({ ...input, kind: "reconciliation_report" });
-}
-
-export function renderReportExport(input: ReportPayload) {
-  return renderCommerceDocument({ ...input, kind: "report_export" });
 }

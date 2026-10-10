@@ -104,6 +104,7 @@ function signingFrameSources(
         const url = new URL(origin);
         return url.protocol === "https:" ? url.origin : "";
       } catch {
+        // A malformed configured origin is dropped; the allow-list never widens.
         return "";
       }
     })
@@ -128,6 +129,7 @@ function contentSecurityNonce(): string | undefined {
     for (const byte of bytes) binary += String.fromCharCode(byte);
     return btoa(binary);
   } catch {
+    // No nonce: the policy then refuses the bootstrap and the page fails visibly.
     return undefined;
   }
 }

@@ -171,12 +171,6 @@ export function configureWebhookReplayRuntime(
   configuredRuntime = runtime;
 }
 
-export function resetWebhookReplayRuntimeForTests(): void {
-  if (process.env.NODE_ENV === "production")
-    throw new Error("WEBHOOK_REPLAY_RUNTIME_RESET_FORBIDDEN");
-  configuredRuntime = undefined;
-}
-
 export function executeConfiguredWebhookReplay(
   invocation: WebhookReplayTaskInvocation,
 ): Promise<unknown> {

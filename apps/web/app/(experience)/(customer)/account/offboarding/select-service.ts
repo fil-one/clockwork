@@ -33,6 +33,7 @@ function orderKeyFromRoute(value: string | undefined): string | undefined {
   try {
     return decodeURIComponent(match[1]);
   } catch {
+    // A malformed percent-escape names no order.
     return undefined;
   }
 }

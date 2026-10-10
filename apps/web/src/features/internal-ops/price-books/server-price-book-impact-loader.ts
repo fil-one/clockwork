@@ -68,7 +68,10 @@ export async function loadPriceBookImpact(input: {
       availability: "available",
       source: "retainedRecords",
     };
-  } catch {
+  } catch (error) {
+    console.error("Price book impact could not be read", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
     return { availability: "unavailable" };
   }
 }

@@ -20,7 +20,10 @@ export async function loadRevenueWorkspace(input: {
       : unreadableRevenueWorkspace;
   try {
     return await readRevenueWorkspace(database, input);
-  } catch {
+  } catch (error) {
+    console.error("Revenue workspace could not be read", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
     return unreadableRevenueWorkspace;
   }
 }

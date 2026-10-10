@@ -972,6 +972,7 @@ function regionName(code: string, context: DisplayContext): string {
       new Intl.DisplayNames(context.locale, { type: "region" }).of(code) ?? code
     );
   } catch {
+    // A code Intl cannot name is shown as the code itself.
     return code;
   }
 }

@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import React from "react";
 import {
   Document,
   Font,

@@ -33,23 +33,3 @@ export function signStripeWebhook(
     timestamp,
   });
 }
-
-export class DeterministicStripeTestClock {
-  public constructor(public frozenTime = 1_785_513_600) {}
-  public advance(seconds: number) {
-    if (!Number.isSafeInteger(seconds) || seconds < 0)
-      throw new Error(
-        "Stripe test clock only advances by non-negative integer seconds",
-      );
-    this.frozenTime += seconds;
-    return this.frozenTime;
-  }
-  public fixture() {
-    return {
-      id: "clock_clockwork_demo",
-      object: "test_helpers.test_clock",
-      frozen_time: this.frozenTime,
-      status: "ready" as const,
-    };
-  }
-}
