@@ -3,12 +3,14 @@
 import { useActionState, useState } from "react";
 import type { DatabaseSystemCapabilityAdmin } from "@clockwork/db";
 import { SelfApprovalDialog } from "@/src/features/internal-ops/self-approval/self-approval-dialog";
+import { sessionExpiredMessage } from "@/src/features/internal-ops/session-expiry-message";
 import { approveOwnCapability } from "@/src/features/internal-ops/self-approval/actions";
 import { changeCapability, type CapabilityActionResult } from "./actions";
 import { formatSurfaceTimestamp } from "@/src/features/customer-partner/formatting";
 import { useReaderTimeZone } from "@/src/features/internal-ops/local-timestamp";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
+import { SessionExpiredReload } from "@/src/features/internal-ops/session-expiry";
 
 type Capability = Awaited<
   ReturnType<DatabaseSystemCapabilityAdmin["list"]>
@@ -154,7 +156,11 @@ export function CapabilityControls({
                     reason,
                   });
                   if (!result.ok)
-                    return { ok: false, message: t(result.message) };
+                    return {
+                      ok: false,
+                      message: t(result.message),
+                      expired: result.message === sessionExpiredMessage,
+                    };
                   setSelfApproved(true);
                   return { ok: true };
                 }}
@@ -197,6 +203,7 @@ export function CapabilityControls({
         <p role="status">{t("common.selfApproval.done")}</p>
       ) : null}
       {message ? <p role="status">{t(message)}</p> : null}
+      {message === sessionExpiredMessage ? <SessionExpiredReload /> : null}
     </form>
   );
 }

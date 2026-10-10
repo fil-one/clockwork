@@ -183,6 +183,7 @@ export const approvalControlLabels: Readonly<
 export const noticeErrorCodes = [
   "NOT_PERMITTED",
   "DIRECT_SESSION_REQUIRED",
+  "SESSION_EXPIRED",
   "INVALID_INPUT",
   "NOT_CONFIGURED",
   "UNEXPECTED",
@@ -195,6 +196,7 @@ export const noticeErrorMessages: Readonly<Record<NoticeErrorCode, MessageId>> =
   {
     NOT_PERMITTED: "operations.owner.notices.error.notPermitted",
     DIRECT_SESSION_REQUIRED: "operations.owner.notices.error.directSession",
+    SESSION_EXPIRED: "operations.session.expired",
     INVALID_INPUT: "operations.owner.notices.error.invalid",
     NOT_CONFIGURED: "operations.owner.notices.error.notConfigured",
     UNEXPECTED: "operations.owner.notices.error.unexpected",

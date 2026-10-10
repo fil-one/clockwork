@@ -203,6 +203,23 @@ it("words each refusal in the dialog and offers the sign-in check when it is sta
   ).toHaveAttribute("href", "/access/mfa");
 });
 
+it("offers a reload, not the sign-in check, when the session expired", async () => {
+  mocks.grant.mockResolvedValueOnce({ ok: false, code: "SESSION_EXPIRED" });
+  render(<TeamWorkspace view={live} />);
+  const dialog = openRoles(newcomer.name);
+  fireEvent.click(
+    within(roleOption(dialog, "Finance approver")).getByRole("button", {
+      name: "Add role",
+    }),
+  );
+  const alert = await within(dialog).findByRole("alert");
+  expect(alert).toHaveTextContent("Your session expired. Reload to continue.");
+  expect(within(alert).queryByRole("link")).toBeNull();
+  fireEvent.click(within(alert).getByRole("button", { name: "Reload" }));
+  await waitFor(() => expect(within(dialog).queryByRole("alert")).toBeNull());
+  expect(mocks.refresh).toHaveBeenCalledOnce();
+});
+
 it("explains why the last administrator keeps the role", async () => {
   mocks.revoke.mockResolvedValueOnce({ ok: false, code: "LAST_ADMIN" });
   render(<TeamWorkspace view={live} />);

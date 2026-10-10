@@ -16,6 +16,7 @@ import {
   recoveryReasonMinimum,
 } from "./copy";
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
+import { SessionExpiredReload } from "../session-expiry";
 
 type Decision = "retry" | "abandon";
 
@@ -39,12 +40,14 @@ export function RecoveryDecision({
   const reasonId = useId().replaceAll(":", "");
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState("");
+  const [expired, setExpired] = useState(false);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
   const consequence = t(decisionConsequences[decision][source]);
   const labels = decisionLabels[decision];
 
   function submit() {
+    setExpired(false);
     if (reason.trim().length < recoveryReasonMinimum) {
       setMessage(recoveryFailureMessage("SYSTEM_RECOVERY_REASON_REQUIRED", t));
       return;
@@ -63,6 +66,7 @@ export function RecoveryDecision({
       }
       setDone(Boolean(result.ok));
       setMessage(recoveryFailureMessage(result.code, t));
+      setExpired(result.code === "SESSION_EXPIRED");
     });
   }
 
@@ -120,6 +124,9 @@ export function RecoveryDecision({
         <p className={styles.statusMessage} role="alert">
           {message}
         </p>
+      ) : null}
+      {message && expired ? (
+        <SessionExpiredReload onReloaded={() => setMessage("")} />
       ) : null}
       {done && !message ? (
         <p className={styles.statusMessage} role="status">

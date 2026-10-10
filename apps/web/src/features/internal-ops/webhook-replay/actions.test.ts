@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/src/auth/session", () => ({
   requireRecentAuthentication: mocks.requireRecentAuthentication,
+  SessionExpiredError: class SessionExpiredError extends Error {},
 }));
 vi.mock("@/src/db/service", () => ({
   getOptionalRuntimeDatabase: mocks.getOptionalRuntimeDatabase,
@@ -33,6 +34,7 @@ vi.mock("../demo-operator-state", () => ({
   replayDemoWebhook: mocks.replayDemoWebhook,
 }));
 
+import { SessionExpiredError } from "@/src/auth/session";
 import { replayWebhookEvent } from "./actions";
 
 /** The port the action actually handed the repository, for this call. */
@@ -185,6 +187,17 @@ describe("webhook replay action", () => {
     expect(result).toEqual({
       ok: false,
       code: "WEBHOOK_REPLAY_RECENT_AUTH_REQUIRED",
+    });
+    expect(mocks.replay).not.toHaveBeenCalled();
+  });
+
+  it("reports an expired session apart, so the page offers a reload", async () => {
+    mocks.requireRecentAuthentication.mockRejectedValue(
+      new SessionExpiredError(),
+    );
+    expect(await replayWebhookEvent(form())).toEqual({
+      ok: false,
+      code: "SESSION_EXPIRED",
     });
     expect(mocks.replay).not.toHaveBeenCalled();
   });

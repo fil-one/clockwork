@@ -28,7 +28,7 @@ vi.mock("@clockwork/db", () => ({
   capabilityApprovalRole: () => "finance_approver",
 }));
 vi.mock("@/src/auth/session", () => ({
-  getCommerceSession: () =>
+  getRequestCommerceSession: () =>
     Promise.resolve({
       isInternalStaff: true,
       providerBacked: true,

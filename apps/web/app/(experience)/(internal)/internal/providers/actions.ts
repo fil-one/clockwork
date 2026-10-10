@@ -5,7 +5,12 @@ import {
   DatabaseProviderReferenceAdmin,
   ProviderReferenceCommandSchema,
 } from "@clockwork/db";
-import { requireRecentAuthentication } from "@/src/auth/session";
+import {
+  requireRecentAuthentication,
+  SessionExpiredError,
+  type CommerceSession,
+} from "@/src/auth/session";
+import { sessionExpiredMessage } from "@/src/features/internal-ops/session-expiry-message";
 import { getServiceDatabase } from "@/src/db/service";
 import type { MessageId } from "@/src/i18n";
 
@@ -19,7 +24,15 @@ export async function saveProviderReference(
   _previous: ProviderReferenceResult,
   data: FormData,
 ): Promise<ProviderReferenceResult> {
-  const session = await requireRecentAuthentication();
+  let session: CommerceSession;
+  try {
+    session = await requireRecentAuthentication();
+  } catch (error) {
+    // An expired access token is the one refusal a reload fixes; every
+    // other refusal still reaches the error boundary as before.
+    if (error instanceof SessionExpiredError) return sessionExpiredMessage;
+    throw error;
+  }
   if (
     !session.providerBacked ||
     !session.isInternalStaff ||

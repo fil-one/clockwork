@@ -76,6 +76,7 @@ export const decisionLabels: Readonly<
 const failures: Readonly<Record<string, MessageId>> = {
   SYSTEM_RECOVERY_REASON_REQUIRED: "operations.decision.reasonRequired",
   SYSTEM_RECOVERY_RECENT_AUTH_REQUIRED: "operations.decision.recentAuth",
+  SESSION_EXPIRED: "operations.session.expired",
   SYSTEM_RECOVERY_PERMISSION_REVOKED: "operations.decision.permissionChanged",
   SYSTEM_RECOVERY_AUTHORIZATION_REVOKED:
     "operations.decision.permissionChanged",

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/src/auth/session", () => ({
   requireRecentAuthentication: mocks.session,
+  SessionExpiredError: class SessionExpiredError extends Error {},
 }));
 vi.mock("@/src/db/service", () => ({ getServiceDatabase: () => ({}) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
@@ -16,6 +17,7 @@ vi.mock("@clockwork/db", async (original) => ({
     save = mocks.save;
   },
 }));
+import { SessionExpiredError } from "@/src/auth/session";
 import { saveCatalogMapping } from "./actions";
 const staff = {
   userId: "20000000-0000-4000-8000-000000000001",
@@ -42,6 +44,13 @@ beforeEach(() => {
   mocks.session.mockResolvedValue(staff);
 });
 describe("catalog mapping administration", () => {
+  it("reports an expired session and leaves every other refusal thrown", async () => {
+    mocks.session.mockRejectedValueOnce(new SessionExpiredError());
+    expect(await saveCatalogMapping("", form())).toBe("expired");
+    mocks.session.mockRejectedValueOnce(new Error("stale"));
+    await expect(saveCatalogMapping("", form())).rejects.toThrow("stale");
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
   it.each([
     { providerBacked: false },
     { assistedSession: {} },
