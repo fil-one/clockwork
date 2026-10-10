@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/require-await -- the in-memory SignWell fake models the async provider contract. */
 import { randomUUID } from "node:crypto";
 import { afterAll, expect, it, vi } from "vitest";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { MndaRecord, MndaState } from "@clockwork/contracts";
 import {
   createRuntimeDatabase,
   ESignReconciliationRepository,
   MndaRepository,
 } from "@clockwork/db";
+import { mndaRequests } from "@clockwork/db/schema";
 import type {
   MndaSigningProvider,
   SignWellDocument,
@@ -168,6 +169,7 @@ it("syncs stale open MNDAs through the lease and leaves fresh, closed and held o
         interloper = await repo.claim(takenMidRun.id);
       return ids;
     },
+    reconciled: (id) => stale.markMndaReconciled(id),
     sync: (id, by) => workflow.sync(id, by),
   };
   const log = vi.fn();
@@ -206,4 +208,53 @@ it("syncs stale open MNDAs through the lease and leaves fresh, closed and held o
   expect(next.sources[0]).toMatchObject({ busy: 0 });
   expect(await state(held.id)).toBe("completed");
   expect(await state(takenMidRun.id)).toBe("completed");
+});
+
+it("rotates through stale requests, so one that keeps failing cannot hold the front", async () => {
+  const failing = await bound("sent", "Sent", "1998-01-01T00:00:00Z");
+  const second = await bound("sent", "Sent", "1998-01-02T00:00:00Z");
+  const third = await bound("viewed", "Viewed", "1998-01-03T00:00:00Z");
+  const mine = new Set([failing.id, second.id, third.id]);
+  get.mockImplementation(async (id) => {
+    if (id === failing.providerId) throw new Error("SIGNWELL_HTTP_500");
+    return document(id);
+  });
+  const row = async (id: string) => {
+    const [r] = await db
+      .select({
+        updatedAt: mndaRequests.updatedAt,
+        version: mndaRequests.version,
+        reconciledAt: mndaRequests.reconciledAt,
+      })
+      .from(mndaRequests)
+      .where(eq(mndaRequests.id, id));
+    if (!r) throw new Error("missing");
+    return r;
+  };
+  const before = await row(second.id);
+  const workflow = new MndaWorkflow(repo, provider);
+  const picked: string[] = [];
+  const source: ESignReconciliationSource = {
+    kind: "mnda",
+    stale: async (query) =>
+      (await stale.staleMndaRequests({ ...query, limit: 1000 }))
+        .filter((id) => mine.has(id))
+        .slice(0, query.limit),
+    reconciled: async (id) => {
+      picked.push(id);
+      await stale.markMndaReconciled(id);
+    },
+    sync: (id, by) => workflow.sync(id, by),
+  };
+  for (let run = 0; run < 4; run++)
+    await reconcileESignatures([source], { maxPerSource: 1, log: () => {} });
+  expect(picked).toEqual([failing.id, second.id, third.id, failing.id]);
+
+  // Marking is bookkeeping: a request SignWell left unchanged keeps its
+  // version and last-changed time.
+  const after = await row(second.id);
+  expect(before.reconciledAt).toBeNull();
+  expect(after.reconciledAt).not.toBeNull();
+  expect(after.version).toBe(before.version);
+  expect(after.updatedAt).toEqual(before.updatedAt);
 });

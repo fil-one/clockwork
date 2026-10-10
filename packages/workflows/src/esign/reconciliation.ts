@@ -20,8 +20,8 @@ import { MndaWorkflow } from "../mnda";
  * callback URL, an outage on either side, a 503 SignWell gave up retrying)
  * leaves a request showing an old state with nothing to correct it but a
  * person pressing refresh. Every tick this re-reads, through each workflow's
- * own `sync`, the requests that are still open in SignWell and that nothing
- * has changed recently. `sync` takes the request's lease, so it cannot race a
+ * own `sync`, requests still open in SignWell that nothing has changed
+ * recently, rotating through them when there are more than one run reads. `sync` takes the request's lease, so it cannot race a
  * webhook or a person acting on the same request: a held lease is skipped and
  * picked up on the next tick.
  */
@@ -33,6 +33,8 @@ export interface ESignReconciliationSource {
     exclude: readonly string[];
     limit: number;
   }): Promise<readonly string[]>;
+  /** Records that this run picked the request, so later runs pick others first. */
+  reconciled(id: string): Promise<void>;
   sync(id: string, actor: Actor): Promise<unknown>;
 }
 
@@ -59,6 +61,7 @@ export interface ESignReconciliationSummary {
 export const eSignReconciliationActor: Actor = {
   kind: "system",
   id: "esign-reconciliation",
+  display: "Scheduled SignWell check",
 };
 
 const FRESH_FOR_MS = 10 * 60_000;
@@ -82,9 +85,12 @@ const jsonLog = (entry: Record<string, unknown>) =>
   console.log(JSON.stringify(entry));
 
 /**
- * Syncs stale requests one at a time, oldest change first. One request's
- * failure is logged and the sweep moves on; a SignWell 429 ends the run, so
- * the next tick starts afresh rather than adding to the pressure.
+ * Syncs stale requests one at a time, those checked longest ago first. Each
+ * is marked before its sync, whatever the outcome, so a request that keeps
+ * failing or never changes goes to the back of the rotation rather than
+ * holding the front. One request's failure is logged and the sweep moves on;
+ * a SignWell 429 ends the run, so the next tick starts afresh rather than
+ * adding to the pressure.
  */
 export async function reconcileESignatures(
   sources: readonly ESignReconciliationSource[],
@@ -122,6 +128,7 @@ export async function reconcileESignatures(
         }
         visited.push(id);
         try {
+          await source.reconciled(id);
           await source.sync(id, eSignReconciliationActor);
           summary.synced += 1;
         } catch (error) {
@@ -144,9 +151,9 @@ export async function reconcileESignatures(
         }
       }
     }
-    // More stale requests than one run reads. The oldest are read first, so
-    // the newer ones are not read until the backlog shrinks; logged so an
-    // operator sees it and can raise the limit.
+    // More stale requests than one run reads. The rest are read first next
+    // run, so each is still checked, but a full rotation takes more than one
+    // interval; logged so an operator sees it and can raise the limit.
     if (
       !stopped &&
       visited.length >= maxPerSource &&
@@ -182,6 +189,7 @@ export function environmentESignReconciliationSources(
     sources.push({
       kind: "mnda",
       stale: (query) => stale.staleMndaRequests(query),
+      reconciled: (id) => stale.markMndaReconciled(id),
       sync: (id, actor) =>
         new MndaWorkflow(
           new MndaRepository(db),
@@ -192,6 +200,7 @@ export function environmentESignReconciliationSources(
     sources.push({
       kind: "contract",
       stale: (query) => stale.staleContractSignings(query),
+      reconciled: (id) => stale.markContractReconciled(id),
       sync: (id, actor) =>
         new ContractSigningWorkflow(
           new ContractSigningRepository(db, () => {

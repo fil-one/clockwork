@@ -23,6 +23,8 @@ function source(
   kind: ESignReconciliationSource["kind"] = "mnda",
 ) {
   const synced: string[] = [];
+  /** Marks and syncs in call order. */
+  const calls: string[] = [];
   const queries: { exclude: readonly string[]; limit: number }[] = [];
   const stale = vi.fn<ESignReconciliationSource["stale"]>(
     async ({ exclude, limit }) => {
@@ -30,13 +32,19 @@ function source(
       return ids.filter((id) => !exclude.includes(id)).slice(0, limit);
     },
   );
+  const reconciled = vi.fn<ESignReconciliationSource["reconciled"]>(
+    async (id) => {
+      calls.push(`mark:${id}`);
+    },
+  );
   const sync = vi.fn<ESignReconciliationSource["sync"]>(async (id) => {
+    calls.push(`sync:${id}`);
     const error = outcome[id];
     if (error) throw error;
     synced.push(id);
   });
-  const value: ESignReconciliationSource = { kind, stale, sync };
-  return { value, stale, sync, synced, queries };
+  const value: ESignReconciliationSource = { kind, stale, reconciled, sync };
+  return { value, stale, reconciled, sync, synced, calls, queries };
 }
 
 const quiet = () => {};
@@ -49,6 +57,10 @@ it("syncs every stale request through the workflow as the reconciliation actor",
   });
   expect(s.synced).toEqual(["a", "b", "c"]);
   expect(s.sync).toHaveBeenCalledWith("a", eSignReconciliationActor);
+  expect(eSignReconciliationActor).toMatchObject({
+    kind: "system",
+    display: "Scheduled SignWell check",
+  });
   expect(result.sources).toEqual([
     { kind: "mnda", synced: 3, busy: 0, failed: 0 },
   ]);
@@ -70,12 +82,33 @@ it("logs a failing request and carries on with the rest", async () => {
   const result = await reconcileESignatures([s.value], { log });
   expect(s.synced).toEqual(["a", "c"]);
   expect(result.sources[0]).toMatchObject({ synced: 2, failed: 1 });
+  // Marked before each sync, the failing one included, so it rotates back.
+  expect(s.calls).toEqual([
+    "mark:a",
+    "sync:a",
+    "mark:b",
+    "sync:b",
+    "mark:c",
+    "sync:c",
+  ]);
   expect(log).toHaveBeenCalledWith({
     event: "ESIGN_RECONCILE_FAILED",
     kind: "mnda",
     id: "b",
     error: "SIGNWELL_HTTP_500",
   });
+});
+
+it("logs a request it could not mark and does not sync it", async () => {
+  const log = vi.fn();
+  const s = source(["a", "b"]);
+  s.reconciled.mockRejectedValueOnce(new Error("connection reset"));
+  const result = await reconcileESignatures([s.value], { log });
+  expect(s.synced).toEqual(["b"]);
+  expect(result.sources[0]).toMatchObject({ synced: 1, failed: 1 });
+  expect(log).toHaveBeenCalledWith(
+    expect.objectContaining({ event: "ESIGN_RECONCILE_FAILED", id: "a" }),
+  );
 });
 
 it("leaves a request another operation holds for the next tick", async () => {

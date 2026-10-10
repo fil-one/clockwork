@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
-import type { ContractSigningState } from "@clockwork/contracts";
+import {
+  contractDeletedInSignWell,
+  type ContractSigningState,
+} from "@clockwork/contracts";
 import { createRuntimeDatabase } from "../client";
 import {
   ContractDocumentStores,
@@ -27,7 +30,7 @@ afterAll(() => client.end());
 
 /** A prepared template contract, optionally bound to SignWell in `state`. */
 async function contract(
-  binding?: { state: ContractSigningState },
+  binding?: { state: ContractSigningState; error?: string },
   updatedAt?: string,
 ) {
   const marker = randomUUID();
@@ -80,7 +83,11 @@ async function contract(
     await signing.update(
       id,
       token,
-      { providerId: randomUUID(), state: binding.state, error: null },
+      {
+        providerId: randomUUID(),
+        state: binding.state,
+        error: binding.error ?? null,
+      },
       actor,
     );
     await signing.release(id, token);
@@ -92,7 +99,7 @@ async function contract(
   return id;
 }
 
-it("finds stale, open, bound and unleased template contract signings, oldest first", async () => {
+it("finds stale, open, bound and unleased template contract signings, least recently checked first", async () => {
   const older = await contract({ state: "viewed" }, "2000-01-01T00:00:00Z");
   const old = await contract({ state: "sent" }, "2000-01-02T00:00:00Z");
   const fresh = await contract({ state: "sent" });
@@ -100,6 +107,14 @@ it("finds stale, open, bound and unleased template contract signings, oldest fir
   const unsent = await contract({ state: "ready" }, "2000-01-01T00:00:00Z");
   const unbound = await contract(undefined, "2000-01-01T00:00:00Z");
   const leased = await contract({ state: "sent" }, "2000-01-01T00:00:00Z");
+  const deleted = await contract(
+    { state: "attention", error: contractDeletedInSignWell },
+    "2000-01-01T00:00:00Z",
+  );
+  const attention = await contract(
+    { state: "attention", error: "provider_unavailable" },
+    "2000-01-01T00:00:00Z",
+  );
   const lease = await signing.claim(leased);
 
   const query = {
@@ -110,12 +125,18 @@ it("finds stale, open, bound and unleased template contract signings, oldest fir
   const ids = await repo.staleContractSignings(query);
   expect(ids).toContain(older);
   expect(ids).toContain(old);
+  expect(ids).toContain(attention);
   expect(ids.indexOf(older)).toBeLessThan(ids.indexOf(old));
-  for (const skipped of [fresh, closed, unsent, unbound, leased])
+  for (const skipped of [fresh, closed, unsent, unbound, leased, deleted])
     expect(ids).not.toContain(skipped);
   expect(
     await repo.staleContractSignings({ ...query, exclude: [older] }),
   ).not.toContain(older);
+
+  // A checked request goes behind every request not yet checked.
+  await repo.markContractReconciled(older);
+  const rotated = await repo.staleContractSignings(query);
+  expect(rotated.indexOf(old)).toBeLessThan(rotated.indexOf(older));
 
   await signing.release(leased, lease.token);
   expect(await repo.staleContractSignings(query)).toContain(leased);
