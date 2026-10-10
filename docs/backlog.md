@@ -1817,7 +1817,7 @@ detail lives in `docs/operations/commerce-mnda.md`,
   appended, either to Fil One alone (they signed already) or to the counterparty
   first. It is a second declaration on the signing engine
   (`counterpartyPaperSigning`) over the contract table
-  (`supabase/migrations/001460_contract_counterparty_paper.sql`), with approval,
+  (`supabase/migrations/001464_contract_counterparty_paper.sql`), with approval,
   reminders, correction, void and the executed PDF as for templates. The
   procedure it follows is
   [adding a signed document type](operations/add-a-document-type.md). One

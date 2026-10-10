@@ -1,4 +1,4 @@
--- Counterparty paper sent for the Fil One countersignature (001460): a
+-- Counterparty paper sent for the Fil One countersignature (001464): a
 -- second document type on the contract signing table, pinned to an uploaded
 -- PDF on a contract on the counterparty's paper, with the counterparty either
 -- signing first or not at all, and every earlier rule unchanged.

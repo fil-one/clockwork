@@ -42,7 +42,7 @@ anything else rather than drop it.
 Counterparty paper shares `commerce_contract_signing` and the contract adapter
 with template contracts. The table records `document_type` and
 `counterparty_signs`
-(`supabase/migrations/001460_contract_counterparty_paper.sql`), both fixed at
+(`supabase/migrations/001464_contract_counterparty_paper.sql`), both fixed at
 creation. The database also refuses a counterparty-paper request unless the
 contract is on their paper and has an uploaded PDF with the request's hash, and
 keeps that PDF while the request exists. A type on a table of its own needs a
@@ -98,7 +98,7 @@ contract again: the panel says so and links to recording the contract again, and
 | The whole signing lifecycle against the new type              | `packages/workflows/src/signing/scenarios.test.ts` (add a harness)        |
 | Behaviour only the type has (Fil One alone signing)           | `packages/workflows/src/contracts.test.ts`                                |
 | The rendered PDF, as a text golden                            | `packages/documents/src/counterparty-paper/render.integration.test.ts`    |
-| Database rules                                                | `supabase/tests/1460_contract_counterparty_paper.test.sql`                |
+| Database rules                                                | `supabase/tests/1464_contract_counterparty_paper.test.sql`                |
 | Repository preparation                                        | `packages/db/src/repositories/contracts.integration.test.ts`              |
 | End to end through the database, renderer and SignWell client | `apps/web/src/features/internal-ops/contracts/engine.integration.test.ts` |
 | Server action and screens                                     | `actions.test.ts`, `client-components.test.tsx` in the same folder        |

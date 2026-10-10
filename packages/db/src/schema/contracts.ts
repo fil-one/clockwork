@@ -197,7 +197,7 @@ export const contractSigning = pgTable("commerce_contract_signing", {
   pendingSignerEmail: text("pending_signer_email"),
   cancelCode: text("cancel_code").$type<ContractCancelCode>(),
   cancelReason: text("cancel_reason"),
-  /** A counsel template, or the counterparty's paper (001460). */
+  /** A counsel template, or the counterparty's paper (001464). */
   documentType: text("document_type")
     .$type<ContractSigningDocumentType>()
     .notNull()

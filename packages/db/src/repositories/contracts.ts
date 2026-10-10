@@ -749,7 +749,7 @@ export class ContractRepository {
       )
         throw new Error("CONTRACT_FILE_PERMANENT");
       // The PDF a counterparty-paper request was prepared from stays, as the
-      // database also enforces (001460).
+      // database also enforces (001464).
       const [pinned] = await tx
         .select({ contractId: contractSigning.contractId })
         .from(contractSigning)

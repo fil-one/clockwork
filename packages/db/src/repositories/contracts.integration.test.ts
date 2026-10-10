@@ -1103,7 +1103,7 @@ describe("template signing persistence", () => {
   });
 });
 
-describe("counterparty paper for the Fil One signature (001460)", () => {
+describe("counterparty paper for the Fil One signature (001464)", () => {
   /** A recorded contract on their paper with their signed PDF attached. */
   const recorded = async (patch: Partial<ContractInput> = {}) => {
     const input = contract(randomUUID(), {
