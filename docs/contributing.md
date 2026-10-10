@@ -234,10 +234,11 @@ provider fakes for replay and failure scenarios.
   The hooks run lefthook through `scripts/lefthook.sh`, which passes
   `--no-stage-fixed` so lefthook never moves unstaged changes into the git stash
   that all worktrees share. A branch gets this behaviour once it carries this
-  `lefthook.yml`; committing from an older branch reinstalls that branch's hook,
-  which stashes. If you set `LEFTHOOK_BIN`, point it at `scripts/lefthook.sh`,
-  because the hook runs `LEFTHOOK_BIN` in place of the wrapper.
-  `LEFTHOOK=0 git commit ...` skips the hooks.
+  `lefthook.yml`. A worktree on an older branch, which has no
+  `scripts/lefthook.sh`, falls back to plain lefthook, and committing there
+  reinstalls that branch's hook, which stashes. If you set `LEFTHOOK_BIN`, point
+  it at `scripts/lefthook.sh`, because the hook runs `LEFTHOOK_BIN` in place of
+  the wrapper. `LEFTHOOK=0 git commit ...` skips the hooks.
 
   Run the repo-wide checks with `pnpm format:check`, `pnpm scan:secrets` and
   `pnpm lint`, or all static gates with `pnpm verify:static`; CI runs them on

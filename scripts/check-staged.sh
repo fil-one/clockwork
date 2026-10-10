@@ -16,6 +16,10 @@ cd "$root"
 mkdir -p node_modules/.cache
 mirror=$(mktemp -d "$root/node_modules/.cache/staged.XXXXXX")
 trap 'rm -rf "$mirror"' EXIT
+# dash runs the EXIT trap on a signal only if the signal leads to exit.
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 staged=$(git diff --cached --name-only --diff-filter=ACMR | wc -l)
 [ "$staged" -gt 0 ] || exit 0

@@ -4,8 +4,12 @@
 # The hooks run lefthook through scripts/lefthook.sh, which passes
 # --no-stage-fixed so lefthook never stashes unstaged changes; every worktree
 # shares the git stash. Lefthook embeds this value in the generated hook inside
-# `test -n "..."`, so it must not contain double quotes.
-lefthook: sh scripts/lefthook.sh
+# `test -n "..."`, so it must not contain double quotes. A worktree on a branch
+# that predates scripts/lefthook.sh shares this hook, so it falls back to plain
+# lefthook there instead of failing to commit.
+lefthook:
+  sh -c 'test -f scripts/lefthook.sh || exec node_modules/.bin/lefthook $*; exec
+  sh scripts/lefthook.sh $*' lefthook
 glob_matcher: doublestar
 
 pre-commit:
