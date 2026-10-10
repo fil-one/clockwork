@@ -78,9 +78,9 @@ it("hides stale reference counts after either book changes and recovers on a fre
   expect(screen.queryByRole("table")).toBeNull();
 });
 
-it("reads entirely in Portuguese, with counts and the check time in the reader's format", () => {
+it("states counts and the check time in the reader's format", () => {
   setHarnessLanguage("pt", catalogs.pt);
-  const { container } = render(
+  render(
     <PriceBookImpactPanel
       candidate={candidate}
       incumbent={incumbent}
@@ -88,20 +88,17 @@ it("reads entirely in Portuguese, with counts and the check time in the reader's
     />,
   );
   const table = screen.getByRole("table", {
-    name: "Referências retidas em cada tabela de preços",
+    name: "References retained on each price book",
   });
   expect(
-    within(table).getByRole("row", { name: "Cotações em rascunho 2 0" }),
+    within(table).getByRole("row", { name: "Draft quotes 2 0" }),
   ).toBeVisible();
   expect(
     within(table).getByRole("columnheader", {
-      name: `Vigente: ${incumbent.name} v${incumbent.version}`,
+      name: `Current active: ${incumbent.name} v${incumbent.version}`,
     }),
   ).toBeVisible();
   expect(
-    screen.getByText(/não são totais reais de clientes nem de ações/u),
+    screen.getByText(/not live customer or demo-action totals/u),
   ).toHaveTextContent("6 de set. de 2026");
-  expect(container.textContent).not.toMatch(
-    /Draft quotes|Existing business impact|Retained records|checked|Unavailable/u,
-  );
 });

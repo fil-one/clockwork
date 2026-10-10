@@ -15,6 +15,10 @@ import type { Locale } from "./locales";
  * Plural messages give each language the CLDR categories it uses. The
  * categories are part of the type, so Arabic cannot ship without `few` and
  * Japanese cannot invent a `one` form.
+ *
+ * Staff-only modules (screens under `app/(experience)/(internal)`) are the
+ * exception: staff routes render in English, so these modules are written in
+ * English only with `defineStaffMessages`.
  */
 
 export type TranslatedLocale = Exclude<Locale, "en">;
@@ -102,6 +106,41 @@ export type MessageDefinitions = Readonly<Record<string, MessageDefinition>>;
 
 /** Identity at runtime; exists so a missing language is a compile error. */
 export function defineMessages<T extends MessageDefinitions>(messages: T): T {
+  return messages;
+}
+
+/**
+ * No translations. A translated message cannot pass for a staff message, so a
+ * module that names other languages cannot be registered as staff-only and
+ * quietly serve its English to customers.
+ */
+type NoTranslations = { readonly [L in TranslatedLocale]?: never };
+
+/** A staff-only message: English, served unchanged in every language. */
+export type StaffTextMessage = { readonly en: string } & NoTranslations;
+
+/** A staff-only plural message: the English `one` and `other` forms. */
+export type StaffPluralMessage = {
+  readonly count: string;
+  readonly en: PluralForms<"en">;
+} & NoTranslations;
+
+export type StaffMessageDefinition =
+  StaffTextMessage | StaffPluralMessage | SameInAllLanguagesMessage;
+
+export type StaffMessageDefinitions = Readonly<
+  Record<string, StaffMessageDefinition>
+>;
+
+/**
+ * Messages for staff-only screens, in English only. Staff routes render in
+ * English, so these modules are not translated; customer and partner surfaces
+ * still name all eight languages with `defineMessages`. A module defined here
+ * is registered with `staffOnly: true` in `catalogs.ts`.
+ */
+export function defineStaffMessages<T extends StaffMessageDefinitions>(
+  messages: T,
+): T {
   return messages;
 }
 

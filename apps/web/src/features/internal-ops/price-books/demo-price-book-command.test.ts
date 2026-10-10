@@ -580,7 +580,8 @@ it("imports validated economics into an independent draft and rejects injected a
   expect(activate.status).toBe(422);
 });
 
-describe("problem details in the reader's language", () => {
+// Staff problem details are English whatever the language cookie says.
+describe("problem details for a reader of another language", () => {
   function retire(key: string): Promise<Response> {
     return handleDemoPriceBookCommand(
       request(key, {
@@ -594,16 +595,13 @@ describe("problem details in the reader's language", () => {
     );
   }
 
-  it("words a refusal in the reader's language and keeps the code", async () => {
+  it("words a refusal in English and keeps the code", async () => {
     language.value = "de";
     const german = await retire("problem-language-de-0001");
     expect(german.status).toBe(422);
     const body = (await german.json()) as { code: string; detail: string };
     expect(body.code).toBe("INVALID_STATE");
-    expect(body.detail).toBe(
-      "Nur eine aktive Preisliste kann außer Kraft gesetzt werden.",
-    );
-    expect(body.detail).not.toMatch(/Only an active price book/u);
+    expect(body.detail).toBe("Only an active price book can be retired.");
   });
 
   it("stays in English without a language cookie", async () => {
@@ -614,7 +612,7 @@ describe("problem details in the reader's language", () => {
     });
   });
 
-  it("quotes a domain rule inside a translated sentence", async () => {
+  it("quotes a domain rule inside the sentence", async () => {
     language.value = "ja";
     const response = await handleDemoPriceBookCommand(
       request("problem-language-ja-0001", {
@@ -633,7 +631,7 @@ describe("problem details in the reader's language", () => {
     );
     expect(response.status).toBe(422);
     const body = (await response.json()) as { detail: string };
-    expect(body.detail.startsWith("価格表のインポート内容が無効です：")).toBe(
+    expect(body.detail.startsWith("The price-book import is invalid: ")).toBe(
       true,
     );
   });

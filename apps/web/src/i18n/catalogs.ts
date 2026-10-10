@@ -3,6 +3,8 @@ import {
   isSameInAllLanguages,
   type MessageDefinition,
   type MessageDefinitions,
+  type StaffMessageDefinition,
+  type StaffMessageDefinitions,
 } from "./define";
 import { locales, resolveLocale, type Locale } from "./locales";
 import { adminGovernanceMessages } from "./messages/admin-governance";
@@ -36,6 +38,11 @@ import {
  * `prefixes` is the ID namespace a module's new messages must use, so two
  * lanes working in parallel cannot mint the same ID. Messages that existed
  * before the modules did keep their IDs (see `legacy-ids.ts`).
+ *
+ * `staffOnly` marks a module used only on staff screens. Staff routes render
+ * in English whatever the reader's language (`./route-language.ts`); these
+ * modules are written in English with `defineStaffMessages`, and every
+ * language's catalog carries the English text with English plural rules.
  */
 export const messageModules = {
   common: { messages: commonMessages, prefixes: ["common."] },
@@ -56,10 +63,12 @@ export const messageModules = {
   adminPricing: {
     messages: adminPricingMessages,
     prefixes: ["adminPricing."],
+    staffOnly: true,
   },
   adminGovernance: {
     messages: adminGovernanceMessages,
     prefixes: ["adminGovernance."],
+    staffOnly: true,
   },
   operations: {
     messages: {
@@ -71,6 +80,7 @@ export const messageModules = {
       ...contractMessages,
     },
     prefixes: ["operations."],
+    staffOnly: true,
   },
   platform: {
     messages: { ...platformMessages, ...platformAccessMessages },
@@ -79,7 +89,16 @@ export const messageModules = {
   demo: { messages: demoMessages, prefixes: ["demo."] },
 } as const satisfies Record<
   string,
-  { messages: MessageDefinitions; prefixes: readonly string[] }
+  | {
+      messages: MessageDefinitions;
+      prefixes: readonly string[];
+      staffOnly?: never;
+    }
+  | {
+      messages: StaffMessageDefinitions;
+      prefixes: readonly string[];
+      staffOnly: true;
+    }
 >;
 
 type Modules = typeof messageModules;
@@ -107,12 +126,26 @@ function entryFor(message: MessageDefinition, locale: Locale): CatalogEntry {
   return typeof value === "string" ? value : value.sameAsEnglish;
 }
 
+/**
+ * A staff-only message is its English text in every language. A plural keeps
+ * English plural rules, so a count of 1 reads "1 case" in a Japanese catalog
+ * and 0 reads "0 cases" in a French one.
+ */
+function staffEntryFor(message: StaffMessageDefinition): CatalogEntry {
+  return "count" in message
+    ? { count: message.count, forms: message.en, rules: "en" }
+    : message.en;
+}
+
 function compose(locale: Locale): MessageCatalog {
   const catalog: Record<string, CatalogEntry> = {};
   const owner = new Map<string, string>();
-  for (const [name, { messages }] of Object.entries(messageModules)) {
+  for (const [name, module] of Object.entries(messageModules)) {
+    const staffOnly = "staffOnly" in module;
     for (const [id, message] of Object.entries(
-      messages as MessageDefinitions,
+      module.messages as Readonly<
+        Record<string, MessageDefinition | StaffMessageDefinition>
+      >,
     )) {
       const existing = owner.get(id);
       if (existing)
@@ -120,7 +153,9 @@ function compose(locale: Locale): MessageCatalog {
           `Message ID "${id}" is defined in both ${existing} and ${name}`,
         );
       owner.set(id, name);
-      catalog[id] = entryFor(message, locale);
+      catalog[id] = staffOnly
+        ? staffEntryFor(message as StaffMessageDefinition)
+        : entryFor(message as MessageDefinition, locale);
     }
   }
   return Object.freeze(catalog);

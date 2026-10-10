@@ -5,6 +5,12 @@ export interface PluralEntry {
   /** The value that selects the form. */
   readonly count: string;
   readonly forms: Readonly<Partial<Record<Intl.LDMLPluralRule, string>>>;
+  /**
+   * The language whose plural rules select the form and format the count,
+   * when it is not the catalog's own: staff-only messages are English in
+   * every catalog.
+   */
+  readonly rules?: Locale;
 }
 export type CatalogEntry = string | PluralEntry;
 
@@ -27,7 +33,8 @@ const PDI = "\u2069";
  * isolate marks are invisible and do not change what a screen reader says.
  *
  * Plural messages select their form with `Intl.PluralRules` for the interface
- * language and format the count with the same locale. Every other number is
+ * language and format the count with the same locale, unless the entry names
+ * its own `rules` (staff-only messages are English). Every other number is
  * inserted with `String()`, so years and version numbers are never grouped;
  * format amounts and quantities before passing them.
  */
@@ -35,10 +42,25 @@ export function createTranslator<Id extends string>(
   catalog: Readonly<Record<Id, CatalogEntry>>,
   locale: Locale,
 ): (id: Id, values?: MessageValues) => string {
-  const formatting = formattingLocales[locale];
   const isolate = rtlLocales.has(locale);
-  let rules: Intl.PluralRules | undefined;
-  let numbers: Intl.NumberFormat | undefined;
+  const rules = new Map<Locale, Intl.PluralRules>();
+  const numbers = new Map<Locale, Intl.NumberFormat>();
+  const pluralRules = (language: Locale) => {
+    let value = rules.get(language);
+    if (!value) {
+      value = new Intl.PluralRules(formattingLocales[language]);
+      rules.set(language, value);
+    }
+    return value;
+  };
+  const numberFormat = (language: Locale) => {
+    let value = numbers.get(language);
+    if (!value) {
+      value = new Intl.NumberFormat(formattingLocales[language]);
+      numbers.set(language, value);
+    }
+    return value;
+  };
   return (id, values = {}) => {
     const entry = catalog[id] as CatalogEntry | undefined;
     // A typed ID cannot miss; a cast one can. Showing the ID is visible in
@@ -46,13 +68,16 @@ export function createTranslator<Id extends string>(
     if (entry === undefined) return id;
     let template: string;
     let countKey: string | undefined;
+    let countLanguage = locale;
     if (typeof entry === "string") template = entry;
     else {
       countKey = entry.count;
+      countLanguage = entry.rules ?? locale;
       const count = Number(values[countKey]);
-      rules ??= new Intl.PluralRules(formatting);
       template =
-        entry.forms[rules.select(Number.isFinite(count) ? count : 0)] ??
+        entry.forms[
+          pluralRules(countLanguage).select(Number.isFinite(count) ? count : 0)
+        ] ??
         entry.forms.other ??
         "";
     }
@@ -60,10 +85,9 @@ export function createTranslator<Id extends string>(
       if (!Object.hasOwn(values, key)) return placeholder;
       const value = values[key];
       let text: string;
-      if (key === countKey && typeof value === "number") {
-        numbers ??= new Intl.NumberFormat(formatting);
-        text = numbers.format(value);
-      } else text = String(value);
+      if (key === countKey && typeof value === "number")
+        text = numberFormat(countLanguage).format(value);
+      else text = String(value);
       return isolate ? `${FSI}${text}${PDI}` : text;
     });
   };

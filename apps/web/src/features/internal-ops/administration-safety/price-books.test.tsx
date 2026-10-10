@@ -537,7 +537,9 @@ it("reports a duplicate clone version before sending a mutation", async () => {
   expect(mocks.sendCoreCommand).not.toHaveBeenCalled();
 });
 
-describe("the page in the reader's language", () => {
+// Staff copy is English in every catalog; amounts and dates follow the
+// language given.
+describe("the page for a reader of another language", () => {
   const usd = (minor: string) => MoneySchema.parse({ currency: "USD", minor });
   const rate = {
     id: "66100000-0000-4000-8000-000000000001",
@@ -582,54 +584,37 @@ describe("the page in the reader's language", () => {
       </LanguageProvider>,
     );
 
-  it("writes every label, count, amount and date in Brazilian Portuguese", () => {
+  it("formats every amount and date for a Brazilian Portuguese reader", () => {
     renderIn("pt");
     expect(
-      screen.getByRole("heading", { level: 1, name: "Tabelas de preços" }),
-    ).toBeVisible();
-    expect(
-      screen.getByText("Somente versões ativadas definem o preço."),
+      screen.getByRole("heading", { level: 1, name: "Price books" }),
     ).toBeVisible();
     expect(
       screen.getByRole("cell", {
-        name: "Proposta por commercial.policy@filone.test",
+        name: "Proposed by commercial.policy@filone.test",
       }),
     ).toBeVisible();
     // Amounts and dates are formatted for the reader, not pre-rendered.
     expect(screen.getAllByText("US$ 150,00").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("A partir de 1 de jul. de 2026").length).toBe(2);
-    expect(screen.getAllByText("1 TB-mês").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("From 1 de jul. de 2026").length).toBe(2);
     expect(
-      screen.getByText(
-        "2 de 2 versões · Ordenadas por moeda e, em seguida, pela versão mais recente",
-      ),
+      screen.getByText(/Sorted by currency, then newest version/u),
     ).toBeVisible();
-    // The diff row names the field in Portuguese and shows both amounts.
     expect(
-      screen.getByText("LOCKED-STORAGE-TB / us-east-2 · Preço de tabela"),
+      screen.getByText("LOCKED-STORAGE-TB / us-east-2 · List price"),
     ).toBeVisible();
-    for (const english of [
-      "Price book versions",
-      "Only activated versions set price.",
-      "Proposed by",
-      "rate cards",
-      "Not proposed",
-      "Guided demo data",
-      "$150.00",
-      "TB-month",
-    ])
-      expect(document.body.textContent).not.toContain(english);
+    expect(document.body.textContent).not.toContain("$150.00");
   });
 
   it("colours a price-book state from the state, not from its words", () => {
     renderIn("ar");
     const table = screen.getByRole("table", {
-      name: "إصدارات قوائم الأسعار ومدى الجاهزية للتفعيل",
+      name: "Price book versions and activation readiness",
     });
-    expect(within(table).getByText("سارية")).toHaveClass(
+    expect(within(table).getByText("Active")).toHaveClass(
       styles.success ?? "missing-success-class",
     );
-    expect(within(table).getByText("مسودة")).toHaveClass(
+    expect(within(table).getByText("Draft")).toHaveClass(
       styles.warning ?? "missing-warning-class",
     );
   });

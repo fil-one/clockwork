@@ -168,7 +168,7 @@ describe("administration and safety disclosure UI", () => {
 });
 
 describe("agreement version filters", () => {
-  it("filters by state and jurisdiction when the labels are translated", async () => {
+  it("filters by state and jurisdiction for a Portuguese reader", async () => {
     const { container } = render(
       <LanguageProvider locale="pt" catalog={catalogs.pt}>
         <AgreementAdministration
@@ -192,7 +192,7 @@ describe("agreement version filters", () => {
     expect(rows()[0]).toHaveTextContent("3.3.0");
 
     await userEvent.selectOptions(state, "Todos");
-    await userEvent.selectOptions(jurisdiction, "Reino Unido");
+    await userEvent.selectOptions(jurisdiction, "United Kingdom");
     expect(rows()).toHaveLength(1);
     expect(rows()[0]).toHaveTextContent("1.4.0");
   });
@@ -281,7 +281,7 @@ describe("status chip colour", () => {
     );
   });
 
-  it("colours translated agreement states from the state itself", () => {
+  it("colours agreement states from the state itself, not its words", () => {
     render(
       <LanguageProvider locale="pt" catalog={catalogs.pt}>
         <AgreementAdministration
@@ -293,9 +293,9 @@ describe("status chip colour", () => {
       </LanguageProvider>,
     );
     const table = screen.getByRole("table");
-    for (const chip of within(table).getAllByText("Vigente"))
+    for (const chip of within(table).getAllByText("In force"))
       expect(chip).toHaveClass(styles.success ?? "");
-    expect(within(table).getByText("Aprovada")).toHaveClass(
+    expect(within(table).getByText("Approved")).toHaveClass(
       styles.success ?? "",
     );
     expect(within(table).getByText("Rascunho")).toHaveClass(

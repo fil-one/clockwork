@@ -4,6 +4,7 @@ import type {
   ProjectionChannel,
   ProjectionRecord,
 } from "@/src/features/experience-server/model";
+import type { Translator } from "@/src/i18n";
 import { translatorFor } from "@/src/i18n/catalogs";
 
 const generatedAt = "2026-08-15T09:15:00.000Z";
@@ -82,7 +83,7 @@ describe("operations home signals", () => {
       detail: "Past-due invoices: 2. Open invoices: 2.",
     });
     expect(collections(portuguese)).toMatchObject({
-      label: "Cobrança",
+      label: "Collections",
       value: new Intl.NumberFormat("pt-BR", {
         style: "currency",
         currency: "USD",
@@ -96,19 +97,13 @@ describe("operations home signals", () => {
     );
   });
 
-  it("words every signal in the reader's language", async () => {
-    const japanese = await loadOperationsHome(
-      now,
-      translatorFor("ja"),
-      "ja-JP",
-    );
-    const english = await loadOperationsHome(now, translatorFor("en"), "en-US");
-    for (const [index, signal] of japanese.signals.entries()) {
-      const source = english.signals[index];
-      expect(signal.label).not.toBe(source?.label);
-      expect(signal.action).not.toBe(source?.action);
-      expect(signal.detail).not.toBe(source?.detail);
-    }
+  it("words every signal from the catalog, not from strings in the loader", async () => {
+    const t = ((id: string) => `[${id}]`) as Translator;
+    const { signals } = await loadOperationsHome(now, t, "en-US");
+    expect(signals.length).toBeGreaterThan(0);
+    for (const signal of signals)
+      for (const text of [signal.label, signal.action, signal.detail])
+        expect(text, signal.channel).toMatch(/^\[operations\.[\w.]+\]$/u);
   });
 
   it("lists billing work while any billing work can run", async () => {

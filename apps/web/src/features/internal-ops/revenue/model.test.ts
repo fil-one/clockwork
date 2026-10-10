@@ -17,7 +17,6 @@ describe("revenue presentation", () => {
   it("keeps the revenue basis explicit", () => {
     expect(basisLabel("transfer_price", en)).toContain("not gross");
     expect(basisLabel("gross", en)).toBe("Gross");
-    expect(basisLabel("gross", de)).toBe("Brutto");
     // An unknown basis is shown as stored rather than as a plausible label.
     expect(basisLabel("net_of_fees", en)).toBe("net_of_fees");
   });
@@ -30,9 +29,6 @@ describe("revenue presentation", () => {
   it("words stored codes as business labels and keeps versions and names", () => {
     expect(methodologyLabel("merchant_of_record.v1", en)).toBe(
       "Merchant-of-record basis · v1",
-    );
-    expect(methodologyLabel("merchant_of_record.v1", de)).toBe(
-      "Merchant-of-Record-Basis · v1",
     );
     expect(methodologyLabel("contracted-v1", en)).toBe("contracted-v1");
     expect(merchantLabel("fil_one", de)).toBe("Fil One");

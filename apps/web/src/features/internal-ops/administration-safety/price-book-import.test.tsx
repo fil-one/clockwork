@@ -122,10 +122,10 @@ it("rejects injected approval fields before exposing an import command", async (
   expect(mocks.send).not.toHaveBeenCalled();
 });
 
-it("previews the import in German with German money, units and counts", async () => {
+it("previews the import with German money and counts for a German reader", async () => {
   setHarnessLanguage("de", catalogs.de);
   const user = userEvent.setup();
-  const { container } = render(
+  render(
     <PriceBookImport
       books={[]}
       permitted
@@ -134,44 +134,31 @@ it("previews the import in German with German money, units and counts", async ()
       onImported={vi.fn()}
     />,
   );
-  await user.click(
-    screen.getByText("Preislisten-JSON als neuen Entwurf importieren"),
-  );
-  await user.click(screen.getByLabelText("Preislisten-JSON"));
+  await user.click(screen.getByText("Import price-book JSON into a new draft"));
+  await user.click(screen.getByLabelText("Price-book JSON"));
   await user.paste(JSON.stringify(document));
   await user.click(
-    screen.getByRole("button", { name: "Importvorschau prüfen" }),
+    screen.getByRole("button", { name: "Validate import preview" }),
   );
   expect(
-    screen.getByRole("heading", {
-      name: "Importvorschau · USD · 1 Preisblatt",
-    }),
+    screen.getByRole("heading", { name: "Import preview · USD · 1 rate" }),
   ).toBeVisible();
-  const table = screen.getByRole("table", {
-    name: "Vorschau der importierten Preisblätter",
-  });
+  const table = screen.getByRole("table", { name: "Imported rate preview" });
   expect(table).toHaveTextContent(
     // jest-dom collapses the no-break space Intl puts before "$".
     formatMoney("9007199254740993", "USD", "de-DE").replace(/\s/gu, " "),
   );
-  expect(table).toHaveTextContent(
-    "TB-Monat · Kontingent für die gesamte Laufzeit",
-  );
+  expect(table).toHaveTextContent("TB-month · Term drawdown");
   expect(table).toHaveTextContent("0,123456789123456789 / Keine");
   expect(
     screen.getByText(
-      /Rabattbefugnis: Standardobergrenze 0 Bp \(0\s%\); 0 spezifische Regeln\./u,
+      /Discount authority: Default ceiling 0 bps \(0\s%\); 0 scoped rules\./u,
     ),
   ).toBeVisible();
-  expect(
-    screen.getByRole("form", { name: "Preisliste importieren" }),
-  ).toBeVisible();
-  expect(container.textContent).not.toMatch(
-    /Import preview|Imported rate preview|Create imported draft|bytes/u,
-  );
+  expect(screen.getByRole("form", { name: "Import price book" })).toBeVisible();
 });
 
-it("explains unparseable JSON in the reader's language", async () => {
+it("explains unparseable JSON for a reader of another language", async () => {
   setHarnessLanguage("ja", catalogs.ja);
   const user = userEvent.setup();
   render(
@@ -183,15 +170,13 @@ it("explains unparseable JSON in the reader's language", async () => {
       onImported={vi.fn()}
     />,
   );
-  await user.click(
-    screen.getByText("価格表の JSON を新しい下書きにインポート"),
-  );
-  await user.click(screen.getByLabelText("価格表の JSON"));
+  await user.click(screen.getByText("Import price-book JSON into a new draft"));
+  await user.click(screen.getByLabelText("Price-book JSON"));
   await user.paste("{not json");
   await user.click(
-    screen.getByRole("button", { name: "インポートのプレビューを検証" }),
+    screen.getByRole("button", { name: "Validate import preview" }),
   );
   expect(screen.getByRole("status")).toHaveTextContent(
-    "有効な JSON ではありません。エクスポートしたファイル全体を貼り付けてください。",
+    "This is not valid JSON. Paste the complete exported file.",
   );
 });

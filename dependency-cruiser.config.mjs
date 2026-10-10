@@ -33,6 +33,17 @@ const forbidden = layers.flatMap((from) =>
     })),
 );
 
+// Staff routes render in English and their message modules are English only
+// (docs/operations/localization.md), so customer, partner and demo code must
+// not pull staff UI in. `@/` imports are matched unresolved: this config
+// resolves with the base tsconfig, which does not know the web app's alias.
+const staffCode = "^(apps/web/|@/)src/features/internal-ops/";
+const readerSurfaces = [
+  "^apps/web/src/features/customer-partner/",
+  "^apps/web/app/\\(experience\\)/\\((customer|partner)\\)/",
+  "^apps/web/app/demo/",
+];
+
 export default {
   forbidden: [
     {
@@ -42,6 +53,23 @@ export default {
       to: { circular: true },
     },
     ...forbidden,
+    {
+      name: "reader-surfaces-must-not-import-staff-code",
+      severity: "error",
+      from: {
+        path: readerSurfaces,
+        // Staff UI that lives in the customer tree and renders only at
+        // /internal/payg-requests.
+        pathNot: "^apps/web/src/features/customer-partner/acquisition/finance",
+      },
+      to: {
+        path: staffCode,
+        // Server-only demo fixtures with no interface text: the commercial
+        // policies and price books the demo customer and partner flows read.
+        pathNot:
+          "internal-ops/(commercial-policies/demo-policies|price-books/demo-price-books)(\\.ts)?$",
+      },
+    },
   ],
   options: {
     doNotFollow: { path: "node_modules" },

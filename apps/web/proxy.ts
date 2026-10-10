@@ -22,6 +22,7 @@ import {
   verifyDemoAccessCookie,
 } from "@/src/auth/demo-access";
 import { releaseProofConfiguration } from "@/src/auth/release-proof";
+import { routeAudience, routeAudienceHeader } from "@/src/i18n/route-language";
 import {
   issueTelemetryIngestCookie,
   telemetryIngestCookieName,
@@ -276,6 +277,13 @@ export default async function proxy(
   // document whose scripts the response policy then refuses.
   forwardedHeaders.set("content-security-policy", policy);
   forwardedHeaders.set("x-nonce", nonce ?? "");
+  // Staff routes render in English; server components cannot see the URL, so
+  // the route's audience travels as a header. `set` replaces any value the
+  // browser sent.
+  forwardedHeaders.set(
+    routeAudienceHeader,
+    routeAudience(request.nextUrl.pathname),
+  );
   const tracedRequest = new NextRequest(request, { headers: forwardedHeaders });
   const finish = (status: number, outcome: "ok" | "error" | "denied") => {
     span.setAttributes({

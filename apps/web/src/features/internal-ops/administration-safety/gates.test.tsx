@@ -237,7 +237,7 @@ describe("truthful external-gate administration", () => {
   });
 });
 
-describe("the gate register in the reader's language", () => {
+describe("the gate register for a reader of another language", () => {
   const seed = fallbackGates.find((gate) => gate.id === "EXT-ACC-01");
   if (!seed) throw new Error("fixture EXT-ACC-01 is missing");
   const demoRow = (overrides: Partial<GeneratedExternalGate> = {}) =>
@@ -280,7 +280,9 @@ describe("the gate register in the reader's language", () => {
       </LanguageProvider>,
     );
 
-  it("words demo fixture text, statuses and blocker codes in Portuguese", () => {
+  // Staff copy is English in every catalog; demo fixture text follows the
+  // language given.
+  it("words demo fixture text in Portuguese and staff labels in English", () => {
     inPortuguese(
       <GateRegister
         permissions={permissionsForRoles(["internal_operator"])}
@@ -289,9 +291,7 @@ describe("the gate register in the reader's language", () => {
         demoText={demoGateText("pt")}
       />,
     );
-    expect(
-      screen.getByText("Registro de pré-requisitos de demonstração"),
-    ).toBeVisible();
+    expect(screen.getByText("Demonstration gate registry")).toBeVisible();
     const row = screen.getByRole("row", {
       name: /Contas hospedadas e credenciais/,
     });
@@ -299,14 +299,12 @@ describe("the gate register in the reader's language", () => {
     expect(
       within(row).getByText("Testes de credenciais hospedadas não executados"),
     ).toBeVisible();
-    expect(within(row).getByText(/^Aprovado · /)).toBeVisible();
+    expect(within(row).getByText(/^Passed · /)).toBeVisible();
     expect(
-      within(row).getByText("Bloqueios: data de revisão ausente ou vencida"),
+      within(row).getByText("Blockers: Review date missing or past"),
     ).toBeVisible();
-    expect(within(row).getByText("Ativação negada")).toBeVisible();
-    expect(
-      within(row).getByText("Atualizar ou testar o pré-requisito"),
-    ).toBeInTheDocument();
+    expect(within(row).getByText("Activation denied")).toBeVisible();
+    expect(within(row).getByText("Update or test gate")).toBeInTheDocument();
   });
 
   it("shows what an operator typed over a demo field as written", () => {
@@ -335,12 +333,10 @@ describe("the gate register in the reader's language", () => {
     expect(
       screen.getByRole("row", { name: /Hosted accounts and credentials/ }),
     ).toBeVisible();
-    expect(
-      screen.getByText("Registro de pré-requisitos do sistema"),
-    ).toBeVisible();
+    expect(screen.getByText("System gate registry")).toBeVisible();
   });
 
-  it("words the fallback fixtures, including their freshness, in Japanese", () => {
+  it("words the fallback fixtures in Japanese and states their freshness", () => {
     render(
       <LanguageProvider locale="ja" catalog={catalogs.ja}>
         <GateRegister
@@ -353,9 +349,7 @@ describe("the gate register in the reader's language", () => {
     );
     expect(screen.getByText("ホスト環境のアカウントと認証情報")).toBeVisible();
     expect(
-      screen.getAllByText(
-        "フォールバックのレコード：ゲートレジストリからは読み込んでいません",
-      ),
+      screen.getAllByText("Fallback record: not read from the gate registry"),
     ).toHaveLength(fallbackGates.length);
     expect(screen.queryByText(fallbackGateFreshness)).not.toBeInTheDocument();
   });
