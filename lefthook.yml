@@ -1,9 +1,32 @@
+# Pre-commit checks only the staged files. `pnpm verify:static` and CI run the
+# same tools across the whole repository.
+#
+# The hook calls lefthook with --no-stage-fixed. Without it, lefthook hides the
+# unstaged part of any partially staged file in a "lefthook auto backup" entry
+# on the git stash while the hook runs, and every worktree shares that stash.
+# These commands only check files and never rewrite them, so nothing needs
+# re-staging; for a partially staged file they check the working-tree copy.
+lefthook: sh -c 'exec node_modules/.bin/lefthook $* --no-stage-fixed' lefthook
+glob_matcher: doublestar
+
 pre-commit:
   parallel: true
   commands:
     format:
-      run: pnpm format:check
+      run: pnpm exec prettier --check --ignore-unknown {staged_files}
     secrets:
-      run: pnpm scan:secrets
+      run:
+        pnpm exec secretlint --secretlintrc .secretlintrc.json
+        --secretlintignore .secretlintignore --no-glob {staged_files}
     lint:
-      run: pnpm lint
+      glob: "**/*.{ts,tsx,js,mjs,cjs}"
+      exclude:
+        - "apps/web/**"
+      run: pnpm exec eslint --max-warnings=0 --no-warn-ignored {staged_files}
+    lint-web:
+      # Type-aware rules read Next's generated route types (typedRoutes), so
+      # regenerate them first. typegen takes a few seconds.
+      glob: "apps/web/**/*.{ts,tsx,js,mjs,cjs}"
+      run:
+        pnpm --filter @clockwork/web exec next typegen && pnpm exec eslint
+        --max-warnings=0 --no-warn-ignored {staged_files}

@@ -223,9 +223,13 @@ provider fakes for replay and failure scenarios.
   cursor and an explicit account scope; mutations return the aggregate version
   and any workflow handle.
 - **Git hooks** are installed by lefthook on `pnpm install` (`prepare`). The
-  type-aware lint hook needs more than Node's default 4 GiB heap on this
-  workspace. Use `NODE_OPTIONS=--max-old-space-size=6144 git commit ...`,
-  matching CI's memory setting, to avoid an out-of-memory retry.
+  pre-commit hook checks only staged files: Prettier, secretlint and ESLint
+  (`--max-warnings=0`), with `next typegen` first when web files are staged. It
+  never stashes, so for a partially staged file it checks the working-tree copy.
+  Run the repo-wide checks with `pnpm format:check`, `pnpm scan:secrets` and
+  `pnpm lint`, or all static gates with `pnpm verify:static`; CI runs them on
+  every pull request. Whole-repo lint needs more than Node's default 4 GiB heap:
+  use `NODE_OPTIONS=--max-old-space-size=6144`, matching CI.
 
 ## Release evidence
 
