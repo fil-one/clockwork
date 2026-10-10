@@ -152,6 +152,7 @@ export const eventMessages: Readonly<Record<string, MessageId>> = {
   "mnda.signer_configured": "operations.owner.event.mndaSigner",
   "mnda.settings_changed": "operations.owner.event.mndaNoticeEmail",
   "mnda.register_exported": "operations.owner.event.mndaExported",
+  "contract.register_exported": "operations.owner.event.contractsExported",
   "workflow.report_exported": "operations.owner.event.reportExported",
   "security.assisted_action.started": "operations.owner.event.assistedStarted",
   "approval.self_approved": "operations.owner.event.selfApproved",
@@ -182,6 +183,7 @@ export const approvalControlLabels: Readonly<
 export const noticeErrorCodes = [
   "NOT_PERMITTED",
   "DIRECT_SESSION_REQUIRED",
+  "SESSION_EXPIRED",
   "INVALID_INPUT",
   "NOT_CONFIGURED",
   "UNEXPECTED",
@@ -194,6 +196,7 @@ export const noticeErrorMessages: Readonly<Record<NoticeErrorCode, MessageId>> =
   {
     NOT_PERMITTED: "operations.owner.notices.error.notPermitted",
     DIRECT_SESSION_REQUIRED: "operations.owner.notices.error.directSession",
+    SESSION_EXPIRED: "operations.session.expired",
     INVALID_INPUT: "operations.owner.notices.error.invalid",
     NOT_CONFIGURED: "operations.owner.notices.error.notConfigured",
     UNEXPECTED: "operations.owner.notices.error.unexpected",

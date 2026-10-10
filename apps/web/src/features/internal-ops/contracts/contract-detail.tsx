@@ -106,6 +106,18 @@ function activityTitle(event: ContractActivity, t: Translator) {
       return t("operations.contracts.activity.approved");
     case "contract.rejected":
       return t("operations.contracts.activity.rejected");
+    case "contract.voided":
+      return t("operations.contracts.activity.voided");
+    case "contract.reminded":
+      return t(
+        changes.recipient === "fil-one"
+          ? "operations.contracts.activity.remindedCountersigner"
+          : "operations.contracts.activity.remindedCounterparty",
+      );
+    case "contract.deleted_in_signwell":
+      return t("operations.contracts.activity.deletedInSignWell");
+    case "contract.signwell_mismatch":
+      return t("operations.contracts.activity.signwellMismatch");
     default: {
       const state = event.eventType.replace("contract.signing_", "");
       return state in signingStateLabels
@@ -156,6 +168,14 @@ function Activity({
               {event.eventType === "contract.rejected" &&
               typeof changes.reason === "string" ? (
                 <span>{changes.reason}</span>
+              ) : null}
+              {event.eventType === "contract.voided" &&
+              typeof changes.reason === "string" ? (
+                <span>
+                  {t("operations.contracts.activity.reason", {
+                    reason: changes.reason,
+                  })}
+                </span>
               ) : null}
               {diffs.length ? (
                 <ul className={styles.changeList}>
@@ -256,7 +276,9 @@ export function ContractDetail({
           </div>
         }
       />
-      {contract.status === "executed" && signedCopies.length === 0 ? (
+      {canWrite &&
+      contract.status === "executed" &&
+      signedCopies.length === 0 ? (
         <InlineNotice
           tone="warning"
           title={t("operations.contracts.detail.noSignedCopyTitle")}

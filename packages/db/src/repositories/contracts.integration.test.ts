@@ -781,6 +781,69 @@ describe("template signing persistence", () => {
       (await repo.readFile(input.id, executed?.id ?? "")).bytes.toString(),
     ).toContain("audit pages");
   });
+
+  it("records reminders and voids in the history and the audit log", async () => {
+    const { input } = await prepare(false);
+    const lease = await signing.claim(input.id);
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "sent", providerId: randomUUID() },
+      actor,
+    );
+    const remindedAt = new Date("2026-10-09T12:00:00.000Z");
+    const reminded = await signing.update(
+      input.id,
+      lease.token,
+      { error: null, remindedAt },
+      actor,
+      undefined,
+      { eventType: "contract.reminded", detail: { recipient: "counterparty" } },
+    );
+    expect(reminded).toMatchObject({
+      state: "sent",
+      remindedAt: remindedAt.toISOString(),
+    });
+    // Without a note or a state change, nothing is added to the history.
+    await signing.update(input.id, lease.token, { error: null }, actor);
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "canceled", error: null },
+      actor,
+      undefined,
+      { eventType: "contract.voided", detail: { reason: "Wrong entity" } },
+    );
+    await signing.release(input.id, lease.token);
+    const detail = await repo.get(input.id, "2026-10-09");
+    expect(detail.contract.status).toBe("draft");
+    expect(detail.activity.slice(0, 3)).toMatchObject([
+      {
+        eventType: "contract.voided",
+        changes: {
+          status: { from: "out_for_signature", to: "draft" },
+          reason: "Wrong entity",
+        },
+      },
+      {
+        eventType: "contract.reminded",
+        changes: { recipient: "counterparty" },
+      },
+      { eventType: "contract.signing_sent" },
+    ]);
+    const audit = await client<{ event_type: string; after: unknown }[]>`
+      select event_type, after from audit_events
+      where aggregate_id = ${input.id}
+        and event_type in ('contract.reminded', 'contract.voided')
+      order by aggregate_version`;
+    expect(audit).toMatchObject([
+      {
+        event_type: "contract.reminded",
+        after: { recipient: "counterparty" },
+      },
+      { event_type: "contract.voided", after: { reason: "Wrong entity" } },
+    ]);
+  });
 });
 
 describe("document lifetime", () => {
@@ -947,3 +1010,48 @@ function pick(
     noticeDeadline: row?.noticeDeadline ?? null,
   };
 }
+
+describe("access audit", () => {
+  it("audits file downloads, register exports and library downloads without touching record versions", async () => {
+    const reader = { kind: "user" as const, id: randomUUID(), display: "R" };
+    const input = contract(randomUUID());
+    await repo.create(input, actor);
+    const fileId = randomUUID();
+    await repo.recordAccess(reader, {
+      kind: "file",
+      contractId: input.id,
+      fileId,
+      fileKind: "main",
+    });
+    await repo.recordAccess(reader, {
+      kind: "export",
+      filters: query({ status: "executed" }),
+      rows: 4,
+      mndaRows: 1,
+      truncated: false,
+    });
+    const itemId = randomUUID();
+    await library.recordDownload(reader, itemId);
+    const events = await client<{ event_type: string; after: unknown }[]>`
+      select event_type, after from audit_events
+      where actor->>'id' = ${reader.id} order by event_type`;
+    expect(events).toHaveLength(3);
+    expect(events).toMatchObject([
+      {
+        event_type: "contract.file_downloaded",
+        after: { contractId: input.id, fileId, kind: "main" },
+      },
+      {
+        event_type: "contract.register_exported",
+        after: {
+          rows: 4,
+          mndaRows: 1,
+          truncated: false,
+          filters: { status: "executed" },
+        },
+      },
+      { event_type: "sales_collateral.downloaded", after: { itemId } },
+    ]);
+    expect((await repo.get(input.id, "2026-10-09")).contract.version).toBe(1);
+  });
+});

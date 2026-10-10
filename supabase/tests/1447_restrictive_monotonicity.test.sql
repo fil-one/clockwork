@@ -196,7 +196,7 @@ select is(
    from pg_policies
    where schemaname = 'public' and permissive = 'RESTRICTIVE'
      and coalesce(qual, '') || coalesce(with_check, '')
-       ~* 'not\s*\(*\s*app_has_(any_)?permission'),
+       ~* 'not\s*\(*\s*(select\s+)?app_has_(any_)?permission'),
   null, 'no restrictive policy tests for the absence of a permission');
 
 select * from finish();

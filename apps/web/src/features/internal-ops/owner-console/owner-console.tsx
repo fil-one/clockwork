@@ -9,6 +9,7 @@ import type { MessageId } from "@/src/i18n";
 import { useTranslations } from "@/src/i18n/client";
 
 import { LocalTimestamp } from "../local-timestamp";
+import { SessionExpiredReload } from "../session-expiry";
 import { staffRoleLabels } from "../team/model";
 import { RoleChips } from "../team/team-workspace";
 import { AccessMatrix } from "./access-matrix";
@@ -180,7 +181,17 @@ function NoticesPanel({
       </p>
       {error ? (
         <div role="alert">
-          <StateBanner tone="danger" title={t(noticeErrorMessages[error])} />
+          <StateBanner
+            tone="danger"
+            title={t(noticeErrorMessages[error])}
+            {...(error === "SESSION_EXPIRED"
+              ? {
+                  action: (
+                    <SessionExpiredReload onReloaded={() => setError(null)} />
+                  ),
+                }
+              : {})}
+          />
         </div>
       ) : null}
       <SectionBody section={visible} empty="operations.owner.notices.empty">

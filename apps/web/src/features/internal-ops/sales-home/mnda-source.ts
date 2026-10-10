@@ -8,6 +8,7 @@ import {
 } from "@clockwork/db";
 
 import { getOptionalServiceDatabase } from "@/src/db/service";
+import { demoMndaHomeCounts } from "../mnda/demo-register";
 import type { MessageId } from "@/src/i18n";
 
 import {
@@ -52,19 +53,7 @@ const rows: readonly {
   },
 ];
 
-/**
- * The guided demo has no MNDA register to open, so it shows a fixed, plainly
- * illustrative tally and no links.
- */
-const demoCounts: SalesHomeMndaCounts = {
-  mine: { waitingPartner: 2, waitingFilOne: 1, completed: 3, drafts: 1 },
-  team: { waitingPartner: 4, waitingFilOne: 2, completed: 7, drafts: 2 },
-};
-
-export function mndaHomeRows(
-  counts: SalesHomeMndaCounts,
-  linked: boolean,
-): SalesHomeRow[] {
+export function mndaHomeRows(counts: SalesHomeMndaCounts): SalesHomeRow[] {
   return rows.map(({ group, title, hint, showTeam }) => {
     const states = salesHomeMndaGroups[group];
     return {
@@ -73,12 +62,8 @@ export function mndaHomeRows(
       hint,
       mine: counts.mine[group],
       ...(showTeam ? { team: counts.team[group] } : {}),
-      ...(linked
-        ? {
-            href: mndaRegisterHref(states, true),
-            ...(showTeam ? { teamHref: mndaRegisterHref(states, false) } : {}),
-          }
-        : {}),
+      href: mndaRegisterHref(states, true),
+      ...(showTeam ? { teamHref: mndaRegisterHref(states, false) } : {}),
     };
   });
 }
@@ -93,16 +78,26 @@ export const mndaHomeSource: SalesHomeSource = {
     action: "operations.sales.home.openRegister",
   },
   async load(context: SalesHomeContext) {
-    if (!context.providerBacked) return mndaHomeRows(demoCounts, false);
+    const completedSince = new Date(
+      context.now.getTime() - RECENT_DAYS * 24 * 60 * 60 * 1000,
+    );
+    // The guided demo counts its fictional register, so each row opens the
+    // same filtered list it counted.
+    if (context.demo)
+      return mndaHomeRows(
+        demoMndaHomeCounts(
+          { id: context.userId, name: "", email: "" },
+          context.now,
+          completedSince,
+        ),
+      );
     const database = getOptionalServiceDatabase();
     // i18n-exempt: thrown to the home loader, which shows its own unavailable state; never rendered
     if (!database) throw new Error("SALES_HOME_DATABASE_UNAVAILABLE");
     const counts = await countSalesHomeMndas(database, {
       ownerId: context.userId,
-      completedSince: new Date(
-        context.now.getTime() - RECENT_DAYS * 24 * 60 * 60 * 1000,
-      ),
+      completedSince,
     });
-    return mndaHomeRows(counts, true);
+    return mndaHomeRows(counts);
   },
 };

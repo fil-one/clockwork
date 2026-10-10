@@ -1,10 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const replay = vi.hoisted(() => vi.fn());
+const refresh = vi.hoisted(() => vi.fn());
 
 vi.mock("./actions", () => ({ replayWebhookEvent: replay }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
 import { ReplayDecision } from "./replay-decision";
 
@@ -103,6 +105,48 @@ describe("replay decision", () => {
         "No verified callback matches this provider and event id.",
       ),
     ).toBeVisible();
+  });
+
+  it("offers a reload when the session expired and keeps the reason", async () => {
+    replay.mockResolvedValue({ ok: false, code: "SESSION_EXPIRED" });
+    const user = userEvent.setup();
+    open();
+
+    await user.click(screen.getByRole("button", { name: "Replay" }));
+    await user.type(screen.getByLabelText("Reason"), REASON);
+    await user.click(
+      screen.getByRole("button", { name: "Replay this callback" }),
+    );
+
+    expect(
+      await screen.findByText("Your session expired. Reload to continue."),
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Reload" }));
+    expect(refresh).toHaveBeenCalledOnce();
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Your session expired. Reload to continue."),
+      ).toBeNull(),
+    );
+    expect(screen.getByLabelText("Reason")).toHaveValue(REASON);
+  });
+
+  it("offers no reload for any other refusal", async () => {
+    replay.mockResolvedValue({
+      ok: false,
+      code: "WEBHOOK_REPLAY_RECENT_AUTH_REQUIRED",
+    });
+    const user = userEvent.setup();
+    open();
+
+    await user.click(screen.getByRole("button", { name: "Replay" }));
+    await user.type(screen.getByLabelText("Reason"), REASON);
+    await user.click(
+      screen.getByRole("button", { name: "Replay this callback" }),
+    );
+
+    expect(await screen.findByRole("alert")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Reload" })).toBeNull();
   });
 
   it("confirms a started replay and sends the operator reason", async () => {

@@ -13,8 +13,12 @@ import type { MessageId } from "@/src/i18n";
 export const selfApprovalReasonMinimum = 8;
 export const selfApprovalReasonMaximum = 500;
 
-/** What the confirm callback of the dialog reports back. */
-export type SelfApprovalOutcome = { ok: true } | { ok: false; message: string };
+/**
+ * What the confirm callback of the dialog reports back. `expired` says the
+ * session lapsed, so the dialog offers a reload beside the message.
+ */
+export type SelfApprovalOutcome =
+  { ok: true } | { ok: false; message: string; expired?: boolean };
 
 /**
  * Whether a session may offer "Approve my own request". The server checks

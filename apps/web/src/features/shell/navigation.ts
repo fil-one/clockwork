@@ -33,7 +33,6 @@ export interface NavigationItem {
   requiredPermission?: Permission;
   /** Shown to a reader holding at least one of these. */
   anyPermission?: readonly Permission[];
-  providerBackedOnly?: boolean;
   workspace?: StaffWorkspace;
   icon?: NavigationIconName;
 }
@@ -86,7 +85,6 @@ export const salesNavigation: readonly NavigationItem[] = [
       "sign",
     ],
     requiredPermission: "mnda:send",
-    providerBackedOnly: true,
     workspace: "sales",
     icon: "document",
   },
@@ -96,7 +94,6 @@ export const salesNavigation: readonly NavigationItem[] = [
     // i18n-exempt: search aliases matched in addition to the translated label; never displayed
     keywords: ["agreements", "msa", "renewals", "notice", "contract"],
     requiredPermission: "contract:read",
-    providerBackedOnly: true,
     workspace: "sales",
     icon: "contract",
   },
@@ -106,7 +103,6 @@ export const salesNavigation: readonly NavigationItem[] = [
     // i18n-exempt: search aliases matched in addition to the translated label; never displayed
     keywords: ["deck", "collateral", "case study", "one-pager", "library"],
     requiredPermission: "sales:read",
-    providerBackedOnly: true,
     workspace: "sales",
     icon: "library",
   },

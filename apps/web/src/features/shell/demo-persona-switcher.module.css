@@ -291,8 +291,38 @@
     );
   }
 }
+/*
+ * Without the full rail, a floating pill rests on whatever reaches the bottom
+ * of the window: at 390 px it covered the queue's Status and Risk filters. The
+ * closed pill there becomes a strip across the bottom of the window, as it is
+ * the rail's footer on a desktop: the page scrolls behind an opaque bar and
+ * ends with room for it, so no control is ever half under a floating button.
+ */
 @media (max-width: 63.999rem) {
+  .panel:not(:has(.body)) {
+    display: flex;
+    justify-content: flex-end;
+    inset-inline: 0;
+    bottom: 0;
+    max-width: none;
+    border-block-start: 1px solid var(--cw-border);
+    background: var(--cw-surface);
+    padding: var(--cw-space-2) clamp(0.75rem, 2vw, 1.5rem);
+    padding-block-end: max(var(--cw-space-2), env(safe-area-inset-bottom));
+  }
+
+  .panel:not(:has(.body)) .launcher {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-height: var(--cw-control-height);
+    box-shadow: var(--cw-shadow-xs);
+  }
+
   :global(body):has(.panel) :global(.cw-shell__footer) {
-    padding-block-end: calc(3.25rem + 2 * clamp(0.75rem, 2vw, 1.5rem));
+    padding-block-end: calc(
+      var(--cw-control-height) + 2 * var(--cw-space-2) + 1px +
+        env(safe-area-inset-bottom)
+    );
   }
 }

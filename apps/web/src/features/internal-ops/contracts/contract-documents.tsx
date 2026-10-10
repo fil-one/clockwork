@@ -25,6 +25,7 @@ import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import { formatOperationalTimestamp } from "../presentation";
 import { removeContractFile } from "./actions";
 import { contractFileKindLabels, errorMessage, formatFileSize } from "./copy";
+import { SessionExpiredReload } from "../session-expiry";
 import { uploadContractFile } from "./upload-client";
 import styles from "./contracts.module.css";
 
@@ -106,6 +107,13 @@ export function ContractDocuments({
           tone="danger"
           title={t(errorMessage(error))}
           live="assertive"
+          {...(error === "SESSION_EXPIRED"
+            ? {
+                action: (
+                  <SessionExpiredReload onReloaded={() => setError(null)} />
+                ),
+              }
+            : {})}
         />
       ) : null}
       {notice ? (

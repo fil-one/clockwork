@@ -58,5 +58,7 @@ it("asks for MFA rather than refusing outright", async () => {
 });
 it("never uses demo identities to send real documents", async () => {
   mocks.demo.mockReturnValue(true);
-  await expect(mndaStaff()).rejects.toThrow("FORBIDDEN");
+  mocks.session.mockClear();
+  await expect(mndaStaff()).rejects.toThrow("MNDA_DEMO_UNAVAILABLE");
+  expect(mocks.session).not.toHaveBeenCalled();
 });

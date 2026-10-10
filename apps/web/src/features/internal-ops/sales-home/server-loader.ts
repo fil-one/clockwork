@@ -1,5 +1,6 @@
 import "server-only";
 
+import { contractHomeSource } from "./contract-source";
 import { mndaHomeSource } from "./mnda-source";
 import type {
   SalesHomeContext,
@@ -7,11 +8,11 @@ import type {
   SalesHomeSource,
 } from "./model";
 
-/**
- * Every kind of work on the staff home page, in page order. The contracts
- * workspace adds its renewal notices here as one more source.
- */
-export const salesHomeSources: readonly SalesHomeSource[] = [mndaHomeSource];
+/** Every kind of work on the staff home page, in page order. */
+export const salesHomeSources: readonly SalesHomeSource[] = [
+  mndaHomeSource,
+  contractHomeSource,
+];
 
 /**
  * Loads each source the reader may see. A source that fails reads as

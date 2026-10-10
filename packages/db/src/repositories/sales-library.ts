@@ -231,6 +231,21 @@ export class SalesLibraryRepository {
     };
   }
 
+  /** Records who downloaded an item's PDF, as its own audit aggregate. */
+  recordDownload(actor: Actor, itemId: string) {
+    return this.tx((tx) =>
+      appendAuditAndOutbox(tx, {
+        aggregateType: "document",
+        aggregateId: randomUUID(),
+        aggregateVersion: 1,
+        eventType: "sales_collateral.downloaded",
+        actor,
+        requestId: randomUUID(),
+        after: { itemId },
+      }),
+    );
+  }
+
   private audit(
     tx: RuntimeTransaction,
     row: Row,

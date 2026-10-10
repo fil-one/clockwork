@@ -4,6 +4,8 @@ import type { ProviderReferenceRow } from "@clockwork/db";
 import { saveProviderReference, type ProviderReferenceResult } from "./actions";
 import styles from "@/src/features/internal-ops/administration-safety/administration-safety.module.css";
 import { useTranslations } from "@/src/i18n/client";
+import { SessionExpiredReload } from "@/src/features/internal-ops/session-expiry";
+import { sessionExpiredMessage } from "@/src/features/internal-ops/session-expiry-message";
 
 /** Format examples: identifiers and ISO syntax, the same in every language. */
 const secretReferenceExample = "vault:commerce/provider/credential";
@@ -106,6 +108,7 @@ export function ProviderReferenceControls({
         </button>
       </fieldset>
       {message ? <p role="status">{t(message)}</p> : null}
+      {message === sessionExpiredMessage ? <SessionExpiredReload /> : null}
     </form>
   );
 }

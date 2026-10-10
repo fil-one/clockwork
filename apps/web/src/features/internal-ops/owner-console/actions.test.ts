@@ -18,7 +18,10 @@ vi.mock("@/src/features/shell/staff-access", () => {
     requireStaffPermission: mocks.requirePermission,
   };
 });
-vi.mock("@/src/auth/session", () => ({ getCommerceSession: vi.fn() }));
+vi.mock("@/src/auth/session", () => ({
+  getCommerceSession: vi.fn(),
+  SessionExpiredError: class SessionExpiredError extends Error {},
+}));
 vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: mocks.database,
 }));
@@ -29,6 +32,7 @@ vi.mock("@clockwork/db", () => ({
   },
 }));
 
+import { SessionExpiredError } from "@/src/auth/session";
 import { StaffPermissionError } from "@/src/features/shell/staff-access";
 
 import { markNoticesRead } from "./actions";
@@ -75,6 +79,20 @@ it("refuses anyone without staff management", async () => {
   await expect(markNoticesRead({ noticeIds: "all" })).resolves.toEqual({
     ok: false,
     code: "NOT_PERMITTED",
+  });
+  expect(mocks.markRead).not.toHaveBeenCalled();
+});
+
+it("reports an expired session apart from a direct-session refusal", async () => {
+  mocks.requirePermission.mockRejectedValueOnce(new SessionExpiredError());
+  await expect(markNoticesRead({ noticeIds: "all" })).resolves.toEqual({
+    ok: false,
+    code: "SESSION_EXPIRED",
+  });
+  mocks.requirePermission.mockRejectedValueOnce(new Error("unverified"));
+  await expect(markNoticesRead({ noticeIds: "all" })).resolves.toEqual({
+    ok: false,
+    code: "DIRECT_SESSION_REQUIRED",
   });
   expect(mocks.markRead).not.toHaveBeenCalled();
 });

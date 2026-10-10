@@ -1713,6 +1713,16 @@ export const platformMessages = defineMessages({
     zh: "验证暂不可用。请稍后重试或重新登录。",
     ar: "التحقق غير متاح حاليًا. حاول مرة أخرى بعد قليل أو سجّل الدخول مجددًا.",
   },
+  "platform.mfa.error.expired": {
+    en: "Your session expired before the code was checked. Enter the current code again.",
+    es: "Su sesión caducó antes de comprobar el código. Introduzca de nuevo el código actual.",
+    fr: "Votre session a expiré avant la vérification du code. Saisissez de nouveau le code actuel.",
+    de: "Ihre Sitzung ist abgelaufen, bevor der Code geprüft wurde. Geben Sie den aktuellen Code erneut ein.",
+    ja: "コードを確認する前にセッションの有効期限が切れました。現在のコードをもう一度入力してください。",
+    pt: "Sua sessão expirou antes de o código ser verificado. Digite o código atual novamente.",
+    zh: "验证码核对前会话已过期。请重新输入当前的验证码。",
+    ar: "انتهت صلاحية جلستك قبل التحقق من الرمز. أدخل الرمز الحالي مرة أخرى.",
+  },
   "platform.mfa.code": {
     en: "Authenticator code",
     es: "Código de autenticación",

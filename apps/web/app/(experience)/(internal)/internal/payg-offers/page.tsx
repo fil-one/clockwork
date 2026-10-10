@@ -11,7 +11,7 @@ import type { PaygOfferRecord } from "@clockwork/domain/core";
 import { getLocale, getTranslations } from "@/src/i18n/server";
 
 import { getOptionalServiceDatabase } from "@/src/db/service";
-import { getCommerceSession } from "@/src/auth/session";
+import { getRequestCommerceSession } from "@/src/auth/session";
 import { PaygOfferAdministration } from "@/src/features/internal-ops/administration-safety/payg-offers";
 import { withStaffPermission } from "@/src/features/shell/staff-access";
 
@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 async function Page() {
-  const session = await getCommerceSession();
+  const session = await getRequestCommerceSession();
   if (!session.isInternalStaff)
     throw new Error("Internal staff authority is required"); // i18n-exempt: server-side guard; Next.js masks thrown server errors and the shell shows its own translated error page
   const database = getOptionalServiceDatabase();

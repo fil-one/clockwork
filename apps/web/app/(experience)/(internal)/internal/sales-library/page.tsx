@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { contractToday } from "@clockwork/domain/contract-terms";
+import { explicitDemoIdentityEnabled } from "@/src/auth/session";
+import { demoNow } from "@/src/features/experience-server/demo-clock";
 import { getTranslations } from "@/src/i18n/server";
 import { ContractPageState } from "@/src/features/internal-ops/contracts/access-state";
 import { loadWith } from "@/src/features/internal-ops/contracts/loaders";
-import {
-  salesLibraryRepository,
-  sessionHas,
-} from "@/src/features/internal-ops/contracts/server";
+import { salesLibraryReader } from "@/src/features/internal-ops/contracts/demo-access";
+import { sessionHas } from "@/src/features/internal-ops/contracts/server";
 import { SalesLibraryView } from "@/src/features/internal-ops/sales-library/library-view";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export default async function Page() {
   const [t, loaded] = await Promise.all([
     getTranslations(),
     loadWith("sales:read", async (session) => ({
-      items: await salesLibraryRepository().list(),
+      items: await salesLibraryReader().list(),
       canManage: sessionHas(session, "collateral:manage"),
     })),
   ]);
@@ -36,7 +36,8 @@ export default async function Page() {
     <SalesLibraryView
       items={loaded.items}
       canManage={loaded.canManage}
-      today={contractToday()}
+      today={contractToday(demoNow())}
+      demo={explicitDemoIdentityEnabled()}
     />
   );
 }

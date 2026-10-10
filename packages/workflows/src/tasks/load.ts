@@ -14,6 +14,7 @@ export const productionTaskImporters: readonly TaskModuleImporter[] = [
   () => import("../core/payg-scheduled-tasks"),
   () => import("../core/price-book-scheduled-tasks"),
   () => import("../agreements/tasks"),
+  () => import("../esign/tasks"),
   () => import("../exceptions/tasks"),
   () => import("../migrations/tasks"),
   () => import("../offboarding/tasks"),

@@ -15,6 +15,10 @@ const states: Partial<
     title: "operations.mnda.access.mfaTitle",
     description: "operations.mnda.access.mfaDescription",
   },
+  demo_unavailable: {
+    title: "operations.mnda.error.demoUnavailable",
+    description: "operations.mnda.demo",
+  },
 };
 
 /** A named page state for a session that cannot open the MNDA workspace, in
@@ -29,7 +33,11 @@ export async function MndaAccessState({ code }: { code: MndaErrorCode }) {
     <main className={styles.main} id="main-content">
       <h1>{t("operations.mnda.title")}</h1>
       <ApplicationStatePanel
-        state={code === "forbidden" ? "permission" : "recoverable-error"}
+        state={
+          code === "forbidden" || code === "demo_unavailable"
+            ? "permission"
+            : "recoverable-error"
+        }
         title={t(state.title)}
         description={t(state.description)}
         action={

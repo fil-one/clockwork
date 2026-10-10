@@ -13,6 +13,7 @@ vi.mock("@clockwork/db", () => ({
 }));
 vi.mock("@/src/auth/session", () => ({
   getVerifiedWorkosSession: mocks.session,
+  SessionExpiredError: class SessionExpiredError extends Error {},
 }));
 vi.mock("@/src/db/service", () => ({ getServiceDatabase: () => ({}) }));
 vi.mock("@workos-inc/authkit-nextjs", () => ({
@@ -24,6 +25,7 @@ vi.mock("@workos-inc/authkit-nextjs", () => ({
     },
   }),
 }));
+import { SessionExpiredError } from "@/src/auth/session";
 import { POST } from "./route";
 function request(origin = "https://example.com", body = "code=123456") {
   return new Request("https://example.com/access/mfa/verify", {
@@ -103,6 +105,24 @@ it("does not bind an impersonated session to the target user's factor", async ()
 });
 it("fails closed on provider outage without leaking details", async () => {
   mocks.verify.mockRejectedValue(new Error("sensitive provider detail"));
+  expect((await POST(request())).headers.get("location")).toBe(
+    "/access/mfa?error=unavailable",
+  );
+  expect(mocks.record).not.toHaveBeenCalled();
+});
+it("sends an expired session back through the proxy without spending an attempt", async () => {
+  mocks.session.mockRejectedValue(new SessionExpiredError());
+  expect((await POST(request())).headers.get("location")).toBe(
+    "/access/mfa?error=expired",
+  );
+  expect(mocks.claim).not.toHaveBeenCalled();
+  expect(mocks.verify).not.toHaveBeenCalled();
+  expect(mocks.record).not.toHaveBeenCalled();
+});
+it("keeps any other session failure unavailable", async () => {
+  mocks.session.mockRejectedValue(
+    new Error("WorkOS authentication is required"),
+  );
   expect((await POST(request())).headers.get("location")).toBe(
     "/access/mfa?error=unavailable",
   );

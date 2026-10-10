@@ -14,17 +14,19 @@ import {
   salesLibraryRepository,
 } from "@/src/features/internal-ops/contracts/server";
 
-/** Downloads an item's PDF, or opens it with `?view=1`. */
+/** Downloads an item's PDF, or opens it with `?view=1`, and audits it. */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await contractStaff("sales:read");
+    const session = await contractStaff("sales:read");
     const id = z.uuid().parse((await params).id);
+    const repository = salesLibraryRepository();
     const { record, bytes } = await withDocumentSlot(() =>
-      salesLibraryRepository().readFile(id),
+      repository.readFile(id),
     );
+    await repository.recordDownload(contractActor(session), id);
     return pdfResponse(
       bytes,
       record.file?.fileName ?? `${record.title}.pdf`,
