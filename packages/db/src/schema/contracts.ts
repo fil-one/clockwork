@@ -183,6 +183,8 @@ export const contractSigning = pgTable("commerce_contract_signing", {
   error: text("error"),
   version: integer("version").notNull().default(1),
   remindedAt: timestamp("reminded_at", { withTimezone: true }),
+  /** Scheduled SignWell check bookkeeping; not a change to the request. */
+  reconciledAt: timestamp("reconciled_at", { withTimezone: true }),
 });
 
 export const salesCollateral = pgTable(
