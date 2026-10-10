@@ -78,6 +78,8 @@ locals {
     TRIGGER_SECRET_KEY     = var.trigger_secret_key
     SIGNWELL_API_KEY       = var.signwell_api_key
     SIGNWELL_WEBHOOK_ID    = var.signwell_webhook_id
+    # Slack for staff notifications; unset leaves Slack unconfigured.
+    COMMERCE_NOTIFICATIONS_SLACK_WEBHOOK_URL = var.notifications_slack_webhook_url
   }
 }
 
@@ -147,7 +149,7 @@ module "app" {
   }
   # non-secret settings the container needs from this root; everything else
   # is in the environment file rendered from .env.production.local.tpl
-  deployment_env_vars = [
+  deployment_env_vars = concat([
     { name = "AWS_REGION", value = var.region },
     { name = "AUTHORIZATION_CONTEXT_SECRET_ID", value = local.authorization_context_secret_id },
     { name = "CLOCKWORK_TASK_RUNTIME", value = var.task_runtime },
@@ -157,7 +159,7 @@ module "app" {
     # value wins over the queue's own. Both come from here so the lease the
     # queue is built with is the lease a message actually gets.
     { name = "CLOCKWORK_TASK_VISIBILITY_SECONDS", value = tostring(local.workflows_visibility_seconds) },
-  ]
+  ], local.notifications_env_vars)
   image_tag = var.image_tag
 
   create_db = true

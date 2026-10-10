@@ -158,6 +158,34 @@ variable "commerce_mnda_enabled" {
   default     = false
 }
 
+# Staff notifications (docs/operations/notifications.md). The in-app inbox
+# needs none of these; email and Slack stay off until they are set.
+
+variable "notifications_email_enabled" {
+  description = "Send staff notification email through SES: creates the sending identity, its DKIM records when the domain is in this account's Route53 zone, and the task role's permission to send."
+  type        = bool
+  default     = false
+}
+
+variable "notifications_email_domain" {
+  description = "The domain notification email is sent from, as notifications@<domain>. Empty means the hostname, whose Route53 zone this account holds."
+  type        = string
+  default     = ""
+}
+
+variable "notifications_email_from_name" {
+  description = "The display name on notification email."
+  type        = string
+  default     = "Fil One Commerce"
+}
+
+variable "notifications_slack_webhook_url" {
+  description = "A Slack incoming webhook for staff notifications. Empty leaves Slack unconfigured."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 # Production database sizing. Staging keeps upstream's db.t4g.micro.
 
 variable "production_db_instance_class" {

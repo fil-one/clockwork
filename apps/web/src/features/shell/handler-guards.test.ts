@@ -27,6 +27,7 @@ const guardCalls = [
   "requireAudience(",
   "mndaStaff(",
   "contractStaff(",
+  "notificationStaff(",
   "contractReader(",
   "contextHasPermission(",
   "contextHasAnyPermission(",

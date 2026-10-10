@@ -168,6 +168,12 @@
       "cron": "* * * * *",
       "scheduleExpression": "cron(* * * * ? *)",
       "stages": ["staging", "production"]
+    },
+    {
+      "taskId": "system.staff-notifications.retry.v1",
+      "cron": "*/5 * * * *",
+      "scheduleExpression": "cron(*/5 * * * ? *)",
+      "stages": ["staging", "production"]
     }
   ]
 }

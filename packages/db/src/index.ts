@@ -18,3 +18,4 @@ export * from "./repositories/contract-documents";
 export * from "./repositories/contracts";
 export * from "./repositories/sales-library";
 export * from "./repositories/pricing-scenarios";
+export * from "./repositories/staff-notifications";

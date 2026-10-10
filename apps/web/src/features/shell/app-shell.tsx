@@ -62,6 +62,7 @@ import {
 } from "@clockwork/ui";
 
 import { switchCommerceAccount } from "@/src/auth/actions";
+import { NotificationBell } from "@/src/features/internal-ops/notifications/bell";
 import { signOutCommerceSession } from "@/src/auth/sign-out";
 import {
   commandPaletteLabels,
@@ -512,6 +513,7 @@ function ShellUtilities({
       {!providerBacked ? (
         <StatusBadge tone="warning">{t("app.demo.short")}</StatusBadge>
       ) : null}
+      {audience === "internal" ? <NotificationBell /> : null}
       <Tooltip
         side="bottom"
         revealOnTouch={false}

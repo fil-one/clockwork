@@ -71,8 +71,9 @@ PDF** or **New MNDA from this one**); **More** lists the rest, with **Void** and
 from Commerce every 15 seconds. **Check status** on a row asks SignWell for the
 latest status at once; otherwise Commerce checks SignWell on a schedule.
 
-Commerce does not email you when a status changes. When both sides have signed,
-SignWell emails the signed agreement to both signers and to you.
+When a status changes, the bell at the top of every page shows it (see
+[Notifications](#notifications)). When both sides have signed, SignWell emails
+the signed agreement to both signers and to you.
 
 ### What a note on a row means
 
@@ -151,8 +152,19 @@ organization and invites the signer.
 
 The request's status shows on the contract and under **Handoffs** on Home:
 waiting for operations, in progress, done, or declined with a note from
-operations. A declined contract can be handed over again. Commerce does not
-email you when the status changes.
+operations. A declined contract can be handed over again. Each change appears
+under the bell.
+
+## Notifications
+
+The bell at the top of every page counts what is new for you: an MNDA or
+contract you sent is signed, declined, expired or needs attention, a contract
+waits on your approval or comes back from one, and a handoff you raised moves
+on. Open the bell to see the list, follow a link to the record, or mark items
+read.
+
+Once a commerce administrator turns on email, you also get each one by email.
+Turn email off, or choose which kinds you get, under **Email** on the same page.
 
 ## Find a signed PDF
 

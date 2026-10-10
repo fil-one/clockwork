@@ -3,7 +3,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { resetDemoExperience } from "@clockwork/testing/demo-reset";
 import { FileDemoAdapterStateStore } from "@clockwork/testing/demo-state";
 
-import { gotoHydrated } from "./shell-hydration";
+import { expectShellHydrated, gotoHydrated } from "./shell-hydration";
 import { expectTargetSize } from "./target-size";
 
 /**
@@ -520,5 +520,70 @@ test.describe("internal responsive and accessibility coverage", () => {
         .map((element) => element.tagName),
     );
     expect(animated).toEqual([]);
+  });
+});
+
+test.describe("staff notifications", () => {
+  test.beforeEach(async ({ page }) => usePersona(page, "revenue"));
+
+  test("counts unread notifications in the bell and marks them read from the inbox", async ({
+    page,
+  }) => {
+    await gotoHydrated(page, "/internal");
+    const bell = page.getByTestId("notification-bell");
+    // The seller's demo inbox holds two unread items; approvals and handoffs
+    // for operations are outside what a seller may read.
+    await expect(bell).toHaveAccessibleName("Notifications, 2 unread");
+    await bell.click();
+    await expect(page).toHaveURL(/\/internal\/notifications$/u);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Notifications" }),
+    ).toBeVisible();
+    await expectShellHydrated(page);
+    await expect(page.getByRole("heading", { name: "2 unread" })).toBeVisible();
+    await expect(
+      page.getByRole("link", {
+        name: "Larkspur Genomics, Inc. signed the MNDA. It is waiting for the Fil One countersignature.",
+      }),
+    ).toHaveAttribute("href", /\/internal\/mndas\?q=Larkspur/u);
+    await expect(
+      page.getByRole("link", { name: /Brightwater Systems Integrators/u }),
+    ).toHaveCount(0);
+
+    await page
+      .getByRole("button", { name: "Mark read: Larkspur Genomics, Inc." })
+      .click();
+    await expect(page.getByRole("heading", { name: "1 unread" })).toBeVisible();
+    await expect(bell).toHaveAccessibleName("Notifications, 1 unread");
+
+    // Read state survives a reload.
+    await page.reload();
+    await expectShellHydrated(page);
+    await expect(page.getByRole("heading", { name: "1 unread" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Mark all read" }).click();
+    await expect(page.getByRole("heading", { name: "0 unread" })).toBeVisible();
+    await expect(bell).toHaveAccessibleName("Notifications");
+    await expectAxeClean(page);
+  });
+
+  test("shows a commerce administrator the settings, read-only and sending nothing in the demo", async ({
+    page,
+  }) => {
+    await usePersona(page, "commerce_admin");
+    await gotoHydrated(page, "/internal/notifications");
+    await page.getByRole("link", { name: "Notification settings" }).click();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Notification settings" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "The demo shows these settings read-only and never sends.",
+      ),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Send a test" })).toHaveCount(
+      0,
+    );
+    await expectAxeClean(page);
   });
 });

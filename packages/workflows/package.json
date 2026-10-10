@@ -10,7 +10,8 @@
     "./core": "./src/core/index.ts",
     "./lifecycle": "./src/lifecycle/index.ts",
     "./system": "./src/system/index.ts",
-    "./tasks": "./src/tasks/index.ts"
+    "./tasks": "./src/tasks/index.ts",
+    "./staff-notifications": "./src/staff-notifications/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",

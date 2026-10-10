@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",
+    "@aws-sdk/client-sesv2": "catalog:",
     "@clockwork/contracts": "workspace:*",
     "@clockwork/domain": "workspace:*",
     "@workos-inc/node": "catalog:",

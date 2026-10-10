@@ -78,6 +78,12 @@ jobs:
       TF_VAR_signwell_api_key: ${{ secrets.SIGNWELL_API_KEY }}
       TF_VAR_signwell_webhook_id: ${{ secrets.SIGNWELL_WEBHOOK_ID }}
       TF_VAR_commerce_mnda_enabled: ${{ vars.COMMERCE_MNDA_ENABLED || 'false' }}
+      TF_VAR_notifications_email_enabled:
+        ${{ vars.COMMERCE_NOTIFICATIONS_EMAIL_ENABLED || 'false' }}
+      TF_VAR_notifications_email_domain:
+        ${{ vars.COMMERCE_NOTIFICATIONS_EMAIL_DOMAIN }}
+      TF_VAR_notifications_slack_webhook_url:
+        ${{ secrets.COMMERCE_NOTIFICATIONS_SLACK_WEBHOOK_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
