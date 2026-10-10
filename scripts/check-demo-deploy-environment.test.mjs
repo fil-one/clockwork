@@ -98,6 +98,7 @@ test("production refuses demo state, proof identities, and simulators", () => {
     CLOCKWORK_DEMO_STATE_STORE: "netlify-blobs",
     CLOCKWORK_DEMO_ACCESS_PASSWORD: "fixture",
     CLOCKWORK_DEMO_STATE_PATH: "/tmp/demo.json",
+    CLOCKWORK_DEMO_CLOCK: "2026-10-05T02:00:00.000Z",
     CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
     CLOCKWORK_EVIDENCE_ADAPTER: "demo",
     NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV: "demo",
@@ -140,6 +141,14 @@ test("production requires credentials and one distinct HTTPS callback origin", (
         productionEnvironment({ CLOCKWORK_CANONICAL_ORIGIN: origin }),
       ).length > 0,
     );
+});
+
+test("refuses a pinned clock on the hosted demo", () => {
+  assert.ok(
+    demoDeployEnvironmentIssues(
+      validEnvironment({ CLOCKWORK_DEMO_CLOCK: "2026-10-05T02:00:00.000Z" }),
+    ).some((issue) => issue.includes("CLOCKWORK_DEMO_CLOCK")),
+  );
 });
 
 test("accepts public fixture-only demos without a password", () => {

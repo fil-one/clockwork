@@ -49,6 +49,7 @@ import {
   type DemoCreatedOrder,
 } from "./demo-portal-records";
 import type { DemoCreatedQuote, DemoQuoteState } from "./demo-quote-flow";
+import { demoNow } from "./demo-clock";
 import { configuredDemoStateStore } from "./demo-state-store";
 import { DatabaseExperienceRepository } from "./repository";
 import {
@@ -1535,7 +1536,7 @@ export function projectionInput(input: {
     ...(input.cursor ? { cursor: input.cursor } : {}),
     limit: input.limit,
     ...(input.orderBy ? { orderBy: input.orderBy } : {}),
-    now: input.now ?? new Date(),
+    now: input.now ?? demoNow(),
     ...(input.locale ? { locale: input.locale } : {}),
   };
 }
