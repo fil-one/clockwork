@@ -1,6 +1,7 @@
 import {
   contractSignerEmail,
   contractSigning,
+  counterpartyPaperSigning,
   signatureFields,
   type ContractSigningRecord,
   type ContractSigningState,
@@ -44,6 +45,38 @@ export class SignWellContractClient extends SignWellSigningClient<"commerce_cont
             email: record.countersigner.email,
           },
         ],
+        copiedContacts: [],
+      },
+      pdf,
+    );
+  }
+
+  /** An unsent draft of counterparty paper with the Fil One signature page:
+   * the counterparty first when they sign in SignWell, then the Fil One
+   * signer, or the Fil One signer alone. */
+  createCounterpartyPaperDraft(record: ContractSigningRecord, pdf: Uint8Array) {
+    const filOne = {
+      id: "fil-one",
+      name: record.countersigner.name,
+      email: record.countersigner.email,
+    };
+    return this.createSigningDraft(
+      counterpartyPaperSigning,
+      record,
+      {
+        id: record.contractId,
+        templateHash: record.templateHash,
+        testMode: record.testMode,
+        recipients: record.counterpartySigns
+          ? [
+              {
+                id: "counterparty",
+                name: record.counterpartySigner.name,
+                email: contractSignerEmail(record),
+              },
+              filOne,
+            ]
+          : [filOne],
         copiedContacts: [],
       },
       pdf,

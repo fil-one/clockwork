@@ -432,6 +432,9 @@ export const mndaAttentionReasons = [
   "signwell_binding_mismatch",
   // As above, and someone signed SignWell's copy; resolved in SignWell.
   "signwell_signed_mismatch",
+  // SignWell's unsent draft has fields other than the declared ones; held
+  // until voided.
+  "signwell_fields_mismatch",
 ] as const;
 export type MndaAttentionReason = (typeof mndaAttentionReasons)[number];
 

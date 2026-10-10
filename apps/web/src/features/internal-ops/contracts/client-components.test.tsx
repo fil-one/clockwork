@@ -1,5 +1,6 @@
 import type * as UploadClient from "./upload-client";
 import {
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -21,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   operateContract: vi.fn(),
   voidContract: vi.fn(),
   correctContractSigner: vi.fn(),
+  prepareCounterpartyPaper: vi.fn(),
   prepareContract: vi.fn(),
   findContractDuplicates: vi.fn(),
   upload: vi.fn(),
@@ -35,6 +37,7 @@ vi.mock("./actions", () => ({
   operateContract: mocks.operateContract,
   voidContract: mocks.voidContract,
   correctContractSigner: mocks.correctContractSigner,
+  prepareCounterpartyPaper: mocks.prepareCounterpartyPaper,
   prepareContract: mocks.prepareContract,
   findContractDuplicates: mocks.findContractDuplicates,
 }));
@@ -46,6 +49,7 @@ import { translatorFor } from "@/src/i18n/catalogs";
 import { ContractDetail } from "./contract-detail";
 import { ContractDocuments } from "./contract-documents";
 import { ContractForm } from "./contract-form";
+import { CounterpartyPaperCard } from "./counterparty-paper-card";
 import { SigningPanel } from "./signing-panel";
 
 const pdf = (name: string, size = 10) =>
@@ -189,6 +193,31 @@ describe("record a contract", () => {
       screen.getByText(/Huge.pdf: This file is larger than 25 MB/),
     ).toBeInTheDocument();
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it("starts a new record from one it replaces, under its own id and still in negotiation", async () => {
+    render(
+      <ContractForm
+        contract={null}
+        ownerName="x"
+        today="2026-10-04"
+        copyOf={{ ...fixtureContractRecord, executedAt: null }}
+      />,
+    );
+    expect(screen.getByLabelText(/Counterparty legal name/)).toHaveValue(
+      fixtureContractRecord.counterpartyName,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save contract" }));
+    await waitFor(() => expect(mocks.saveContract).toHaveBeenCalledOnce());
+    const [saved] = mocks.saveContract.mock.calls[0] as [
+      { contract: { id: string; status: string; paper: string } },
+    ];
+    expect(saved.contract).toMatchObject({
+      status: "in_negotiation",
+      paper: fixtureContractRecord.paper,
+    });
+    expect(saved.contract.id).not.toBe(fixtureContractRecord.id);
+    expect(saved).not.toHaveProperty("expectedVersion");
   });
 
   it("starts from a signed MNDA with its counterparty filled in", async () => {
@@ -690,6 +719,199 @@ describe("signing panel", () => {
   });
 });
 
+describe("counterparty paper", () => {
+  const file = {
+    id: "019a44ac-0000-7000-8000-0000000000f1",
+    kind: "counterparty_draft" as const,
+    fileName: "Signed by them.pdf",
+    sha256: "c".repeat(64),
+    sizeBytes: 2048,
+    contentType: "application/pdf",
+    uploadedByName: "R.W. Holleman",
+    createdAt: "2026-10-09T12:00:00.000Z",
+  };
+  const countersigners = [
+    { ...fixtureSigningRecord.countersigner, isDefault: true },
+  ];
+
+  it("sends their signed PDF for the Fil One signature alone by default", async () => {
+    mocks.prepareCounterpartyPaper.mockResolvedValue({
+      ok: true,
+      value: { state: "draft" },
+    });
+    render(
+      <CounterpartyPaperCard
+        contractId={fixtureContractRecord.id}
+        files={[file]}
+        countersigners={countersigners}
+        signingReady
+      />,
+    );
+    expect(screen.queryByLabelText(/Signer's email/)).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Prepare for signature" }),
+    );
+    await waitFor(() =>
+      expect(mocks.prepareCounterpartyPaper).toHaveBeenCalledWith({
+        contractId: fixtureContractRecord.id,
+        fileId: file.id,
+        countersignerId: fixtureSigningRecord.countersigner.id,
+        signers: "fil-one",
+      }),
+    );
+    expect(mocks.refresh).toHaveBeenCalled();
+  });
+
+  it("asks for the counterparty signer when they sign in SignWell first", async () => {
+    mocks.prepareCounterpartyPaper.mockResolvedValue({
+      ok: false,
+      code: "INVALID_INPUT",
+      fields: { signerEmail: "email" },
+    });
+    render(
+      <CounterpartyPaperCard
+        contractId={fixtureContractRecord.id}
+        files={[file]}
+        countersigners={countersigners}
+        signingReady
+      />,
+    );
+    fireEvent.click(screen.getByLabelText("The counterparty, then Fil One"));
+    fireEvent.change(screen.getByLabelText(/Signer's full name/), {
+      target: { value: "Alex Example" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Prepare for signature" }),
+    );
+    expect(
+      await screen.findByText("Enter a valid email address."),
+    ).toBeInTheDocument();
+    expect(mocks.prepareCounterpartyPaper).toHaveBeenCalledWith(
+      expect.objectContaining({
+        signers: "counterparty_then_fil_one",
+        signerName: "Alex Example",
+        signerEmail: "",
+      }),
+    );
+  });
+
+  it("shows the card on an unsigned contract on their paper, and the panel once prepared", () => {
+    const detail = (signing: typeof fixtureSigningRecord | null) =>
+      render(
+        <ContractDetail
+          t={translatorFor("en")}
+          locale="en-US"
+          contract={{
+            ...fixtureContractRecord,
+            status: "in_negotiation",
+            executedAt: null,
+          }}
+          files={[file]}
+          activity={[]}
+          signing={signing}
+          paperSources={signing ? [] : [file]}
+          countersigners={countersigners}
+          today="2026-10-09"
+          canWrite
+          canApprove
+          isPreparer={false}
+          signingReady
+        />,
+      );
+    detail(null);
+    expect(
+      screen.getByRole("heading", { name: "Send for Fil One signature" }),
+    ).toBeInTheDocument();
+    cleanup();
+    detail({
+      ...fixtureSigningRecord,
+      documentType: "counterparty_paper",
+      counterpartySigns: false,
+      templateVersion: "interim-2026-10-10",
+      state: "sent",
+      providerId: "x",
+    });
+    expect(
+      screen.queryByRole("heading", { name: "Send for Fil One signature" }),
+    ).toBeNull();
+    expect(
+      screen.getByText(
+        "Their PDF with the Fil One signature page (interim-2026-10-10).",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Signed on their paper")).toBeInTheDocument();
+    expect(screen.queryByText("Counterparty signed")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Fix email" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Remind James Kurz" }),
+    ).toBeInTheDocument();
+  });
+
+  const paper = {
+    ...fixtureSigningRecord,
+    documentType: "counterparty_paper" as const,
+    counterpartySigns: false,
+    providerId: "x",
+  };
+
+  it("sends a closed request on their paper to record the contract again", () => {
+    render(
+      <SigningPanel
+        signing={{ ...paper, state: "canceled", cancelCode: "voided" }}
+        generatedFileId={null}
+        canWrite
+        canApprove
+        isPreparer={false}
+        signingReady
+      />,
+    );
+    expect(
+      screen.getByText("This request can no longer be sent"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Record the contract again" }),
+    ).toHaveAttribute(
+      "href",
+      `/internal/contracts/new?from=${fixtureSigningRecord.contractId}`,
+    );
+    // The old record is closed by hand, so it is not counted twice.
+    expect(
+      screen.getByText(/set its status to Terminated/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Prepare again" })).toBeNull();
+  });
+
+  it("holds a draft whose PDF brought fields of its own, offering only a void", () => {
+    render(
+      <SigningPanel
+        signing={{
+          ...paper,
+          state: "attention",
+          error: "signwell_fields_mismatch",
+        }}
+        generatedFileId={null}
+        canWrite
+        canApprove
+        isPreparer={false}
+        signingReady
+      />,
+    );
+    expect(
+      screen.getByText(
+        /SignWell found signature fields Commerce did not place/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/then record the contract again\./),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/prepare a new one/)).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Send for signature" }),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Void" })).toBeInTheDocument();
+  });
+});
+
 describe("contract documents", () => {
   const files = [
     {
@@ -796,12 +1018,14 @@ describe("contract history", () => {
           }),
           event("contract.voided", { cancelCode: "signer_change" }),
           event("contract.signer_correction_requested", {
-            before: { signerEmail: "alex@example.com" },
-            signerEmail: "right@example.com",
+            signerEmail: { from: "alex@example.com", to: "right@example.com" },
           }),
           event("contract.signer_corrected", {
-            before: { signerEmail: "alex@example.com" },
-            signerEmail: "right@example.com",
+            signerEmail: { from: "alex@example.com", to: "right@example.com" },
+          }),
+          // Recorded before the history named the replaced address.
+          event("contract.signer_corrected", {
+            signerEmail: "earlier@example.com",
           }),
           event("contract.signer_correction_dropped"),
         ]}
@@ -822,8 +1046,9 @@ describe("contract history", () => {
       "Found deleted in SignWell",
       "SignWell's copy stopped matching this contract",
       "Voided: someone else will sign",
-      "Counterparty email change sent to SignWell: right@example.com",
-      "Counterparty email changed to right@example.com",
+      "Counterparty email change from alex@example.com to right@example.com sent to SignWell",
+      "Counterparty email changed from alex@example.com to right@example.com",
+      "Counterparty email changed to earlier@example.com",
       "Counterparty email change not applied by SignWell",
     ])
       expect(within(history).getByText(text)).toBeInTheDocument();

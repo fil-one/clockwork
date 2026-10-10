@@ -31,6 +31,8 @@ import {
   formatContractValue,
   signingStateLabels,
 } from "./copy";
+import { CounterpartyPaperCard } from "./counterparty-paper-card";
+import type { Countersigner } from "./prepare-form";
 import { SigningPanel } from "./signing-panel";
 import styles from "./contracts.module.css";
 
@@ -118,16 +120,33 @@ function activityTitle(event: ContractActivity, t: Translator) {
     case "contract.signer_correction_requested":
     case "contract.signer_corrected":
     case "contract.signer_correction_refused": {
-      const email =
-        typeof changes.signerEmail === "string" ? changes.signerEmail : "";
-      return t(
-        event.eventType === "contract.signer_corrected"
-          ? "operations.contracts.activity.signerCorrected"
-          : event.eventType === "contract.signer_correction_refused"
-            ? "operations.contracts.activity.signerCorrectionRefused"
-            : "operations.contracts.activity.signerCorrectionRequested",
-        { email },
-      );
+      // A correction records the address it replaced as `{ from, to }`.
+      const change = changes.signerEmail;
+      const text = (value: unknown) => (typeof value === "string" ? value : "");
+      const [from, email] =
+        change && typeof change === "object"
+          ? [
+              text((change as { from?: unknown }).from),
+              text((change as { to?: unknown }).to),
+            ]
+          : ["", text(change)];
+      if (event.eventType === "contract.signer_correction_refused")
+        return t("operations.contracts.activity.signerCorrectionRefused", {
+          email,
+        });
+      return from
+        ? t(
+            event.eventType === "contract.signer_corrected"
+              ? "operations.contracts.activity.signerCorrectedFrom"
+              : "operations.contracts.activity.signerCorrectionRequestedFrom",
+            { from, email },
+          )
+        : t(
+            event.eventType === "contract.signer_corrected"
+              ? "operations.contracts.activity.signerCorrected"
+              : "operations.contracts.activity.signerCorrectionRequested",
+            { email },
+          );
     }
     case "contract.signer_correction_dropped":
       return t("operations.contracts.activity.signerCorrectionDropped");
@@ -243,7 +262,13 @@ export function ContractDetail({
   canSelfApprove = false,
   signingReady,
   handoff,
+  paperSources = [],
+  countersigners = [],
 }: {
+  /** PDFs on the counterparty's paper this reader may send for the Fil One
+   * countersignature, and who may countersign. */
+  paperSources?: readonly ContractFileRecord[];
+  countersigners?: readonly Countersigner[];
   t: Translator;
   locale: string;
   contract: ContractRecord;
@@ -334,6 +359,13 @@ export function ContractDetail({
               canApprove={canApprove}
               isPreparer={isPreparer}
               canSelfApprove={canSelfApprove}
+              signingReady={signingReady}
+            />
+          ) : canWrite && paperSources.length ? (
+            <CounterpartyPaperCard
+              contractId={contract.id}
+              files={paperSources}
+              countersigners={countersigners}
               signingReady={signingReady}
             />
           ) : null}

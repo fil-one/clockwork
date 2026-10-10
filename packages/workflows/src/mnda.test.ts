@@ -283,8 +283,9 @@ it("archives executed evidence before completion, and repeated callbacks cannot 
 it("rejects missing signing fields and never deletes bound provider evidence", async () => {
   const s = setup();
   s.doc.fields = [];
+  // Held for a person to void, rather than retried as a provider failure.
   await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
-    "SIGNING_FIELDS",
+    "MNDA_NEEDS_ATTENTION",
   );
   expect(s.provider.send).not.toHaveBeenCalled();
   await expect(s.workflow.cancel(fixtureRecord.id, actor)).rejects.toThrow(

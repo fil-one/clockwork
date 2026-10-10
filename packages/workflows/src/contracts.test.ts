@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await -- synchronous in-memory implementations model the async provider and repository contracts; assertions inspect mocks, never unbound real methods. */
 import { randomUUID } from "node:crypto";
-import { expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Actor, ContractSigningRecord } from "@clockwork/contracts";
 import type { SignWellContractDocument } from "@clockwork/integrations";
 import { fixtureSigningRecord } from "../../contracts/src/contract-fixture";
@@ -34,9 +34,12 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
         name: "Alex",
       },
       { id: "fil-one", email: record.countersigner.email, name: "James" },
-    ],
+    ].filter((r) => record.counterpartySigns || r.id === "fil-one"),
     fields: [
-      ["counterparty", "fil-one"].flatMap((recipient_id) =>
+      (record.counterpartySigns
+        ? ["counterparty", "fil-one"]
+        : ["fil-one"]
+      ).flatMap((recipient_id) =>
         ["signature", "autofill_date_signed"].map((type) => ({
           recipient_id,
           type,
@@ -92,6 +95,7 @@ function setup(patch: Partial<ContractSigningRecord> = {}) {
   let reads = 0;
   const provider: ContractSigningClient = {
     createContractDraft: vi.fn(async () => structuredClone(doc)),
+    createCounterpartyPaperDraft: vi.fn(async () => structuredClone(doc)),
     getContract: vi.fn(async () => {
       if (deleted) throw new Error("SIGNWELL_HTTP_404");
       // Field extraction finishes after the first read.
@@ -567,5 +571,71 @@ it("voids for a different signer with the signer_change code and no reason", asy
   expect(notes.at(-1)).toEqual({
     eventType: "contract.voided",
     detail: { cancelCode: "signer_change" },
+  });
+});
+
+describe("counterparty paper the counterparty signed already", () => {
+  const paper = {
+    documentType: "counterparty_paper",
+    counterpartySigns: false,
+    approvalState: "approved",
+  } as const;
+
+  it("drafts it on its own declaration and sends it to the Fil One signer alone", async () => {
+    const { workflow, provider, record } = setup(paper);
+    await expect(
+      workflow.send(record().contractId, actor),
+    ).resolves.toMatchObject({ state: "sent" });
+    expect(provider.createCounterpartyPaperDraft).toHaveBeenCalledOnce();
+    expect(provider.createContractDraft).not.toHaveBeenCalled();
+  });
+
+  it("completes when the Fil One signer signs, never waiting for a countersignature", async () => {
+    const { workflow, doc, record, archived } = setup({ ...paper, ...sent });
+    const [filOne] = doc.recipients;
+    if (!filOne) throw new Error("Expected the Fil One recipient");
+    doc.status = "Sent";
+    filOne.status = "signed";
+    expect((await workflow.sync(record().contractId, signwell)).state).toBe(
+      "sent",
+    );
+    doc.status = "Completed";
+    expect((await workflow.sync(record().contractId, signwell)).state).toBe(
+      "completed",
+    );
+    expect(archived()).toBeDefined();
+  });
+
+  it("reminds the Fil One signer and offers no email correction", async () => {
+    const { workflow, doc, record, notes, provider } = setup({
+      ...paper,
+      ...sent,
+    });
+    doc.status = "Sent";
+    await workflow.remind(record().contractId, actor);
+    expect(notes.at(-1)).toEqual({
+      eventType: "contract.reminded",
+      detail: { recipient: "fil-one" },
+    });
+    await expect(
+      workflow.correctSigner(record().contractId, actor, "right@example.com"),
+    ).rejects.toThrow("CONTRACT_NOT_CORRECTABLE");
+    expect(provider.updateRecipient).not.toHaveBeenCalled();
+  });
+
+  it("refuses SignWell's copy when it names a counterparty signer after all", async () => {
+    const { workflow, doc, record } = setup({ ...paper, ...sent });
+    doc.status = "Sent";
+    doc.recipients.unshift({
+      id: "counterparty",
+      email: "alex@example.com",
+      name: "Alex",
+    });
+    await expect(
+      workflow.sync(record().contractId, signwell),
+    ).resolves.toMatchObject({
+      state: "attention",
+      error: "signwell_signers_mismatch",
+    });
   });
 });

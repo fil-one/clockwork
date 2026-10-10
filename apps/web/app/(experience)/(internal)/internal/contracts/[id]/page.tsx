@@ -38,6 +38,8 @@ export default async function Page({
       files={loaded.files}
       activity={loaded.activity}
       signing={loaded.signing}
+      paperSources={loaded.paperSources}
+      countersigners={loaded.countersigners}
       today={loaded.today}
       canWrite={loaded.canWrite}
       canApprove={loaded.canApprove}

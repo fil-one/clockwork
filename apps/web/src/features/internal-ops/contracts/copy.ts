@@ -144,6 +144,14 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
   CONTRACT_DISTINCT_SIGNERS_REQUIRED:
     "operations.contracts.error.distinctSigners",
   CONTRACT_SIGNER_STARTED: "operations.contracts.error.signerStarted",
+  CONTRACT_PAPER_NOT_SENDABLE: "operations.contracts.error.paperNotSendable",
+  CONTRACT_FILE_SENT_FOR_SIGNATURE:
+    "operations.contracts.error.fileSentForSignature",
+  CONTRACT_SIGNING_EXISTS: "operations.contracts.error.signingExists",
+  CONTRACT_PAPER_UNREADABLE: "operations.contracts.error.paperUnreadable",
+  CONTRACT_PAPER_FORM_UNREADABLE:
+    "operations.contracts.error.paperFormUnreadable",
+  CONTRACT_PAPER_HASH_INVALID: "operations.contracts.error.paperChanged",
   CONTRACT_NOT_CORRECTABLE: "operations.contracts.error.notCorrectable",
   CONTRACT_COUNTERSIGNER_UNAVAILABLE:
     "operations.contracts.error.countersignerUnavailable",

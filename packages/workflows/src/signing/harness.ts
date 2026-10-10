@@ -9,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import { vi, type Mock } from "vitest";
 import {
   contractSigning,
+  counterpartyPaperSigning,
   mndaSigning,
   mndaSigningFields,
   type Actor,
@@ -30,7 +31,7 @@ import {
 } from "../contracts";
 import { MndaWorkflow } from "../mnda";
 
-export type SigningKind = "mnda" | "contract";
+export type SigningKind = "mnda" | "contract" | "counterparty_paper";
 
 /**
  * Where the two types still differ because a table has no column for the
@@ -44,6 +45,9 @@ export const expectedDifferences: Record<
 > = {
   mnda: {},
   contract: {
+    no_sent_at: "The contract table records no first-sent time.",
+  },
+  counterparty_paper: {
     no_sent_at: "The contract table records no first-sent time.",
   },
 };
@@ -141,6 +145,7 @@ export interface SigningHarness {
 const used: Record<SigningKind, Set<string>> = {
   mnda: new Set(),
   contract: new Set(),
+  counterparty_paper: new Set(),
 };
 /** Expected differences no scenario consulted: stale entries. */
 export function unusedDifferences(kind: SigningKind) {
@@ -351,8 +356,23 @@ export function mndaHarness(): SigningHarness {
   };
 }
 
-export function contractHarness(): SigningHarness {
-  let record: ContractSigningRecord = structuredClone(fixtureSigningRecord);
+/** Counterparty paper the counterparty signs in SignWell too: the same table
+ * and store as template contracts, on its own declaration. */
+export const counterpartyPaperHarness = () =>
+  contractHarness("counterparty_paper");
+
+export function contractHarness(
+  type: "contract" | "counterparty_paper" = "contract",
+): SigningHarness {
+  let record: ContractSigningRecord = {
+    ...structuredClone(fixtureSigningRecord),
+    ...(type === "counterparty_paper"
+      ? {
+          documentType: "counterparty_paper" as const,
+          templateId: "counterparty-paper",
+        }
+      : {}),
+  };
   let lease: ReturnType<typeof randomUUID> | undefined;
   let archived: Uint8Array | undefined;
   const updates: Record<string, unknown>[] = [];
@@ -431,6 +451,7 @@ export function contractHarness(): SigningHarness {
   };
   const client = {
     createContractDraft: provider.createDraft,
+    createCounterpartyPaperDraft: provider.createDraft,
     getContract: provider.get,
     send: provider.send,
     remind: provider.remind,
@@ -453,9 +474,12 @@ export function contractHarness(): SigningHarness {
         SIGNED_IN_SIGNWELL: "CONTRACT_NOT_VOIDABLE",
         REMIND_NEEDS_ATTENTION: "CONTRACT_NEEDS_ATTENTION",
       })[name] ?? `CONTRACT_${name}`,
-    declares: contractSigning,
+    declares:
+      type === "counterparty_paper"
+        ? counterpartyPaperSigning
+        : contractSigning,
     log: { label: "CONTRACT", idKey: "contractId" },
-    differs: differs("contract"),
+    differs: differs(type),
     actor,
     send: async () => view(await workflow.send(record.contractId, actor)),
     sync: async () => view(await workflow.sync(record.contractId, actor)),

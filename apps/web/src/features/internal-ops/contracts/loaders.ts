@@ -3,7 +3,11 @@ import { z } from "zod";
 import {
   ContractListQuerySchema,
   contractRenewalWindows,
+  counterpartyPaperFileKinds,
+  type ContractFileRecord,
   type ContractListQuery,
+  type ContractRecord,
+  type ContractSigningRecord,
   type Permission,
 } from "@clockwork/contracts";
 import { contractToday } from "@clockwork/domain/contract-terms";
@@ -86,14 +90,41 @@ export function loadRegister(
   });
 }
 
+/** The uploaded PDFs a contract on the counterparty's paper can be sent
+ * from, while it is unsigned and has no signing request. */
+export function counterpartyPaperSources(detail: {
+  contract: ContractRecord;
+  files: readonly ContractFileRecord[];
+  signing: ContractSigningRecord | null;
+}) {
+  const { contract, files, signing } = detail;
+  if (
+    signing ||
+    contract.paper !== "theirs" ||
+    contract.executedAt !== null ||
+    !["draft", "in_negotiation"].includes(contract.status)
+  )
+    return [];
+  return files.filter((file) => counterpartyPaperFileKinds.includes(file.kind));
+}
+
 export function loadContract(id: string) {
   return loadWith("contract:read", async (session) => {
     if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("CONTRACT_NOT_FOUND");
     const today = contractToday(demoNow());
     const detail = await contractRegisterReader(session).get(id, today);
+    const paper = permissions(session).canWrite
+      ? counterpartyPaperSources(detail)
+      : [];
     return {
       ...detail,
       today,
+      // A contract on their paper with a PDF can be sent for the Fil One
+      // countersignature; the form needs the PDFs and the countersigners.
+      paperSources: paper,
+      countersigners: paper.length
+        ? await contractSigningRepository().countersigners()
+        : [],
       ...permissions(session),
       isPreparer: detail.signing?.preparerId === session.userId,
       canSelfApprove: mayApproveOwnRequests(session),
@@ -247,7 +278,25 @@ async function signedMnda(
   }
 }
 
-export function loadContractForm(id?: string, mndaId?: string) {
+/** A record a new one replaces, such as counterparty paper whose signing
+ * request closed. Anything else starts an empty form. */
+async function replacedContract(id: string | undefined) {
+  if (!id || !z.uuid().safeParse(id).success) return null;
+  try {
+    return (await contractRepository().get(id, contractToday(demoNow())))
+      .contract;
+  } catch (error) {
+    if (error instanceof Error && error.message === "CONTRACT_NOT_FOUND")
+      return null;
+    throw error;
+  }
+}
+
+export function loadContractForm(
+  id?: string,
+  mndaId?: string,
+  fromId?: string,
+) {
   return loadWith("contract:write", async (session) => ({
     ownerName: session.profile.name,
     today: contractToday(demoNow()),
@@ -255,5 +304,6 @@ export function loadContractForm(id?: string, mndaId?: string) {
       ? (await contractRepository().get(id, contractToday(demoNow()))).contract
       : null,
     mnda: id ? null : await signedMnda(session, mndaId),
+    copyOf: id ? null : await replacedContract(fromId),
   }));
 }

@@ -361,6 +361,12 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.activity.signerCorrected": {
     en: "Counterparty email changed to {email}",
   },
+  "operations.contracts.activity.signerCorrectedFrom": {
+    en: "Counterparty email changed from {from} to {email}",
+  },
+  "operations.contracts.activity.signerCorrectionRequestedFrom": {
+    en: "Counterparty email change from {from} to {email} sent to SignWell",
+  },
   "operations.contracts.activity.signerCorrectionDropped": {
     en: "Counterparty email change not applied by SignWell",
   },
@@ -379,6 +385,12 @@ export const contractMessages = defineStaffMessages({
   },
   "operations.contracts.signing.signedMismatchNext": {
     en: "Ask a commerce administrator to resolve it in SignWell.",
+  },
+  "operations.contracts.signing.fieldsMismatch": {
+    en: "SignWell found signature fields Commerce did not place, such as form fields in the uploaded PDF, so nothing was sent.",
+  },
+  "operations.contracts.signing.mismatchNextPaper": {
+    en: "Void it here to close the request, then record the contract again.",
   },
   "operations.contracts.signing.mismatchNext": {
     en: "Void it here to close the request, then prepare a new one.",
@@ -491,6 +503,67 @@ export const contractMessages = defineStaffMessages({
   },
   "operations.contracts.prepare.noCountersignerTitle": {
     en: "No Fil One countersigner is set up",
+  },
+  "operations.contracts.paperSend.title": {
+    en: "Send for Fil One signature",
+  },
+  "operations.contracts.paperSend.description": {
+    en: "Send their PDF through SignWell with a Fil One signature page added at the end.",
+  },
+  "operations.contracts.paperSend.file": { en: "Their PDF" },
+  "operations.contracts.paperSend.signers": { en: "Who signs in SignWell" },
+  "operations.contracts.paperSend.filOneOnly": { en: "Fil One only" },
+  "operations.contracts.paperSend.filOneOnlyHelp": {
+    en: "The counterparty already signed this PDF.",
+  },
+  "operations.contracts.paperSend.both": {
+    en: "The counterparty, then Fil One",
+  },
+  "operations.contracts.paperSend.bothHelp": {
+    en: "The counterparty signs the added page first.",
+  },
+  "operations.contracts.paperSend.approvalNote": {
+    en: "Someone with approval rights approves it before it can be sent.",
+  },
+  "operations.contracts.paperSend.submit": { en: "Prepare for signature" },
+  "operations.contracts.paperSend.notPrepared": {
+    en: "Not prepared for signature",
+  },
+  "operations.contracts.signing.paperSource": {
+    en: "Their PDF with the Fil One signature page ({version}).",
+  },
+  "operations.contracts.signing.signedOnPaper": {
+    en: "Signed on their paper",
+  },
+  "operations.contracts.signing.confirmSendFilOneBody": {
+    en: "SignWell will email {countersigner} to sign for Fil One.",
+  },
+  "operations.contracts.error.paperNotSendable": {
+    en: "Only an unsigned contract on the counterparty's paper can be sent for Fil One signature.",
+  },
+  "operations.contracts.error.signingExists": {
+    en: "This contract already has a signing request. Reload to see it.",
+  },
+  "operations.contracts.error.fileSentForSignature": {
+    en: "This PDF was sent for signature, so it stays with the contract as a record of what was signed.",
+  },
+  "operations.contracts.signing.paperClosedTitle": {
+    en: "This request can no longer be sent",
+  },
+  "operations.contracts.signing.paperClosedBody": {
+    en: "A contract on their paper is sent for signature once. To send it again, record it again with its PDF; the new record starts from this one. Then edit this record and set its status to Terminated, so the contract is not counted twice.",
+  },
+  "operations.contracts.signing.recordAgain": {
+    en: "Record the contract again",
+  },
+  "operations.contracts.error.paperUnreadable": {
+    en: "This PDF could not be read because it is encrypted or damaged, even if it opens in a viewer. Print it to a new PDF, upload that, and try again.",
+  },
+  "operations.contracts.error.paperFormUnreadable": {
+    en: "This PDF has form fields that cannot be copied exactly as they appear. Print it to a flat PDF (for example, Print to PDF), upload that, and send it again.",
+  },
+  "operations.contracts.error.paperChanged": {
+    en: "This PDF no longer matches the file that was uploaded. Reload the contract and choose the PDF again.",
   },
   "operations.contracts.prepare.fromTitle": {
     en: "Values from the voided contract",

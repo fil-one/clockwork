@@ -3,7 +3,7 @@
 -- request is open, the cancel columns are written only in the change that
 -- cancels it, and every rule from 001443 still holds.
 begin;
-select plan(21);
+select plan(22);
 set local search_path = public, extensions;
 
 select has_column('public', 'commerce_contract_signing', 'corrected_signer_email', 'the confirmed correction is kept');
@@ -75,6 +75,10 @@ select throws_ok($$
   update commerce_contract_signing set state = 'canceled', cancel_code = 'signer_change', cancel_reason = 'New signer'
   where contract_id = 'c1459000-0000-4000-8000-000000000001'
 $$, '23514', null, 'only a void with a reason keeps a typed reason');
+select throws_ok($$
+  update commerce_contract_signing set state = 'canceled', cancel_code = 'discarded', cancel_reason = 'Not needed'
+  where contract_id = 'c1459000-0000-4000-8000-000000000001'
+$$, '23514', null, 'a discarded draft keeps no typed reason');
 select lives_ok($$
   update commerce_contract_signing set state = 'canceled', cancel_code = 'signer_change'
   where contract_id = 'c1459000-0000-4000-8000-000000000001'

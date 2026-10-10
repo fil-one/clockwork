@@ -147,3 +147,44 @@ export const contractSigning: SigningDocumentType<ContractSigningRecord> = {
   errorPrefix: "CONTRACT",
   auditPrefix: "contract",
 };
+
+/** Interim message pending counsel's wording (EXT-LEGAL-01). */
+const counterpartyPaperMessage = (r: ContractSigningRecord) =>
+  r.counterpartySigns
+    ? "Please review and sign the attached agreement. Fil One will countersign and you will receive the completed agreement."
+    : "Please review and sign the attached agreement for Fil One.";
+
+/**
+ * A contract on the counterparty's paper: their uploaded PDF, pinned by its
+ * SHA-256, with a Fil One signature page appended. Either the counterparty
+ * signs first and then the Fil One countersigner, or (`counterpartySigns`
+ * false: they signed their paper already) the Fil One countersigner alone;
+ * the store's view leaves out a signer who does not sign. Same table, store
+ * and approval rule as template contracts.
+ */
+export const counterpartyPaperSigning: SigningDocumentType<ContractSigningRecord> =
+  {
+    bindingKey: "commerce_contract_id",
+    slots: [
+      {
+        id: "counterparty",
+        order: 1,
+        fields: () => signatureFields,
+        correctable: true,
+      },
+      {
+        id: "fil-one",
+        order: 2,
+        fields: () => signatureFields,
+        correctable: false,
+      },
+    ],
+    documentName: (r) => r.documentName,
+    fileName: () => "Fil-One-Countersignature.pdf",
+    subject: (r) => r.documentName,
+    message: counterpartyPaperMessage,
+    approval: "two_person",
+    copySender: false,
+    errorPrefix: "CONTRACT",
+    auditPrefix: "contract",
+  };
