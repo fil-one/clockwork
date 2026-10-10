@@ -152,6 +152,7 @@ export const eventMessages: Readonly<Record<string, MessageId>> = {
   "mnda.signer_configured": "operations.owner.event.mndaSigner",
   "mnda.settings_changed": "operations.owner.event.mndaNoticeEmail",
   "mnda.register_exported": "operations.owner.event.mndaExported",
+  "contract.register_exported": "operations.owner.event.contractsExported",
   "workflow.report_exported": "operations.owner.event.reportExported",
   "security.assisted_action.started": "operations.owner.event.assistedStarted",
   "approval.self_approved": "operations.owner.event.selfApproved",

@@ -11,11 +11,13 @@ import { listScope } from "@/src/features/internal-ops/contracts/loaders";
 import { toCsv } from "@/src/features/internal-ops/contracts/csv";
 import { jsonFailure } from "@/src/features/internal-ops/contracts/http";
 import {
+  contractActor,
   contractRepository,
   contractStaff,
 } from "@/src/features/internal-ops/contracts/server";
 
-/** The register as CSV, with the same filters as the list on screen. */
+/** The register as CSV, with the same filters as the list on screen. Every
+ * export is audited with its filters and row counts before it is sent. */
 export async function GET(request: Request) {
   try {
     const session = await contractStaff("contract:read");
@@ -24,11 +26,19 @@ export async function GET(request: Request) {
     const query = ContractListQuerySchema.parse(
       Object.fromEntries(new URL(request.url).searchParams),
     );
-    const { rows, truncated } = await contractRepository().exportRows(
+    const repository = contractRepository();
+    const { rows, truncated } = await repository.exportRows(
       query,
       today,
       listScope(session),
     );
+    await repository.recordAccess(contractActor(session), {
+      kind: "export",
+      filters: query,
+      rows: rows.length,
+      mndaRows: rows.filter((row) => row.source === "mnda").length,
+      truncated,
+    });
     const csv = toCsv(
       [
         t("operations.contracts.field.counterparty"),

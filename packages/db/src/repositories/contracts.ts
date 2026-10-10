@@ -358,6 +358,57 @@ export class ContractRepository {
     });
   }
 
+  /**
+   * Records who downloaded a contract file or exported the register. Each
+   * access is its own audit aggregate, so it never competes with a contract's
+   * version chain. An export says how many of its rows were signed MNDAs,
+   * which it carries for readers of the MNDA register.
+   */
+  recordAccess(
+    actor: Actor,
+    event:
+      | {
+          kind: "file";
+          contractId: string;
+          fileId: string;
+          fileKind: ContractFileKind;
+        }
+      | {
+          kind: "export";
+          filters: ContractListQuery;
+          rows: number;
+          mndaRows: number;
+          truncated: boolean;
+        },
+  ) {
+    return this.tx((tx) =>
+      appendAuditAndOutbox(tx, {
+        aggregateType: event.kind === "file" ? "document" : "report_export",
+        aggregateId: randomUUID(),
+        aggregateVersion: 1,
+        eventType:
+          event.kind === "file"
+            ? "contract.file_downloaded"
+            : "contract.register_exported",
+        actor,
+        requestId: randomUUID(),
+        after:
+          event.kind === "file"
+            ? {
+                contractId: event.contractId,
+                fileId: event.fileId,
+                kind: event.fileKind,
+              }
+            : {
+                filters: event.filters,
+                rows: event.rows,
+                mndaRows: event.mndaRows,
+                truncated: event.truncated,
+              },
+      }),
+    );
+  }
+
   /** Executed contracts that renew automatically and whose notice deadline
    * for the next renewal has already passed. */
   noticesPassed(asOf: string) {

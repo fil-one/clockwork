@@ -1010,3 +1010,48 @@ function pick(
     noticeDeadline: row?.noticeDeadline ?? null,
   };
 }
+
+describe("access audit", () => {
+  it("audits file downloads, register exports and library downloads without touching record versions", async () => {
+    const reader = { kind: "user" as const, id: randomUUID(), display: "R" };
+    const input = contract(randomUUID());
+    await repo.create(input, actor);
+    const fileId = randomUUID();
+    await repo.recordAccess(reader, {
+      kind: "file",
+      contractId: input.id,
+      fileId,
+      fileKind: "main",
+    });
+    await repo.recordAccess(reader, {
+      kind: "export",
+      filters: query({ status: "executed" }),
+      rows: 4,
+      mndaRows: 1,
+      truncated: false,
+    });
+    const itemId = randomUUID();
+    await library.recordDownload(reader, itemId);
+    const events = await client<{ event_type: string; after: unknown }[]>`
+      select event_type, after from audit_events
+      where actor->>'id' = ${reader.id} order by event_type`;
+    expect(events).toHaveLength(3);
+    expect(events).toMatchObject([
+      {
+        event_type: "contract.file_downloaded",
+        after: { contractId: input.id, fileId, kind: "main" },
+      },
+      {
+        event_type: "contract.register_exported",
+        after: {
+          rows: 4,
+          mndaRows: 1,
+          truncated: false,
+          filters: { status: "executed" },
+        },
+      },
+      { event_type: "sales_collateral.downloaded", after: { itemId } },
+    ]);
+    expect((await repo.get(input.id, "2026-10-09")).contract.version).toBe(1);
+  });
+});
