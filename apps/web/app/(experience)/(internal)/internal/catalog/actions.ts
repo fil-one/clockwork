@@ -3,7 +3,11 @@
 import { contextHasAnyPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 import { CatalogMappingSchema, DatabaseCatalogAdmin } from "@clockwork/db";
-import { requireRecentAuthentication } from "@/src/auth/session";
+import {
+  requireRecentAuthentication,
+  SessionExpiredError,
+  type CommerceSession,
+} from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
 
 /**
@@ -11,13 +15,28 @@ import { getServiceDatabase } from "@/src/db/service";
  * in the reader's language, and the authority rule it reports stays here.
  */
 export type CatalogMappingResult =
-  "" | "forbidden" | "invalid" | "saved" | "conflict" | "frozen" | "failed";
+  | ""
+  | "forbidden"
+  | "expired"
+  | "invalid"
+  | "saved"
+  | "conflict"
+  | "frozen"
+  | "failed";
 
 export async function saveCatalogMapping(
   _previous: CatalogMappingResult,
   data: FormData,
 ): Promise<CatalogMappingResult> {
-  const session = await requireRecentAuthentication();
+  let session: CommerceSession;
+  try {
+    session = await requireRecentAuthentication();
+  } catch (error) {
+    // An expired access token is the one refusal a reload fixes; every
+    // other refusal still reaches the error boundary as before.
+    if (error instanceof SessionExpiredError) return "expired";
+    throw error;
+  }
   if (
     !session.providerBacked ||
     !session.isInternalStaff ||

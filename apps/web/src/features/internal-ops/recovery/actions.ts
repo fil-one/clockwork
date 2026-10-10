@@ -6,7 +6,10 @@ import { contextHasPermission } from "@clockwork/contracts";
 import { revalidatePath } from "next/cache";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
-import { requireRecentAuthentication } from "@/src/auth/session";
+import {
+  requireRecentAuthentication,
+  SessionExpiredError,
+} from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { decideDemoDeadLetter } from "../demo-operator-state";
@@ -60,7 +63,9 @@ export async function decideDeadLetterOperation(
   let session;
   try {
     session = await requireRecentAuthentication();
-  } catch {
+  } catch (error) {
+    if (error instanceof SessionExpiredError)
+      return { ok: false, code: "SESSION_EXPIRED" };
     return { ok: false, code: "SYSTEM_RECOVERY_RECENT_AUTH_REQUIRED" };
   }
   if (demoEnabled && !database) {

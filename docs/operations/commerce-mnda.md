@@ -28,10 +28,12 @@ with its filters and row count.
 
 The form asks for the partner signer first, then the company, then **Known
 details**. Leave unknown details blank and the partner fills them in before
-signing. **Our team enters the details** makes every detail required. **Partner
-completes details when signing** takes an internal reference instead of the
-legal name; the partner enters the company, notice and signer details, and the
-reference is never shown to the partner.
+signing. **Our team enters the details** makes every detail required. New drafts
+always name the partner's legal company. The retired **Partner completes details
+when signing** mode took an internal reference instead; MNDAs already prepared
+in it still send, refresh and download as before, and **Duplicate**, **Send
+again** or **Edit details** on one opens the default mode with the legal name
+blank to fill in.
 
 Problems appear next to the field with a specific message (for example a
 reserved character such as `<` or `[`, a partner email equal to the
@@ -49,6 +51,14 @@ accents, punctuation and a trailing suffix such as Inc. or LLC), the form and
 preview show the existing MNDA's status, date and preparer with a link to it.
 The database keeps the normalized name (`normalized_company`, computed by
 `commerce_mnda_normalize_company`) so stored names and lookups always agree.
+
+The same check covers the contract register: a recorded agreement of any type
+with the same company (for example an NDA on the partner's paper, or an MSA)
+shows its type, status, effective date and owner with a link to the contract.
+Drafts whose signing request was voided are left out. The lookup applies
+`commerce_mnda_normalize_company` to `counterparty_name` in the query. It is a
+warning only and appears for staff who may read contracts (`contract:read`,
+which every role with `mnda:send` holds).
 
 ## The agreement
 
@@ -94,9 +104,27 @@ Add `&mine=1` for the signed-in seller's own MNDAs, `q=` for a search and
 Each row shows the sent date and the days outstanding while the MNDA is open.
 **Needs attention** rows say why and what to do: a bounced partner email ("Fix
 the email and SignWell sends it again"), a request SignWell stopped ("Void it,
-then send it again"), or a document deleted directly in SignWell ("Void it here
-to close it"). A send that did not finish says so; **Continue** opens its
-preview and sending again never creates a second SignWell request.
+then send it again"), a document deleted directly in SignWell ("Void it here to
+close it"), or a SignWell copy that no longer matches the MNDA. A copy no longer
+matches when its signers differ from the MNDA's partner and Fil One
+countersigner (for example a recipient changed directly in SignWell; error
+`signwell_signers_mismatch`) or when it is not bound to this request
+(`signwell_binding_mismatch`). Commerce applies nothing from such a copy and
+audits it as `mnda.signwell_mismatch`. If SignWell's copy matches again, the
+next refresh restores the status.
+
+- Nobody has signed SignWell's copy: **Void** deletes the SignWell document, for
+  a binding mismatch as well as a signer mismatch, and records the void here.
+  Then send it again. When the seller had just fixed the partner email and
+  SignWell applied the change late, **Fix email** with the same address records
+  it and the row returns to its status.
+- Someone signed SignWell's copy (`signwell_signed_mismatch`): the row says to
+  ask a commerce administrator, and Void is refused, because only a person in
+  SignWell can decide whether that signature stands. See
+  [Recovery and verification](#recovery-and-verification).
+
+A send that did not finish says so; **Continue** opens its preview and sending
+again never creates a second SignWell request.
 
 **Export CSV** downloads the filtered register (company, partner signer and
 email, status, countersigner, preparer, created, sent, days outstanding,
@@ -106,10 +134,12 @@ completed, effective date, test mode, void reason, request ID). PDFs download as
 says so above the register when more match, and the response carries
 `x-mnda-export-truncated: true`.
 
-The open page refreshes every 15 seconds while the tab is visible. **Refresh**
-on a row reconciles a missed callback. SignWell sends automatic reminders, and
-expiry is 30 days. **Remind** names who is reminded: the partner, or the Fil One
-countersigner once the partner has signed. Manual reminders are a minute apart.
+The open page refreshes the register every 15 seconds while the tab is visible.
+**Refresh** on a row reconciles a missed callback at once; a scheduled task
+checks open MNDAs in rotation ([missed callbacks](#missed-callbacks)). SignWell
+sends automatic reminders, and expiry is 30 days. **Remind** names who is
+reminded: the partner, or the Fil One countersigner once the partner has signed.
+Manual reminders are a minute apart.
 
 ## After sending
 
@@ -231,7 +261,24 @@ walks a new seller through it.
 - If SignWell completion is visible but Commerce still shows pending, refresh.
   Failed PDF retrieval leaves the request incomplete locally, allowing recovery.
 - A callback returning 503 is retryable. Unknown document IDs are acknowledged
-  without creating records; callbacks for the other deployment are ignored.
+  without creating records; callbacks for the other deployment are ignored. A
+  callback for an MNDA whose SignWell copy no longer matches is acknowledged
+  once the MNDA is recorded as needing attention.
+- Sending a draft whose SignWell document was deleted, or whose SignWell copy no
+  longer matches, records the reason on the row instead of a connection problem,
+  and the preview says the MNDA was not sent.
+- A row marked "Someone signed this MNDA in SignWell"
+  (`signwell_signed_mismatch`) is resolved by a commerce administrator in
+  SignWell. Open the document in SignWell and compare its signers with the row.
+  If the signature must not stand, delete the document in SignWell, choose
+  **Refresh** on the row (it moves to "Deleted in SignWell"), then **Void** it
+  with a reason and send a new MNDA. If it should stand, first download the
+  signed PDF from SignWell and record it in the contract register as an MNDA
+  with that PDF attached, then delete it in SignWell, refresh and void the row
+  with a reason that names the register entry. Whether SignWell lets an
+  administrator delete a document someone has signed has not been confirmed; if
+  it does not, leave the document in SignWell. The row then stays marked, and
+  for a signature that stands the register entry is the record.
 - Choose tests using [change validation](#change-validation). When a complete
   provider qualification is needed, use non-binding test mode with embedded
   signing and notifications off; exercise both signers and retrieve the final
@@ -240,6 +287,41 @@ walks a new seller through it.
 - Disabling the feature prevents provider operations. Originals and completed
   artifacts remain readable to authorized staff. Database backups retain
   evidence.
+
+### Missed callbacks
+
+The scheduled task `system.esign.reconcile.v1` runs every 15 minutes in staging
+and production. Each run re-reads in SignWell open MNDAs bound to a SignWell
+document (preparing, sending, sent, opened, awaiting countersignature or needing
+attention) that have not changed for 10 minutes, through the same refresh as the
+row's **Refresh** button and the callback. Template contract signings are
+included when `COMMERCE_CONTRACTS_SIGNING_ENABLED=true`. Unsent drafts, closed
+requests and documents deleted in SignWell are not read. Requests whose signers
+or binding disagree with SignWell stay in the rotation: they recover on their
+own if SignWell later agrees.
+
+- A run reads at most 50 MNDAs and 50 contracts. Requests never checked come
+  first, then the one checked longest ago, so runs rotate through every open
+  request. While there are 50 or fewer, a callback that never arrives is
+  corrected within about 25 minutes; with more, a full rotation takes more than
+  one run and each run logs `ESIGN_RECONCILE_CAPPED`.
+- The check time is kept in `reconciled_at`. Recording it changes nothing staff
+  see: not the request's version, last-changed time or history.
+- The refresh holds the request's lease, so it never runs alongside a callback
+  or a person's action on the same request. A request that is busy is left for
+  the next run.
+- Changes it applies are audited like a callback's, by "Scheduled SignWell
+  check" (system actor `esign-reconciliation`). Seeing that actor on recent
+  changes means callbacks are not arriving: check the SignWell callback URLs
+  under [Deployment](#deployment).
+- Requests are read one at a time. A run starts nothing after 150 seconds and
+  stops at the first SignWell 429. A request that fails is logged as
+  `ESIGN_RECONCILE_FAILED` with its ID and error code and goes to the back of
+  the rotation; the others continue.
+- The task needs no configuration of its own. It reads the same
+  `SIGNWELL_API_KEY`, `SIGNWELL_WEBHOOK_ID` and feature flags as sending, in the
+  container that hosts the tasks. Without them each run logs
+  `ESIGN_RECONCILE_SKIPPED` and does nothing.
 
 See [ADR 0011](../adr/0011-standalone-commerce-mnda.md) for boundaries and
 storage guarantees. Production acceptance requires a successful deployment plus
@@ -298,14 +380,15 @@ The short name defaults to the legal name and remains editable; clearing it
 restores that default. Review the partner's completed information before
 countersigning.
 
-In **Partner completes details when signing**, Commerce still sets the effective
-date, notice email and Fil One countersigner. SignWell requires every
-legal-name, entity-description, notice-address/email/contact, and
-signatory-name/title field before the partner can finish. Repeated fields offer
-the value already entered. The SignWell document is titled "Mutual NDA: Fil One"
-in this mode and "Mutual NDA: Fil One and {legal name}" otherwise. The internal
-reference is not substituted for the partner's legal name; the executed PDF is
-the authoritative record of partner-entered details.
+In the retired **Partner completes details when signing** mode (MNDAs prepared
+before it was retired), Commerce still sets the effective date, notice email and
+Fil One countersigner. SignWell requires every legal-name, entity-description,
+notice-address/email/contact, and signatory-name/title field before the partner
+can finish. Repeated fields offer the value already entered. The SignWell
+document is titled "Mutual NDA: Fil One" in this mode and "Mutual NDA: Fil One
+and {legal name}" otherwise. The internal reference is not substituted for the
+partner's legal name; the executed PDF is the authoritative record of
+partner-entered details.
 
 ## Production address
 

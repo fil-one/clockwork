@@ -86,6 +86,24 @@ export const MndaInputSchema = z
           });
     }
   });
+/**
+ * A new draft names the partner's legal company. The retired "partner
+ * completes details" mode put an internal reference in that field, which then
+ * named the counterparty in the contract register; drafts already in that mode
+ * still parse with `MndaInputSchema`, render, send and sync.
+ */
+export const MndaDraftInputSchema = MndaInputSchema.superRefine(
+  (input, ctx) => {
+    if (input.detailsMode === "recipient")
+      ctx.addIssue({
+        code: "invalid_value",
+        values: ["mixed", "team"],
+        input: input.detailsMode,
+        path: ["detailsMode"],
+        message: "Partner-completed drafts are retired",
+      });
+  },
+);
 export const mndaRecipientFields = [
   { id: "company_intro", label: "Legal company name" },
   { id: "entity", label: "Jurisdiction and entity type" },
@@ -364,7 +382,11 @@ export const mndaErrorCodes = [
   "signer_started",
   "not_correctable",
   "already_completed",
+  "needs_attention",
+  "signed_in_signwell",
   "reason_required",
+  "session_expired",
+  "demo_unavailable",
   "unexpected",
 ] as const;
 export type MndaErrorCode = (typeof mndaErrorCodes)[number];
@@ -382,6 +404,11 @@ export const mndaAttentionReasons = [
   "recipient_bounced",
   "provider_stopped",
   "deleted_in_signwell",
+  // SignWell's copy names other signers, or is not bound to this request.
+  "signwell_signers_mismatch",
+  "signwell_binding_mismatch",
+  // As above, and someone signed SignWell's copy; resolved in SignWell.
+  "signwell_signed_mismatch",
 ] as const;
 export type MndaAttentionReason = (typeof mndaAttentionReasons)[number];
 

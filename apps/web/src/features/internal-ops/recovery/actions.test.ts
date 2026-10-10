@@ -16,6 +16,7 @@ vi.mock("@clockwork/db", () => ({
 }));
 vi.mock("@/src/auth/session", () => ({
   requireRecentAuthentication: mocks.requireRecentAuthentication,
+  SessionExpiredError: class SessionExpiredError extends Error {},
 }));
 vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: mocks.getOptionalServiceDatabase,
@@ -26,6 +27,7 @@ vi.mock("../demo-operator-state", () => ({
   decideDemoDeadLetter: mocks.decideDemoDeadLetter,
 }));
 
+import { SessionExpiredError } from "@/src/auth/session";
 import { decideDeadLetterOperation } from "./actions";
 
 const operator = {
@@ -85,6 +87,17 @@ describe("system recovery action authentication", () => {
     });
     expect(mocks.execute).not.toHaveBeenCalled();
     expect(mocks.redrive).not.toHaveBeenCalled();
+  });
+
+  it("reports an expired session apart, so the page offers a reload", async () => {
+    mocks.requireRecentAuthentication.mockRejectedValue(
+      new SessionExpiredError(),
+    );
+    expect(await decideDeadLetterOperation(retryForm())).toEqual({
+      ok: false,
+      code: "SESSION_EXPIRED",
+    });
+    expect(mocks.execute).not.toHaveBeenCalled();
   });
 
   it("persists the decision in the exact demo without requiring a database", async () => {

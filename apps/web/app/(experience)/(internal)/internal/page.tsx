@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { explicitDemoIdentityEnabled } from "@/src/auth/session";
 import { getTranslations } from "@/src/i18n/server";
+import { demoNow } from "@/src/features/experience-server/demo-clock";
 import { SalesHome } from "@/src/features/internal-ops/sales-home/sales-home";
 import { loadSalesHome } from "@/src/features/internal-ops/sales-home/server-loader";
 import { RenewalNoticesCard } from "@/src/features/internal-ops/contracts/renewal-notices-card";
@@ -36,8 +38,8 @@ export default async function Page() {
   const sections = await loadSalesHome({
     userId: identity.userId,
     permissions: session.permissions,
-    providerBacked: session.providerBacked,
-    now: new Date(),
+    demo: explicitDemoIdentityEnabled(),
+    now: demoNow(),
   });
   return (
     <SalesHome

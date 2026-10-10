@@ -72,6 +72,12 @@ const config: NextConfig = {
    * silently reintroduce the crash.
    */
   serverExternalPackages: ["@react-pdf/renderer"],
+  // Set only by the Dockerfile, for a commit CI has already type-checked.
+  // Next then skips its type check but still compiles every module. Every
+  // other build checks types.
+  typescript: {
+    ignoreBuildErrors: process.env.CLOCKWORK_NEXT_SKIP_TYPECHECK === "1",
+  },
   typedRoutes: true,
   headers() {
     return Promise.resolve([

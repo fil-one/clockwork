@@ -11,10 +11,10 @@ const workspaceRoot = fileURLToPath(new URL("../", import.meta.url));
 // Advisories we have looked at and cannot close from this repository. Every
 // entry needs a reason, because the backlog claim is that no advisory is left
 // unexplained. These same identifiers are listed in `pnpm.auditConfig.
-// ignoreGhsas` so `pnpm audit --audit-level=high` exits zero; the first test
-// below holds the two lists together, so silencing an advisory in the manifest
-// without recording why fails the suite.
-const acceptedHighAdvisories = new Map([
+// ignoreGhsas` so the release static gate, `pnpm audit --audit-level=low`,
+// exits zero; a test below holds the two lists together, so silencing an
+// advisory in the manifest without recording why fails the suite.
+const acceptedAdvisories = new Map([
   [
     "GHSA-vfj7-8cjw-p6xm",
     "braces deeply nested glob stack exhaustion: no published fix through 3.0.3. Reached only through root development dependencies (Netlify CLI and Secretlint via micromatch/fast-glob). Commerce accepts no untrusted glob patterns through those tools, and the package is absent from the production dependency graph. A regression check below fails if it becomes a production dependency; the registry check expires this acceptance when a newer release appears.",
@@ -49,6 +49,14 @@ const pinnedTransitives = [
   // where the project moved); GitHub's advisory data still reports no patched
   // range, so pnpm audit needs the override to see the fix.
   { name: "image-size", minimum: "2.0.4", override: "image-size@<2.0.4" },
+  { name: "sharp", minimum: "0.35.5", override: "sharp@<0.35.5" },
+  { name: "proxy-addr", minimum: "2.0.8", override: "proxy-addr@<2.0.8" },
+  {
+    name: "source-map-js",
+    minimum: "1.2.2",
+    override: "source-map-js@<1.2.2",
+  },
+  { name: "smol-toml", minimum: "1.9.0", override: "smol-toml@<1.9.0" },
 ];
 
 // Direct catalog dependency, upgraded rather than overridden.
@@ -141,7 +149,9 @@ test("catalog dependencies resolve above their advisory floor", async () => {
   }
 });
 
-test("audit reports only accepted high advisories", async (t) => {
+// The release static gate runs `pnpm audit --audit-level=low`, so every
+// severity it fails on must be fixed or accepted here.
+test("audit reports only accepted advisories at low severity and above", async (t) => {
   const report = await auditReport();
   if (report === null) {
     // Offline runs cannot reach the advisory database. The two lockfile tests
@@ -152,8 +162,7 @@ test("audit reports only accepted high advisories", async (t) => {
 
   const reported = new Map();
   for (const advisory of Object.values(report.advisories ?? {})) {
-    if (advisory.severity !== "high" && advisory.severity !== "critical")
-      continue;
+    if (advisory.severity === "info") continue;
     reported.set(
       advisory.github_advisory_id,
       `${advisory.module_name}: ${advisory.title}`,
@@ -168,7 +177,7 @@ test("audit reports only accepted high advisories", async (t) => {
   assert.deepEqual(
     unexplained,
     [],
-    "new high advisory with no recorded decision; fix it or record why it cannot be fixed",
+    "new advisory with no recorded decision; fix it or record why it cannot be fixed",
   );
 });
 
@@ -178,10 +187,10 @@ test("every silenced advisory carries a recorded reason", async () => {
   );
   assert.deepEqual(
     [...(manifest.pnpm.auditConfig?.ignoreGhsas ?? [])].sort(),
-    [...acceptedHighAdvisories.keys()].sort(),
-    "pnpm.auditConfig.ignoreGhsas and acceptedHighAdvisories must name the same advisories",
+    [...acceptedAdvisories.keys()].sort(),
+    "pnpm.auditConfig.ignoreGhsas and acceptedAdvisories must name the same advisories",
   );
-  for (const [id, reason] of acceptedHighAdvisories) {
+  for (const [id, reason] of acceptedAdvisories) {
     assert.ok(
       reason.trim().length > 0,
       `${id} is silenced with no recorded reason`,

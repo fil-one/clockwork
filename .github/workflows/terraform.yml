@@ -20,6 +20,13 @@ on:
         description: commit to deploy
         required: true
         type: string
+      typechecked_in_ci:
+        description:
+          true when CI has passed for ref on main; the image build then skips
+          the type check CI already ran
+        required: false
+        type: boolean
+        default: false
 
 env:
   TOFU_VERSION: 1.12.5
@@ -119,6 +126,10 @@ jobs:
           tofu_wrapper: false
 
       - uses: docker/setup-buildx-action@v3
+        with:
+          # The runner is discarded with the job, so removing the builder in
+          # the post step (13 to 28 seconds) cleans up nothing that outlives it.
+          cleanup: false
 
       - name: Initialise
         run: make init
@@ -127,6 +138,9 @@ jobs:
       - name: Build and push the image
         run: make docker-push
         working-directory: deploy
+        env:
+          CLOCKWORK_TYPECHECKED_IN_CI:
+            ${{ inputs.typechecked_in_ci && '1' || '0' }}
 
       - name: Migrate the database
         run: make migrate

@@ -14,7 +14,7 @@ const state = vi.hoisted(
 vi.mock("@clockwork/db", () => ({ listAgreementTemplates: state.list }));
 vi.mock("@/src/auth/session", () => ({
   explicitDemoIdentityEnabled: () => state.demo,
-  getCommerceSession: () => Promise.resolve({ isInternalStaff: true }),
+  getRequestCommerceSession: () => Promise.resolve({ isInternalStaff: true }),
 }));
 vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: () => state.database,

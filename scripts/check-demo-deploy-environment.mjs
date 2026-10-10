@@ -35,6 +35,9 @@ export function demoDeployEnvironmentIssues(environment) {
   for (const key of PRODUCTION_MARKERS)
     if (environment[key]?.trim().toLowerCase() === "production")
       issues.push(`${key} must not mark the fixture-only demo as production`);
+  // A pinned clock is for test servers; the public demo counts from today.
+  if (environment.CLOCKWORK_DEMO_CLOCK)
+    issues.push("CLOCKWORK_DEMO_CLOCK must be absent on the hosted demo");
 
   return issues;
 }
@@ -55,6 +58,7 @@ export function deploymentEnvironmentIssues(environment) {
     "CLOCKWORK_DEMO_STATE_STORE",
     "CLOCKWORK_DEMO_ACCESS_PASSWORD",
     "CLOCKWORK_DEMO_STATE_PATH",
+    "CLOCKWORK_DEMO_CLOCK",
   ])
     if (environment[key]) issues.push(`${key} must be absent in production`);
   if (environment.CLOCKWORK_EVIDENCE_ADAPTER === "demo")

@@ -8,12 +8,10 @@ import {
 } from "@clockwork/contracts";
 import type { MessageId } from "@/src/i18n";
 
-export type DetailsMode = "team" | "recipient" | "mixed";
-export const detailsModes: readonly DetailsMode[] = [
-  "mixed",
-  "team",
-  "recipient",
-];
+/** Modes a new draft may use. Drafts made in the retired partner-completes
+ * mode ("recipient") reopen in the default mode. */
+export type DetailsMode = "team" | "mixed";
+export const detailsModes: readonly DetailsMode[] = ["mixed", "team"];
 
 /** The form's own state. `shortName` null follows the legal name. */
 export interface MndaFormValues {
@@ -123,6 +121,8 @@ export function emptyValues(signers: readonly MndaSigner[]): MndaFormValues {
 /**
  * Prefills the form from an existing request. Editing keeps its date;
  * sending again starts today. `clearSigner` is for sending to someone else.
+ * A partner-completes draft held an internal reference, not the legal name,
+ * so its copy starts in the default mode with the legal name to enter.
  */
 export function valuesFromRecord(
   record: MndaRecord,
@@ -130,18 +130,20 @@ export function valuesFromRecord(
   options: { keepDate: boolean; clearSigner?: boolean },
 ): MndaFormValues {
   const input = record.input;
+  const mode = input.detailsMode ?? "team";
+  const reference = mode === "recipient";
   const countersigner = signers.find(
     (s) => s.id === input.countersignerId && s.active,
   );
   return {
     ...emptyValues(signers),
-    detailsMode: input.detailsMode ?? "team",
+    detailsMode: mode === "recipient" ? "mixed" : mode,
     signerName: options.clearSigner ? "" : input.signerName,
     signerEmail: options.clearSigner
       ? ""
       : (record.correctedSignerEmail ?? input.signerEmail),
     signerTitle: options.clearSigner ? "" : input.signerTitle,
-    company: input.company,
+    company: reference ? "" : input.company,
     shortName:
       !input.shortName || input.shortName === input.company
         ? null
@@ -155,22 +157,21 @@ export function valuesFromRecord(
     ...(countersigner ? { countersignerId: countersigner.id } : {}),
   };
 }
-/** The server input. Details hidden in the partner-completes mode are blank. */
+/** The server input. */
 export function inputFromValues(id: string, values: MndaFormValues) {
-  const recipient = values.detailsMode === "recipient";
   return {
     id,
     detailsMode: values.detailsMode,
     company: values.company,
-    shortName: recipient ? "" : (values.shortName ?? values.company),
-    entityDescription: recipient ? "" : values.entityDescription,
-    streetAddress: recipient ? "" : values.streetAddress,
-    locality: recipient ? "" : values.locality,
-    noticesContact: recipient ? "" : values.noticesContact,
-    noticesEmail: recipient ? "" : values.noticesEmail,
+    shortName: values.shortName ?? values.company,
+    entityDescription: values.entityDescription,
+    streetAddress: values.streetAddress,
+    locality: values.locality,
+    noticesContact: values.noticesContact,
+    noticesEmail: values.noticesEmail,
     signerName: values.signerName,
     signerEmail: values.signerEmail,
-    signerTitle: recipient ? "" : values.signerTitle,
+    signerTitle: values.signerTitle,
     countersignerId: values.countersignerId,
     effectiveDate: values.effectiveDate,
   };

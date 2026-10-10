@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
+import { DEMO_TEST_CLOCK } from "@clockwork/testing/demo-seed";
 
 const port = Number.parseInt(
   process.env.CLOCKWORK_TEST_PORT ?? process.env.PORT ?? "3000",
@@ -14,8 +15,9 @@ const artifactRoot = path.resolve(
 );
 const serial = process.env.CLOCKWORK_RELEASE_SERIAL === "1";
 if (
-  (process.env.CLOCKWORK_RELEASE_SHARD === "ui" ||
-    process.env.CLOCKWORK_RELEASE_SHARD === "demo") &&
+  ["ui-1", "ui-2", "demo"].includes(
+    process.env.CLOCKWORK_RELEASE_SHARD ?? "",
+  ) &&
   process.platform !== "darwin"
 )
   throw new Error(
@@ -71,8 +73,8 @@ const demoSuite = Boolean(demoPassword);
  * runtime as far as the product is concerned, and the product refuses one that
  * has neither real authentication nor the demo deploy opt-in. The demo shard
  * sets that opt-in, and a built server behind it is exactly what the hosted
- * demo deployment serves. The `ui` shard authenticates by `x-clockwork-persona`
- * header, which a production runtime is built to refuse, so it keeps the
+ * demo deployment serves. The `ui-*` shards authenticate by `x-clockwork-persona`
+ * header, which a production runtime is built to refuse, so they keep the
  * development server its journeys were written against.
  */
 const builtServer = demoSuite && Boolean(process.env.CI);
@@ -164,6 +166,9 @@ export default defineConfig({
       // without enabling the separately gated public demo deployment.
       CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
       CLOCKWORK_EVIDENCE_ADAPTER: "demo",
+      // Demo reads count days from "now"; a fixed instant keeps screenshots and
+      // assertions independent of the day the suite runs.
+      CLOCKWORK_DEMO_CLOCK: DEMO_TEST_CLOCK,
       ...(demoSuite
         ? {
             CLOCKWORK_DEMO_DEPLOY: "1",

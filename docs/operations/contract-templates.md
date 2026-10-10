@@ -209,8 +209,29 @@ is set to `false`; test-mode signatures are not legally binding.
    record is stored with its hash and the contract is marked executed, in one
    step.
 
-A sent request can only be voided in SignWell. A request that was never sent can
-be discarded in Commerce.
+A request that never reached SignWell can be discarded. Once it has, it is
+voided in Commerce, with a reason, until the counterparty signs: Commerce reads
+SignWell first, deletes the SignWell copy, and marks the request canceled. The
+register row returns to draft and keeps the prepared PDF and the history. The
+preparer can void their own request; anyone else needs contract approval rights.
+
+If someone deletes the document in SignWell directly, the next refresh or
+callback marks the request **SignWell no longer has this document** instead of
+failing, and callbacks keep succeeding. Void it in Commerce to close it. The
+same holds when SignWell's copy names other signers or does not belong to the
+contract: nothing from that copy is applied, the request waits in attention
+(`signwell_signers_mismatch` or `signwell_binding_mismatch`), and it can be
+voided. A request is never voided once SignWell shows the counterparty's
+signature, even when a bounced countersigner email has put it in attention.
+
+Reminders go to whoever signs next and are spaced at least a minute apart,
+counted from the last reminder. Each one is recorded in the contract's history
+as `contract.reminded` with its recipient.
+
+Downloading a contract PDF, exporting the register (which includes signed MNDAs
+for readers of the MNDA register) and downloading a sales library PDF are each
+audited, as `contract.file_downloaded`, `contract.register_exported` and
+`sales_collateral.downloaded`.
 
 ## Configuration
 

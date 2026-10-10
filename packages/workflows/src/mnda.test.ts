@@ -92,6 +92,7 @@ function setup() {
   };
   return {
     workflow: new MndaWorkflow(repo, provider),
+    repo,
     provider,
     doc,
     record: () => record,
@@ -435,4 +436,174 @@ it("spaces manual reminders from the last reminder, not from any update", async 
   s.setRecord({ remindedAt: new Date(Date.now() - 120_000).toISOString() });
   await s.workflow.remind(fixtureRecord.id, actor);
   expect(s.provider.remind).toHaveBeenCalledTimes(2);
+});
+it("flags a document deleted in SignWell when sending, instead of reporting an outage", async () => {
+  const s = setup();
+  s.setRecord({ providerId: s.doc.id, state: "ready" });
+  vi.mocked(s.provider.get)
+    .mockRejectedValueOnce(missing())
+    .mockRejectedValueOnce(missing());
+  await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+    "MNDA_NEEDS_ATTENTION",
+  );
+  expect(s.record()).toMatchObject({
+    state: "attention",
+    error: "deleted_in_signwell",
+  });
+  expect(s.events.at(-1)).toBe("mnda.deleted_in_signwell");
+  expect(s.provider.send).not.toHaveBeenCalled();
+});
+it("reports the original send failure when the lease was lost before it could be recorded", async () => {
+  const s = setup();
+  const update = vi.spyOn(s.repo, "update");
+  vi.mocked(s.provider.createDraft).mockImplementationOnce(async () => {
+    update.mockRejectedValue(new Error("MNDA_LEASE_LOST"));
+    throw new Error("SIGNWELL_HTTP_502");
+  });
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+    "SIGNWELL_HTTP_502",
+  );
+  expect(warn).toHaveBeenCalledWith("MNDA send failure not recorded", {
+    mndaId: fixtureRecord.id,
+    error: "MNDA_LEASE_LOST",
+  });
+  warn.mockRestore();
+});
+it("holds a request whose SignWell signers changed for a person, applying nothing from SignWell's copy", async () => {
+  const s = setup();
+  await s.workflow.send(fixtureRecord.id, actor);
+  const filOne = s.doc.recipients[1];
+  if (!filOne) throw new Error("Expected countersigner");
+  filOne.email = "someone-else@example.com";
+  // Resolves, so the SignWell callback is acknowledged instead of retried.
+  expect(await s.workflow.sync(fixtureRecord.id, actor)).toMatchObject({
+    state: "attention",
+    error: "signwell_signers_mismatch",
+  });
+  expect(s.events.at(-1)).toBe("mnda.signwell_mismatch");
+  partnerOf(s.doc).status = "signed";
+  expect(await s.workflow.sync(fixtureRecord.id, actor)).toMatchObject({
+    state: "attention",
+    error: "signwell_signed_mismatch",
+  });
+  const recorded = s.events.length;
+  await s.workflow.sync(fixtureRecord.id, actor);
+  expect(s.events).toHaveLength(recorded);
+  // SignWell's copy says the partner signed: never voided, never edited.
+  await expect(
+    s.workflow.void(fixtureRecord.id, actor, { reason: "Wrong signer" }),
+  ).rejects.toThrow("MNDA_SIGNED_IN_SIGNWELL");
+  await expect(
+    s.workflow.correctSigner(fixtureRecord.id, actor, "right@example.com"),
+  ).rejects.toThrow("NOT_CORRECTABLE");
+  // Not even with the address SignWell shows for the person who signed.
+  await expect(
+    s.workflow.correctSigner(
+      fixtureRecord.id,
+      actor,
+      partnerOf(s.doc).email.toLowerCase(),
+    ),
+  ).rejects.toThrow("NOT_CORRECTABLE");
+  expect(s.events).not.toContain("mnda.signer_corrected");
+  await expect(s.workflow.remind(fixtureRecord.id, actor)).rejects.toThrow(
+    "NOT_PENDING",
+  );
+  expect(s.provider.cancel).not.toHaveBeenCalled();
+  expect(s.provider.updateRecipient).not.toHaveBeenCalled();
+  expect(s.provider.remind).not.toHaveBeenCalled();
+  expect(s.provider.completedPdf).not.toHaveBeenCalled();
+});
+it("voids a mismatched request nobody signed, and resumes when SignWell matches again", async () => {
+  const s = setup();
+  await s.workflow.send(fixtureRecord.id, actor);
+  s.doc.test_mode = false;
+  expect(await s.workflow.sync(fixtureRecord.id, actor)).toMatchObject({
+    state: "attention",
+    error: "signwell_binding_mismatch",
+  });
+  s.doc.test_mode = true;
+  expect(await s.workflow.sync(fixtureRecord.id, actor)).toMatchObject({
+    state: "sent",
+    error: null,
+  });
+  s.doc.test_mode = false;
+  await s.workflow.sync(fixtureRecord.id, actor);
+  expect(
+    await s.workflow.void(fixtureRecord.id, actor, { reason: "Resend" }),
+  ).toMatchObject({ state: "canceled", cancelReason: "Resend" });
+  expect(s.provider.cancel).toHaveBeenCalledExactlyOnceWith(s.doc.id);
+});
+it("stops a send when SignWell's draft names a different countersigner", async () => {
+  const s = setup();
+  s.setRecord({ providerId: s.doc.id, state: "ready" });
+  const filOne = s.doc.recipients[1];
+  if (!filOne) throw new Error("Expected countersigner");
+  filOne.email = "someone-else@example.com";
+  await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+    "MNDA_NEEDS_ATTENTION",
+  );
+  expect(s.record()).toMatchObject({
+    state: "attention",
+    error: "signwell_signers_mismatch",
+  });
+  expect(s.provider.send).not.toHaveBeenCalled();
+});
+it("settles a correction SignWell applied late instead of refusing it as a signer mismatch", async () => {
+  const s = setup();
+  await s.workflow.send(fixtureRecord.id, actor);
+  // The update times out and SignWell still shows the old email on read-back,
+  // so the pending correction is dropped.
+  vi.mocked(s.provider.updateRecipient).mockRejectedValueOnce(abort());
+  await expect(
+    s.workflow.correctSigner(fixtureRecord.id, actor, "right@example.com"),
+  ).rejects.toThrow("aborted");
+  expect(s.record()).toMatchObject({
+    pendingSignerEmail: null,
+    correctedSignerEmail: null,
+  });
+  // SignWell applies it afterwards.
+  partnerOf(s.doc).email = "right@example.com";
+  expect(await s.workflow.sync(fixtureRecord.id, actor)).toMatchObject({
+    state: "attention",
+    error: "signwell_signers_mismatch",
+  });
+  expect(
+    await s.workflow.correctSigner(
+      fixtureRecord.id,
+      actor,
+      "right@example.com",
+    ),
+  ).toMatchObject({
+    state: "sent",
+    error: null,
+    correctedSignerEmail: "right@example.com",
+  });
+  expect(s.events).toContain("mnda.signer_corrected");
+  expect(s.provider.updateRecipient).toHaveBeenCalledTimes(1);
+  // Any other email on a mismatched row is still refused.
+  partnerOf(s.doc).email = "third@example.com";
+  await s.workflow.sync(fixtureRecord.id, actor);
+  await expect(
+    s.workflow.correctSigner(fixtureRecord.id, actor, "fourth@example.com"),
+  ).rejects.toThrow("NOT_CORRECTABLE");
+  expect(s.provider.updateRecipient).toHaveBeenCalledTimes(1);
+});
+it("never voids a document the partner signed while the countersigner's email bounced", async () => {
+  const s = setup();
+  await s.workflow.send(fixtureRecord.id, actor);
+  partnerOf(s.doc).status = "signed";
+  const filOne = s.doc.recipients[1];
+  if (!filOne) throw new Error("Expected countersigner");
+  filOne.bounced = true;
+  // A bounce outranks the signature in the applied state.
+  expect(await s.workflow.sync(fixtureRecord.id, actor)).toMatchObject({
+    state: "attention",
+    error: "recipient_bounced",
+  });
+  await expect(
+    s.workflow.void(fixtureRecord.id, actor, { reason: "Bounced" }),
+  ).rejects.toThrow("MNDA_NOT_VOIDABLE");
+  expect(s.provider.cancel).not.toHaveBeenCalled();
+  expect(s.record().state).toBe("attention");
 });

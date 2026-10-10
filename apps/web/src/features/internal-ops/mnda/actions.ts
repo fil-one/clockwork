@@ -2,8 +2,9 @@
 
 import { z } from "zod";
 import {
+  contextHasPermission,
   MndaCorrectSignerSchema,
-  MndaInputSchema,
+  MndaDraftInputSchema,
   MndaRegisterQuerySchema,
   MndaSettingsSchema,
   MndaSignerSchema,
@@ -14,8 +15,12 @@ import {
   type MndaSettings,
   type MndaSigner,
 } from "@clockwork/contracts";
-import type { MndaRegisterMatch } from "@clockwork/db";
+import type { MndaContractMatch, MndaRegisterMatch } from "@clockwork/db";
 import { mndaTemplateHash, renderMnda } from "@clockwork/documents";
+import { demoNow } from "@/src/features/experience-server/demo-clock";
+import { demoMndaRegister } from "./demo-register";
+import { demoMndaViewer, demoMndaWorkspaceData } from "./demo-workspace";
+import { mndaSettingsData, mndaWorkspaceData } from "./page-data";
 import { mndaFailure, mndaInvalid } from "./results";
 import {
   mndaActor,
@@ -36,6 +41,13 @@ export interface MndaWorkspaceData {
   testMode: boolean;
   canManage: boolean;
   viewerId: string;
+  /** Fictional demo records; nothing can be prepared, sent or changed. */
+  demo?: boolean;
+}
+export interface MndaDuplicates {
+  mndas: MndaRegisterMatch[];
+  /** Contract register rows, for staff who may read contracts. */
+  contracts: MndaContractMatch[];
 }
 export interface MndaSettingsData {
   signers: MndaSigner[];
@@ -62,22 +74,30 @@ export async function loadMndas(
   rawQuery: unknown = {},
 ): Promise<MndaResult<MndaWorkspaceData>> {
   return attempt(async () => {
+    const viewer = await demoMndaViewer();
+    if (viewer) return demoMndaWorkspaceData(viewer, rawQuery);
+    return mndaWorkspaceData(await mndaStaff(), rawQuery);
+  });
+}
+
+/** Only the register, for the open page's refresh: countersigners and the
+ * notice email change on the settings page, not while the list is open. */
+export async function loadMndaRegister(
+  rawQuery: unknown = {},
+): Promise<MndaResult<Pick<MndaWorkspaceData, "register">>> {
+  return attempt(async () => {
+    const viewer = await demoMndaViewer();
+    if (viewer)
+      return {
+        register: demoMndaRegister(
+          MndaRegisterQuerySchema.parse(rawQuery),
+          viewer,
+          demoNow(),
+        ),
+      };
     const session = await mndaStaff();
     const query = MndaRegisterQuerySchema.parse(rawQuery);
-    const repository = mndaRepository();
-    const [register, signers, settings] = await Promise.all([
-      repository.list(query, session.userId),
-      mndaSigners(),
-      repository.settings(),
-    ]);
-    return {
-      register,
-      signers: signers.filter((s) => s.active),
-      noticeEmail: settings.noticeEmail,
-      ...mndaConfiguration(),
-      canManage: mndaCanManage(session),
-      viewerId: session.userId,
-    };
+    return { register: await mndaRepository().list(query, session.userId) };
   });
 }
 
@@ -98,7 +118,7 @@ export async function prepareMnda(
   try {
     const session = await mndaStaff();
     const { input: rawInput, supersedes } = PrepareSchema.parse(raw);
-    const parsed = MndaInputSchema.safeParse(rawInput);
+    const parsed = MndaDraftInputSchema.safeParse(rawInput);
     if (!parsed.success) return mndaInvalid(parsed.error);
     const input = parsed.data;
     const repository = mndaRepository();
@@ -133,12 +153,13 @@ export async function prepareMnda(
   }
 }
 
-/** Existing requests for the same company, so a seller does not double-paper. */
+/** Existing MNDAs and register contracts for the same company, so a seller
+ * does not double-paper. */
 export async function findMndaDuplicates(
   raw: unknown,
-): Promise<MndaResult<MndaRegisterMatch[]>> {
+): Promise<MndaResult<MndaDuplicates>> {
   return attempt(async () => {
-    await mndaStaff();
+    const session = await mndaStaff();
     const { company, excludeId } = z
       .object({
         company: z.string().trim().max(180),
@@ -146,7 +167,14 @@ export async function findMndaDuplicates(
       })
       .strict()
       .parse(raw);
-    return mndaRepository().duplicates(company, excludeId);
+    const repository = mndaRepository();
+    const [mndas, contracts] = await Promise.all([
+      repository.duplicates(company, excludeId),
+      contextHasPermission(session, "contract:read")
+        ? repository.contractDuplicates(company)
+        : [],
+    ]);
+    return { mndas, contracts };
   });
 }
 
@@ -214,11 +242,7 @@ export async function loadMndaSettings(): Promise<
   MndaResult<MndaSettingsData>
 > {
   return attempt(async () => {
-    await mndaStaff("signatory:manage");
-    return {
-      signers: await mndaSigners(),
-      settings: await mndaRepository().settings(),
-    };
+    return mndaSettingsData(await mndaStaff("signatory:manage"));
   });
 }
 

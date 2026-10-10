@@ -8,7 +8,9 @@ import { Button } from "@clockwork/ui";
 import { styles } from "@/src/features/internal-ops/administration-safety/ui";
 import type { MessageId } from "@/src/i18n";
 import { useTranslations } from "@/src/i18n/client";
+import { SessionExpiredReload } from "@/src/features/internal-ops/session-expiry";
 import { SelfApprovalDialog } from "@/src/features/internal-ops/self-approval/self-approval-dialog";
+import { sessionExpiredMessage } from "@/src/features/internal-ops/session-expiry-message";
 import layout from "./channel-policy.module.css";
 import { approveOwnChannelPolicy } from "@/src/features/internal-ops/self-approval/actions";
 import { changeChannelPolicy, type ChannelPolicyResult } from "./actions";
@@ -138,6 +140,7 @@ export function ChannelTermsForm({
           : t("adminGovernance.channelPolicy.form.saveDraft")}
       </Button>
       {message ? <p role="status">{t(message)}</p> : null}
+      {message === sessionExpiredMessage ? <SessionExpiredReload /> : null}
     </form>
   );
 }
@@ -166,7 +169,12 @@ function OwnChannelPolicyApproval({ record }: { record: ChannelPolicyRecord }) {
             reason,
             approvalEvidence: evidence.trim(),
           });
-          if (!result.ok) return { ok: false, message: t(result.message) };
+          if (!result.ok)
+            return {
+              ok: false,
+              message: t(result.message),
+              expired: result.message === sessionExpiredMessage,
+            };
           setDone(true);
           return { ok: true };
         }}
@@ -272,6 +280,7 @@ export function ChannelDecisionForm({
         <p>{t("adminGovernance.channelPolicy.decision.otherApprover")}</p>
       ) : null}
       {message ? <p role="status">{t(message)}</p> : null}
+      {message === sessionExpiredMessage ? <SessionExpiredReload /> : null}
     </form>
   );
 }

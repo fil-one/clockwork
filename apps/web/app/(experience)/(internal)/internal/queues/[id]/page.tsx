@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { OwnerConsoleRepository } from "@clockwork/db";
 
 import { demoDeployIdentityEnabled } from "@/src/auth/demo-deploy";
-import { getCommerceSession } from "@/src/auth/session";
+import { getRequestCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import { queueLabels } from "@/src/features/internal-ops/queue-search/copy";
 import { mayApproveOwnRequests } from "@/src/features/internal-ops/self-approval/model";
@@ -25,7 +25,7 @@ async function ownOpenCase(
   t: Awaited<ReturnType<typeof getTranslations>>,
 ): Promise<{ caseId: string; subject: string } | null> {
   if (!caseId) return null;
-  const session = await getCommerceSession();
+  const session = await getRequestCommerceSession();
   const database = getOptionalServiceDatabase();
   if (!session.providerBacked || !database || !mayApproveOwnRequests(session))
     return null;

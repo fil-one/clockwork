@@ -11,7 +11,7 @@ vi.mock("@/src/auth/demo-deploy", () => ({
   demoDeployIdentityEnabled: () => true,
 }));
 vi.mock("@/src/auth/session", () => ({
-  getCommerceSession: () =>
+  getRequestCommerceSession: () =>
     Promise.resolve({
       isInternalStaff: true,
       providerBacked: false,

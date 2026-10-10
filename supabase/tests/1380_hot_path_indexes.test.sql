@@ -178,6 +178,15 @@ select is(
 -- shape is judged on whether the planner can bind aggregate_type at all. On the
 -- unbound join the leading column is free and no such index condition exists at
 -- any row count, because PostgreSQL 17 has no index skip scan.
+--
+-- 001452's audit_event_type_timeline_idx also answers `event_type = ... order
+-- by occurred_at desc`, and on a table this small the planner takes it instead.
+-- At volume the aggregate index wins (measured for 001452), so the type index is
+-- set aside here to keep this check on the join binding; the rollback restores
+-- it.
+reset role;
+drop index audit_event_type_timeline_idx;
+set local role clockwork_service;
 create temporary table dispatch_plan (line text);
 set local enable_seqscan = off;
 do $$

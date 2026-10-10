@@ -110,7 +110,7 @@ export async function uploadedPdf(form: FormData) {
 const statusFor = (code: string) =>
   code === "CONTRACT_FORBIDDEN" || code === "CONTRACT_DEMO_UNAVAILABLE"
     ? 403
-    : code === "CONTRACT_MFA_REQUIRED"
+    : code === "CONTRACT_MFA_REQUIRED" || code === "SESSION_EXPIRED"
       ? 401
       : code.endsWith("_NOT_FOUND")
         ? 404

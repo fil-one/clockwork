@@ -29,6 +29,7 @@ const outcomes: Readonly<Record<string, MessageId>> = {
   WEBHOOK_REPLAY_REASON_REQUIRED: "operations.decision.reasonRequired",
   WEBHOOK_REPLAY_RECENT_AUTH_REQUIRED:
     "operations.webhookReplay.failure.recentAuth",
+  SESSION_EXPIRED: "operations.session.expired",
   WEBHOOK_REPLAY_FORBIDDEN: "operations.webhookReplay.failure.forbidden",
   WEBHOOK_REPLAY_EVENT_NOT_FOUND: "operations.webhookReplay.failure.notFound",
   WEBHOOK_REPLAY_UNAVAILABLE: "operations.webhookReplay.failure.unavailable",

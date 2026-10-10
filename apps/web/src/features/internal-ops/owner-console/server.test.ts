@@ -13,7 +13,9 @@ const mocks = vi.hoisted(() => ({
   staff: vi.fn(),
   selfApprovals: vi.fn(),
 }));
-vi.mock("@/src/auth/session", () => ({ getCommerceSession: mocks.session }));
+vi.mock("@/src/auth/session", () => ({
+  getRequestCommerceSession: mocks.session,
+}));
 vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: mocks.database,
 }));

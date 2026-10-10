@@ -5,15 +5,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { permissionsForRoles } from "@clockwork/contracts";
 import type * as Db from "@clockwork/db";
 
-const mocks = vi.hoisted(() => ({ count: vi.fn(), database: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  count: vi.fn(),
+  contracts: vi.fn(),
+  staff: vi.fn(),
+  database: vi.fn(),
+}));
 vi.mock("@clockwork/db", async (importOriginal) => ({
   ...(await importOriginal<typeof Db>()),
   countSalesHomeMndas: mocks.count,
+  countSalesHomeContracts: mocks.contracts,
 }));
 vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: mocks.database,
 }));
+vi.mock("../contracts/server", () => ({ contractStaff: mocks.staff }));
 
+import { contractHomeRows } from "./contract-source";
 import { mndaHomeRows, mndaHomeSource } from "./mnda-source";
 import { mndaRegisterHref, type SalesHomeSource } from "./model";
 import { SalesHome } from "./sales-home";
@@ -24,10 +32,15 @@ const counts = {
   mine: { waitingPartner: 2, waitingFilOne: 0, completed: 4, drafts: 1 },
   team: { waitingPartner: 5, waitingFilOne: 3, completed: 9, drafts: 6 },
 };
+const contractCounts = {
+  awaitingApproval: { mine: 1, team: 2 },
+  needsAttention: { mine: 0, team: 3 },
+  outForSignature: { mine: 2, team: 5 },
+};
 const context = {
   userId: "21000000-0000-4000-8000-000000000010",
   permissions: permissionsForRoles(["revenue"], { side: "fil_one" }),
-  providerBacked: true,
+  demo: false,
   now: new Date("2026-10-04T12:00:00.000Z"),
 };
 
@@ -36,6 +49,8 @@ beforeEach(() => {
   window.localStorage.clear();
   mocks.database.mockReturnValue({});
   mocks.count.mockResolvedValue(counts);
+  mocks.contracts.mockResolvedValue(contractCounts);
+  mocks.staff.mockResolvedValue({});
 });
 
 describe("MNDA register links", () => {
@@ -49,7 +64,7 @@ describe("MNDA register links", () => {
   });
 
   it("links each row to exactly the states it counted", () => {
-    const rows = mndaHomeRows(counts, true);
+    const rows = mndaHomeRows(counts);
     expect(rows.map(({ href }) => href)).toEqual([
       "/internal/mndas?status=sent,viewed&mine=1",
       "/internal/mndas?status=awaiting_countersignature&mine=1",
@@ -73,13 +88,24 @@ describe("sales home loader", () => {
     expect(section?.rows?.map(({ mine }) => mine)).toEqual([2, 0, 4, 1]);
   });
 
-  it("shows the guided demo a fixed tally without links", async () => {
+  it("counts the guided demo's fictional register and links to it", async () => {
     const [section] = await loadSalesHome({
       ...context,
-      providerBacked: false,
+      demo: true,
     });
     expect(mocks.count).not.toHaveBeenCalled();
-    expect(section?.rows?.every(({ href }) => href === undefined)).toBe(true);
+    expect(mocks.database).not.toHaveBeenCalled();
+    expect(section?.rows?.map(({ mine }) => mine)).toEqual([1, 1, 1, 1]);
+    // A completion older than 30 days is not counted.
+    expect(section?.rows?.map(({ team }) => team)).toEqual([
+      3,
+      1,
+      2,
+      undefined,
+    ]);
+    expect(section?.rows?.[0]?.href).toBe(
+      "/internal/mndas?status=sent,viewed&mine=1",
+    );
   });
 
   it("marks a failed source unavailable and keeps the others", async () => {
@@ -107,6 +133,99 @@ describe("sales home loader", () => {
   });
 });
 
+describe("contract work on the home page", () => {
+  it("counts contracts out for signature and needing attention in one read", async () => {
+    const sections = await loadSalesHome(context);
+    expect(sections.map(({ id }) => id)).toEqual(["mndas", "contracts"]);
+    expect(mocks.staff).toHaveBeenCalledWith("contract:read");
+    expect(mocks.contracts).toHaveBeenCalledExactlyOnceWith(
+      {},
+      { viewerId: context.userId },
+    );
+    // A seller cannot approve, so no approval line.
+    expect(
+      sections[1]?.rows?.map(({ id, mine, team, teamHref }) => ({
+        id,
+        mine,
+        team,
+        teamHref,
+      })),
+    ).toEqual([
+      {
+        id: "contracts-needsAttention",
+        mine: 0,
+        team: 3,
+        teamHref: "/internal/contracts?status=signing_attention",
+      },
+      {
+        id: "contracts-outForSignature",
+        mine: 2,
+        team: 5,
+        teamHref: "/internal/contracts?status=out_for_signature",
+      },
+    ]);
+  });
+
+  it("puts approvals first for someone who can approve", () => {
+    expect(contractHomeRows(contractCounts, true)[0]).toMatchObject({
+      id: "contracts-awaitingApproval",
+      mine: 1,
+      teamHref: "/internal/contracts?status=signing_approval",
+    });
+  });
+
+  it("shows nothing new to a reader without contract permissions", async () => {
+    const sections = await loadSalesHome({
+      ...context,
+      permissions: ["mnda:send", "sales:read"],
+    });
+    expect(sections.map(({ id }) => id)).toEqual(["mndas"]);
+    expect(mocks.contracts).not.toHaveBeenCalled();
+  });
+
+  it("leaves the guided demo without a contract section", async () => {
+    const sections = await loadSalesHome({ ...context, demo: true });
+    expect(sections[1]?.rows).toEqual([]);
+    expect(mocks.contracts).not.toHaveBeenCalled();
+    render(
+      <SalesHome userId={context.userId} sections={sections} canSendMnda />,
+    );
+    expect(screen.queryByRole("region", { name: "Your contracts" })).toBeNull();
+  });
+
+  it("reads as unavailable when the contract check refuses", async () => {
+    mocks.staff.mockRejectedValueOnce(new Error("CONTRACT_MFA_REQUIRED"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const sections = await loadSalesHome(context);
+    expect(sections[1]?.rows).toBeNull();
+    expect(mocks.contracts).not.toHaveBeenCalled();
+  });
+
+  it("lists contract work under its own heading", () => {
+    render(
+      <SalesHome
+        userId={context.userId}
+        sections={[
+          {
+            id: "contracts",
+            heading: "operations.sales.home.contracts.heading",
+            unavailable: {
+              message: "operations.sales.home.contracts.unavailable",
+            },
+            rows: contractHomeRows(contractCounts, true),
+          },
+        ]}
+        canSendMnda={false}
+      />,
+    );
+    const region = screen.getByRole("region", { name: "Your contracts" });
+    expect(within(region).getAllByRole("listitem")).toHaveLength(3);
+    expect(
+      within(region).getByRole("link", { name: "5 across the team" }),
+    ).toHaveAttribute("href", "/internal/contracts?status=out_for_signature");
+  });
+});
+
 describe("sales home page", () => {
   const section = {
     id: "mndas",
@@ -116,7 +235,7 @@ describe("sales home page", () => {
       href: "/internal/mndas",
       action: "operations.sales.home.openRegister" as const,
     },
-    rows: mndaHomeRows(counts, true),
+    rows: mndaHomeRows(counts),
   };
 
   it("lists the reader's MNDAs by what they wait on, with team totals", () => {

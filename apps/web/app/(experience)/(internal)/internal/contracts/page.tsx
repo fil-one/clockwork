@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { explicitDemoIdentityEnabled } from "@/src/auth/session";
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 import { ContractPageState } from "@/src/features/internal-ops/contracts/access-state";
 import { loadRegister } from "@/src/features/internal-ops/contracts/loaders";
@@ -37,6 +38,7 @@ export default async function Page({
       today={loaded.today}
       canWrite={loaded.canWrite}
       canOpenMndas={loaded.canOpenMndas}
+      demo={explicitDemoIdentityEnabled()}
     />
   );
 }

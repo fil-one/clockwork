@@ -8,6 +8,7 @@ import type {
 /** Server error messages and the code, and field, the workspace shows. */
 const known: Record<string, { code: MndaErrorCode; field?: string }> = {
   MNDA_FORBIDDEN: { code: "forbidden" },
+  MNDA_DEMO_UNAVAILABLE: { code: "demo_unavailable" },
   MNDA_MFA_REQUIRED: { code: "mfa_required" },
   MNDA_NOT_CONFIGURED: { code: "not_configured" },
   MNDA_NOT_FOUND: { code: "not_found" },
@@ -38,6 +39,9 @@ const known: Record<string, { code: MndaErrorCode; field?: string }> = {
   MNDA_SIGNER_STARTED: { code: "signer_started" },
   MNDA_NOT_CORRECTABLE: { code: "not_correctable" },
   MNDA_ALREADY_COMPLETED: { code: "already_completed" },
+  MNDA_NEEDS_ATTENTION: { code: "needs_attention" },
+  MNDA_SIGNED_IN_SIGNWELL: { code: "signed_in_signwell" },
+  SESSION_EXPIRED: { code: "session_expired" },
 };
 
 function fieldCode(issue: ZodError["issues"][number]): MndaErrorCode {

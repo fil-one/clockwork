@@ -5,7 +5,9 @@ const mocks = vi.hoisted(() => ({
   database: vi.fn(),
   list: vi.fn(),
 }));
-vi.mock("@/src/auth/session", () => ({ getCommerceSession: mocks.session }));
+vi.mock("@/src/auth/session", () => ({
+  getRequestCommerceSession: mocks.session,
+}));
 vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: mocks.database,
 }));

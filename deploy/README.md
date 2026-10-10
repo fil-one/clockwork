@@ -225,6 +225,13 @@ tag, which is why a redeploy of the same commit by hand sets `IMAGE_TAG=`.
 before registering a task definition, so an apply for a commit that was never
 pushed fails in seconds rather than after CodeDeploy's hour-long health timeout.
 
+A run that follows a green CI run on `main` builds the image with
+`CLOCKWORK_TYPECHECKED_IN_CI=1`, which skips the type check inside the image
+build: CI's static and build shards have already type-checked that commit. Next
+still compiles every module, so a syntax error or an unresolved import still
+fails the build. A `workflow_dispatch` run and `make docker-push` by hand check
+types in full.
+
 `make wait-deploy` (`wait-deploy.sh`) waits for the CodeDeploy deployment the
 apply created to finish its blue/green shift, which rolls back on its own if the
 new tasks never pass the load balancer's health check on `/healthcheck`.

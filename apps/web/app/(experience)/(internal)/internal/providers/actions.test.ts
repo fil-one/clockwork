@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/src/auth/session", () => ({
   requireRecentAuthentication: mocks.session,
+  SessionExpiredError: class SessionExpiredError extends Error {},
 }));
 vi.mock("@/src/db/service", () => ({ getServiceDatabase: () => ({}) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
@@ -17,6 +18,7 @@ vi.mock("@clockwork/db", async (original) => ({
   },
 }));
 import { translatorFor } from "@/src/i18n/catalogs";
+import { SessionExpiredError } from "@/src/auth/session";
 import { saveProviderReference, type ProviderReferenceResult } from "./actions";
 
 /** The action returns a message ID; read it the way an English reader sees it. */
@@ -52,6 +54,15 @@ beforeEach(() => {
   mocks.session.mockResolvedValue(staff);
 });
 describe("provider reference administration", () => {
+  it("reports an expired session and leaves every other refusal thrown", async () => {
+    mocks.session.mockRejectedValueOnce(new SessionExpiredError());
+    expect(await said(saveProviderReference("", form()))).toBe(
+      "Your session expired. Reload to continue.",
+    );
+    mocks.session.mockRejectedValueOnce(new Error("stale"));
+    await expect(saveProviderReference("", form())).rejects.toThrow("stale");
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
   it.each([
     { providerBacked: false },
     { assistedSession: {} },

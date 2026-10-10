@@ -1,5 +1,8 @@
-import { parseMndaRegisterParams } from "@clockwork/contracts";
+import { parseMndaRegisterParams, type MndaRecord } from "@clockwork/contracts";
 import { getTranslations } from "@/src/i18n/server";
+import { demoNow } from "@/src/features/experience-server/demo-clock";
+import { demoMndaRows } from "@/src/features/internal-ops/mnda/demo-register";
+import { demoMndaViewer } from "@/src/features/internal-ops/mnda/demo-workspace";
 import { mndaStateLabels } from "@/src/features/internal-ops/mnda/labels";
 import {
   mndaActor,
@@ -20,27 +23,38 @@ export const dynamic = "force-dynamic";
  * response says so in `x-mnda-export-truncated`; the page warns beforehand.
  */
 export async function GET(request: Request) {
-  let session: MndaSession;
+  let session: MndaSession | null = null;
+  let demo: Awaited<ReturnType<typeof demoMndaViewer>>;
   try {
-    session = await mndaStaff();
+    demo = await demoMndaViewer();
+    if (!demo) session = await mndaStaff();
   } catch {
     return new Response(null, { status: 403 });
   }
   const t = await getTranslations();
   try {
     const query = parseMndaRegisterParams(new URL(request.url).searchParams);
-    const repository = mndaRepository();
-    const { records, truncated } = await repository.exportRows(
-      query,
-      session.userId,
-    );
-    await repository.recordAccess(mndaActor(session), {
-      kind: "export",
-      filters: { ...query, page: 1 },
-      rows: records.length,
-      truncated,
-    });
-    const today = new Date().toISOString().slice(0, 10);
+    let records: MndaRecord[];
+    let truncated: boolean;
+    if (demo) {
+      // The demo register is a handful of fictional rows; nothing to audit.
+      records = demoMndaRows(query, demo, demoNow());
+      truncated = false;
+    } else {
+      if (!session) return new Response(null, { status: 403 });
+      const repository = mndaRepository();
+      ({ records, truncated } = await repository.exportRows(
+        query,
+        session.userId,
+      ));
+      await repository.recordAccess(mndaActor(session), {
+        kind: "export",
+        filters: { ...query, page: 1 },
+        rows: records.length,
+        truncated,
+      });
+    }
+    const today = demoNow().toISOString().slice(0, 10);
     // Status words follow the reader's language; the status code column next
     // to them stays stable for spreadsheet and CRM imports.
     return new Response(

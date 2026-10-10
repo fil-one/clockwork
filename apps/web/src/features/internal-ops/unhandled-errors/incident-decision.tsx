@@ -7,6 +7,7 @@ import { Button, Dialog, Input, Textarea } from "@clockwork/ui";
 import { useTranslations } from "@/src/i18n/client";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
+import { SessionExpiredReload } from "../session-expiry";
 import { decideUnhandledError } from "./actions";
 import {
   containmentReferenceHelp,
@@ -38,12 +39,14 @@ export function IncidentDecisionControl({
   const [reason, setReason] = useState("");
   const [containmentReference, setContainmentReference] = useState("");
   const [message, setMessage] = useState("");
+  const [expired, setExpired] = useState(false);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
   const labels = incidentDecisionLabels[decision];
   const consequence = t(labels.consequence);
 
   function submit() {
+    setExpired(false);
     const trimmedReason = reason.trim();
     const trimmedReference = containmentReference.trim();
     // The same three checks the server action makes, each reported with its own
@@ -75,6 +78,7 @@ export function IncidentDecisionControl({
       }
       setDone(false);
       setMessage(incidentFailureMessage(result.code, t));
+      setExpired(result.code === "SESSION_EXPIRED");
     });
   }
 
@@ -137,6 +141,9 @@ export function IncidentDecisionControl({
         <p className={styles.statusMessage} role="alert">
           {message}
         </p>
+      ) : null}
+      {message && expired ? (
+        <SessionExpiredReload onReloaded={() => setMessage("")} />
       ) : null}
       {done && !message ? (
         <p className={styles.statusMessage} role="status">

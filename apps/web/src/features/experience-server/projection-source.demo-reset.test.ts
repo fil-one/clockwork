@@ -191,7 +191,7 @@ describe("explicit demo projection durable reset", () => {
     ).rejects.toMatchObject({ code: "PROJECTION_ACTION_NOT_FOUND" });
   });
 
-  it("keeps ordinary seeded records fresh while preserving refreshable stale queues", async () => {
+  it("keeps seeded records fresh and reads queue dates as of the request", async () => {
     const source = new ExplicitDemoProjectionSource(createMemoryDemoStore());
     const now = new Date("2026-08-18T12:00:00.000Z");
     const list = (
@@ -224,7 +224,20 @@ describe("explicit demo projection durable reset", () => {
       ).toBe(true);
     }
     expect(queues.items.length).toBeGreaterThan(0);
-    expect(queues.items.every((record) => record.stale)).toBe(true);
+    expect(
+      queues.items.every(
+        (record) =>
+          !record.stale && record.sourceUpdatedAt === now.toISOString(),
+      ),
+    ).toBe(true);
+    // Seeded three days and one hour after DEMO_NOW, the legal review target
+    // keeps that distance from whatever day the queue is read.
+    const meridian = queues.items.find(
+      (record) => record.recordKey === "queue-legal-meridian",
+    );
+    expect(
+      (meridian?.data.authoritative as { targetAt?: string }).targetAt,
+    ).toBe("2026-08-21T13:00:00.000Z");
   });
 
   it("projects a created direct quote with stable commercial and domain identity", async () => {
@@ -872,7 +885,7 @@ describe("explicit demo projection durable reset", () => {
       });
     const initial = await list(new Date("2026-08-18T12:00:00.000Z"));
     expect(initial.items.length).toBeGreaterThan(0);
-    expect(initial.items.every((record) => record.stale)).toBe(true);
+    expect(initial.items.every((record) => !record.stale)).toBe(true);
 
     const request = {
       actorId: "20000000-0000-4000-8000-000000000001",

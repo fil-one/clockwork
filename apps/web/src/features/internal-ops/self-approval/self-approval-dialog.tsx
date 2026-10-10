@@ -6,6 +6,8 @@ import { Button, Dialog, Textarea } from "@clockwork/ui";
 
 import { useTranslations } from "@/src/i18n/client";
 
+import { SessionExpiredReload } from "../session-expiry";
+
 import {
   selfApprovalReasonMaximum,
   selfApprovalReasonMinimum,
@@ -41,12 +43,14 @@ export function SelfApprovalDialog({
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState(initialReason);
   const [error, setError] = useState<string | null>(null);
+  const [expired, setExpired] = useState(false);
   const [tooShort, setTooShort] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     if (!open) return;
     setReason(initialReason);
     setError(null);
+    setExpired(false);
     setTooShort(false);
   }, [open, initialReason]);
 
@@ -62,10 +66,14 @@ export function SelfApprovalDialog({
     }
     setBusy(true);
     setError(null);
+    setExpired(false);
     try {
       const outcome = await onConfirm(trimmed);
       if (outcome.ok) setOpen(false);
-      else setError(outcome.message);
+      else {
+        setError(outcome.message);
+        setExpired(outcome.expired === true);
+      }
     } catch {
       setError(t("common.selfApproval.error.generic"));
     } finally {
@@ -119,6 +127,9 @@ export function SelfApprovalDialog({
         <p className="cw-field__error" role="alert">
           {error}
         </p>
+      ) : null}
+      {error && expired ? (
+        <SessionExpiredReload onReloaded={() => setError(null)} />
       ) : null}
     </Dialog>
   );

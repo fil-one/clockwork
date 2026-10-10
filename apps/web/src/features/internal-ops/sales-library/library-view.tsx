@@ -37,6 +37,7 @@ import {
   formatContractDate,
   formatFileSize,
 } from "../contracts/copy";
+import { SessionExpiredReload } from "../session-expiry";
 import { localFileProblem, postCollateral } from "../contracts/upload-client";
 import { saveCollateral } from "./actions";
 import styles from "../contracts/contracts.module.css";
@@ -180,6 +181,13 @@ function ItemForm({
           tone="danger"
           title={t(errorMessage(error))}
           live="assertive"
+          {...(error === "SESSION_EXPIRED"
+            ? {
+                action: (
+                  <SessionExpiredReload onReloaded={() => setError(null)} />
+                ),
+              }
+            : {})}
         />
       ) : null}
       <div className={styles.fieldGrid}>
@@ -318,10 +326,13 @@ export function SalesLibraryView({
   items,
   canManage,
   today,
+  demo = false,
 }: {
   items: readonly SalesCollateralRecord[];
   canManage: boolean;
   today: string;
+  /** Fictional demo items: no files are stored, so nothing downloads. */
+  demo?: boolean;
 }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
@@ -365,6 +376,9 @@ export function SalesLibraryView({
           ) : undefined
         }
       />
+      {demo ? (
+        <InlineNotice tone="info" title={t("operations.salesLibrary.demo")} />
+      ) : null}
       {notice ? (
         <InlineNotice tone="success" title={notice} live="polite" />
       ) : null}
@@ -514,6 +528,10 @@ export function SalesLibraryView({
                         <ExternalLink aria-hidden="true" size={14} />
                         {t("operations.salesLibrary.open")}
                       </a>
+                    ) : demo ? (
+                      <Button variant="secondary" size="small" disabled>
+                        {t("operations.contracts.documents.download")}
+                      </Button>
                     ) : (
                       <a
                         className={buttonClassName({

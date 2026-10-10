@@ -14,8 +14,15 @@ const mocks = vi.hoisted(() => ({
     countersigners: vi.fn(),
     prepare: vi.fn(),
     decide: vi.fn(),
+    get: vi.fn(),
   },
-  workflow: { send: vi.fn(), sync: vi.fn(), remind: vi.fn(), cancel: vi.fn() },
+  workflow: {
+    send: vi.fn(),
+    sync: vi.fn(),
+    remind: vi.fn(),
+    cancel: vi.fn(),
+    void: vi.fn(),
+  },
   library: { create: vi.fn(), update: vi.fn() },
   registry: vi.fn(),
 }));
@@ -38,6 +45,7 @@ import {
   prepareContract,
   removeContractFile,
   saveContract,
+  voidContract,
 } from "./actions";
 import { saveCollateral } from "../sales-library/actions";
 
@@ -98,6 +106,10 @@ describe("server action authorization", () => {
       () => operateContract({ contractId, operation: "send" }),
     ],
     ["revenue", () => decideContract({ contractId, approve: true })],
+    [
+      "finance_approver",
+      () => voidContract({ contractId, reason: "Wrong legal entity" }),
+    ],
     ["revenue", () => saveCollateral({ item: {} })],
     ["owner", () => saveContract({ contract: fixtureContractInput })],
   ])("%s is refused", async (role, action) => {
@@ -262,6 +274,48 @@ describe("decideContract and operateContract", () => {
     await expect(
       operateContract({ contractId, operation: "delete" }),
     ).resolves.toMatchObject({ code: "INVALID_INPUT" });
+  });
+});
+
+describe("voidContract", () => {
+  it("lets the preparer void with a reason", async () => {
+    as("revenue");
+    mocks.signing.get.mockResolvedValue({
+      preparerId: "019a44ac-0000-7000-8000-0000000000aa",
+    });
+    mocks.workflow.void.mockResolvedValue({ state: "canceled" });
+    await expect(
+      voidContract({ contractId, reason: "  Wrong legal entity " }),
+    ).resolves.toEqual({ ok: true, value: { state: "canceled" } });
+    expect(mocks.workflow.void).toHaveBeenCalledWith(
+      contractId,
+      expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
+      "Wrong legal entity",
+    );
+  });
+
+  it("needs an approver to void a colleague's request", async () => {
+    as("revenue");
+    mocks.signing.get.mockResolvedValue({
+      preparerId: "019a44ac-0000-7000-8000-0000000000bb",
+    });
+    await expect(
+      voidContract({ contractId, reason: "Wrong legal entity" }),
+    ).resolves.toEqual({ ok: false, code: "CONTRACT_NOT_PREPARER" });
+    as("legal_approver");
+    mocks.workflow.void.mockResolvedValue({ state: "canceled" });
+    await expect(
+      voidContract({ contractId, reason: "Wrong legal entity" }),
+    ).resolves.toEqual({ ok: true, value: { state: "canceled" } });
+    expect(mocks.workflow.void).toHaveBeenCalledOnce();
+  });
+
+  it("requires a reason", async () => {
+    as("commerce_admin");
+    await expect(
+      voidContract({ contractId, reason: " " }),
+    ).resolves.toMatchObject({ code: "INVALID_INPUT" });
+    expect(mocks.workflow.void).not.toHaveBeenCalled();
   });
 });
 

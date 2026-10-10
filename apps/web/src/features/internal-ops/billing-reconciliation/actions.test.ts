@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/src/auth/session", () => ({
   requireRecentAuthentication: mocks.requireRecentAuthentication,
+  SessionExpiredError: class SessionExpiredError extends Error {},
 }));
 vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: mocks.getOptionalServiceDatabase,
@@ -22,6 +23,7 @@ vi.mock("../demo-operator-state", () => ({
   classifyDemoReconciliationVariance: mocks.classifyDemoReconciliationVariance,
 }));
 
+import { SessionExpiredError } from "@/src/auth/session";
 import { classifyReconciliationVariance } from "./actions";
 
 const caseId = "01a00a46-9de0-7ced-9bea-6877cf2c8d68";
@@ -156,6 +158,17 @@ describe("authorization is re-checked at execution", () => {
     expect(await classifyReconciliationVariance(form())).toEqual({
       ok: false,
       code: "RECONCILIATION_RECENT_AUTH_REQUIRED",
+    });
+    expect(mocks.record).not.toHaveBeenCalled();
+  });
+
+  it("reports an expired session apart, so the page offers a reload", async () => {
+    mocks.requireRecentAuthentication.mockRejectedValue(
+      new SessionExpiredError(),
+    );
+    expect(await classifyReconciliationVariance(form())).toEqual({
+      ok: false,
+      code: "SESSION_EXPIRED",
     });
     expect(mocks.record).not.toHaveBeenCalled();
   });

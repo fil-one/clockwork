@@ -29,6 +29,7 @@ export const securityEventTypes = [
   "mnda.signer_configured",
   "mnda.settings_changed",
   "mnda.register_exported",
+  "contract.register_exported",
   "workflow.report_exported",
   "security.assisted_action.started",
 ] as const;
