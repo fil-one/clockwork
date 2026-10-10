@@ -19,8 +19,12 @@ resource "aws_lb_target_group" "blue_target_group" {
   target_type = "ip"
   vpc_id      = var.vpc.id
   health_check {
-    matcher = "200,301,302,404"
-    path    = "/healthcheck"
+    matcher             = "200,301,302,404"
+    path                = "/healthcheck"
+    interval            = var.lb_health_check.interval
+    healthy_threshold   = var.lb_health_check.healthy_threshold
+    unhealthy_threshold = var.lb_health_check.unhealthy_threshold
+    timeout             = var.lb_health_check.timeout
   }
 }
 
@@ -31,8 +35,12 @@ resource "aws_lb_target_group" "green_target_group" {
   target_type = "ip"
   vpc_id      = var.vpc.id
   health_check {
-    matcher = "200,301,302,404"
-    path    = "/healthcheck"
+    matcher             = "200,301,302,404"
+    path                = "/healthcheck"
+    interval            = var.lb_health_check.interval
+    healthy_threshold   = var.lb_health_check.healthy_threshold
+    unhealthy_threshold = var.lb_health_check.unhealthy_threshold
+    timeout             = var.lb_health_check.timeout
   }
 }
 

@@ -134,3 +134,12 @@ default, so a caller that sets nothing new gets the upstream infrastructure.
     other attachment on that role passes `.name`. `AttachRolePolicy` takes a
     name and rejects an ARN, so the first apply of a stage that declares a topic
     fails. Nothing had declared one before the workflow alarm.
+22. **Health check timing.** `ecs-infra/variables.tf` and `app/variables.tf`
+    gain `lb_health_check`, an object of `interval`, `healthy_threshold`,
+    `unhealthy_threshold` and `timeout` whose defaults are the AWS provider's
+    (30, 3 and 3, and no timeout, which leaves AWS's 5 seconds);
+    `ecs-infra/alb.tf` sets them on both target groups and `app/ecs_infra.tf`
+    passes the object through. `ecs-infra` refuses a timeout that is not shorter
+    than the interval, as AWS does. A blue/green deploy waits for the new task
+    to turn healthy in the idle target group before CodeDeploy moves traffic, so
+    this timing sets how long every deploy waits.
