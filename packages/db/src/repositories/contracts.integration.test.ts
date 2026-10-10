@@ -1122,7 +1122,7 @@ describe("counterparty paper for the Fil One signature (001464)", () => {
       contractId: input.id,
       source: { fileId: file.id, sha256: file.sha256 },
       documentName: `Fil One countersignature - ${input.counterpartyName}`,
-      signaturePageVersion: "interim-2026-10-10",
+      signaturePageVersion: "2026-10-10",
       counterpartySigner: null,
       countersignerId: countersigner.id,
       testMode: true,
@@ -1234,9 +1234,12 @@ describe("counterparty paper for the Fil One signature (001464)", () => {
       ).rejects.toThrow("CONTRACT_SIGNING_EXISTS");
   });
 
-  it("does not return or replace a closed request when the same paper is sent again", async () => {
-    const { input, prepared } = await recorded();
-    await signing.prepareCounterpartyPaper(prepared, actor);
+  it("replaces an ended request with the next one and keeps it in the history (001465)", async () => {
+    const { input, file, prepared } = await recorded();
+    await signing.prepareCounterpartyPaper(
+      { ...prepared, preparerEmail: "Seller@Fil.One" },
+      actor,
+    );
     const lease = await signing.claim(input.id);
     await signing.update(
       input.id,
@@ -1245,16 +1248,73 @@ describe("counterparty paper for the Fil One signature (001464)", () => {
       actor,
     );
     await signing.release(input.id, lease.token);
-    await expect(
-      signing.prepareCounterpartyPaper(prepared, actor),
-    ).rejects.toThrow("CONTRACT_SIGNING_EXISTS");
+    // A different PDF and signer, from the same record.
+    const revised = await repo.addFile(
+      input.id,
+      { kind: "main", fileName: "Revised.pdf", bytes: pdf("revised") },
+      actor,
+    );
+    const next = await signing.prepareCounterpartyPaper(
+      {
+        ...prepared,
+        source: { fileId: revised.id, sha256: revised.sha256 },
+        counterpartySigner: {
+          name: "Alex Example",
+          email: "alex@example.com",
+          title: "CEO",
+        },
+        pdf: pdf("revised with the Fil One page"),
+      },
+      actor,
+    );
+    expect(next).toMatchObject({
+      duplicate: false,
+      record: {
+        requestNumber: 2,
+        templateHash: revised.sha256,
+        counterpartySigns: true,
+        approvalState: "pending",
+        state: "draft",
+        preparerEmail: null,
+      },
+    });
+    // The engine sends the latest prepared PDF.
+    expect((await signing.generatedPdf(input.id)).toString()).toContain(
+      "revised with the Fil One page",
+    );
+    const detail = await repo.get(input.id, "2026-10-10");
+    expect(detail.signing?.requestNumber).toBe(2);
+    expect(detail.previousSigning).toEqual([
+      expect.objectContaining({
+        requestNumber: 1,
+        state: "canceled",
+        cancelCode: "discarded",
+        counterpartySigns: false,
+        preparerName: actor.display,
+      }),
+    ]);
+    expect(detail.activity[0]).toMatchObject({
+      eventType: "contract.prepared",
+      changes: { requestNumber: 2, sha256: revised.sha256 },
+    });
+    const [kept] = await client<{ email: string }[]>`
+      select request->>'preparer_email' as email
+      from commerce_contract_signing_history where contract_id = ${input.id}`;
+    expect(kept?.email).toBe("seller@fil.one");
+    // Both PDFs sent stay with the contract.
+    for (const sent of [file, revised])
+      await expect(repo.removeFile(input.id, sent.id, actor)).rejects.toThrow(
+        "CONTRACT_FILE_SENT_FOR_SIGNATURE",
+      );
   });
 
-  it("refuses our paper, an executed contract and a PDF it was not read from", async () => {
-    const ours = await recorded({ paper: "ours" });
+  it("sends Fil One's own PDF, and refuses an executed contract or a PDF it was not read from", async () => {
+    const ours = await recorded({ paper: "ours", status: "draft" });
     await expect(
       signing.prepareCounterpartyPaper(ours.prepared, actor),
-    ).rejects.toThrow("CONTRACT_PAPER_NOT_SENDABLE");
+    ).resolves.toMatchObject({
+      record: { documentType: "counterparty_paper", requestNumber: 1 },
+    });
     const executed = await recorded({ status: "executed" });
     await expect(
       signing.prepareCounterpartyPaper(executed.prepared, actor),
@@ -1271,6 +1331,196 @@ describe("counterparty paper for the Fil One signature (001464)", () => {
     ).rejects.toThrow("CONTRACT_FILE_NOT_FOUND");
     // Nothing was kept from a refused preparation.
     expect((await repo.get(changed.input.id, "2026-10-10")).signing).toBeNull();
+  });
+});
+
+describe("sending a contract again (001465)", () => {
+  /** A template contract, sent and then declined by the counterparty. */
+  const declined = async () => {
+    const marker = randomUUID();
+    const [countersigner] = await signing.countersigners();
+    if (!countersigner) throw new Error("seed countersigner missing");
+    const input = contract(marker, {
+      paper: "ours",
+      status: "draft",
+      contractType: "other",
+    });
+    await signing.prepare(
+      {
+        contract: input,
+        signing: {
+          templateId: "test-fixture",
+          templateVersion: "1",
+          templateHash: "b".repeat(64),
+          documentName: `Doc ${marker}`,
+          input: { a: "b" },
+          counterpartySigner: {
+            name: "Alex",
+            email: `alex-${marker}@example.com`,
+            title: "CEO",
+          },
+          countersignerId: countersigner.id,
+          approvalRequired: true,
+          testMode: true,
+          preparerEmail: "rw@fil.one",
+        },
+        pdf: pdf(`prepared ${marker}`),
+        fileName: "Prepared.pdf",
+      },
+      actor,
+    );
+    await signing.decide(input.id, { approve: true }, approver);
+    const lease = await signing.claim(input.id);
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "sent", providerId: randomUUID() },
+      actor,
+    );
+    await signing.update(input.id, lease.token, { state: "declined" }, actor);
+    await signing.release(input.id, lease.token);
+    return { input, marker };
+  };
+
+  it("sends the same document to the same people as a new request, approved again", async () => {
+    const { input, marker } = await declined();
+    const options = { testMode: true, preparerEmail: "Approver@Fil.One" };
+    const again = await signing.resend(input.id, 1, options, approver);
+    expect(again).toMatchObject({
+      duplicate: false,
+      record: {
+        requestNumber: 2,
+        documentType: "contract_template",
+        input: { a: "b" },
+        counterpartySigner: { email: `alex-${marker}@example.com` },
+        preparerId: approver.id,
+        preparerEmail: "approver@fil.one",
+        approvalRequired: true,
+        approvalState: "pending",
+        state: "draft",
+        providerId: null,
+      },
+    });
+    // A retry returns the new request; a stale request number is refused.
+    await expect(
+      signing.resend(input.id, 1, options, approver),
+    ).resolves.toMatchObject({ duplicate: true });
+    await expect(signing.resend(input.id, 1, options, actor)).rejects.toThrow(
+      "CONTRACT_SIGNING_EXISTS",
+    );
+    // The same prepared PDF, and no second copy of it.
+    expect((await signing.generatedPdf(input.id)).toString()).toContain(
+      `prepared ${marker}`,
+    );
+    const detail = await repo.get(input.id, "2026-10-10");
+    expect(detail.files.filter((f) => f.kind === "generated")).toHaveLength(1);
+    expect(detail.contract.status).toBe("draft");
+    expect(detail.previousSigning).toEqual([
+      expect.objectContaining({ requestNumber: 1, state: "declined" }),
+    ]);
+    // The second request waits for its own approval.
+    const lease = await signing.claim(input.id);
+    await expect(
+      signing.update(input.id, lease.token, { state: "preparing" }, approver),
+    ).rejects.toThrow();
+    await signing.release(input.id, lease.token);
+  });
+
+  it("refuses an open or completed request, or an executed contract", async () => {
+    const { input } = await declined();
+    const options = { testMode: true, preparerEmail: null };
+    await signing.resend(input.id, 1, options, actor);
+    // Request 2 is open.
+    await expect(
+      signing.resend(input.id, 2, options, approver),
+    ).rejects.toThrow("CONTRACT_SIGNING_EXISTS");
+    const other = await declined();
+    const { contract: record } = await repo.get(other.input.id, "2026-10-10");
+    await repo.update(
+      other.input.id,
+      record.version,
+      { ...other.input, status: "executed" },
+      actor,
+    );
+    await expect(
+      signing.resend(other.input.id, 1, options, actor),
+    ).rejects.toThrow("CONTRACT_PAPER_NOT_SENDABLE");
+  });
+
+  it("reports a different request made since as existing, not as the retry's success", async () => {
+    const marker = randomUUID();
+    const input = contract(marker, { status: "in_negotiation", paper: "ours" });
+    await repo.create(input, actor);
+    const [first, second] = await Promise.all(
+      ["First.pdf", "Second.pdf"].map((fileName) =>
+        repo.addFile(
+          input.id,
+          { kind: "main", fileName, bytes: pdf(`${fileName} ${marker}`) },
+          actor,
+        ),
+      ),
+    );
+    if (!first || !second) throw new Error("uploads missing");
+    const [countersigner] = await signing.countersigners();
+    if (!countersigner) throw new Error("seed countersigner missing");
+    const prepared = (file: typeof first) => ({
+      contractId: input.id,
+      source: { fileId: file.id, sha256: file.sha256 },
+      documentName: `Doc ${marker}`,
+      signaturePageVersion: "2026-10-10",
+      counterpartySigner: null,
+      countersignerId: countersigner.id,
+      testMode: true,
+      pdf: pdf(`prepared ${file.fileName}`),
+      fileName: "Prepared.pdf",
+    });
+    await signing.prepareCounterpartyPaper(prepared(first), actor);
+    const lease = await signing.claim(input.id);
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "canceled", cancelCode: "discarded" },
+      actor,
+    );
+    await signing.release(input.id, lease.token);
+    // Request 2 is a different PDF, from the form, by the same person.
+    await signing.prepareCounterpartyPaper(prepared(second), actor);
+    await expect(
+      signing.resend(
+        input.id,
+        1,
+        { testMode: true, preparerEmail: null },
+        actor,
+      ),
+    ).rejects.toThrow("CONTRACT_SIGNING_EXISTS");
+  });
+
+  it("prepares a request voided for a different signer again instead, and refuses a stale decision", async () => {
+    const { input } = await declined();
+    const options = { testMode: true, preparerEmail: null };
+    await signing.resend(input.id, 1, options, actor);
+    // A decision made on request 1 is not applied to request 2.
+    await expect(
+      signing.decide(input.id, { approve: true }, approver, 1),
+    ).rejects.toThrow("CONTRACT_REQUEST_CHANGED");
+    await signing.decide(input.id, { approve: true }, approver, 2);
+    const lease = await signing.claim(input.id);
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "sent", providerId: randomUUID() },
+      actor,
+    );
+    await signing.update(
+      input.id,
+      lease.token,
+      { state: "canceled", cancelCode: "signer_change" },
+      actor,
+    );
+    await signing.release(input.id, lease.token);
+    await expect(signing.resend(input.id, 2, options, actor)).rejects.toThrow(
+      "CONTRACT_RESEND_SIGNER_CHANGE",
+    );
   });
 });
 

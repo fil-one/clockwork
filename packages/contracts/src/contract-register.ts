@@ -231,15 +231,27 @@ export type ContractCancelCode = (typeof contractCancelCodes)[number];
  * "a different person will sign" code. */
 export const ContractVoidSchema = z.union([
   z
-    .object({ contractId: z.uuid(), reason: z.string().trim().min(3).max(500) })
+    .object({
+      contractId: z.uuid(),
+      requestNumber: z.number().int().min(1).optional(),
+      reason: z.string().trim().min(3).max(500),
+    })
     .strict(),
-  z.object({ contractId: z.uuid(), code: z.literal("signer_change") }).strict(),
+  z
+    .object({
+      contractId: z.uuid(),
+      requestNumber: z.number().int().min(1).optional(),
+      code: z.literal("signer_change"),
+    })
+    .strict(),
 ]);
 /** Replaces the counterparty signer's email on a sent request they have not
  * started signing. */
 export const ContractCorrectSignerSchema = z
   .object({
     contractId: z.uuid(),
+    /** The request the person corrected; refused once it was replaced. */
+    requestNumber: z.number().int().min(1).optional(),
     signerEmail: z
       .email()
       .max(254)
@@ -293,14 +305,51 @@ export interface ContractSigningRecord {
   cancelCode: ContractCancelCode | null;
   /** Typed by the person who voided it. */
   cancelReason: string | null;
-  /** A counsel template, or the counterparty's paper with a Fil One
-   * signature page; for counterparty paper `templateHash` pins their PDF. */
+  /** A counsel template, or an uploaded PDF (`counterparty_paper`, on
+   * either party's paper) with a Fil One signature page; for an uploaded
+   * PDF `templateHash` pins it. */
   documentType: ContractSigningDocumentType;
-  /** The counterparty signs in SignWell first. False only for counterparty
-   * paper they already signed, where Fil One alone signs. */
+  /** The counterparty signs in SignWell first. False only for an uploaded
+   * PDF they already signed, where Fil One alone signs. */
   counterpartySigns: boolean;
+  /** 1 for a contract's first request, then one more each time an ended
+   * request is replaced. */
+  requestNumber: number;
+  /** Copied by SignWell on the completed document; null on requests
+   * prepared before copies were sent. */
+  preparerEmail: string | null;
   version: number;
 }
+
+/** A request can be replaced by a new one on the same contract once it
+ * ended without signatures. */
+export const contractResendableStates: readonly ContractSigningState[] = [
+  "declined",
+  "expired",
+  "canceled",
+];
+
+/** An earlier request on the contract, replaced after it ended. */
+export interface ContractSigningHistoryEntry {
+  requestNumber: number;
+  state: ContractSigningState;
+  cancelCode: ContractCancelCode | null;
+  cancelReason: string | null;
+  documentType: ContractSigningDocumentType;
+  counterpartySigns: boolean;
+  counterpartySigner: ContractSigner;
+  countersignerName: string;
+  preparerName: string;
+  /** When it was prepared, and when it was last changed (its end). */
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Sends a contract again to the same people, after the request it names
+ * by number ended. */
+export const ContractResendSchema = z
+  .object({ contractId: z.uuid(), requestNumber: z.number().int().min(1) })
+  .strict();
 
 export const contractSigningDocumentTypes = [
   "contract_template",
@@ -309,18 +358,19 @@ export const contractSigningDocumentTypes = [
 export type ContractSigningDocumentType =
   (typeof contractSigningDocumentTypes)[number];
 
-/** The uploaded kinds a counterparty-paper request can be sent from. */
+/** The uploaded kinds an uploaded-PDF request can be sent from, on either
+ * party's paper. */
 export const counterpartyPaperFileKinds: readonly ContractFileKind[] = [
   "main",
   "counterparty_draft",
 ];
-/** Counterparty paper is approved by someone other than the preparer, or
+/** An uploaded PDF is approved by someone other than the preparer, or
  * self-approved under `approval:self`, before it is sent. */
 export const counterpartyPaperRequiresApproval = true;
 
-/** Sends a recorded contract on the counterparty's paper for the Fil One
- * countersignature: either they signed on paper already and Fil One alone
- * signs, or they sign in SignWell first. */
+/** Sends one of a recorded contract's uploaded PDFs for signature, on
+ * either party's paper: either the counterparty signed it already and Fil
+ * One alone signs, or they sign in SignWell first. */
 export const SendCounterpartyPaperSchema = z.discriminatedUnion("signers", [
   z
     .object({

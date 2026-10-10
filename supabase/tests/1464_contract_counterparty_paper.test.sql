@@ -3,7 +3,7 @@
 -- PDF on a contract on the counterparty's paper, with the counterparty either
 -- signing first or not at all, and every earlier rule unchanged.
 begin;
-select plan(16);
+select plan(15);
 set local search_path = public, extensions;
 
 select has_column('public', 'commerce_contract_signing', 'document_type', 'the document type is kept');
@@ -59,23 +59,20 @@ select throws_ok($$
 $$, '23514', null, 'only counterparty paper can leave the counterparty out');
 
 -- =========================================================================
--- 2. Counterparty paper is pinned to a PDF on a contract on their paper.
+-- 2. Counterparty paper is pinned to a PDF attached to an unsigned contract.
 -- =========================================================================
-select throws_ok($$
-  select pg_temp.paper('c1460000-0000-4000-8000-000000000002', repeat('c',64), true)
-$$, 'P0001', 'Counterparty paper is signed only from a PDF attached to a contract on their paper',
-  'a contract on our paper is not counterparty paper');
+-- 001465 lets an uploaded PDF on our paper be sent too (see its test).
 select throws_ok($$
   select pg_temp.paper('c1460000-0000-4000-8000-000000000001', repeat('d',64), true)
-$$, 'P0001', 'Counterparty paper is signed only from a PDF attached to a contract on their paper',
+$$, 'P0001', 'An uploaded PDF is signed only from a main PDF or draft attached to an unsigned contract',
   'the request names the hash of a PDF attached to the contract');
 select throws_ok($$
   select pg_temp.paper('c1460000-0000-4000-8000-000000000003', repeat('e',64), false)
-$$, 'P0001', 'Counterparty paper is signed only from a PDF attached to a contract on their paper',
+$$, 'P0001', 'An uploaded PDF is signed only from a main PDF or draft attached to an unsigned contract',
   'an executed contract is not sent again');
 select throws_ok($$
   select pg_temp.paper('c1460000-0000-4000-8000-000000000004', repeat('f',64), false)
-$$, 'P0001', 'Counterparty paper is signed only from a PDF attached to a contract on their paper',
+$$, 'P0001', 'An uploaded PDF is signed only from a main PDF or draft attached to an unsigned contract',
   'only their main PDF or draft can be the paper, never a prepared or executed document');
 select lives_ok($$
   select pg_temp.paper('c1460000-0000-4000-8000-000000000001', repeat('c',64), false)

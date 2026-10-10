@@ -56,6 +56,7 @@ export default async function Page({
       files={loaded.files}
       activity={loaded.activity}
       signing={loaded.signing}
+      previousSigning={loaded.previousSigning}
       paperSources={loaded.paperSources}
       countersigners={loaded.countersigners}
       today={loaded.today}

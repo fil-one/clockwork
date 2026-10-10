@@ -551,12 +551,16 @@ it("sends with a logged warning when SignWell does not report copied contacts", 
   expect(JSON.stringify(warn.mock.calls)).not.toContain("@");
   warn.mockRestore();
 });
-it("refuses to send when the reported copies leave out the sender", async () => {
+it("holds a draft whose reported copies leave out the sender, sending nothing", async () => {
   const s = setup();
   s.doc.copied_contacts = [];
   await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
-    "COPIED_CONTACTS",
+    "MNDA_NEEDS_ATTENTION",
   );
+  expect(s.record()).toMatchObject({
+    state: "attention",
+    error: "signwell_copied_contacts_mismatch",
+  });
   expect(s.provider.send).not.toHaveBeenCalled();
 });
 it("spaces manual reminders from the last reminder, not from any update", async () => {

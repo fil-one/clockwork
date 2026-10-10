@@ -100,5 +100,7 @@ export const fixtureSigningRecord: ContractSigningRecord = {
   cancelReason: null,
   documentType: "contract_template",
   counterpartySigns: true,
+  requestNumber: 1,
+  preparerEmail: null,
   version: 2,
 };

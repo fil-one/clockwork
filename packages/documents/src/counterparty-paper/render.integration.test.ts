@@ -85,7 +85,10 @@ it("appends the Fil One signature page to their pages, deterministically", async
     import.meta.url,
   );
   if (process.env.UPDATE_GOLDEN === "1") writeFileSync(golden, `${rendered}\n`);
-  expect(rendered).toBe(readFileSync(golden, "utf8").trim());
+  // Poppler versions differ on whether a line break reads as a space, so the
+  // wording is compared without whitespace.
+  const words = (text: string) => text.replace(/\s+/g, "");
+  expect(words(rendered)).toBe(words(readFileSync(golden, "utf8")));
   expect(rendered).toContain("page one");
   expect(rendered).toContain(`SHA-256: ${sha256(source)}`);
   // Fil One alone signs: one recipient, one signature and one date.
@@ -114,6 +117,37 @@ it("places the counterparty first when they sign in SignWell too", async () => {
   expect(rendered.slice(counterparty, filOne)).toContain("{{signature:1:y}}");
   expect(rendered.slice(filOne)).toContain("{{signature:2:y}}");
   expect(rendered).toContain("Alex Example");
+}, 30_000);
+
+it("prints the signature page on the uploaded PDF's paper size", async () => {
+  const lastPage = async (bytes: Uint8Array) => {
+    const document = await PDFDocument.load(bytes);
+    return document.getPage(document.getPageCount() - 1).getSize();
+  };
+  // An A4 agreement gets an A4 page.
+  const a4 = await partnerPdf();
+  const onA4 = await lastPage(
+    (await renderCounterpartyPaper(a4, input(a4))).bytes,
+  );
+  expect(onA4.width).toBeCloseTo(595.28, 0);
+  expect(onA4.height).toBeCloseTo(841.89, 0);
+  // A Letter term sheet, Fil One's own paper, gets a Letter page.
+  const document = await PDFDocument.create({ updateMetadata: false });
+  document.addPage([612, 792]);
+  const letter = Buffer.from(await document.save());
+  const both = await renderCounterpartyPaper(
+    letter,
+    input(letter, {
+      counterpartySigner: {
+        name: "Alex Example",
+        email: "alex@example.com",
+        title: "Chief Executive Officer",
+      },
+    }),
+  );
+  // Both signature blocks fit on the one added page.
+  expect(both.pages).toBe(2);
+  expect(await lastPage(both.bytes)).toEqual({ width: 612, height: 792 });
 }, 30_000);
 
 it("refuses a PDF other than the one it was pinned to, or one it cannot open", async () => {

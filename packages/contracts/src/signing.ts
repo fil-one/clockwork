@@ -120,7 +120,8 @@ export const mndaSigning: SigningDocumentType<MndaRecord> = {
 /** A contract prepared from a template: the counterparty signs first, then
  * the Fil One countersigner. Whether a template needs approval is recorded
  * on each request; the type declares that approval exists. Staff may fix the
- * counterparty's email until they start signing. */
+ * counterparty's email until they start signing. The preparer is copied on
+ * the completed document. */
 export const contractSigning: SigningDocumentType<ContractSigningRecord> = {
   bindingKey: "commerce_contract_id",
   slots: [
@@ -143,24 +144,25 @@ export const contractSigning: SigningDocumentType<ContractSigningRecord> = {
   message: () =>
     "Please review and sign the attached agreement. Fil One will countersign and you will receive the completed agreement.",
   approval: "two_person",
-  copySender: false,
+  copySender: true,
   errorPrefix: "CONTRACT",
   auditPrefix: "contract",
 };
 
-/** Interim message pending counsel's wording (EXT-LEGAL-01). */
+/** Who signs next decides what the email asks. */
 const counterpartyPaperMessage = (r: ContractSigningRecord) =>
   r.counterpartySigns
     ? "Please review and sign the attached agreement. Fil One will countersign and you will receive the completed agreement."
     : "Please review and sign the attached agreement for Fil One.";
 
 /**
- * A contract on the counterparty's paper: their uploaded PDF, pinned by its
- * SHA-256, with a Fil One signature page appended. Either the counterparty
- * signs first and then the Fil One countersigner, or (`counterpartySigns`
- * false: they signed their paper already) the Fil One countersigner alone;
- * the store's view leaves out a signer who does not sign. Same table, store
- * and approval rule as template contracts.
+ * An uploaded PDF, on the counterparty's paper or Fil One's own, pinned by
+ * its SHA-256, with a Fil One signature page appended. Either the
+ * counterparty signs first and then the Fil One countersigner, or
+ * (`counterpartySigns` false: they signed the PDF already) the Fil One
+ * countersigner alone; the store's view leaves out a signer who does not
+ * sign. Same table, store, approval rule and preparer copy as template
+ * contracts.
  */
 export const counterpartyPaperSigning: SigningDocumentType<ContractSigningRecord> =
   {
@@ -184,7 +186,7 @@ export const counterpartyPaperSigning: SigningDocumentType<ContractSigningRecord
     subject: (r) => r.documentName,
     message: counterpartyPaperMessage,
     approval: "two_person",
-    copySender: false,
+    copySender: true,
     errorPrefix: "CONTRACT",
     auditPrefix: "contract",
   };

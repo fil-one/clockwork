@@ -127,16 +127,26 @@ One countersigner not to sign it.
 ## Contracts
 
 - **Record a contract** adds an agreement signed outside Commerce, or one you
-  are negotiating on the counterparty's paper, with its PDFs and key dates.
+  are negotiating on either side's paper, with its PDFs and key dates.
 - **New from template** prepares a Fil One agreement for signature. Templates
   show **Template pending from legal** until counsel approves them.
+- To send any PDF for signature (their agreement, or a term sheet or letter you
+  drafted in Word), record the contract, upload the PDF as the main document and
+  choose **Prepare for signature** on the contract. Commerce adds a Fil One
+  signature page at the end. Pick who signs: **The counterparty, then Fil One**,
+  or **Fil One only** if they already signed the PDF.
 - A prepared contract that needs approval waits for someone with approval rights
   other than you. They approve it or send it back with a note.
 - After sending, a contract has **Remind** and **Void**. Until the counterparty
   signs, the person who prepared it, a legal approver or a commerce
-  administrator can void it; finance approvers cannot. It has no **Fix email**:
-  if a signer's email is wrong, void it and prepare it again, or ask a commerce
-  administrator.
+  administrator can void it; finance approvers cannot. **Fix email** sends it to
+  a corrected address until the counterparty starts signing.
+- If a contract is declined, expires or is voided, choose **Send again** to send
+  the same document to the same people, or, for an uploaded PDF, choose a
+  different PDF or signer under it. It needs approval again if the first one
+  did. The earlier request stays listed under **Earlier requests**.
+- SignWell emails the signed agreement to the signers and to whoever prepared
+  it.
 - **Renewal notices** lists executed contracts that renew automatically and
   whose notice deadline is coming up.
 

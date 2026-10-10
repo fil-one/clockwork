@@ -1820,12 +1820,19 @@ detail lives in `docs/operations/commerce-mnda.md`,
   (`supabase/migrations/001464_contract_counterparty_paper.sql`), with approval,
   reminders, correction, void and the executed PDF as for templates. The
   procedure it follows is
-  [adding a signed document type](operations/add-a-document-type.md). One
-  request per contract: a voided one is not sent again on the same record.
-- **Counterparty paper signature page and live run `[EXTERNAL-ONLY]`:** the
-  signature page wording is interim pending counsel (`EXT-LEGAL-01`), and no
-  counterparty-paper request has yet been signed in SignWell, in test mode or
-  live.
+  [adding a signed document type](operations/add-a-document-type.md).
+- **Any uploaded PDF, sending again and the signed copy `[COMPLETE]`:** an
+  uploaded PDF on either party's paper can be sent for signature, and a contract
+  whose request was declined, expired or voided is sent again from the same
+  record, with the ended request kept in `commerce_contract_signing_history`
+  (`supabase/migrations/001465_contract_signing_any_pdf_resend.sql`). The
+  signature page matches the PDF's paper size and has standard execution,
+  counterparts and electronic-signature wording (version `2026-10-10`; counsel
+  may revise it as a new version). SignWell copies the preparer on the signed
+  PDF. Contract signing is on in deployed environments: test mode on staging,
+  live on production.
+- **Uploaded PDF live run `[EXTERNAL-ONLY]`:** no uploaded-PDF request has yet
+  been signed in SignWell, in test mode or live.
 - **Renewal reminders outside the app `[OPEN]`:** notice deadlines appear in the
   notices list and on the contract record only. Email or chat reminders need a
   scheduled task and a sender, and the sender waits on a notification provider

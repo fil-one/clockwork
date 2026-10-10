@@ -7,9 +7,9 @@ stored, how its PDF is made, how SignWell receives it, and what the screen says.
 A new counsel template is not a new type; see
 [contract templates](contract-templates.md).
 
-The worked example is counterparty paper: a partner's own PDF, recorded in the
-contract register, sent for the Fil One countersignature with a Fil One
-signature page appended.
+The worked example is an uploaded PDF (`counterparty_paper`): a PDF on either
+party's paper, recorded in the contract register and sent for signature with a
+Fil One signature page appended.
 
 ## 1. Declaration
 
@@ -44,10 +44,11 @@ with template contracts. The table records `document_type` and
 `counterparty_signs`
 (`supabase/migrations/001464_contract_counterparty_paper.sql`), both fixed at
 creation. The database also refuses a counterparty-paper request unless the
-contract is on their paper and has an uploaded PDF with the request's hash, and
-keeps that PDF while the request exists. A type on a table of its own needs a
-repository with the same lease, frozen terminal state and hash-checked executed
-PDF, and an adapter of its own.
+contract is unsigned and has an uploaded PDF with the request's hash, and keeps
+that PDF while the request exists and after it is replaced
+(`001465_contract_signing_any_pdf_resend.sql`). A type on a table of its own
+needs a repository with the same lease, frozen terminal state and hash-checked
+executed PDF, and an adapter of its own.
 
 ## 3. Document and SignWell binding
 
@@ -70,8 +71,9 @@ page and returns the merged PDF. A form it cannot draw exactly (a field with no
 stored appearance, `NeedAppearances`, an XFA-only form) is refused with
 `CONTRACT_PAPER_FORM_UNREADABLE`, never stripped. The request's `templateHash`
 is the uploaded PDF's SHA-256, which SignWell's copy must carry as
-`template_sha256`. The signature page wording is interim pending counsel
-(`EXT-LEGAL-01`); its version is stored on each request.
+`template_sha256`. The signature page is printed on the PDF's paper size (A4 or
+Letter); its wording version is stored on each request, and a change to it is a
+new version.
 
 The SignWell client builds the draft's recipients:
 `SignWellContractClient.createCounterpartyPaperDraft` lists the counterparty and
@@ -82,14 +84,17 @@ holds one engine per declaration and runs each request on its own type's.
 
 The facade keeps the type's error codes, so existing messages apply. New
 preparation errors need entries in the screen's error copy. Counterparty paper
-adds a **Send for Fil One signature** card on an unsigned contract on their
-paper with a PDF, where the seller picks the PDF, the countersigner and whether
-the counterparty signs in SignWell first. Once prepared, the contract's signing
-panel takes over: approval, send, reminders, **Fix email**, void and the
-executed PDF work as for templates. The signing table keeps one request per
-contract, so a request that was voided, declined or expired blocks sending that
-contract again: the panel says so and links to recording the contract again, and
-**Someone else will sign** is not offered for counterparty paper.
+adds a **Prepare for signature** card on an unsigned contract with a PDF, where
+the seller picks the PDF, the countersigner and whether the counterparty signs
+in SignWell first. Once prepared, the contract's signing panel takes over:
+approval, send, reminders, **Fix email**, void and the executed PDF work as for
+templates. The signing table keeps one current request per contract. Once it was
+voided, declined or expired, the repository replaces it with the next one
+(**Send again**, or the card again for another PDF or signer); deleting the
+ended row moves it whole into `commerce_contract_signing_history`, and the new
+request is numbered after it. The engine and SignWell binding still use the
+contract id: a bound request also checks SignWell's document id, so an ended
+request's document is never read as the new one's.
 
 ## 5. Tests
 

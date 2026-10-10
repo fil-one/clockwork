@@ -366,6 +366,8 @@ export function contractHarness(
 ): SigningHarness {
   let record: ContractSigningRecord = {
     ...structuredClone(fixtureSigningRecord),
+    // The preparer is copied on the completed document.
+    preparerEmail: "seller@example.com",
     ...(type === "counterparty_paper"
       ? {
           documentType: "counterparty_paper" as const,
@@ -384,6 +386,7 @@ export function contractHarness(
     record.counterpartySigner.email,
     record.countersigner.email,
   );
+  doc.copied_contacts = [{ email: "seller@example.com" }];
   const extendLease = vi.fn(async (_id: string, token: string) => {
     if (token !== lease) throw new Error("CONTRACT_LEASE_LOST");
   });

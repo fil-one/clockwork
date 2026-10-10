@@ -21,6 +21,20 @@ import {
 export type SignWellContractDocument =
   SignWellSigningDocument<"commerce_contract_id">;
 
+/** The preparer receives the completed agreement by email, unless they
+ * sign it and receive it as a recipient already. A request prepared before
+ * preparers were recorded copies nobody. */
+export function contractCopiedContacts(record: ContractSigningRecord) {
+  const email = record.preparerEmail?.toLowerCase();
+  const recipients = [
+    ...(record.counterpartySigns ? [contractSignerEmail(record)] : []),
+    record.countersigner.email,
+  ].map((address) => address.toLowerCase());
+  return email && !recipients.includes(email)
+    ? [{ name: record.preparerName, email }]
+    : [];
+}
+
 export class SignWellContractClient extends SignWellSigningClient<"commerce_contract_id"> {
   protected readonly bindingKey = "commerce_contract_id";
 
@@ -45,7 +59,7 @@ export class SignWellContractClient extends SignWellSigningClient<"commerce_cont
             email: record.countersigner.email,
           },
         ],
-        copiedContacts: [],
+        copiedContacts: contractCopiedContacts(record),
       },
       pdf,
     );
@@ -77,7 +91,7 @@ export class SignWellContractClient extends SignWellSigningClient<"commerce_cont
               filOne,
             ]
           : [filOne],
-        copiedContacts: [],
+        copiedContacts: contractCopiedContacts(record),
       },
       pdf,
     );
