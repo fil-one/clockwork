@@ -10,4 +10,6 @@ export * from "./staff-provisioning";
 export * from "./contract-register";
 export * from "./contract-templates";
 export * from "./pricing-scenarios";
+export * from "./handoff";
+export * from "./organization-onboarding";
 export * from "./signing";

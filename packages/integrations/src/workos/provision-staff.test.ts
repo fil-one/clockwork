@@ -2,6 +2,7 @@ import { expect, it, vi } from "vitest";
 import {
   deactivateWorkosStaffMembership,
   provisionWorkosStaff,
+  removeWorkosOrganizationMembership,
 } from "./provision-staff";
 const person = {
   email: "rw@fil.one",
@@ -25,7 +26,11 @@ it("creates a passwordless identity without asserting email verification or send
     .mockResolvedValueOnce(Response.json(member));
   expect(
     await provisionWorkosStaff("private", "org_staff", person, transport),
-  ).toEqual({ workosUserId: "user_staff", workosMembershipId: "om_staff" });
+  ).toEqual({
+    workosUserId: "user_staff",
+    workosMembershipId: "om_staff",
+    outcome: "created",
+  });
   const body = transport.mock.calls[1]?.[1]?.body;
   expect(typeof body === "string" ? JSON.parse(body) : null).toMatchObject({
     email_verified: false,
@@ -62,7 +67,9 @@ it("reuses exact existing identity and membership without broadening roles", asy
       Response.json({ data: [{ id: "user_staff", email: person.email }] }),
     )
     .mockResolvedValueOnce(Response.json({ data: [member] }));
-  await provisionWorkosStaff("private", "org_staff", person, transport);
+  await expect(
+    provisionWorkosStaff("private", "org_staff", person, transport),
+  ).resolves.toMatchObject({ outcome: "existing" });
   expect(
     transport.mock.calls.every(([, options]) => options?.method === "GET"),
   ).toBe(true);
@@ -79,7 +86,11 @@ it("reactivates a membership left inactive by an earlier deactivation", async ()
     .mockResolvedValueOnce(Response.json(member));
   expect(
     await provisionWorkosStaff("private", "org_staff", person, transport),
-  ).toEqual({ workosUserId: "user_staff", workosMembershipId: "om_staff" });
+  ).toEqual({
+    workosUserId: "user_staff",
+    workosMembershipId: "om_staff",
+    outcome: "reactivated",
+  });
   expect(transport.mock.calls[2]?.[0]).toBe(
     "https://api.workos.com/user_management/organization_memberships/om_staff/reactivate",
   );
@@ -134,6 +145,45 @@ it("refuses to deactivate a membership of another organization", async () => {
     );
   await expect(
     deactivateWorkosStaffMembership(
+      "private",
+      { organizationId: "org_staff", membershipId: "om_staff" },
+      transport,
+    ),
+  ).rejects.toThrow("STAFF_MEMBERSHIP_MISMATCH");
+  expect(transport).toHaveBeenCalledTimes(1);
+});
+it("removes a membership of the named organization, and accepts one already gone", async () => {
+  const transport = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(Response.json(member))
+    .mockResolvedValueOnce(new Response(null, { status: 202 }));
+  await expect(
+    removeWorkosOrganizationMembership(
+      "private",
+      { organizationId: "org_staff", membershipId: "om_staff" },
+      transport,
+    ),
+  ).resolves.toBe("removed");
+  expect(transport.mock.calls[1]?.[1]?.method).toBe("DELETE");
+  const gone = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(new Response("", { status: 404 }));
+  await expect(
+    removeWorkosOrganizationMembership(
+      "private",
+      { organizationId: "org_staff", membershipId: "om_staff" },
+      gone,
+    ),
+  ).resolves.toBe("already_removed");
+});
+it("refuses to remove a membership of another organization", async () => {
+  const transport = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(
+      Response.json({ ...member, organization_id: "org_customer" }),
+    );
+  await expect(
+    removeWorkosOrganizationMembership(
       "private",
       { organizationId: "org_staff", membershipId: "om_staff" },
       transport,

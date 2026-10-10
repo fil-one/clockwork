@@ -40,7 +40,10 @@ const membershipSchema = z.object({
 /** Creates an identity, without claiming email verification or enrolling MFA
  * on another person's behalf. Passwordless authentication is handled by AuthKit.
  * A membership deactivated when the person last left the team is reactivated
- * rather than duplicated; no step sends an invitation email. */
+ * rather than duplicated; no step sends an invitation email. `outcome` says
+ * which happened, so a caller undoing the step after a later refusal deletes
+ * only a membership it created, deactivates one it reactivated, and leaves
+ * one that was already active alone. */
 export async function provisionWorkosStaff(
   apiKey: string,
   organizationId: string,
@@ -105,8 +108,16 @@ export async function provisionWorkosStaff(
     membership.status !== "active"
   )
     throw new Error("STAFF_MEMBERSHIP_MISMATCH");
-  return { workosUserId: user.id, workosMembershipId: membership.id };
+  const outcome: WorkosMembershipOutcome = !existing
+    ? "created"
+    : existing.status === "inactive"
+      ? "reactivated"
+      : "existing";
+  return { workosUserId: user.id, workosMembershipId: membership.id, outcome };
 }
+
+/** What provisioning did to the organization membership. */
+export type WorkosMembershipOutcome = "created" | "reactivated" | "existing";
 
 /**
  * Removes a staff member from the WorkOS staff organization, so they can no
@@ -137,4 +148,46 @@ export async function deactivateWorkosStaffMembership(
   if (updated.id !== input.membershipId || updated.status !== "inactive")
     throw new Error("STAFF_MEMBERSHIP_MISMATCH");
   return "deactivated";
+}
+
+/**
+ * Deletes an organization membership created for an acceptance Commerce then
+ * refused, after checking it belongs to that organization. Idempotent: a
+ * membership already gone is reported as such.
+ */
+export async function removeWorkosOrganizationMembership(
+  apiKey: string,
+  input: { organizationId: string; membershipId: string },
+  transport: Transport = fetch,
+): Promise<"removed" | "already_removed"> {
+  if (
+    !apiKey ||
+    !/^org_[A-Za-z0-9]+$/.test(input.organizationId) ||
+    !/^om_[A-Za-z0-9]+$/.test(input.membershipId)
+  )
+    throw new Error("STAFF_WORKOS_CONFIGURATION_REQUIRED");
+  const url = `https://api.workos.com/user_management/organization_memberships/${encodeURIComponent(input.membershipId)}`;
+  const headers = { Authorization: `Bearer ${apiKey}` };
+  const read = await transport(url, {
+    method: "GET",
+    redirect: "error",
+    signal: AbortSignal.timeout(20_000),
+    headers,
+  });
+  if (read.status === 404) return "already_removed";
+  if (!read.ok) throw new Error(`STAFF_WORKOS_HTTP_${read.status}`);
+  if (
+    membershipSchema.parse(await read.json()).organization_id !==
+    input.organizationId
+  )
+    throw new Error("STAFF_MEMBERSHIP_MISMATCH");
+  const removed = await transport(url, {
+    method: "DELETE",
+    redirect: "error",
+    signal: AbortSignal.timeout(20_000),
+    headers,
+  });
+  if (removed.status === 404) return "already_removed";
+  if (!removed.ok) throw new Error(`STAFF_WORKOS_HTTP_${removed.status}`);
+  return "removed";
 }

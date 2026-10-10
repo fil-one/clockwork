@@ -1941,6 +1941,55 @@ detail lives in `docs/operations/commerce-mnda.md`,
   and enrolls their own authenticator; no test can complete another person's
   MFA. Production acceptance of a new seller is their own first sign-in.
 
+### Handoff to operations
+
+- **Handoff request and queue `[COMPLETE]`:** a seller with `contract:write`
+  hands an executed contract (or a template contract whose signing completed) to
+  operations from the contract record, with the counterparty's legal name and
+  signer, the requested side, notes, and optionally the completed MNDA and a
+  saved pricing scenario. `/internal/handoffs` lists the queue for
+  `operations:read`; internal operators and commerce administrators
+  (`operations:write`) take, complete or decline, a decline with a note for the
+  seller. The seller sees status on the contract and on Home. The database
+  refuses an unsigned contract, a contract already in a request that was not
+  declined, an MNDA that did not complete and a missing scenario, and allows
+  only open, in progress, then done or declined
+  (`supabase/migrations/001462_commerce_handoff_requests.sql`,
+  `packages/db/src/repositories/system/handoff-requests.ts`,
+  `apps/web/src/features/internal-ops/handoff/`). Every change is audited as
+  `handoff.*`. Evidence:
+  `supabase/tests/1462_commerce_handoff_requests.test.sql`,
+  `packages/db/src/repositories/system/handoff-requests.integration.test.ts`,
+  `apps/web/src/features/internal-ops/handoff/handoff.test.tsx`.
+- **Organization set-up by staff `[COMPLETE]`:** an internal operator or
+  commerce administrator (`operations:write`) creates a customer, channel
+  partner or referral partner organization at `/internal/organizations/new`,
+  from a handoff they are working or on its own, with legal name, country,
+  currency, business domain, registered address and billing contact. Partners
+  get `relationship_roles = {partner}` and an agreement type (`referral`, or
+  `resale`, `msp` or `embedded` for a channel partner), so the side the account
+  implies matches the organization. Self-registration and staff set-up share one
+  account-and-organization writer
+  (`packages/db/src/repositories/lifecycle/organization-onboarding.ts`). The
+  account stays in screening review, the organization is recorded on its handoff
+  (`handoff.organization_recorded`), and `organization.created` starts the
+  WorkOS organization as it does for a registration. Evidence:
+  `packages/db/src/repositories/lifecycle/organization-onboarding.integration.test.ts`,
+  `apps/web/src/features/internal-ops/organizations/organizations.test.tsx`.
+- **Partner self-registration `[COMPLETE]`:** `/register` hard-coded a customer
+  organization and an owner. A registration whose relationship is `partner` (and
+  not also `direct_client`) now creates a channel partner organization run by a
+  `partner_admin`. Evidence: the registration cases in
+  `packages/db/src/repositories/lifecycle/command-repository.integration.test.ts`.
+- **Partner agreement type defaults disagree `[OPEN]`:** a partner account with
+  no agreement type is a channel partner to `organization_side_from_account`
+  (001446) and a referral partner to the finance billing profile
+  (`packages/db/src/repositories/core/database-finance.ts`). Self-registered
+  partners have no agreement type; staff set-up always records one.
+- **Handoff notifications `[OPEN]`:** nobody is told when a request is raised or
+  decided; operations watches the queue and the seller watches Home. A notice
+  waits on a notification provider (`EXT-PROVIDER-01`).
+
 ### Permission model
 
 - **Permissions as the single check `[COMPLETE]`:** every application and
@@ -1970,10 +2019,39 @@ detail lives in `docs/operations/commerce-mnda.md`,
   (`supabase/migrations/001449_self_approval.sql`). There is no countersign
   deadline. Evidence: `supabase/tests/1449_self_approval.test.sql`,
   `packages/db/src/repositories/system/owner-console.integration.test.ts`.
-- **Customer and partner user management `[OPEN]`:** the invite route enforces
-  the inviter's role ceiling, but no code path turns an `invites` row into a
-  membership, and there is no role change or removal for customer or partner
-  administrators
+- **Invite acceptance `[COMPLETE]`:** an invite link opens `/invite/<token>`.
+  After sign-in, the person whose verified WorkOS email matches the invite
+  accepts it. Commerce checks everything first; then they join the
+  organization's WorkOS organization, Commerce creates their identity if new and
+  a membership with the invited role, marks the invite accepted (`accepted_at`,
+  `accepted_by`) and writes `invite.accepted`, and the session switches to the
+  organization. A refusal after the WorkOS step (a lost race) removes the WorkOS
+  membership again unless a Commerce membership holds it. An invite is used once
+  and expires, is never created accepted, and the runtime pool may change only
+  its expiry and acceptance (database-enforced in
+  `supabase/migrations/001463_invite_acceptance.sql`); a different, unverified
+  or staff address, an address bound to another WorkOS user, an impersonated
+  session and a role the organization's side cannot hold are refused. Operations
+  (`operations:write`) invites anyone into a customer or partner organization
+  from `/internal/organizations/<id>`, which lists every invite, shows the link
+  of each pending one to copy, and revokes pending ones (`invite.revoked`); no
+  email is sent (`EXT-PROVIDER-01`). The token is derived from the invite id
+  with `AUTHORIZATION_CONTEXT_SECRET`; only its hash is stored. After a secret
+  rotation a pending invite shows as void, with no link, and no longer blocks a
+  new invite to the same address. Evidence:
+  `supabase/tests/1463_invite_acceptance.test.sql`,
+  `packages/db/src/repositories/lifecycle/invites.integration.test.ts`,
+  `apps/web/src/features/invite/invite.test.tsx`.
+- **Sign-in for new customer and partner organizations `[OPEN]`:** owners,
+  administrators and partner administrators are privileged roles, and a session
+  counts as MFA-verified only for WorkOS organizations named in
+  `WORKOS_MFA_POLICY_ORGANIZATION_IDS`. Each new organization's WorkOS id must
+  be added there before its first administrator can use the portal.
+- **Customer and partner user management `[OPEN]`:** an organization's own
+  administrators invite through the lifecycle route, which applies their role
+  ceiling, but the customer and partner portals show no invite link (operations
+  copies it from the organization page), and there is no role change or removal
+  for customer or partner administrators
   (`packages/db/src/repositories/lifecycle/command-repository.ts`).
 - **Read-only "view as" `[OPEN]`:** staff can act for a customer only through an
   assisted session. A mode that renders a tenant portal with a chosen role's

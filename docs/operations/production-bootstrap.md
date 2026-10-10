@@ -100,6 +100,15 @@ credentials cannot read or insert receipts; service credentials cannot update or
 delete them. Impersonated sessions cannot use the target user's receipt as actor
 assurance. The configured MFA organization allowlist remains required.
 
+Each customer or partner organization that operations sets up gets its own
+WorkOS organization from the `organization.created` event. Add that WorkOS
+organization id to `WORKOS_MFA_POLICY_ORGANIZATION_IDS` before its first
+administrator signs in: owners, administrators and partner administrators are
+privileged roles, and a session counts as MFA-verified only for organizations on
+that list. Until the id is added, accepting the invite still succeeds and
+records the membership, but the portal sends the person to `/access/mfa` and
+never treats their session as verified.
+
 For bootstrap accounts enrolled under an operator's authority, transfer the
 authenticator setup material privately to that operator before handoff. Never
 commit QR codes, factor secrets, email codes, or session credentials.

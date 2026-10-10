@@ -7,6 +7,7 @@ import { mndaSchema } from "./mnda";
 import { contractsSchema } from "./contracts";
 import { accessSchema } from "./access";
 import { pricingScenariosSchema } from "./pricing-scenarios";
+import { handoffRequestsSchema } from "./handoff-requests";
 
 export * from "../schema";
 export * from "./core";
@@ -17,6 +18,7 @@ export * from "./mnda";
 export * from "./contracts";
 export * from "./access";
 export * from "./pricing-scenarios";
+export * from "./handoff-requests";
 
 /** Drizzle consumes this stable composition; lanes only edit their own object. */
 export const runtimeSchema: typeof foundationSchema &
@@ -27,7 +29,8 @@ export const runtimeSchema: typeof foundationSchema &
   typeof mndaSchema &
   typeof contractsSchema &
   typeof accessSchema &
-  typeof pricingScenariosSchema = {
+  typeof pricingScenariosSchema &
+  typeof handoffRequestsSchema = {
   ...foundationSchema,
   ...coreSchema,
   ...lifecycleSchema,
@@ -37,4 +40,5 @@ export const runtimeSchema: typeof foundationSchema &
   ...contractsSchema,
   ...accessSchema,
   ...pricingScenariosSchema,
+  ...handoffRequestsSchema,
 };

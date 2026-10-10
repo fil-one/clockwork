@@ -224,6 +224,9 @@ export const invites = pgTable(
     tokenHash: text("token_hash").notNull().unique(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    /** Set with `acceptedAt`, once (001463). */
+    acceptedBy: uuid("accepted_by").references(() => commerceUsers.id),
+    invitedBy: uuid("invited_by").references(() => commerceUsers.id),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     rowVersion: rowVersion(),

@@ -20,9 +20,12 @@ import { operationsMessages } from "./messages/operations";
 import { operationsFinanceMessages } from "./messages/operations-finance";
 import { mndaMessages } from "./messages/operations-mnda";
 import { contractMessages } from "./messages/operations-contracts";
+import { handoffMessages } from "./messages/operations-handoff";
+import { organizationMessages } from "./messages/operations-organizations";
 import { partnerMessages } from "./messages/partner";
 import { platformMessages } from "./messages/platform";
 import { platformAccessMessages } from "./messages/platform-access";
+import { platformOnboardingMessages } from "./messages/platform-onboarding";
 import { salesMessages } from "./messages/operations-sales";
 import { teamMessages } from "./messages/operations-team";
 import {
@@ -78,12 +81,18 @@ export const messageModules = {
       ...salesMessages,
       ...teamMessages,
       ...contractMessages,
+      ...handoffMessages,
+      ...organizationMessages,
     },
     prefixes: ["operations."],
     staffOnly: true,
   },
   platform: {
-    messages: { ...platformMessages, ...platformAccessMessages },
+    messages: {
+      ...platformMessages,
+      ...platformAccessMessages,
+      ...platformOnboardingMessages,
+    },
     prefixes: ["platform."],
   },
   demo: { messages: demoMessages, prefixes: ["demo."] },

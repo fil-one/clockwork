@@ -9,6 +9,7 @@ export * from "./dead-letter-dispatch";
 export * from "./external-gates";
 export * from "./exception-routing";
 export * from "./gate-activation-tasks";
+export * from "./handoff-requests";
 export * from "./outbox";
 export * from "./owner-console";
 export * from "./providers";

@@ -134,6 +134,20 @@ countersigner not to sign it.
 - **Renewal notices** lists executed contracts that renew automatically and
   whose notice deadline is coming up.
 
+## Hand a signed contract to operations
+
+When a contract is executed, open it and choose **Hand to operations**. Check
+the counterparty's legal name and the signer who becomes their first
+administrator, choose whether they become a customer or a partner, attach the
+signed MNDA and a pricing scenario if you have them, and add notes (start date,
+billing contact, anything agreed outside the contract). Operations sets up the
+organization and invites the signer.
+
+The request's status shows on the contract and under **Handoffs** on Home:
+waiting for operations, in progress, done, or declined with a note from
+operations. A declined contract can be handed over again. Commerce does not
+email you when the status changes.
+
 ## Find a signed PDF
 
 - MNDAs: filter the register to **Signed**, then download from the row. The file

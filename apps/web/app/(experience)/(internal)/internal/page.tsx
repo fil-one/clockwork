@@ -10,6 +10,8 @@ import {
   loadRenewalSummary,
   RenewalNoticesSummary,
 } from "@/src/features/internal-ops/contracts/renewal-notices-card";
+import { OwnHandoffsCard } from "@/src/features/internal-ops/handoff/handoff-home-card";
+import { loadOwnHandoffs } from "@/src/features/internal-ops/handoff/server";
 import {
   getRouteIdentity,
   getRouteSession,
@@ -38,9 +40,10 @@ export default async function Page() {
     return <StaffRoleNotAvailable roles={session.roles} />;
   }
   const identity = await getRouteIdentity("internal");
-  // Neither read rejects: a failed section shows as unavailable and a failed
-  // renewal summary leaves its card out, so they run side by side.
-  const [sections, renewals] = await Promise.all([
+  // No read rejects: a failed section shows as unavailable and a failed
+  // renewal summary or handoff list leaves its card out, so they run side by
+  // side.
+  const [sections, renewals, handoffs] = await Promise.all([
     loadSalesHome({
       userId: identity.userId,
       permissions: session.permissions,
@@ -48,13 +51,19 @@ export default async function Page() {
       now: demoNow(),
     }),
     loadRenewalSummary(),
+    loadOwnHandoffs(),
   ]);
   return (
     <SalesHome
       userId={identity.userId}
       sections={sections}
       canSendMnda={session.providerBacked && staffMayUse(session, "mnda:send")}
-      cards={renewals ? <RenewalNoticesSummary summary={renewals} /> : null}
+      cards={
+        <>
+          {renewals ? <RenewalNoticesSummary summary={renewals} /> : null}
+          {handoffs ? <OwnHandoffsCard requests={handoffs} /> : null}
+        </>
+      }
     />
   );
 }

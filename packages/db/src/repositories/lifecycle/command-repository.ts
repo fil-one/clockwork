@@ -181,6 +181,11 @@ import {
   type LifecycleCommandName,
 } from "./schemas";
 import { provisioningLinesFromSnapshots } from "./accepted-order-provisioning";
+import { inviteToken, inviteTokenHash } from "./invites";
+import {
+  insertAccountWithOrganization,
+  registrationSide,
+} from "./organization-onboarding";
 import {
   deletionCertificateRequestHash,
   type DeletionCertificateRequest,
@@ -1243,34 +1248,40 @@ export class DatabaseLifecycleCommandRepository {
       screeningDecision: "review",
     });
     const now = new Date(context.occurredAt);
-    const [account] = await transaction
-      .insert(accounts)
-      .values({
-        legalName: registration.legalName,
-        relationshipRoles: [...registration.relationshipRoles],
-        registeredAddress: payload.registeredAddress,
-        // What the provider answered when a provider answered, and the
-        // registrant's input honestly flagged as unverified when none could.
-        // `verified` is the flag `identityIsVerified`
-        // (packages/domain/src/identity) reads, so an unverified identifier
-        // keeps the identity unverified rather than blocking the registration.
-        taxIds: registrationTaxIdentifiers.map((taxId) => ({
-          jurisdiction: taxId.jurisdiction,
-          value: taxId.value,
-          normalized: taxId.normalized,
-          verified: taxId.verified,
-          reverseChargeEligible: taxId.reverseChargeEligible,
-        })),
-        billingContact: payload.billingContact,
-        apContact: payload.apContact ?? {},
-        invoiceDeliveryEmail: payload.invoiceDeliveryEmail,
-        domain: registration.normalizedDomain,
-        country: payload.country,
-        currency: payload.country === "GB" ? "GBP" : "USD",
-        screeningStatus: "review",
-      })
-      .returning();
-    if (!account) throw new Error("ACCOUNT_INSERT_FAILED");
+    // A partner registers a partner-side organization and administers it as
+    // `partner_admin`; everyone else registers a customer and owns it.
+    const side = registrationSide(registration.relationshipRoles);
+    const { account, organization } = await insertAccountWithOrganization(
+      transaction,
+      {
+        side,
+        account: {
+          legalName: registration.legalName,
+          relationshipRoles: [...registration.relationshipRoles],
+          registeredAddress: payload.registeredAddress,
+          // What the provider answered when a provider answered, and the
+          // registrant's input honestly flagged as unverified when none could.
+          // `verified` is the flag `identityIsVerified`
+          // (packages/domain/src/identity) reads, so an unverified identifier
+          // keeps the identity unverified rather than blocking the registration.
+          taxIds: registrationTaxIdentifiers.map((taxId) => ({
+            jurisdiction: taxId.jurisdiction,
+            value: taxId.value,
+            normalized: taxId.normalized,
+            verified: taxId.verified,
+            reverseChargeEligible: taxId.reverseChargeEligible,
+          })),
+          billingContact: payload.billingContact,
+          apContact: payload.apContact ?? {},
+          invoiceDeliveryEmail: payload.invoiceDeliveryEmail,
+          domain: registration.normalizedDomain,
+          country: payload.country,
+          currency: payload.country === "GB" ? "GBP" : "USD",
+          screeningStatus: "review",
+          partnerAgreementType: null,
+        },
+      },
+    );
     // core_account_tax_identifiers has existed since 000100 with nothing
     // writing it, which is why reverse_charge_eligible had exactly one hit in
     // the tree: a Drizzle column. `register` runs on the service connection, so
@@ -1297,17 +1308,6 @@ export class DatabaseLifecycleCommandRepository {
           validatedAt: taxId.verified ? now : null,
         })),
       );
-    const [organization] = await transaction
-      .insert(organizations)
-      .values({
-        accountId: account.id,
-        name: account.legalName,
-        isolated: false,
-        // Self-registration creates a customer: its registrant is the owner.
-        side: "customer",
-      })
-      .returning();
-    if (!organization) throw new Error("ORGANIZATION_INSERT_FAILED");
     const [commerceUser] = await transaction
       .insert(commerceUsers)
       .values({
@@ -1321,13 +1321,7 @@ export class DatabaseLifecycleCommandRepository {
     await transaction.insert(memberships).values({
       organizationId: organization.id,
       userId: commerceUser.id,
-      role: "owner",
-    });
-    await transaction.insert(procurementProfiles).values({
-      accountId: account.id,
-      poRequired: false,
-      exemptions: [],
-      supplierDocuments: [],
+      role: side === "customer" ? "owner" : "partner_admin",
     });
     await appendEvent(transaction, {
       accountId: account.id,
@@ -1423,17 +1417,21 @@ export class DatabaseLifecycleCommandRepository {
       });
     if (Date.parse(payload.expiresAt) <= this.now().getTime())
       throw new Error("INVITE_EXPIRY_INVALID");
-    const tokenHash = hashText(
-      `${context.idempotencyKey}:${payload.email.toLowerCase()}:${organization.id}`,
-    );
+    // The link's token is derived from the invite's id, so the organization
+    // page can show it again; only its hash is stored (see ./invites).
+    const inviteId = randomUUID();
     const [invite] = await transaction
       .insert(invites)
       .values({
+        id: inviteId,
         organizationId: organization.id,
         email: payload.email.toLowerCase(),
         role: payload.role,
-        tokenHash,
+        tokenHash: inviteTokenHash(
+          inviteToken(this.options.authorizationSecret, inviteId),
+        ),
         expiresAt: new Date(payload.expiresAt),
+        invitedBy: requireAuthorization(context).userId,
       })
       .returning();
     if (!invite) throw new Error("INVITE_INSERT_FAILED");
