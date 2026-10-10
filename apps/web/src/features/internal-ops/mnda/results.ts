@@ -40,6 +40,8 @@ const known: Record<string, { code: MndaErrorCode; field?: string }> = {
   MNDA_NOT_CORRECTABLE: { code: "not_correctable" },
   MNDA_ALREADY_COMPLETED: { code: "already_completed" },
   MNDA_NEEDS_ATTENTION: { code: "needs_attention" },
+  MNDA_STILL_PREPARING: { code: "still_preparing" },
+  MNDA_REMIND_NEEDS_ATTENTION: { code: "remind_needs_attention" },
   MNDA_SIGNED_IN_SIGNWELL: { code: "signed_in_signwell" },
   SESSION_EXPIRED: { code: "session_expired" },
 };

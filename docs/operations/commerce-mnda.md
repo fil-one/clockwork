@@ -123,8 +123,15 @@ next refresh restores the status.
   SignWell can decide whether that signature stands. See
   [Recovery and verification](#recovery-and-verification).
 
-A send that did not finish says so; **Continue** opens its preview and sending
-again never creates a second SignWell request.
+A send that did not finish says so, and the MNDA waits under **Drafts** with
+**Continue**. Continue only opens the preview and sends nothing; sending from
+the preview reads SignWell's copy first and never creates a second SignWell
+request. When SignWell is still preparing the document, nothing is sent and the
+seller is told to send again in a minute. When SignWell accepted the send but
+could not be read back at once, the seller is told it was sent and the row shows
+Sending until SignWell is read again: by its callback, by the row's **Refresh**,
+or by the [scheduled check](#missed-callbacks) every 15 minutes for rows
+unchanged for 10 minutes.
 
 **Export CSV** downloads the filtered register (company, partner signer and
 email, status, countersigner, preparer, created, sent, days outstanding,
@@ -139,7 +146,11 @@ The open page refreshes the register every 15 seconds while the tab is visible.
 checks open MNDAs in rotation ([missed callbacks](#missed-callbacks)). SignWell
 sends automatic reminders, and expiry is 30 days. **Remind** names who is
 reminded: the partner, or the Fil One countersigner once the partner has signed.
-Manual reminders are a minute apart.
+Remind reads SignWell first and the row shows what it found. If the MNDA has
+completed, been declined or expired, nobody is reminded and the seller is told
+it is no longer waiting on anyone. If it needs attention, for example because an
+email bounced, nobody is reminded and the seller is told to follow its row (for
+a bounced partner email, **Fix email**). Manual reminders are a minute apart.
 
 ## After sending
 

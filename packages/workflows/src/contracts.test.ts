@@ -158,6 +158,44 @@ it("binds the unsent draft before sending, waits for field extraction, then send
   );
 });
 
+it("reports a draft SignWell is still preparing instead of calling it sent", async () => {
+  const { workflow, provider, doc, record, wait, repo } = setup();
+  vi.mocked(provider.getContract).mockImplementation(async () =>
+    structuredClone(doc),
+  );
+  await expect(workflow.send(record().contractId, actor)).rejects.toThrow(
+    "CONTRACT_STILL_PREPARING",
+  );
+  expect(wait).toHaveBeenCalledTimes(8);
+  expect(repo.extendLease).toHaveBeenCalledTimes(9);
+  expect(provider.send).not.toHaveBeenCalled();
+  expect(record()).toMatchObject({
+    state: "preparing",
+    providerId: doc.id,
+    error: null,
+  });
+  doc.status = "Draft";
+  expect((await workflow.send(record().contractId, actor)).state).toBe("sent");
+  expect(provider.createContractDraft).toHaveBeenCalledOnce();
+  expect(provider.send).toHaveBeenCalledOnce();
+});
+
+it("returns the sent request when SignWell accepted the send but the read back failed", async () => {
+  const { workflow, provider, doc, record } = setup();
+  vi.mocked(provider.send).mockImplementationOnce(async () => {
+    doc.status = "Sent";
+    vi.mocked(provider.getContract).mockRejectedValueOnce(
+      new Error("SIGNWELL_HTTP_500"),
+    );
+  });
+  const sent = await workflow.send(record().contractId, actor);
+  expect(sent).toMatchObject({ state: "sending", error: null });
+  expect(record()).toMatchObject({ state: "sending", error: null });
+  // The next refresh settles it; nothing is sent twice.
+  expect((await workflow.sync(record().contractId, actor)).state).toBe("sent");
+  expect(provider.send).toHaveBeenCalledOnce();
+});
+
 it("retries against the same provider document instead of creating another", async () => {
   const { workflow, provider, doc, record } = setup({
     providerId: "019a44ac-0000-7000-8000-0000000000d5",

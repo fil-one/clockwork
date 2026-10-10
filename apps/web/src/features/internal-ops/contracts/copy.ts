@@ -135,6 +135,7 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
   CONTRACT_NOT_VOIDABLE: "operations.contracts.error.notVoidable",
   CONTRACT_NOT_PREPARER: "operations.contracts.error.notPreparer",
   CONTRACT_NEEDS_ATTENTION: "operations.contracts.error.needsAttention",
+  CONTRACT_STILL_PREPARING: "operations.contracts.error.stillPreparing",
   CONTRACT_DISTINCT_SIGNERS_REQUIRED:
     "operations.contracts.error.distinctSigners",
   CONTRACT_COUNTERSIGNER_UNAVAILABLE:

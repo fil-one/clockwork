@@ -599,6 +599,17 @@ export class MndaRepository {
       return { record: view(r), token };
     });
   }
+  /** Keeps a lease alive across a long provider call; fails if it was lost. */
+  extendLease(id: string, token: string) {
+    return this.tx(async (tx) => {
+      const [r] = await tx
+        .update(mndaRequests)
+        .set({ leaseUntil: new Date(Date.now() + 120_000) })
+        .where(and(eq(mndaRequests.id, id), eq(mndaRequests.leaseToken, token)))
+        .returning({ id: mndaRequests.id });
+      if (!r) throw new Error("MNDA_LEASE_LOST");
+    });
+  }
   release(id: string, token: string) {
     return this.tx(async (tx) => {
       await tx

@@ -286,6 +286,25 @@ describe("signing panel", () => {
     );
   });
 
+  it("says a draft SignWell is still preparing was not sent", async () => {
+    mocks.operateContract.mockResolvedValue({
+      ok: false,
+      code: "CONTRACT_STILL_PREPARING",
+    });
+    panel({});
+    fireEvent.click(screen.getByRole("button", { name: "Send for signature" }));
+    fireEvent.click(
+      within(await screen.findByRole("dialog")).getByRole("button", {
+        name: "Send for signature",
+      }),
+    );
+    expect(
+      await screen.findByText(
+        "SignWell is still preparing this contract, so it was not sent. Send it again in a minute.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("names who a reminder goes to once it is out for signature", () => {
     panel({ state: "awaiting_countersignature", providerId: "x" });
     expect(
