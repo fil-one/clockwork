@@ -844,7 +844,7 @@ export interface PrepareContractSigning {
     templateVersion: string;
     templateHash: string;
     documentName: string;
-    input: Record<string, string>;
+    input: ContractSigningRecord["input"];
     counterpartySigner: ContractSigner;
     countersignerId: string;
     approvalRequired: boolean;

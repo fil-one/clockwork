@@ -1,11 +1,23 @@
 import { z } from "zod";
 import type { TemplateField } from "@clockwork/contracts";
+import { checkLineItems, type RateMinimums } from "./line-items";
 
 const text = (max: number) =>
   z.string().trim().max(max, { message: "too_big" });
 const requiredText = (max: number) => text(max).min(1, { message: "required" });
 
-function fieldSchema(field: TemplateField) {
+// A table is refused at the field's own path, with one code for the form.
+// Each row's minimum comes from `minimums`, never from the browser.
+const lineItems = (minimums: RateMinimums) =>
+  z.unknown().transform((value, ctx) => {
+    const checked = checkLineItems(value, minimums);
+    if (checked.ok) return checked.value;
+    ctx.addIssue({ code: "custom", message: checked.code });
+    return z.NEVER;
+  });
+
+function fieldSchema(field: TemplateField, minimums: RateMinimums) {
+  if (field.kind === "line_items") return lineItems(minimums);
   const max = field.maxLength ?? 200;
   const base =
     field.kind === "email"
@@ -39,8 +51,14 @@ function fieldSchema(field: TemplateField) {
     : trimmed;
 }
 
-/** What a seller enters to prepare a contract from one template. */
-export function prepareInputSchema(fields: readonly TemplateField[]) {
+/**
+ * What a seller enters to prepare a contract from one template. `minimums`
+ * holds the in-force rate minimums a line-item table is checked against.
+ */
+export function prepareInputSchema(
+  fields: readonly TemplateField[],
+  minimums: RateMinimums,
+) {
   return z
     .object({
       id: z.uuid(),
@@ -58,7 +76,7 @@ export function prepareInputSchema(fields: readonly TemplateField[]) {
       values: z
         .object(
           Object.fromEntries(
-            fields.map((field) => [field.id, fieldSchema(field)]),
+            fields.map((field) => [field.id, fieldSchema(field, minimums)]),
           ),
         )
         .strict(),

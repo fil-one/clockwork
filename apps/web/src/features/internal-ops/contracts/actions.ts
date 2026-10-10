@@ -11,6 +11,10 @@ import { mndaRepository } from "../mnda/server";
 import type { MndaDuplicates } from "../mnda/actions";
 import { mayApproveOwnRequests } from "../self-approval/model";
 import { attempt } from "./action-result";
+import {
+  importedScenarioNotes,
+  templateRateMinimums,
+} from "./line-items-server";
 import { prepareInputSchema } from "./prepare-input";
 import {
   contractActor,
@@ -110,7 +114,10 @@ export async function prepareContract(raw: unknown) {
       contractTemplateRegistry(),
       templateId,
     );
-    const input = prepareInputSchema(template.fields).parse(raw);
+    const input = prepareInputSchema(
+      template.fields,
+      await templateRateMinimums(template.fields),
+    ).parse(raw);
     const repository = contractSigningRepository();
     const countersigner = (await repository.countersigners()).find(
       (signer) => signer.id === input.countersignerId,
@@ -133,6 +140,7 @@ export async function prepareContract(raw: unknown) {
     });
     const documentName =
       `Fil One ${template.name} - ${input.counterpartyName}`.slice(0, 200);
+    const pricingNotes = await importedScenarioNotes(session, input.values);
     await repository.prepare(
       {
         contract: {
@@ -149,7 +157,7 @@ export async function prepareContract(raw: unknown) {
           noticePeriodDays: null,
           valueMinor: null,
           currency: null,
-          pricingNotes: "",
+          pricingNotes,
           ownerName: input.ownerName,
           internalNotes: "",
           tags: [],

@@ -3,15 +3,18 @@
 //
 //   pnpm exec tsx scripts/render-contract-specimen.ts <template-id> <output.pdf>
 //
-// Every field is filled with a visible sample value. `--fixture` also loads
-// the test-only fixture template, to try the script without legal wording.
+// Every field is filled with a visible sample value, and a line-item field
+// with a sample table. `--fixture` also loads the test-only fixture template,
+// to try the script without legal wording.
 import { writeFileSync } from "node:fs";
 
+import type { Money, TemplateLineItems } from "../packages/contracts/src";
 import { fixtureContractTemplateRegistry } from "../packages/documents/src/__fixtures__/contract-template";
 import {
   availableContractTemplate,
   contractTemplates,
 } from "../packages/documents/src/contract-templates";
+import { indicativeLinePrice } from "../packages/domain/src/core";
 
 const args = process.argv.slice(2).filter((arg) => arg !== "--fixture");
 const [templateId, output] = args;
@@ -26,6 +29,41 @@ const registry = process.argv.includes("--fixture")
   : contractTemplates;
 const template = availableContractTemplate(registry, templateId);
 const sample = (label: string) => `Sample ${label}`.slice(0, 120);
+// One row as a pricing scenario import brings it, one entered by hand.
+const sampleRows = [
+  {
+    sku: "SAMPLE-STORAGE",
+    description: "Sample description",
+    region: "sample-region",
+    unit: "TB-month",
+    quantity: "100",
+    termMonths: 12,
+    unitPriceMinor: "1500",
+    minimumQuantity: "10",
+    discountBps: 1000,
+  },
+  {
+    sku: "SAMPLE-SERVICE",
+    description: "Sample service",
+    region: "",
+    unit: "engagement",
+    quantity: "1",
+    termMonths: 1,
+    unitPriceMinor: "250000",
+    minimumQuantity: "0",
+    discountBps: 0,
+  },
+];
+const sampleTable: TemplateLineItems = {
+  currency: "USD",
+  rows: sampleRows.map((row) => ({
+    ...row,
+    extendedMinor: indicativeLinePrice({
+      ...row,
+      unitPrice: { currency: "USD", minor: row.unitPriceMinor } as Money,
+    }).total.minor,
+  })),
+};
 async function main(output: string) {
   const rendered = await template.render({
     contractId: "00000000-0000-4000-8000-000000000000",
@@ -34,15 +72,17 @@ async function main(output: string) {
     values: Object.fromEntries(
       template.fields.map((field) => [
         field.id,
-        field.kind === "choice"
-          ? (field.options?.[0]?.value ?? "")
-          : field.kind === "date"
-            ? new Date().toISOString().slice(0, 10)
-            : field.kind === "number"
-              ? "1"
-              : field.kind === "email"
-                ? "sample@example.com"
-                : sample(field.label.en),
+        field.kind === "line_items"
+          ? sampleTable
+          : field.kind === "choice"
+            ? (field.options?.[0]?.value ?? "")
+            : field.kind === "date"
+              ? new Date().toISOString().slice(0, 10)
+              : field.kind === "number"
+                ? "1"
+                : field.kind === "email"
+                  ? "sample@example.com"
+                  : sample(field.label.en),
       ]),
     ),
     signer: {

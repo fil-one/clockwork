@@ -1,0 +1,4 @@
+Test fixture source for the contract template engine.
+This file stands in for a counsel-approved DOCX in automated tests only.
+It is not an agreement and contains no legal terms.
+Version fixture-2 adds a priced line-item table.

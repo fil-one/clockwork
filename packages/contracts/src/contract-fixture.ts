@@ -42,10 +42,32 @@ export const fixtureContractRecord: ContractRecord = {
 export const fixtureSigningRecord: ContractSigningRecord = {
   contractId: "019a44ac-0000-7000-8000-0000000000c2",
   templateId: "test-fixture",
-  templateVersion: "fixture-1",
+  // The fixture template's current version, which adds a line-item table.
+  templateVersion: "fixture-2",
   templateHash: "b".repeat(64),
   documentName: "Fil One Engine Test Fixture - Bluefin Data Co.",
-  input: { fixture_reference: "REF-7", fixture_tier: "beta", fixture_note: "" },
+  input: {
+    fixture_reference: "REF-7",
+    fixture_tier: "beta",
+    fixture_note: "",
+    fixture_lines: {
+      currency: "USD",
+      rows: [
+        {
+          sku: "STORAGE-TB",
+          description: "",
+          region: "us-east",
+          unit: "TB-month",
+          quantity: "500",
+          termMonths: 12,
+          unitPriceMinor: "1500",
+          minimumQuantity: "10",
+          discountBps: 1000,
+          extendedMinor: "8100000",
+        },
+      ],
+    },
+  },
   counterpartySigner: {
     name: "Alex Example",
     email: "alex@example.com",

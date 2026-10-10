@@ -147,6 +147,9 @@ const quantity = (value: string) =>
 const percent = (bps: number) =>
   `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(bps / 100)}%`;
 
+/** The summary's faces and figure formats, shared with contract line items. */
+export const pricingSummaryPrint = { serif, sans, money, quantity, percent };
+
 function longDate(iso: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso))
     throw new Error("PRICING_SUMMARY_DATE_INVALID");

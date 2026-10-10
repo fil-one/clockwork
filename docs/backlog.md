@@ -1827,6 +1827,28 @@ detail lives in `docs/operations/commerce-mnda.md`,
   correction until their table does. Whether to move both onto one table is a
   decision for when a third document type or the lifecycle `agreements` model
   needs it, not scheduled work.
+- **Template line items `[COMPLETE]`:** a template field of kind `line_items`
+  carries a priced table of up to 20 lines in one currency; its `[[token]]`, a
+  paragraph of its own, prints the lines, subtotal, discounts and total with the
+  pricing summary's fonts and money formatting, and fails closed on a missing or
+  malformed table (`packages/contracts/src/contract-templates.ts`,
+  `packages/documents/src/contract-templates/render.tsx`). The prepare form
+  edits the lines or imports them from a saved pricing scenario under the
+  scenario page's scope rule. At preparation the server applies the in-force
+  rate's minimum to each line that matches a rate by item, region and unit, and
+  writes a pricing note that vouches for the scenario's list prices only when
+  every line still matches the scenario, otherwise naming the edited lines
+  (`apps/web/src/features/internal-ops/contracts/line-items-editor.tsx`,
+  `line-items.ts`, `line-items-server.ts`, `scenario-import.ts`). Unit prices
+  typed by a seller are not checked against a price book; approval is the
+  control. Values live in the signing row's `input`; no migration. Proven
+  against the test fixture only: the order form, SOW and DPA schedule wording
+  that would use it remains `EXT-LEGAL-01`, and each ships as a template file
+  plus a registry entry. Evidence:
+  `packages/documents/src/contract-templates/render.integration.test.ts`,
+  `packages/contracts/src/contract-templates.test.ts`,
+  `apps/web/src/features/internal-ops/contracts/actions.test.ts`,
+  `apps/web/src/features/internal-ops/contracts/prepare-form.test.tsx`.
 - **Counsel templates `[EXTERNAL-ONLY]`:** all eight template ids in
   `packages/documents/src/contract-templates/registry.ts` are stubs listed as
   "Template pending from legal": channel partnership, customer MSA, order form,

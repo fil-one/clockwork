@@ -1,4 +1,6 @@
 import type * as Server from "./server";
+import type * as ScenarioServer from "../sales-pricing/scenario-server";
+import type * as LineItemsServer from "./line-items-server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fixtureContractInput } from "../../../../../../packages/contracts/src/contract-fixture";
 import { fixtureContractTemplateRegistry } from "../../../../../../packages/documents/src/__fixtures__/contract-template";
@@ -26,6 +28,8 @@ const mocks = vi.hoisted(() => ({
   library: { create: vi.fn(), update: vi.fn() },
   registry: vi.fn(),
   mnda: { duplicates: vi.fn(), contractDuplicates: vi.fn() },
+  scenarios: { get: vi.fn() },
+  minimums: vi.fn(),
 }));
 vi.mock("@/src/auth/session", () => ({
   getCommerceSession: mocks.session,
@@ -41,6 +45,15 @@ vi.mock("./server", async (original) => ({
   contractTemplateRegistry: mocks.registry,
 }));
 vi.mock("../mnda/server", () => ({ mndaRepository: () => mocks.mnda }));
+vi.mock("../sales-pricing/scenario-server", async (original) => ({
+  ...(await original<typeof ScenarioServer>()),
+  scenarioRepository: () => mocks.scenarios,
+}));
+vi.mock("./line-items-server", async (original) => ({
+  ...(await original<typeof LineItemsServer>()),
+  templateRateMinimums: mocks.minimums,
+}));
+import { rateMinimums } from "./line-items";
 import {
   decideContract,
   findContractDuplicates,
@@ -79,9 +92,43 @@ const prepareInput = (patch: Record<string, unknown> = {}) => ({
   signerTitle: "CEO",
   countersignerId: countersigner.id,
   ownerName: "Seller",
-  values: { fixture_reference: "REF-7", fixture_tier: "beta" },
+  values: {
+    fixture_reference: "REF-7",
+    fixture_tier: "beta",
+    fixture_lines: lineItems(),
+  },
   ...patch,
 });
+function lineItems(
+  row: Record<string, unknown> = {},
+  scenario?: Record<string, unknown>,
+) {
+  return {
+    currency: "USD",
+    ...(scenario ? { scenario } : {}),
+    rows: [
+      {
+        sku: "STORAGE-TB",
+        region: "us-east",
+        unit: "TB-month",
+        quantity: "500",
+        termMonths: 12,
+        unitPriceMinor: "1500",
+        minimumQuantity: "10",
+        discountBps: 1000,
+        extendedMinor: "8100000",
+        ...row,
+      },
+    ],
+  };
+}
+// The in-force rate the fixture row matches.
+const storageRate = {
+  sku: "STORAGE-TB",
+  region: "us-east",
+  unit: "TB-month",
+  minimumQuantity: "10.000000000000000000",
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -91,6 +138,9 @@ beforeEach(() => {
   mocks.signing.decide.mockResolvedValue({ approvalState: "approved" });
   mocks.workflow.send.mockResolvedValue({ state: "sent" });
   mocks.repository.update.mockResolvedValue(3);
+  mocks.minimums.mockResolvedValue(
+    rateMinimums([{ rateCards: [storageRate] }]),
+  );
 });
 
 describe("server action authorization", () => {
@@ -311,7 +361,11 @@ describe("prepareContract", () => {
     await expect(
       prepareContract(
         prepareInput({
-          values: { fixture_reference: "{{x}}", fixture_tier: "beta" },
+          values: {
+            fixture_reference: "{{x}}",
+            fixture_tier: "beta",
+            fixture_lines: lineItems(),
+          },
         }),
       ),
     ).resolves.toEqual({
@@ -319,6 +373,184 @@ describe("prepareContract", () => {
       code: "CONTRACT_TEMPLATE_VALUE_CHARACTERS",
     });
   });
+
+  it("checks a line-item table by the pricing scenario rules", async () => {
+    as("revenue");
+    const withLines = (fixture_lines: unknown) =>
+      prepareContract(
+        prepareInput({
+          values: {
+            fixture_reference: "REF-7",
+            fixture_tier: "beta",
+            fixture_lines,
+          },
+        }),
+      );
+    for (const [lines, code] of [
+      [null, "required"],
+      [{ currency: "USD", rows: [] }, "required"],
+      [lineItems({ quantity: "5", extendedMinor: "81000" }), "below_minimum"],
+      [lineItems({ extendedMinor: "8100001" }), "line_total"],
+      [lineItems({ sku: "<b>" }), "characters"],
+      [lineItems({ termMonths: 0 }), "line_items"],
+      [{ ...lineItems(), currency: "JPY" }, "line_items"],
+    ] as const)
+      await expect(withLines(lines)).resolves.toEqual({
+        ok: false,
+        code: "INVALID_INPUT",
+        fields: { "values.fixture_lines": code },
+      });
+    expect(mocks.signing.prepare).not.toHaveBeenCalled();
+  });
+
+  it("applies the in-force rate's minimum whatever minimum the browser sends", async () => {
+    as("revenue");
+    const withRow = (row: Record<string, unknown>) =>
+      prepareContract(
+        prepareInput({
+          values: {
+            fixture_reference: "REF-7",
+            fixture_tier: "beta",
+            fixture_lines: lineItems(row),
+          },
+        }),
+      );
+    // A row typed by hand sends "0"; the matching rate's minimum is 10.
+    await expect(
+      withRow({ quantity: "5", minimumQuantity: "0", extendedMinor: "81000" }),
+    ).resolves.toMatchObject({
+      fields: { "values.fixture_lines": "below_minimum" },
+    });
+    expect(mocks.signing.prepare).not.toHaveBeenCalled();
+    // A row that matches no rate has no minimum, whatever it sends.
+    await expect(
+      withRow({
+        sku: "ONBOARDING",
+        quantity: "5",
+        minimumQuantity: "50",
+        extendedMinor: "81000",
+      }),
+    ).resolves.toMatchObject({ ok: true });
+    const [prepared] = mocks.signing.prepare.mock.calls[0] as [
+      { signing: { input: { fixture_lines: { rows: unknown[] } } } },
+    ];
+    expect(prepared.signing.input.fixture_lines.rows[0]).toMatchObject({
+      sku: "ONBOARDING",
+      minimumQuantity: "0",
+    });
+  }, 30_000);
+});
+
+describe("pricing notes for an imported scenario", () => {
+  const scenarioId = "019a44ac-0000-7000-8000-00000000ab01";
+  const link = {
+    id: scenarioId,
+    name: "Acme Q4",
+    version: 2,
+    asOf: "2026-10-09",
+  };
+  const scenario = {
+    id: scenarioId,
+    name: "Acme Q4",
+    version: 2,
+    asOf: "2026-10-09",
+    lines: [
+      {
+        sku: "STORAGE-TB",
+        region: "us-east",
+        unit: "TB-month",
+        unitPrice: { currency: "USD", minor: "1500" },
+        minimumQuantity: "10.000000000000000000",
+        quantity: "500",
+        termMonths: 12,
+        discountBps: 1000,
+      },
+    ],
+  };
+  const note = async (fixture_lines: unknown) => {
+    await expect(
+      prepareContract(
+        prepareInput({
+          values: {
+            fixture_reference: "REF-7",
+            fixture_tier: "beta",
+            fixture_lines,
+          },
+        }),
+      ),
+    ).resolves.toMatchObject({ ok: true });
+    const [prepared] = mocks.signing.prepare.mock.calls.at(-1) as [
+      { contract: { pricingNotes: string } },
+    ];
+    return prepared.contract.pricingNotes;
+  };
+
+  beforeEach(() => {
+    as("revenue");
+    mocks.scenarios.get.mockResolvedValue(scenario);
+  });
+
+  it("vouches for list prices only when every row still matches the scenario", async () => {
+    await expect(note(lineItems({ scenarioLine: 0 }, link))).resolves.toBe(
+      `Line items imported from pricing scenario "Acme Q4" (${scenarioId}) version 2, list prices as of 2026-10-09.`,
+    );
+    expect(mocks.scenarios.get).toHaveBeenCalledWith(scenarioId, {
+      kind: "own",
+      ownerId: "019a44ac-0000-7000-8000-0000000000aa",
+    });
+    // A different quantity is the seller's entry, not a price.
+    await expect(
+      note(
+        lineItems(
+          { scenarioLine: 0, quantity: "600", extendedMinor: "9720000" },
+          link,
+        ),
+      ),
+    ).resolves.toContain("list prices as of 2026-10-09.");
+  }, 30_000);
+
+  it("names the lines edited after import and never vouches for them", async () => {
+    // The unit price was changed after import.
+    await expect(
+      note(
+        lineItems(
+          { scenarioLine: 0, unitPriceMinor: "1400", extendedMinor: "7560000" },
+          link,
+        ),
+      ),
+    ).resolves.toBe(
+      `Line items imported from pricing scenario "Acme Q4" (${scenarioId}) version 2, then edited (line 1).`,
+    );
+    // A row typed in by hand carries no scenario link.
+    await expect(note(lineItems({}, link))).resolves.toContain(
+      "then edited (line 1).",
+    );
+    // The scenario was saved again after import.
+    mocks.scenarios.get.mockResolvedValue({ ...scenario, version: 3 });
+    await expect(note(lineItems({ scenarioLine: 0 }, link))).resolves.toBe(
+      `Line items imported from pricing scenario "Acme Q4" (${scenarioId}) version 2; the scenario has changed since, so its prices were not checked against these lines.`,
+    );
+  }, 30_000);
+
+  it("writes no note for a detached table and refuses a scenario out of reach", async () => {
+    await expect(note(lineItems())).resolves.toBe("");
+    expect(mocks.scenarios.get).not.toHaveBeenCalled();
+    mocks.scenarios.get.mockRejectedValue(
+      new Error("PRICING_SCENARIO_NOT_FOUND"),
+    );
+    await expect(
+      prepareContract(
+        prepareInput({
+          values: {
+            fixture_reference: "REF-7",
+            fixture_tier: "beta",
+            fixture_lines: lineItems({ scenarioLine: 0 }, link),
+          },
+        }),
+      ),
+    ).resolves.toEqual({ ok: false, code: "PRICING_SCENARIO_NOT_FOUND" });
+    expect(mocks.signing.prepare).toHaveBeenCalledTimes(1);
+  }, 30_000);
 });
 
 describe("decideContract and operateContract", () => {

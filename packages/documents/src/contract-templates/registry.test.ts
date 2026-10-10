@@ -75,7 +75,7 @@ describe("template file format", () => {
       kind: "text",
       required: true,
       label: { en: "Duplicate" },
-    } as (typeof broken.fields)[number]);
+    });
     expect(TemplateFileSchema.safeParse(broken).success).toBe(false);
   });
 
@@ -83,5 +83,31 @@ describe("template file format", () => {
     const broken = structuredClone(fixtureFile);
     delete (broken.fields[1] as { options?: unknown }).options;
     expect(TemplateFileSchema.safeParse(broken).success).toBe(false);
+  });
+
+  it("places a line-item table only as a paragraph of its own", () => {
+    expect(
+      fixtureContractTemplate.fields.find((f) => f.id === "fixture_lines")
+        ?.kind,
+    ).toBe("line_items");
+    for (const block of [
+      { type: "paragraph", text: "Lines: [[fixture_lines]]" },
+      { type: "heading", text: "[[fixture_lines]]" },
+    ]) {
+      const broken = structuredClone(fixtureFile);
+      broken.document.blocks.push(block);
+      expect(TemplateFileSchema.safeParse(broken).success).toBe(false);
+    }
+    const titled = structuredClone(fixtureFile);
+    titled.document.title = "ORDER FORM [[fixture_lines]]";
+    expect(TemplateFileSchema.safeParse(titled).success).toBe(false);
+  });
+
+  it("requires a line-item field and gives it no length", () => {
+    for (const change of [{ required: false }, { maxLength: 80 }]) {
+      const broken = structuredClone(fixtureFile);
+      Object.assign(broken.fields[3] ?? {}, change);
+      expect(TemplateFileSchema.safeParse(broken).success).toBe(false);
+    }
   });
 });

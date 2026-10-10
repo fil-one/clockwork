@@ -2,17 +2,21 @@ import type {
   ContractSigner,
   ContractType,
   TemplateField,
+  TemplateValue,
 } from "@clockwork/contracts";
 
 export {
   LocalizedTextSchema,
   TemplateFieldSchema,
   TemplateFileSchema,
+  TemplateLineItemsSchema,
   standardTemplateTokens,
   type LocalizedText,
   type TemplateBlock,
   type TemplateField,
   type TemplateFile,
+  type TemplateLineItems,
+  type TemplateValue,
 } from "@clockwork/contracts";
 
 /**
@@ -25,12 +29,13 @@ export {
  * `pending_legal`: listed, never preparable, with no text at all.
  */
 
-/** What a renderer receives: validated values plus both signers. */
+/** What a renderer receives: validated values plus both signers. A
+ * `line_items` field's value is a table; every other value is text. */
 export interface PreparedTemplateInput {
   contractId: string;
   counterpartyName: string;
   effectiveDate: string;
-  values: Readonly<Record<string, string>>;
+  values: Readonly<Record<string, TemplateValue>>;
   signer: ContractSigner;
   countersigner: ContractSigner;
 }
