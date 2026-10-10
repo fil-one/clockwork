@@ -223,9 +223,22 @@ provider fakes for replay and failure scenarios.
   cursor and an explicit account scope; mutations return the aggregate version
   and any workflow handle.
 - **Git hooks** are installed by lefthook on `pnpm install` (`prepare`). The
-  pre-commit hook checks only staged files: Prettier, secretlint and ESLint
-  (`--max-warnings=0`), with `next typegen` first when web files are staged. It
-  never stashes, so for a partially staged file it checks the working-tree copy.
+  pre-commit hook checks only staged files:
+  - Prettier and secretlint read the staged content, the version the commit
+    records (`scripts/check-staged.sh`).
+  - ESLint (`--max-warnings=0`, with `next typegen` first for web files) reads
+    the working-tree copy, because type-aware rules need the project on disk. If
+    a file is partially staged, CI's full lint is the check on what was
+    committed.
+
+  The hooks run lefthook through `scripts/lefthook.sh`, which passes
+  `--no-stage-fixed` so lefthook never moves unstaged changes into the git stash
+  that all worktrees share. A branch gets this behaviour once it carries this
+  `lefthook.yml`; committing from an older branch reinstalls that branch's hook,
+  which stashes. If you set `LEFTHOOK_BIN`, point it at `scripts/lefthook.sh`,
+  because the hook runs `LEFTHOOK_BIN` in place of the wrapper.
+  `LEFTHOOK=0 git commit ...` skips the hooks.
+
   Run the repo-wide checks with `pnpm format:check`, `pnpm scan:secrets` and
   `pnpm lint`, or all static gates with `pnpm verify:static`; CI runs them on
   every pull request. Whole-repo lint needs more than Node's default 4 GiB heap:

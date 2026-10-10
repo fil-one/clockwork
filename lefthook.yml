@@ -1,23 +1,23 @@
 # Pre-commit checks only the staged files. `pnpm verify:static` and CI run the
 # same tools across the whole repository.
 #
-# The hook calls lefthook with --no-stage-fixed. Without it, lefthook hides the
-# unstaged part of any partially staged file in a "lefthook auto backup" entry
-# on the git stash while the hook runs, and every worktree shares that stash.
-# These commands only check files and never rewrite them, so nothing needs
-# re-staging; for a partially staged file they check the working-tree copy.
-lefthook: sh -c 'exec node_modules/.bin/lefthook $* --no-stage-fixed' lefthook
+# The hooks run lefthook through scripts/lefthook.sh, which passes
+# --no-stage-fixed so lefthook never stashes unstaged changes; every worktree
+# shares the git stash. Lefthook embeds this value in the generated hook inside
+# `test -n "..."`, so it must not contain double quotes.
+lefthook: sh scripts/lefthook.sh
 glob_matcher: doublestar
 
 pre-commit:
   parallel: true
   commands:
+    # Prettier and secretlint read the staged content of each file.
     format:
-      run: pnpm exec prettier --check --ignore-unknown {staged_files}
+      run: sh scripts/check-staged.sh format
     secrets:
-      run:
-        pnpm exec secretlint --secretlintrc .secretlintrc.json
-        --secretlintignore .secretlintignore --no-glob {staged_files}
+      run: sh scripts/check-staged.sh secrets
+    # ESLint's type-aware rules need the project on disk, so it reads the
+    # working-tree copy of each staged file.
     lint:
       glob: "**/*.{ts,tsx,js,mjs,cjs}"
       exclude:
