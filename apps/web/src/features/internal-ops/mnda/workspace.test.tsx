@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   prepare: vi.fn(),
   operate: vi.fn(),
   load: vi.fn(),
+  loadRegister: vi.fn(),
   duplicates: vi.fn(),
   void: vi.fn(),
   correct: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock("./actions", () => ({
   prepareMnda: mocks.prepare,
   operateMnda: mocks.operate,
   loadMndas: mocks.load,
+  loadMndaRegister: mocks.loadRegister,
   findMndaDuplicates: mocks.duplicates,
   voidMnda: mocks.void,
   correctMndaSigner: mocks.correct,
@@ -63,6 +65,10 @@ function fill(values: Partial<Record<string, string>>) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.load.mockResolvedValue({ ok: true, value: data() });
+  mocks.loadRegister.mockResolvedValue({
+    ok: true,
+    value: { register: data().register },
+  });
   mocks.duplicates.mockResolvedValue({
     ok: true,
     value: { mndas: [], contracts: [] },
@@ -252,6 +258,29 @@ it("no longer offers the partner-completes mode, and copies an old one into the 
     "value",
     "mixed",
   );
+});
+
+it("refreshes only the register while the page is open", async () => {
+  vi.useFakeTimers();
+  try {
+    const refreshed = { ...sent, state: "viewed" as const };
+    mocks.loadRegister.mockResolvedValue({
+      ok: true,
+      value: {
+        register: { records: [refreshed], total: 1, page: 1, pageSize: 25 },
+      },
+    });
+    render(<MndaWorkspace initial={data([sent])} initialQuery={query} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(mocks.loadRegister).toHaveBeenCalledWith(query);
+    expect(mocks.load).not.toHaveBeenCalled();
+    expect(screen.getByText("Opened by partner")).toBeVisible();
+    expect(screen.getByRole("button", { name: "New MNDA" })).toBeVisible();
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("explains blocked requests in plain words with the next step", () => {

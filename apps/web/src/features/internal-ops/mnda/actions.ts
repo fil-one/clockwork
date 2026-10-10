@@ -87,6 +87,18 @@ export async function loadMndas(
   });
 }
 
+/** Only the register, for the open page's refresh: countersigners and the
+ * notice email change on the settings page, not while the list is open. */
+export async function loadMndaRegister(
+  rawQuery: unknown = {},
+): Promise<MndaResult<Pick<MndaWorkspaceData, "register">>> {
+  return attempt(async () => {
+    const session = await mndaStaff();
+    const query = MndaRegisterQuerySchema.parse(rawQuery);
+    return { register: await mndaRepository().list(query, session.userId) };
+  });
+}
+
 const PrepareSchema = z
   .object({
     input: z.unknown(),

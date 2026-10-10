@@ -21,7 +21,12 @@ import {
 } from "@clockwork/ui";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import type { MessageId } from "@/src/i18n";
-import { loadMndas, operateMnda, type MndaWorkspaceData } from "./actions";
+import {
+  loadMndaRegister,
+  loadMndas,
+  operateMnda,
+  type MndaWorkspaceData,
+} from "./actions";
 import { MndaComposer, type ComposerStart } from "./composer";
 import { CorrectSignerDialog, DiscardDialog, VoidDialog } from "./dialogs";
 import { emptyValues, valuesFromRecord } from "./form-model";
@@ -154,10 +159,14 @@ export function MndaWorkspace({
   const reload = useCallback(async (next: MndaRegisterQuery, quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const result = await loadMndas(next);
+      // Refreshes re-read only the register.
+      const result = quiet
+        ? await loadMndaRegister(next)
+        : await loadMndas(next);
       if (next !== queryRef.current) return;
       if (result.ok) {
-        setData(result.value);
+        const value = result.value;
+        setData((current) => ({ ...current, ...value }));
         setLoadFailed(false);
       } else if (!quiet) setLoadFailed(true);
     } finally {

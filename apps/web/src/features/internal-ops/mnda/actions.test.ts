@@ -61,6 +61,7 @@ import {
   configureMndaSigner,
   correctMndaSigner,
   findMndaDuplicates,
+  loadMndaRegister,
   loadMndas,
   operateMnda,
   prepareMnda,
@@ -437,5 +438,21 @@ describe("partner-completes drafts are retired", () => {
     });
     expect(mocks.render).not.toHaveBeenCalled();
     expect(mocks.repository.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("the open page's refresh", () => {
+  it("re-reads only the register", async () => {
+    as("revenue");
+    expect(await loadMndaRegister({ status: ["sent"] })).toEqual({
+      ok: true,
+      value: { register: { records: [], total: 0, page: 1, pageSize: 25 } },
+    });
+    expect(mocks.repository.list).toHaveBeenCalledWith(
+      expect.objectContaining({ status: ["sent"] }),
+      "019a44ac-0000-7000-8000-000000000006",
+    );
+    expect(mocks.repository.signers).not.toHaveBeenCalled();
+    expect(mocks.repository.settings).not.toHaveBeenCalled();
   });
 });
