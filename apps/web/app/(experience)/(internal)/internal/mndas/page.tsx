@@ -11,14 +11,21 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("operations.mnda.title") };
 }
 /** Filters live in the URL (`status`, `mine=1`, `q`, `page`) so other pages
- * can link to a filtered register. */
+ * can link to a filtered register; `compose=1` opens a new MNDA. */
 export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const query = parseMndaRegisterParams(await searchParams);
+  const params = await searchParams;
+  const query = parseMndaRegisterParams(params);
   const result = await loadMndaPage(query);
   if (!result.ok) return <MndaAccessState code={result.code} />;
-  return <MndaWorkspace initial={result.value} initialQuery={query} />;
+  return (
+    <MndaWorkspace
+      initial={result.value}
+      initialQuery={query}
+      compose={params.compose === "1"}
+    />
+  );
 }

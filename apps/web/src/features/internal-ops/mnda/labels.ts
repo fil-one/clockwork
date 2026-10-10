@@ -1,5 +1,6 @@
 import type {
   MndaErrorCode,
+  MndaRecord,
   MndaState,
   MndaStatusGroup,
 } from "@clockwork/contracts";
@@ -19,6 +20,15 @@ export const mndaStateLabels: Record<MndaState, MessageId> = {
   canceled: "operations.mnda.state.canceled",
   attention: "operations.mnda.state.attention",
 };
+/** A request closed before it was sent was discarded, not voided. */
+export function mndaRecordStateLabel(
+  record: Pick<MndaRecord, "state" | "cancelCode">,
+): MessageId {
+  return record.state === "canceled" &&
+    (record.cancelCode === "discarded" || record.cancelCode === "superseded")
+    ? "operations.mnda.state.discarded"
+    : mndaStateLabels[record.state];
+}
 export const mndaGroupLabels: Record<MndaStatusGroup, MessageId> = {
   drafts: "operations.mnda.group.drafts",
   waiting_partner: "operations.mnda.group.waitingPartner",

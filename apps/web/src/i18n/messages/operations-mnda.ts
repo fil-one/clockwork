@@ -1,17 +1,21 @@
 import { defineStaffMessages } from "../define";
 export const mndaMessages = defineStaffMessages({
   "operations.mnda.mixedDetails": {
-    en: "Our team starts; partner completes missing details",
+    en: "Our team starts; the counterparty completes missing details",
   },
   "operations.mnda.mixedHint": {
-    en: "Enter what you know. Leave the rest blank and the partner fills it in before signing.",
+    en: "Enter what you know. Leave the rest blank and the counterparty fills it in before signing.",
   },
   "operations.mnda.shortNameHint": {
     en: "Optional to customize. Defaults to the legal name and can be edited.",
   },
-  "operations.mnda.detailsMode": { en: "Who completes partner details?" },
+  "operations.mnda.detailsMode": {
+    en: "Who completes the counterparty's details?",
+  },
   "operations.mnda.teamDetails": { en: "Our team enters the details" },
-  "operations.mnda.partnerReference": { en: "Partner / internal reference" },
+  "operations.mnda.partnerReference": {
+    en: "Counterparty or internal reference",
+  },
 
   "operations.mnda.latin": {
     en: "Use Latin-script names and addresses. Enter the entity type without a leading article, for example Delaware corporation.",
@@ -30,14 +34,14 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.noticesEmail": { en: "Notices email" },
   "operations.mnda.signerName": { en: "Counterparty signer name" },
   "operations.mnda.signerEmail": { en: "Counterparty signer email" },
-  "operations.mnda.signerTitle": { en: "Counterparty signer title" },
+  "operations.mnda.signerTitle": { en: "Signer's job title" },
   "operations.mnda.effectiveDate": { en: "Effective date" },
   "operations.mnda.countersigner": { en: "Fil One countersigner" },
   "operations.mnda.preview": { en: "Prepare preview" },
   "operations.mnda.openPdf": { en: "Open PDF" },
   "operations.mnda.send": { en: "Confirm and send" },
   "operations.mnda.notReady": {
-    en: "Sending is unavailable until the signing connection is activated. You can prepare drafts.",
+    en: "Sending is off until signing is connected. You can prepare drafts.",
   },
   "operations.mnda.testMode": {
     en: "Test mode: these documents are for testing only.",
@@ -46,29 +50,29 @@ export const mndaMessages = defineStaffMessages({
     en: "Demo register: the companies and people are fictional. Preparing, sending, reminders and voids are turned off, and nothing goes out for signature.",
   },
   "operations.mnda.none": { en: "No MNDAs yet." },
-  "operations.mnda.owner": { en: "Prepared by" },
+  "operations.mnda.preparedBy": { en: "Prepared by {name}" },
   "operations.mnda.executed": { en: "Signed PDF" },
   "operations.mnda.signers": { en: "Authorized countersigners" },
   "operations.mnda.newSigner": { en: "Add countersigner" },
-  "operations.mnda.titleField": { en: "Job title" },
+  "operations.mnda.titleField": { en: "Signer's job title" },
   "operations.mnda.active": { en: "Available for new requests" },
   "operations.mnda.default": { en: "Default countersigner" },
   "operations.mnda.review": {
-    en: "Open the PDF and check the details before you send. Nothing goes to the partner until you confirm.",
+    en: "Open the PDF and check the details before you send. Nothing goes to the counterparty until you confirm.",
   },
   "operations.mnda.order": {
     en: "The counterparty signs first, then the selected Fil One countersigner.",
   },
 
   "operations.mnda.teamHint": {
-    en: "Enter every detail. The partner only signs.",
+    en: "Enter every detail. The counterparty only signs.",
   },
   "operations.mnda.ifKnown": { en: "If known" },
 
-  "operations.mnda.section.signer": { en: "Partner signer" },
+  "operations.mnda.section.signer": { en: "Counterparty signer" },
   "operations.mnda.section.company": { en: "Company" },
   "operations.mnda.section.knownDetails": {
-    en: "Known details (the partner fills any blanks)",
+    en: "Known details (the counterparty fills any blanks)",
   },
   "operations.mnda.section.details": { en: "Company and notice details" },
   "operations.mnda.section.agreement": { en: "Agreement" },
@@ -85,14 +89,16 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.discardDraft": { en: "Discard draft" },
 
   "operations.mnda.preview.title": { en: "Review before sending" },
-  "operations.mnda.preview.partner": { en: "Partner signer" },
+  "operations.mnda.preview.partner": { en: "Counterparty signer" },
   "operations.mnda.preview.notices": { en: "Notices to Fil One" },
-  "operations.mnda.preview.partnerCompletes": { en: "Partner fills in" },
+  "operations.mnda.preview.partnerCompletes": {
+    en: "Counterparty fills in",
+  },
   "operations.mnda.preview.nothingToComplete": {
     en: "Nothing. Every detail is in the agreement.",
   },
   "operations.mnda.preview.order": {
-    en: "{countersigner} countersigns after the partner signs. When both have signed, you get the signed copy by email.",
+    en: "{countersigner} countersigns after the counterparty signs. When both have signed, you get the signed copy by email.",
   },
   "operations.mnda.duplicate.title": {
     en: "Fil One already has an MNDA with this company",
@@ -123,7 +129,9 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.statusFilter": { en: "Filter by status" },
   "operations.mnda.group.all": { en: "All" },
   "operations.mnda.group.drafts": { en: "Drafts" },
-  "operations.mnda.group.waitingPartner": { en: "Waiting on partner" },
+  "operations.mnda.group.waitingPartner": {
+    en: "Waiting on counterparty",
+  },
   "operations.mnda.group.waitingFilOne": { en: "Waiting on Fil One" },
   "operations.mnda.group.attention": { en: "Needs attention" },
   "operations.mnda.group.completed": { en: "Signed" },
@@ -133,19 +141,20 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.state.preparing": { en: "Preparing" },
   "operations.mnda.state.ready": { en: "Ready to send" },
   "operations.mnda.state.sending": { en: "Sending" },
-  "operations.mnda.state.sent": { en: "Sent to partner" },
-  "operations.mnda.state.viewed": { en: "Opened by partner" },
+  "operations.mnda.state.sent": { en: "Sent" },
+  "operations.mnda.state.viewed": { en: "Opened" },
   "operations.mnda.state.awaiting": { en: "Waiting on Fil One" },
   "operations.mnda.state.completed": { en: "Signed" },
   "operations.mnda.state.declined": { en: "Declined" },
   "operations.mnda.state.expired": { en: "Expired" },
   "operations.mnda.state.canceled": { en: "Voided" },
+  "operations.mnda.state.discarded": { en: "Discarded" },
   "operations.mnda.state.attention": { en: "Needs attention" },
 
   "operations.mnda.column.company": { en: "Company" },
   "operations.mnda.signedAs": { en: "Signed as {name}" },
   "operations.mnda.column.sent": { en: "Sent" },
-  "operations.mnda.column.outstanding": { en: "Outstanding" },
+  "operations.mnda.column.waiting": { en: "Waiting" },
   "operations.mnda.notSent": { en: "Not sent" },
   "operations.mnda.completedOn": { en: "Signed {date}" },
   "operations.mnda.testBadge": { en: "Test" },
@@ -153,8 +162,14 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.remindName": { en: "Remind {name}" },
   "operations.mnda.reminded": { en: "Reminder sent to {name}." },
   "operations.mnda.fixEmail": { en: "Fix email" },
-  "operations.mnda.sendAgain": { en: "Send again" },
-  "operations.mnda.duplicateAction": { en: "Duplicate" },
+  "operations.mnda.copy": { en: "New MNDA from this one" },
+  "operations.mnda.checkStatus": { en: "Check status" },
+  "operations.mnda.more": { en: "More" },
+  "operations.mnda.moreFor": { en: "More actions for {company}" },
+  "operations.mnda.blocked.notReady": {
+    en: "Sending is off until signing is connected.",
+  },
+  "operations.mnda.blocked.demo": { en: "Turned off in the demo." },
   "operations.mnda.export": { en: "Export CSV" },
   "operations.mnda.noneHint": {
     en: "Choose New MNDA to send your first agreement.",
@@ -175,10 +190,12 @@ export const mndaMessages = defineStaffMessages({
     en: "SignWell is sending the request to {email}.",
   },
   "operations.mnda.voidedMessage": {
-    en: "MNDA voided. The partner can no longer sign it.",
+    en: "MNDA voided. The counterparty can no longer sign it.",
   },
 
-  "operations.mnda.note.bounced": { en: "The partner's email bounced." },
+  "operations.mnda.note.bounced": {
+    en: "The counterparty's email bounced.",
+  },
   "operations.mnda.note.bouncedNext": {
     en: "Fix the email and SignWell sends it again.",
   },
@@ -186,18 +203,22 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.note.stoppedNext": { en: "Void it, then send it again." },
   "operations.mnda.note.sendUnfinished": { en: "Sending did not finish." },
   "operations.mnda.note.sendUnfinishedNext": {
-    en: "Choose Continue and send again. The partner never gets two copies.",
+    en: "Choose Continue and send again. The counterparty never gets two copies.",
   },
   "operations.mnda.note.unreachable": {
     en: "SignWell did not answer the last check.",
   },
-  "operations.mnda.note.unreachableNext": { en: "Choose Refresh in a minute." },
-  "operations.mnda.note.expired": {
-    en: "The partner did not sign within 30 days.",
+  "operations.mnda.note.unreachableNext": {
+    en: "Choose Check status in a minute.",
   },
-  "operations.mnda.note.declined": { en: "The partner declined to sign." },
+  "operations.mnda.note.expired": {
+    en: "The counterparty did not sign within 30 days.",
+  },
+  "operations.mnda.note.declined": {
+    en: "The counterparty declined to sign.",
+  },
   "operations.mnda.note.sendAgainNext": {
-    en: "Choose Send again to start a new one.",
+    en: "Choose New MNDA from this one to start again.",
   },
   "operations.mnda.note.deletedInSignWell": { en: "Deleted in SignWell." },
   "operations.mnda.note.signersMismatch": {
@@ -207,13 +228,13 @@ export const mndaMessages = defineStaffMessages({
     en: "SignWell's copy of this MNDA has fields that do not match the template.",
   },
   "operations.mnda.note.fieldsMismatchNext": {
-    en: "Void it and send again. If it happens again, contact engineering.",
+    en: "Void it and send again. If it happens again, tell engineering.",
   },
   "operations.mnda.note.bindingMismatch": {
     en: "SignWell's copy does not belong to this MNDA, so its status is not updated.",
   },
   "operations.mnda.note.signersMismatchNext": {
-    en: "If you just fixed the partner's email, fix it again with the same address. Otherwise void it, then send it again.",
+    en: "If you just fixed the counterparty's email, fix it again with the same address. Otherwise void it, then send it again.",
   },
   "operations.mnda.note.signedMismatch": {
     en: "Someone signed this MNDA in SignWell, but SignWell's copy does not match it.",
@@ -228,10 +249,10 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.void.action": { en: "Void" },
   "operations.mnda.void.title": { en: "Void this MNDA?" },
   "operations.mnda.void.description": {
-    en: "The partner at {company} can no longer sign it.",
+    en: "The signer at {company} can no longer sign it.",
   },
   "operations.mnda.void.evidence": {
-    en: "SignWell stops the request and deletes its copy. This register keeps the original PDF and the history. Once the partner has signed, the MNDA can no longer be voided.",
+    en: "SignWell stops the request and deletes its copy. This register keeps the original PDF and the history. Once the counterparty has signed, the MNDA can no longer be voided.",
   },
 
   "operations.mnda.void.reason": { en: "Reason" },
@@ -242,7 +263,7 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.void.keep": { en: "Keep it" },
   "operations.mnda.void.working": { en: "Voiding" },
   "operations.mnda.void.someoneElseReason": {
-    en: "A different person will sign for the partner.",
+    en: "A different person will sign for the counterparty.",
   },
 
   "operations.mnda.discard.title": { en: "Discard this draft?" },
@@ -254,12 +275,12 @@ export const mndaMessages = defineStaffMessages({
   },
   "operations.mnda.discard.keep": { en: "Keep draft" },
 
-  "operations.mnda.correct.title": { en: "Fix the partner's email" },
+  "operations.mnda.correct.title": { en: "Fix the counterparty's email" },
   "operations.mnda.correct.description": {
     en: "SignWell sends the request to the new address. The signer stays {name}.",
   },
   "operations.mnda.correct.help": {
-    en: "Works until the partner starts signing.",
+    en: "Works until the counterparty starts signing.",
   },
   "operations.mnda.correct.confirm": { en: "Send to new email" },
   "operations.mnda.correct.working": { en: "Updating" },
@@ -278,7 +299,7 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.error.invalidDate": { en: "Enter a date." },
   "operations.mnda.error.invalidValue": { en: "Check this value." },
   "operations.mnda.error.sameAsCountersigner": {
-    en: "The partner signer can't use the Fil One countersigner's email.",
+    en: "The counterparty signer can't use the Fil One countersigner's email.",
   },
   "operations.mnda.error.countersignerUnavailable": {
     en: "This countersigner is no longer available. Choose another.",
@@ -314,10 +335,10 @@ export const mndaMessages = defineStaffMessages({
     en: "No reminder was sent. This MNDA needs attention first, and its row says why and what to do next.",
   },
   "operations.mnda.error.signerStarted": {
-    en: "The partner has started signing, so the email can't change. Void this MNDA and send a new one.",
+    en: "The counterparty has started signing, so the email can't change. Void this MNDA and send a new one.",
   },
   "operations.mnda.error.notCorrectable": {
-    en: "The email can only change while the partner has not signed. Void this MNDA and send a new one.",
+    en: "The email can only change while the counterparty has not signed. Void this MNDA and send a new one.",
   },
   "operations.mnda.error.alreadyCompleted": {
     en: "Both sides already signed this MNDA, so it was kept.",
@@ -408,7 +429,7 @@ export const mndaMessages = defineStaffMessages({
     en: "Only the person who prepared this MNDA or a commerce administrator can do this.",
   },
   "operations.mnda.error.notVoidable": {
-    en: "The partner has already signed, so this MNDA can't be voided. If it must not take effect, tell the Fil One countersigner not to sign it.",
+    en: "The counterparty has already signed, so this MNDA can't be voided. If it must not take effect, tell the Fil One countersigner not to sign it.",
   },
 
   "operations.mnda.error.settingsChanged": {
@@ -427,10 +448,10 @@ export const mndaMessages = defineStaffMessages({
     en: "Export CSV includes the newest {limit} MNDAs that match. Narrow the filters to export the rest.",
   },
   "operations.mnda.note.deletedNext": {
-    en: "The partner can no longer sign it. Void it here to close it, then send again if needed.",
+    en: "The counterparty can no longer sign it. Void it here to close it, then start a new one if needed.",
   },
   "operations.mnda.note.signerChange": {
-    en: "Voided: a different person will sign for the partner.",
+    en: "Voided: a different person will sign for the counterparty.",
   },
   "operations.mnda.void.signerChangeNote": {
     en: "After voiding, a new draft opens with the same company details so you can enter the new signer.",

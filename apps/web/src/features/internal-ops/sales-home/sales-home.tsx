@@ -2,7 +2,7 @@ import { use, type ReactNode } from "react";
 import type { Route } from "next";
 import Link from "next/link";
 
-import { buttonClassName } from "@clockwork/ui";
+import { PageHeader, buttonClassName } from "@clockwork/ui";
 
 import { getFormattingLocale, getTranslations } from "@/src/i18n/server";
 
@@ -15,48 +15,52 @@ function WorkRow({ row }: { row: SalesHomeRow }) {
   const locale = use(getFormattingLocale());
   const number = new Intl.NumberFormat(locale);
   const titleId = `sales-home-${row.id}`;
+  // Zero reads the same on both counts: "Yours: none", "Team: none".
+  const figure = (count: number) =>
+    count === 0 ? t("operations.sales.home.card.none") : number.format(count);
+  const mine = t("operations.sales.home.card.mine", {
+    count: figure(row.mine),
+  });
+  const team =
+    row.team === undefined
+      ? null
+      : t("operations.sales.home.card.team", { count: figure(row.team) });
   return (
-    <li className={styles.row} data-empty={row.mine === 0 ? "" : undefined}>
+    <li
+      className={styles.row}
+      data-empty={row.mine === 0 ? "" : undefined}
+      data-attention={row.attention && row.mine > 0 ? "" : undefined}
+    >
       <div className={styles.rowText}>
         <h3 id={titleId}>{t(row.title)}</h3>
         <p>{t(row.hint)}</p>
       </div>
       <div className={styles.rowFigures}>
+        {/* An empty list is not worth a click. */}
         {row.mine === 0 ? (
-          <span className={styles.none}>
-            {t("operations.sales.home.card.none")}
-          </span>
-        ) : (
-          <strong className={styles.count}>{number.format(row.mine)}</strong>
-        )}
-        {row.team !== undefined ? (
-          row.teamHref ? (
-            <Link
-              className={styles.team}
-              href={row.teamHref as Route}
-              aria-describedby={titleId}
-            >
-              {t("operations.sales.home.card.team", {
-                count: number.format(row.team),
-              })}
-            </Link>
-          ) : (
-            <span className={styles.team}>
-              {t("operations.sales.home.card.team", {
-                count: number.format(row.team),
-              })}
-            </span>
-          )
-        ) : null}
-        {row.href && row.mine > 0 ? (
+          <span className={styles.none}>{mine}</span>
+        ) : row.href ? (
           <Link
-            className={styles.view}
+            className={styles.mine}
             href={row.href as Route}
             aria-describedby={titleId}
           >
-            {t("operations.sales.home.card.view")}
+            {mine}
           </Link>
-        ) : null}
+        ) : (
+          <span className={styles.mine}>{mine}</span>
+        )}
+        {team === null ? null : row.teamHref && row.team ? (
+          <Link
+            className={styles.team}
+            href={row.teamHref as Route}
+            aria-describedby={titleId}
+          >
+            {team}
+          </Link>
+        ) : (
+          <span className={styles.team}>{team}</span>
+        )}
       </div>
     </li>
   );
@@ -88,9 +92,20 @@ function WorkSection({ section }: { section: SalesHomeSection }) {
   );
 }
 
+/** Whether the home counts show the reader an MNDA past the draft stage. */
+function hasSentMnda(sections: readonly SalesHomeSection[]): boolean {
+  return sections.some(
+    (section) =>
+      section.id === "mndas" &&
+      (section.rows ?? []).some(
+        (row) => row.id !== "mnda-drafts" && row.mine > 0,
+      ),
+  );
+}
+
 /**
  * The staff home page for anyone with the sales workspace: what waits on the
- * reader or a partner, what finished recently, and the first-run guide.
+ * reader or a counterparty, what finished recently, and the first-run guide.
  */
 export function SalesHome({
   userId,
@@ -108,37 +123,38 @@ export function SalesHome({
   const t = use(getTranslations());
   return (
     <main className={styles.main} id="main-content">
-      <header className={styles.header}>
-        <div>
-          <h1>{t("operations.sales.home.title")}</h1>
-          <p>{t("operations.sales.home.description")}</p>
-        </div>
-        <div className={styles.actions}>
-          {canSendMnda ? (
+      <PageHeader
+        title={t("operations.sales.home.title")}
+        description={t("operations.sales.home.description")}
+        actions={
+          <>
+            {canSendMnda ? (
+              <Link
+                className={buttonClassName({ variant: "primary" })}
+                href="/internal/mndas?compose=1"
+              >
+                {t("operations.sales.home.sendMnda")}
+              </Link>
+            ) : null}
             <Link
-              className={buttonClassName({ variant: "primary" })}
-              href="/internal/mndas"
+              className={buttonClassName({ variant: "secondary" })}
+              href="/internal/pricing"
             >
-              {t("operations.sales.home.sendMnda")}
+              {t("operations.sales.home.openPricing")}
             </Link>
-          ) : null}
-          <Link
-            className={buttonClassName({ variant: "secondary" })}
-            href="/internal/pricing"
-          >
-            {t("operations.sales.home.openPricing")}
-          </Link>
-        </div>
-      </header>
-      <StartGuide userId={userId} />
+          </>
+        }
+      />
       {sections
-        // A source with nothing to show (the guided demo has no contract
-        // register) leaves no empty heading behind.
+        // A source with nothing to show leaves no empty heading behind.
         .filter((section) => section.rows === null || section.rows.length > 0)
         .map((section) => (
           <WorkSection key={section.id} section={section} />
         ))}
       {cards}
+      {/* Work comes first. The guide follows it, folded away once the reader
+          has sent an MNDA. */}
+      <StartGuide userId={userId} collapsedByDefault={hasSentMnda(sections)} />
     </main>
   );
 }

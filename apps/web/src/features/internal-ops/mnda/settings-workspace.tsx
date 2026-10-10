@@ -10,6 +10,7 @@ import {
   Checkbox,
   FormActions,
   Input,
+  PageHeader,
   StateBanner,
   StatusBadge,
 } from "@clockwork/ui";
@@ -136,17 +137,15 @@ export function MndaSettingsWorkspace({
 
   return (
     <main className={styles.main} id="main-content">
-      <header className={styles.header}>
-        <div>
-          <a className={styles.back} href="/internal/mndas">
-            {t("operations.mnda.settings.back")}
-          </a>
-          <h1>{t("operations.mnda.settings.title")}</h1>
-          <p className={styles.muted}>
-            {t("operations.mnda.settings.description")}
-          </p>
-        </div>
-      </header>
+      <div>
+        <a className={styles.back} href="/internal/mndas">
+          {t("operations.mnda.settings.back")}
+        </a>
+        <PageHeader
+          title={t("operations.mnda.settings.title")}
+          description={t("operations.mnda.settings.description")}
+        />
+      </div>
       {message ? (
         <StateBanner
           tone={message.tone}

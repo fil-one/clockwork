@@ -1,10 +1,11 @@
+/* The register pages' frame: same padding and width token, so content starts
+   at the same place on every staff page. */
 .main {
   display: grid;
-  width: min(100%, 1120px);
   min-width: 0;
-  gap: 1.5rem;
-  margin: 0 auto;
-  padding: clamp(1.25rem, 3vw, 2.5rem);
+  max-width: var(--cw-content-max);
+  gap: var(--cw-space-6);
+  padding: clamp(1rem, 3vw, 2.5rem);
   color: var(--cw-ink);
 }
 
@@ -12,33 +13,8 @@
   min-width: 0;
 }
 
-.header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem 1.5rem;
-}
-
-.header h1 {
-  margin: 0;
-  font-family: var(--cw-font-display);
-  font-size: var(--cw-text-display);
-  font-weight: 600;
-  line-height: var(--cw-leading-tight);
-}
-
-.header > div > p {
-  max-width: 64ch;
-  margin: 0.25rem 0 0;
-  color: var(--cw-muted);
-  font-size: var(--cw-text-md);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+.main :global(.cw-page-header) {
+  margin-bottom: 0;
 }
 
 /* The first-run guide: a hairline panel with a numbered list, not a hero. */
@@ -96,6 +72,10 @@
   margin: 0;
 }
 
+.guideRestore .textButton {
+  padding-inline: 0;
+}
+
 .textButton {
   flex: 0 0 auto;
   min-height: var(--cw-control-height);
@@ -128,6 +108,7 @@
   border-radius: var(--cw-radius-md);
   background: var(--cw-surface);
   list-style: none;
+  overflow: hidden;
 }
 
 .row {
@@ -140,6 +121,16 @@
 
 .row + .row {
   border-top: 1px solid var(--cw-border);
+}
+
+/* Broken work the reader must act on: a danger rule on the leading edge and
+   the reader's count in the danger colour. */
+.row[data-attention] {
+  box-shadow: inset 3px 0 0 var(--cw-danger);
+}
+
+.row[data-attention] .mine {
+  color: var(--cw-danger);
 }
 
 .rowText h3 {
@@ -163,11 +154,12 @@
   text-align: end;
 }
 
-.count {
-  min-width: 2ch;
-  font-size: var(--cw-text-xl);
+.mine {
+  color: var(--cw-ink);
+  font-size: var(--cw-text-lg);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .none {
@@ -179,10 +171,16 @@
   color: var(--cw-muted);
   font-size: var(--cw-text-sm);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-a.team,
-.view,
+a.mine,
+a.team {
+  text-decoration: underline;
+  text-decoration-color: var(--cw-border-strong);
+  text-underline-offset: 0.2em;
+}
+
 .unavailable a {
   color: var(--cw-action);
   font-size: var(--cw-text-sm);
@@ -190,19 +188,12 @@ a.team,
   text-decoration: none;
 }
 
-a.team {
-  color: var(--cw-muted);
-  font-weight: 400;
-  text-decoration: underline;
-  text-decoration-color: var(--cw-border-strong);
-  text-underline-offset: 0.2em;
-}
-
+a.mine:hover,
 a.team:hover,
-.view:hover,
 .unavailable a:hover {
   color: var(--cw-action-strong);
   text-decoration: underline;
+  text-decoration-color: currentColor;
   text-underline-offset: 0.2em;
 }
 

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ContractListQuerySchema } from "@clockwork/contracts";
 import {
   contractHomeStatusFilters,
   countSalesHomeContracts,
@@ -10,6 +11,7 @@ import { getRequestCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import type { MessageId } from "@/src/i18n";
 
+import { demoContractRegister } from "../contracts/demo-register";
 import { contractStaff } from "../contracts/server";
 import type { SalesHomeContext, SalesHomeRow, SalesHomeSource } from "./model";
 
@@ -52,10 +54,46 @@ export function contractHomeRows(
         hint,
         mine: counts[group].mine,
         team: counts[group].team,
+        ...(group === "needsAttention" ? { attention: true } : {}),
         ...(group === "awaitingApproval" ? {} : { href: `${teamHref}&mine=1` }),
         teamHref,
       };
     });
+}
+
+/** The demo register read through the filters the home links open. Its
+ * fixtures carry no signing requests, so approvals and attention count zero
+ * and only contracts out for signature show a figure. */
+async function demoContractHomeCounts(
+  context: SalesHomeContext,
+): Promise<SalesHomeContractCounts> {
+  const register = demoContractRegister(context.now, {
+    id: context.userId,
+    name: "",
+    email: "",
+  });
+  const today = context.now.toISOString().slice(0, 10);
+  const scope = { includeMndas: false, viewerId: context.userId };
+  const count = async (group: Group, mine: boolean) =>
+    (
+      await register.list(
+        ContractListQuerySchema.parse({
+          status: contractHomeStatusFilters[group],
+          ...(mine ? { mine: "1" } : {}),
+        }),
+        today,
+        scope,
+      )
+    ).total;
+  const tally = async (group: Group) => ({
+    mine: await count(group, true),
+    team: await count(group, false),
+  });
+  return {
+    awaitingApproval: await tally("awaitingApproval"),
+    needsAttention: await tally("needsAttention"),
+    outForSignature: await tally("outForSignature"),
+  };
 }
 
 export const contractHomeSource: SalesHomeSource = {
@@ -68,9 +106,13 @@ export const contractHomeSource: SalesHomeSource = {
     action: "operations.sales.home.contracts.openRegister",
   },
   async load(context: SalesHomeContext) {
-    // The guided demo's register has no signing requests; the section stays
-    // hidden.
-    if (context.demo) return [];
+    // The guided demo counts its fictional register, so each row opens the
+    // same filtered list it counted.
+    if (context.demo)
+      return contractHomeRows(
+        await demoContractHomeCounts(context),
+        context.permissions.includes("contract:approve"),
+      );
     // Every contract read passes the register's own check (second factor,
     // staff session), not only the page's. It reuses the session the page
     // already read for this request.

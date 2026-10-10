@@ -1,5 +1,11 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   mndaExportLimit,
   mndaRegisterSearchParams,
@@ -17,6 +23,7 @@ import {
   buttonClassName,
   Checkbox,
   EmptyState,
+  PageHeader,
   StateBanner,
   StatusBadge,
 } from "@clockwork/ui";
@@ -32,8 +39,18 @@ import { MndaComposer, type ComposerStart } from "./composer";
 import { CorrectSignerDialog, DiscardDialog, VoidDialog } from "./dialogs";
 import { emptyValues, valuesFromRecord } from "./form-model";
 import { formatMndaDate } from "./format";
-import { mndaErrorLabels, mndaGroupLabels, mndaStateLabels } from "./labels";
+import {
+  mndaErrorLabels,
+  mndaGroupLabels,
+  mndaRecordStateLabel,
+} from "./labels";
 import { mndaDaysOutstanding, mndaPdfHref } from "./register";
+import {
+  BlockedButton,
+  primaryRowAction,
+  RowActionMenu,
+  type MndaRowAction,
+} from "./row-actions";
 import { SessionExpiredReload, useSessionRefresh } from "../session-expiry";
 import styles from "./workspace.module.css";
 
@@ -141,9 +158,12 @@ function rowNote(
 export function MndaWorkspace({
   initial,
   initialQuery,
+  compose = false,
 }: {
   initial: MndaWorkspaceData;
   initialQuery: MndaRegisterQuery;
+  /** Open a new MNDA on arrival. */
+  compose?: boolean;
 }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
@@ -230,6 +250,19 @@ export function MndaWorkspace({
       composerRef.current?.scrollIntoView?.({ block: "start" }),
     );
   };
+  const startNew = () =>
+    open({ kind: "form", values: emptyValues(data.signers) });
+  // `?compose=1` (the home page and the command palette) opens a new MNDA.
+  // The flag leaves the URL so a reload or a filter change does not reopen it.
+  useEffect(() => {
+    if (!compose) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("compose");
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+    if (!initial.demo)
+      open({ kind: "form", values: emptyValues(initial.signers) });
+    // Once, on arrival.
+  }, []);
   const refresh = () => void reload(queryRef.current, true);
   async function operate(
     record: MndaRecord,
@@ -274,40 +307,44 @@ export function MndaWorkspace({
     mine: query.mine,
     q: query.q,
   }).toString();
+  // Why a control cannot act. The demo refuses every change; without the
+  // signing connection, anything that reaches SignWell waits.
+  const demoBlock = data.demo ? t("operations.mnda.blocked.demo") : null;
+  const sendBlock =
+    demoBlock ?? (data.ready ? null : t("operations.mnda.blocked.notReady"));
 
   return (
     <main className={styles.main} id="main-content">
-      <header className={styles.header}>
-        <div>
-          <h1>{t("operations.mnda.title")}</h1>
-          <p className={styles.muted}>{t("operations.mnda.description")}</p>
-        </div>
-        <div className={styles.headerActions}>
-          {data.canManage ? (
+      <PageHeader
+        title={t("operations.mnda.title")}
+        description={t("operations.mnda.description")}
+        actions={
+          <>
+            {demoBlock ? (
+              <BlockedButton reason={demoBlock} variant="primary" size="medium">
+                {t("operations.mnda.new")}
+              </BlockedButton>
+            ) : (
+              <Button onClick={startNew}>{t("operations.mnda.new")}</Button>
+            )}
             <a
-              className={buttonClassName({ variant: "quiet" })}
-              href="/internal/mndas/settings"
+              className={buttonClassName({ variant: "secondary" })}
+              href={`/internal/mndas/export${exportParams ? `?${exportParams}` : ""}`}
+              download
             >
-              {t("operations.mnda.settings.link")}
+              {t("operations.mnda.export")}
             </a>
-          ) : null}
-          <a
-            className={buttonClassName({ variant: "secondary" })}
-            href={`/internal/mndas/export${exportParams ? `?${exportParams}` : ""}`}
-            download
-          >
-            {t("operations.mnda.export")}
-          </a>
-          <Button
-            disabled={data.demo}
-            onClick={() =>
-              open({ kind: "form", values: emptyValues(data.signers) })
-            }
-          >
-            {t("operations.mnda.new")}
-          </Button>
-        </div>
-      </header>
+            {data.canManage ? (
+              <a
+                className={buttonClassName({ variant: "quiet" })}
+                href="/internal/mndas/settings"
+              >
+                {t("operations.mnda.settings.link")}
+              </a>
+            ) : null}
+          </>
+        }
+      />
       {data.demo ? (
         <StateBanner tone="info" title={t("operations.mnda.demo")} />
       ) : !data.ready ? (
@@ -471,12 +508,13 @@ export function MndaWorkspace({
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">{t("operations.mnda.column.company")}</th>
+                  <th scope="col" className={styles.companyColumn}>
+                    {t("operations.mnda.column.company")}
+                  </th>
                   <th scope="col">{t("common.status")}</th>
                   <th scope="col">{t("operations.mnda.countersigner")}</th>
-                  <th scope="col">{t("operations.mnda.owner")}</th>
                   <th scope="col">{t("operations.mnda.column.sent")}</th>
-                  <th scope="col">{t("operations.mnda.column.outstanding")}</th>
+                  <th scope="col">{t("operations.mnda.column.waiting")}</th>
                   <th scope="col">{t("common.actions")}</th>
                 </tr>
               </thead>
@@ -504,9 +542,265 @@ export function MndaWorkspace({
                         (r.error === "recipient_bounced" ||
                           r.error === "signwell_signers_mismatch")));
                   const signedAs = mndaPartnerLegalName(r);
+                  const email = mndaSignerEmail(r);
+                  const primary = primaryRowAction(r, { bound, correctable });
+                  const variant = (action: MndaRowAction) =>
+                    action === primary ? "secondary" : "quiet";
+                  const openPdf =
+                    r.state === "completed" ? null : (
+                      <a
+                        className={buttonClassName({
+                          variant: variant("openPdf"),
+                          size: "small",
+                        })}
+                        href={mndaPdfHref(r.id, "original")}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {t("operations.mnda.openPdf")}
+                      </a>
+                    );
+                  const signedPdf =
+                    r.state === "completed" ? (
+                      <a
+                        className={buttonClassName({
+                          variant: "secondary",
+                          size: "small",
+                        })}
+                        href={mndaPdfHref(r.id, "executed", true)}
+                      >
+                        {t("operations.mnda.executed")}
+                      </a>
+                    ) : null;
+                  const recordContract =
+                    r.state === "completed" && data.canRecordContracts ? (
+                      <a
+                        className={buttonClassName({
+                          variant: "quiet",
+                          size: "small",
+                        })}
+                        href={`/internal/contracts/new?mnda=${r.id}`}
+                      >
+                        {t("operations.contracts.action.record")}
+                      </a>
+                    ) : null;
+                  const continueDraft = !unsentStates.includes(
+                    r.state,
+                  ) ? null : demoBlock ? (
+                    <BlockedButton
+                      reason={demoBlock}
+                      variant={variant("continue")}
+                    >
+                      {t("operations.mnda.continue")}
+                    </BlockedButton>
+                  ) : (
+                    <Button
+                      variant={variant("continue")}
+                      size="small"
+                      disabled={busy}
+                      onClick={() => open({ kind: "preview", record: r })}
+                    >
+                      {t("operations.mnda.continue")}
+                    </Button>
+                  );
+                  const remindLabel = t("operations.mnda.remindName", {
+                    name:
+                      r.state === "awaiting_countersignature"
+                        ? r.countersigner.name
+                        : r.input.signerName,
+                  });
+                  const remind = ![
+                    "sent",
+                    "viewed",
+                    "awaiting_countersignature",
+                  ].includes(r.state) ? null : sendBlock ? (
+                    <BlockedButton
+                      reason={sendBlock}
+                      variant={variant("remind")}
+                    >
+                      {remindLabel}
+                    </BlockedButton>
+                  ) : (
+                    <Button
+                      variant={variant("remind")}
+                      size="small"
+                      disabled={busy}
+                      onClick={() => void operate(r, "remind")}
+                    >
+                      {remindLabel}
+                    </Button>
+                  );
+                  const fixEmail = !correctable ? null : sendBlock ? (
+                    <BlockedButton
+                      reason={sendBlock}
+                      variant={variant("fixEmail")}
+                    >
+                      {t("operations.mnda.fixEmail")}
+                    </BlockedButton>
+                  ) : (
+                    <CorrectSignerDialog
+                      record={r}
+                      trigger={
+                        <Button
+                          variant={variant("fixEmail")}
+                          size="small"
+                          disabled={busy}
+                        >
+                          {t("operations.mnda.fixEmail")}
+                        </Button>
+                      }
+                      onDone={(record) => {
+                        setMessage({
+                          tone: "success",
+                          text: t("operations.mnda.correctedMessage", {
+                            email: mndaSignerEmail(record),
+                          }),
+                        });
+                        refresh();
+                      }}
+                      onSendToSomeoneElse={() => setResendAfterVoid(r)}
+                    />
+                  );
+                  const checkStatus = !(
+                    bound && !terminal(r)
+                  ) ? null : sendBlock ? (
+                    <BlockedButton
+                      reason={sendBlock}
+                      variant={variant("checkStatus")}
+                    >
+                      {t("operations.mnda.checkStatus")}
+                    </BlockedButton>
+                  ) : (
+                    <Button
+                      variant={variant("checkStatus")}
+                      size="small"
+                      disabled={busy}
+                      onClick={() => void operate(r, "sync")}
+                    >
+                      {t("operations.mnda.checkStatus")}
+                    </Button>
+                  );
+                  const copy = !(
+                    r.state !== "canceled" || bound
+                  ) ? null : demoBlock ? (
+                    <BlockedButton reason={demoBlock} variant={variant("copy")}>
+                      {t("operations.mnda.copy")}
+                    </BlockedButton>
+                  ) : (
+                    <Button
+                      variant={variant("copy")}
+                      size="small"
+                      onClick={() =>
+                        open({
+                          kind: "form",
+                          values: valuesFromRecord(r, data.signers, {
+                            keepDate: false,
+                          }),
+                        })
+                      }
+                    >
+                      {t("operations.mnda.copy")}
+                    </Button>
+                  );
+                  const voidAction = !voidable ? null : sendBlock ? (
+                    <BlockedButton
+                      reason={sendBlock}
+                      className={styles.destructiveAction}
+                    >
+                      {t("operations.mnda.void.action")}
+                    </BlockedButton>
+                  ) : (
+                    <VoidDialog
+                      record={r}
+                      open={resendAfterVoid?.id === r.id ? true : undefined}
+                      onOpenChange={(next) => {
+                        if (!next) setResendAfterVoid(null);
+                      }}
+                      signerChange={resendAfterVoid?.id === r.id}
+                      trigger={
+                        <Button
+                          variant="quiet"
+                          size="small"
+                          className={styles.destructiveAction}
+                          disabled={busy}
+                        >
+                          {t("operations.mnda.void.action")}
+                        </Button>
+                      }
+                      onDone={(record) => {
+                        const resend = resendAfterVoid?.id === r.id;
+                        setResendAfterVoid(null);
+                        refresh();
+                        if (resend)
+                          open({
+                            kind: "form",
+                            values: valuesFromRecord(record, data.signers, {
+                              keepDate: false,
+                              clearSigner: true,
+                            }),
+                          });
+                        else
+                          setMessage({
+                            tone: "success",
+                            text: t("operations.mnda.voidedMessage"),
+                          });
+                      }}
+                    />
+                  );
+                  const discard = !(
+                    mine &&
+                    !bound &&
+                    !terminal(r)
+                  ) ? null : demoBlock ? (
+                    <BlockedButton
+                      reason={demoBlock}
+                      className={styles.destructiveAction}
+                    >
+                      {t("operations.mnda.discardDraft")}
+                    </BlockedButton>
+                  ) : (
+                    <DiscardDialog
+                      record={r}
+                      trigger={
+                        <Button
+                          variant="quiet"
+                          size="small"
+                          className={styles.destructiveAction}
+                          disabled={busy}
+                        >
+                          {t("operations.mnda.discardDraft")}
+                        </Button>
+                      }
+                      onConfirm={() => operate(r, "cancel")}
+                    />
+                  );
+                  const actions: Record<MndaRowAction, ReactNode> = {
+                    continue: continueDraft,
+                    remind,
+                    fixEmail,
+                    checkStatus,
+                    signedPdf,
+                    copy,
+                    openPdf,
+                  };
+                  const others = (
+                    [
+                      "openPdf",
+                      "continue",
+                      "remind",
+                      "fixEmail",
+                      "checkStatus",
+                      "copy",
+                    ] as const
+                  )
+                    .filter((action) => action !== primary)
+                    .map((action) => actions[action]);
                   return (
                     <tr key={r.id}>
-                      <td data-label={t("operations.mnda.column.company")}>
+                      <td
+                        className={styles.companyColumn}
+                        data-label={t("operations.mnda.column.company")}
+                      >
                         <strong className={styles.company}>
                           {r.input.company}
                         </strong>
@@ -518,13 +812,16 @@ export function MndaWorkspace({
                           </span>
                         ) : null}
                         <span className={styles.muted}>
-                          {r.input.signerName} · {mndaSignerEmail(r)}
+                          {r.input.signerName}
+                        </span>
+                        <span className={styles.email} title={email}>
+                          {email}
                         </span>
                       </td>
                       <td data-label={t("common.status")}>
                         <div>
                           <StatusBadge tone={tones[r.state] ?? "neutral"}>
-                            {t(mndaStateLabels[r.state])}
+                            {t(mndaRecordStateLabel(r))}
                           </StatusBadge>
                           {r.testMode ? (
                             <span className={styles.testMark}>
@@ -547,10 +844,14 @@ export function MndaWorkspace({
                         </div>
                       </td>
                       <td data-label={t("operations.mnda.countersigner")}>
-                        {r.countersigner.name}
-                      </td>
-                      <td data-label={t("operations.mnda.owner")}>
-                        {r.ownerName}
+                        <div>
+                          {r.countersigner.name}
+                          <span className={styles.muted}>
+                            {t("operations.mnda.preparedBy", {
+                              name: r.ownerName,
+                            })}
+                          </span>
+                        </div>
                       </td>
                       <td
                         className={styles.date}
@@ -560,197 +861,22 @@ export function MndaWorkspace({
                           ? formatMndaDate(r.sentAt, locale)
                           : t("operations.mnda.notSent")}
                       </td>
-                      <td data-label={t("operations.mnda.column.outstanding")}>
-                        {days === null
-                          ? r.completedAt
+                      <td data-label={t("operations.mnda.column.waiting")}>
+                        {days !== null
+                          ? t("operations.mnda.days", { count: days })
+                          : r.state === "completed" && r.completedAt
                             ? t("operations.mnda.completedOn", {
                                 date: formatMndaDate(r.completedAt, locale),
                               })
-                            : "–"
-                          : t("operations.mnda.days", { count: days })}
+                            : "–"}
                       </td>
                       <td data-label={t("common.actions")}>
-                        <div className={styles.rowActions}>
-                          {r.state === "completed" ? (
-                            <a
-                              className={buttonClassName({
-                                variant: "secondary",
-                                size: "small",
-                              })}
-                              href={mndaPdfHref(r.id, "executed", true)}
-                            >
-                              {t("operations.mnda.executed")}
-                            </a>
-                          ) : (
-                            <a
-                              className={buttonClassName({
-                                variant: "quiet",
-                                size: "small",
-                              })}
-                              href={mndaPdfHref(r.id, "original")}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {t("operations.mnda.openPdf")}
-                            </a>
-                          )}
-                          {r.state === "completed" &&
-                          data.canRecordContracts ? (
-                            <a
-                              className={buttonClassName({
-                                variant: "quiet",
-                                size: "small",
-                              })}
-                              href={`/internal/contracts/new?mnda=${r.id}`}
-                            >
-                              {t("operations.contracts.action.record")}
-                            </a>
-                          ) : null}
-                          {unsentStates.includes(r.state) ? (
-                            <Button
-                              variant="secondary"
-                              size="small"
-                              disabled={busy || data.demo}
-                              onClick={() =>
-                                open({ kind: "preview", record: r })
-                              }
-                            >
-                              {t("operations.mnda.continue")}
-                            </Button>
-                          ) : null}
-                          {[
-                            "sent",
-                            "viewed",
-                            "awaiting_countersignature",
-                          ].includes(r.state) ? (
-                            <Button
-                              variant="secondary"
-                              size="small"
-                              disabled={busy || !data.ready}
-                              onClick={() => void operate(r, "remind")}
-                            >
-                              {t("operations.mnda.remindName", {
-                                name:
-                                  r.state === "awaiting_countersignature"
-                                    ? r.countersigner.name
-                                    : r.input.signerName,
-                              })}
-                            </Button>
-                          ) : null}
-                          {correctable ? (
-                            <CorrectSignerDialog
-                              record={r}
-                              trigger={
-                                <Button
-                                  variant="quiet"
-                                  size="small"
-                                  disabled={busy || !data.ready}
-                                >
-                                  {t("operations.mnda.fixEmail")}
-                                </Button>
-                              }
-                              onDone={(record) => {
-                                setMessage({
-                                  tone: "success",
-                                  text: t("operations.mnda.correctedMessage", {
-                                    email: mndaSignerEmail(record),
-                                  }),
-                                });
-                                refresh();
-                              }}
-                              onSendToSomeoneElse={() => setResendAfterVoid(r)}
-                            />
-                          ) : null}
-                          {voidable ? (
-                            <VoidDialog
-                              record={r}
-                              open={
-                                resendAfterVoid?.id === r.id ? true : undefined
-                              }
-                              onOpenChange={(next) => {
-                                if (!next) setResendAfterVoid(null);
-                              }}
-                              signerChange={resendAfterVoid?.id === r.id}
-                              trigger={
-                                <Button
-                                  variant="quiet"
-                                  size="small"
-                                  disabled={busy || !data.ready}
-                                >
-                                  {t("operations.mnda.void.action")}
-                                </Button>
-                              }
-                              onDone={(record) => {
-                                const resend = resendAfterVoid?.id === r.id;
-                                setResendAfterVoid(null);
-                                refresh();
-                                if (resend)
-                                  open({
-                                    kind: "form",
-                                    values: valuesFromRecord(
-                                      record,
-                                      data.signers,
-                                      {
-                                        keepDate: false,
-                                        clearSigner: true,
-                                      },
-                                    ),
-                                  });
-                                else
-                                  setMessage({
-                                    tone: "success",
-                                    text: t("operations.mnda.voidedMessage"),
-                                  });
-                              }}
-                            />
-                          ) : null}
-                          {mine && !bound && !terminal(r) ? (
-                            <DiscardDialog
-                              record={r}
-                              trigger={
-                                <Button
-                                  variant="quiet"
-                                  size="small"
-                                  disabled={busy || data.demo}
-                                >
-                                  {t("operations.mnda.discardDraft")}
-                                </Button>
-                              }
-                              onConfirm={() => operate(r, "cancel")}
-                            />
-                          ) : null}
-                          {bound && !terminal(r) ? (
-                            <Button
-                              variant="quiet"
-                              size="small"
-                              disabled={busy || !data.ready}
-                              onClick={() => void operate(r, "sync")}
-                            >
-                              {t("common.refresh")}
-                            </Button>
-                          ) : null}
-                          {r.state !== "canceled" || bound ? (
-                            <Button
-                              variant="quiet"
-                              size="small"
-                              disabled={data.demo}
-                              onClick={() =>
-                                open({
-                                  kind: "form",
-                                  values: valuesFromRecord(r, data.signers, {
-                                    keepDate: false,
-                                  }),
-                                })
-                              }
-                            >
-                              {t(
-                                terminal(r)
-                                  ? "operations.mnda.sendAgain"
-                                  : "operations.mnda.duplicateAction",
-                              )}
-                            </Button>
-                          ) : null}
-                        </div>
+                        <RowActionMenu
+                          company={r.input.company}
+                          primary={actions[primary]}
+                          more={[recordContract, ...others]}
+                          destructive={[voidAction, discard]}
+                        />
                       </td>
                     </tr>
                   );

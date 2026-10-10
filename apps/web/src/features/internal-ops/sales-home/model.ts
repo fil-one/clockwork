@@ -12,6 +12,9 @@ export interface SalesHomeRow {
   hint: MessageId;
   mine: number;
   team?: number;
+  /** Something is broken and the reader must act: shown in the danger tone
+   * while the reader has any. */
+  attention?: boolean;
   /** The reader's own items, filtered. Absent where the list cannot open. */
   href?: string;
   /** Everyone's items, filtered the same way. */

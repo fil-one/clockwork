@@ -5,10 +5,8 @@
   min-width: 0;
   max-width: var(--cw-content-max, 90rem);
 }
-.main h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0 0 var(--cw-space-1, 0.25rem);
+.main :global(.cw-page-header) {
+  margin-bottom: 0;
 }
 .main h2 {
   font-size: var(--cw-text-lg, 1.125rem);
@@ -22,19 +20,6 @@
 }
 p.muted {
   margin: var(--cw-space-2, 0.5rem) 0;
-}
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--cw-space-4, 1rem);
-  flex-wrap: wrap;
-}
-.headerActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--cw-space-2, 0.5rem);
-  align-items: center;
 }
 .back {
   display: inline-block;
@@ -179,6 +164,11 @@ p.muted {
   color: var(--cw-ink-soft);
   font-variant-numeric: tabular-nums;
 }
+/* The widest column: the company reads on one or two lines, and the signer's
+   email holds to one line, in full on hover. */
+.companyColumn {
+  min-width: 14rem;
+}
 .company {
   display: block;
   color: var(--cw-ink);
@@ -188,6 +178,16 @@ p.muted {
 .table td .muted {
   display: block;
   overflow-wrap: anywhere;
+}
+.email {
+  display: block;
+  max-width: 14rem;
+  overflow: hidden;
+  color: var(--cw-muted);
+  font-size: var(--cw-text-sm, 0.875rem);
+  line-height: var(--cw-leading-body, 1.5);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .date {
   white-space: nowrap;
@@ -204,11 +204,74 @@ p.muted {
   color: var(--cw-faint);
   font-size: var(--cw-text-xs, 0.75rem);
 }
+/* One lead action and More. The rest unfold below as a short list, with the
+   destructive ones last behind a rule. */
 .rowActions {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: var(--cw-space-1, 0.25rem);
-  min-width: 12rem;
+  min-width: 11rem;
+}
+.moreToggle svg {
+  transition: transform var(--cw-motion-fast) var(--cw-motion-ease);
+}
+.moreToggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.morePanel {
+  flex: 1 0 100%;
+  padding: var(--cw-space-1, 0.25rem);
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-md, 0.375rem);
+  background: var(--cw-surface);
+}
+.morePanel[hidden] {
+  display: none;
+}
+.moreList {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.moreList :is(a, button) {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: start;
+}
+.moreDestructive {
+  margin-top: var(--cw-space-1, 0.25rem);
+  padding-top: var(--cw-space-1, 0.25rem);
+  border-top: 1px solid var(--cw-border-subtle, var(--cw-border));
+}
+.moreList:first-child.moreDestructive {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.moreDestructive .destructiveAction {
+  color: var(--cw-danger);
+}
+.moreDestructive .destructiveAction:hover:not(:disabled) {
+  background: var(--cw-danger-soft);
+  color: var(--cw-danger-strong);
+}
+/* Wide screens: the lead action and More share a line; the list spans both. */
+@media (min-width: 641px) {
+  .rowActions {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+  }
+  .morePanel {
+    grid-column: 1 / -1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .moreToggle svg {
+    transition: none;
+  }
 }
 .pagination {
   display: flex;
@@ -305,6 +368,12 @@ p.muted {
   }
   .rowActions {
     min-width: 0;
+  }
+  .companyColumn {
+    min-width: 0;
+  }
+  .email {
+    max-width: 100%;
   }
   .pagination {
     justify-content: space-between;

@@ -293,7 +293,7 @@ describe("routes re-check the session", () => {
     expect(csv.headers.get("content-type")).toContain("text/csv");
     const text = await csv.text();
     expect(text).toContain(
-      "Example Corporation,Alex Example,alex@example.com,Sent to partner,sent,",
+      "Example Corporation,Alex Example,alex@example.com,Sent,sent,",
     );
     mocks.repository.get.mockResolvedValue({
       ...fixtureRecord,

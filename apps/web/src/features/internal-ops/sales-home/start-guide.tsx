@@ -11,17 +11,19 @@ export const startGuideStorageKey = (userId: string) =>
   `fil-one-commerce:start-guide-dismissed:${userId}`;
 
 // Blocked storage (a private window, a locked-down browser) still honours the
-// choice for as long as the page is open.
+// choice for as long as the page is open. Showing the guide again lasts for
+// the page only; hiding it is remembered.
 const remembered = new Map<string, boolean>();
 const listeners = new Set<() => void>();
 
-function readDismissed(key: string): boolean {
+/** True when hidden, false when shown, null when the reader never chose. */
+function readChoice(key: string): boolean | null {
   const inMemory = remembered.get(key);
   if (inMemory !== undefined) return inMemory;
   try {
-    return window.localStorage.getItem(key) === "1";
+    return window.localStorage.getItem(key) === "1" ? true : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -46,21 +48,29 @@ function subscribe(listener: () => void) {
 }
 
 /**
- * The first-run "Start here" panel. The server renders it open so the steps
- * are in the first paint; a reader who dismissed it before sees it hide as the
- * page hydrates, and can bring it back.
+ * The first-run guide to sending an MNDA, after the reader's work. It is open until
+ * the reader has sent an MNDA, then folds to one line; a reader who hid it
+ * sees it folded as the page hydrates, and can open it again.
  */
-export function StartGuide({ userId }: { userId: string }) {
+export function StartGuide({
+  userId,
+  collapsedByDefault,
+}: {
+  userId: string;
+  /** The reader has sent an MNDA, so the steps are no longer news. */
+  collapsedByDefault: boolean;
+}) {
   const t = useTranslations();
   const key = startGuideStorageKey(userId);
-  const dismissed = useSyncExternalStore(
+  const choice = useSyncExternalStore(
     subscribe,
-    () => readDismissed(key),
-    () => false,
+    () => readChoice(key),
+    () => null,
   );
+  const collapsed = choice ?? collapsedByDefault;
   const headingId = useId();
 
-  if (dismissed)
+  if (collapsed)
     return (
       <p className={styles.guideRestore}>
         <button
