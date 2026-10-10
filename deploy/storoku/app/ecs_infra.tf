@@ -8,4 +8,5 @@ module "ecs_infra" {
   cert_arn = module.cert.cert.arn
   kms = local.kms
   httpport = var.httpport
+  lb_health_check = var.lb_health_check
 }

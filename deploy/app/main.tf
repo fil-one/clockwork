@@ -117,6 +117,20 @@ module "app" {
   # the container check shells out to curl, which node:slim lacks; the ALB
   # check on /healthcheck is what guards the service
   healthcheck = false
+  # A deploy waits for the new task to pass this check before CodeDeploy moves
+  # traffic, so its pace sets the deploy's pace. /healthcheck reads nothing and
+  # Next listens within seconds of the container starting, so the probe runs
+  # every 10 s and three passes in a row (about 20 to 30 s) admit a task, where
+  # the provider's 30 s interval took 60 to 90 s. Seven failures, 60 to 70 s
+  # at this interval, evict one, so a task stalled in steady state is evicted
+  # no sooner than the default's three failures at 30 s (60 to 90 s) allowed;
+  # that matters while a stage runs a single task. The timeout stays 5 s.
+  lb_health_check = {
+    interval            = 10
+    healthy_threshold   = 3
+    unhealthy_threshold = 7
+    timeout             = 5
+  }
   # Next writes its render and fetch caches under .next at runtime
   write_to_container = true
   cpu_architecture   = var.cpu_architecture

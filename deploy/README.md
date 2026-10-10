@@ -228,6 +228,19 @@ pushed fails in seconds rather than after CodeDeploy's hour-long health timeout.
 `make wait-deploy` (`wait-deploy.sh`) waits for the CodeDeploy deployment the
 apply created to finish its blue/green shift, which rolls back on its own if the
 new tasks never pass the load balancer's health check on `/healthcheck`.
+
+The deployment took 167 to 188 seconds from creation to success in the four
+stage deploys of October 5. That covers the new task starting, three passing
+checks at the AWS provider's default 30-second interval (60 to 90 seconds), the
+traffic shift, and the minute CodeDeploy keeps the old tasks before stopping
+them, the fast-rollback window, which stays. `lb_health_check` in `app/main.tf`
+probes every 10 seconds instead, so three passes take 20 to 30 seconds, an
+estimated 40 to 60 seconds saved per stage and 80 to 120 per pipeline run.
+Eviction keeps its pace: seven failures in a row take 60 to 70 seconds, where
+three at 30 seconds took 60 to 90. To undo it, delete the `lb_health_check`
+block and apply; the target groups return to 30 / 3 / 3 in place, nothing is
+replaced.
+
 `make smoke` (`smoke.sh`) then checks the public hostname: `/healthcheck`
 answers 200, `/` answers 200 or a redirect to sign-in (a 503 means
 authentication is not configured), and `/developers/openapi.json` serves the API
