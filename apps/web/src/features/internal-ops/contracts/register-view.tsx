@@ -5,6 +5,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   Button,
+  Checkbox,
   EmptyState,
   InlineNotice,
   Input,
@@ -48,6 +49,7 @@ export function registerHref(query: Partial<Query>): Route {
   if (query.type) params.set("type", query.type);
   if (query.status) params.set("status", query.status);
   if (query.window) params.set("window", String(query.window));
+  if (query.mine) params.set("mine", "1");
   if (query.sort && query.sort !== "updated") params.set("sort", query.sort);
   if (query.direction) params.set("direction", query.direction);
   if (query.page && query.page > 1) params.set("page", String(query.page));
@@ -172,7 +174,7 @@ export function RegisterView({
   demo?: boolean;
 }) {
   const filtered = Boolean(
-    query.q || query.type || query.status || query.window,
+    query.q || query.type || query.status || query.window || query.mine,
   );
   const pages = Math.max(1, Math.ceil(result.total / result.pageSize));
   const typeOptions = contractTypes.map((type) => ({
@@ -273,6 +275,12 @@ export function RegisterView({
           <input type="hidden" name="direction" value={query.direction} />
         ) : null}
         <div className={styles.filterActions}>
+          <Checkbox
+            name="mine"
+            value="1"
+            label={t("operations.contracts.filters.recordedByMe")}
+            defaultChecked={query.mine}
+          />
           <Button type="submit">
             {t("operations.contracts.filters.apply")}
           </Button>

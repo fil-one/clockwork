@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   operateContract: vi.fn(),
   voidContract: vi.fn(),
   prepareContract: vi.fn(),
+  findContractDuplicates: vi.fn(),
   upload: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({
@@ -33,6 +34,7 @@ vi.mock("./actions", () => ({
   operateContract: mocks.operateContract,
   voidContract: mocks.voidContract,
   prepareContract: mocks.prepareContract,
+  findContractDuplicates: mocks.findContractDuplicates,
 }));
 vi.mock("./upload-client", async (original) => ({
   ...(await original<typeof UploadClient>()),
@@ -54,6 +56,10 @@ beforeEach(() => {
     value: { id: "019a44ac-0000-7000-8000-0000000000c1", version: 1 },
   });
   mocks.upload.mockResolvedValue({ ok: true, value: {} });
+  mocks.findContractDuplicates.mockResolvedValue({
+    ok: true,
+    value: { mndas: [], contracts: [] },
+  });
 });
 
 describe("record a contract", () => {
@@ -183,6 +189,93 @@ describe("record a contract", () => {
     expect(mocks.push).not.toHaveBeenCalled();
   });
 
+  it("starts from a signed MNDA with its counterparty filled in", async () => {
+    const mnda = {
+      id: "019a44ac-0000-7000-8000-0000000000e1",
+      company: "Northwind Analytics Ltd",
+      signerName: "Alex Example",
+      signedOn: "2026-09-28",
+    };
+    render(
+      <ContractForm
+        contract={null}
+        ownerName="x"
+        today="2026-10-04"
+        fromMnda={mnda}
+      />,
+    );
+    expect(screen.getByLabelText(/Counterparty legal name/)).toHaveValue(
+      "Northwind Analytics Ltd",
+    );
+    expect(
+      screen.getByText(
+        "From the MNDA signed on Sep 28, 2026. Counterparty signer: Alex Example.",
+      ),
+    ).toBeInTheDocument();
+    // The MNDA it starts from is not reported as a duplicate of itself.
+    await waitFor(
+      () =>
+        expect(mocks.findContractDuplicates).toHaveBeenCalledWith({
+          counterpartyName: "Northwind Analytics Ltd",
+          excludeMndaId: mnda.id,
+        }),
+      { timeout: 2000 },
+    );
+  });
+
+  it("warns about earlier papers for the same counterparty and still saves", async () => {
+    mocks.findContractDuplicates.mockResolvedValue({
+      ok: true,
+      value: {
+        mndas: [
+          {
+            id: "019a44ac-0000-7000-8000-0000000000e1",
+            company: "Bluefin Data Co.",
+            state: "completed",
+            createdAt: "2026-09-01T00:00:00Z",
+            completedAt: "2026-09-02T00:00:00Z",
+            ownerName: "R.W. Holleman",
+          },
+        ],
+        contracts: [
+          {
+            id: "019a44ac-0000-7000-8000-0000000000c7",
+            counterpartyName: "BLUEFIN DATA, Inc.",
+            contractType: "order_form",
+            status: "executed",
+            effectiveDate: "2026-03-01",
+            ownerName: "Morgan Lee",
+          },
+        ],
+      },
+    });
+    render(<ContractForm contract={null} ownerName="x" today="2026-10-04" />);
+    fireEvent.change(screen.getByLabelText(/Counterparty legal name/), {
+      target: { value: "Bluefin Data Co" },
+    });
+    expect(
+      await screen.findByText(
+        "Fil One already has an MNDA with this company",
+        {},
+        { timeout: 2000 },
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("The contract register already lists this company"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "BLUEFIN DATA, Inc." }),
+    ).toHaveAttribute(
+      "href",
+      "/internal/contracts/019a44ac-0000-7000-8000-0000000000c7",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save contract" }));
+    await waitFor(() => expect(mocks.saveContract).toHaveBeenCalledOnce());
+    expect(mocks.findContractDuplicates).toHaveBeenCalledWith({
+      counterpartyName: "Bluefin Data Co",
+    });
+  });
+
   it("edits against the version on screen and reports a conflict", async () => {
     mocks.saveContract.mockResolvedValueOnce({
       ok: false,
@@ -205,6 +298,8 @@ describe("record a contract", () => {
     expect(mocks.saveContract).toHaveBeenCalledWith(
       expect.objectContaining({ expectedVersion: 2 }),
     );
+    // Editing a recorded contract does not look for duplicates of itself.
+    expect(mocks.findContractDuplicates).not.toHaveBeenCalled();
   });
 });
 

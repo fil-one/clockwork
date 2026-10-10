@@ -3,7 +3,14 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { useId, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   X,
   Button,
@@ -36,7 +43,12 @@ import {
 import { contractTermSchedule } from "@clockwork/domain/contract-terms";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
 import type { MessageId } from "@/src/i18n";
-import { saveContract } from "./actions";
+import { findContractDuplicates, saveContract } from "./actions";
+import type { MndaDuplicates } from "../mnda/actions";
+import {
+  DuplicateWarning,
+  noDuplicateMatches,
+} from "../mnda/duplicate-warning";
 import {
   contractFileKindLabels,
   contractPaperLabels,
@@ -48,6 +60,7 @@ import {
   formatFileSize,
 } from "./copy";
 import { SessionExpiredReload } from "../session-expiry";
+import type { ContractFormMnda } from "./loaders";
 import { localFileProblem, uploadContractFile } from "./upload-client";
 import styles from "./contracts.module.css";
 
@@ -100,9 +113,10 @@ function draftFrom(
   contract: ContractRecord | null,
   ownerName: string,
   type: ContractType | undefined,
+  mnda: ContractFormMnda | undefined,
 ): Draft {
   return {
-    counterpartyName: contract?.counterpartyName ?? "",
+    counterpartyName: contract?.counterpartyName ?? mnda?.company ?? "",
     title: contract?.title ?? "",
     contractType: contract?.contractType ?? type ?? "customer_msa",
     paper: contract?.paper ?? "theirs",
@@ -194,11 +208,14 @@ export function ContractForm({
   ownerName,
   today,
   initialType,
+  fromMnda,
 }: {
   contract: ContractRecord | null;
   ownerName: string;
   today: string;
   initialType?: ContractType;
+  /** A signed MNDA with the same counterparty, which fills the name. */
+  fromMnda?: ContractFormMnda;
 }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
@@ -206,7 +223,7 @@ export function ContractForm({
   const formId = useId();
   const id = useRef(contract?.id ?? crypto.randomUUID());
   const [draft, setDraft] = useState(() =>
-    draftFrom(contract, ownerName, initialType),
+    draftFrom(contract, ownerName, initialType, fromMnda),
   );
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [problems, setProblems] = useState<Record<string, string>>({});
@@ -215,8 +232,10 @@ export function ContractForm({
   const [failedUploads, setFailedUploads] = useState<
     { name: string; code: string }[]
   >([]);
+  const [matches, setMatches] = useState<MndaDuplicates>(noDuplicateMatches);
   const busy = progress !== null;
   const editing = contract !== null;
+  const fromMndaId = fromMnda?.id;
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
 
@@ -229,6 +248,32 @@ export function ContractForm({
       return null;
     }
   }, [draft, today]);
+
+  // A new contract shows what already exists for the same counterparty,
+  // as the MNDA form does. It never blocks the save.
+  const counterparty = draft.counterpartyName;
+  useEffect(() => {
+    if (editing || counterparty.trim().length < 2) {
+      setMatches(noDuplicateMatches);
+      return;
+    }
+    // A response for a name the seller has since changed is dropped.
+    let live = true;
+    const timer = setTimeout(() => {
+      void findContractDuplicates({
+        counterpartyName: counterparty,
+        ...(fromMndaId ? { excludeMndaId: fromMndaId } : {}),
+      })
+        .then((result) => {
+          if (live) setMatches(result.ok ? result.value : noDuplicateMatches);
+        })
+        .catch(() => {});
+    }, 400);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [editing, counterparty, fromMndaId]);
 
   const fieldError = (key: string) =>
     problems[key] ? t(fieldMessage(problems[key])) : undefined;
@@ -352,6 +397,15 @@ export function ContractForm({
         />
       ) : null}
 
+      {fromMnda ? (
+        <InlineNotice
+          tone="info"
+          title={t("operations.contracts.new.fromMnda", {
+            signer: fromMnda.signerName,
+            date: formatContractDate(fromMnda.signedOn, locale),
+          })}
+        />
+      ) : null}
       <Fieldset legend={t("operations.contracts.form.parties")}>
         <div className={styles.fieldGrid}>
           <Input
@@ -409,6 +463,7 @@ export function ContractForm({
             error={fieldError("status")}
           />
         </div>
+        <DuplicateWarning matches={matches} />
         <RadioGroup
           legend={t("operations.contracts.field.paper")}
           name={`${formId}-paper`}

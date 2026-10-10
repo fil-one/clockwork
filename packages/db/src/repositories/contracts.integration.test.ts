@@ -14,6 +14,7 @@ import {
 } from "./contract-documents";
 import { ContractRepository, ContractSigningRepository } from "./contracts";
 import { SalesLibraryRepository } from "./sales-library";
+import { countSalesHomeContracts } from "./sales-home";
 
 const { client, db } = createRuntimeDatabase({
   url:
@@ -39,7 +40,7 @@ const approver = {
 };
 const pdf = (text: string = randomUUID()) =>
   Buffer.from(`%PDF-1.7\n${text}\n%%EOF`);
-const all = { includeMndas: true };
+const all = { includeMndas: true, viewerId: actor.id };
 const query = (patch: Record<string, unknown>) =>
   ContractListQuerySchema.parse(patch);
 afterAll(() => client.end());
@@ -371,6 +372,7 @@ describe("contract register", () => {
     expect(
       (
         await repo.list(query({ q: marker }), "2026-10-04", {
+          ...all,
           includeMndas: false,
         })
       ).total,
@@ -488,6 +490,91 @@ describe("contract register", () => {
         )
       ).total,
     ).toBe(0);
+  });
+
+  it("filters to the reader's own contracts and MNDAs with the counts the home page shows", async () => {
+    const marker = randomUUID();
+    const viewer = { ...actor, id: randomUUID(), display: "Mine filter" };
+    const [countersigner] = await signing.countersigners();
+    if (!countersigner) throw new Error("seed countersigner missing");
+    await repo.create(
+      contract(marker, { status: "out_for_signature" }),
+      viewer,
+    );
+    await repo.create(contract(marker, { status: "out_for_signature" }), actor);
+    // A prepared contract an approver sent back needs its preparer.
+    const rejected = contract(marker, {
+      paper: "ours",
+      status: "draft",
+      contractType: "other",
+    });
+    await signing.prepare(
+      {
+        contract: rejected,
+        signing: {
+          templateId: "test-fixture",
+          templateVersion: "1",
+          templateHash: "b".repeat(64),
+          documentName: `Doc ${marker}`,
+          input: {},
+          counterpartySigner: {
+            name: "Alex",
+            email: `alex-${marker}@example.com`,
+            title: "CEO",
+          },
+          countersignerId: countersigner.id,
+          approvalRequired: true,
+          testMode: true,
+        },
+        pdf: pdf(),
+        fileName: "Prepared.pdf",
+      },
+      viewer,
+    );
+    await signing.decide(
+      rejected.id,
+      { approve: false, reason: "Wrong entity" },
+      approver,
+    );
+    const mnda = randomUUID();
+    await client`insert into commerce_mnda_requests (id, input, countersigner, owner_id, owner_name, state, template_hash, test_mode, completed_at)
+      values (${mnda}, ${JSON.stringify({ company: `Signed NDA ${marker}`, effectiveDate: "2026-09-28" })}::jsonb, '{"name":"James Kurz"}'::jsonb, ${viewer.id}, 'Mine filter', 'completed', ${"a".repeat(64)}, true, now())`;
+    const scope = { includeMndas: true, viewerId: viewer.id };
+    const mine = await repo.list(
+      query({ q: marker, mine: "1" }),
+      "2026-10-04",
+      scope,
+    );
+    expect(mine.total).toBe(3);
+    expect(mine.rows.map((row) => row.source).sort()).toEqual([
+      "mnda",
+      "register",
+      "template",
+    ]);
+    expect(
+      (await repo.list(query({ q: marker }), "2026-10-04", scope)).total,
+    ).toBe(4);
+    expect(
+      (
+        await repo.exportRows(
+          query({ q: marker, mine: "1" }),
+          "2026-10-04",
+          scope,
+        )
+      ).rows,
+    ).toHaveLength(3);
+    // The home page's own counts for the same reader open the same rows.
+    const home = await countSalesHomeContracts(db, { viewerId: viewer.id });
+    for (const [status, count] of [
+      ["out_for_signature", home.outForSignature.mine],
+      ["signing_attention", home.needsAttention.mine],
+    ] as const) {
+      expect(count).toBe(1);
+      expect(
+        (await repo.list(query({ status, mine: "1" }), "2026-10-04", scope))
+          .total,
+      ).toBe(count);
+    }
   });
 
   it("lists contracts whose notice deadline passed before they renew", async () => {

@@ -320,7 +320,7 @@ describe("register export", () => {
       ],
     });
     const response = await exportCsv(
-      new Request(`${origin}/internal/contracts/export?type=dpa&q=blue`),
+      new Request(`${origin}/internal/contracts/export?type=dpa&q=blue&mine=1`),
     );
     expect(response.headers.get("content-type")).toBe(
       "text/csv; charset=utf-8",
@@ -331,9 +331,9 @@ describe("register export", () => {
     expect(csv).toContain(`"R.W., Holleman"`);
     expect(csv).toContain("Data processing addendum");
     expect(mocks.repository.exportRows).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "dpa", q: "blue" }),
+      expect.objectContaining({ type: "dpa", q: "blue", mine: true }),
       expect.any(String),
-      { includeMndas: true },
+      { includeMndas: true, viewerId: "019a44ac-0000-7000-8000-0000000000aa" },
     );
     // Audited once, with the MNDAs it carries counted on their own.
     expect(mocks.repository.recordAccess).toHaveBeenCalledExactlyOnceWith(

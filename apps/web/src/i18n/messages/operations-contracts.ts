@@ -1215,6 +1215,16 @@ export const contractMessages = defineMessages({
       other: "خلال {count} يوم",
     },
   },
+  "operations.contracts.filters.recordedByMe": {
+    en: "Recorded by me",
+    es: "Registrados por mí",
+    fr: "Enregistrés par moi",
+    de: "Von mir erfasst",
+    ja: "自分が登録したもの",
+    pt: "Registrados por mim",
+    zh: "我登记的",
+    ar: "التي سجّلتُها",
+  },
   "operations.contracts.filters.apply": {
     en: "Apply",
     es: "Aplicar",
@@ -1414,6 +1424,16 @@ export const contractMessages = defineMessages({
     pt: "Registrar um contrato",
     zh: "登记合同",
     ar: "تسجيل عقد",
+  },
+  "operations.contracts.new.fromMnda": {
+    en: "From the MNDA signed on {date}. Counterparty signer: {signer}.",
+    es: "A partir del MNDA firmado el {date}. Firmante de la contraparte: {signer}.",
+    fr: "À partir du MNDA signé le {date}. Signataire de la contrepartie : {signer}.",
+    de: "Aus dem am {date} unterzeichneten MNDA. Unterzeichner der Gegenpartei: {signer}.",
+    ja: "{date}に署名済みのMNDAから作成。相手方の署名者：{signer}",
+    pt: "A partir do MNDA assinado em {date}. Signatário da contraparte: {signer}.",
+    zh: "来自{date}签署的MNDA。对方签署人：{signer}",
+    ar: "من اتفاقية MNDA الموقعة في {date}. موقّع الطرف الآخر: {signer}.",
   },
   "operations.contracts.new.description": {
     en: "Add an agreement signed outside Commerce, or one you are still negotiating on the counterparty's paper.",

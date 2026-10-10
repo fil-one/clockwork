@@ -581,3 +581,33 @@ it("asks to reload an expired session and keeps what was typed", async () => {
   await screen.findByRole("heading", { name: "Review before sending" });
   expect(mocks.prepare).toHaveBeenCalledTimes(2);
 });
+
+it("offers to record a contract from a signed MNDA only", () => {
+  const signed: MndaRecord = {
+    ...sent,
+    id: "019a44ac-0000-7000-8000-000000000011",
+    input: { ...fixtureInput, company: "Signed Co" },
+    state: "completed",
+    completedAt: "2026-09-28T00:00:00Z",
+  };
+  const { unmount } = render(
+    <MndaWorkspace
+      initial={{ ...data([signed, sent]), canRecordContracts: true }}
+      initialQuery={query}
+    />,
+  );
+  const row = (company: string) =>
+    within(screen.getByText(company).closest("tr") as HTMLElement);
+  expect(
+    row("Signed Co").getByRole("link", { name: "Record a contract" }),
+  ).toHaveAttribute("href", `/internal/contracts/new?mnda=${signed.id}`);
+  expect(
+    row(fixtureInput.company).queryByRole("link", {
+      name: "Record a contract",
+    }),
+  ).toBeNull();
+  unmount();
+  // Without contract:write the link would open a page that refuses them.
+  render(<MndaWorkspace initial={data([signed])} initialQuery={query} />);
+  expect(screen.queryByRole("link", { name: "Record a contract" })).toBeNull();
+});

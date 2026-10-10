@@ -235,7 +235,8 @@ function scheduledRows(asOf: string, includeMndas: boolean) {
     ? sql`union all
       select m.id, 'mnda', m.input->>'company', '', 'mnda', 'ours',
         'executed', m.input->>'effectiveDate', false, null, null,
-        m.owner_name, '{}'::text[], coalesce(m.completed_at, m.updated_at),
+        m.owner_name, m.owner_id, '{}'::text[],
+        coalesce(m.completed_at, m.updated_at),
         null::date, 1, null::text
       from public.commerce_mnda_requests m
       where m.state = 'completed'`
@@ -245,7 +246,7 @@ function scheduledRows(asOf: string, includeMndas: boolean) {
       select c.id, c.source, c.counterparty_name, c.title, c.contract_type,
         c.paper, c.status, c.effective_date::text as effective_date,
         c.auto_renew, c.renewal_term_months, c.notice_period_days,
-        c.owner_name, c.tags, c.updated_at,
+        c.owner_name, c.created_by_id, c.tags, c.updated_at,
         public.commerce_contract_term_boundary(c.effective_date,
           c.initial_term_months, c.auto_renew, c.renewal_term_months,
           ${asOf}::date) as boundary,
@@ -278,6 +279,9 @@ export interface ContractListResult {
 export interface ContractListScope {
   /** Signed MNDAs appear only to people who may open the MNDA register. */
   includeMndas: boolean;
+  /** The reader, for "recorded by me": contracts they recorded or
+   * prepared, and MNDAs they sent. */
+  viewerId: string;
 }
 
 export class ContractRepository {
@@ -296,8 +300,13 @@ export class ContractRepository {
     return withInternalTransaction(this.db, randomUUID(), fn);
   }
 
-  private filters(query: Omit<ContractListQuery, "page">, asOf: string) {
+  private filters(
+    query: Omit<ContractListQuery, "page">,
+    asOf: string,
+    viewerId: string,
+  ) {
     const conditions: SQL[] = [sql`true`];
+    if (query.mine) conditions.push(sql`created_by_id = ${viewerId}::uuid`);
     if (query.q) {
       const pattern = likePattern(query.q);
       conditions.push(sql`(counterparty_name ilike ${pattern}
@@ -344,7 +353,7 @@ export class ContractRepository {
       const rows =
         await tx.execute<ListRow>(sql`${scheduledRows(asOf, scope.includeMndas)}
         select *, count(*) over () as total from scheduled
-        where ${this.filters(query, asOf)}
+        where ${this.filters(query, asOf, scope.viewerId)}
         order by ${this.order(query)}
         limit ${contractPageSize} offset ${(query.page - 1) * contractPageSize}`);
       const list = [...rows];
@@ -368,7 +377,7 @@ export class ContractRepository {
       const rows = [
         ...(await tx.execute<ListRow>(sql`${scheduledRows(asOf, scope.includeMndas)}
           select *, 0 as total from scheduled
-          where ${this.filters(query, asOf)}
+          where ${this.filters(query, asOf, scope.viewerId)}
           order by ${this.order(query)} limit ${contractExportLimit + 1}`)),
       ].map(listRowView);
       return {

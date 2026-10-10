@@ -17,12 +17,17 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string | string[] }>;
+  searchParams: Promise<{
+    type?: string | string[];
+    mnda?: string | string[];
+  }>;
 }) {
-  const [t, loaded, { type }] = await Promise.all([
+  const { type, mnda } = await searchParams;
+  // A signed MNDA fills the counterparty; an id the reader cannot open
+  // starts an empty form.
+  const [t, loaded] = await Promise.all([
     getTranslations(),
-    loadContractForm(),
-    searchParams,
+    loadContractForm(undefined, typeof mnda === "string" ? mnda : undefined),
   ]);
   if (loaded.kind !== "ready")
     return (
@@ -47,6 +52,7 @@ export default async function Page({
         ownerName={loaded.ownerName}
         today={loaded.today}
         {...(initialType ? { initialType } : {})}
+        {...(loaded.mnda ? { fromMnda: loaded.mnda } : {})}
       />
     </main>
   );
