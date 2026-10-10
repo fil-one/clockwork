@@ -2,7 +2,7 @@ import { contextHasAnyPermission } from "@clockwork/contracts";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DatabaseCatalogAdmin } from "@clockwork/db";
-import { getCommerceSession } from "@/src/auth/session";
+import { getRequestCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import {
   PriceBookStatusPill,
@@ -29,7 +29,7 @@ function isPriceBookStatus(value: string): value is PriceBookStatus {
 }
 
 async function Page() {
-  const session = await getCommerceSession();
+  const session = await getRequestCommerceSession();
   if (!session.isInternalStaff)
     // i18n-exempt: server-side guard; Next.js masks server errors, the reader never sees this text
     throw new Error("Internal staff authority is required");

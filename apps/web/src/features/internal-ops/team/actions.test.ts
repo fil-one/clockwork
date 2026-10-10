@@ -27,7 +27,10 @@ vi.mock("@/src/features/shell/staff-access", () => {
     requireStaffPermission: mocks.requirePermission,
   };
 });
-vi.mock("@/src/auth/session", () => ({ getCommerceSession: vi.fn() }));
+vi.mock("@/src/auth/session", () => ({
+  getCommerceSession: vi.fn(),
+  SessionExpiredError: class SessionExpiredError extends Error {},
+}));
 vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: mocks.database,
 }));
@@ -54,6 +57,7 @@ vi.mock("@clockwork/db", async (importOriginal) => {
   };
 });
 
+import { SessionExpiredError } from "@/src/auth/session";
 import { StaffPermissionError } from "@/src/features/shell/staff-access";
 import { StaffTeamError } from "@clockwork/db";
 
@@ -205,6 +209,26 @@ describe("authorization", () => {
       }),
     ).resolves.toEqual({ ok: false, code: "RECENT_SIGN_IN_REQUIRED" });
     expect(mocks.grantRole).not.toHaveBeenCalled();
+  });
+
+  it("reports an expired session apart from a sign-in check", async () => {
+    mocks.requirePermission.mockRejectedValueOnce(new SessionExpiredError());
+    await expect(inviteStaffMember(invite)).resolves.toEqual({
+      ok: false,
+      code: "SESSION_EXPIRED",
+    });
+    // Any other refusal from the session still asks for the sign-in check.
+    mocks.requirePermission.mockRejectedValueOnce(
+      new Error(
+        "Privileged commerce roles require an MFA-policy-enforced session",
+      ),
+    );
+    await expect(inviteStaffMember(invite)).resolves.toEqual({
+      ok: false,
+      code: "RECENT_SIGN_IN_REQUIRED",
+    });
+    expect(mocks.prepareInvite).not.toHaveBeenCalled();
+    expect(mocks.provision).not.toHaveBeenCalled();
   });
 
   it.each([

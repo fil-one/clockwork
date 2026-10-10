@@ -131,9 +131,13 @@ export function SalesHome({
         </div>
       </header>
       <StartGuide userId={userId} />
-      {sections.map((section) => (
-        <WorkSection key={section.id} section={section} />
-      ))}
+      {sections
+        // A source with nothing to show (the guided demo has no contract
+        // register) leaves no empty heading behind.
+        .filter((section) => section.rows === null || section.rows.length > 0)
+        .map((section) => (
+          <WorkSection key={section.id} section={section} />
+        ))}
       {cards}
     </main>
   );

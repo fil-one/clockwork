@@ -20,7 +20,7 @@ import { getRoutePermissions } from "@/src/features/shell/route-session";
 import { WorkflowPanel } from "@/src/features/surfaces/workflow-panel";
 import {
   explicitDemoIdentityEnabled,
-  getCommerceSession,
+  getRequestCommerceSession,
 } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import type { MessageId, Translator } from "@/src/i18n";
@@ -63,7 +63,7 @@ async function Page() {
       />
     );
   }
-  const session = await getCommerceSession();
+  const session = await getRequestCommerceSession();
   if (!session.isInternalStaff)
     // i18n-exempt: thrown to the route's error boundary, which shows its own copy
     throw new Error("Internal staff authority is required");

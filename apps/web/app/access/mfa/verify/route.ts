@@ -1,6 +1,9 @@
 import { claimMfaAttempt, recordMfaReceipt } from "@clockwork/db";
 import { getWorkOS } from "@workos-inc/authkit-nextjs";
-import { getVerifiedWorkosSession } from "@/src/auth/session";
+import {
+  getVerifiedWorkosSession,
+  SessionExpiredError,
+} from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
 
 function redirect(location: string) {
@@ -60,7 +63,13 @@ export async function POST(request: Request): Promise<Response> {
       factorId: factor.id,
     });
     return redirect("/");
-  } catch {
+  } catch (error) {
+    // This POST skips the proxy, so an expired access token cannot be
+    // refreshed here. The redirected GET goes through the proxy, which
+    // refreshes the session or sends the reader to sign in; no attempt was
+    // claimed and no receipt written, so the reader enters a code again.
+    if (error instanceof SessionExpiredError)
+      return redirect("/access/mfa?error=expired");
     return redirect("/access/mfa?error=unavailable");
   }
 }

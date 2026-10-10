@@ -113,7 +113,6 @@ export function getCommandItems(
   t: Translator,
 ): CommandPaletteItem[] {
   const navigationItems: CommandPaletteItem[] = navigation[audience]
-    .filter((item) => !item.providerBackedOnly || context.providerBacked)
     .filter((item) => canAccessNavigationItem(item, permissions))
     .map((item) => ({
       id: `navigation-${item.href}`,

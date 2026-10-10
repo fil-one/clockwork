@@ -30,13 +30,15 @@ task_id=${task_arn##*/}
 echo "migration task $task_id started"
 
 # aws ecs wait tasks-stopped gives up after ten minutes; the first migration
-# of a fresh database takes a while, so poll for up to thirty.
+# of a fresh database takes a while, so poll for up to thirty. Every 5 seconds:
+# an ordinary deploy's task stops after about a minute, and a 15-second poll
+# left it waiting 7 seconds on average after it had.
 status=""
-for _ in $(seq 1 120); do
+for _ in $(seq 1 360); do
   status=$(aws ecs describe-tasks --region "$TF_VAR_region" --cluster "$cluster" --tasks "$task_arn" \
     --query 'tasks[0].lastStatus' --output text)
   [ "$status" = "STOPPED" ] && break
-  sleep 15
+  sleep 5
 done
 
 echo "--- migration log"

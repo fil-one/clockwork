@@ -8,7 +8,6 @@ import {
   type MndaRecord,
   type MndaSigner,
 } from "@clockwork/contracts";
-import type { MndaRegisterMatch } from "@clockwork/db";
 import {
   Button,
   buttonClassName,
@@ -21,7 +20,13 @@ import {
   StateBanner,
 } from "@clockwork/ui";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
-import { findMndaDuplicates, operateMnda, prepareMnda } from "./actions";
+import {
+  findMndaDuplicates,
+  operateMnda,
+  prepareMnda,
+  type MndaDuplicates,
+} from "./actions";
+import { contractStatusLabels, contractTypeLabels } from "../contracts/copy";
 import {
   detailsModes,
   fieldLabels,
@@ -37,17 +42,16 @@ import {
 import { mndaErrorLabels, mndaStateLabels } from "./labels";
 import { formatMndaDate } from "./format";
 import { mndaPdfHref } from "./register";
+import { SessionExpiredReload } from "../session-expiry";
 import styles from "./workspace.module.css";
 
 const modeLabels = {
   mixed: "operations.mnda.mixedDetails",
   team: "operations.mnda.teamDetails",
-  recipient: "operations.mnda.recipientDetails",
 } as const;
 const modeHints = {
   mixed: "operations.mnda.mixedHint",
   team: "operations.mnda.teamHint",
-  recipient: "operations.mnda.recipientHint",
 } as const;
 const draftStates = ["draft", "preparing", "ready", "sending"];
 
@@ -55,7 +59,18 @@ export type ComposerStart =
   | { kind: "form"; values: MndaFormValues }
   | { kind: "preview"; record: MndaRecord };
 
-function DuplicateWarning({ matches }: { matches: MndaRegisterMatch[] }) {
+const noMatches: MndaDuplicates = { mndas: [], contracts: [] };
+
+function DuplicateWarning({ matches }: { matches: MndaDuplicates }) {
+  return (
+    <>
+      <MndaMatches matches={matches.mndas} />
+      <ContractMatches matches={matches.contracts} />
+    </>
+  );
+}
+
+function MndaMatches({ matches }: { matches: MndaDuplicates["mndas"] }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
   if (!matches.length) return null;
@@ -86,6 +101,56 @@ function DuplicateWarning({ matches }: { matches: MndaRegisterMatch[] }) {
               })}
             </li>
           ))}
+        </ul>
+      }
+    />
+  );
+}
+
+/** Register contracts with the same company, NDAs or any other type. */
+function ContractMatches({
+  matches,
+}: {
+  matches: MndaDuplicates["contracts"];
+}) {
+  const t = useTranslations();
+  const locale = useFormattingLocale();
+  if (!matches.length) return null;
+  return (
+    <StateBanner
+      tone="warning"
+      live="polite"
+      className={styles.inlineBanner ?? ""}
+      title={t("operations.mnda.duplicate.contractsTitle")}
+      description={
+        <ul className={styles.matchList}>
+          {matches.map((match) => {
+            const values = {
+              type: t(contractTypeLabels[match.contractType]),
+              status: t(contractStatusLabels[match.status]),
+              owner: match.ownerName,
+            };
+            return (
+              <li key={match.id}>
+                <a
+                  href={`/internal/contracts/${match.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {match.counterpartyName}
+                </a>{" "}
+                {match.effectiveDate
+                  ? t("operations.mnda.duplicate.contractDetail", {
+                      ...values,
+                      date: formatMndaDate(match.effectiveDate, locale),
+                    })
+                  : t(
+                      "operations.mnda.duplicate.contractDetailUndated",
+                      values,
+                    )}
+              </li>
+            );
+          })}
         </ul>
       }
     />
@@ -126,7 +191,7 @@ export function MndaComposer({
   const [fieldErrors, setFieldErrors] = useState<MndaFieldError[]>([]);
   const [failure, setFailure] = useState<MndaErrorCode | null>(null);
   const [busy, setBusy] = useState<"preview" | "send" | "discard" | null>(null);
-  const [matches, setMatches] = useState<MndaRegisterMatch[]>([]);
+  const [matches, setMatches] = useState<MndaDuplicates>(noMatches);
   // One id per form session: a retried preview reuses it, so a lost response
   // cannot create a second draft.
   const formId = useRef(crypto.randomUUID());
@@ -136,14 +201,14 @@ export function MndaComposer({
   const excludeId = preview?.id ?? supersedes;
   useEffect(() => {
     if (company.trim().length < 2) {
-      setMatches([]);
+      setMatches(noMatches);
       return;
     }
     const timer = setTimeout(() => {
       void findMndaDuplicates({
         company,
         ...(excludeId ? { excludeId } : {}),
-      }).then((result) => setMatches(result.ok ? result.value : []));
+      }).then((result) => setMatches(result.ok ? result.value : noMatches));
     }, 400);
     return () => clearTimeout(timer);
   }, [company, excludeId]);
@@ -246,6 +311,13 @@ export function MndaComposer({
       live="assertive"
       className={styles.inlineBanner ?? ""}
       title={t(mndaErrorLabels[failure])}
+      {...(failure === "session_expired"
+        ? {
+            action: (
+              <SessionExpiredReload onReloaded={() => setFailure(null)} />
+            ),
+          }
+        : {})}
     />
   ) : null;
 
@@ -389,7 +461,6 @@ export function MndaComposer({
 
   if (!values) return null;
   const mode = values.detailsMode;
-  const recipient = mode === "recipient";
   const optional = mode === "mixed" ? t("operations.mnda.ifKnown") : undefined;
   const text = (
     field: Exclude<MndaFormField, "countersignerId">,
@@ -405,11 +476,7 @@ export function MndaComposer({
         key={field}
         id={`mnda-field-${field}`}
         name={field}
-        label={t(
-          recipient && field === "company"
-            ? "operations.mnda.partnerReference"
-            : fieldLabels[field],
-        )}
+        label={t(fieldLabels[field])}
         value={value ?? ""}
         type={props.type ?? "text"}
         required={props.required}
@@ -457,15 +524,8 @@ export function MndaComposer({
         </Fieldset>
         <Fieldset legend={t("operations.mnda.section.company")}>
           <div className={styles.fields}>
-            {text("company", {
-              required: true,
-              ...(recipient
-                ? { help: t("operations.mnda.partnerReferenceHint") }
-                : {}),
-            })}
-            {recipient
-              ? null
-              : text("shortName", { help: t("operations.mnda.shortNameHint") })}
+            {text("company", { required: true })}
+            {text("shortName", { help: t("operations.mnda.shortNameHint") })}
           </div>
           <DuplicateWarning matches={matches} />
         </Fieldset>
@@ -481,25 +541,23 @@ export function MndaComposer({
           }))}
           onChange={(e) => set("detailsMode", e.target.value)}
         />
-        {recipient ? null : (
-          <Fieldset
-            legend={t(
-              mode === "mixed"
-                ? "operations.mnda.section.knownDetails"
-                : "operations.mnda.section.details",
+        <Fieldset
+          legend={t(
+            mode === "mixed"
+              ? "operations.mnda.section.knownDetails"
+              : "operations.mnda.section.details",
+          )}
+          description={t("operations.mnda.latin")}
+        >
+          <div className={styles.fields}>
+            {knownDetailFields.map((field) =>
+              text(field, {
+                required: mode === "team",
+                ...(field === "noticesEmail" ? { type: "email" } : {}),
+              }),
             )}
-            description={t("operations.mnda.latin")}
-          >
-            <div className={styles.fields}>
-              {knownDetailFields.map((field) =>
-                text(field, {
-                  required: mode === "team",
-                  ...(field === "noticesEmail" ? { type: "email" } : {}),
-                }),
-              )}
-            </div>
-          </Fieldset>
-        )}
+          </div>
+        </Fieldset>
         <Fieldset legend={t("operations.mnda.section.agreement")}>
           <div className={styles.fields}>
             {text("effectiveDate", { type: "date", required: true })}

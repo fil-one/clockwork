@@ -3,7 +3,7 @@ import "server-only";
 import { staffEmailDomains } from "@clockwork/contracts";
 import { StaffTeamRepository, type StaffTeamMember } from "@clockwork/db";
 
-import { getCommerceSession } from "@/src/auth/session";
+import { getRequestCommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 
 import { demoTeamMembers, type TeamMemberView, type TeamView } from "./model";
@@ -37,7 +37,7 @@ export function teamMemberView(member: StaffTeamMember): TeamMemberView {
  * `staff:manage`; this only decides where the people come from.
  */
 export async function loadTeamView(): Promise<TeamView> {
-  const session = await getCommerceSession();
+  const session = await getRequestCommerceSession();
   const emailDomains = staffEmailDomains(configuredStaffDomains());
   const database = getOptionalServiceDatabase();
   if (!session.providerBacked || !database)

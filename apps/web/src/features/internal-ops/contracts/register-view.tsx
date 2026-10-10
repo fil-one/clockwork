@@ -6,6 +6,7 @@ import {
   ArrowUpDown,
   Button,
   EmptyState,
+  InlineNotice,
   Input,
   PageHeader,
   Select,
@@ -158,6 +159,7 @@ export function RegisterView({
   today,
   canWrite,
   canOpenMndas,
+  demo = false,
 }: {
   t: Translator;
   locale: string;
@@ -166,6 +168,8 @@ export function RegisterView({
   today: string;
   canWrite: boolean;
   canOpenMndas: boolean;
+  /** The fictional demo register: read-only, with no stored documents. */
+  demo?: boolean;
 }) {
   const filtered = Boolean(
     query.q || query.type || query.status || query.window,
@@ -207,6 +211,9 @@ export function RegisterView({
           </div>
         }
       />
+      {demo ? (
+        <InlineNotice tone="info" title={t("operations.contracts.demo")} />
+      ) : null}
       <form
         className={`${styles.card} ${styles.filters}`}
         method="get"

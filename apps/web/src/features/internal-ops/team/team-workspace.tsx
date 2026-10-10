@@ -40,6 +40,7 @@ import {
   type TeamRole,
   type TeamView,
 } from "./model";
+import { SessionExpiredReload } from "../session-expiry";
 import styles from "./team-workspace.module.css";
 
 type Outcome =
@@ -48,13 +49,18 @@ type Outcome =
 
 const reasonLimit = 500;
 
-/** The refusal in the reader's words, with the sign-in check when it applies. */
+/**
+ * The refusal in the reader's words, with the sign-in check or the session
+ * reload when it applies.
+ */
 function OutcomeBanner({
   outcome,
   domains,
+  onReloaded,
 }: {
   outcome: Outcome | null;
   domains: string;
+  onReloaded: () => void;
 }) {
   const t = useTranslations();
   return (
@@ -84,7 +90,9 @@ function OutcomeBanner({
                     </Link>
                   ),
                 }
-              : {})}
+              : outcome.code === "SESSION_EXPIRED"
+                ? { action: <SessionExpiredReload onReloaded={onReloaded} /> }
+                : {})}
           />
         </div>
       ) : null}
@@ -144,7 +152,11 @@ export function TeamWorkspace({ view }: { view: TeamView }) {
       ) : null}
 
       <div className={styles.feedback}>
-        <OutcomeBanner outcome={outcome} domains={domains} />
+        <OutcomeBanner
+          outcome={outcome}
+          domains={domains}
+          onReloaded={() => setOutcome(null)}
+        />
       </div>
 
       <section className={styles.panel} aria-labelledby="team-roles">
@@ -628,7 +640,11 @@ function RolesDialog({
       }
     >
       <div className={styles.dialogBody}>
-        <OutcomeBanner outcome={outcome} domains={domains} />
+        <OutcomeBanner
+          outcome={outcome}
+          domains={domains}
+          onReloaded={() => setOutcome(null)}
+        />
         <ul className={styles.roleOptions}>
           {teamRoles.map((role) => {
             const held = member.roles.includes(role);

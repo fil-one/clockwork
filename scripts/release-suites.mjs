@@ -28,6 +28,7 @@ import {
   releasePortAllocationIssues,
   RELEASE_FIXED_CLOCK as FIXED_CLOCK,
   RELEASE_SUITE_ASSERTIONS as suiteAssertions,
+  RELEASE_UI_SPEC_FILES,
   semanticArtifactInventoryFingerprint,
   isolatedReleaseEnvironment,
 } from "./release-artifacts.mjs";
@@ -39,6 +40,7 @@ const EXACT_NODE_VERSION = "v24.18.1";
 const EXACT_PNPM_VERSION = "10.34.5";
 
 const DATABASE_SUITES = new Set(["integration", "proof"]);
+const UI_SUITES = new Set(Object.keys(RELEASE_UI_SPEC_FILES));
 const ORCHESTRATION_ARTIFACTS = new Set([
   "contract.json",
   "result.json",
@@ -516,11 +518,14 @@ async function runSuite(name, index, context) {
     CLOCKWORK_STORAGE_ROOT: storageRoot,
     CLOCKWORK_ARTIFACT_DIR: suiteDirectory,
     PLAYWRIGHT_OUTPUT_DIR: path.join(suiteDirectory, "playwright"),
-    // Next's typed-route project is anchored to .next. Static runs in its own
-    // disposable workspace (or its own CI runner), so keep that canonical
-    // location while build/UI/proof retain explicit per-shard output roots.
+    // Next's typed-route project is anchored to .next. Static and lint each run
+    // in their own disposable workspace (or their own CI runner), so keep that
+    // canonical location while build/UI/proof retain explicit per-shard output
+    // roots.
     CLOCKWORK_NEXT_DIST_DIR:
-      name === "static" ? ".next" : `.next-release-${namespace}`,
+      name === "static" || name === "lint"
+        ? ".next"
+        : `.next-release-${namespace}`,
     CLOCKWORK_RELEASE_MODE: context.mode,
     CLOCKWORK_RELEASE_SHARD: name,
     CLOCKWORK_RELEASE_RUN_ID: context.runId,
@@ -531,16 +536,16 @@ async function runSuite(name, index, context) {
     ...(DATABASE_SUITES.has(name) && !context.manageDatabases
       ? context.localDatabaseEnvironment
       : {}),
-    ...(name === "ui"
+    ...(UI_SUITES.has(name)
       ? {
           CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
           CLOCKWORK_EVIDENCE_ADAPTER: "demo",
           NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV: "test",
         }
       : {}),
-    // The same fixture environment as `ui`, plus the deploy opt-in and an
+    // The same fixture environment as `ui-*`, plus the deploy opt-in and an
     // access password minted for this run. Only this shard sets them, so the
-    // `ui` shard still answers 404 at /demo and the two stay independent.
+    // `ui-*` shards still answer 404 at /demo and stay independent of it.
     ...(name === "demo"
       ? {
           CLOCKWORK_EXPERIENCE_ADAPTER: "demo",
@@ -1141,7 +1146,7 @@ async function main() {
       fetchWorkspaceIsolation = "detached-clean-worktree";
       if (
         names.some(
-          (name) => name === "ui" || name === "demo" || name === "proof",
+          (name) => UI_SUITES.has(name) || name === "demo" || name === "proof",
         )
       ) {
         const browserWorkspace = workspaces.values().next().value;

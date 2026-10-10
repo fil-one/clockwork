@@ -18,15 +18,11 @@ const salesHrefs = salesNavigation.map(({ href }) => href as string);
 const staff = (...roles: Role[]) =>
   permissionsForRoles(roles, { side: "fil_one" });
 
-function visibleHrefs(
-  granted: Role | readonly Role[],
-  providerBacked = true,
-): string[] {
+function visibleHrefs(granted: Role | readonly Role[]): string[] {
   const permissions = staff(
     ...(typeof granted === "string" ? [granted] : granted),
   );
   return navigation.internal
-    .filter((item) => !item.providerBackedOnly || providerBacked)
     .filter((item) => canAccessNavigationItem(item, permissions))
     .map(({ href }) => href);
 }
@@ -99,13 +95,6 @@ describe("staff navigation by role", () => {
     const hrefs = visibleHrefs("destructive_action_approver");
     expect(hrefs.some((href) => salesHrefs.includes(href))).toBe(false);
     expect(hrefs).toContain("/internal/operations");
-  });
-
-  it("hides the MNDA register where no live register exists", () => {
-    expect(visibleHrefs("revenue", false)).toEqual([
-      "/internal",
-      "/internal/pricing",
-    ]);
   });
 
   it("admits both new roles to the staff portal and no tenant role", () => {

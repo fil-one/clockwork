@@ -5,14 +5,14 @@ only from a clean committed repository candidate
 
 ## Shards and budgets
 
-The release contract has seven shards: `static`, `unit`, `integration`, `build`,
-`ui`, `demo`, and `proof`. `pnpm release:parallel` runs them concurrently;
-`pnpm release:serial` runs the identical commands in order; `pnpm release:debug`
-is the one-worker readable reproduction path. The 45-minute local and 30-minute
-CI clocks begin before disposable worktrees, dependency installation, database
-startup, migration, and seeding.
+The release contract has nine shards: `static`, `lint`, `unit`, `integration`,
+`build`, `ui-1`, `ui-2`, `demo`, and `proof`. `pnpm release:parallel` runs them
+concurrently; `pnpm release:serial` runs the identical commands in order;
+`pnpm release:debug` is the one-worker readable reproduction path. The 45-minute
+local and 30-minute CI clocks begin before disposable worktrees, dependency
+installation, database startup, migration, and seeding.
 
-CI assigns ports 32000–32006 explicitly. Each local shard receives a detached
+CI assigns ports 32000–32008 explicitly. Each local shard receives a detached
 worktree, unique app port, database schema name, queue namespace, fixture
 namespace, fixed clock, storage root, artifact root, and Next.js output
 directory. Integration and proof each start a different Supabase project with a
@@ -21,8 +21,11 @@ from the candidate migrations/seed, use its own database URLs, and stop it in
 `finally`. CI shards run in separate machines and publish the same isolation
 contract for the join validator.
 
-The UI shard explicitly selects the non-production `demo` adapter and drives a
-development server, because its journeys authenticate by persona header. The
+`lint` is the type-aware ESLint pass, split from `static` because it was the
+longest static step (178 of 449 seconds on main, 2026-10-05).
+
+The UI shards explicitly select the non-production `demo` adapter and drive a
+development server, because their journeys authenticate by persona header. The
 demo shard builds the application into its own output directory and serves that
 build, with the demo deploy opt-in and canonical origin a built server requires:
 nothing compiles while its journeys run, which is what the deployed demo does
@@ -30,6 +33,18 @@ too. The proof shard explicitly selects the database adapter, production
 environment, canonical localhost origin, production build directory, and
 release-proof authentication. Persona headers, account headers, route
 interception, and first-party page mocking are forbidden in proof.
+
+The browser suite runs as two halves, `ui-1` and `ui-2`, each on its own macOS
+runner with its own development server, port and file-backed demo store.
+`RELEASE_UI_SPEC_FILES` in `scripts/release-artifacts.mjs` names each half's
+spec files, balanced on measured durations, and `release-artifacts.test.mjs`
+fails unless the two lists partition every spec in `apps/web/e2e` other than the
+demo and proof specs, so a new spec has to be assigned to one half. `ui-2` holds
+the visual comparisons and runs with `--no-deps`: the visual project's
+dependency on the functional project would otherwise rerun every functional spec
+there. The suite runs one worker, and the visual tests reset the durable demo
+state before and after, so the dependency's original purpose (keeping
+screenshots from racing a mutating journey) still holds.
 
 ## Assertion and artifact equivalence
 

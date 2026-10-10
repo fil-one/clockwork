@@ -47,6 +47,7 @@ import {
   formatContractDate,
   formatFileSize,
 } from "./copy";
+import { SessionExpiredReload } from "../session-expiry";
 import { localFileProblem, uploadContractFile } from "./upload-client";
 import styles from "./contracts.module.css";
 
@@ -341,6 +342,13 @@ export function ContractForm({
           title={t("operations.contracts.form.notSaved")}
           description={t(errorMessage(error))}
           live="assertive"
+          {...(error === "SESSION_EXPIRED"
+            ? {
+                action: (
+                  <SessionExpiredReload onReloaded={() => setError(null)} />
+                ),
+              }
+            : {})}
         />
       ) : null}
 

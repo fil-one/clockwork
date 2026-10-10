@@ -6,6 +6,7 @@ import { useId, useState, useTransition } from "react";
 import { Button, Dialog, Input, Select, Textarea } from "@clockwork/ui";
 
 import styles from "../finance-lifecycle/finance-lifecycle.module.css";
+import { SessionExpiredReload } from "../session-expiry";
 import { classifyReconciliationVariance } from "./actions";
 import { reconciliationCopy } from "./copy";
 import { varianceClassifications, type VarianceClassification } from "./model";
@@ -32,10 +33,12 @@ export function VarianceDisposition({
   const [clearingPeriod, setClearingPeriod] = useState("");
   const [evidenceReference, setEvidenceReference] = useState("");
   const [message, setMessage] = useState("");
+  const [expired, setExpired] = useState(false);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function submit() {
+    setExpired(false);
     if (reason.trim().length < 8) {
       setMessage(t(failures.RECONCILIATION_REASON_REQUIRED ?? fallbackFailure));
       return;
@@ -58,6 +61,7 @@ export function VarianceDisposition({
       setMessage(
         t((result.code ? failures[result.code] : undefined) ?? fallbackFailure),
       );
+      setExpired(result.code === "SESSION_EXPIRED");
     });
   }
 
@@ -146,6 +150,9 @@ export function VarianceDisposition({
         <p className={styles.statusMessage} role="alert">
           {message}
         </p>
+      ) : null}
+      {message && expired ? (
+        <SessionExpiredReload onReloaded={() => setMessage("")} />
       ) : null}
       {done && !message ? (
         <p className={styles.statusMessage} role="status">

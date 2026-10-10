@@ -125,6 +125,7 @@ const signingView = (s: SigningRow): ContractSigningRecord => ({
   createdAt: s.createdAt.toISOString(),
   updatedAt: s.updatedAt.toISOString(),
   completedAt: s.completedAt?.toISOString() ?? null,
+  remindedAt: s.remindedAt?.toISOString() ?? null,
   version: s.version,
 });
 
@@ -166,6 +167,20 @@ const registerStatusFor: Partial<Record<ContractSigningState, ContractStatus>> =
     expired: "draft",
     canceled: "draft",
   };
+
+const terminalStates = sql.raw(
+  terminalContractSigningStates.map((state) => `'${state}'`).join(", "),
+);
+/** A template contract waiting for an approval decision. Reads the signing
+ * row as `s`. */
+export const contractAwaitingApproval = sql`(s.approval_state = 'pending'
+  and s.state not in (${terminalStates}))`;
+/** A template contract that needs a person: SignWell reported a problem, a
+ * provider call failed, or an approver sent it back. Reads the signing row
+ * as `s`. */
+export const contractNeedsAttention = sql`(s.state not in (${terminalStates})
+  and (s.state = 'attention' or s.error is not null
+    or s.approval_state = 'rejected'))`;
 
 type ListRow = {
   id: string;
@@ -290,7 +305,13 @@ export class ContractRepository {
         or exists (select 1 from unnest(tags) tag where tag ilike ${pattern}))`);
     }
     if (query.type) conditions.push(sql`contract_type = ${query.type}`);
-    if (query.status?.startsWith("signing_"))
+    if (query.status === "signing_approval")
+      conditions.push(sql`exists (select 1 from public.commerce_contract_signing s
+        where s.contract_id = scheduled.id and ${contractAwaitingApproval})`);
+    else if (query.status === "signing_attention")
+      conditions.push(sql`exists (select 1 from public.commerce_contract_signing s
+        where s.contract_id = scheduled.id and ${contractNeedsAttention})`);
+    else if (query.status?.startsWith("signing_"))
       conditions.push(
         sql`status = 'draft' and signing_state = ${query.status.slice("signing_".length)}`,
       );
@@ -355,6 +376,57 @@ export class ContractRepository {
         truncated: rows.length > contractExportLimit,
       };
     });
+  }
+
+  /**
+   * Records who downloaded a contract file or exported the register. Each
+   * access is its own audit aggregate, so it never competes with a contract's
+   * version chain. An export says how many of its rows were signed MNDAs,
+   * which it carries for readers of the MNDA register.
+   */
+  recordAccess(
+    actor: Actor,
+    event:
+      | {
+          kind: "file";
+          contractId: string;
+          fileId: string;
+          fileKind: ContractFileKind;
+        }
+      | {
+          kind: "export";
+          filters: ContractListQuery;
+          rows: number;
+          mndaRows: number;
+          truncated: boolean;
+        },
+  ) {
+    return this.tx((tx) =>
+      appendAuditAndOutbox(tx, {
+        aggregateType: event.kind === "file" ? "document" : "report_export",
+        aggregateId: randomUUID(),
+        aggregateVersion: 1,
+        eventType:
+          event.kind === "file"
+            ? "contract.file_downloaded"
+            : "contract.register_exported",
+        actor,
+        requestId: randomUUID(),
+        after:
+          event.kind === "file"
+            ? {
+                contractId: event.contractId,
+                fileId: event.fileId,
+                kind: event.fileKind,
+              }
+            : {
+                filters: event.filters,
+                rows: event.rows,
+                mndaRows: event.mndaRows,
+                truncated: event.truncated,
+              },
+      }),
+    );
   }
 
   /** Executed contracts that renew automatically and whose notice deadline
@@ -721,6 +793,7 @@ async function recordEvent(
   actor: Actor,
   eventType: string,
   changes: Record<string, unknown>,
+  detail?: Record<string, unknown>,
 ) {
   await tx.insert(contractEvents).values({
     id: randomUUID(),
@@ -737,8 +810,16 @@ async function recordEvent(
     eventType,
     actor,
     requestId: randomUUID(),
-    after: { eventType, fields: Object.keys(changes) },
+    after: { eventType, fields: Object.keys(changes), ...detail },
   });
+}
+
+/** A signing change worth its own history entry, beyond a state change. */
+export interface ContractSigningNote {
+  /** Overrides the default `contract.signing_<state>` event name. */
+  eventType: string;
+  /** Recorded in the contract's history and its audit event. */
+  detail?: Record<string, unknown>;
 }
 
 export interface PrepareContractSigning {
@@ -1051,7 +1132,8 @@ export class ContractSigningRepository {
   /**
    * Applies a signing transition under the caller's lease. Reaching
    * `completed` requires the executed PDF, which is stored and attached in
-   * the same transaction that marks the register row executed.
+   * the same transaction that marks the register row executed. A state
+   * change, or a `note`, is recorded in the contract's history.
    */
   async update(
     contractId: string,
@@ -1060,9 +1142,11 @@ export class ContractSigningRepository {
       state?: ContractSigningState;
       providerId?: string;
       error?: string | null;
+      remindedAt?: Date;
     },
     actor: Actor,
     executed?: { bytes: Uint8Array; fileName: string },
+    note?: ContractSigningNote,
   ) {
     const stored = executed
       ? await this.stores.primary.put(executed.bytes, {
@@ -1109,14 +1193,16 @@ export class ContractSigningRepository {
           .where(eq(contractSigning.contractId, contractId))
           .returning();
         if (!next) throw new Error("CONTRACT_SIGNING_UPDATE_FAILED");
-        if (patch.state && patch.state !== row.state) {
+        const changedState =
+          patch.state && patch.state !== row.state ? patch.state : undefined;
+        if (changedState || note) {
           const [contract] = await tx
             .select()
             .from(commerceContracts)
             .where(eq(commerceContracts.id, contractId))
             .for("update");
           if (!contract) throw new Error("CONTRACT_NOT_FOUND");
-          const status = registerStatusFor[patch.state];
+          const status = changedState && registerStatusFor[changedState];
           await tx
             .update(commerceContracts)
             .set({
@@ -1130,10 +1216,14 @@ export class ContractSigningRepository {
             contractId,
             contract.version + 1,
             actor,
-            `contract.signing_${patch.state}`,
-            status && status !== contract.status
-              ? { status: { from: contract.status, to: status } }
-              : {},
+            note?.eventType ?? `contract.signing_${changedState}`,
+            {
+              ...(status && status !== contract.status
+                ? { status: { from: contract.status, to: status } }
+                : {}),
+              ...note?.detail,
+            },
+            note?.detail,
           );
         }
         return signingView(next);

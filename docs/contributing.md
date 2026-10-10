@@ -176,9 +176,9 @@ an end-to-end signing flow. See the
 [MNDA validation guidance](operations/commerce-mnda.md#change-validation).
 
 Do not run the entire release suite locally merely to duplicate CI. Required
-hooks and GitHub checks remain in effect. CI currently runs all seven shards
-even for documentation-only PRs and main pushes, and successful main CI triggers
-the deployment pipeline. This guidance reduces discretionary work; it does not
+hooks and GitHub checks remain in effect. CI currently runs all nine shards even
+for documentation-only PRs and main pushes, and successful main CI triggers the
+deployment pipeline. This guidance reduces discretionary work; it does not
 implement a faster CI path. Let normal automation run without adding manual
 deployments or duplicate qualification. Report required CI/deployment waiting
 separately from hands-on work.
@@ -196,12 +196,13 @@ pnpm verify:ui         # Storybook component tests and Playwright e2e
 pnpm verify            # all four, in order
 ```
 
-CI runs the same work as seven parallel shards — `static`, `unit`,
-`integration`, `build`, `ui`, `demo`, and `proof` — on every pull request and
-every push to `main`. The `ui` and `demo` shards run on macOS, because both
-compare against the reviewed screenshot baselines. The shard list is the same
-list the orchestrator uses, `RELEASE_SUITE_NAMES`, and a test in
-`scripts/release-artifacts.test.mjs` fails if the workflow drifts from it.
+CI runs the same work as nine parallel shards — `static`, `lint`, `unit`,
+`integration`, `build`, `ui-1`, `ui-2`, `demo`, and `proof` — on every pull
+request and every push to `main`. The `ui-1`, `ui-2` and `demo` shards run on
+macOS, because all three compare against the reviewed screenshot baselines. The
+shard list is the same list the orchestrator uses, `RELEASE_SUITE_NAMES`, and a
+test in `scripts/release-artifacts.test.mjs` fails if the workflow drifts from
+it.
 
 Testing uses fixed clocks, stable demo identifiers and `.test` domains, with
 provider fakes for replay and failure scenarios.

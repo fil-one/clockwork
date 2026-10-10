@@ -1,6 +1,10 @@
 import { DatabasePaygBillingRepository } from "../core/database-payg";
 import { configurePaygScheduleRepository } from "../core/payg-scheduled-runtime";
 import { configurePriceBookScheduleRepository } from "../core/price-book-scheduled-runtime";
+import {
+  configureESignReconciliation,
+  environmentESignReconciliationSources,
+} from "../esign/reconciliation";
 import { DatabasePriceBookScheduleRepository } from "@clockwork/db";
 import {
   configureDatabaseTransactionInstrumentation,
@@ -172,6 +176,9 @@ export async function createWorkflowRuntime(
       return new DatabasePaygBillingRepository(db).closeMonth(period);
     },
   });
+  configureESignReconciliation(
+    environmentESignReconciliationSources(db, source),
+  );
   return createProductionWorkflowRuntime({
     db,
     ...adapters,

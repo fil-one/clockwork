@@ -88,6 +88,20 @@ it("marks every notice read at once and words a refusal", async () => {
   expect(mocks.markRead).toHaveBeenCalledWith({ noticeIds: "all" });
 });
 
+it("offers a reload when the session expired while marking notices", async () => {
+  mocks.markRead.mockResolvedValueOnce({ ok: false, code: "SESSION_EXPIRED" });
+  render(<OwnerConsole view={live} />);
+  const notices = section("Notices for you");
+  fireEvent.click(
+    within(notices).getByRole("button", { name: "Mark all as read" }),
+  );
+  const alert = await within(notices).findByRole("alert");
+  expect(alert).toHaveTextContent("Your session expired. Reload to continue.");
+  fireEvent.click(within(alert).getByRole("button", { name: "Reload" }));
+  await waitFor(() => expect(within(notices).queryByRole("alert")).toBeNull());
+  expect(mocks.refresh).toHaveBeenCalledOnce();
+});
+
 it("lists requests waiting for a second person with a link to decide each", () => {
   render(<OwnerConsole view={live} />);
   const approvals = section("Waiting for approval");

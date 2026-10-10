@@ -22,6 +22,7 @@ import {
   type SelfApprovalOutcome,
 } from "../self-approval/model";
 import { SelfApprovalDialog } from "../self-approval/self-approval-dialog";
+import { sessionExpiredMessage } from "../session-expiry-message";
 import type { ApprovalItemView, ConsoleSelfApprovalTarget } from "./model";
 import styles from "./owner-console.module.css";
 
@@ -152,6 +153,7 @@ export function SelfApprovalAction({
         return {
           ok: false,
           message: t(result.message ?? "common.selfApproval.error.generic"),
+          expired: result.message === sessionExpiredMessage,
         };
       setDone(true);
       router.refresh();

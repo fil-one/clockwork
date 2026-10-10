@@ -587,7 +587,6 @@ export function AppShell({
   const navigationGroups = useMemo<readonly NavigationGroup[]>(() => {
     const remaining = new Map(
       navigation[audience]
-        .filter((item) => !item.providerBackedOnly || session.providerBacked)
         .filter((item) => canAccessNavigationItem(item, permissions))
         .map((item) => [
           item.href as string,
@@ -637,7 +636,7 @@ export function AppShell({
       });
     }
     return sections.filter((section) => section.items.length > 0);
-  }, [audience, pathname, permissions, session.providerBacked, t]);
+  }, [audience, pathname, permissions, t]);
 
   /**
    * A client transition replaces the content of the page without a document

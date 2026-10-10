@@ -284,6 +284,55 @@ it("warns about existing MNDAs with the same normalized company, ignoring cancel
   expect(await repo.duplicates(`Bluefin ${tag} Labs`)).toEqual([]);
 }, 30000);
 
+it("finds register contracts for the same company with the MNDA normalizer, leaving out voided drafts", async () => {
+  const tag = randomUUID().slice(0, 8);
+  const contract = async (
+    name: string,
+    contractType: string,
+    status: string,
+    effectiveDate: string | null = null,
+  ) => {
+    const id = randomUUID();
+    await client`insert into commerce_contracts (id, counterparty_name,
+      contract_type, paper, status, effective_date, owner_name, created_by_id,
+      created_by_name) values (${id}, ${name}, ${contractType}, 'theirs',
+      ${status}, ${effectiveDate}, 'R.W. Holleman', ${actor.id}, 'R.W. Holleman')`;
+    return id;
+  };
+  const nda = await contract(
+    `ACME ${tag}, Inc.`,
+    "mnda",
+    "executed",
+    "2026-03-01",
+  );
+  const msa = await contract(
+    `Acme ${tag} Corporation`,
+    "customer_msa",
+    "terminated",
+  );
+  const draftOnly = await contract(`acme ${tag} llc`, "nda_one_way", "draft");
+  const voided = await contract(`Acme ${tag}`, "nda_one_way", "draft");
+  await contract(`Acme ${tag} Labs`, "mnda", "executed");
+  await client`insert into commerce_contract_signing (contract_id, template_id,
+    template_version, template_hash, document_name, input, counterparty_signer,
+    countersigner, preparer_id, preparer_name, approval_required,
+    approval_state, test_mode) values (${voided}, 'nda-one-way', '1',
+    ${"c".repeat(64)}, 'NDA', '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
+    ${actor.id}, 'R.W. Holleman', false, 'not_required', true)`;
+  await client`update commerce_contract_signing set state = 'canceled' where contract_id = ${voided}`;
+  const matches = await repo.contractDuplicates(`Acme ${tag} Corp`);
+  expect(matches.map((m) => m.id).sort()).toEqual([nda, msa, draftOnly].sort());
+  expect(matches.find((m) => m.id === nda)).toEqual({
+    id: nda,
+    counterpartyName: `ACME ${tag}, Inc.`,
+    contractType: "mnda",
+    status: "executed",
+    effectiveDate: "2026-03-01",
+    ownerName: "R.W. Holleman",
+  });
+  expect(await repo.contractDuplicates(" , ")).toEqual([]);
+}, 30000);
+
 it("records corrections and void reasons, and freezes them once closed", async () => {
   const signer = await newSigner();
   const record = await draft(signer);

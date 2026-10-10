@@ -1697,6 +1697,16 @@ export const teamMessages = defineMessages({
     zh: "{actor} 导出了 MNDA 登记册",
     ar: "صدّر {actor} سجل اتفاقيات MNDA",
   },
+  "operations.owner.event.contractsExported": {
+    en: "{actor} exported the contract register",
+    es: "{actor} exportó el registro de contratos",
+    fr: "{actor} a exporté le registre des contrats",
+    de: "{actor} hat das Vertragsregister exportiert",
+    ja: "{actor} さんが契約台帳をエクスポートしました",
+    pt: "{actor} exportou o registro de contratos",
+    zh: "{actor} 导出了合同登记册",
+    ar: "صدّر {actor} سجل العقود",
+  },
   "operations.owner.event.reportExported": {
     en: "{actor} finished a report export",
     es: "{actor} terminó una exportación de informe",

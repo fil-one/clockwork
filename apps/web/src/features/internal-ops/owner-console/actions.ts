@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { OwnerConsoleRepository } from "@clockwork/db";
 
-import type { CommerceSession } from "@/src/auth/session";
+import { SessionExpiredError, type CommerceSession } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
 import {
   requireStaffPermission,
@@ -36,6 +36,7 @@ export async function markNoticesRead(
     session = await requireStaffPermission("staff:manage");
   } catch (error) {
     if (error instanceof StaffPermissionError) return fail("NOT_PERMITTED");
+    if (error instanceof SessionExpiredError) return fail("SESSION_EXPIRED");
     return fail("DIRECT_SESSION_REQUIRED");
   }
   if (

@@ -100,6 +100,7 @@ export const reconciliationCopy = {
       "operations.finance.reconciliation.failure.evidence",
     RECONCILIATION_RECENT_AUTH_REQUIRED:
       "operations.finance.reconciliation.failure.recentAuth",
+    SESSION_EXPIRED: "operations.session.expired",
     RECONCILIATION_FORBIDDEN:
       "operations.finance.reconciliation.failure.forbidden",
     RECONCILIATION_UNAVAILABLE:

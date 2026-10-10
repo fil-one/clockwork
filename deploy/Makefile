@@ -49,6 +49,12 @@ BACKEND_CONFIG = -backend-config="bucket=$(TF_STATE_BUCKET)" -backend-config="re
 # Must match cpu_architecture in app/variables.tf (ARM64).
 PLATFORM ?= linux/arm64
 
+# 1 skips the type check inside the image build (see the Dockerfile). The deploy
+# workflow sets it only for a commit CI has already passed on main; a build by
+# hand checks types.
+CLOCKWORK_TYPECHECKED_IN_CI ?= 0
+IMAGE_BUILD_ARGS = --build-arg CLOCKWORK_TYPECHECKED_IN_CI=$(CLOCKWORK_TYPECHECKED_IN_CI)
+
 ECR_URI = $(TF_VAR_allowed_account_id).dkr.ecr.$(TF_VAR_region).amazonaws.com
 ECR_REPO = $(ECR_URI)/$(TF_VAR_app)-ecr
 # The repository refuses a second push of an existing tag, so a redeploy of
@@ -83,11 +89,11 @@ docker-login:
 
 .PHONY: docker-build
 docker-build: .env.production.local
-	cd .. && docker buildx build --platform $(PLATFORM) -t $(IMAGE_REF) --load .
+	cd .. && docker buildx build --platform $(PLATFORM) $(IMAGE_BUILD_ARGS) -t $(IMAGE_REF) --load .
 
 .PHONY: docker-push
 docker-push: docker-login .env.production.local
-	cd .. && docker buildx build --platform $(PLATFORM) -t $(IMAGE_REF) --push .
+	cd .. && docker buildx build --platform $(PLATFORM) $(IMAGE_BUILD_ARGS) -t $(IMAGE_REF) --push .
 
 # Every target that registers a task definition checks the tag first. ECS
 # retries a missing image for the whole CodeDeploy window (an hour) and only

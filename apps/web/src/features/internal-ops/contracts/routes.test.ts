@@ -8,8 +8,18 @@ const mocks = vi.hoisted(() => ({
   // real parser on the Node runtime.
   forms: new WeakMap<Request, FormData>(),
   session: vi.fn(),
-  repository: { addFile: vi.fn(), readFile: vi.fn(), exportRows: vi.fn() },
-  library: { create: vi.fn(), update: vi.fn(), readFile: vi.fn() },
+  repository: {
+    addFile: vi.fn(),
+    readFile: vi.fn(),
+    exportRows: vi.fn(),
+    recordAccess: vi.fn(),
+  },
+  library: {
+    create: vi.fn(),
+    update: vi.fn(),
+    readFile: vi.fn(),
+    recordDownload: vi.fn(),
+  },
 }));
 vi.mock("@/src/auth/session", () => ({
   getCommerceSession: mocks.session,
@@ -104,6 +114,20 @@ describe("contract file upload", () => {
     expect(mocks.repository.addFile).not.toHaveBeenCalled();
   });
 
+  it("answers an expired session with 401 and its own code", async () => {
+    mocks.session.mockRejectedValue(new Error("SESSION_EXPIRED"));
+    const response = await upload(
+      uploadRequest(form()),
+      params({ id: contractId }),
+    );
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      code: "SESSION_EXPIRED",
+    });
+    expect(mocks.repository.addFile).not.toHaveBeenCalled();
+  });
+
   it("stores the PDF for a seller and refuses kinds staff may not upload", async () => {
     as("revenue");
     mocks.repository.addFile.mockResolvedValue({ id: fileId });
@@ -148,12 +172,20 @@ describe("downloads", () => {
   it("serves a verified PDF with a safe file name to readers only", async () => {
     as("revenue");
     mocks.repository.readFile.mockResolvedValue({
-      file: { fileName: "Contrato firmado — Señal" },
+      file: {
+        id: fileId,
+        kind: "executed",
+        fileName: "Contrato firmado — Señal",
+      },
       bytes: Buffer.from("%PDF-1.7"),
     });
     const response = await download(
       new Request(`${origin}/x`),
       params({ id: contractId, fileId }),
+    );
+    expect(mocks.repository.recordAccess).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
+      { kind: "file", contractId, fileId, fileKind: "executed" },
     );
     expect(response.headers.get("content-type")).toBe("application/pdf");
     expect(response.headers.get("cache-control")).toContain("no-store");
@@ -170,6 +202,47 @@ describe("downloads", () => {
       params({ id: contractId, fileId }),
     );
     expect(denied.status).toBe(403);
+    expect(mocks.repository.recordAccess).toHaveBeenCalledOnce();
+  });
+
+  it("serves nothing when the download cannot be audited", async () => {
+    as("revenue");
+    mocks.repository.readFile.mockResolvedValue({
+      file: { id: fileId, kind: "main", fileName: "Signed MSA" },
+      bytes: Buffer.from("%PDF-1.7"),
+    });
+    mocks.repository.recordAccess.mockRejectedValueOnce(new Error("db down"));
+    const response = await download(
+      new Request(`${origin}/x`),
+      params({ id: contractId, fileId }),
+    );
+    expect(response.status).toBe(500);
+    expect(response.headers.get("content-type")).not.toBe("application/pdf");
+  });
+
+  it("sends no CSV or library PDF when the access cannot be audited", async () => {
+    as("revenue");
+    mocks.repository.exportRows.mockResolvedValue({
+      rows: [],
+      truncated: false,
+    });
+    mocks.repository.recordAccess.mockRejectedValueOnce(new Error("db down"));
+    const csv = await exportCsv(
+      new Request(`${origin}/internal/contracts/export`),
+    );
+    expect(csv.status).toBe(500);
+    expect(csv.headers.get("content-type")).not.toContain("text/csv");
+    mocks.library.readFile.mockResolvedValue({
+      record: { title: "Deck", file: { fileName: "Deck.pdf" } },
+      bytes: Buffer.from("%PDF-1.7"),
+    });
+    mocks.library.recordDownload.mockRejectedValueOnce(new Error("db down"));
+    const file = await collateralFile(
+      new Request(`${origin}/x`),
+      params({ id: contractId }),
+    );
+    expect(file.status).toBe(500);
+    expect(file.headers.get("content-type")).not.toBe("application/pdf");
   });
 
   it("reports a document that fails its hash check without its bytes", async () => {
@@ -224,6 +297,26 @@ describe("register export", () => {
           noticeDeadline: "2026-12-01",
           signingState: null,
         },
+        {
+          id: fileId,
+          source: "mnda",
+          counterpartyName: "Signal Labs",
+          title: "",
+          contractType: "mnda",
+          paper: "ours",
+          status: "executed",
+          effectiveDate: "2026-02-01",
+          autoRenew: false,
+          noticePeriodDays: null,
+          ownerName: "Seller",
+          tags: [],
+          documentCount: 1,
+          updatedAt: "2026-10-01T00:00:00.000Z",
+          termEndDate: null,
+          renewalDate: null,
+          noticeDeadline: null,
+          signingState: null,
+        },
       ],
     });
     const response = await exportCsv(
@@ -242,12 +335,26 @@ describe("register export", () => {
       expect.any(String),
       { includeMndas: true },
     );
+    // Audited once, with the MNDAs it carries counted on their own.
+    expect(mocks.repository.recordAccess).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
+      expect.objectContaining({
+        kind: "export",
+        rows: 2,
+        mndaRows: 1,
+        truncated: true,
+      }),
+    );
+    const audited = mocks.repository.recordAccess.mock.calls[0]?.[1] as
+      { filters: { type: string; q: string } } | undefined;
+    expect(audited?.filters).toMatchObject({ type: "dpa", q: "blue" });
   });
 
   it("refuses roles without contract:read", async () => {
     as("destructive_action_approver");
     const response = await exportCsv(new Request(`${origin}/x`));
     expect(response.status).toBe(403);
+    expect(mocks.repository.recordAccess).not.toHaveBeenCalled();
   });
 });
 
@@ -274,5 +381,9 @@ describe("sales library files", () => {
       params({ id: contractId }),
     );
     expect(file.status).toBe(200);
+    expect(mocks.library.recordDownload).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
+      contractId,
+    );
   });
 });

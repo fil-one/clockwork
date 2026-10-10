@@ -4,7 +4,6 @@ import "server-only";
 
 import { cookies, headers } from "next/headers";
 import { connection } from "next/server";
-import { cache } from "react";
 
 import {
   roles as commerceRoles,
@@ -31,7 +30,7 @@ import {
 import { releaseProofConfiguration } from "@/src/auth/release-proof";
 import {
   explicitDemoIdentityEnabled,
-  getCommerceSession,
+  getRequestCommerceSession,
   type CommerceSession,
 } from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
@@ -174,8 +173,6 @@ function demoPersonaOverrideAllowed(): boolean {
   );
 }
 
-const getCachedCommerceSession = cache(getCommerceSession);
-
 export async function getRouteSession(
   audience: ExperienceAudience,
 ): Promise<RouteSession> {
@@ -247,7 +244,7 @@ export async function getRouteSession(
       authenticationSource: "local",
     };
   }
-  const session = await getCachedCommerceSession().catch((error: unknown) => {
+  const session = await getRequestCommerceSession().catch((error: unknown) => {
     if (
       error instanceof Error &&
       error.message ===
@@ -352,7 +349,7 @@ export async function getAuthenticatedHome(): Promise<
     );
   }
   try {
-    const session = await getCachedCommerceSession();
+    const session = await getRequestCommerceSession();
     const selected = session.memberships.find(
       ({ organizationId }) => organizationId === session.organizationId,
     );

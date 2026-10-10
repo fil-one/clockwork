@@ -5,8 +5,18 @@ import {
   fixtureInput,
   fixtureSigner,
 } from "../../../contracts/src/mnda-fixture";
+import { ContractListQuerySchema } from "@clockwork/contracts";
 import { createRuntimeDatabase } from "../client";
-import { countSalesHomeMndas } from "./sales-home";
+import {
+  ContractDocumentStores,
+  PostgresContractDocumentStore,
+} from "./contract-documents";
+import { ContractRepository, ContractSigningRepository } from "./contracts";
+import {
+  contractHomeStatusFilters,
+  countSalesHomeContracts,
+  countSalesHomeMndas,
+} from "./sales-home";
 
 const { client, db } = createRuntimeDatabase({
   url:
@@ -76,4 +86,137 @@ it("counts a seller's MNDAs by what they wait on, beside the team's", async () =
   expect(after.team.waitingFilOne - before.team.waitingFilOne).toBe(1);
   expect(after.team.completed - before.team.completed).toBe(1);
   expect(after.team.drafts - before.team.drafts).toBe(2);
+});
+
+it("counts contract work for one reader in a single read, matching the register filters", async () => {
+  const seller = { kind: "user" as const, id: randomUUID(), display: "Seller" };
+  const colleague = {
+    kind: "user" as const,
+    id: randomUUID(),
+    display: "Colleague",
+  };
+  const stores = new ContractDocumentStores(
+    new PostgresContractDocumentStore(db),
+  );
+  const signing = new ContractSigningRepository(db, stores);
+  const register = new ContractRepository(db, stores);
+  const run = randomUUID().slice(0, 8);
+  const [countersigner] = await signing.countersigners();
+  if (!countersigner) throw new Error("seed countersigner missing");
+  const prepare = async (
+    preparer: typeof seller,
+    approvalRequired: boolean,
+  ) => {
+    const marker = randomUUID();
+    const id = randomUUID();
+    await signing.prepare(
+      {
+        contract: {
+          id,
+          counterpartyName: `Home ${run} ${marker}`,
+          title: "",
+          contractType: "other",
+          paper: "ours",
+          status: "draft",
+          effectiveDate: null,
+          initialTermMonths: null,
+          autoRenew: false,
+          renewalTermMonths: null,
+          noticePeriodDays: null,
+          valueMinor: null,
+          currency: null,
+          pricingNotes: "",
+          ownerName: preparer.display,
+          internalNotes: "",
+          tags: [],
+        },
+        signing: {
+          templateId: "test-fixture",
+          templateVersion: "1",
+          templateHash: "c".repeat(64),
+          documentName: `Home ${marker}`,
+          input: {},
+          counterpartySigner: {
+            name: "Alex Example",
+            email: `alex-${marker}@example.com`,
+            title: "CEO",
+          },
+          countersignerId: countersigner.id,
+          approvalRequired,
+          testMode: true,
+        },
+        pdf: Buffer.from(`%PDF-1.7\n${marker}\n%%EOF`),
+        fileName: "Prepared.pdf",
+      },
+      preparer,
+    );
+    return id;
+  };
+  const move = async (
+    id: string,
+    patch: { state?: "sent" | "attention"; error?: string },
+  ) => {
+    const lease = await signing.claim(id);
+    await signing.update(
+      id,
+      lease.token,
+      { providerId: randomUUID(), ...patch },
+      seller,
+    );
+    await signing.release(id, lease.token);
+  };
+  const count = () =>
+    countSalesHomeContracts(db, {
+      viewerId: seller.id,
+      requestId: `sales-home-test:${randomUUID()}`,
+    });
+  const before = await count();
+
+  // Waiting for approval: one the seller can decide, one they cannot.
+  await prepare(colleague, true);
+  await prepare(seller, true);
+  // Out for signature: the seller's and a colleague's.
+  await move(await prepare(seller, false), { state: "sent" });
+  await move(await prepare(colleague, false), { state: "sent" });
+  // Attention: deleted in SignWell, and a send that failed.
+  await move(await prepare(seller, false), {
+    state: "attention",
+    error: "deleted_in_signwell",
+  });
+  await move(await prepare(colleague, false), {
+    error: "provider_unavailable",
+  });
+  // Sent back by an approver: the preparer has to act.
+  const rejected = await prepare(seller, true);
+  await signing.decide(
+    rejected,
+    { approve: false, reason: "Too long" },
+    colleague,
+  );
+
+  const after = await count();
+  const delta = (group: keyof typeof after) => ({
+    mine: after[group].mine - before[group].mine,
+    team: after[group].team - before[group].team,
+  });
+  expect(delta("awaitingApproval")).toEqual({ mine: 1, team: 2 });
+  expect(delta("outForSignature")).toEqual({ mine: 1, team: 2 });
+  expect(delta("needsAttention")).toEqual({ mine: 2, team: 3 });
+
+  // Each group's filter in the register lists exactly the rows counted.
+  for (const [group, total] of [
+    ["awaitingApproval", 2],
+    ["needsAttention", 3],
+    ["outForSignature", 2],
+  ] as const) {
+    const listed = await register.list(
+      ContractListQuerySchema.parse({
+        status: contractHomeStatusFilters[group],
+        q: run,
+      }),
+      "2026-10-09",
+      { includeMndas: false },
+    );
+    expect(listed.total).toBe(total);
+  }
 });

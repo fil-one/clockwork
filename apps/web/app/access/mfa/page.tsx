@@ -44,7 +44,9 @@ export default async function Page({
                     ? "platform.mfa.error.limited"
                     : error === "invalid"
                       ? "platform.mfa.error.invalid"
-                      : "platform.mfa.error.unavailable",
+                      : error === "expired"
+                        ? "platform.mfa.error.expired"
+                        : "platform.mfa.error.unavailable",
                 )}
               </p>
             )}

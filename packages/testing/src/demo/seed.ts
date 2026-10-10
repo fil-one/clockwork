@@ -4,6 +4,13 @@ import { demoAccountIds } from "../personas/catalog";
 export const DEMO_NOW = "2026-07-31T16:00:00Z" as const;
 export const DEMO_SEED_VERSION = "experience-2026-07-31.1" as const;
 export const DEMO_ORIGIN = "https://commerce.clockwork.test" as const;
+/**
+ * The instant local test servers pin the demo clock to (`CLOCKWORK_DEMO_CLOCK`):
+ * when the reviewed visual baselines were captured. Screens that count days
+ * from today, or print when they were read, then lay out the same on any
+ * calendar day.
+ */
+export const DEMO_TEST_CLOCK = "2026-10-05T02:00:00.000Z" as const;
 
 export type DemoCurrency = "EUR" | "GBP" | "USD";
 

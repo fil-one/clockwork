@@ -11,9 +11,14 @@ import {
 } from "@clockwork/db";
 import { ChannelPolicyCommandSchema } from "@clockwork/domain/core";
 
-import { requireRecentAuthentication } from "@/src/auth/session";
+import {
+  requireRecentAuthentication,
+  SessionExpiredError,
+} from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
 import type { MessageId } from "@/src/i18n";
+
+import { sessionExpiredMessage } from "../session-expiry-message";
 
 import {
   mayApproveOwnRequests,
@@ -72,8 +77,9 @@ async function selfApprovalSession() {
       mayApproveOwnRequests(session)
       ? session
       : null;
-  } catch {
-    return null;
+  } catch (error) {
+    // An expired access token is reported apart: a reload fixes it.
+    return error instanceof SessionExpiredError ? "expired" : null;
   }
 }
 
@@ -100,6 +106,7 @@ export async function approveOwnCapability(input: {
   reason: string;
 }): Promise<SelfApprovalActionResult> {
   const session = await selfApprovalSession();
+  if (session === "expired") return refused(sessionExpiredMessage);
   if (!session) return refused("common.selfApproval.error.notPermitted");
   const parsed = OwnCapabilitySchema.safeParse(input);
   if (!parsed.success) return refused("common.selfApproval.error.reason");
@@ -134,6 +141,7 @@ export async function approveOwnChannelPolicy(input: {
   approvalEvidence: string;
 }): Promise<SelfApprovalActionResult> {
   const session = await selfApprovalSession();
+  if (session === "expired") return refused(sessionExpiredMessage);
   if (!session || !contextHasPermission(session, "quote:approve"))
     return refused("common.selfApproval.error.notPermitted");
   const reason = Reason.safeParse(input.reason);
