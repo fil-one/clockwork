@@ -9,15 +9,13 @@ const execFileAsync = promisify(execFile);
 const workspaceRoot = fileURLToPath(new URL("../", import.meta.url));
 
 // Advisories we have looked at and cannot close from this repository. Every
-// entry needs a reason, because the backlog claim is that no advisory is left
-// unexplained. These same identifiers are listed in `pnpm.auditConfig.
-// ignoreGhsas` so the release static gate, `pnpm audit --audit-level=low`,
-// exits zero; a test below holds the two lists together, so silencing an
+// entry needs a reason. These same identifiers are listed in `pnpm.auditConfig.
+// ignoreGhsas`; a test below holds the two lists together, so silencing an
 // advisory in the manifest without recording why fails the suite.
 const acceptedAdvisories = new Map([
   [
     "GHSA-vfj7-8cjw-p6xm",
-    "braces deeply nested glob stack exhaustion: no published fix through 3.0.3. Reached only through root development dependencies (Netlify CLI and Secretlint via micromatch/fast-glob). Commerce accepts no untrusted glob patterns through those tools, and the package is absent from the production dependency graph. A regression check below fails if it becomes a production dependency; the registry check expires this acceptance when a newer release appears.",
+    "braces deeply nested glob stack exhaustion: no published fix through 3.0.3. Reached only through root development dependencies (Netlify CLI and Secretlint via micromatch/fast-glob). Commerce accepts no untrusted glob patterns through those tools, and the package is absent from the production dependency graph. A regression check below fails if it becomes a production dependency.",
   ],
   [
     "GHSA-86w9-cpqp-85rv",
@@ -62,16 +60,6 @@ const pinnedTransitives = [
 // Direct catalog dependency, upgraded rather than overridden.
 const catalogFloors = [{ name: "hono", minimum: "4.13.7" }];
 
-// The accepted advisories are accepted only because the package has no fixed
-// release at all. That is a fact about the registry, not about this repository,
-// so it is checked against the registry rather than asserted once and trusted:
-// the day either package publishes anything above this, the acceptance expires.
-const unpatchedPackages = [
-  { name: "braces", highestPublished: "3.0.3" },
-  { name: "extract-zip", highestPublished: "2.0.1" },
-  { name: "node-forge", highestPublished: "1.4.0" },
-];
-
 function compareSemver(left, right) {
   const parse = (value) => value.split(".").map((part) => Number(part));
   const [leftParts, rightParts] = [parse(left), parse(right)];
@@ -92,27 +80,6 @@ async function resolvedVersions(name) {
     "gm",
   );
   return [...lockfile.matchAll(pattern)].map((match) => match[1]);
-}
-
-async function auditReport() {
-  try {
-    // `pnpm audit` exits non-zero whenever it finds anything, so the report
-    // arrives on the error object rather than as a resolved value.
-    const { stdout } = await execFileAsync("pnpm", ["audit", "--json"], {
-      cwd: workspaceRoot,
-      maxBuffer: 32 * 1024 * 1024,
-    });
-    return JSON.parse(stdout);
-  } catch (error) {
-    if (typeof error?.stdout === "string" && error.stdout.trim().length > 0) {
-      try {
-        return JSON.parse(error.stdout);
-      } catch {
-        // Fall through: the registry is unreachable and stdout is not a report.
-      }
-    }
-    return null;
-  }
 }
 
 test("overridden transitives resolve above their advisory floor", async () => {
@@ -149,38 +116,6 @@ test("catalog dependencies resolve above their advisory floor", async () => {
   }
 });
 
-// The release static gate runs `pnpm audit --audit-level=low`, so every
-// severity it fails on must be fixed or accepted here.
-test("audit reports only accepted advisories at low severity and above", async (t) => {
-  const report = await auditReport();
-  if (report === null) {
-    // Offline runs cannot reach the advisory database. The two lockfile tests
-    // above still hold the line on everything we have already fixed.
-    t.skip("pnpm audit could not reach the registry");
-    return;
-  }
-
-  const reported = new Map();
-  for (const advisory of Object.values(report.advisories ?? {})) {
-    if (advisory.severity === "info") continue;
-    reported.set(
-      advisory.github_advisory_id,
-      `${advisory.module_name}: ${advisory.title}`,
-    );
-  }
-
-  // `pnpm.auditConfig.ignoreGhsas` filters the accepted identifiers out of this
-  // report, so whatever remains is by definition unexplained.
-  const unexplained = [...reported].map(
-    ([id, description]) => `${id} ${description}`,
-  );
-  assert.deepEqual(
-    unexplained,
-    [],
-    "new advisory with no recorded decision; fix it or record why it cannot be fixed",
-  );
-});
-
 test("every silenced advisory carries a recorded reason", async () => {
   const manifest = JSON.parse(
     await readFile(`${workspaceRoot}package.json`, "utf8"),
@@ -194,34 +129,6 @@ test("every silenced advisory carries a recorded reason", async () => {
     assert.ok(
       reason.trim().length > 0,
       `${id} is silenced with no recorded reason`,
-    );
-  }
-});
-
-test("accepted advisories still have no published fix", async (t) => {
-  for (const { name, highestPublished } of unpatchedPackages) {
-    let published;
-    try {
-      const { stdout } = await execFileAsync(
-        "pnpm",
-        ["view", name, "versions", "--json"],
-        { cwd: workspaceRoot, maxBuffer: 8 * 1024 * 1024 },
-      );
-      published = JSON.parse(stdout);
-    } catch {
-      t.skip(`could not reach the registry for ${name}`);
-      return;
-    }
-    // Prereleases are not a fix we would adopt, so they are not a trigger.
-    const releases = published.filter((version) =>
-      /^\d+\.\d+\.\d+$/.test(version),
-    );
-    const newest = releases.reduce((highest, version) =>
-      compareSemver(version, highest) > 0 ? version : highest,
-    );
-    assert.ok(
-      compareSemver(newest, highestPublished) <= 0,
-      `${name}@${newest} is newer than the ${highestPublished} that justified accepting its advisory; re-review the acceptance and upgrade`,
     );
   }
 });

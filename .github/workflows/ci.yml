@@ -1,10 +1,35 @@
 name: CI
 
+# A change confined to documentation starts no run, so a docs-only push to main
+# deploys nothing. Later patterns override earlier ones. The docs that code or
+# tests read stay in: runbooks under docs/operations, the generated access
+# matrix, the MNDA template, the two files the trust register cites, and the
+# platform spec.
 on:
   pull_request:
     branches: [main]
+    paths:
+      - "**"
+      - "!docs/**"
+      - "docs/operations/**"
+      - "docs/security/**"
+      - "docs/legal/**"
+      - "docs/external-gates.md"
+      - "docs/sprint-checklist.md"
+      - "!*.md"
+      - "commerce_platform_spec.md"
   push:
     branches: [main]
+    paths:
+      - "**"
+      - "!docs/**"
+      - "docs/operations/**"
+      - "docs/security/**"
+      - "docs/legal/**"
+      - "docs/external-gates.md"
+      - "docs/sprint-checklist.md"
+      - "!*.md"
+      - "commerce_platform_spec.md"
 
 permissions:
   contents: read
@@ -22,8 +47,8 @@ env:
   # Type-aware linting holds the whole workspace program in memory: the lint
   # shard peaks at 3.7 GiB against Node's default ~4 GiB old-space ceiling, so a
   # runner with less headroom than a developer machine aborts with SIGABRT
-  # (exit 134) rather than a lint failure. Raise the ceiling; both ubuntu-24.04
-  # and macos-15 have 16 GB.
+  # (exit 134) rather than a lint failure. Raise the ceiling; ubuntu-24.04 has
+  # 16 GB.
   NODE_OPTIONS: "--max-old-space-size=6144"
   NEXT_TELEMETRY_DISABLED: "1"
   STORYBOOK_DISABLE_TELEMETRY: "1"
@@ -58,17 +83,15 @@ jobs:
           # server (`RELEASE_UI_SPEC_FILES` in release-artifacts.mjs).
           - shard: ui-1
             port: 32004
-            runner: macos-15
+            runner: ubuntu-24.04
           - shard: ui-2
             port: 32008
-            runner: macos-15
-          # Darwin like `ui-*`: all three compare against the reviewed
-          # screenshot baselines, and `playwright.config.ts` refuses them off
-          # macOS. `release-suites.mjs` mints the demo access password per run,
-          # so nothing here needs a secret.
+            runner: ubuntu-24.04
+          # `release-suites.mjs` mints the demo access password per run, so
+          # nothing here needs a secret.
           - shard: demo
             port: 32006
-            runner: macos-15
+            runner: ubuntu-24.04
           - shard: proof
             port: 32005
             runner: ubuntu-24.04
@@ -93,7 +116,11 @@ jobs:
     steps:
       - name: Start release budget clock
         run: echo "CLOCKWORK_RELEASE_STARTED_AT=$(date +%s000)" >> "$GITHUB_ENV"
+      # Depth 2 keeps a pull request merge commit's base parent, which the
+      # integration shard diffs against below.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: pnpm/action-setup@v4
         with:
           version: 10.34.5
@@ -121,11 +148,10 @@ jobs:
         run: |
           pnpm install --frozen-lockfile --store-dir "$CLOCKWORK_RELEASE_CACHE_ROOT/pnpm-store"
           echo "CLOCKWORK_RELEASE_FROZEN_INSTALL_VERIFIED=1" >> "$GITHUB_ENV"
-      - name: Install Chromium on pinned macOS visual runners
-        if: startsWith(matrix.shard, 'ui-') || matrix.shard == 'demo'
-        run: pnpm playwright:install
       - name: Install Chromium and Linux dependencies
-        if: matrix.shard == 'proof'
+        if:
+          startsWith(matrix.shard, 'ui-') || matrix.shard == 'demo' ||
+          matrix.shard == 'proof'
         run: pnpm playwright:install:ci
       # `semantic-pdf.integration.test.ts` spawns `pdftotext` directly to read
       # back all 15 rendered document kinds, so Poppler is a hard dependency of
@@ -145,6 +171,22 @@ jobs:
             echo "CLOCKWORK_EXPERIENCE_ADAPTER=demo"
             echo "NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV=test"
           } >> "$GITHUB_ENV"
+      # The populated upgrade replay only exercises supabase/, so a pull request
+      # that changes nothing there skips it. pgTAP runs regardless. A push to
+      # main, or any diff that cannot be computed, runs the replay.
+      - name: Decide whether the populated upgrade replay runs
+        if: matrix.shard == 'integration'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          replay=true
+          if [ "$EVENT_NAME" = "pull_request" ] &&
+            git rev-parse --verify --quiet HEAD^2 > /dev/null &&
+            git diff --quiet HEAD^1 HEAD -- supabase; then
+            replay=false
+          fi
+          echo "CLOCKWORK_UPGRADE_REPLAY=$replay" >> "$GITHUB_ENV"
+          echo "Populated upgrade replay: $replay"
       - name: Start freshly migrated and seeded database
         if: matrix.shard == 'integration' || matrix.shard == 'proof'
         run: |

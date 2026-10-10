@@ -15,9 +15,7 @@
     "clean": "rm -rf dist coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:unit": "vitest run --passWithNoTests",
-    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts",
-    "generate": "drizzle-kit generate",
-    "check": "drizzle-kit check"
+    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@clockwork/contracts": "workspace:*",

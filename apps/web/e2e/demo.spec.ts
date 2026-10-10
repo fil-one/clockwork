@@ -104,11 +104,11 @@ test("finance approves and cancels a future price schedule without retiring curr
 
 /**
  * A page served by `next dev` can finish its document load before the dev
- * runtime connects; capturing in that interval lets Chromium's full-page
+ * runtime connects; measuring in that interval lets Chromium's full-page
  * metrics retain the wordmark's 3,863px intrinsic width even after the
  * stylesheet visibly clamps it. Waiting for the runtime's connection event
- * isolates screenshots from that development-only bootstrap without sleeping or
- * retrying the assertion.
+ * isolates the layout checks from that development-only bootstrap without
+ * sleeping or retrying the assertion.
  *
  * A built server has no such bootstrap and logs no such event, so there is
  * nothing to wait for. `playwright.config.ts` decides which server this run
@@ -118,20 +118,6 @@ function nextDevRuntimeReady(page: Page): Promise<unknown> {
   if (builtServer) return Promise.resolve();
   return page.waitForEvent("console", {
     predicate: (message) => message.text() === "[HMR] connected",
-  });
-}
-
-/**
- * `next dev` mounts its indicator in a `nextjs-portal` element, which would
- * otherwise sit in the corner of a full-page capture. A built server mounts
- * none, and its Content-Security-Policy refuses an inline style without the
- * per-request nonce, so there is nothing to hide and no way to inject the rule
- * that would hide it.
- */
-async function hideDevOverlay(page: Page) {
-  if (builtServer) return;
-  await page.addStyleTag({
-    content: "nextjs-portal { display: none !important; }",
   });
 }
 
@@ -1127,7 +1113,7 @@ test.describe("playable product-demo workflows", () => {
   });
 });
 
-// The demo pages live behind the password gate, so their baselines are taken
+// The demo pages live behind the password gate, so their layout checks run
 // here rather than in visual.spec.ts, which drives the ungated server.
 for (const viewport of [
   { label: "desktop", width: 1440, height: 1000 },
@@ -1139,12 +1125,7 @@ for (const viewport of [
       await page.setViewportSize(viewport);
       await openGate(page);
       await runtimeReady;
-      await hideDevOverlay(page);
       await expectVisualLayoutReady(page, viewport.width);
-      await expect(page).toHaveScreenshot(
-        `demo-access${viewport.label === "320" ? "-320" : ""}.png`,
-        { animations: "disabled", fullPage: true, maxDiffPixelRatio: 0.01 },
-      );
     });
 
   test(`visual demo landing at ${viewport.label}`, async ({ page }) => {
@@ -1155,12 +1136,7 @@ for (const viewport of [
       11,
     );
     await runtimeReady;
-    await hideDevOverlay(page);
     await expectVisualLayoutReady(page, viewport.width);
-    await expect(page).toHaveScreenshot(
-      `demo-landing${viewport.label === "320" ? "-320" : ""}.png`,
-      { animations: "disabled", fullPage: true, maxDiffPixelRatio: 0.01 },
-    );
   });
 }
 

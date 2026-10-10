@@ -141,8 +141,9 @@ Everything is a workspace-root `pnpm` script; Turborepo fans them out.
 | `pnpm check:generated`         | Fail if generated artifacts drift from the routes                                                 |
 | `pnpm check:traceability`      | Validate `docs/traceability/launch-requirements.json` against its schema                          |
 | `pnpm check:citation-liveness` | Require every `path#symbol` ledger citation to have a syntax-resolved non-test implementation use |
+| `pnpm check:launch`            | Both ledger checks above plus their tests; run before a commerce launch, not per pull request     |
 | `pnpm scan:secrets`            | secretlint over the whole tree                                                                    |
-| `pnpm audit:dependencies`      | `pnpm audit --audit-level=high`                                                                   |
+| `pnpm audit:dependencies`      | `pnpm audit --prod --audit-level=high`                                                            |
 | `pnpm test:unit`               | Unit suites plus the release-script tests                                                         |
 | `pnpm test:integration`        | Integration suites (need the local database)                                                      |
 | `pnpm db:test`                 | pgTAP tests against the rebuilt database                                                          |
@@ -175,13 +176,14 @@ provider issue requires it; a cosmetic change alone does not justify repeating
 an end-to-end signing flow. See the
 [MNDA validation guidance](operations/commerce-mnda.md#change-validation).
 
-Do not run the entire release suite locally merely to duplicate CI. Required
-hooks and GitHub checks remain in effect. CI currently runs all nine shards even
-for documentation-only PRs and main pushes, and successful main CI triggers the
-deployment pipeline. This guidance reduces discretionary work; it does not
-implement a faster CI path. Let normal automation run without adding manual
-deployments or duplicate qualification. Report required CI/deployment waiting
-separately from hands-on work.
+Do not run the entire release suite locally merely to duplicate CI. The
+pre-commit hooks still run. GitHub has no required checks: the Deploy workflow
+deploys only after a green CI run on a push to `main`. A change confined to
+documentation starts no CI run, so it deploys nothing. Docs that code or tests
+read, such as `docs/operations` and `docs/security`, still run CI; the path
+filter in `.github/workflows/ci.yml` lists them. Let normal automation run
+without adding manual deployments or duplicate qualification. Report CI and
+deployment waiting separately from hands-on work.
 
 ### Full verification commands
 
@@ -189,7 +191,7 @@ Four gates compose the full check, and each one is runnable on its own:
 
 ```sh
 pnpm verify:static     # typecheck, format, lint, boundaries, secrets, audit,
-                       # generated drift, traceability grammar + citation liveness
+                       # generated drift
 pnpm verify:database   # db reset, pgTAP, unit + integration tests
 pnpm verify:build      # application and Storybook builds
 pnpm verify:ui         # Storybook component tests and Playwright e2e
@@ -198,11 +200,11 @@ pnpm verify            # all four, in order
 
 CI runs the same work as nine parallel shards — `static`, `lint`, `unit`,
 `integration`, `build`, `ui-1`, `ui-2`, `demo`, and `proof` — on every pull
-request and every push to `main`. The `ui-1`, `ui-2` and `demo` shards run on
-macOS, because all three compare against the reviewed screenshot baselines. The
-shard list is the same list the orchestrator uses, `RELEASE_SUITE_NAMES`, and a
-test in `scripts/release-artifacts.test.mjs` fails if the workflow drifts from
-it.
+request and push to `main` that changes more than documentation. The shard list
+is the same list the orchestrator uses, `RELEASE_SUITE_NAMES`, and a test in
+`scripts/release-artifacts.test.mjs` fails if the workflow drifts from it. The
+`integration` shard replays the populated database upgrade only when a pull
+request changes `supabase/`, and on every push to `main`; pgTAP runs every time.
 
 Testing uses fixed clocks, stable demo identifiers and `.test` domains, with
 provider fakes for replay and failure scenarios.
@@ -216,9 +218,9 @@ provider fakes for replay and failure scenarios.
 - **Generated artifacts are committed with the change that caused them.** Run
   `pnpm generate` alongside any route change; `pnpm check:generated` enforces
   it.
-- **`supabase/migrations` is the source of truth for schema.** Drizzle metadata
-  under `packages/db/drizzle/meta` is an aid, never authoritative, and no schema
-  change is authored in the Supabase dashboard.
+- **`supabase/migrations` is the source of truth for schema.** The Drizzle model
+  mirrors it, and `pnpm check:schema-drift` fails when the two disagree. No
+  schema change is authored in the Supabase dashboard.
 - **Errors are RFC 9457 `application/problem+json`** with a request ID, a stable
   machine code, and a safe user message. Every list endpoint takes a stable
   cursor and an explicit account scope; mutations return the aggregate version

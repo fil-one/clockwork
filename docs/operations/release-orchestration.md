@@ -34,17 +34,16 @@ environment, canonical localhost origin, production build directory, and
 release-proof authentication. Persona headers, account headers, route
 interception, and first-party page mocking are forbidden in proof.
 
-The browser suite runs as two halves, `ui-1` and `ui-2`, each on its own macOS
+The browser suite runs as two halves, `ui-1` and `ui-2`, each on its own Linux
 runner with its own development server, port and file-backed demo store.
 `RELEASE_UI_SPEC_FILES` in `scripts/release-artifacts.mjs` names each half's
 spec files, balanced on measured durations, and `release-artifacts.test.mjs`
 fails unless the two lists partition every spec in `apps/web/e2e` other than the
 demo and proof specs, so a new spec has to be assigned to one half. `ui-2` holds
-the visual comparisons and runs with `--no-deps`: the visual project's
-dependency on the functional project would otherwise rerun every functional spec
-there. The suite runs one worker, and the visual tests reset the durable demo
-state before and after, so the dependency's original purpose (keeping
-screenshots from racing a mutating journey) still holds.
+the visual layout and accessibility checks and runs with `--no-deps`: the visual
+project's dependency on the functional project would otherwise rerun every
+functional spec there. The suite runs one worker, and the visual tests reset the
+durable demo state before and after. No shard compares screenshots.
 
 ## Assertion and artifact equivalence
 
@@ -59,12 +58,7 @@ Only these nondeterministic fields are normalized before comparison:
 - Playwright wall-clock durations, start/end timestamps, worker indexes, and ISO
   runtime timestamps.
 
-Binary artifacts are never normalized. Their exact bytes are hashed. The
-serial/parallel comparison fails if a shard is missing, a status or retry policy
-differs, an assertion/coverage/artifact fingerprint differs, or parallel
-execution does not improve wall time by at least 30 seconds or 15 percent.
-`pnpm release:benchmark <optional-token>` runs the actual serial candidate, the
-actual parallel candidate, and the comparison in one command.
+Binary artifacts are never normalized. Their exact bytes are hashed.
 
 ## Retry and cleanup policy
 
@@ -77,8 +71,7 @@ upload patterns exclude authentication storage state.
 
 ## Cross-lane generated output join
 
-Instance 4 does not write the shared OpenAPI or Drizzle outputs. Static
-verification runs `drizzle-kit check` and generates OpenAPI files only in a
-disposable nested worktree, then compares their hashes to the committed outputs.
-Instance 5 owns the final shared generation and joins that evidence to this
-release gate.
+Instance 4 does not write the shared OpenAPI outputs. Static verification
+generates OpenAPI files only in a disposable nested worktree, then compares
+their hashes to the committed outputs. Instance 5 owns the final shared
+generation and joins that evidence to this release gate.

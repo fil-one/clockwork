@@ -34,11 +34,10 @@ const artifactRoot = path.resolve(
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "demo.spec.ts",
-  // The visual baselines were reviewed on the pinned macOS runner against the
-  // release shard's fixture state, and this site serves shared demo state that
-  // any visitor can have changed. Hosted qualification therefore
-  // takes every transaction journey and its a11y checks, and leaves the
-  // screenshots to the release shard.
+  // The visual layout checks run against the release shard's fixture state,
+  // and this site serves shared demo state that any visitor can have changed.
+  // Hosted qualification therefore takes every transaction journey and its
+  // a11y checks, and leaves the layout checks to the release shard.
   grepInvert: /visual demo/,
   fullyParallel: false,
   forbidOnly: true,

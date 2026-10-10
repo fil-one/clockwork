@@ -43,6 +43,10 @@ const migrationPath = path.resolve(
   "supabase/migrations/001300_release_integrity.sql",
 );
 const migrationSql = readFileSync(migrationPath, "utf8");
+// CI sets this to "false" on a pull request that changes nothing under
+// supabase/, and the replay below is skipped. Any other value, or none, runs
+// it. The canonical pgTAP suite runs either way.
+const replayUpgrade = process.env.CLOCKWORK_UPGRADE_REPLAY !== "false";
 const stages = [];
 
 function run(command, args, options = {}) {
@@ -591,40 +595,46 @@ try {
   );
   databaseVerified = true;
 
-  reset(PRE_UPGRADE_VERSION);
-  loadLegacyFixture("2026-07-31 16:00:00.123+00");
-  assertPreUpgradeSchema();
-  const { locks } = applyMigration();
-  assertUpgradeLockFootprint(locks);
-  assertMatchedUpgrade();
-  process.stdout.write(
-    "P0-39 same-millisecond populated upgrade: passed (.123456 source vs .123 projection)\n",
-  );
-  process.stdout.write(
-    `P0-39 upgrade lock footprint: ACCESS EXCLUSIVE on ${locks.accessExclusiveRelations} relations including ${locks.accessExclusiveCommerceTables.join(", ")}, lock_timeout=${locks.lockTimeout}\n`,
-  );
+  if (replayUpgrade) {
+    reset(PRE_UPGRADE_VERSION);
+    loadLegacyFixture("2026-07-31 16:00:00.123+00");
+    assertPreUpgradeSchema();
+    const { locks } = applyMigration();
+    assertUpgradeLockFootprint(locks);
+    assertMatchedUpgrade();
+    process.stdout.write(
+      "P0-39 same-millisecond populated upgrade: passed (.123456 source vs .123 projection)\n",
+    );
+    process.stdout.write(
+      `P0-39 upgrade lock footprint: ACCESS EXCLUSIVE on ${locks.accessExclusiveRelations} relations including ${locks.accessExclusiveCommerceTables.join(", ")}, lock_timeout=${locks.lockTimeout}\n`,
+    );
 
-  reset(PRE_UPGRADE_VERSION);
-  loadLegacyFixture("2026-07-31 16:00:00.124+00");
-  assertPreUpgradeSchema();
-  const { result: failedMigration } = applyMigration({ expectFailure: true });
-  assert.notEqual(
-    failedMigration.status,
-    0,
-    "1 ms mismatch unexpectedly upgraded",
-  );
-  assert.match(
-    `${failedMigration.stdout}${failedMigration.stderr}`,
-    /portal projection source versions require an authoritative rebuild/,
-  );
-  assertFailedUpgradeRolledBack();
-  process.stdout.write(
-    "P0-39 one-millisecond mismatch fail-closed rollback: passed (.123456 source vs .124 projection)\n",
-  );
+    reset(PRE_UPGRADE_VERSION);
+    loadLegacyFixture("2026-07-31 16:00:00.124+00");
+    assertPreUpgradeSchema();
+    const { result: failedMigration } = applyMigration({ expectFailure: true });
+    assert.notEqual(
+      failedMigration.status,
+      0,
+      "1 ms mismatch unexpectedly upgraded",
+    );
+    assert.match(
+      `${failedMigration.stdout}${failedMigration.stderr}`,
+      /portal projection source versions require an authoritative rebuild/,
+    );
+    assertFailedUpgradeRolledBack();
+    process.stdout.write(
+      "P0-39 one-millisecond mismatch fail-closed rollback: passed (.123456 source vs .124 projection)\n",
+    );
+  } else {
+    process.stdout.write(
+      "P0-39 populated upgrade replay: skipped (CLOCKWORK_UPGRADE_REPLAY=false, no supabase/ change)\n",
+    );
+  }
 } catch (error) {
   qualificationError = error;
 } finally {
-  if (databaseVerified) {
+  if (databaseVerified && replayUpgrade) {
     try {
       reset();
       verifyCanonicalState();
@@ -668,6 +678,7 @@ const report = {
   accepted: qualificationError === undefined,
   nodeVersion: process.version,
   pnpmVersion: observedPnpmVersion,
+  upgradeReplay: replayUpgrade,
   durationMs: Date.now() - startedAt,
   stages,
 };

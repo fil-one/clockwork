@@ -13,7 +13,6 @@ node_modules
 **/.netlify
 .trigger
 .artifacts
-.clockwork-archives
 coverage
 **/coverage
 dist

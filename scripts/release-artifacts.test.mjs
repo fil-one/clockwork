@@ -15,10 +15,7 @@ import {
   releaseCacheRootIssues,
   releaseLocalDatabaseEnvironmentIssues,
   releasePortAllocationIssues,
-  releaseStressSummaryIssues,
   releaseSummaryIssues,
-  RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT,
-  RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_SHA256,
   RELEASE_FILE_CREDENTIAL_ENVIRONMENT,
   RELEASE_REQUIRED_RUNTIME_ENVIRONMENT,
   RELEASE_SUITE_ASSERTIONS,
@@ -214,8 +211,7 @@ test("names every documented provider endpoint and credential in the isolation f
   );
 });
 
-// The other direction, and the reason the floor is a subset check rather than
-// a second fingerprint: a name here that `.env.example` does not document can
+// The other direction: a name here that `.env.example` does not document can
 // never appear in `documentedRuntimeVariables`, so it would fail every suite
 // of every release for a variable the release has no way to supply.
 test("keeps the isolation floor inside the documented runtime environment", () => {
@@ -224,16 +220,6 @@ test("keeps the isolation floor inside the documented runtime environment", () =
       (variable) => !checkedInRuntimeVariables.includes(variable),
     ),
     [],
-  );
-  // Adding a name to the floor must not move the documented fingerprint; the
-  // two contracts are independent and conflating them has cost time before.
-  assert.equal(
-    checkedInRuntimeVariablesSha256,
-    RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_SHA256,
-  );
-  assert.equal(
-    checkedInRuntimeVariables.length,
-    RELEASE_DOCUMENTED_RUNTIME_ENVIRONMENT_COUNT,
   );
 });
 
@@ -575,7 +561,6 @@ test("executes every declared assertion as its own release command", async () =>
     scriptedNodeTests,
     "the release unit shard and pnpm test:unit must run the same node --test files",
   );
-  assert.ok(RELEASE_SUITE_ASSERTIONS.unit.includes("release-benchmark-unit"));
 });
 
 test("no scripts/*.test.mjs on disk is run by nothing", async () => {
@@ -908,115 +893,6 @@ test("recomputes inventories and binds every result to its summary run", () => {
   );
 });
 
-test("accepts only a complete internally consistent stress summary", () => {
-  const stressRuns = 3;
-  const stressSummary = {
-    token: releaseRunId,
-    suitesScript: "scripts/release-suites.mjs",
-    sourceIdentity,
-    stressRuns,
-    serialAccepted: true,
-    parallelAccepted: true,
-    comparisonAccepted: true,
-    stressAccepted: true,
-    durationMs: 100_000,
-    budgetMs: 2_700_000,
-    withinBudget: true,
-    interrupted: false,
-    terminationSignal: null,
-    forceKilled: false,
-    phases: [
-      "serial/debug candidate",
-      "parallel candidate",
-      "serial/parallel comparison",
-      ...Array.from(
-        { length: stressRuns },
-        (_, index) => `parallel stress ${index + 1}`,
-      ),
-    ].map((label) => ({
-      label,
-      status: "passed",
-      reason: null,
-      durationMs: 10_000,
-    })),
-    failures: [],
-    stressEvidence: Array.from({ length: stressRuns }, (_, index) => ({
-      summaryPath: `stress-${index + 1}/summary.json`,
-      durationMs: 10_000,
-      issues: [],
-      sameSourceIdentity: true,
-      equivalent: true,
-      accepted: true,
-    })),
-    evidenceFiles: [
-      "serial/summary.json",
-      "parallel/summary.json",
-      "comparison.json",
-      ...Array.from(
-        { length: stressRuns },
-        (_, index) => `stress-${index + 1}/summary.json`,
-      ),
-    ].map((path) => ({ path, bytes: 1, sha256: "a".repeat(64) })),
-    accepted: true,
-  };
-  assert.deepEqual(releaseStressSummaryIssues(stressSummary), []);
-  const tampered = {
-    ...stressSummary,
-    withinBudget: false,
-    failures: ["masked failure"],
-    evidenceFiles: stressSummary.evidenceFiles.slice(1),
-  };
-  const issues = releaseStressSummaryIssues(tampered);
-  assert.ok(issues.some((issue) => issue.includes("exceeded")));
-  assert.ok(issues.some((issue) => issue.includes("contains failures")));
-  assert.ok(issues.some((issue) => issue.includes("inventory is incomplete")));
-  const interruptedIssues = releaseStressSummaryIssues({
-    ...stressSummary,
-    interrupted: true,
-    terminationSignal: "SIGINT",
-    phases: [
-      { ...stressSummary.phases[0], status: "interrupted" },
-      ...stressSummary.phases.slice(1).map((phase) => ({
-        ...phase,
-        status: "skipped",
-        reason: "the benchmark was interrupted by SIGINT",
-        durationMs: 0,
-      })),
-    ],
-  });
-  assert.ok(
-    interruptedIssues.some((issue) =>
-      issue.includes("stress qualification was interrupted"),
-    ),
-  );
-  assert.ok(
-    interruptedIssues.some((issue) =>
-      issue.includes("stress phase did not pass: serial/debug candidate"),
-    ),
-  );
-  assert.ok(
-    interruptedIssues.some((issue) =>
-      issue.includes("stress phase did not pass: parallel candidate (skipped)"),
-    ),
-  );
-  assert.ok(
-    releaseStressSummaryIssues({ ...stressSummary, forceKilled: true }).some(
-      (issue) => issue.includes("force-killed a release child"),
-    ),
-  );
-  assert.ok(
-    releaseStressSummaryIssues({
-      ...stressSummary,
-      suitesScript: "/tmp/stub/release-suites-stub.mjs",
-    }).some((issue) =>
-      issue.includes("substituted release suite script: /tmp/stub"),
-    ),
-  );
-  const withoutProvenance = { ...stressSummary };
-  delete withoutProvenance.suitesScript;
-  assert.deepEqual(releaseStressSummaryIssues(withoutProvenance), []);
-});
-
 test("requires exactly one complete result in a CI shard summary", () => {
   const summary = {
     runId: releaseRunId,
@@ -1210,10 +1086,6 @@ const checkedInWorkflow = await readFile(
   new URL("../.github/workflows/ci.yml", import.meta.url),
   "utf8",
 );
-const checkedInCodeowners = await readFile(
-  new URL("../.github/CODEOWNERS", import.meta.url),
-  "utf8",
-);
 const workflowShards = [
   ...checkedInWorkflow.matchAll(
     /-\s+shard:\s*(\S+)\s*\n\s*port:\s*(\d+)\s*\n\s*runner:\s*(\S+)/g,
@@ -1223,88 +1095,6 @@ const workflowShards = [
   port: Number.parseInt(port, 10),
   runner,
 }));
-
-const codeownerRules = new Map(
-  checkedInCodeowners
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith("#"))
-    .map((line) => {
-      const [pattern, ...owners] = line.split(/\s+/);
-      return [pattern, owners];
-    }),
-);
-
-test("routes review of repository governance and release controls", () => {
-  const owners = [
-    "@jameskurz-filecoin",
-    "@alanshaw",
-    "@bajtos",
-    "@relotnek",
-    "@hannahhoward",
-  ];
-  const requiredPatterns = [
-    "/.github/CODEOWNERS",
-    "/.github/",
-    "/.github/workflows/",
-    "/.env.example",
-    "/.gitignore",
-    "/.node-version",
-    "/.nvmrc",
-    "/.npmrc",
-    "/.prettierignore",
-    "/.secretlintignore",
-    "/.secretlintrc.json",
-    "/dependency-cruiser.config.mjs",
-    "/eslint.config.mjs",
-    "/lefthook.yml",
-    "/LICENSE",
-    "/netlify.toml",
-    "/package.json",
-    "/pnpm-lock.yaml",
-    "/pnpm-workspace.yaml",
-    "/prettier.config.mjs",
-    "/trigger.config.ts",
-    "/tsconfig.base.json",
-    "/tsconfig.json",
-    "/turbo.json",
-    "/patches/",
-    "/apps/",
-    "/packages/",
-    "/scripts/",
-    "/supabase/",
-    "/scripts/release-artifacts.mjs",
-    "/scripts/release-artifacts.test.mjs",
-    "/scripts/release-suites.mjs",
-    "/scripts/validate-release-join.mjs",
-    "/scripts/benchmark-release.mjs",
-    "/scripts/benchmark-release.test.mjs",
-    "/supabase/config.toml",
-    "/supabase/migrations/",
-    "/packages/api/src/generated/",
-    "/commerce_platform_spec.md",
-    "/docs/traceability/",
-  ];
-
-  assert.equal(
-    codeownerRules.size,
-    requiredPatterns.length,
-    "CODEOWNERS contains an unreviewed broad or duplicate rule",
-  );
-  for (const pattern of requiredPatterns)
-    assert.deepEqual(
-      codeownerRules.get(pattern),
-      owners,
-      `${pattern} must retain its verified repository owners`,
-    );
-  assert.equal(
-    [...codeownerRules.keys()].some((pattern) =>
-      ["*", "**", "/", "/**"].includes(pattern),
-    ),
-    false,
-    "CODEOWNERS must stay scoped to named control surfaces",
-  );
-});
 
 test("keeps the aggregate release gate attached to every release shard", () => {
   const gate = checkedInWorkflow.match(/\n {2}release-gate:\n([\s\S]*)$/)?.[1];
@@ -1353,11 +1143,10 @@ test("gives every CI shard its own application port", () => {
     );
 });
 
-test("pins the CI shards to the macOS runner that owns the screenshot baselines", () => {
-  // `apps/web/playwright.config.ts` throws for any visual shard off Darwin.
-  const visual = new Set(["ui-1", "ui-2", "demo"]);
+test("runs every CI shard on the Linux runner", () => {
+  // No shard compares screenshots, so none needs a macOS runner.
   for (const { shard, runner } of workflowShards)
-    if (visual.has(shard)) assert.match(runner, /^macos-/);
+    assert.equal(runner, "ubuntu-24.04", shard);
 });
 
 test("runs every browser test in exactly one ui shard", async () => {

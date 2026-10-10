@@ -12,9 +12,8 @@ limited to that exact parent edge. It does not replace unrelated esbuild
 versions or hide a package-wide incompatibility.
 
 The web application now declares its direct runtime use of `drizzle-orm` through
-the catalog instead of relying on workspace hoisting. Non-mutating
-`drizzle-kit check`, Node 24 type-checks, and the disposable OpenAPI dry-run are
-release assertions.
+the catalog instead of relying on workspace hoisting. Node 24 type-checks and
+the disposable OpenAPI dry-run are release assertions.
 
 ## Trigger/OpenTelemetry chain
 
