@@ -19,11 +19,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # `branches: [main]` above matches the head branch name only, which a pull
+  # request from a fork can share, and CI runs on pull requests. Requiring the
+  # push event keeps the deploy to commits that are on main here.
   staging:
     if: >-
       (github.event_name == 'workflow_dispatch' && github.ref ==
       'refs/heads/main') || (github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success')
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push')
     uses: ./.github/workflows/terraform.yml
     permissions:
       id-token: write
