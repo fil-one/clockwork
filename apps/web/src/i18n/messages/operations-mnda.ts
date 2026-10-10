@@ -50,16 +50,6 @@ export const mndaMessages = defineMessages({
     zh: "由我方团队填写",
     ar: "يدخل فريقنا البيانات",
   },
-  "operations.mnda.recipientDetails": {
-    en: "Partner completes details when signing",
-    es: "El socio completa los datos al firmar",
-    fr: "Le partenaire complète lors de la signature",
-    de: "Partner ergänzt beim Unterschreiben",
-    ja: "相手方が署名時に入力",
-    pt: "Parceiro preenche ao assinar",
-    zh: "合作方签署时填写",
-    ar: "يكمل الشريك البيانات عند التوقيع",
-  },
   "operations.mnda.partnerReference": {
     en: "Partner / internal reference",
     es: "Socio / referencia interna",
@@ -69,16 +59,6 @@ export const mndaMessages = defineMessages({
     pt: "Parceiro / referência interna",
     zh: "合作方 / 内部参考名称",
     ar: "الشريك / مرجع داخلي",
-  },
-  "operations.mnda.recipientHint": {
-    en: "Enter an internal reference and the signer. The partner enters the company, notice and signer details while signing. Fil One reviews them before countersigning.",
-    es: "Introduzca una referencia interna y el firmante. El socio introduce los datos de la empresa, de notificaciones y del firmante al firmar. Fil One los revisa antes de contrafirmar.",
-    fr: "Indiquez une référence interne et le signataire. Le partenaire renseigne la société, les coordonnées de notification et le signataire lors de la signature. Fil One les vérifie avant de contresigner.",
-    de: "Geben Sie eine interne Referenz und den Unterzeichner ein. Der Partner trägt Unternehmens-, Mitteilungs- und Unterzeichnerdaten beim Unterschreiben ein. Fil One prüft sie vor der Gegenzeichnung.",
-    ja: "内部参照名と署名者を入力してください。会社、通知先、署名者の情報は相手方が署名時に入力します。Fil One が副署前に確認します。",
-    pt: "Insira uma referência interna e o signatário. O parceiro preenche os dados da empresa, de notificação e do signatário ao assinar. A Fil One revisa esses dados antes de contra-assinar.",
-    zh: "填写内部参考名称和签署人。合作方在签署时填写公司、通知和签署人信息。Fil One 会在会签前审核。",
-    ar: "أدخل مرجعًا داخليًا والموقّع. يُدخل الشريك بيانات الشركة والإشعارات والموقّع أثناء التوقيع. تراجعها Fil One قبل التوقيع المقابل.",
   },
 
   "operations.mnda.latin": {
@@ -411,16 +391,6 @@ export const mndaMessages = defineMessages({
     pt: "Se souber",
     zh: "如已知",
     ar: "إن كان معروفًا",
-  },
-  "operations.mnda.partnerReferenceHint": {
-    en: "Only your team sees this. The partner sees a Fil One mutual NDA without this reference.",
-    es: "Solo lo ve su equipo. El socio ve un acuerdo de confidencialidad mutua de Fil One sin esta referencia.",
-    fr: "Seule votre équipe voit cette référence. Le partenaire voit un accord de confidentialité mutuelle de Fil One sans elle.",
-    de: "Nur Ihr Team sieht diese Angabe. Der Partner sieht eine gegenseitige Geheimhaltungsvereinbarung von Fil One ohne diese Referenz.",
-    ja: "この参照名は自社チームにのみ表示されます。相手方には、この参照名を含まないFil Oneの相互秘密保持契約が届きます。",
-    pt: "Só sua equipe vê isto. O parceiro vê um acordo de confidencialidade mútua da Fil One sem esta referência.",
-    zh: "仅您的团队可见。合作方看到的是不含此参考名称的 Fil One 双向保密协议。",
-    ar: "لا يرى هذا إلا فريقك. يرى الشريك اتفاقية سرية متبادلة من Fil One دون هذا المرجع.",
   },
 
   "operations.mnda.section.signer": {

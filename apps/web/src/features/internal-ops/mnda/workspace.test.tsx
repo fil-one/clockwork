@@ -194,6 +194,41 @@ it("explains a SignWell copy that no longer matches, and offers only a void", ()
   expect(screen.queryByRole("button", { name: "Fix email" })).toBeNull();
 });
 
+it("no longer offers the partner-completes mode, and copies an old one into the default mode", async () => {
+  const legacy: MndaRecord = {
+    ...sent,
+    state: "completed",
+    input: {
+      ...fixtureInput,
+      detailsMode: "recipient",
+      company: "Deal 42 reference",
+      shortName: "",
+      entityDescription: "",
+      streetAddress: "",
+      locality: "",
+      noticesContact: "",
+      noticesEmail: "",
+      signerTitle: "",
+    },
+  };
+  render(<MndaWorkspace initial={data([legacy])} initialQuery={query} />);
+  expect(screen.getByText("Deal 42 reference")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Send again" }));
+  expect(await screen.findByLabelText(/Counterparty legal name/)).toHaveValue(
+    "",
+  );
+  expect(screen.getByLabelText(/Counterparty signer name/)).toHaveValue(
+    fixtureInput.signerName,
+  );
+  expect(
+    screen.getAllByRole("radio").map((r) => r.getAttribute("value")),
+  ).toEqual(["mixed", "team"]);
+  expect(screen.getByRole("radio", { checked: true })).toHaveAttribute(
+    "value",
+    "mixed",
+  );
+});
+
 it("explains blocked requests in plain words with the next step", () => {
   render(
     <MndaWorkspace

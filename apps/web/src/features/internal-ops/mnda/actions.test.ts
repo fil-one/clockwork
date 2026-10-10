@@ -388,3 +388,20 @@ describe("downloads and exports are audited", () => {
     expect(await response.text()).toContain("could not be prepared");
   });
 });
+
+describe("partner-completes drafts are retired", () => {
+  it("refuses a new draft in that mode without storing it", async () => {
+    as("revenue");
+    expect(
+      await prepareMnda({
+        input: { ...fixtureInput, detailsMode: "recipient" },
+      }),
+    ).toEqual({
+      ok: false,
+      code: "invalid_value",
+      fields: [{ field: "detailsMode", code: "invalid_value" }],
+    });
+    expect(mocks.render).not.toHaveBeenCalled();
+    expect(mocks.repository.create).not.toHaveBeenCalled();
+  });
+});

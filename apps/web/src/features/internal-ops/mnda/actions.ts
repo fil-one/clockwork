@@ -3,7 +3,7 @@
 import { z } from "zod";
 import {
   MndaCorrectSignerSchema,
-  MndaInputSchema,
+  MndaDraftInputSchema,
   MndaRegisterQuerySchema,
   MndaSettingsSchema,
   MndaSignerSchema,
@@ -98,7 +98,7 @@ export async function prepareMnda(
   try {
     const session = await mndaStaff();
     const { input: rawInput, supersedes } = PrepareSchema.parse(raw);
-    const parsed = MndaInputSchema.safeParse(rawInput);
+    const parsed = MndaDraftInputSchema.safeParse(rawInput);
     if (!parsed.success) return mndaInvalid(parsed.error);
     const input = parsed.data;
     const repository = mndaRepository();

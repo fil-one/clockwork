@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import {
   defaultMndaNoticeEmail,
+  MndaDraftInputSchema,
   MndaVoidSchema,
   mndaVoidableStates,
   MndaInputSchema,
@@ -163,4 +164,22 @@ it("voids with a typed reason or the signer-change code, never with neither", ()
     false,
   );
   expect(mndaVoidableStates).not.toContain("awaiting_countersignature");
+});
+
+it("refuses new partner-completes drafts while existing ones still parse", () => {
+  const legacy = {
+    ...fixtureInput,
+    detailsMode: "recipient" as const,
+    shortName: "",
+  };
+  expect(MndaInputSchema.safeParse(legacy).success).toBe(true);
+  const draft = MndaDraftInputSchema.safeParse(legacy);
+  expect(draft.success).toBe(false);
+  expect(draft.error?.issues.map((issue) => issue.path)).toEqual([
+    ["detailsMode"],
+  ]);
+  for (const detailsMode of ["mixed", "team", undefined] as const)
+    expect(
+      MndaDraftInputSchema.safeParse({ ...fixtureInput, detailsMode }).success,
+    ).toBe(true);
 });

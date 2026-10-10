@@ -42,12 +42,10 @@ import styles from "./workspace.module.css";
 const modeLabels = {
   mixed: "operations.mnda.mixedDetails",
   team: "operations.mnda.teamDetails",
-  recipient: "operations.mnda.recipientDetails",
 } as const;
 const modeHints = {
   mixed: "operations.mnda.mixedHint",
   team: "operations.mnda.teamHint",
-  recipient: "operations.mnda.recipientHint",
 } as const;
 const draftStates = ["draft", "preparing", "ready", "sending"];
 
@@ -389,7 +387,6 @@ export function MndaComposer({
 
   if (!values) return null;
   const mode = values.detailsMode;
-  const recipient = mode === "recipient";
   const optional = mode === "mixed" ? t("operations.mnda.ifKnown") : undefined;
   const text = (
     field: Exclude<MndaFormField, "countersignerId">,
@@ -405,11 +402,7 @@ export function MndaComposer({
         key={field}
         id={`mnda-field-${field}`}
         name={field}
-        label={t(
-          recipient && field === "company"
-            ? "operations.mnda.partnerReference"
-            : fieldLabels[field],
-        )}
+        label={t(fieldLabels[field])}
         value={value ?? ""}
         type={props.type ?? "text"}
         required={props.required}
@@ -457,15 +450,8 @@ export function MndaComposer({
         </Fieldset>
         <Fieldset legend={t("operations.mnda.section.company")}>
           <div className={styles.fields}>
-            {text("company", {
-              required: true,
-              ...(recipient
-                ? { help: t("operations.mnda.partnerReferenceHint") }
-                : {}),
-            })}
-            {recipient
-              ? null
-              : text("shortName", { help: t("operations.mnda.shortNameHint") })}
+            {text("company", { required: true })}
+            {text("shortName", { help: t("operations.mnda.shortNameHint") })}
           </div>
           <DuplicateWarning matches={matches} />
         </Fieldset>
@@ -481,25 +467,23 @@ export function MndaComposer({
           }))}
           onChange={(e) => set("detailsMode", e.target.value)}
         />
-        {recipient ? null : (
-          <Fieldset
-            legend={t(
-              mode === "mixed"
-                ? "operations.mnda.section.knownDetails"
-                : "operations.mnda.section.details",
+        <Fieldset
+          legend={t(
+            mode === "mixed"
+              ? "operations.mnda.section.knownDetails"
+              : "operations.mnda.section.details",
+          )}
+          description={t("operations.mnda.latin")}
+        >
+          <div className={styles.fields}>
+            {knownDetailFields.map((field) =>
+              text(field, {
+                required: mode === "team",
+                ...(field === "noticesEmail" ? { type: "email" } : {}),
+              }),
             )}
-            description={t("operations.mnda.latin")}
-          >
-            <div className={styles.fields}>
-              {knownDetailFields.map((field) =>
-                text(field, {
-                  required: mode === "team",
-                  ...(field === "noticesEmail" ? { type: "email" } : {}),
-                }),
-              )}
-            </div>
-          </Fieldset>
-        )}
+          </div>
+        </Fieldset>
         <Fieldset legend={t("operations.mnda.section.agreement")}>
           <div className={styles.fields}>
             {text("effectiveDate", { type: "date", required: true })}
