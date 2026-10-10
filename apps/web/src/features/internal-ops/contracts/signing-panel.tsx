@@ -26,6 +26,7 @@ import { formatOperationalTimestamp } from "../presentation";
 import { decideContract, operateContract, voidContract } from "./actions";
 import { approvalStateLabels, errorMessage, signingStateLabels } from "./copy";
 import { SessionExpiredReload } from "../session-expiry";
+import { SelfApprovalDialog } from "../self-approval/self-approval-dialog";
 import styles from "./contracts.module.css";
 
 type Operation = "send" | "sync" | "remind" | "cancel";
@@ -112,6 +113,7 @@ export function SigningPanel({
   canWrite,
   canApprove,
   isPreparer,
+  canSelfApprove = false,
   signingReady,
 }: {
   signing: ContractSigningRecord;
@@ -119,6 +121,8 @@ export function SigningPanel({
   canWrite: boolean;
   canApprove: boolean;
   isPreparer: boolean;
+  /** The reader holds `approval:self` in their own MFA-verified session. */
+  canSelfApprove?: boolean;
   signingReady: boolean;
 }) {
   const t = useTranslations();
@@ -362,6 +366,32 @@ export function SigningPanel({
               {t("operations.contracts.signing.reject")}
             </Button>
           </>
+        ) : null}
+        {signing.approvalState === "pending" &&
+        canApprove &&
+        isPreparer &&
+        canSelfApprove &&
+        !terminal ? (
+          <SelfApprovalDialog
+            subject={signing.documentName}
+            disabled={busy !== null}
+            onConfirm={async (reason) => {
+              const result = await decideContract({
+                contractId: signing.contractId,
+                approve: true,
+                selfApprovalReason: reason,
+              });
+              if (result.ok) {
+                router.refresh();
+                return { ok: true };
+              }
+              return {
+                ok: false,
+                message: t(errorMessage(result.code)),
+                expired: result.code === "SESSION_EXPIRED",
+              };
+            }}
+          />
         ) : null}
         {canWrite &&
         approvalOk &&

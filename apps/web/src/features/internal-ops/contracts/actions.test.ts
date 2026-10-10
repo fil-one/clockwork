@@ -333,6 +333,49 @@ describe("decideContract and operateContract", () => {
     expect(mocks.signing.decide).toHaveBeenCalledOnce();
   });
 
+  it("lets a holder of approval:self approve their own contract with a reason", async () => {
+    const reason = "Two-person team, colleague travelling";
+    as("commerce_admin", { recentAuthenticationVerified: true });
+    await expect(
+      decideContract({ contractId, approve: true, selfApprovalReason: reason }),
+    ).resolves.toEqual({ ok: true, value: { approvalState: "approved" } });
+    expect(mocks.signing.decide).toHaveBeenCalledWith(
+      contractId,
+      { approve: true, selfApproval: { reason } },
+      expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
+    );
+  });
+
+  it("refuses a self-approval without approval:self, from a provider impersonation, or without recent sign-in", async () => {
+    const reason = "Two-person team, colleague travelling";
+    const selfApprove = () =>
+      decideContract({ contractId, approve: true, selfApprovalReason: reason });
+    as("finance_approver", { recentAuthenticationVerified: true });
+    await expect(selfApprove()).resolves.toMatchObject({
+      code: "SELF_APPROVAL_NOT_PERMITTED",
+    });
+    as("commerce_admin", {
+      recentAuthenticationVerified: true,
+      authenticationProviderImpersonator: true,
+    });
+    await expect(selfApprove()).resolves.toMatchObject({
+      code: "SELF_APPROVAL_NOT_PERMITTED",
+    });
+    as("commerce_admin", { recentAuthenticationVerified: false });
+    await expect(selfApprove()).resolves.toMatchObject({
+      code: "CONTRACT_RECENT_AUTH_REQUIRED",
+    });
+    await expect(
+      decideContract({
+        contractId,
+        approve: false,
+        reason: "Discount",
+        selfApprovalReason: reason,
+      }),
+    ).resolves.toMatchObject({ code: "INVALID_INPUT" });
+    expect(mocks.signing.decide).not.toHaveBeenCalled();
+  });
+
   it("runs only known operations", async () => {
     as("revenue");
     await expect(

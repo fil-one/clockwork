@@ -1763,8 +1763,10 @@ detail lives in `docs/operations/commerce-mnda.md`,
   fail-closed `[[token]]` resolution
   (`packages/documents/src/contract-templates/definition.ts`, `registry.ts`,
   `render.tsx`). Prepared contracts pass an approval by someone other than the
-  preparer when the template requires it, enforced in the database, then follow
-  the MNDA's bind-then-send, lease and re-read rules
+  preparer when the template requires it, enforced in the database, or a
+  self-approval with a written reason by a preparer holding `approval:self`
+  (`supabase/migrations/001457_contract_self_approval.sql`), then follow the
+  MNDA's bind-then-send, lease and re-read rules
   (`packages/workflows/src/contracts.ts`,
   `packages/integrations/src/esign/signwell-contracts.ts`). Void runs in
   Commerce, survives a document deleted in SignWell, and is refused whenever

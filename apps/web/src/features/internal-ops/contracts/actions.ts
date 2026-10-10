@@ -9,6 +9,7 @@ import {
 } from "@clockwork/contracts";
 import { mndaRepository } from "../mnda/server";
 import type { MndaDuplicates } from "../mnda/actions";
+import { mayApproveOwnRequests } from "../self-approval/model";
 import { attempt } from "./action-result";
 import { prepareInputSchema } from "./prepare-input";
 import {
@@ -173,13 +174,25 @@ export async function prepareContract(raw: unknown) {
   });
 }
 
-/** Approves or rejects a prepared contract. The preparer cannot decide. */
+/**
+ * Approves or rejects a prepared contract. The preparer cannot decide, except
+ * that a holder of `approval:self` may approve their own contract with a
+ * written reason (`selfApprovalReason`), from their own MFA-verified session
+ * signed in recently. The repository checks the stored memberships and the
+ * reason; the database records the audit event and the notices.
+ */
 export async function decideContract(raw: unknown) {
   return attempt(async () => {
     const session = await contractStaff("contract:approve");
     const input = z
       .discriminatedUnion("approve", [
-        z.object({ contractId: z.uuid(), approve: z.literal(true) }).strict(),
+        z
+          .object({
+            contractId: z.uuid(),
+            approve: z.literal(true),
+            selfApprovalReason: z.string().max(2000).optional(),
+          })
+          .strict(),
         z
           .object({
             contractId: z.uuid(),
@@ -193,11 +206,22 @@ export async function decideContract(raw: unknown) {
           .strict(),
       ])
       .parse(raw);
+    const selfApprovalReason = input.approve
+      ? input.selfApprovalReason
+      : undefined;
+    if (selfApprovalReason !== undefined) {
+      if (!mayApproveOwnRequests(session))
+        throw new Error("SELF_APPROVAL_NOT_PERMITTED");
+      if (!session.recentAuthenticationVerified)
+        throw new Error("CONTRACT_RECENT_AUTH_REQUIRED");
+    }
     const record = await contractSigningRepository().decide(
       input.contractId,
-      input.approve
-        ? { approve: true }
-        : { approve: false, reason: input.reason },
+      !input.approve
+        ? { approve: false, reason: input.reason }
+        : selfApprovalReason !== undefined
+          ? { approve: true, selfApproval: { reason: selfApprovalReason } }
+          : { approve: true },
       contractActor(session),
     );
     return { approvalState: record.approvalState };

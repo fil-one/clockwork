@@ -319,3 +319,20 @@ it("words a self-approval event by its control, with its reason", () => {
     reason: "Customer asked twice",
   });
 });
+
+it("names a template contract self-approval in the notice", () => {
+  expect(
+    consoleEventView({
+      ...granted,
+      eventType: "approval.self_approved",
+      before: null,
+      after: {
+        control: "contract_approval",
+        reason: "Two-person team, colleague travelling",
+      },
+    }),
+  ).toMatchObject({
+    control: "contract_approval",
+    reason: "Two-person team, colleague travelling",
+  });
+});

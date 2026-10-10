@@ -168,6 +168,9 @@ export const contractSigning = pgTable("commerce_contract_signing", {
   approverName: text("approver_name"),
   decidedAt: timestamp("decided_at", { withTimezone: true }),
   rejectionReason: text("rejection_reason"),
+  /** The preparer approved their own contract under `approval:self` (001457). */
+  selfApproved: boolean("self_approved").notNull().default(false),
+  selfApprovalReason: text("self_approval_reason"),
   state: text("state").$type<ContractSigningState>().notNull().default("draft"),
   providerId: text("provider_id").unique(),
   testMode: boolean("test_mode").notNull(),

@@ -104,6 +104,8 @@ function activityTitle(event: ContractActivity, t: Translator) {
       return t("operations.contracts.activity.prepared");
     case "contract.approved":
       return t("operations.contracts.activity.approved");
+    case "contract.self_approved":
+      return t("operations.contracts.activity.selfApproved");
     case "contract.rejected":
       return t("operations.contracts.activity.rejected");
     case "contract.voided":
@@ -169,7 +171,8 @@ function Activity({
               typeof changes.reason === "string" ? (
                 <span>{changes.reason}</span>
               ) : null}
-              {event.eventType === "contract.voided" &&
+              {(event.eventType === "contract.voided" ||
+                event.eventType === "contract.self_approved") &&
               typeof changes.reason === "string" ? (
                 <span>
                   {t("operations.contracts.activity.reason", {
@@ -216,6 +219,7 @@ export function ContractDetail({
   canWrite,
   canApprove,
   isPreparer,
+  canSelfApprove = false,
   signingReady,
 }: {
   t: Translator;
@@ -228,6 +232,8 @@ export function ContractDetail({
   canWrite: boolean;
   canApprove: boolean;
   isPreparer: boolean;
+  /** The reader may approve their own requests under `approval:self`. */
+  canSelfApprove?: boolean;
   signingReady: boolean;
 }) {
   const months = (value: number | null) =>
@@ -303,6 +309,7 @@ export function ContractDetail({
               canWrite={canWrite}
               canApprove={canApprove}
               isPreparer={isPreparer}
+              canSelfApprove={canSelfApprove}
               signingReady={signingReady}
             />
           ) : null}

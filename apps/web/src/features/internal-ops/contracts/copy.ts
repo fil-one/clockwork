@@ -122,6 +122,11 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
   CONTRACT_STATUS_FOLLOWS_SIGNING:
     "operations.contracts.error.statusFollowsSigning",
   CONTRACT_APPROVER_IS_PREPARER: "operations.contracts.error.selfApproval",
+  CONTRACT_RECENT_AUTH_REQUIRED: "operations.decision.recentAuth",
+  SELF_APPROVAL_REASON_REQUIRED: "common.selfApproval.error.reason",
+  SELF_APPROVAL_NOT_PERMITTED: "common.selfApproval.error.notPermitted",
+  SELF_APPROVAL_NOT_OWN_REQUEST: "common.selfApproval.error.notOwn",
+  SELF_APPROVAL_SERVICE_ONLY: "common.selfApproval.error.directSession",
   CONTRACT_APPROVAL_NOT_PENDING: "operations.contracts.error.alreadyDecided",
   CONTRACT_APPROVAL_REQUIRED: "operations.contracts.error.approvalRequired",
   CONTRACT_REJECTION_REASON_REQUIRED:
