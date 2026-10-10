@@ -968,7 +968,11 @@ export const contractMessages = defineStaffMessages({
     count: "count",
     en: { one: "{count} item", other: "{count} items" },
   },
-  "operations.salesLibrary.noMatches": { en: "Nothing matches these filters." },
+  "operations.salesLibrary.noMatches": { en: "No items match these filters" },
+  "operations.salesLibrary.noMatchesHint": {
+    en: "Try a shorter search or clear the filters.",
+  },
+  "operations.salesLibrary.clearFilters": { en: "Clear filters" },
   "operations.salesLibrary.updatedOn": { en: "Updated {date}" },
   "operations.salesLibrary.open": { en: "Open link" },
   "operations.salesLibrary.openNamed": { en: "Open {title}" },

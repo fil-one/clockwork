@@ -304,3 +304,17 @@ export function StatusBadge({
     </span>
   );
 }
+
+/**
+ * A neutral, outlined label for what a record is: a role, a document type,
+ * an audience. Use `StatusBadge` for where a record stands.
+ */
+export function Tag({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <span className={`cw-tag ${className}`.trim()}>{children}</span>;
+}

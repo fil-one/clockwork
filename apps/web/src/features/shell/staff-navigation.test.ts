@@ -73,8 +73,16 @@ describe("staff navigation by role", () => {
   it("reserves the team page and the owner console for the commerce administrator", () => {
     const admin = visibleHrefs("commerce_admin");
     expect(admin).toContain("/internal/team");
-    // The owner console leads the sales group.
-    expect(admin[0]).toBe("/internal/owner");
+    // Daily work leads the sales group; team and the owner console close it.
+    expect(admin.slice(0, salesHrefs.length)).toEqual([
+      "/internal",
+      "/internal/mndas",
+      "/internal/contracts",
+      "/internal/sales-library",
+      "/internal/pricing",
+      "/internal/team",
+      "/internal/owner",
+    ]);
     for (const role of [
       "internal_operator",
       "finance_approver",
@@ -202,7 +210,7 @@ describe("staff command palette", () => {
     },
   );
 
-  it("finds indicative pricing", () => {
+  it("finds pricing", () => {
     expect(search("revenue", "pricing")).toContain("/internal/pricing");
     expect(search("revenue", "quote")).toContain("/internal/pricing");
   });
@@ -214,6 +222,15 @@ describe("staff command palette", () => {
       { providerBacked: true },
       t,
     ).map((item) => item.href);
-    expect(hrefs.every((href) => href && salesHrefs.includes(href))).toBe(true);
+    // A create action opens inside its sales page, such as a new MNDA.
+    const inSales = (href: string) => {
+      const path = href.split("?")[0] ?? "";
+      return salesHrefs.some((sales) =>
+        sales === "/internal"
+          ? path === sales
+          : path === sales || path.startsWith(`${sales}/`),
+      );
+    };
+    expect(hrefs.every((href) => href && inSales(href))).toBe(true);
   });
 });

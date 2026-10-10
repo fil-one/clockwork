@@ -108,6 +108,37 @@ describe("staff rail", () => {
     ).toHaveAttribute("href", "/internal/operations");
   });
 
+  it("puts handoffs and organizations in the operations group, with icons", () => {
+    const rail = renderRail("commerce_admin");
+    const operations = within(rail)
+      .getByText("Operations")
+      .closest("details") as HTMLElement;
+    const links = within(operations)
+      .getAllByRole("link", { hidden: true })
+      .map((link) => link.getAttribute("href"));
+    expect(links).toEqual([
+      "/internal/operations",
+      "/internal/handoffs",
+      "/internal/organizations",
+      "/internal/search",
+      "/internal/assisted",
+    ]);
+    for (const name of [/Handoffs/u, /Organizations/u])
+      expect(
+        within(operations)
+          .getByRole("link", { name, hidden: true })
+          .querySelector("svg"),
+      ).not.toBeNull();
+  });
+
+  it("opens the operations group for an operator", () => {
+    const rail = renderRail("internal_operator");
+    expect(within(rail).getByText("Sales")).toBeInTheDocument();
+    const operations = within(rail).getByText("Operations").closest("details");
+    expect(operations).toHaveAttribute("open");
+    expect(within(rail).getByRole("link", { name: /Handoffs/u })).toBeVisible();
+  });
+
   it("opens the operations group that holds the current page", () => {
     pathname = "/internal/webhook-replay";
     const rail = renderRail("commerce_admin");

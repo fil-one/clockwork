@@ -50,8 +50,8 @@ export const scenarioToday = (now = new Date()) =>
 export async function loadScenarioPanel(
   openId: string | undefined,
 ): Promise<ScenarioPanelState> {
-  if (explicitDemoIdentityEnabled() || !getOptionalServiceDatabase())
-    return { kind: "unavailable" };
+  if (explicitDemoIdentityEnabled()) return { kind: "demo" };
+  if (!getOptionalServiceDatabase()) return { kind: "unavailable" };
   try {
     const session = await contractStaff(
       "sales:read",

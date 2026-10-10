@@ -1,0 +1,6 @@
+/* The library shares the contract register's styles; this sets the page
+   column every staff page uses. */
+.page {
+  width: min(100%, var(--cw-page-width));
+  margin-inline: auto;
+}

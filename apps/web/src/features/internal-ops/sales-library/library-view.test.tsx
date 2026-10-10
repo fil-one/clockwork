@@ -108,6 +108,48 @@ it("hides archived material until asked and filters by audience", () => {
   expect(screen.queryByRole("button", { name: /^Edit/ })).toBeNull();
 });
 
+it("offers to clear the filters when nothing matches them", () => {
+  render(
+    <SalesLibraryView
+      canManage={false}
+      today="2026-10-04"
+      items={[item({})]}
+    />,
+  );
+  fireEvent.change(screen.getByLabelText("Search"), {
+    target: { value: "no such deck" },
+  });
+  fireEvent.change(screen.getByLabelText("Audience"), {
+    target: { value: "partner" },
+  });
+  expect(screen.getByText("0 items")).toBeInTheDocument();
+  expect(
+    screen.getByRole("heading", { name: "No items match these filters" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("Try a shorter search or clear the filters."),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+  expect(screen.getByLabelText("Search")).toHaveValue("");
+  expect(screen.getByLabelText("Audience")).toHaveValue("");
+  expect(screen.getByText("Fil One overview deck")).toBeInTheDocument();
+});
+
+it("shows type and audience as tags, not statuses", () => {
+  const { container } = render(
+    <SalesLibraryView
+      canManage={false}
+      today="2026-10-04"
+      items={[item({})]}
+    />,
+  );
+  const tags = [...container.querySelectorAll(".cw-tag")].map(
+    (tag) => tag.textContent,
+  );
+  expect(tags).toEqual(["Pitch deck", "Customers"]);
+  expect(container.querySelector(".cw-badge--info")).toBeNull();
+});
+
 it("adds a link only when it starts with https://", async () => {
   render(<SalesLibraryView items={[]} canManage today="2026-10-04" />);
   fireEvent.click(

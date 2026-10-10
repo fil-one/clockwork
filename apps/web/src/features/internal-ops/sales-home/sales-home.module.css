@@ -2,9 +2,10 @@
    at the same place on every staff page. */
 .main {
   display: grid;
+  width: min(100%, var(--cw-page-width));
   min-width: 0;
-  max-width: var(--cw-content-max);
   gap: var(--cw-space-6);
+  margin: 0 auto;
   padding: clamp(1rem, 3vw, 2.5rem);
   color: var(--cw-ink);
 }

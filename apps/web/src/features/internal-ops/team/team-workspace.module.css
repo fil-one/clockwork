@@ -1,23 +1,14 @@
 .main {
   display: grid;
+  width: min(100%, var(--cw-page-width));
   min-width: 0;
   gap: 1.5rem;
-  padding: clamp(1.25rem, 3vw, 2.5rem);
+  margin: 0 auto;
+  padding: clamp(1rem, 3vw, 2.5rem);
 }
 
-.header h1 {
-  margin: 0;
-  font-family: var(--cw-font-display);
-  font-size: var(--cw-text-display);
-  font-weight: 600;
-  line-height: var(--cw-leading-tight);
-}
-
-.description {
-  max-width: 48rem;
-  margin: 0.25rem 0 0;
-  color: var(--web-muted);
-  font-size: var(--cw-text-md);
+.main > :global(.cw-page-header) {
+  margin-bottom: 0;
 }
 
 .feedback:empty {
@@ -179,26 +170,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.chip {
-  display: inline-flex;
-  max-width: 100%;
-  align-items: center;
-  border: 1px solid var(--cw-border);
-  border-radius: 999px;
-  background: var(--cw-canvas-deep, transparent);
-  padding: 0.125rem 0.55rem;
-  font-size: var(--cw-text-xs);
-  font-weight: 500;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-
-/* The first chip is the primary role, which picks the home page. */
-.chip:first-child {
-  border-color: var(--cw-info-border, var(--cw-border));
-  background: var(--cw-info-soft, transparent);
 }
 
 .disclosure {

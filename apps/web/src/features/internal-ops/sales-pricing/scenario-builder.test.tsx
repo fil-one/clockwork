@@ -81,14 +81,34 @@ beforeEach(() => {
   mocks.remove.mockResolvedValue({ ok: true, value: { id: summary.id } });
 });
 
-it("says plainly when scenarios are unavailable, as in the demo", () => {
+it("keeps the calculator and says plainly when scenarios are unavailable", () => {
   render(<ScenarioBuilder books={books} state={{ kind: "unavailable" }} />);
   expect(
     screen.getByText(
-      "Saved scenarios are not available here. The calculator above still works.",
+      "Saving scenarios is not available here. The calculator still works.",
     ),
   ).toBeInTheDocument();
-  expect(screen.queryByRole("button")).toBeNull();
+  expect(screen.getByRole("group", { name: "Line 1" })).toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent("Total$18,000.00");
+  expect(screen.queryByRole("button", { name: "Save as scenario" })).toBeNull();
+  expect(screen.queryByLabelText("Scenario name")).toBeNull();
+  expect(screen.queryByRole("region", { name: "My scenarios" })).toBeNull();
+});
+
+it("puts the save and the summary PDF under the total", async () => {
+  const user = userEvent.setup();
+  render(<ScenarioBuilder books={books} state={ready()} />);
+  const download = screen.getByRole("button", {
+    name: "Download summary PDF",
+  });
+  expect(download).toBeDisabled();
+  expect(download).toHaveAccessibleDescription(
+    "Save the scenario to download its summary PDF.",
+  );
+  await user.type(screen.getByLabelText("Scenario name"), "Pilot");
+  await user.type(screen.getByLabelText("Prospect or company"), "Acme");
+  await user.click(screen.getByRole("button", { name: "Save as scenario" }));
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
 });
 
 it("prices several lines and saves only the entry, never a price", async () => {
@@ -165,7 +185,7 @@ it("opens a saved scenario to overwrite it and flags a rate that left force", as
   const second = screen.getByRole("group", { name: "Line 2" });
   expect(
     within(second).getByText(
-      "The saved rate STORAGE-TB, us-east is no longer in force. Choose a current rate before you save.",
+      "The saved rate Storage, us-east is no longer in force. Choose a current rate before you save.",
     ),
   ).toBeInTheDocument();
   expect(within(second).getByLabelText("Storage option")).toHaveValue("");
@@ -175,9 +195,21 @@ it("opens a saved scenario to overwrite it and flags a rate that left force", as
       "Discount (%)",
     ),
   ).toHaveValue(12.5);
+  // The PDF is the saved scenario: offered while the form matches it.
+  expect(
+    screen.getByRole("link", { name: "Download summary PDF" }),
+  ).toHaveAttribute(
+    "href",
+    `/internal/pricing/scenarios/${summary.id}/summary`,
+  );
   await user.selectOptions(
     within(second).getByLabelText("Storage option"),
     archive,
+  );
+  expect(
+    screen.getByRole("button", { name: "Download summary PDF" }),
+  ).toHaveAccessibleDescription(
+    "The summary PDF shows the scenario as last saved. Save your changes to update it.",
   );
   // Saved at 12.25 x 500 x 12 twice; today 13.13 and 3.50 for the same entry.
   const status = screen.getByRole("status");
@@ -197,13 +229,11 @@ it("warns about a quantity below the minimum and will not save it", async () => 
   render(<ScenarioBuilder books={books} state={ready()} />);
   await user.type(screen.getByLabelText("Scenario name"), "Pilot");
   await user.type(screen.getByLabelText("Prospect or company"), "Acme");
-  const quantity = screen.getByLabelText("Quantity (TB-month)");
+  const quantity = screen.getByLabelText("Capacity (TB)");
   await user.clear(quantity);
   await user.type(quantity, "5");
   expect(
-    screen.getByText(
-      "This is below the minimum of 10 TB-month. A quote starts at the minimum.",
-    ),
+    screen.getByText("Enter at least 10 TB. A quote starts at the minimum."),
   ).toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: "Save as scenario" }),

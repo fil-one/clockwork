@@ -3,6 +3,8 @@
 
 .page {
   display: grid;
+  width: min(100%, var(--cw-page-width));
+  margin: 0 auto;
   gap: var(--cw-space-6);
   min-width: 0;
   padding: clamp(1rem, 3vw, 2.5rem);

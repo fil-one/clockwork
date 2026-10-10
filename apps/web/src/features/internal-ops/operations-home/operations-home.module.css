@@ -1,10 +1,10 @@
 .main {
   display: grid;
-  width: min(100%, 1440px);
+  width: min(100%, var(--cw-page-width));
   min-width: 0;
   gap: 1.5rem;
   margin: 0 auto;
-  padding: clamp(1.25rem, 3vw, 2.5rem);
+  padding: clamp(1rem, 3vw, 2.5rem);
   color: var(--cw-ink);
 }
 
@@ -17,7 +17,10 @@
   min-width: 0;
 }
 
-.taskHeader,
+.main > :global(.cw-page-header) {
+  margin-bottom: 0;
+}
+
 .sectionHeading {
   display: flex;
   align-items: flex-end;
@@ -25,27 +28,9 @@
   gap: 1.5rem;
 }
 
-/* The page title is a heading, not a value, so it is set in the product
-   face like every other title. It used to take the monospace stack, which
-   reaches the generic monospace (Courier) on a Mac without SF Mono exposed. */
-.taskHeader h1 {
-  margin: 0;
-  font-family: var(--cw-font-display);
-  font-size: var(--cw-text-display);
-  font-weight: 600;
-  line-height: var(--cw-leading-tight);
-}
-
-.taskHeader > div > p,
 .sectionHeading p,
 .recommendations p {
   color: var(--cw-muted);
-}
-
-.taskHeader > div > p {
-  max-width: 72ch;
-  margin: 0.25rem 0 0;
-  font-size: var(--cw-text-md);
 }
 
 .freshness {
@@ -105,16 +90,6 @@
 
 .primaryLink:hover {
   background: var(--cw-action-strong);
-}
-
-/*
- * The trailing arrow. The component already picks "←" for an RTL language;
- * mirroring it here as well turned it back to "→", pointing away from the
- * reading direction.
- */
-.signalTable a > span[aria-hidden="true"] {
-  display: inline-block;
-  margin-inline-start: 0.25rem;
 }
 
 .recommendations {
@@ -254,7 +229,6 @@
 }
 
 @media (max-width: 48rem) {
-  .taskHeader,
   .sectionHeading {
     display: grid;
     align-items: start;
@@ -278,6 +252,5 @@
 @media (max-width: 24.375rem) {
   .main {
     gap: 1.4rem;
-    padding: 1rem 0.75rem;
   }
 }

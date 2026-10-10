@@ -121,6 +121,59 @@ describe("audience-aware shell commands", () => {
     expect(hrefs).not.toContain("/partner/quotes/new");
   });
 
+  it("offers sellers New MNDA and Record a contract, and says what each sales page holds", () => {
+    const items = getCommandItems(
+      "internal",
+      permissionsForRoles(["revenue"], { side: "fil_one" }),
+      providerContext,
+      t,
+    );
+    const byId = (id: string) => items.find((item) => item.id === id);
+    expect(byId("action-new-mnda")).toMatchObject({
+      label: "New MNDA",
+      href: "/internal/mndas?compose=1",
+      category: "actions",
+    });
+    expect(byId("action-record-contract")).toMatchObject({
+      label: "Record a contract",
+      href: "/internal/contracts/new",
+      category: "actions",
+    });
+    expect(byId("navigation-/internal/contracts")?.description).toBe(
+      "Every agreement, signed or in progress",
+    );
+    expect(byId("navigation-/internal/sales-library")?.description).toBe(
+      "Decks, one-pagers and case studies to share",
+    );
+  });
+
+  it("leaves New MNDA out of the demo, where the composer is turned off", () => {
+    const permissions = permissionsForRoles(["revenue"], { side: "fil_one" });
+    const ids = (demoIdentity: boolean) =>
+      getCommandItems(
+        "internal",
+        permissions,
+        { providerBacked: false, demoIdentity },
+        t,
+      ).map((item) => item.id);
+    expect(ids(true)).not.toContain("action-new-mnda");
+    expect(ids(true)).toContain("action-record-contract");
+    expect(ids(false)).toContain("action-new-mnda");
+  });
+
+  it("keeps the staff create actions from staff without the permission", () => {
+    const ids = getCommandItems(
+      "internal",
+      permissionsForRoles(["destructive_action_approver"], {
+        side: "fil_one",
+      }),
+      providerContext,
+      t,
+    ).map((item) => item.id);
+    expect(ids).not.toContain("action-new-mnda");
+    expect(ids).not.toContain("action-record-contract");
+  });
+
   it("hides approval and finance destinations from internal operators", () => {
     const hrefs = getCommandItems(
       "internal",

@@ -118,6 +118,8 @@ const navigationIcons: Readonly<Record<string, ReactNode>> = {
   "/internal/operations": <LayoutDashboard size={19} strokeWidth={1.8} />,
   "/internal/search": <Search size={19} strokeWidth={1.8} />,
   "/internal/queues": <Inbox size={19} strokeWidth={1.8} />,
+  "/internal/handoffs": <Handshake size={19} strokeWidth={1.8} />,
+  "/internal/organizations": <Building2 size={19} strokeWidth={1.8} />,
   "/internal/renewals": <RefreshCw size={19} strokeWidth={1.8} />,
   "/internal/collections": <ReceiptText size={19} strokeWidth={1.8} />,
   "/internal/provisioning": <PackageCheck size={19} strokeWidth={1.8} />,
@@ -162,6 +164,9 @@ interface NavigationSection {
    * one: they start closed unless they hold the current page.
    */
   secondary?: boolean;
+  /** A secondary section that starts open for a reader with one of these
+   * roles, because it is where they work every day. */
+  openFor?: readonly string[];
 }
 
 /**
@@ -235,8 +240,15 @@ const navigationSections: Readonly<
     {
       id: "operations",
       label: "platform.nav.group.operations",
-      hrefs: ["/internal/operations", "/internal/search", "/internal/assisted"],
+      hrefs: [
+        "/internal/operations",
+        "/internal/handoffs",
+        "/internal/organizations",
+        "/internal/search",
+        "/internal/assisted",
+      ],
       secondary: true,
+      openFor: ["internal_operator"],
     },
     {
       id: "queues",
@@ -579,10 +591,11 @@ export function AppShell({
         permissions,
         {
           providerBacked: session.providerBacked,
+          demoIdentity: session.demoIdentity === true,
         },
         t,
       ),
-    [audience, permissions, session.providerBacked, t],
+    [audience, permissions, session.providerBacked, session.demoIdentity, t],
   );
   const navigationGroups = useMemo<readonly NavigationGroup[]>(() => {
     const remaining = new Map(
@@ -615,6 +628,9 @@ export function AppShell({
         return [item];
       });
       const collapsible = Boolean(section.secondary && hasPrimaryWorkspace);
+      const openForReader = Boolean(
+        section.openFor?.some((role) => session.roles.includes(role)),
+      );
       return {
         id: `${audience}-${section.id}`,
         ...(section.label ? { label: t(section.label) } : {}),
@@ -622,7 +638,7 @@ export function AppShell({
         ...(collapsible
           ? {
               collapsible,
-              defaultOpen: items.some((item) => item.active),
+              defaultOpen: openForReader || items.some((item) => item.active),
             }
           : {}),
       };
@@ -636,7 +652,7 @@ export function AppShell({
       });
     }
     return sections.filter((section) => section.items.length > 0);
-  }, [audience, pathname, permissions, t]);
+  }, [audience, pathname, permissions, session.roles, t]);
 
   /**
    * A client transition replaces the content of the page without a document

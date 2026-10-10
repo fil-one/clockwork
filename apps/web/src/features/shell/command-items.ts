@@ -20,10 +20,14 @@ interface CommandAction {
   requiredPermission?: Permission;
   /** Offered to a reader holding at least one of these. */
   anyPermission?: readonly Permission[];
+  /** Left out where the demo turns the destination's tool off. */
+  offInDemo?: boolean;
 }
 
 export interface CommandItemContext {
   providerBacked: boolean;
+  /** The explicit demo identity is active. */
+  demoIdentity?: boolean;
 }
 
 const actionsFor = (
@@ -66,6 +70,24 @@ const actionsFor = (
     },
   ],
   internal: [
+    {
+      id: "new-mnda",
+      label: t("platform.command.newMnda"),
+      description: t("platform.command.newMnda.description"),
+      href: "/internal/mndas?compose=1",
+      keywords: ["nda", "mnda", "send", "new", "agreement"],
+      requiredPermission: "mnda:send",
+      // The demo cannot send an MNDA, so the composer would never open.
+      offInDemo: true,
+    },
+    {
+      id: "record-contract",
+      label: t("platform.command.recordContract"),
+      description: t("platform.command.recordContract.description"),
+      href: "/internal/contracts/new",
+      keywords: ["contract", "agreement", "msa", "signed", "new"],
+      requiredPermission: "contract:write",
+    },
     {
       id: "open-global-search",
       label: t("nav.internal.search"),
@@ -127,6 +149,7 @@ export function getCommandItems(
   const audienceActions = actionsFor(t)[audience];
   const actionItems: CommandPaletteItem[] = audienceActions
     .filter((item) => canAccessAction(item, permissions))
+    .filter((item) => !(item.offInDemo && context.demoIdentity))
 
     .map((item) => ({
       id: `action-${item.id}`,

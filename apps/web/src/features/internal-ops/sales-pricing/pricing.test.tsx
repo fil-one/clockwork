@@ -1,11 +1,26 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { PriceBookAdministrationRecord } from "@clockwork/db";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
+vi.mock("./scenario-actions", () => ({
+  saveScenario: vi.fn(),
+  deleteScenario: vi.fn(),
+}));
+
+import { translatorFor } from "@/src/i18n/catalogs";
 import { indicativePriceBooks, type IndicativePriceBook } from "./books";
-import { PricingWorkspace } from "./pricing-workspace";
+import {
+  bookLabel,
+  capacityUnit,
+  productName,
+  regionName,
+} from "./presentation";
+import { ScenarioBuilder } from "./scenario-builder";
 
 type RateCard = NonNullable<PriceBookAdministrationRecord["rateCards"]>[number];
 
@@ -121,7 +136,7 @@ describe("indicative price books", () => {
   });
 });
 
-describe("pricing workspace", () => {
+describe("pricing builder, line 1 as the calculator", () => {
   const books = indicativePriceBooks(
     [
       book({ id: "active", name: "Standard" }),
@@ -130,44 +145,122 @@ describe("pricing workspace", () => {
     today,
     label,
   );
+  const line = () => screen.getByRole("group", { name: "Line 1" });
 
   it("prices a monthly figure and a total from the list price", async () => {
     const user = userEvent.setup();
-    render(<PricingWorkspace books={books} initialBookId="active" />);
+    render(<ScenarioBuilder books={books} state={{ kind: "demo" }} />);
     expect(screen.getByRole("note")).toHaveTextContent(
       "Prices from the active price book, effective on 2026-09-01.",
     );
-    const quantity = screen.getByLabelText("Quantity (TB-month)");
-    await user.clear(quantity);
-    await user.type(quantity, "500");
-    await user.click(
-      screen.getByRole("button", { name: "Work out the price" }),
-    );
-    const result = screen.getByRole("status");
-    expect(within(result).getByText("$7,500.00")).toBeInTheDocument();
-    expect(within(result).getByText("$90,000.00")).toBeInTheDocument();
-    expect(result).toHaveTextContent("Indicative only.");
+    const capacity = within(line()).getByLabelText("Capacity (TB)");
+    await user.clear(capacity);
+    await user.type(capacity, "500");
+    expect(within(line()).getByText("$7,500.00")).toBeInTheDocument();
+    expect(within(line()).getByText("$90,000.00")).toBeInTheDocument();
+    expect(
+      within(line()).getByText("Price per TB per month"),
+    ).toBeInTheDocument();
+    expect(
+      within(line()).getByText("$18.00 per TB per month"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Total$90,000.00");
+    expect(screen.getByText(/^Indicative only\./u)).toBeInTheDocument();
   });
 
-  it("says when a quantity is below the minimum", async () => {
+  it("names the book, product and region in words", () => {
+    render(<ScenarioBuilder books={books} state={{ kind: "demo" }} />);
+    expect(
+      within(line()).getByRole("option", {
+        name: "Standard (USD), version 1",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(line()).getByRole("option", {
+        name: "Storage, us-east: $15.00 per TB per month",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("marks a capacity below the minimum on the field", async () => {
     const user = userEvent.setup();
-    render(<PricingWorkspace books={books} initialBookId="active" />);
-    const quantity = screen.getByLabelText("Quantity (TB-month)");
-    await user.clear(quantity);
-    await user.type(quantity, "2");
-    await user.click(
-      screen.getByRole("button", { name: "Work out the price" }),
+    render(<ScenarioBuilder books={books} state={{ kind: "demo" }} />);
+    const capacity = within(line()).getByLabelText("Capacity (TB)");
+    await user.clear(capacity);
+    await user.type(capacity, "2");
+    expect(capacity).toHaveAttribute("aria-invalid", "true");
+    expect(capacity).toHaveAccessibleDescription(
+      expect.stringContaining(
+        "Enter at least 10 TB. A quote starts at the minimum.",
+      ),
+    );
+  });
+
+  it("says against each field what to enter", async () => {
+    const user = userEvent.setup();
+    render(<ScenarioBuilder books={books} state={{ kind: "demo" }} />);
+    const capacity = within(line()).getByLabelText("Capacity (TB)");
+    const term = within(line()).getByLabelText("Term (months)");
+    const discount = within(line()).getByLabelText("Discount (%)");
+    for (const field of [capacity, term, discount])
+      expect(field).not.toHaveAttribute("aria-invalid");
+    await user.clear(capacity);
+    await user.type(capacity, "0");
+    await user.clear(term);
+    await user.type(term, "130");
+    await user.clear(discount);
+    await user.type(discount, "150");
+    for (const field of [capacity, term, discount])
+      expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(capacity).toHaveAccessibleDescription(
+      expect.stringContaining(
+        "Enter the capacity as a number above zero, for example 100.",
+      ),
+    );
+    expect(term).toHaveAccessibleDescription(
+      "Enter whole months from 1 to 120, for example 12.",
+    );
+    expect(discount).toHaveAccessibleDescription(
+      expect.stringContaining(
+        "Enter a discount from 0 to 100, with up to two decimals.",
+      ),
     );
     expect(screen.getByRole("status")).toHaveTextContent(
-      "This is below the minimum of 10 TB-month.",
+      "Complete every line to see a total.",
     );
   });
 
-  it("offers no partner route, partner tier or book changes", () => {
-    render(<PricingWorkspace books={books} initialBookId="active" />);
+  it("offers no partner route, tier or save in the demo", () => {
+    render(<ScenarioBuilder books={books} state={{ kind: "demo" }} />);
     expect(screen.queryByLabelText(/route|tier/iu)).toBeNull();
     expect(screen.getAllByRole("button")).toEqual([
-      screen.getByRole("button", { name: "Work out the price" }),
+      screen.getByRole("button", { name: "Add line" }),
     ]);
+    expect(
+      screen.getByText("Saving scenarios is turned off in the demo."),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("pricing presentation", () => {
+  const t = translatorFor("en");
+
+  it("words SKUs and regions, and leaves unknown codes as they are", () => {
+    expect(productName("LOCKED-STORAGE-TB", t)).toBe("Locked storage");
+    expect(productName("NEW-SKU", t)).toBe("NEW-SKU");
+    expect(regionName("us-east-2", t)).toBe("US East (Ohio)");
+    expect(regionName("ap-south-9", t)).toBe("ap-south-9");
+    expect(capacityUnit("TB-month")).toBe("TB");
+  });
+
+  it("says a book's currency once", () => {
+    const [first] = indicativePriceBooks(
+      [book({ name: "Direct commerce USD", version: 2 })],
+      today,
+      label,
+    );
+    expect(bookLabel(first as IndicativePriceBook, t)).toBe(
+      "Direct commerce (USD), version 2",
+    );
   });
 });

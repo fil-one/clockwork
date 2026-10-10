@@ -75,6 +75,8 @@ it("lists staff with every role, authenticator status and date, and marks the re
   expect(
     within(own).queryByRole("button", { name: "Change roles" }),
   ).not.toBeInTheDocument();
+  // Roles say what someone may do, not where anything stands: neutral tags.
+  expect(within(own).getByText("Commerce administrator")).toHaveClass("cw-tag");
   const both = row(seller.name);
   expect(within(both).getByText("Revenue")).toBeInTheDocument();
   expect(within(both).getByText("Legal approver")).toBeInTheDocument();
@@ -97,6 +99,11 @@ it("describes every staff role and how roles combine", () => {
     "Destructive-action approver",
   ])
     expect(within(roles).getByText(label)).toBeInTheDocument();
+  expect(
+    within(roles).getByText(
+      "Sales work: the home page, MNDAs, contracts, the sales library and pricing.",
+    ),
+  ).toBeInTheDocument();
 });
 
 it("adds a seller by default and explains that no email is sent", async () => {

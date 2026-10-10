@@ -17,6 +17,7 @@ import {
   RadioGroup,
   Select,
   StatusBadge,
+  Tag,
   Textarea,
   buttonClassName,
 } from "@clockwork/ui";
@@ -41,6 +42,7 @@ import { SessionExpiredReload } from "../session-expiry";
 import { localFileProblem, postCollateral } from "../contracts/upload-client";
 import { saveCollateral } from "./actions";
 import styles from "../contracts/contracts.module.css";
+import libraryStyles from "./library.module.css";
 
 const kindLabels: Readonly<Record<SalesCollateralKind, MessageId>> = {
   pitch_deck: "operations.salesLibrary.kind.pitchDeck",
@@ -364,7 +366,7 @@ export function SalesLibraryView({
   ).length;
 
   return (
-    <main className={styles.page} id="main-content">
+    <main className={`${styles.page} ${libraryStyles.page}`} id="main-content">
       <PageHeader
         title={t("operations.salesLibrary.title")}
         description={t("operations.salesLibrary.description")}
@@ -471,9 +473,24 @@ export function SalesLibraryView({
             {t("operations.salesLibrary.count", { count: visible.length })}
           </p>
           {visible.length === 0 ? (
-            <p className={styles.muted}>
-              {t("operations.salesLibrary.noMatches")}
-            </p>
+            <div className={styles.spaced}>
+              <EmptyState
+                title={t("operations.salesLibrary.noMatches")}
+                description={t("operations.salesLibrary.noMatchesHint")}
+                action={
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setQuery("");
+                      setAudience("");
+                      setKind("");
+                    }}
+                  >
+                    {t("operations.salesLibrary.clearFilters")}
+                  </Button>
+                }
+              />
+            </div>
           ) : (
             <ul className={`${styles.libraryList} ${styles.spaced}`}>
               {visible.map((item) => (
@@ -485,12 +502,8 @@ export function SalesLibraryView({
                     <h3>{item.title}</h3>
                     {item.description ? <p>{item.description}</p> : null}
                     <div className={styles.libraryMeta}>
-                      <StatusBadge tone="info">
-                        {t(kindLabels[item.kind])}
-                      </StatusBadge>
-                      <StatusBadge>
-                        {t(audienceLabels[item.audience])}
-                      </StatusBadge>
+                      <Tag>{t(kindLabels[item.kind])}</Tag>
+                      <Tag>{t(audienceLabels[item.audience])}</Tag>
                       {item.status === "archived" ? (
                         <StatusBadge tone="warning">
                           {t(statusLabels.archived)}

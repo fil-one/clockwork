@@ -17,7 +17,7 @@ export const teamMessages = defineStaffMessages({
   },
   "operations.team.roles.title": { en: "What each role can do" },
   "operations.team.roles.revenue": {
-    en: "Sales work: the home page, MNDAs and indicative pricing.",
+    en: "Sales work: the home page, MNDAs, contracts, the sales library and pricing.",
   },
   "operations.team.roles.commerceAdmin": {
     en: "Everything every other staff role can do, plus signing settings, this team page and the owner console.",
