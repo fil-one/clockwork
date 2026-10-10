@@ -12,8 +12,8 @@ a fresh qualification of the entire product.
   tests. Do not start databases or call live providers without a relevant
   change.
 - Run the selected checks once after the final edit. Repeat or broaden them only
-  for subsequent changes, failures or a specific unresolved risk. Required hooks
-  and CI still apply; do not duplicate the full CI suite locally by default.
+  for subsequent changes, failures or a specific unresolved risk. Hooks and CI
+  still apply; do not duplicate the full CI suite locally by default.
 - For MNDA changes, follow the scoped validation guidance in
   [the MNDA runbook](docs/operations/commerce-mnda.md#change-validation). A
   spacing or email change does not automatically require another complete
@@ -25,4 +25,6 @@ a fresh qualification of the entire product.
 - Report the outcome, relevant checks and any remaining limitation briefly.
   Separate implementation time from time spent waiting for CI or deployment.
 
-This guidance does not change required GitHub checks or deployment automation.
+This guidance does not change hooks or deployment automation. GitHub has no
+required checks; the Deploy workflow deploys only after a green CI run on
+`main`.

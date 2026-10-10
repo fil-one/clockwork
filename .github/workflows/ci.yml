@@ -1,10 +1,35 @@
 name: CI
 
+# A change confined to documentation starts no run, so a docs-only push to main
+# deploys nothing. Later patterns override earlier ones. The docs that code or
+# tests read stay in: runbooks under docs/operations, the generated access
+# matrix, the MNDA template, the two files the trust register cites, and the
+# platform spec.
 on:
   pull_request:
     branches: [main]
+    paths:
+      - "**"
+      - "!docs/**"
+      - "docs/operations/**"
+      - "docs/security/**"
+      - "docs/legal/**"
+      - "docs/external-gates.md"
+      - "docs/sprint-checklist.md"
+      - "!*.md"
+      - "commerce_platform_spec.md"
   push:
     branches: [main]
+    paths:
+      - "**"
+      - "!docs/**"
+      - "docs/operations/**"
+      - "docs/security/**"
+      - "docs/legal/**"
+      - "docs/external-gates.md"
+      - "docs/sprint-checklist.md"
+      - "!*.md"
+      - "commerce_platform_spec.md"
 
 permissions:
   contents: read
