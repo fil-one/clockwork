@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fixtureSigningRecord as record } from "../../../contracts/src/contract-fixture";
 import {
   assertContractSigningFields,
+  contractCopiedContacts,
   contractSignWellState,
   SignWellContractClient,
   type SignWellContractDocument,
@@ -69,6 +70,41 @@ describe("SignWell template contracts", () => {
     expect(JSON.stringify(body)).not.toContain(
       record.contractId.slice(0, 8) + " ",
     );
+  });
+
+  it("copies the preparer on the completed document, unless they sign it", async () => {
+    const created = async (
+      r: typeof record,
+      draft: "createContractDraft" | "createCounterpartyPaperDraft",
+    ) => {
+      const transport = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response(JSON.stringify(doc())));
+      await new SignWellContractClient("private-key", transport)[draft](
+        r,
+        Buffer.from("%PDF-test"),
+      );
+      const sent = transport.mock.calls[0]?.[1]?.body;
+      if (typeof sent !== "string") throw new Error("Expected JSON body");
+      return (JSON.parse(sent) as { copied_contacts?: unknown })
+        .copied_contacts;
+    };
+    const seller = { ...record, preparerEmail: "Seller@Fil.One" };
+    for (const draft of [
+      "createContractDraft",
+      "createCounterpartyPaperDraft",
+    ] as const)
+      expect(await created(seller, draft)).toEqual([
+        { name: record.preparerName, email: "seller@fil.one" },
+      ]);
+    // Not when they sign it, nor on a request prepared before copies.
+    expect(
+      contractCopiedContacts({
+        ...record,
+        preparerEmail: record.countersigner.email,
+      }),
+    ).toEqual([]);
+    expect(await created(record, "createContractDraft")).toEqual([]);
   });
 
   it("rejects a document bound to another record, mode or signer", () => {

@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   ContractListQuerySchema,
   contractRenewalWindows,
+  contractResendableStates,
   counterpartyPaperFileKinds,
   type ContractFileRecord,
   type ContractListQuery,
@@ -90,8 +91,9 @@ export function loadRegister(
   });
 }
 
-/** The uploaded PDFs a contract on the counterparty's paper can be sent
- * from, while it is unsigned and has no signing request. */
+/** The uploaded PDFs an unsigned contract, on either party's paper, can be
+ * sent for signature from: while it has no signing request, or after its
+ * request was declined, expired or voided. */
 export function counterpartyPaperSources(detail: {
   contract: ContractRecord;
   files: readonly ContractFileRecord[];
@@ -99,8 +101,7 @@ export function counterpartyPaperSources(detail: {
 }) {
   const { contract, files, signing } = detail;
   if (
-    signing ||
-    contract.paper !== "theirs" ||
+    (signing && !contractResendableStates.includes(signing.state)) ||
     contract.executedAt !== null ||
     !["draft", "in_negotiation"].includes(contract.status)
   )
@@ -119,8 +120,8 @@ export function loadContract(id: string) {
     return {
       ...detail,
       today,
-      // A contract on their paper with a PDF can be sent for the Fil One
-      // countersignature; the form needs the PDFs and the countersigners.
+      // An unsigned contract with an uploaded PDF can be sent for
+      // signature; the form needs the PDFs and the countersigners.
       paperSources: paper,
       countersigners: paper.length
         ? await contractSigningRepository().countersigners()

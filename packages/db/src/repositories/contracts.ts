@@ -6,6 +6,7 @@ import {
   contractExportLimit,
   contractPageSize,
   counterpartyPaperFileKinds,
+  contractResendableStates,
   counterpartyPaperRequiresApproval,
   terminalContractSigningStates,
   uploadableContractFileKinds,
@@ -19,6 +20,7 @@ import {
   type ContractListRow,
   type ContractRecord,
   type ContractSigner,
+  type ContractSigningHistoryEntry,
   type ContractSigningRecord,
   type ContractSigningState,
   type ContractStatus,
@@ -37,6 +39,7 @@ import {
   contractEvents,
   contractFiles,
   contractSigning,
+  contractSigningHistory,
 } from "../schema/contracts";
 import { mndaSigners } from "../schema/mnda";
 import { withInternalTransaction } from "../transaction";
@@ -141,8 +144,44 @@ const signingView = (s: SigningRow): ContractSigningRecord => ({
   cancelReason: s.cancelReason,
   documentType: s.documentType,
   counterpartySigns: s.counterpartySigns,
+  requestNumber: s.requestNumber,
+  preparerEmail: s.preparerEmail,
   version: s.version,
 });
+
+type HistoryRow = typeof contractSigningHistory.$inferSelect;
+
+/** A replaced request, read from the row the archive trigger kept. */
+const historyView = (h: HistoryRow): ContractSigningHistoryEntry => {
+  const r = h.request;
+  const optional = (key: string) => {
+    const value = r[key];
+    return typeof value === "string" ? value : null;
+  };
+  const text = (key: string) => optional(key) ?? "";
+  const signer = (r.counterparty_signer ?? {}) as Partial<ContractSigner>;
+  const countersigner = (r.countersigner ?? {}) as Partial<ContractSigner>;
+  return {
+    requestNumber: h.requestNumber,
+    state: h.state,
+    cancelCode: optional("cancel_code") as ContractCancelCode | null,
+    cancelReason: optional("cancel_reason"),
+    documentType:
+      r.document_type === "counterparty_paper"
+        ? "counterparty_paper"
+        : "contract_template",
+    counterpartySigns: r.counterparty_signs !== false,
+    counterpartySigner: {
+      name: signer.name ?? "",
+      email: optional("corrected_signer_email") ?? signer.email ?? "",
+      title: signer.title ?? "",
+    },
+    countersignerName: countersigner.name ?? "",
+    preparerName: text("preparer_name"),
+    createdAt: new Date(text("created_at")).toISOString(),
+    updatedAt: new Date(text("updated_at")).toISOString(),
+  };
+};
 
 const actorName = (actor: Actor) =>
   actor.display ?? (actor.kind === "provider" ? "SignWell" : actor.id);
@@ -548,6 +587,11 @@ export class ContractRepository {
         .select()
         .from(contractSigning)
         .where(eq(contractSigning.contractId, id));
+      const earlier = await tx
+        .select()
+        .from(contractSigningHistory)
+        .where(eq(contractSigningHistory.contractId, id))
+        .orderBy(desc(contractSigningHistory.requestNumber));
       return {
         contract: contractView(contract, asOf),
         files: files.map(fileView),
@@ -559,6 +603,8 @@ export class ContractRepository {
           occurredAt: e.occurredAt.toISOString(),
         })),
         signing: signing ? signingView(signing) : null,
+        /** Requests that ended and were replaced, newest first. */
+        previousSigning: earlier.map(historyView),
       };
     });
   }
@@ -709,6 +755,8 @@ export class ContractRepository {
         .select({
           counterpartyName: commerceContracts.counterpartyName,
           contractType: commerceContracts.contractType,
+          paper: commerceContracts.paper,
+          title: commerceContracts.title,
         })
         .from(commerceContracts)
         .where(eq(commerceContracts.id, contractId));
@@ -748,8 +796,8 @@ export class ContractRepository {
         !(uploadableContractFileKinds as readonly string[]).includes(file.kind)
       )
         throw new Error("CONTRACT_FILE_PERMANENT");
-      // The PDF a counterparty-paper request was prepared from stays, as the
-      // database also enforces (001464).
+      // The PDF an uploaded-PDF request was prepared from stays, including
+      // one a later request replaced, as the database also enforces (001465).
       const [pinned] = await tx
         .select({ contractId: contractSigning.contractId })
         .from(contractSigning)
@@ -760,7 +808,18 @@ export class ContractRepository {
             eq(contractSigning.templateHash, file.sha256),
           ),
         );
-      if (pinned) throw new Error("CONTRACT_FILE_SENT_FOR_SIGNATURE");
+      const [replaced] = await tx
+        .select({ contractId: contractSigningHistory.contractId })
+        .from(contractSigningHistory)
+        .where(
+          and(
+            eq(contractSigningHistory.contractId, contractId),
+            sql`${contractSigningHistory.request}->>'document_type' = 'counterparty_paper'`,
+            sql`${contractSigningHistory.request}->>'template_hash' = ${file.sha256}`,
+          ),
+        );
+      if (pinned || replaced)
+        throw new Error("CONTRACT_FILE_SENT_FOR_SIGNATURE");
       await tx.delete(contractFiles).where(eq(contractFiles.id, fileId));
       await touchContract(tx, contract);
       await recordEvent(
@@ -896,7 +955,7 @@ function historyChanges(note: ContractSigningNote | undefined) {
   );
 }
 
-/** A recorded contract on the counterparty's paper, sent from one of its
+/** A recorded contract, on either party's paper, sent from one of its
  * uploaded PDFs with the Fil One signature page appended (`pdf`). */
 export interface PrepareCounterpartyPaper {
   contractId: string;
@@ -910,6 +969,8 @@ export interface PrepareCounterpartyPaper {
   counterpartySigner: ContractSigner | null;
   countersignerId: string;
   testMode: boolean;
+  /** Copied by SignWell on the completed document. */
+  preparerEmail?: string | null;
   pdf: Uint8Array;
   fileName: string;
 }
@@ -926,9 +987,31 @@ export interface PrepareContractSigning {
     countersignerId: string;
     approvalRequired: boolean;
     testMode: boolean;
+    /** Copied by SignWell on the completed document. */
+    preparerEmail?: string | null;
   };
   pdf: Uint8Array;
   fileName: string;
+}
+
+/** The address kept for the SignWell copy: lowercased, or none. */
+const copyAddress = (email: string | null | undefined) =>
+  email?.trim() ? email.trim().toLowerCase() : null;
+
+/**
+ * Replaces a contract's current request that ended without signatures, in
+ * the caller's transaction: the database moves it to the signing history
+ * as it stands (001465). Returns the next request's number.
+ */
+async function replaceEnded(tx: RuntimeTransaction, existing: SigningRow) {
+  if (!contractResendableStates.includes(existing.state))
+    throw new Error("CONTRACT_SIGNING_EXISTS");
+  if (existing.leaseUntil && existing.leaseUntil > new Date())
+    throw new Error("CONTRACT_BUSY");
+  await tx
+    .delete(contractSigning)
+    .where(eq(contractSigning.contractId, existing.contractId));
+  return existing.requestNumber + 1;
 }
 
 /**
@@ -1040,6 +1123,7 @@ export class ContractSigningRepository {
               ? "pending"
               : "not_required",
             testMode: prepared.signing.testMode,
+            preparerEmail: copyAddress(prepared.signing.preparerEmail),
           })
           .returning();
         if (!row) throw new Error("CONTRACT_SIGNING_INSERT_FAILED");
@@ -1074,11 +1158,12 @@ export class ContractSigningRepository {
   }
 
   /**
-   * Prepares a recorded contract on the counterparty's paper for signature:
-   * one signing request per contract, pinned to the uploaded PDF's hash,
-   * with the PDF that goes to SignWell stored as the prepared document. It
-   * always needs approval. A retry by the same person from the same file
-   * returns the first preparation.
+   * Prepares one of a recorded contract's uploaded PDFs for signature, on
+   * either party's paper: a signing request pinned to the PDF's hash, with
+   * the PDF that goes to SignWell stored as the prepared document. It always
+   * needs approval. A contract has one current request: a retry by the same
+   * person from the same file returns it while it is open, and once it was
+   * declined, expired or voided a new one replaces it.
    */
   async prepareCounterpartyPaper(
     prepared: PrepareCounterpartyPaper,
@@ -1102,10 +1187,10 @@ export class ContractSigningRepository {
         const [existing] = await tx
           .select()
           .from(contractSigning)
-          .where(eq(contractSigning.contractId, id));
-        // One request per contract: a closed one is not prepared again on the
-        // same record, and a retry only returns a request still open.
-        if (existing) {
+          .where(eq(contractSigning.contractId, id))
+          .for("update");
+        // A retry returns the request still open; a completed one stays.
+        if (existing && !contractResendableStates.includes(existing.state)) {
           if (
             terminalContractSigningStates.includes(existing.state) ||
             existing.documentType !== "counterparty_paper" ||
@@ -1124,7 +1209,6 @@ export class ContractSigningRepository {
           return { record: signingView(existing), duplicate: true };
         }
         if (
-          contract.paper !== "theirs" ||
           contract.executedAt !== null ||
           !["draft", "in_negotiation"].includes(contract.status)
         )
@@ -1160,10 +1244,13 @@ export class ContractSigningRepository {
             prepared.counterpartySigner.email.toLowerCase()
         )
           throw new Error("CONTRACT_DISTINCT_SIGNERS_REQUIRED");
+        const requestNumber = existing ? await replaceEnded(tx, existing) : 1;
         const [row] = await tx
           .insert(contractSigning)
           .values({
             contractId: id,
+            requestNumber,
+            preparerEmail: copyAddress(prepared.preparerEmail),
             templateId: "counterparty-paper",
             templateVersion: prepared.signaturePageVersion,
             templateHash: file.sha256,
@@ -1207,6 +1294,7 @@ export class ContractSigningRepository {
             counterpartySigns: row.counterpartySigns,
             approvalRequired: row.approvalRequired,
             testMode: row.testMode,
+            ...(requestNumber > 1 ? { requestNumber } : {}),
           },
         );
         return { record: signingView(row), duplicate: false };
@@ -1218,6 +1306,118 @@ export class ContractSigningRepository {
       await this.stores.primary.delete(stored.key).catch(() => {});
       throw error;
     }
+  }
+
+  /**
+   * Sends a contract again to the same people after its request
+   * (`expectedRequest`) was declined, expired or voided: a new request with
+   * that one's document, signers and prepared PDF replaces it, and the
+   * database keeps the ended one in the signing history. The countersigner
+   * must still be active. It needs approval again where the ended one did,
+   * and is sent in the mode configured now. A retry by the same person
+   * returns the new request.
+   */
+  resend(
+    contractId: string,
+    expectedRequest: number,
+    options: { testMode: boolean; preparerEmail: string | null },
+    preparer: Actor & { kind: "user" },
+  ) {
+    return this.tx(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${contractId}))`,
+      );
+      const [contract] = await tx
+        .select()
+        .from(commerceContracts)
+        .where(eq(commerceContracts.id, contractId))
+        .for("update");
+      if (!contract) throw new Error("CONTRACT_NOT_FOUND");
+      const [existing] = await tx
+        .select()
+        .from(contractSigning)
+        .where(eq(contractSigning.contractId, contractId))
+        .for("update");
+      if (!existing) throw new Error("CONTRACT_SIGNING_NOT_FOUND");
+      if (
+        existing.requestNumber === expectedRequest + 1 &&
+        existing.preparerId === preparer.id &&
+        !terminalContractSigningStates.includes(existing.state)
+      )
+        return { record: signingView(existing), duplicate: true };
+      if (existing.requestNumber !== expectedRequest)
+        throw new Error("CONTRACT_SIGNING_EXISTS");
+      if (
+        contract.executedAt !== null ||
+        !["draft", "in_negotiation"].includes(contract.status)
+      )
+        throw new Error("CONTRACT_PAPER_NOT_SENDABLE");
+      // The signer's name is printed in the prepared PDF: a request voided
+      // for a different signer is prepared again instead.
+      if (existing.cancelCode === "signer_change")
+        throw new Error("CONTRACT_RESEND_SIGNER_CHANGE");
+      const [signer] = await tx
+        .select()
+        .from(mndaSigners)
+        .where(
+          and(
+            eq(mndaSigners.id, existing.countersigner.id),
+            eq(mndaSigners.active, true),
+          ),
+        );
+      if (!signer) throw new Error("CONTRACT_COUNTERSIGNER_UNAVAILABLE");
+      const counterpartyEmail =
+        existing.correctedSignerEmail ?? existing.counterpartySigner.email;
+      if (
+        existing.counterpartySigns &&
+        signer.email.toLowerCase() === counterpartyEmail.toLowerCase()
+      )
+        throw new Error("CONTRACT_DISTINCT_SIGNERS_REQUIRED");
+      const requestNumber = await replaceEnded(tx, existing);
+      const [row] = await tx
+        .insert(contractSigning)
+        .values({
+          contractId,
+          requestNumber,
+          templateId: existing.templateId,
+          templateVersion: existing.templateVersion,
+          templateHash: existing.templateHash,
+          documentName: existing.documentName,
+          input: existing.input,
+          // A confirmed email correction carries over; the name and title
+          // are printed in the prepared PDF and stay.
+          counterpartySigner: {
+            ...existing.counterpartySigner,
+            email: counterpartyEmail,
+          },
+          countersigner: { ...existing.countersigner, email: signer.email },
+          preparerId: preparer.id,
+          preparerName: actorName(preparer),
+          preparerEmail: copyAddress(options.preparerEmail),
+          approvalRequired: existing.approvalRequired,
+          approvalState: existing.approvalRequired ? "pending" : "not_required",
+          testMode: options.testMode,
+          documentType: existing.documentType,
+          counterpartySigns: existing.counterpartySigns,
+        })
+        .returning();
+      if (!row) throw new Error("CONTRACT_SIGNING_INSERT_FAILED");
+      await touchContract(tx, contract);
+      await recordEvent(
+        tx,
+        contractId,
+        contract.version + 1,
+        preparer,
+        "contract.prepared",
+        {
+          documentType: row.documentType,
+          requestNumber,
+          approvalRequired: row.approvalRequired,
+          testMode: row.testMode,
+        },
+      );
+      return { record: signingView(row), duplicate: false };
+    });
   }
 
   get(contractId: string) {
@@ -1241,7 +1441,9 @@ export class ContractSigningRepository {
     });
   }
 
-  /** The prepared PDF, verified against its recorded hash. */
+  /** The current request's prepared PDF, verified against its recorded
+   * hash. Each preparation adds one and a resend reuses the last, so the
+   * latest is the current request's. */
   async generatedPdf(contractId: string) {
     const file = await this.tx(async (tx) => {
       const [row] = await tx
@@ -1252,7 +1454,9 @@ export class ContractSigningRepository {
             eq(contractFiles.contractId, contractId),
             eq(contractFiles.kind, "generated"),
           ),
-        );
+        )
+        .orderBy(desc(contractFiles.createdAt), desc(contractFiles.id))
+        .limit(1);
       return row;
     });
     if (!file) throw new Error("CONTRACT_FILE_NOT_FOUND");
@@ -1263,7 +1467,9 @@ export class ContractSigningRepository {
    * Records an approval decision. Only a pending request can be decided, and
    * never by the person who prepared it unless they approve it under
    * `approval:self` with a reason; the database enforces all of it again and
-   * writes the self-approval's audit event and notices (001457).
+   * writes the self-approval's audit event and notices (001457). With
+   * `expectedRequest`, a decision made on a request since replaced is
+   * refused rather than applied to the new one.
    */
   decide(
     contractId: string,
@@ -1271,6 +1477,7 @@ export class ContractSigningRepository {
       | { approve: true; selfApproval?: SelfApproval }
       | { approve: false; reason: string },
     approver: Actor & { kind: "user" },
+    expectedRequest?: number,
   ) {
     return this.tx(async (tx) => {
       const [row] = await tx
@@ -1279,6 +1486,11 @@ export class ContractSigningRepository {
         .where(eq(contractSigning.contractId, contractId))
         .for("update");
       if (!row) throw new Error("CONTRACT_SIGNING_NOT_FOUND");
+      if (
+        expectedRequest !== undefined &&
+        row.requestNumber !== expectedRequest
+      )
+        throw new Error("CONTRACT_REQUEST_CHANGED");
       if (row.approvalState !== "pending")
         throw new Error("CONTRACT_APPROVAL_NOT_PENDING");
       const offered = decision.approve ? decision.selfApproval : undefined;

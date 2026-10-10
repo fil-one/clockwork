@@ -9,6 +9,7 @@ import {
 import {
   ContractCorrectSignerSchema,
   ContractInputSchema,
+  ContractResendSchema,
   ContractVoidSchema,
   SendCounterpartyPaperSchema,
   contractPdfFileName,
@@ -33,6 +34,21 @@ import {
   contractTemplateRegistry,
   sessionHas,
 } from "./server";
+
+/** The request a person acted on, when the screen names it: a contract's
+ * request is replaced after it ends, so an action taken on an earlier one is
+ * refused rather than applied to the next. */
+const requestNumber = z.number().int().min(1).optional();
+
+async function assertCurrentRequest(
+  contractId: string,
+  expected: number | undefined,
+) {
+  if (expected === undefined) return;
+  const record = await contractSigningRepository().get(contractId);
+  if (record.requestNumber !== expected)
+    throw new Error("CONTRACT_REQUEST_CHANGED");
+}
 
 /** Records a new contract, or saves an edit made against a known version. */
 export async function saveContract(raw: unknown) {
@@ -179,6 +195,7 @@ export async function prepareContract(raw: unknown) {
           countersignerId: countersigner.id,
           approvalRequired: template.requiresApproval,
           testMode: contractSigningConfiguration().testMode,
+          preparerEmail: session.profile.email,
         },
         pdf: rendered.bytes,
         fileName: contractPdfFileName(documentName),
@@ -204,6 +221,7 @@ export async function decideContract(raw: unknown) {
         z
           .object({
             contractId: z.uuid(),
+            requestNumber,
             approve: z.literal(true),
             selfApprovalReason: z.string().max(2000).optional(),
           })
@@ -211,6 +229,7 @@ export async function decideContract(raw: unknown) {
         z
           .object({
             contractId: z.uuid(),
+            requestNumber,
             approve: z.literal(false),
             reason: z
               .string()
@@ -238,6 +257,7 @@ export async function decideContract(raw: unknown) {
           ? { approve: true, selfApproval: { reason: selfApprovalReason } }
           : { approve: true },
       contractActor(session),
+      input.requestNumber,
     );
     return { approvalState: record.approvalState };
   });
@@ -247,13 +267,19 @@ export async function decideContract(raw: unknown) {
 export async function operateContract(raw: unknown) {
   return attempt(async () => {
     const session = await contractStaff("contract:write");
-    const { contractId, operation } = z
+    const {
+      contractId,
+      operation,
+      requestNumber: expected,
+    } = z
       .object({
         contractId: z.uuid(),
+        requestNumber,
         operation: z.enum(["send", "sync", "remind", "cancel"]),
       })
       .strict()
       .parse(raw);
+    await assertCurrentRequest(contractId, expected);
     const record = await contractSigningWorkflow(operation)[operation](
       contractId,
       contractActor(session),
@@ -285,6 +311,7 @@ export async function voidContract(raw: unknown) {
   return attempt(async () => {
     const session = await contractStaff("contract:write");
     const input = ContractVoidSchema.parse(raw);
+    await assertCurrentRequest(input.contractId, input.requestNumber);
     await assertMayChangeSigning(session, input.contractId);
     const record = await contractSigningWorkflow("void").void(
       input.contractId,
@@ -303,7 +330,12 @@ export async function voidContract(raw: unknown) {
 export async function correctContractSigner(raw: unknown) {
   return attempt(async () => {
     const session = await contractStaff("contract:write");
-    const { contractId, signerEmail } = ContractCorrectSignerSchema.parse(raw);
+    const {
+      contractId,
+      signerEmail,
+      requestNumber: expected,
+    } = ContractCorrectSignerSchema.parse(raw);
+    await assertCurrentRequest(contractId, expected);
     await assertMayChangeSigning(session, contractId);
     const record = await contractSigningWorkflow("correctSigner").correctSigner(
       contractId,
@@ -315,11 +347,13 @@ export async function correctContractSigner(raw: unknown) {
 }
 
 /**
- * Prepares a recorded contract on the counterparty's paper for the Fil One
- * countersignature: the chosen uploaded PDF, read and checked against its
- * hash, with the Fil One signature page appended. The seller chooses whether
- * the counterparty signs in SignWell first or signed their paper already.
- * Approval and sending then follow the signing panel, as for templates.
+ * Prepares one of a recorded contract's uploaded PDFs for signature, on
+ * either party's paper (their agreement, or Fil One's own term sheet or
+ * letter): the chosen PDF, read and checked against its hash, with the Fil
+ * One signature page appended. The seller chooses whether the counterparty
+ * signs in SignWell first or signed the PDF already. Approval and sending
+ * then follow the signing panel, as for templates. After a request was
+ * declined, expired or voided, this prepares the next one.
  */
 export async function prepareCounterpartyPaper(raw: unknown) {
   return attempt(async () => {
@@ -356,8 +390,13 @@ export async function prepareCounterpartyPaper(raw: unknown) {
       countersigner,
       preparedOn: new Date().toISOString().slice(0, 10),
     });
-    const documentName =
-      `Fil One countersignature - ${contract.counterpartyName}`.slice(0, 200);
+    // Their paper keeps the countersignature name; Fil One's own PDF is
+    // named by what it is.
+    const documentName = (
+      contract.paper === "theirs"
+        ? `Fil One countersignature - ${contract.counterpartyName}`
+        : `Fil One ${contract.title.trim() || "agreement"} - ${contract.counterpartyName}`
+    ).slice(0, 200);
     const { record } = await repository.prepareCounterpartyPaper(
       {
         contractId: input.contractId,
@@ -367,11 +406,36 @@ export async function prepareCounterpartyPaper(raw: unknown) {
         counterpartySigner,
         countersignerId: countersigner.id,
         testMode: contractSigningConfiguration().testMode,
+        preparerEmail: session.profile.email,
         pdf: rendered.bytes,
         fileName: contractPdfFileName(documentName),
       },
       contractActor(session),
     );
     return { state: record.state };
+  });
+}
+
+/**
+ * Sends a contract again to the same people after its request was declined,
+ * expired or voided, with the same prepared PDF. The new request replaces the
+ * ended one, which stays in the contract's signing history, and needs
+ * approval again where the first did. The person sending it again is its
+ * preparer.
+ */
+export async function resendContract(raw: unknown) {
+  return attempt(async () => {
+    const session = await contractStaff("contract:write");
+    const { contractId, requestNumber } = ContractResendSchema.parse(raw);
+    const { record } = await contractSigningRepository().resend(
+      contractId,
+      requestNumber,
+      {
+        testMode: contractSigningConfiguration().testMode,
+        preparerEmail: session.profile.email,
+      },
+      contractActor(session),
+    );
+    return { state: record.state, requestNumber: record.requestNumber };
   });
 }

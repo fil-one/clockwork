@@ -15,18 +15,22 @@ import type { RenderedContract } from "../contract-templates/definition";
 import { assertTemplateValue } from "../contract-templates/render";
 
 /**
- * The Fil One signature page appended to a counterparty's own PDF. Its
- * wording is interim, pending counsel (EXT-LEGAL-01): a plain signature
- * block and the SHA-256 of the document it is attached to. Counsel's
- * wording replaces it with a new version; requests already prepared keep
+ * The Fil One signature page appended to an uploaded PDF, the
+ * counterparty's paper or Fil One's own: the SHA-256 of the document it is
+ * attached to, an execution statement, a counterparts and electronic
+ * signature clause, and a name, title and date block for each signer. A
+ * change to the wording is a new version; requests already prepared keep
  * theirs.
  */
-export const counterpartySignaturePageVersion = "interim-2026-10-10";
+export const counterpartySignaturePageVersion = "2026-10-10";
+
+/** Fil One's contracting entity, exactly as it signs. */
+const filOneEntity = "FIL One LLC";
 
 export interface CounterpartySignaturePageInput {
   contractId: string;
   counterpartyName: string;
-  /** SHA-256 of the counterparty's PDF the page is appended to. */
+  /** SHA-256 of the uploaded PDF the page is appended to. */
   sourceSha256: string;
   /** Present when the counterparty signs in SignWell first; null when they
    * signed their paper already and Fil One alone signs. */
@@ -34,6 +38,21 @@ export interface CounterpartySignaturePageInput {
   countersigner: ContractSigner;
   /** Fixes the PDF's dates, so the same input renders the same bytes. */
   preparedOn: string;
+  /** The page size; the uploaded PDF's own when it is appended to one.
+   * Letter when not given. */
+  paperSize?: SignaturePageSize;
+}
+
+export type SignaturePageSize = "A4" | "LETTER";
+
+/** A4 when the PDF's last page is A4 either way up, otherwise Letter. */
+function sourcePaperSize(document: PDFDocument): SignaturePageSize {
+  const last = document.getPage(document.getPageCount() - 1);
+  const { width, height } = last.getSize();
+  const [short, long] = [Math.min(width, height), Math.max(width, height)];
+  return Math.abs(short - 595.28) <= 6 && Math.abs(long - 841.89) <= 6
+    ? "A4"
+    : "LETTER";
 }
 
 const style = StyleSheet.create({
@@ -133,6 +152,17 @@ function SignatureBlock({
   );
 }
 
+/** What the page says above the signature blocks. When Fil One alone signs
+ * here, the counterparty signed the document itself. */
+function executionText(input: CounterpartySignaturePageInput) {
+  return input.counterpartySigner
+    ? `${filOneEntity} and ${input.counterpartyName} have caused the Document to be signed by their authorized representatives as of the dates written below. Each person signing confirms that they are authorized to sign for the party named above their signature.`
+    : `${input.counterpartyName} has signed the Document. ${filOneEntity} has caused the Document to be signed by its authorized representative as of the date written below, and the person signing confirms that they are authorized to sign for ${filOneEntity}.`;
+}
+
+const counterpartsText =
+  "The Document may be signed in counterparts and by electronic signature, each of which is an original and all of which together are one document. An electronic signature, and a signed copy delivered electronically, has the same effect as an original signature.";
+
 /** The signature page alone, with SignWell text tags: the counterparty is
  * recipient 1 when they sign here, and the Fil One signer comes last. */
 export async function renderCounterpartySignaturePage(
@@ -152,18 +182,21 @@ export async function renderCounterpartySignaturePage(
   const pdf = await renderToBuffer(
     <Document
       title="Signature page"
-      author="FIL One LLC"
+      author={filOneEntity}
       creationDate={fixedDate}
       modificationDate={fixedDate}
     >
-      <Page size="LETTER" style={style.page}>
+      <Page size={input.paperSize ?? "LETTER"} style={style.page}>
         <Text style={style.title}>SIGNATURE PAGE</Text>
         <Text style={{ ...style.paragraph, marginBottom: 2 }}>
-          Signature page to the document above, SHA-256:
+          This page forms part of the document it is attached to (the
+          "Document"), identified by its SHA-256:
         </Text>
         <Text style={style.paragraph} hyphenationCallback={(word) => [word]}>
           {input.sourceSha256}
         </Text>
+        <Text style={style.paragraph}>{executionText(input)}</Text>
+        <Text style={style.paragraph}>{counterpartsText}</Text>
         {input.counterpartySigner ? (
           <SignatureBlock
             party={input.counterpartyName}
@@ -172,7 +205,7 @@ export async function renderCounterpartySignaturePage(
           />
         ) : null}
         <SignatureBlock
-          party="FIL One LLC"
+          party={filOneEntity}
           signer={input.countersigner}
           recipient={input.counterpartySigner ? 2 : 1}
         />
@@ -194,12 +227,13 @@ function rendered(bytes: Buffer): RenderedContract {
 }
 
 /**
- * The counterparty's PDF with the Fil One signature page appended: what is
- * stored as the prepared document and sent to SignWell. Their pages are
- * copied with any form fields of their own drawn into the page as they look,
- * so SignWell finds only the fields the signature page places. A PDF that
- * cannot be opened (encrypted or damaged), or whose form cannot be drawn
- * exactly, is refused. The same input gives the same bytes.
+ * The uploaded PDF with the Fil One signature page appended, on the same
+ * paper size (A4 or Letter) as its last page: what is stored as the
+ * prepared document and sent to SignWell. Its pages are copied with any
+ * form fields of their own drawn into the page as they look, so SignWell
+ * finds only the fields the signature page places. A PDF that cannot be
+ * opened (encrypted or damaged), or whose form cannot be drawn exactly, is
+ * refused. The same input gives the same bytes.
  */
 export async function renderCounterpartyPaper(
   source: Uint8Array,
@@ -207,15 +241,22 @@ export async function renderCounterpartyPaper(
 ): Promise<RenderedContract> {
   if (createHash("sha256").update(source).digest("hex") !== input.sourceSha256)
     throw new Error("CONTRACT_PAPER_HASH_INVALID");
-  const page = await renderCounterpartySignaturePage(input);
+  // pdf-lib reads a damaged file lazily, so it can fail at any step here.
+  let theirs: PDFDocument;
+  let paperSize: SignaturePageSize;
+  try {
+    theirs = await PDFDocument.load(source, { updateMetadata: false });
+    if (theirs.getPageCount() === 0) throw new Error("no pages");
+    paperSize = sourcePaperSize(theirs);
+  } catch {
+    throw new Error("CONTRACT_PAPER_UNREADABLE");
+  }
+  const page = await renderCounterpartySignaturePage({ ...input, paperSize });
   const signature = await PDFDocument.load(page.bytes, {
     updateMetadata: false,
   });
-  // pdf-lib reads a damaged file lazily, so it can fail at any step here.
   let merged: Uint8Array;
   try {
-    const theirs = await PDFDocument.load(source, { updateMetadata: false });
-    if (theirs.getPageCount() === 0) throw new Error("no pages");
     withoutFormFields(theirs);
     // Pages are copied into a new file, which carries only what they use:
     // nothing left over from the form, and a clean cross-reference table.

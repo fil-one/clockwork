@@ -935,6 +935,18 @@ test.describe("playable product-demo workflows", () => {
     await expect(
       page.getByRole("link", { name: "Record a contract" }),
     ).toHaveCount(0);
+    // Fil One's own PDF, sent again after the first request was voided.
+    await gotoHydrated(
+      page,
+      "/internal/contracts/62000000-0000-4000-8000-000000000012",
+    );
+    await expect(
+      page.getByRole("heading", { name: "Earlier requests" }),
+    ).toBeVisible();
+    await expect(page.getByText(/Request 1: Voided/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Send again" })).toHaveCount(
+      0,
+    );
     await gotoHydrated(page, "/internal/contracts/notices");
     await expect(
       page.getByText("Fernhill Research Institute").first(),

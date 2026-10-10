@@ -266,7 +266,8 @@ is set to `false`; test-mode signatures are not legally binding.
    the register status follows what SignWell reports.
 5. **Archive.** When both have signed, the signed PDF with SignWell's signing
    record is stored with its hash and the contract is marked executed, in one
-   step.
+   step. SignWell emails the signed PDF to the signers and to the person who
+   prepared the request.
 
 A request that never reached SignWell can be discarded. Once it has, it is
 voided in Commerce, with a reason, until the counterparty signs: Commerce reads
@@ -294,23 +295,52 @@ choose **Someone else will sign**: Commerce voids the request with that reason
 (no reason is typed), and the template's prepare page opens with the earlier
 values and the signer left blank. The new preparation is a new contract record
 and needs approval again where the template requires it; the voided one stays in
-the register as a draft. The same people who may void a request may fix its
-email.
+the register as a draft. For an uploaded PDF, choose the new signer in **Prepare
+for signature** on the same contract instead. The same people who may void a
+request may fix its email.
 
-A contract recorded on the counterparty's paper can be signed the same way.
-**Send for Fil One signature** on an unsigned contract with an uploaded main PDF
-or counterparty draft appends a Fil One signature page to the chosen PDF and
-prepares it for SignWell, pinned to that PDF's SHA-256. Choose **Fil One only**
-when the counterparty already signed the PDF, or **The counterparty, then Fil
-One** to have them sign the added page first. It always needs approval, and the
-signing panel then works as for a template contract. Form fields in their PDF
-are drawn into the page exactly as they look and removed, so SignWell asks only
-for the signatures on the added page. A PDF whose form cannot be drawn exactly
-is refused: print it to a flat PDF, upload that and send it again. A draft
-SignWell still finds other fields in is held for a void and never sent. The PDF
-it was sent from cannot be removed, and a contract has one request: after a
-void, decline or expiry, record the contract again to resend it. The signature
-page wording is interim until counsel supplies it.
+### Uploaded PDFs
+
+Any unsigned contract with an uploaded main PDF or counterparty draft can be
+sent for signature, on either party's paper: their agreement, or a term sheet,
+channel terms letter, affiliate letter or teaming agreement Fil One drafted in
+Word and uploaded as a PDF. **Prepare for signature** on the contract appends
+the Fil One signature page to the chosen PDF and prepares it for SignWell,
+pinned to that PDF's SHA-256. Choose **The counterparty, then Fil One** to have
+them sign the added page first (the default on Fil One's paper), or **Fil One
+only** when the counterparty already signed the PDF (the default on theirs). It
+always needs approval; a commerce administrator may approve their own with a
+reason. The signing panel then works as for a template contract.
+
+The signature page is on the PDF's paper size, A4 or Letter. It names both
+parties (Fil One as FIL One LLC), states that each signs by an authorized
+representative, allows counterparts and electronic signatures, and gives a name,
+title and date block for each signer and the PDF's SHA-256. Its version is
+stored on each request; a change to the wording is a new version, and requests
+already prepared keep theirs.
+
+Form fields in the PDF are drawn into the page exactly as they look and removed,
+so SignWell asks only for the signatures on the added page. A PDF whose form
+cannot be drawn exactly is refused: print it to a flat PDF, upload that and send
+it again. A draft SignWell still finds other fields in is held for a void and
+never sent. A PDF that was sent for signature cannot be removed from the
+contract.
+
+### Sending again
+
+A contract has one current signing request. Once it was declined, expired or
+voided, it can be sent again from the same record:
+
+- **Send again** on the signing panel sends the same document to the same
+  people, as a new request. A confirmed email correction carries over.
+- For an uploaded PDF, **Prepare for signature** under the panel sends a
+  different PDF, or the same one to a different signer.
+
+The new request needs approval again where the first did. The ended request is
+kept, unchanged, under **Earlier requests** on the panel, with the PDF it was
+sent from. A completed request is never replaced, and an executed contract is
+not sent again. A template voided because someone else will sign is prepared
+again from the template, since the signer's name is printed in it.
 
 Reminders go to whoever signs next and are spaced at least a minute apart,
 counted from the last reminder. Each one is recorded in the contract's history
@@ -323,11 +353,16 @@ audited, as `contract.file_downloaded`, `contract.register_exported` and
 
 ## Configuration
 
-| Variable                             | Effect                                                                                                                     |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `COMMERCE_CONTRACTS_SIGNING_ENABLED` | `true` turns on sending. Also needs `SIGNWELL_API_KEY` and `SIGNWELL_WEBHOOK_ID`, shared with MNDAs.                       |
-| `COMMERCE_CONTRACTS_TEST_MODE`       | Anything other than `false` sends in SignWell test mode. Each contract keeps the mode it was prepared in.                  |
-| `COMMERCE_DOCUMENT_STORE`            | Where new PDFs are written. Only `postgres` exists today; any other value stops document reads and writes until supported. |
+| Variable                             | Effect                                                                                                   |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `COMMERCE_CONTRACTS_SIGNING_ENABLED` | `true` turns on sending. Also needs `SIGNWELL_API_KEY` and `SIGNWELL_WEBHOOK_ID`, shared with MNDAs.     |
+| `COMMERCE_CONTRACTS_TEST_MODE`       | Anything other than `false` sends in SignWell test mode. Each request keeps the mode it was prepared in. |
+
+Deployed environments set both from Terraform (`deploy/app/main.tf`). Sending is
+on unless the GitHub environment variable `COMMERCE_CONTRACTS_SIGNING_ENABLED`
+is `false`; staging sends in test mode and production sends live. |
+`COMMERCE_DOCUMENT_STORE` | Where new PDFs are written. Only `postgres` exists
+today; any other value stops document reads and writes until supported. |
 
 Recording contracts, uploading PDFs, the renewal notices list and the sales
 library need none of these.

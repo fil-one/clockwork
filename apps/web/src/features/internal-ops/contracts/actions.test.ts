@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
     countersigners: vi.fn(),
     prepare: vi.fn(),
     prepareCounterpartyPaper: vi.fn(),
+    resend: vi.fn(),
     decide: vi.fn(),
     get: vi.fn(),
   },
@@ -71,6 +72,7 @@ import {
   prepareContract,
   prepareCounterpartyPaper,
   removeContractFile,
+  resendContract,
   saveContract,
   voidContract,
 } from "./actions";
@@ -586,6 +588,7 @@ describe("decideContract and operateContract", () => {
       contractId,
       { approve: true, selfApproval: { reason } },
       expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
+      undefined,
     );
   });
 
@@ -752,7 +755,12 @@ describe("prepareCounterpartyPaper", () => {
   beforeEach(() => {
     mocks.repository.readFile.mockResolvedValue({
       file: { id: fileId, sha256, kind: "counterparty_draft" },
-      contract: { counterpartyName: "Bluefin Data Co.", contractType: "other" },
+      contract: {
+        counterpartyName: "Bluefin Data Co.",
+        contractType: "other",
+        paper: "theirs",
+        title: "",
+      },
       bytes: Buffer.from("%PDF-their paper"),
     });
     mocks.renderPaper.mockResolvedValue({
@@ -794,8 +802,41 @@ describe("prepareCounterpartyPaper", () => {
         countersignerId: countersigner.id,
         testMode: true,
         documentName: "Fil One countersignature - Bluefin Data Co.",
+        // The seller is copied on the signed copy.
+        preparerEmail: "seller@fil.one",
       }),
       expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
+    );
+  });
+
+  it("names Fil One's own PDF by its title", async () => {
+    as("revenue");
+    mocks.repository.readFile.mockResolvedValue({
+      file: { id: fileId, sha256, kind: "main" },
+      contract: {
+        counterpartyName: "Bluefin Data Co.",
+        contractType: "channel_partnership",
+        paper: "ours",
+        title: "Referral term sheet",
+      },
+      bytes: Buffer.from("%PDF-our term sheet"),
+    });
+    await expect(
+      prepareCounterpartyPaper({
+        contractId,
+        fileId,
+        countersignerId: countersigner.id,
+        signers: "counterparty_then_fil_one",
+        signerName: "Alex Example",
+        signerEmail: "alex@example.com",
+        signerTitle: "CEO",
+      }),
+    ).resolves.toMatchObject({ ok: true });
+    expect(mocks.signing.prepareCounterpartyPaper).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentName: "Fil One Referral term sheet - Bluefin Data Co.",
+      }),
+      expect.anything(),
     );
   });
 
@@ -860,6 +901,82 @@ describe("prepareCounterpartyPaper", () => {
       }),
     ).resolves.toEqual({ ok: false, code: "CONTRACT_PAPER_UNREADABLE" });
     expect(mocks.signing.prepareCounterpartyPaper).not.toHaveBeenCalled();
+  });
+});
+
+describe("resendContract", () => {
+  it("sends the ended request again, as the seller, in the configured mode", async () => {
+    as("revenue");
+    mocks.signing.resend.mockResolvedValue({
+      record: { state: "draft", requestNumber: 3 },
+      duplicate: false,
+    });
+    await expect(
+      resendContract({ contractId, requestNumber: 2 }),
+    ).resolves.toEqual({
+      ok: true,
+      value: { state: "draft", requestNumber: 3 },
+    });
+    expect(mocks.signing.resend).toHaveBeenCalledWith(
+      contractId,
+      2,
+      { testMode: true, preparerEmail: "seller@fil.one" },
+      expect.objectContaining({ id: "019a44ac-0000-7000-8000-0000000000aa" }),
+    );
+  });
+
+  it("needs contract:write, a request number, and passes refusals through", async () => {
+    as("finance_approver");
+    await expect(
+      resendContract({ contractId, requestNumber: 1 }),
+    ).resolves.toMatchObject({ ok: false });
+    as("revenue");
+    await expect(resendContract({ contractId })).resolves.toMatchObject({
+      code: "INVALID_INPUT",
+    });
+    mocks.signing.resend.mockRejectedValueOnce(
+      new Error("CONTRACT_SIGNING_EXISTS"),
+    );
+    await expect(
+      resendContract({ contractId, requestNumber: 1 }),
+    ).resolves.toEqual({ ok: false, code: "CONTRACT_SIGNING_EXISTS" });
+    expect(mocks.signing.resend).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("actions on a replaced request", () => {
+  it("refuses an approval, operation, void or correction made on an earlier request", async () => {
+    as("commerce_admin");
+    mocks.signing.get.mockResolvedValue({
+      requestNumber: 3,
+      preparerId: "019a44ac-0000-7000-8000-0000000000aa",
+    });
+    mocks.signing.decide.mockRejectedValue(
+      new Error("CONTRACT_REQUEST_CHANGED"),
+    );
+    const stale = { contractId, requestNumber: 2 };
+    await expect(decideContract({ ...stale, approve: true })).resolves.toEqual({
+      ok: false,
+      code: "CONTRACT_REQUEST_CHANGED",
+    });
+    expect(mocks.signing.decide).toHaveBeenCalledWith(
+      contractId,
+      { approve: true },
+      expect.anything(),
+      2,
+    );
+    for (const result of [
+      operateContract({ ...stale, operation: "send" }),
+      voidContract({ ...stale, reason: "Wrong PDF" }),
+      correctContractSigner({ ...stale, signerEmail: "right@example.com" }),
+    ])
+      await expect(result).resolves.toEqual({
+        ok: false,
+        code: "CONTRACT_REQUEST_CHANGED",
+      });
+    expect(mocks.workflow.send).not.toHaveBeenCalled();
+    expect(mocks.workflow.void).not.toHaveBeenCalled();
+    expect(mocks.workflow.correctSigner).not.toHaveBeenCalled();
   });
 });
 

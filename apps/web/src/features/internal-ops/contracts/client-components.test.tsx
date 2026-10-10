@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   voidContract: vi.fn(),
   correctContractSigner: vi.fn(),
   prepareCounterpartyPaper: vi.fn(),
+  resendContract: vi.fn(),
   prepareContract: vi.fn(),
   findContractDuplicates: vi.fn(),
   upload: vi.fn(),
@@ -38,6 +39,7 @@ vi.mock("./actions", () => ({
   voidContract: mocks.voidContract,
   correctContractSigner: mocks.correctContractSigner,
   prepareCounterpartyPaper: mocks.prepareCounterpartyPaper,
+  resendContract: mocks.resendContract,
   prepareContract: mocks.prepareContract,
   findContractDuplicates: mocks.findContractDuplicates,
 }));
@@ -400,6 +402,7 @@ describe("signing panel", () => {
     await waitFor(() =>
       expect(mocks.decideContract).toHaveBeenCalledWith({
         contractId: fixtureSigningRecord.contractId,
+        requestNumber: 1,
         approve: true,
         selfApprovalReason: "Two-person team, colleague travelling",
       }),
@@ -426,6 +429,7 @@ describe("signing panel", () => {
     await waitFor(() =>
       expect(mocks.decideContract).toHaveBeenCalledWith({
         contractId: fixtureSigningRecord.contractId,
+        requestNumber: 1,
         approve: true,
       }),
     );
@@ -450,6 +454,7 @@ describe("signing panel", () => {
     await waitFor(() =>
       expect(mocks.operateContract).toHaveBeenCalledWith({
         contractId: fixtureSigningRecord.contractId,
+        requestNumber: 1,
         operation: "send",
       }),
     );
@@ -513,6 +518,7 @@ describe("signing panel", () => {
     await waitFor(() =>
       expect(mocks.voidContract).toHaveBeenCalledWith({
         contractId: fixtureSigningRecord.contractId,
+        requestNumber: 1,
         reason: "Wrong legal entity",
       }),
     );
@@ -624,6 +630,7 @@ describe("signing panel", () => {
     await waitFor(() =>
       expect(mocks.correctContractSigner).toHaveBeenCalledWith({
         contractId: fixtureSigningRecord.contractId,
+        requestNumber: 1,
         signerEmail: "right@example.com",
       }),
     );
@@ -692,6 +699,7 @@ describe("signing panel", () => {
     );
     expect(mocks.voidContract).toHaveBeenCalledWith({
       contractId: fixtureSigningRecord.contractId,
+      requestNumber: 1,
       code: "signer_change",
     });
   });
@@ -744,6 +752,7 @@ describe("counterparty paper", () => {
     render(
       <CounterpartyPaperCard
         contractId={fixtureContractRecord.id}
+        paper="theirs"
         files={[file]}
         countersigners={countersigners}
         signingReady
@@ -773,6 +782,7 @@ describe("counterparty paper", () => {
     render(
       <CounterpartyPaperCard
         contractId={fixtureContractRecord.id}
+        paper="theirs"
         files={[file]}
         countersigners={countersigners}
         signingReady
@@ -793,6 +803,48 @@ describe("counterparty paper", () => {
         signers: "counterparty_then_fil_one",
         signerName: "Alex Example",
         signerEmail: "",
+      }),
+    );
+  });
+
+  it("asks for the counterparty signer first by default on Fil One's own PDF", async () => {
+    mocks.prepareCounterpartyPaper.mockResolvedValue({
+      ok: true,
+      value: { state: "draft" },
+    });
+    render(
+      <CounterpartyPaperCard
+        contractId={fixtureContractRecord.id}
+        paper="ours"
+        files={[{ ...file, kind: "main", fileName: "Term sheet.pdf" }]}
+        countersigners={countersigners}
+        signingReady
+      />,
+    );
+    expect(
+      screen.getByLabelText("The counterparty, then Fil One"),
+    ).toBeChecked();
+    fireEvent.change(screen.getByLabelText(/Signer's full name/), {
+      target: { value: "Alex Example" },
+    });
+    fireEvent.change(screen.getByLabelText(/Signer's email/), {
+      target: { value: "alex@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText(/Signer's job title/), {
+      target: { value: "CEO" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Prepare for signature" }),
+    );
+    await waitFor(() =>
+      expect(mocks.prepareCounterpartyPaper).toHaveBeenCalledWith({
+        contractId: fixtureContractRecord.id,
+        fileId: file.id,
+        countersignerId: fixtureSigningRecord.countersigner.id,
+        signers: "counterparty_then_fil_one",
+        signerName: "Alex Example",
+        signerEmail: "alex@example.com",
+        signerTitle: "CEO",
       }),
     );
   });
@@ -829,7 +881,7 @@ describe("counterparty paper", () => {
       ...fixtureSigningRecord,
       documentType: "counterparty_paper",
       counterpartySigns: false,
-      templateVersion: "interim-2026-10-10",
+      templateVersion: "2026-10-10",
       state: "sent",
       providerId: "x",
     });
@@ -838,10 +890,10 @@ describe("counterparty paper", () => {
     ).toBeNull();
     expect(
       screen.getByText(
-        "Their PDF with the Fil One signature page (interim-2026-10-10).",
+        "Uploaded PDF with the Fil One signature page (2026-10-10).",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Signed on their paper")).toBeInTheDocument();
+    expect(screen.getByText("Signed the PDF already")).toBeInTheDocument();
     expect(screen.queryByText("Counterparty signed")).toBeNull();
     expect(screen.queryByRole("button", { name: "Fix email" })).toBeNull();
     expect(
@@ -856,10 +908,73 @@ describe("counterparty paper", () => {
     providerId: "x",
   };
 
-  it("sends a closed request on their paper to record the contract again", () => {
+  it("sends an ended request again on the same contract, keeping the earlier one", async () => {
+    mocks.resendContract.mockResolvedValue({
+      ok: true,
+      value: { state: "draft", requestNumber: 3 },
+    });
     render(
       <SigningPanel
-        signing={{ ...paper, state: "canceled", cancelCode: "voided" }}
+        signing={{
+          ...paper,
+          state: "canceled",
+          cancelCode: "voided",
+          requestNumber: 2,
+        }}
+        previousSigning={[
+          {
+            requestNumber: 1,
+            state: "declined",
+            cancelCode: null,
+            cancelReason: null,
+            documentType: "counterparty_paper",
+            counterpartySigns: true,
+            counterpartySigner: fixtureSigningRecord.counterpartySigner,
+            countersignerName: "James Kurz",
+            preparerName: "R.W. Holleman",
+            createdAt: "2026-10-01T15:00:00.000Z",
+            updatedAt: "2026-10-02T15:00:00.000Z",
+          },
+        ]}
+        generatedFileId={null}
+        canWrite
+        canApprove
+        isPreparer={false}
+        signingReady
+      />,
+    );
+    expect(screen.getByText("This request ended")).toBeInTheDocument();
+    expect(
+      screen.getByText(/choose a different PDF or signer below/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Voided")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Prepare again" })).toBeNull();
+    expect(
+      screen.getByRole("heading", { name: "Earlier requests" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Request 1: Declined, Alex Example \(alex@example.com\)/,
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Send again" }));
+    await waitFor(() =>
+      expect(mocks.resendContract).toHaveBeenCalledWith({
+        contractId: fixtureSigningRecord.contractId,
+        requestNumber: 2,
+      }),
+    );
+    expect(mocks.refresh).toHaveBeenCalled();
+  });
+
+  it("sends a declined template contract again, but prepares it again for a new signer", () => {
+    const { unmount } = render(
+      <SigningPanel
+        signing={{
+          ...fixtureSigningRecord,
+          state: "declined",
+          providerId: "x",
+        }}
         generatedFileId={null}
         canWrite
         canApprove
@@ -868,26 +983,80 @@ describe("counterparty paper", () => {
       />,
     );
     expect(
-      screen.getByText("This request can no longer be sent"),
+      screen.getByText(/If the template needs approval/),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Record the contract again" }),
-    ).toHaveAttribute(
-      "href",
-      `/internal/contracts/new?from=${fixtureSigningRecord.contractId}`,
-    );
-    // The old record is closed by hand, so it is not counted twice.
-    expect(
-      screen.getByText(/Then set this record to Terminated/u),
+      screen.getByRole("button", { name: "Send again" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Edit this record" }),
-    ).toHaveAttribute(
-      "href",
-      `/internal/contracts/${fixtureSigningRecord.contractId}/edit`,
+    unmount();
+    render(
+      <SigningPanel
+        signing={{
+          ...fixtureSigningRecord,
+          state: "canceled",
+          cancelCode: "signer_change",
+          providerId: "x",
+        }}
+        generatedFileId={null}
+        canWrite
+        canApprove
+        isPreparer={false}
+        signingReady
+      />,
     );
-    expect(screen.getByText("Voided")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Send again" })).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Prepare again" }),
+    ).toBeInTheDocument();
+  });
+
+  it("sends an uploaded PDF voided for a new signer from the form, not again to the old one", () => {
+    render(
+      <SigningPanel
+        signing={{ ...paper, state: "canceled", cancelCode: "signer_change" }}
+        generatedFileId={null}
+        canWrite
+        canApprove
+        isPreparer={false}
+        signingReady
+      />,
+    );
+    expect(
+      screen.getByText(/Choose who signs instead in the form below/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Send again" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Prepare again" })).toBeNull();
+  });
+
+  it("offers a different PDF or signer under an ended request", () => {
+    render(
+      <ContractDetail
+        t={translatorFor("en")}
+        locale="en-US"
+        contract={{
+          ...fixtureContractRecord,
+          paper: "ours",
+          status: "draft",
+          executedAt: null,
+        }}
+        files={[file]}
+        activity={[]}
+        signing={{ ...paper, state: "expired" }}
+        paperSources={[file]}
+        countersigners={countersigners}
+        today="2026-10-09"
+        canWrite
+        canApprove
+        isPreparer={false}
+        signingReady
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "Send a different PDF or signer" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Send again" }),
+    ).toBeInTheDocument();
   });
 
   it("holds a draft whose PDF brought fields of its own, offering only a void", () => {
@@ -910,10 +1079,7 @@ describe("counterparty paper", () => {
         /SignWell found signature fields Commerce did not place/,
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/then record the contract again\./),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/prepare a new one/)).toBeNull();
+    expect(screen.getByText(/then send it again\./)).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Send for signature" }),
     ).toBeNull();

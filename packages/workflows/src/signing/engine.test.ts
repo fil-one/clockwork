@@ -139,8 +139,9 @@ describe("the contract store", () => {
         actor,
       ),
     ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
+    // A note with no event of its own needs a state change to go with.
     await expect(
-      store.update(record, "token", { state: "sent" }, actor, undefined, {
+      store.update(record, "token", { error: null }, actor, undefined, {
         detail: { copiedContacts: "verified" },
       }),
     ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
@@ -158,6 +159,30 @@ describe("the contract store", () => {
       }),
     ).rejects.toThrow("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it("keeps the preparer copy check on the sending entry", async () => {
+    const update = vi.fn(async () => record);
+    const store = contractStore(update);
+    await store.update(
+      record,
+      "token",
+      { state: "sending", error: null },
+      actor,
+      undefined,
+      { detail: { copiedContacts: "verified" } },
+    );
+    expect(update).toHaveBeenCalledWith(
+      record.contractId,
+      "token",
+      { state: "sending", error: null },
+      actor,
+      undefined,
+      {
+        eventType: "contract.signing_sending",
+        detail: { copiedContacts: "verified" },
+      },
+    );
   });
 
   it("passes corrections, cancel codes and before-images to the repository", async () => {

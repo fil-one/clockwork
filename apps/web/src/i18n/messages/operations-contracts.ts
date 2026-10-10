@@ -403,11 +403,8 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.signing.fieldsMismatch": {
     en: "SignWell found signature fields Commerce did not place, such as form fields in the uploaded PDF, so nothing was sent.",
   },
-  "operations.contracts.signing.mismatchNextPaper": {
-    en: "Void it here to close the request, then record the contract again.",
-  },
   "operations.contracts.signing.mismatchNext": {
-    en: "Void it here to close the request, then prepare a new one.",
+    en: "Void it here to close the request, then send it again.",
   },
   "operations.contracts.error.stillPreparing": {
     en: "SignWell is still preparing this contract, so it was not sent. Send it again in a minute.",
@@ -526,9 +523,11 @@ export const contractMessages = defineStaffMessages({
   },
   "operations.contracts.paperSend.title": { en: "Prepare for signature" },
   "operations.contracts.paperSend.description": {
-    en: "Send their PDF through SignWell with a Fil One signature page added at the end.",
+    en: "Send one of this contract's PDFs through SignWell with a Fil One signature page added at the end.",
   },
-  "operations.contracts.paperSend.file": { en: "Their PDF" },
+  "operations.contracts.paperSend.file": {
+    en: "PDF to send",
+  },
   "operations.contracts.paperSend.signers": { en: "Who signs in SignWell" },
   "operations.contracts.paperSend.filOneOnly": { en: "Fil One only" },
   "operations.contracts.paperSend.filOneOnlyHelp": {
@@ -547,35 +546,68 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.paperSend.notPrepared": {
     en: "Not prepared for signature",
   },
+  "operations.contracts.paperSend.titleAgain": {
+    en: "Send a different PDF or signer",
+  },
+  "operations.contracts.paperSend.descriptionAgain": {
+    en: "Choose a PDF and who signs. The ended request stays in this contract's history.",
+  },
+  "operations.contracts.signing.endedTitle": {
+    en: "This request ended",
+  },
+  "operations.contracts.signing.endedBody": {
+    en: "Send it again to the same people with the same document. If the template needs approval, it is approved again.",
+  },
+  "operations.contracts.signing.endedBodyPaper": {
+    en: "Send it again to the same people with the same PDF, or choose a different PDF or signer below. It is approved again before it goes out.",
+  },
+  "operations.contracts.signing.endedBodyReader": {
+    en: "This request ended without signatures.",
+  },
+  "operations.contracts.signing.signerChangeBodyPaper": {
+    en: "Choose who signs instead in the form below. It is approved again before it goes out.",
+  },
+  "operations.contracts.signing.sendAgain": {
+    en: "Send again",
+  },
+  "operations.contracts.signing.earlier.title": {
+    en: "Earlier requests",
+  },
+  "operations.contracts.signing.earlier.entry": {
+    en: "Request {number}: {state}, {signer}, {time}.",
+  },
+  "operations.contracts.signing.void.signerChangeNotePaper": {
+    en: "After voiding, choose the new signer in the form on this page. It is approved again before it goes out.",
+  },
+  "operations.contracts.activity.preparedAgain": {
+    en: "Prepared to send again",
+  },
+  "operations.contracts.activity.preparedPdf": {
+    en: "Prepared an uploaded PDF for signature",
+  },
   "operations.contracts.signing.paperSource": {
-    en: "Their PDF with the Fil One signature page ({version}).",
+    en: "Uploaded PDF with the Fil One signature page ({version}).",
   },
   "operations.contracts.signing.signedOnPaper": {
-    en: "Signed on their paper",
+    en: "Signed the PDF already",
   },
   "operations.contracts.signing.confirmSendFilOneBody": {
     en: "SignWell will email {countersigner} to sign for Fil One.",
   },
   "operations.contracts.error.paperNotSendable": {
-    en: "Only an unsigned contract on the counterparty's paper can be sent for Fil One signature.",
+    en: "Only an unsigned contract can be sent for signature.",
+  },
+  "operations.contracts.error.requestChanged": {
+    en: "This signing request was replaced since you opened the page. Reload to see the current one.",
+  },
+  "operations.contracts.error.resendSignerChange": {
+    en: "Someone else signs this one, so choose the new signer instead of sending it again.",
   },
   "operations.contracts.error.signingExists": {
     en: "This contract already has a signing request. Reload to see it.",
   },
   "operations.contracts.error.fileSentForSignature": {
     en: "This PDF was sent for signature, so it stays with the contract as a record of what was signed.",
-  },
-  "operations.contracts.signing.paperClosedTitle": {
-    en: "This request can no longer be sent",
-  },
-  "operations.contracts.signing.paperClosedBody": {
-    en: "A contract on their paper is sent for signature once. To send it again, record it again with its PDF; the new record starts from this one. Then set this record to Terminated so the contract is not counted twice.",
-  },
-  "operations.contracts.signing.recordAgain": {
-    en: "Record the contract again",
-  },
-  "operations.contracts.signing.closeThisOne": {
-    en: "Edit this record",
   },
   "operations.contracts.error.paperUnreadable": {
     en: "This PDF could not be read because it is encrypted or damaged, even if it opens in a viewer. Print it to a new PDF, upload that, and try again.",
