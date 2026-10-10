@@ -618,7 +618,7 @@ export const mndaMessages = defineMessages({
   "operations.mnda.duplicate.contractDetail": {
     en: "{type}, {status}, effective {date}, owner {owner}",
     es: "{type}, {status}, en vigor desde {date}, responsable: {owner}",
-    fr: "{type}, {status}, en vigueur le {date}, responsable : {owner}",
+    fr: "{type}, {status}, en vigueur le {date}, responsable : {owner}",
     de: "{type}, {status}, gültig ab {date}, verantwortlich: {owner}",
     ja: "{type}、{status}、発効日：{date}、担当者：{owner}",
     pt: "{type}, {status}, vigente desde {date}, responsável: {owner}",
@@ -628,7 +628,7 @@ export const mndaMessages = defineMessages({
   "operations.mnda.duplicate.contractDetailUndated": {
     en: "{type}, {status}, owner {owner}",
     es: "{type}, {status}, responsable: {owner}",
-    fr: "{type}, {status}, responsable : {owner}",
+    fr: "{type}, {status}, responsable : {owner}",
     de: "{type}, {status}, verantwortlich: {owner}",
     ja: "{type}、{status}、担当者：{owner}",
     pt: "{type}, {status}, responsável: {owner}",
@@ -1273,7 +1273,7 @@ export const mndaMessages = defineMessages({
   "operations.mnda.note.signersMismatch": {
     en: "The signers in SignWell no longer match this MNDA, so its status is not updated.",
     es: "Los firmantes en SignWell ya no coinciden con este MNDA, así que su estado no se actualiza.",
-    fr: "Les signataires dans SignWell ne correspondent plus à ce MNDA : son statut n’est donc pas mis à jour.",
+    fr: "Les signataires dans SignWell ne correspondent plus à ce MNDA : son statut n’est donc pas mis à jour.",
     de: "Die Unterzeichner in SignWell stimmen nicht mehr mit diesem MNDA überein, daher wird sein Status nicht aktualisiert.",
     ja: "SignWell の署名者がこの MNDA と一致しないため、ステータスは更新されません。",
     pt: "Os signatários na SignWell não correspondem mais a este MNDA, então o status dele não é atualizado.",
@@ -1283,7 +1283,7 @@ export const mndaMessages = defineMessages({
   "operations.mnda.note.bindingMismatch": {
     en: "SignWell's copy does not belong to this MNDA, so its status is not updated.",
     es: "La copia de SignWell no corresponde a este MNDA, así que su estado no se actualiza.",
-    fr: "La copie SignWell ne correspond pas à ce MNDA : son statut n’est donc pas mis à jour.",
+    fr: "La copie SignWell ne correspond pas à ce MNDA : son statut n’est donc pas mis à jour.",
     de: "Die Kopie in SignWell gehört nicht zu diesem MNDA, daher wird sein Status nicht aktualisiert.",
     ja: "SignWell 上の文書はこの MNDA のものではないため、ステータスは更新されません。",
     pt: "A cópia na SignWell não pertence a este MNDA, então o status dele não é atualizado.",

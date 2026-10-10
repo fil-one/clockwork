@@ -423,16 +423,20 @@ it("offers void and email fixes only to the preparer, and never after the partne
 it("refreshes an expired session through a navigation and retries the poll once", async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   try {
-    mocks.load
+    mocks.loadRegister
       .mockResolvedValueOnce({ ok: false, code: "session_expired" })
-      .mockResolvedValueOnce({ ok: true, value: data([sent]) });
+      .mockResolvedValueOnce({
+        ok: true,
+        value: { register: data([sent]).register },
+      });
     render(<MndaWorkspace initial={data()} initialQuery={query} />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(15_000);
     });
     expect(await screen.findByText("Example Corporation")).toBeVisible();
     expect(mocks.refresh).toHaveBeenCalledOnce();
-    expect(mocks.load).toHaveBeenCalledTimes(2);
+    expect(mocks.loadRegister).toHaveBeenCalledTimes(2);
+    expect(mocks.load).not.toHaveBeenCalled();
   } finally {
     vi.useRealTimers();
   }
