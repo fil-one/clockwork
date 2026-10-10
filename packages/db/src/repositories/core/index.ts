@@ -3,6 +3,7 @@ export * from "./capability-requirements";
 export * from "./commissions";
 export * from "./commercial-artifacts";
 export * from "./finance";
+export * from "./indicative-price-books";
 export * from "./invoice-derivation";
 export * from "./price-book-administration";
 export * from "./price-book-schedules";

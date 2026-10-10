@@ -1861,6 +1861,10 @@ detail lives in `docs/operations/commerce-mnda.md`,
   administrator can grant `commerce_admin` without a second approval. Evidence:
   `packages/db/src/repositories/system/staff-team.integration.test.ts`,
   `packages/db/src/repositories/system/staff-team-administrators.integration.test.ts`.
+- **MFA receipt retention `[OPEN]`:** `experience_mfa_receipts` gains a row on
+  every staff sign-in and nothing prunes it; the team page's latest-verification
+  lookup reads it through `experience_mfa_receipt_user_idx`
+  (`supabase/migrations/001455_mfa_receipts_user_index.sql`).
 - **Staff first sign-in `[EXTERNAL-ONLY]`:** each person verifies their email
   and enrolls their own authenticator; no test can complete another person's
   MFA. Production acceptance of a new seller is their own first sign-in.

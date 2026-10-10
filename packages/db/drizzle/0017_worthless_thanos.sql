@@ -1,0 +1,1 @@
+CREATE INDEX "experience_mfa_receipt_user_idx" ON "experience_mfa_receipts" USING btree ("workos_user_id","verified_at" DESC NULLS LAST);

@@ -276,7 +276,13 @@ from the master secret:
    master user name the RDS module sets
 2. `supabase db push` applies `supabase/migrations` in order, tracked in
    `supabase_migrations.schema_migrations`, with the same statement semantics
-   the migrations were written against
+   the migrations were written against. The task then fails if any index is
+   invalid, which is what a `create index concurrently` that failed part-way
+   leaves behind: a retried push skips such an index (`if not exists`) and
+   records its migration as applied. To recover, connect as the master user, run
+   `drop index concurrently <name>` for the index the task names, run that
+   migration's `create index concurrently` statement again with `psql`, and
+   rerun `make migrate`
 3. the production bootstrap, when the task has a manifest (below)
 4. `psql -f supabase/production-roles.sql` sets the `clockwork_runtime` and
    `clockwork_service` passwords and upserts the authorization secret, all from

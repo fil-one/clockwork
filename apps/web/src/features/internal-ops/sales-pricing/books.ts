@@ -1,4 +1,4 @@
-import type { PriceBookAdministrationRecord } from "@clockwork/db";
+import type { IndicativePriceBookRecord } from "@clockwork/db";
 
 /**
  * One rate as a seller may see it: the list price a prospect would be quoted
@@ -34,7 +34,7 @@ export interface IndicativePriceBook {
  * new column on a rate card cannot reach the browser by default.
  */
 export function indicativePriceBooks(
-  records: readonly PriceBookAdministrationRecord[],
+  records: readonly IndicativePriceBookRecord[],
   today: string,
   formatDate: (isoDate: string) => string,
 ): IndicativePriceBook[] {
