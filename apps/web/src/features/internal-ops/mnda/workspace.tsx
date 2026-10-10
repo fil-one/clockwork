@@ -87,7 +87,12 @@ function rowNote(
   if (r.state === "attention" && r.error === "signwell_signers_mismatch")
     return {
       reason: "operations.mnda.note.signersMismatch",
-      next: "operations.mnda.note.stoppedNext",
+      next: "operations.mnda.note.signersMismatchNext",
+    };
+  if (r.state === "attention" && r.error === "signwell_signed_mismatch")
+    return {
+      reason: "operations.mnda.note.signedMismatch",
+      next: "operations.mnda.note.signedMismatchNext",
     };
   if (r.state === "attention" && r.error === "signwell_binding_mismatch")
     return {
@@ -474,15 +479,20 @@ export function MndaWorkspace({
                   // Voiding, discarding and fixing the email belong to the
                   // preparer or a signatory manager; anyone may remind.
                   const mine = data.canManage || r.ownerId === data.viewerId;
+                  // Someone signed SignWell's copy: resolved in SignWell.
                   const voidable =
-                    mine && bound && mndaVoidableStates.includes(r.state);
+                    mine &&
+                    bound &&
+                    mndaVoidableStates.includes(r.state) &&
+                    r.error !== "signwell_signed_mismatch";
                   // A stopped request needs a void; only a bounce is fixed in place.
                   const correctable =
                     mine &&
                     bound &&
                     (["sent", "viewed"].includes(r.state) ||
                       (r.state === "attention" &&
-                        r.error === "recipient_bounced"));
+                        (r.error === "recipient_bounced" ||
+                          r.error === "signwell_signers_mismatch")));
                   return (
                     <tr key={r.id}>
                       <td data-label={t("operations.mnda.column.company")}>
