@@ -221,8 +221,8 @@ export interface MndaRecord {
 /** Register filters, named for what the seller is waiting on. The URL carries
  * the underlying state names (`?status=sent,viewed`). */
 export const mndaStatusGroups = {
-  drafts: ["draft", "preparing", "ready", "sending"],
-  waiting_partner: ["sent", "viewed"],
+  drafts: ["draft", "preparing", "ready"],
+  waiting_partner: ["sending", "sent", "viewed"],
   waiting_fil_one: ["awaiting_countersignature"],
   attention: ["attention"],
   completed: ["completed"],

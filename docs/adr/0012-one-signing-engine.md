@@ -1,6 +1,6 @@
 # ADR 0012: One signing engine for every SignWell document
 
-Status: Proposed, 2026-10-10. Supersedes the part of
+Status: Accepted, 2026-10-10. Supersedes the part of
 [ADR 0011](0011-standalone-commerce-mnda.md) that gives MNDAs a workflow of
 their own; the signing rules it sets (bind before send, callbacks as wakeups,
 completion with archived evidence, void only before the first signature) stand

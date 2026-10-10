@@ -83,10 +83,10 @@ describe("MNDA register links", () => {
     const rows = mndaHomeRows(counts);
     expect(rows.map(({ href }) => href)).toEqual([
       "/internal/mndas?status=attention&mine=1",
-      "/internal/mndas?status=sent,viewed&mine=1",
+      "/internal/mndas?status=sending,sent,viewed&mine=1",
       "/internal/mndas?status=awaiting_countersignature&mine=1",
       "/internal/mndas?status=completed&mine=1",
-      "/internal/mndas?status=draft,preparing,ready,sending&mine=1",
+      "/internal/mndas?status=draft,preparing,ready&mine=1",
     ]);
     expect(rows.at(-1)).not.toHaveProperty("team");
   });
@@ -296,10 +296,13 @@ describe("sales home page", () => {
       within(waitingPartner).getByRole("link", {
         name: "View in the register",
       }),
-    ).toHaveAttribute("href", "/internal/mndas?status=sent,viewed&mine=1");
+    ).toHaveAttribute(
+      "href",
+      "/internal/mndas?status=sending,sent,viewed&mine=1",
+    );
     expect(
       within(waitingPartner).getByRole("link", { name: "5 across the team" }),
-    ).toHaveAttribute("href", "/internal/mndas?status=sent,viewed");
+    ).toHaveAttribute("href", "/internal/mndas?status=sending,sent,viewed");
     // Nothing of the reader's waits on Fil One: say so, and offer no empty list.
     expect(
       within(waitingFilOne).getByText("None right now"),

@@ -7,7 +7,6 @@ import type { SignWellContractClient } from "@clockwork/integrations";
 import {
   SigningEngine,
   signingErrors,
-  signingReminderCooldownMs,
   type SigningDecision,
 } from "./signing/engine";
 import {
@@ -26,9 +25,6 @@ export type ContractSigningClient = Pick<
   | "cancel"
   | "completedPdf"
 >;
-
-/** Manual reminders are spaced so a double click cannot email twice. */
-export const contractReminderCooldownMs = signingReminderCooldownMs;
 
 // The contract signing panel has no message of its own for these.
 const named = signingErrors(contractSigning, {

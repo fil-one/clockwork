@@ -1799,19 +1799,21 @@ detail lives in `docs/operations/commerce-mnda.md`,
   owner and tags; PDF text is not indexed. `COMMERCE_DOCUMENT_STORE` accepts
   only `postgres`; an S3-compatible `ContractDocumentStore` is the planned
   second backend.
-- **One e-signature engine `[OPEN]`:** MNDAs and template contracts run on one
-  `SigningEngine` (`packages/workflows/src/signing/engine.ts`,
+- **One e-signature engine `[COMPLETE]`:** MNDAs and template contracts run on
+  one `SigningEngine` (`packages/workflows/src/signing/engine.ts`,
   [ADR 0012](adr/0012-one-signing-engine.md)), each described by a
   `SigningDocumentType` declaration, with one SignWell document schema and one
   scenario suite run against both (`packages/workflows/src/signing/`). Shared:
   bind before send, the bounded wait for SignWell's draft, post-send read
   tolerance, attention reasons, void and remind rules, and approval or sender
-  copies where a type declares them. Deferred: each type keeps its own table and
+  copies where a type declares them. The lifecycle purchase-agreement path still
+  uses its own provider-neutral port
+  (`packages/integrations/src/esign/index.ts`).
+- **One signing table `[OPEN]`:** each signing type keeps its own table and
   repository, so contracts have no cancel code, first-sent time or signer
-  correction until their table does; whether to move both onto one table is a
+  correction until their table does. Whether to move both onto one table is a
   decision for when a third document type or the lifecycle `agreements` model
-  needs it, not scheduled work. The lifecycle purchase-agreement path still uses
-  its own provider-neutral port (`packages/integrations/src/esign/index.ts`).
+  needs it, not scheduled work.
 - **Counsel templates `[EXTERNAL-ONLY]`:** all eight template ids in
   `packages/documents/src/contract-templates/registry.ts` are stubs listed as
   "Template pending from legal": channel partnership, customer MSA, order form,
@@ -1871,12 +1873,12 @@ detail lives in `docs/operations/commerce-mnda.md`,
   Pricing, plus Owner console and Team for holders of `staff:manage`
   (`apps/web/src/features/shell/navigation.ts`,
   `supabase/migrations/001441_revenue_roles.sql`). Home ("My work") counts the
-  reader's MNDAs needing attention, waiting on the partner, waiting on Fil One,
-  completed in the last 30 days and unsent drafts, and the contracts they
-  recorded or prepared that are out for signature or need attention. Approvers
-  also see contracts prepared by others that await their decision; each team
-  count opens the register filtered to the same rows
-  (`packages/db/src/repositories/sales-home.ts`,
+  reader's MNDAs needing attention, waiting on the partner (a send SignWell has
+  not yet confirmed counts here), waiting on Fil One, completed in the last 30
+  days and unsent drafts, and the contracts they recorded or prepared that are
+  out for signature or need attention. Approvers also see contracts prepared by
+  others that await their decision; each team count opens the register filtered
+  to the same rows (`packages/db/src/repositories/sales-home.ts`,
   `apps/web/src/features/internal-ops/sales-home/`). Evidence:
   `packages/db/src/repositories/sales-home.integration.test.ts`,
   `apps/web/src/features/internal-ops/sales-home/sales-home.test.tsx`.

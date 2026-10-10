@@ -17,6 +17,7 @@ import {
   contractHomeStatusFilters,
   countSalesHomeContracts,
   countSalesHomeMndas,
+  salesHomeMndaGroups,
 } from "./sales-home";
 
 const { client, db } = createRuntimeDatabase({
@@ -64,6 +65,8 @@ it("counts a seller's MNDAs by what they wait on, beside the team's", async () =
 
   await request(seller, "sent");
   await request(seller, "viewed");
+  // Out with SignWell while the send settles: the seller is told it was sent.
+  await request(seller, "sending");
   await request(seller, "awaiting_countersignature");
   await request(seller, "completed", new Date("2026-10-01T00:00:00.000Z"));
   // Completed before the window: archive, not recent work.
@@ -83,23 +86,25 @@ it("counts a seller's MNDAs by what they wait on, beside the team's", async () =
   });
   expect(after.mine).toEqual({
     attention: 2,
-    waitingPartner: 2,
+    waitingPartner: 3,
     waitingFilOne: 1,
     completed: 1,
     drafts: 1,
   });
-  expect(after.team.waitingPartner - before.team.waitingPartner).toBe(3);
+  expect(after.team.waitingPartner - before.team.waitingPartner).toBe(4);
   expect(after.team.waitingFilOne - before.team.waitingFilOne).toBe(1);
   expect(after.team.completed - before.team.completed).toBe(1);
   expect(after.team.drafts - before.team.drafts).toBe(2);
   expect(after.team.attention - before.team.attention).toBe(3);
-  // The home link opens the register's "Needs attention" filter, which lists
-  // exactly the rows counted.
-  const register = await new MndaRepository(db).list(
-    { status: ["attention"], mine: true },
-    seller,
-  );
-  expect(register.total).toBe(after.mine.attention);
+  // Each home link opens the register filtered to the group's states, which
+  // lists exactly the rows counted.
+  for (const group of ["attention", "waitingPartner", "drafts"] as const) {
+    const register = await new MndaRepository(db).list(
+      { status: [...salesHomeMndaGroups[group]], mine: true },
+      seller,
+    );
+    expect(register.total).toBe(after.mine[group]);
+  }
 });
 
 it("counts contract work for one reader in a single read, matching the register filters", async () => {

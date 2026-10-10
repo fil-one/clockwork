@@ -93,8 +93,11 @@ supabase db push --db-url "$DIRECT_DATABASE_URL" --workdir /app --yes
 # A `create index concurrently` that fails part-way leaves an invalid index
 # behind. The retried push then skips it (`if not exists`) and records the
 # migration as applied, and the planner never uses the index. Stop here instead,
-# naming the index; deploy/README.md has the recovery.
-invalid_indexes="$(psql "$DIRECT_DATABASE_URL" -v ON_ERROR_STOP=1 -tAc "select string_agg(indexrelid::regclass::text, ', ' order by indexrelid::regclass::text) from pg_index where not indisvalid")"
+# naming the index; deploy/README.md has the recovery. Only the public schema is
+# checked: the migrations build their indexes there, and an index another
+# session is building concurrently, or one in a schema the repository does not
+# own, is not this deploy's to fail on.
+invalid_indexes="$(psql "$DIRECT_DATABASE_URL" -v ON_ERROR_STOP=1 -tAc "select string_agg(i.indexrelid::regclass::text, ', ' order by i.indexrelid::regclass::text) from pg_index i join pg_class c on c.oid = i.indexrelid join pg_namespace n on n.oid = c.relnamespace where not i.indisvalid and n.nspname = 'public'")"
 if [ -n "$invalid_indexes" ]; then
   echo "migrate: invalid indexes after db push: ${invalid_indexes}" >&2
   exit 1

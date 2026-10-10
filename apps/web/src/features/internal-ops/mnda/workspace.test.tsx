@@ -347,13 +347,16 @@ it("filters by status and owner through the URL", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Waiting on partner" }));
   await waitFor(() =>
     expect(mocks.load).toHaveBeenCalledWith(
-      expect.objectContaining({ status: ["sent", "viewed"], page: 1 }),
+      expect.objectContaining({
+        status: ["sending", "sent", "viewed"],
+        page: 1,
+      }),
     ),
   );
   expect(replace).toHaveBeenLastCalledWith(
     null,
     "",
-    expect.stringContaining("?status=sent%2Cviewed"),
+    expect.stringContaining("?status=sending%2Csent%2Cviewed"),
   );
   expect(
     screen.getByRole("button", { name: "Waiting on partner" }),
@@ -361,12 +364,15 @@ it("filters by status and owner through the URL", async () => {
   fireEvent.click(screen.getByRole("checkbox", { name: "Only mine" }));
   await waitFor(() =>
     expect(mocks.load).toHaveBeenLastCalledWith(
-      expect.objectContaining({ status: ["sent", "viewed"], mine: true }),
+      expect.objectContaining({
+        status: ["sending", "sent", "viewed"],
+        mine: true,
+      }),
     ),
   );
   expect(screen.getByRole("link", { name: "Export CSV" })).toHaveAttribute(
     "href",
-    "/internal/mndas/export?status=sent%2Cviewed&mine=1",
+    "/internal/mndas/export?status=sending%2Csent%2Cviewed&mine=1",
   );
 });
 

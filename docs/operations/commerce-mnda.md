@@ -89,14 +89,14 @@ The register pages through every MNDA, newest first. Search covers company,
 partner signer name and email, and preparer. Status filters and **Only mine**
 live in the address, so links can open a filtered view:
 
-| Filter             | Address                                                |
-| ------------------ | ------------------------------------------------------ |
-| Waiting on partner | `/internal/mndas?status=sent,viewed`                   |
-| Waiting on Fil One | `/internal/mndas?status=awaiting_countersignature`     |
-| Needs attention    | `/internal/mndas?status=attention`                     |
-| Signed             | `/internal/mndas?status=completed`                     |
-| Drafts             | `/internal/mndas?status=draft,preparing,ready,sending` |
-| Closed             | `/internal/mndas?status=declined,expired,canceled`     |
+| Filter             | Address                                            |
+| ------------------ | -------------------------------------------------- |
+| Waiting on partner | `/internal/mndas?status=sending,sent,viewed`       |
+| Waiting on Fil One | `/internal/mndas?status=awaiting_countersignature` |
+| Needs attention    | `/internal/mndas?status=attention`                 |
+| Signed             | `/internal/mndas?status=completed`                 |
+| Drafts             | `/internal/mndas?status=draft,preparing,ready`     |
+| Closed             | `/internal/mndas?status=declined,expired,canceled` |
 
 Add `&mine=1` for the signed-in seller's own MNDAs, `q=` for a search and
 `page=` for a page. Replaced and discarded drafts appear only under **Closed**.
