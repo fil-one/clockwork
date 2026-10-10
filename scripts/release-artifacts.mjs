@@ -245,7 +245,7 @@ export function expectedReleaseCommands(name, serial) {
       ["pnpm", "format:check"],
       ["pnpm", "boundaries"],
       ["pnpm", "scan:secrets"],
-      ["pnpm", "audit", "--audit-level=low"],
+      ["pnpm", "audit", "--prod", "--audit-level=high"],
       ["node", "scripts/check-generated-dry-run.mjs"],
       ["node", "scripts/validate-release-test-inventory.mjs"],
     ],

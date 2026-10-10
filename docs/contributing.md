@@ -143,7 +143,7 @@ Everything is a workspace-root `pnpm` script; Turborepo fans them out.
 | `pnpm check:citation-liveness` | Require every `path#symbol` ledger citation to have a syntax-resolved non-test implementation use |
 | `pnpm check:launch`            | Both ledger checks above plus their tests; run before a commerce launch, not per pull request     |
 | `pnpm scan:secrets`            | secretlint over the whole tree                                                                    |
-| `pnpm audit:dependencies`      | `pnpm audit --audit-level=high`                                                                   |
+| `pnpm audit:dependencies`      | `pnpm audit --prod --audit-level=high`                                                            |
 | `pnpm test:unit`               | Unit suites plus the release-script tests                                                         |
 | `pnpm test:integration`        | Integration suites (need the local database)                                                      |
 | `pnpm db:test`                 | pgTAP tests against the rebuilt database                                                          |
