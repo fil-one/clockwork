@@ -8,7 +8,6 @@ import {
   type MndaRecord,
   type MndaSigner,
 } from "@clockwork/contracts";
-import type { MndaRegisterMatch } from "@clockwork/db";
 import {
   Button,
   buttonClassName,
@@ -21,7 +20,13 @@ import {
   StateBanner,
 } from "@clockwork/ui";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
-import { findMndaDuplicates, operateMnda, prepareMnda } from "./actions";
+import {
+  findMndaDuplicates,
+  operateMnda,
+  prepareMnda,
+  type MndaDuplicates,
+} from "./actions";
+import { contractStatusLabels, contractTypeLabels } from "../contracts/copy";
 import {
   detailsModes,
   fieldLabels,
@@ -53,7 +58,18 @@ export type ComposerStart =
   | { kind: "form"; values: MndaFormValues }
   | { kind: "preview"; record: MndaRecord };
 
-function DuplicateWarning({ matches }: { matches: MndaRegisterMatch[] }) {
+const noMatches: MndaDuplicates = { mndas: [], contracts: [] };
+
+function DuplicateWarning({ matches }: { matches: MndaDuplicates }) {
+  return (
+    <>
+      <MndaMatches matches={matches.mndas} />
+      <ContractMatches matches={matches.contracts} />
+    </>
+  );
+}
+
+function MndaMatches({ matches }: { matches: MndaDuplicates["mndas"] }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
   if (!matches.length) return null;
@@ -84,6 +100,56 @@ function DuplicateWarning({ matches }: { matches: MndaRegisterMatch[] }) {
               })}
             </li>
           ))}
+        </ul>
+      }
+    />
+  );
+}
+
+/** Register contracts with the same company, NDAs or any other type. */
+function ContractMatches({
+  matches,
+}: {
+  matches: MndaDuplicates["contracts"];
+}) {
+  const t = useTranslations();
+  const locale = useFormattingLocale();
+  if (!matches.length) return null;
+  return (
+    <StateBanner
+      tone="warning"
+      live="polite"
+      className={styles.inlineBanner ?? ""}
+      title={t("operations.mnda.duplicate.contractsTitle")}
+      description={
+        <ul className={styles.matchList}>
+          {matches.map((match) => {
+            const values = {
+              type: t(contractTypeLabels[match.contractType]),
+              status: t(contractStatusLabels[match.status]),
+              owner: match.ownerName,
+            };
+            return (
+              <li key={match.id}>
+                <a
+                  href={`/internal/contracts/${match.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {match.counterpartyName}
+                </a>{" "}
+                {match.effectiveDate
+                  ? t("operations.mnda.duplicate.contractDetail", {
+                      ...values,
+                      date: formatMndaDate(match.effectiveDate, locale),
+                    })
+                  : t(
+                      "operations.mnda.duplicate.contractDetailUndated",
+                      values,
+                    )}
+              </li>
+            );
+          })}
         </ul>
       }
     />
@@ -124,7 +190,7 @@ export function MndaComposer({
   const [fieldErrors, setFieldErrors] = useState<MndaFieldError[]>([]);
   const [failure, setFailure] = useState<MndaErrorCode | null>(null);
   const [busy, setBusy] = useState<"preview" | "send" | "discard" | null>(null);
-  const [matches, setMatches] = useState<MndaRegisterMatch[]>([]);
+  const [matches, setMatches] = useState<MndaDuplicates>(noMatches);
   // One id per form session: a retried preview reuses it, so a lost response
   // cannot create a second draft.
   const formId = useRef(crypto.randomUUID());
@@ -134,14 +200,14 @@ export function MndaComposer({
   const excludeId = preview?.id ?? supersedes;
   useEffect(() => {
     if (company.trim().length < 2) {
-      setMatches([]);
+      setMatches(noMatches);
       return;
     }
     const timer = setTimeout(() => {
       void findMndaDuplicates({
         company,
         ...(excludeId ? { excludeId } : {}),
-      }).then((result) => setMatches(result.ok ? result.value : []));
+      }).then((result) => setMatches(result.ok ? result.value : noMatches));
     }, 400);
     return () => clearTimeout(timer);
   }, [company, excludeId]);

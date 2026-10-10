@@ -63,7 +63,10 @@ function fill(values: Partial<Record<string, string>>) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.load.mockResolvedValue({ ok: true, value: data() });
-  mocks.duplicates.mockResolvedValue({ ok: true, value: [] });
+  mocks.duplicates.mockResolvedValue({
+    ok: true,
+    value: { mndas: [], contracts: [] },
+  });
   mocks.prepare.mockResolvedValue({ ok: true, value: fixtureRecord });
   mocks.operate.mockResolvedValue({
     ok: true,
@@ -147,19 +150,31 @@ it("shows specific messages next to each field and focuses the first problem", a
   ).toBeVisible();
 });
 
-it("warns before papering a company that already has an MNDA", async () => {
+it("warns before papering a company that already has an MNDA or a register contract", async () => {
   mocks.duplicates.mockResolvedValue({
     ok: true,
-    value: [
-      {
-        id: sent.id,
-        company: "Example Corporation",
-        state: "completed",
-        createdAt: "2026-09-28T00:00:00Z",
-        completedAt: "2026-09-28T00:00:00Z",
-        ownerName: "R.W. Holleman",
-      },
-    ],
+    value: {
+      mndas: [
+        {
+          id: sent.id,
+          company: "Example Corporation",
+          state: "completed",
+          createdAt: "2026-09-28T00:00:00Z",
+          completedAt: "2026-09-28T00:00:00Z",
+          ownerName: "R.W. Holleman",
+        },
+      ],
+      contracts: [
+        {
+          id: "019a44ac-0000-7000-8000-0000000000c1",
+          counterpartyName: "EXAMPLE, Inc.",
+          contractType: "nda_one_way",
+          status: "executed",
+          effectiveDate: "2025-04-01",
+          ownerName: "Morgan Lee",
+        },
+      ],
+    },
   });
   render(<MndaWorkspace initial={data()} initialQuery={query} />);
   fireEvent.click(screen.getByRole("button", { name: "New MNDA" }));
@@ -175,6 +190,16 @@ it("warns before papering a company that already has an MNDA", async () => {
     screen.getByRole("link", { name: "Example Corporation" }),
   ).toHaveAttribute("href", "/internal/mndas?q=Example%20Corporation");
   expect(screen.getByText(/Signed, .*R\.W\. Holleman/)).toBeVisible();
+  expect(
+    screen.getByText("The contract register already lists this company"),
+  ).toBeVisible();
+  expect(screen.getByRole("link", { name: "EXAMPLE, Inc." })).toHaveAttribute(
+    "href",
+    "/internal/contracts/019a44ac-0000-7000-8000-0000000000c1",
+  );
+  expect(
+    screen.getByText(/, Executed, effective Apr 1, 2025, owner Morgan Lee/),
+  ).toBeVisible();
 });
 
 it("explains a SignWell copy that no longer matches, and offers only a void", () => {

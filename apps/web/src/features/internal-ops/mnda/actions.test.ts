@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
     saveSettings: vi.fn(),
     create: vi.fn(),
     duplicates: vi.fn(),
+    contractDuplicates: vi.fn(),
     exportRows: vi.fn(),
     get: vi.fn(),
     readArtifact: vi.fn(),
@@ -59,6 +60,7 @@ vi.mock("@clockwork/documents", () => ({
 import {
   configureMndaSigner,
   correctMndaSigner,
+  findMndaDuplicates,
   loadMndas,
   operateMnda,
   prepareMnda,
@@ -386,6 +388,38 @@ describe("downloads and exports are audited", () => {
     );
     expect(response.status).toBe(500);
     expect(await response.text()).toContain("could not be prepared");
+  });
+});
+
+describe("duplicate checks", () => {
+  const contract = {
+    id: "019a44ac-0000-7000-8000-0000000000c1",
+    counterpartyName: "ACME, Inc.",
+    contractType: "mnda",
+    status: "executed",
+    effectiveDate: "2026-03-01",
+    ownerName: "R.W. Holleman",
+  };
+  it("adds register contracts for staff who may read contracts", async () => {
+    as("revenue");
+    mocks.repository.duplicates.mockResolvedValue([]);
+    mocks.repository.contractDuplicates.mockResolvedValue([contract]);
+    expect(await findMndaDuplicates({ company: "Acme Corp" })).toEqual({
+      ok: true,
+      value: { mndas: [], contracts: [contract] },
+    });
+    expect(mocks.repository.contractDuplicates).toHaveBeenCalledWith(
+      "Acme Corp",
+    );
+  });
+  it("leaves contracts out for a session without contract:read", async () => {
+    as("revenue", { permissions: ["mnda:send"] });
+    mocks.repository.duplicates.mockResolvedValue([]);
+    expect(await findMndaDuplicates({ company: "Acme Corp" })).toEqual({
+      ok: true,
+      value: { mndas: [], contracts: [] },
+    });
+    expect(mocks.repository.contractDuplicates).not.toHaveBeenCalled();
   });
 });
 
