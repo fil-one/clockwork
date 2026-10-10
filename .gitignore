@@ -10,6 +10,8 @@ deno.lock
 next-env.d.ts
 .turbo/
 .artifacts/
+# Ad hoc drizzle-kit output; supabase/migrations is authoritative.
+packages/db/drizzle/
 coverage/
 dist/
 node_modules/
