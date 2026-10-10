@@ -168,6 +168,20 @@ const registerStatusFor: Partial<Record<ContractSigningState, ContractStatus>> =
     canceled: "draft",
   };
 
+const terminalStates = sql.raw(
+  terminalContractSigningStates.map((state) => `'${state}'`).join(", "),
+);
+/** A template contract waiting for an approval decision. Reads the signing
+ * row as `s`. */
+export const contractAwaitingApproval = sql`(s.approval_state = 'pending'
+  and s.state not in (${terminalStates}))`;
+/** A template contract that needs a person: SignWell reported a problem, a
+ * provider call failed, or an approver sent it back. Reads the signing row
+ * as `s`. */
+export const contractNeedsAttention = sql`(s.state not in (${terminalStates})
+  and (s.state = 'attention' or s.error is not null
+    or s.approval_state = 'rejected'))`;
+
 type ListRow = {
   id: string;
   source: ContractListRow["source"];
@@ -291,7 +305,13 @@ export class ContractRepository {
         or exists (select 1 from unnest(tags) tag where tag ilike ${pattern}))`);
     }
     if (query.type) conditions.push(sql`contract_type = ${query.type}`);
-    if (query.status?.startsWith("signing_"))
+    if (query.status === "signing_approval")
+      conditions.push(sql`exists (select 1 from public.commerce_contract_signing s
+        where s.contract_id = scheduled.id and ${contractAwaitingApproval})`);
+    else if (query.status === "signing_attention")
+      conditions.push(sql`exists (select 1 from public.commerce_contract_signing s
+        where s.contract_id = scheduled.id and ${contractNeedsAttention})`);
+    else if (query.status?.startsWith("signing_"))
       conditions.push(
         sql`status = 'draft' and signing_state = ${query.status.slice("signing_".length)}`,
       );

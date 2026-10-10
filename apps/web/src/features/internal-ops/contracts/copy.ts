@@ -56,6 +56,8 @@ export const statusFilterExtraLabels: Readonly<
   signing_declined: "operations.contracts.filters.signingDeclined",
   signing_expired: "operations.contracts.filters.signingExpired",
   signing_canceled: "operations.contracts.filters.signingCanceled",
+  signing_approval: "operations.contracts.filters.signingApproval",
+  signing_attention: "operations.contracts.filters.signingAttention",
 };
 
 export const contractFileKindLabels: Readonly<

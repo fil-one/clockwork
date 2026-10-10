@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { and, count, gte, inArray, ne, or, sql } from "drizzle-orm";
 
-import type { MndaState } from "@clockwork/contracts";
+import type { ContractStatusFilter, MndaState } from "@clockwork/contracts";
 
 import type { RuntimeDatabase } from "../client";
 import { mndaRequests } from "../schema/mnda";
 import { withInternalTransaction } from "../transaction";
+import { contractAwaitingApproval, contractNeedsAttention } from "./contracts";
 
 /**
  * The MNDA groups the staff home page counts. The state names are the MNDA
@@ -81,4 +82,69 @@ export async function countSalesHomeMndas(
     mine[group] += Number(row.mine);
   }
   return { mine, team };
+}
+
+/**
+ * The register filter that lists exactly the contracts each home group
+ * counts across the team.
+ */
+export const contractHomeStatusFilters = {
+  awaitingApproval: "signing_approval",
+  needsAttention: "signing_attention",
+  outForSignature: "out_for_signature",
+} as const satisfies Record<string, ContractStatusFilter>;
+
+export type SalesHomeContractGroup = keyof typeof contractHomeStatusFilters;
+
+export type SalesHomeContractCounts = Readonly<
+  Record<SalesHomeContractGroup, { mine: number; team: number }>
+>;
+
+/**
+ * Contract work for one reader, in one query. "Mine" is what the reader
+ * recorded or prepared; an approval is the reader's when someone else
+ * prepared it, because no one decides their own.
+ */
+export async function countSalesHomeContracts(
+  db: RuntimeDatabase,
+  input: { viewerId: string; requestId?: string },
+): Promise<SalesHomeContractCounts> {
+  const [row] = await withInternalTransaction(
+    db,
+    input.requestId ?? `sales-home:${randomUUID()}`,
+    (tx) =>
+      tx.execute<Record<string, number | string>>(sql`
+        with work as (
+          select c.created_by_id = ${input.viewerId}::uuid as mine,
+            c.status = 'out_for_signature' as out_for_signature,
+            coalesce(${contractAwaitingApproval}, false) as awaiting_approval,
+            coalesce(s.preparer_id = ${input.viewerId}::uuid, false)
+              as prepared_by_viewer,
+            coalesce(${contractNeedsAttention}, false) as needs_attention
+          from public.commerce_contracts c
+          left join public.commerce_contract_signing s
+            on s.contract_id = c.id
+        )
+        select
+          count(*) filter (where awaiting_approval and not prepared_by_viewer)
+            as approval_mine,
+          count(*) filter (where awaiting_approval) as approval_team,
+          count(*) filter (where needs_attention and mine) as attention_mine,
+          count(*) filter (where needs_attention) as attention_team,
+          count(*) filter (where out_for_signature and mine) as out_mine,
+          count(*) filter (where out_for_signature) as out_team
+        from work`),
+  );
+  const tally = (key: string) => Number(row?.[key] ?? 0);
+  return {
+    awaitingApproval: {
+      mine: tally("approval_mine"),
+      team: tally("approval_team"),
+    },
+    needsAttention: {
+      mine: tally("attention_mine"),
+      team: tally("attention_team"),
+    },
+    outForSignature: { mine: tally("out_mine"), team: tally("out_team") },
+  };
 }

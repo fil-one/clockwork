@@ -324,11 +324,14 @@ export const contractSorts = [
 export type ContractSort = (typeof contractSorts)[number];
 export const contractRenewalWindows = [30, 60, 90] as const;
 /** Status filter values beyond the register statuses: drafts whose signing
- * request ended without signatures. */
+ * request ended without signatures, and template contracts waiting for an
+ * approval decision or needing a person, as the staff home page counts them. */
 export const contractStatusFilterExtras = [
   "signing_declined",
   "signing_expired",
   "signing_canceled",
+  "signing_approval",
+  "signing_attention",
 ] as const;
 export type ContractStatusFilter =
   ContractStatus | (typeof contractStatusFilterExtras)[number];
