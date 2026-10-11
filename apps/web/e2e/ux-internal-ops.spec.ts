@@ -68,6 +68,9 @@ async function expectNoHorizontalOverflow(page: Page) {
 }
 
 async function expectAxeClean(page: Page) {
+  // The title can be applied after the content on a soft navigation, so wait
+  // for it before axe checks document-title.
+  await expect(page).toHaveTitle(/\S/);
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
