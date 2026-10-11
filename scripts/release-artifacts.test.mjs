@@ -1155,7 +1155,11 @@ test("runs every browser test in exactly one ui shard", async () => {
   // disk instead of restating them: the two lists must partition every spec
   // the `functional-chromium` and `chromium` projects select, which is all of
   // them except the ones the demo and proof shards run.
-  const ownShards = new Set(["demo.spec.ts", "production-proof.spec.ts"]);
+  const ownShards = new Set([
+    "demo.spec.ts",
+    "demo-pricing.spec.ts",
+    "production-proof.spec.ts",
+  ]);
   const specs = (
     await readdir(new URL("../apps/web/e2e/", import.meta.url), {
       withFileTypes: true,

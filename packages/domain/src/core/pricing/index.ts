@@ -356,6 +356,11 @@ export function indicativeLinePrice(input: {
 }): {
   unitPrice: Money;
   monthly: Money;
+  /**
+   * The first year of the term: twelve months at the monthly price, or the
+   * whole term when it is shorter, rounded once like the term total.
+   */
+  annual: Money;
   total: Money;
   belowMinimum: boolean;
 } {
@@ -369,6 +374,11 @@ export function indicativeLinePrice(input: {
     input.discountBps,
   );
   const monthlyMinor = multiplyMinorByQuantity(unitMinor, input.quantity);
+  const annualMinor = multiplyMinorByQuantity(
+    unitMinor,
+    input.quantity,
+    BigInt(Math.min(12, input.termMonths)),
+  );
   const totalMinor = multiplyMinorByQuantity(
     unitMinor,
     input.quantity,
@@ -378,6 +388,7 @@ export function indicativeLinePrice(input: {
   return {
     unitPrice: bookMoney(currency, unitMinor),
     monthly: bookMoney(currency, monthlyMinor),
+    annual: bookMoney(currency, annualMinor),
     total: bookMoney(currency, totalMinor),
     belowMinimum: compareQuantities(input.quantity, input.minimumQuantity) < 0,
   };
@@ -396,7 +407,10 @@ export interface IndicativeScenarioLine {
  * Indicative totals for several lines in one currency, each priced by
  * `indicativeLinePrice`. The subtotal is the lines at list price over their
  * terms, the discount is what the entered discounts take off it, and the
- * total is what remains. Like a single line, it knows only list prices.
+ * total is what remains. `monthly` is the lines' monthly figures after
+ * discounts, summed: the run rate with every line live. `annual` sums each
+ * line's first year, so a line shorter than a year counts only its term.
+ * Like a single line, it knows only list prices.
  */
 export function indicativeScenarioPrice(
   lines: readonly IndicativeScenarioLine[],
@@ -406,6 +420,8 @@ export function indicativeScenarioPrice(
   subtotal: Money;
   discount: Money;
   total: Money;
+  monthly: Money;
+  annual: Money;
 } {
   const currency = lines[0]?.unitPrice.currency;
   if (!currency) throw new Error("A scenario requires at least one line");
@@ -425,6 +441,8 @@ export function indicativeScenarioPrice(
     subtotal: bookMoney(currency, subtotal),
     discount: bookMoney(currency, subtotal - total),
     total: bookMoney(currency, total),
+    monthly: bookMoney(currency, sum(priced.map(({ monthly }) => monthly))),
+    annual: bookMoney(currency, sum(priced.map(({ annual }) => annual))),
   };
 }
 
