@@ -318,6 +318,10 @@ describe("the owner rule", () => {
           nfr_capacity: "5 TiB for 60 days",
         },
       }),
+      check_contract_status: () => ({
+        contractId: state.templateContractId,
+        requestNumber: state.signingRequestNumber,
+      }),
       create_partner: () => ({ name: `Rule Northwind ${tag}` }),
       update_partner: () => ({
         id: state.partnerId,
@@ -368,6 +372,57 @@ describe("the owner rule", () => {
 
     const outcomes: Record<string, boolean> = {};
     for (const [name, args] of Object.entries(cases)) {
+      if (name === "check_contract_status") {
+        // This fixture template needs no approval. Simulate an existing sent
+        // provider request, then prove refresh only reads its current state.
+        const { contractSigningRepository } =
+          await import("@/src/features/internal-ops/contracts/server");
+        const repository = contractSigningRepository();
+        const id = String(state.templateContractId);
+        const { record, token } = await repository.claim(id);
+        const providerId = randomUUID();
+        await repository.update(
+          id,
+          token,
+          { state: "sent", providerId },
+          { kind: "user", id: person.id, display: person.name },
+        );
+        await repository.release(id, token);
+        contact.readResponses.set(
+          `signwell-contracts.getContract:${providerId}`,
+          {
+            id: providerId,
+            status: "Viewed",
+            test_mode: record.testMode,
+            metadata: {
+              commerce_contract_id: record.contractId,
+              template_sha256: record.templateHash,
+            },
+            apply_signing_order: true,
+            recipients: [
+              {
+                id: "counterparty",
+                name: record.counterpartySigner.name,
+                email: record.counterpartySigner.email,
+              },
+              {
+                id: "fil-one",
+                name: record.countersigner.name,
+                email: record.countersigner.email,
+              },
+            ],
+            fields: [
+              ["counterparty", "fil-one"].flatMap((recipient_id) =>
+                ["signature", "autofill_date_signed"].map((type) => ({
+                  recipient_id,
+                  type,
+                  required: true,
+                })),
+              ),
+            ],
+          },
+        );
+      }
       if (name === "check_mnda_status") {
         // Simulate an already sent request locally, then let the real sync
         // workflow observe a provider read and advance it to viewed.
@@ -442,6 +497,23 @@ describe("the owner rule", () => {
           contact.reads.some((read) => read.startsWith("signwell-mnda.get:")),
         ).toBe(true);
       }
+      if (name === "prepare_from_template") {
+        state.templateContractId = (value.contract as { id: string }).id;
+        state.signingRequestNumber = (
+          value.signing as { requestNumber: number }
+        ).requestNumber;
+      }
+      if (name === "check_contract_status") {
+        expect(value.signing).toMatchObject({
+          state: "viewed",
+          requestNumber: state.signingRequestNumber,
+        });
+        expect(
+          contact.reads.some((read) =>
+            read.startsWith("signwell-contracts.getContract:"),
+          ),
+        ).toBe(true);
+      }
       if (name === "create_mnda_draft" || name === "prepare_mnda_preview")
         state.mndaId = (value.mnda as { id: string } | undefined)?.id ?? "";
       if (name === "record_contract")
@@ -463,6 +535,7 @@ describe("the owner rule", () => {
       create_mnda_draft: true,
       prepare_mnda_preview: true,
       check_mnda_status: true,
+      check_contract_status: true,
       record_contract: true,
       prepare_contract_for_signature: true,
       prepare_from_template: true,

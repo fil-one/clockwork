@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
   recordToolCall: vi.fn(),
+  accessTokenSession: vi.fn(),
+  runWithSession: vi.fn((_session: unknown, run: () => unknown) => run()),
   session: {
     userId: "20000000-0000-4000-8000-0000000000aa",
     profile: { name: "Transport tester", email: "tester@clockwork.test" },
@@ -20,11 +22,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/src/auth/access-token-session", () => ({
   accessTokenRepository: () => mocks,
-  accessTokenCommerceSession: () => Promise.resolve(mocks.session),
+  accessTokenCommerceSession: mocks.accessTokenSession,
 }));
 vi.mock("@/src/auth/session", () => ({
   explicitDemoIdentityEnabled: () => false,
-  runWithAccessTokenSession: (_session: unknown, run: () => unknown) => run(),
+  runWithAccessTokenSession: mocks.runWithSession,
 }));
 vi.mock("@/src/auth/demo-deploy", () => ({
   demoDeployIdentityEnabled: () => false,
@@ -71,9 +73,60 @@ beforeEach(() => {
     windowResetSeconds: 60,
   });
   mocks.recordToolCall.mockReset().mockResolvedValue(undefined);
+  mocks.accessTokenSession.mockReset().mockResolvedValue(mocks.session);
+  mocks.runWithSession.mockClear();
 });
 
 afterEach(() => vi.unstubAllEnvs());
+
+describe("MCP authentication availability", () => {
+  it.each(["authenticate", "accessTokenSession"] as const)(
+    "returns a sanitized retryable outage when %s fails before a tool can run",
+    async (stage) => {
+      mocks[stage].mockRejectedValueOnce(
+        new Error("private database URL and identity details"),
+      );
+      const incoming = request();
+      const response = await handleMcpRequest(
+        new Request(incoming, {
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 9,
+            method: "tools/call",
+            params: { name: "whoami", arguments: {} },
+          }),
+        }),
+      );
+      expect(response.status).toBe(503);
+      expect(response.headers.get("content-type")).toContain(
+        "application/problem+json",
+      );
+      expect(response.headers.get("retry-after")).toBe("5");
+      expect(response.headers.get("www-authenticate")).toBeNull();
+      const body = await response.text();
+      expect(JSON.parse(body)).toMatchObject({
+        code: "MCP_UNAVAILABLE",
+        status: 503,
+      });
+      expect(body).not.toContain("private");
+      expect(mocks.runWithSession).not.toHaveBeenCalled();
+      expect(mocks.recordToolCall).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps invalid tokens and missing memberships as authentication refusals", async () => {
+    mocks.authenticate.mockResolvedValueOnce(null);
+    const invalidToken = await handleMcpRequest(request());
+    expect(invalidToken.status).toBe(401);
+    expect(invalidToken.headers.get("www-authenticate")).toContain(
+      "invalid_token",
+    );
+    mocks.accessTokenSession.mockResolvedValueOnce(null);
+    const missingMembership = await handleMcpRequest(request());
+    expect(missingMembership.status).toBe(401);
+    expect(mocks.runWithSession).not.toHaveBeenCalled();
+  });
+});
 
 describe("MCP transport origin validation", () => {
   it.each([

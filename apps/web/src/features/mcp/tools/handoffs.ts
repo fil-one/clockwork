@@ -10,21 +10,20 @@ import {
 } from "@clockwork/contracts";
 
 import { requestHandoff } from "@/src/features/internal-ops/handoff/actions";
-import {
-  loadHandoffQueue,
-  loadOwnHandoffs,
-} from "@/src/features/internal-ops/handoff/server";
+import { handoffRepository } from "@/src/features/internal-ops/handoff/server";
 import {
   contractReader,
   salesLibraryReader,
 } from "@/src/features/internal-ops/contracts/demo-access";
-import { sessionHas } from "@/src/features/internal-ops/contracts/server";
+import {
+  contractStaff,
+  sessionHas,
+} from "@/src/features/internal-ops/contracts/server";
 
 import {
   appLink,
   compact,
   defineTool,
-  McpToolError,
   unwrap,
   type McpToolContext,
 } from "../tool";
@@ -103,31 +102,30 @@ export const listHandoffs = defineTool({
   name: "list_handoffs",
   title: "List handoff requests",
   description:
-    "Handoff requests. scope mine (default) lists the ones you raised; queue lists the operations queue, for people who may read it, optionally one status.",
+    "Handoff requests. scope mine (default) lists the ones you raised; queue lists the operations queue, for people who may read it, optionally one status. Use limit and the returned nextCursor as cursor to continue with the same filters.",
   input: {
     scope: z.enum(["mine", "queue"]).optional(),
     status: z.enum(handoffStatuses).optional(),
+    limit: z.int().min(1).max(100).optional(),
+    cursor: z.string().min(1).max(500).optional(),
   },
   access: "read",
-  run: async ({ scope, status }, context) => {
-    if ((scope ?? "mine") === "mine") {
-      const own = await loadOwnHandoffs();
-      if (!own) throw new McpToolError("CONTRACT_FORBIDDEN");
-      return {
-        handoffs: own
-          .filter((request) => !status || request.status === status)
-          .map((request) => handoffView(request, context)),
-      };
-    }
-    const queue = await loadHandoffQueue(status);
-    if (queue.kind !== "ready")
-      throw new McpToolError(
-        queue.kind === "forbidden" ? "CONTRACT_FORBIDDEN" : "UNAVAILABLE",
-      );
+  run: async ({ scope, status, limit, cursor }, context) => {
+    const mine = (scope ?? "mine") === "mine";
+    const session = await contractStaff(
+      mine ? "contract:write" : "operations:read",
+    );
+    const page = await handoffRepository().listPage(
+      mine ? { kind: "own", userId: session.userId } : { kind: "all" },
+      status,
+      {
+        ...(limit !== undefined ? { limit } : {}),
+        ...(cursor !== undefined ? { cursor } : {}),
+      },
+    );
     return {
-      handoffs: queue.value.requests.map((request) =>
-        handoffView(request, context),
-      ),
+      nextCursor: page.nextCursor,
+      handoffs: page.rows.map((request) => handoffView(request, context)),
     };
   },
 });

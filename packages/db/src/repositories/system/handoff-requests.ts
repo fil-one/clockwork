@@ -20,6 +20,13 @@ import { mndaRequests } from "../../schema/mnda";
 import { pricingScenarios } from "../../schema/pricing-scenarios";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
+import {
+  beforeCursor,
+  cursorTimestamp,
+  nextPageCursor,
+  pageOptions,
+  type KeysetPageOptions,
+} from "../keyset-page";
 
 type Row = typeof handoffRequests.$inferSelect;
 type UserActor = Actor & { kind: "user" };
@@ -156,6 +163,44 @@ export class HandoffRequestRepository {
           .limit(handoffListLimit)
       ).map(view),
     );
+  }
+
+  /** Uncapped traversal with ownership and status applied before pagination. */
+  listPage(
+    scope: HandoffScope,
+    status?: HandoffStatus,
+    options: KeysetPageOptions = {},
+  ) {
+    const { limit, cursor } = pageOptions("handoffs", options);
+    return this.tx(async (tx) => {
+      const rows = await tx
+        .select({
+          row: handoffRequests,
+          cursorAt: cursorTimestamp(handoffRequests.createdAt),
+        })
+        .from(handoffRequests)
+        .where(
+          and(
+            scope.kind === "own"
+              ? eq(handoffRequests.requestedById, scope.userId)
+              : undefined,
+            status ? eq(handoffRequests.status, status) : undefined,
+            beforeCursor(handoffRequests.createdAt, handoffRequests.id, cursor),
+          ),
+        )
+        .orderBy(desc(handoffRequests.createdAt), desc(handoffRequests.id))
+        .limit(limit + 1);
+      const page = rows.slice(0, limit);
+      const last = page.at(-1);
+      return {
+        rows: page.map(({ row }) => view(row)),
+        nextCursor: nextPageCursor(
+          "handoffs",
+          rows.length > limit,
+          last ? { id: last.row.id, cursorAt: last.cursorAt } : undefined,
+        ),
+      };
+    });
   }
 
   /** A request outside the caller's scope reads as missing. */

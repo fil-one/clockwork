@@ -100,6 +100,7 @@ describe("the MCP tool set", () => {
       .sort();
     expect(writes).toEqual(
       [
+        "check_contract_status",
         "check_mnda_status",
         "create_handoff_request",
         "create_mnda_draft",

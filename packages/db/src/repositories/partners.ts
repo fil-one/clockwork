@@ -45,6 +45,14 @@ import { auditEvents, organizations } from "../schema";
 import { commercePartnerDeals, commercePartners } from "../schema/partners";
 import { withInternalTransaction } from "../transaction";
 import { appendAuditAndOutbox } from "./audit-outbox";
+import {
+  beforeCursor,
+  cursorTimestamp,
+  nextPageCursor,
+  pageOptions,
+  type KeysetPageOptions,
+  type KeysetCursor,
+} from "./keyset-page";
 
 type PartnerRow = typeof commercePartners.$inferSelect;
 type DealRow = typeof commercePartnerDeals.$inferSelect;
@@ -341,6 +349,29 @@ export class PartnerRepository {
         rows: rows.slice(0, partnerListLimit),
         truncated: rows.length > partnerListLimit,
       } satisfies PartnerListResult;
+    });
+  }
+
+  /** Uncapped traversal of the same filtered summaries as the UI list. */
+  listPage(
+    query: PartnerListQuery,
+    scope: PartnerReadScope,
+    options: KeysetPageOptions = {},
+  ) {
+    const { limit, cursor } = pageOptions("partners", options);
+    return this.tx(async (tx) => {
+      await expireLapsedDeals(tx, scope.today);
+      const rows = await summaryPageRows(tx, query, scope, limit + 1, cursor);
+      const page = rows.slice(0, limit);
+      const last = page.at(-1);
+      return {
+        rows: page.map(({ row }) => row),
+        nextCursor: nextPageCursor(
+          "partners",
+          rows.length > limit,
+          last ? { id: last.row.id, cursorAt: last.cursorAt } : undefined,
+        ),
+      };
     });
   }
 
@@ -850,6 +881,16 @@ async function summaries(
   scope: PartnerReadScope,
   limit: number,
 ): Promise<PartnerSummary[]> {
+  return (await summaryPageRows(tx, query, scope, limit)).map(({ row }) => row);
+}
+
+async function summaryPageRows(
+  tx: RuntimeTransaction,
+  query: PartnerListQuery,
+  scope: PartnerReadScope,
+  limit: number,
+  cursor?: KeysetCursor,
+) {
   const rows = await tx
     .select({
       id: commercePartners.id,
@@ -865,22 +906,31 @@ async function summaries(
       marginPct: commercePartners.marginPct,
       currency: commercePartners.currency,
       updatedAt: commercePartners.updatedAt,
+      cursorAt: cursorTimestamp(commercePartners.updatedAt),
       openDeals: sql<number>`(select count(*)::int from public.commerce_partner_deals d
         where d.partner_id = ${commercePartners.id}
           and d.status in ('registered','accepted','disputed')
           and d.protected_until >= ${scope.today}::date)`,
     })
     .from(commercePartners)
-    .where(listWhere(query, scope))
+    .where(
+      and(
+        listWhere(query, scope),
+        beforeCursor(commercePartners.updatedAt, commercePartners.id, cursor),
+      ),
+    )
     .orderBy(desc(commercePartners.updatedAt), desc(commercePartners.id))
     .limit(limit);
-  return rows.map((row) => ({
-    ...row,
-    models: [...row.models],
-    commissionPct: trimPartnerDecimal(row.commissionPct),
-    marginPct: trimPartnerDecimal(row.marginPct),
-    openDeals: Number(row.openDeals),
-    updatedAt: row.updatedAt.toISOString(),
+  return rows.map(({ cursorAt, ...row }) => ({
+    cursorAt,
+    row: {
+      ...row,
+      models: [...row.models],
+      commissionPct: trimPartnerDecimal(row.commissionPct),
+      marginPct: trimPartnerDecimal(row.marginPct),
+      openDeals: Number(row.openDeals),
+      updatedAt: row.updatedAt.toISOString(),
+    },
   }));
 }
 

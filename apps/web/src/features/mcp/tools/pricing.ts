@@ -253,10 +253,14 @@ export const listPricingScenarios = defineTool({
   name: "list_pricing_scenarios",
   title: "List pricing scenarios",
   description:
-    "Your saved pricing scenarios (every seller's for a commerce administrator) with totals. With id, one scenario's lines, totals and partner economics.",
-  input: { id: z.uuid().optional() },
+    "Your saved pricing scenarios (every seller's for a commerce administrator) with totals. Use limit and the returned nextCursor as cursor to continue with the same filters. With id, one scenario's lines, totals and partner economics.",
+  input: {
+    id: z.uuid().optional(),
+    limit: z.int().min(1).max(100).optional(),
+    cursor: z.string().min(1).max(500).optional(),
+  },
   access: "read",
-  run: async ({ id }, context) => {
+  run: async ({ id, limit, cursor }, context) => {
     const session = await contractStaff("sales:read");
     const repository = scenarioRepository();
     if (id) {
@@ -266,9 +270,13 @@ export const listPricingScenarios = defineTool({
         context,
       );
     }
-    const scenarios = await repository.list(scenarioScope(session));
+    const page = await repository.listPage(scenarioScope(session), {
+      ...(limit !== undefined ? { limit } : {}),
+      ...(cursor !== undefined ? { cursor } : {}),
+    });
     return {
-      scenarios: scenarios.map((scenario) =>
+      nextCursor: page.nextCursor,
+      scenarios: page.rows.map((scenario) =>
         amounts({
           ...scenario,
           link: appLink(context, `/internal/pricing?scenario=${scenario.id}`),

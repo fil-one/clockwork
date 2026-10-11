@@ -120,43 +120,53 @@ be available. An unavailable ID is refused rather than replaced with a default.
 `list_notifications` returns `nextCursor`; pass it as `before` to continue, even
 if `unreadOnly` leaves the current page empty. A null cursor means the end.
 
-| Tool                             | Access | What it does                                                                                                                |
-| -------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------- |
-| `whoami`                         | read   | You, your roles and permissions, whether you are MFA-enrolled, and the token's scope and expiry                             |
-| `list_staff`                     | read   | Administrators: staff in the current organization, roles, effective permissions, MFA status and membership versions         |
-| `prepare_staff_role_change`      | write  | Administrators: prepare one role addition or removal and an exact browser review link; no access changes until confirmation |
-| `home_summary`                   | read   | What Home shows you: MNDA, contract and partner counts, renewal notices, your open handoffs                                 |
-| `list_mndas`                     | read   | Search the MNDA register by text, status group, state or "prepared by me"                                                   |
-| `get_mnda`                       | read   | One MNDA with its signer, state, dates and links                                                                            |
-| `create_mnda_draft`              | write  | Prepare a draft from the approved template and render its preview; flags MNDAs and contracts already on file                |
-| `prepare_mnda_preview`           | write  | A draft's preview link, or a revised draft that replaces it                                                                 |
-| `check_mnda_status`              | write  | Refresh an MNDA's status from SignWell, as the Refresh button does                                                          |
-| `download_signed_mnda`           | read   | Link to the signed PDF; the PDF inline on request when it is at most 4 MB                                                   |
-| `list_contracts`                 | read   | Search the contract register                                                                                                |
-| `get_contract`                   | read   | One contract with its files, signing request and earlier requests                                                           |
-| `record_contract`                | write  | Record or edit a contract (optimistic version) and attach one PDF as base64, at most 10 MB                                  |
-| `prepare_contract_for_signature` | write  | Prepare an uploaded PDF for signature; another person approves it and a person sends it in the app                          |
-| `renewal_notices`                | read   | Notice deadlines in the next 30, 60 or 90 days, and deadlines passed                                                        |
-| `list_contract_templates`        | read   | Available templates and, for one, its fields and countersigners                                                             |
-| `prepare_from_template`          | write  | Prepare a contract from an available template                                                                               |
-| `list_partners`                  | read   | Partners with status, owner, next step and headline terms                                                                   |
-| `get_partner`                    | read   | One partner with terms, deals, overlaps, linked MNDAs and contracts, and history                                            |
-| `create_partner`                 | write  | Record a partner                                                                                                            |
-| `update_partner`                 | write  | Edit a partner against the version you read                                                                                 |
-| `list_partner_deals`             | read   | A partner's registered deals and overlapping registrations                                                                  |
-| `register_partner_deal`          | write  | Register a deal; overlaps come back as a warning                                                                            |
-| `update_partner_deal`            | write  | Edit a deal, such as marking it won or lost                                                                                 |
-| `partner_next_steps_due`         | read   | Partner next steps overdue or due soon                                                                                      |
-| `list_price_books`               | read   | Price books in force and their list-price rates                                                                             |
-| `indicative_price`               | read   | Price lines in TB, PB, TiB or PiB with discount and term, and partner economics, without saving                             |
-| `list_pricing_scenarios`         | read   | Your saved scenarios, or one with its figures                                                                               |
-| `save_pricing_scenario`          | write  | Save or overwrite a scenario                                                                                                |
-| `pricing_summary_pdf_link`       | read   | The customer or partner summary PDF link                                                                                    |
-| `create_handoff_request`         | write  | Hand signed contracts to operations                                                                                         |
-| `list_handoffs`                  | read   | Your handoff requests, or the operations queue if you may read it                                                           |
-| `list_notifications`             | read   | Your staff notifications, newest first, with links                                                                          |
-| `mark_notifications_read`        | write  | Mark notifications read, some or all                                                                                        |
-| `list_sales_library`             | read   | Sales collateral with download links                                                                                        |
+`list_pricing_scenarios`, `list_handoffs` and `list_partners` accept `limit`
+(1–100, default 100) and an opaque `cursor`. Pass their `nextCursor` unchanged
+with the same filters to continue; null means the end. These tools can traverse
+beyond the UI list limits. Ownership and status filters apply before each page
+is selected, and cursors preserve full database timestamp precision. Pricing
+rows that cannot be read are skipped; continue while `nextCursor` is present
+even when a page is empty. Lists are live: records edited while paging can move
+in the ordering, so restart a traversal when a complete fresh snapshot matters.
+
+| Tool                             | Access | What it does                                                                                                                     |
+| -------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `whoami`                         | read   | You, your roles and permissions, whether you are MFA-enrolled, and the token's scope and expiry                                  |
+| `list_staff`                     | read   | Administrators: staff in the current organization, roles, effective permissions, MFA status and membership versions              |
+| `prepare_staff_role_change`      | write  | Administrators: prepare one role addition or removal and an exact browser review link; no access changes until confirmation      |
+| `home_summary`                   | read   | What Home shows you: MNDA, contract and partner counts, renewal notices, your open handoffs                                      |
+| `list_mndas`                     | read   | Search the MNDA register and list active countersigner IDs for drafts                                                            |
+| `get_mnda`                       | read   | One MNDA with signer, state, dates, links and saved legal, address and notices details                                           |
+| `create_mnda_draft`              | write  | Prepare a draft from the approved template and render its preview; flags MNDAs and contracts already on file                     |
+| `prepare_mnda_preview`           | write  | A draft's preview link, or a revised draft that replaces it                                                                      |
+| `check_mnda_status`              | write  | Refresh an MNDA's status from SignWell, as the Refresh button does                                                               |
+| `check_contract_status`          | write  | Refresh the exact contract signing request from SignWell using the requestNumber read from get_contract; never sends or approves |
+| `download_signed_mnda`           | read   | Link to the signed PDF; the PDF inline on request when it is at most 4 MB                                                        |
+| `list_contracts`                 | read   | Search the contract register                                                                                                     |
+| `get_contract`                   | read   | One contract with its files, signing request and earlier requests                                                                |
+| `record_contract`                | write  | Record or edit a contract (optimistic version) and attach one PDF as base64, at most 10 MB                                       |
+| `prepare_contract_for_signature` | write  | Prepare an uploaded PDF for signature; another person approves it and a person sends it in the app                               |
+| `renewal_notices`                | read   | Notice deadlines in the next 30, 60 or 90 days, and deadlines passed                                                             |
+| `list_contract_templates`        | read   | Available templates and, for one, its fields and countersigners                                                                  |
+| `prepare_from_template`          | write  | Prepare a contract from an available template                                                                                    |
+| `list_partners`                  | read   | Partners with status, owner, next step and headline terms                                                                        |
+| `get_partner`                    | read   | One partner with terms, deals, overlaps, linked MNDAs and contracts, and history                                                 |
+| `create_partner`                 | write  | Record a partner                                                                                                                 |
+| `update_partner`                 | write  | Edit a partner against the version you read                                                                                      |
+| `list_partner_deals`             | read   | A partner's registered deals and overlapping registrations                                                                       |
+| `register_partner_deal`          | write  | Register a deal; overlaps come back as a warning                                                                                 |
+| `update_partner_deal`            | write  | Edit a deal, such as marking it won or lost                                                                                      |
+| `partner_next_steps_due`         | read   | Partner next steps overdue or due soon                                                                                           |
+| `list_price_books`               | read   | Price books in force and their list-price rates                                                                                  |
+| `indicative_price`               | read   | Price lines in TB, PB, TiB or PiB with discount and term, and partner economics, without saving                                  |
+| `list_pricing_scenarios`         | read   | Your saved scenarios, or one with its figures                                                                                    |
+| `save_pricing_scenario`          | write  | Save or overwrite a scenario                                                                                                     |
+| `pricing_summary_pdf_link`       | read   | The customer or partner summary PDF link                                                                                         |
+| `create_handoff_request`         | write  | Hand signed contracts to operations                                                                                              |
+| `list_handoffs`                  | read   | Your handoff requests, or the operations queue if you may read it                                                                |
+| `list_notifications`             | read   | Your staff notifications, newest first, with links                                                                               |
+| `mark_notifications_read`        | write  | Mark notifications read, some or all                                                                                             |
+| `list_sales_library`             | read   | Sales collateral with download links                                                                                             |
 
 Links in results open in the app and need you to be signed in there. PDF
 downloads through those links are audited as they are in the app.
@@ -165,6 +175,20 @@ Tools call the same server code as the pages, so the same rules apply: a seller
 sees and changes what a seller can in the app, an uploaded PDF still needs
 another person's approval before it is sent, and pricing shows list prices and
 the figures the Pricing page shows, never floors or transfer prices.
+
+For MNDA preparation, `list_mndas` includes active `countersigners` with IDs,
+names, titles and the default flag. `get_mnda` and `prepare_mnda_preview`
+include saved legal entity, address and notices fields under `details`, so a
+revision can be reviewed before it is prepared. These reads use the existing
+MNDA permission check.
+
+For contract status, call `get_contract` first, then pass its
+`signing.requestNumber` with `contractId` to `check_contract_status`. The
+request number is required: a replaced signing request is refused, including a
+replacement between the read and the provider check. Refresh reads SignWell and
+stores the observed status; it cannot send, remind, void or approve a request.
+It requires the same `contract:write` permission as the browser's Refresh
+action.
 
 ## Prepare a staff role change
 
@@ -184,10 +208,10 @@ own roles cannot be changed this way. The existing last-administrator and
 last-role protections still apply.
 
 The link contains identifiers and the proposed role, never the access token or
-an authenticator code. An optional reason is entered in the browser. A token
-never becomes a recent sign-in, and MCP never accepts an authenticator code. The
-MCP preparation is audited against the target user; only browser confirmation
-writes the normal `staff.role_granted` or `staff.role_revoked` event.
+an authenticator code. A token never becomes a recent sign-in, and MCP never
+accepts an authenticator code. The MCP preparation is audited against the target
+user; only browser confirmation writes the normal `staff.role_granted` or
+`staff.role_revoked` event.
 
 ## What stays in the app
 
@@ -261,15 +285,16 @@ The guided demo has no MCP endpoint, so nothing can be sent from it.
 
 ## When something is refused
 
-| Answer                        | What to do                                                                                                                               |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `401` with `WWW-Authenticate` | The token is missing, mistyped, expired or revoked, or you no longer have staff access. The answer does not say which. Create a new one. |
-| `429`                         | Wait for the seconds in `Retry-After`.                                                                                                   |
-| `… disabled`                  | The token is read-only. Create a read-and-write token.                                                                                   |
-| `*_FORBIDDEN`                 | Your role does not allow it, as in the app.                                                                                              |
-| `RECENT_AUTH_REQUIRED`        | It needs a fresh MFA check. Do it in the app.                                                                                            |
-| `*_VERSION_CONFLICT`          | Someone changed the record since you read it. Read it again and retry.                                                                   |
-| `*_NOT_CONFIGURED`            | SignWell is not switched on in this environment.                                                                                         |
+| Answer                        | What to do                                                                                                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `401` with `WWW-Authenticate` | The token is missing, mistyped, expired or revoked, or you no longer have staff access. The answer does not say which. Create a new one.                                                   |
+| `429`                         | Wait for the seconds in `Retry-After`.                                                                                                                                                     |
+| `503` with `Retry-After`      | Authentication services are temporarily unavailable before any tool ran. Wait for the indicated seconds and retry. A 503 without this header can mean deployment configuration is missing. |
+| `… disabled`                  | The token is read-only. Create a read-and-write token.                                                                                                                                     |
+| `*_FORBIDDEN`                 | Your role does not allow it, as in the app.                                                                                                                                                |
+| `RECENT_AUTH_REQUIRED`        | It needs a fresh MFA check. Do it in the app.                                                                                                                                              |
+| `*_VERSION_CONFLICT`          | Someone changed the record since you read it. Read it again and retry.                                                                                                                     |
+| `*_NOT_CONFIGURED`            | SignWell is not switched on in this environment.                                                                                                                                           |
 
 ## QA evidence — October 11, 2026
 
