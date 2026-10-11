@@ -24,6 +24,7 @@ import {
   createStaffNotificationOutboxHandlers,
   staffNotificationOrigin,
 } from "../staff-notifications";
+import { configurePartnerNextStepReminders } from "../staff-notifications/partner-reminders";
 import { configureStaffNotificationRetry } from "../staff-notifications/retry-runtime";
 import type { OutboxTopicHandler } from "../system/outbox-dispatcher";
 
@@ -224,6 +225,7 @@ export function withStaffNotificationHandlers(
     origin: staffNotificationOrigin(source),
   };
   configureStaffNotificationRetry(options);
+  configurePartnerNextStepReminders({ store: options.store });
   const notifications = createStaffNotificationOutboxHandlers(options);
   for (const [topic, handler] of notifications) {
     const earlier = handlers.get(topic);

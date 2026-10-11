@@ -31,6 +31,7 @@ settings change is audited as `staff_notifications.settings_changed`.
 | Handoff in progress, done or declined with a note                                   | The requester                                                                    |
 | Capability or price-book activation requested                                       | Its eligible approvers, not the requester unless self-approval applies           |
 | Capability or price-book activation approved or rejected                            | The requester                                                                    |
+| Partner next step due today or overdue (daily at 13:00 UTC, once per due date)      | The partner's owner                                                              |
 
 Nobody is told about their own action. A person sees a notification only while
 they hold the permissions its record needs. Slack carries, by default, MNDA

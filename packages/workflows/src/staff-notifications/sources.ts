@@ -17,10 +17,7 @@ import {
  *
  * A new notifying event is one entry below, naming its kind (declared in
  * packages/contracts/src/staff-notifications.ts) and how to read its
- * recipients from the record. For example, a partner next step that falls
- * due could be:
- *
- *   "partner.next_step_due": partnerSource("partner.next_step_due"),
+ * recipients from the record, as `partner.next_step_due` does below.
  *
  * The person who caused an event is never notified about it. Recipients are
  * kept only while they are staff holding every permission the kind needs, so
@@ -66,6 +63,7 @@ export type StaffNotificationLookups = Pick<
   | "capabilityRequest"
   | "priceBook"
   | "approvalRequester"
+  | "partner"
 >;
 
 export type StaffNotificationSource = (
@@ -295,6 +293,35 @@ const priceBookRejected: StaffNotificationSource = async (event, lookups) => {
   };
 };
 
+/**
+ * A partner's next step is due: the daily reminder wrote the event for one
+ * due date. The owner is told only while the partner still has that step on
+ * that date and is not ended, so a step moved or done since says nothing.
+ */
+const partnerNextStepDue: StaffNotificationSource = async (event, lookups) => {
+  const partnerId = text(event.data.partnerId);
+  const due = text(event.data.nextStepDue);
+  const partner = partnerId ? await lookups.partner(partnerId) : null;
+  if (
+    !partner ||
+    !partner.ownerId ||
+    partner.status === "ended" ||
+    partner.nextStepDue !== due
+  )
+    return null;
+  return {
+    kind:
+      event.data.overdue === true
+        ? "partner.next_step_overdue"
+        : "partner.next_step_due",
+    recipients: [partner.ownerId],
+    recordType: "partner",
+    recordId: partner.id,
+    href: `/internal/partners/${partner.id}`,
+    subject: partner.name,
+  };
+};
+
 export const staffNotificationSources: Readonly<
   Record<string, StaffNotificationSource>
 > = {
@@ -344,4 +371,7 @@ export const staffNotificationSources: Readonly<
   "core.price_books.request_activation": priceBookRequested,
   "core.price_books.activate": priceBookApproved,
   "core.price_books.reject_activation": priceBookRejected,
+
+  // Partners (the daily reminder task, remindPartnerNextSteps).
+  "partner.next_step_due": partnerNextStepDue,
 };

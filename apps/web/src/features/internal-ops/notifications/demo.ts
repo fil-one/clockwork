@@ -119,6 +119,16 @@ const fixtures: readonly Fixture[] = [
     ago: 3 * day,
   },
   {
+    id: "62000000-0000-4000-8000-000000000010",
+    kind: "partner.next_step_overdue",
+    recordType: "partner",
+    recordId: "019a44af-0000-7000-8000-0000000000a4",
+    href: "/internal/partners/019a44af-0000-7000-8000-0000000000a4",
+    subject: "Meridian Ridge Infrastructure",
+    actorName: null,
+    ago: 1 * day + 4 * hour,
+  },
+  {
     id: "62000000-0000-4000-8000-000000000009",
     kind: "handoff.done",
     recordType: "contract",
