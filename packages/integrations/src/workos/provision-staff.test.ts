@@ -74,28 +74,85 @@ it("reuses exact existing identity and membership without broadening roles", asy
     transport.mock.calls.every(([, options]) => options?.method === "GET"),
   ).toBe(true);
 });
-it("reactivates a membership left inactive by an earlier deactivation", async () => {
-  const transport = vi
-    .fn<typeof fetch>()
-    .mockResolvedValueOnce(
-      Response.json({ data: [{ id: "user_staff", email: person.email }] }),
-    )
-    .mockResolvedValueOnce(
-      Response.json({ data: [{ ...member, status: "inactive" }] }),
-    )
-    .mockResolvedValueOnce(Response.json(member));
-  expect(
-    await provisionWorkosStaff("private", "org_staff", person, transport),
-  ).toEqual({
-    workosUserId: "user_staff",
-    workosMembershipId: "om_staff",
-    outcome: "reactivated",
-  });
-  expect(transport.mock.calls[2]?.[0]).toBe(
-    "https://api.workos.com/user_management/organization_memberships/om_staff/reactivate",
-  );
-  expect(transport.mock.calls[2]?.[1]?.method).toBe("PUT");
-});
+it.each(["active", "inactive", "pending"] as const)(
+  "preserves an existing %s membership with WorkOS status filtering",
+  async (status) => {
+    const transport = vi.fn<typeof fetch>((input, options) => {
+      const url = new URL(
+        typeof input === "string" || input instanceof URL ? input : input.url,
+      );
+      if (url.pathname === "/user_management/users")
+        return Promise.resolve(
+          Response.json({
+            data: [{ id: "user_staff", email: person.email }],
+          }),
+        );
+      if (options?.method === "GET") {
+        expect(url.searchParams.get("user_id")).toBe(member.user_id);
+        expect(url.searchParams.get("organization_id")).toBe(
+          member.organization_id,
+        );
+        // WorkOS lists only active memberships unless statuses is explicit.
+        const statuses = (url.searchParams.get("statuses") ?? "active").split(
+          ",",
+        );
+        return Promise.resolve(
+          Response.json({
+            data: statuses.includes(status) ? [{ ...member, status }] : [],
+          }),
+        );
+      }
+      // Creating an existing inactive membership also activates it, which
+      // previously misclassified it as new and made compensation delete it.
+      return Promise.resolve(Response.json(member));
+    });
+    const provisioned = provisionWorkosStaff(
+      "private",
+      "org_staff",
+      person,
+      transport,
+    );
+    if (status === "pending") {
+      await expect(provisioned).rejects.toThrow("STAFF_MEMBERSHIP_MISMATCH");
+    } else {
+      await expect(provisioned).resolves.toEqual({
+        workosUserId: "user_staff",
+        workosMembershipId: "om_staff",
+        outcome: status === "inactive" ? "reactivated" : "existing",
+      });
+    }
+    const writes = transport.mock.calls.filter(
+      ([, options]) => options?.method !== "GET",
+    );
+    if (status === "inactive") {
+      expect(writes).toHaveLength(1);
+      expect(writes[0]?.[0]).toBe(
+        "https://api.workos.com/user_management/organization_memberships/om_staff/reactivate",
+      );
+      expect(writes[0]?.[1]?.method).toBe("PUT");
+    } else expect(writes).toHaveLength(0);
+  },
+);
+it.each([{ user_id: "user_other" }, { organization_id: "org_other" }])(
+  "refuses a mismatched inactive membership before reactivation: %j",
+  async (mismatch) => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ data: [{ id: "user_staff", email: person.email }] }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          data: [{ ...member, status: "inactive", ...mismatch }],
+        }),
+      )
+      .mockResolvedValueOnce(Response.json(member));
+    await expect(
+      provisionWorkosStaff("private", "org_staff", person, transport),
+    ).rejects.toThrow("STAFF_MEMBERSHIP_MISMATCH");
+    expect(transport).toHaveBeenCalledTimes(2);
+  },
+);
 it("fails closed on identity/provider errors", async () => {
   const transport = vi.fn<typeof fetch>().mockResolvedValue(
     Response.json({

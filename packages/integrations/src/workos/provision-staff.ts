@@ -79,15 +79,22 @@ export async function provisionWorkosStaff(
     );
   if (user.email.toLowerCase() !== email)
     throw new Error("STAFF_IDENTITY_MISMATCH");
-  const memberships = z
-    .object({ data: z.array(membershipSchema) })
-    .parse(
-      await request(
-        `user_management/organization_memberships?user_id=${encodeURIComponent(user.id)}&organization_id=${encodeURIComponent(organizationId)}`,
-      ),
-    ).data;
+  const memberships = z.object({ data: z.array(membershipSchema) }).parse(
+    await request(
+      // WorkOS defaults to active only. Include inactive so reactivation is
+      // classified correctly for compensation, and pending so it is refused.
+      `user_management/organization_memberships?user_id=${encodeURIComponent(user.id)}&organization_id=${encodeURIComponent(organizationId)}&statuses=active,inactive,pending`,
+    ),
+  ).data;
   if (memberships.length > 1) throw new Error("STAFF_MEMBERSHIP_AMBIGUOUS");
   const existing = memberships[0];
+  if (
+    existing &&
+    (existing.user_id !== user.id ||
+      existing.organization_id !== organizationId ||
+      existing.status === "pending")
+  )
+    throw new Error("STAFF_MEMBERSHIP_MISMATCH");
   const membership = !existing
     ? membershipSchema.parse(
         await request("user_management/organization_memberships", {
