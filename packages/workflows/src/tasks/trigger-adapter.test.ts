@@ -182,8 +182,8 @@ describe("registerAllTriggerTasks", () => {
   });
 
   it("hands every production task to the Trigger SDK", () => {
-    expect(capturedTasks.length + capturedSchedules.length).toBe(49);
-    expect(capturedSchedules).toHaveLength(28);
+    expect(capturedTasks.length + capturedSchedules.length).toBe(50);
+    expect(capturedSchedules).toHaveLength(29);
   });
 
   it("stages every application schedule and expires only the superseded sweeps", () => {
@@ -191,6 +191,7 @@ describe("registerAllTriggerTasks", () => {
     expect(withTtl.map((entry) => [entry.id, entry.ttl])).toEqual([
       ["system.esign.reconcile.v1", "15m"],
       ["system.outbox.dispatch.v1", "1m"],
+      ["system.staff-notifications.retry.v1", "5m"],
     ]);
     expect(
       capturedSchedules

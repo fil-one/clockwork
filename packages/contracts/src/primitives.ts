@@ -63,6 +63,7 @@ export const entityNames = [
   "handoff_request",
   "partner",
   "partner_deal",
+  "staff_notification_settings",
 ] as const;
 
 export type EntityName = (typeof entityNames)[number];

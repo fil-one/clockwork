@@ -15,8 +15,8 @@ import {
 const noop = () => Promise.resolve(undefined);
 
 /** Every task the application ships, and the scheduled subset of them. */
-const PRODUCTION_TASK_COUNT = 49;
-const PRODUCTION_SCHEDULED_COUNT = 28;
+const PRODUCTION_TASK_COUNT = 50;
+const PRODUCTION_SCHEDULED_COUNT = 29;
 
 beforeEach(() => {
   resetTaskRegistryForTests();

@@ -188,6 +188,10 @@ export const excludedFailureShapedEventTypes: Readonly<Record<string, string>> =
       "A reviewer's decision on an exception case, not a runtime failure. packages/workflows/src/exceptions/index.ts.",
     "contract.rejected":
       "An approver sending a prepared contract back with a reason. packages/db/src/repositories/contracts.ts.",
+    "capability.rejected":
+      "A staff notification kind: an approver turning down a capability switch request. packages/contracts/src/staff-notifications.ts.",
+    "price_book.rejected":
+      "A staff notification kind: an approver turning down a price-book activation. packages/contracts/src/staff-notifications.ts.",
     "poc.rejected":
       "A commercial decision on a proof of concept. packages/db/src/repositories/lifecycle/command-repository.ts.",
     "termination.rejected":

@@ -9,6 +9,7 @@ import { accessSchema } from "./access";
 import { pricingScenariosSchema } from "./pricing-scenarios";
 import { handoffRequestsSchema } from "./handoff-requests";
 import { partnersSchema } from "./partners";
+import { staffNotificationsSchema } from "./staff-notifications";
 
 export * from "../schema";
 export * from "./core";
@@ -21,6 +22,7 @@ export * from "./access";
 export * from "./pricing-scenarios";
 export * from "./handoff-requests";
 export * from "./partners";
+export * from "./staff-notifications";
 
 /** Drizzle consumes this stable composition; lanes only edit their own object. */
 export const runtimeSchema: typeof foundationSchema &
@@ -33,7 +35,8 @@ export const runtimeSchema: typeof foundationSchema &
   typeof accessSchema &
   typeof pricingScenariosSchema &
   typeof handoffRequestsSchema &
-  typeof partnersSchema = {
+  typeof partnersSchema &
+  typeof staffNotificationsSchema = {
   ...foundationSchema,
   ...coreSchema,
   ...lifecycleSchema,
@@ -45,4 +48,5 @@ export const runtimeSchema: typeof foundationSchema &
   ...pricingScenariosSchema,
   ...handoffRequestsSchema,
   ...partnersSchema,
+  ...staffNotificationsSchema,
 };
