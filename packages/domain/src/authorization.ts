@@ -96,6 +96,7 @@ export const salesWorkspacePermissions: ReadonlySet<Permission> = new Set([
   "contract:read",
   "contract:write",
   "contract:approve",
+  "contract_template:manage",
   "signatory:manage",
   "sales:read",
   "collateral:manage",

@@ -207,6 +207,7 @@ describe("commerce authorization boundaries", () => {
       authorize(context, "contract:read", unscopedInternalOnly);
       authorize(context, "contract:write", unscopedInternalOnly);
       authorize(context, "contract:approve", unscopedInternalOnly);
+      authorize(context, "contract_template:manage", unscopedInternalOnly);
       authorize(context, "signatory:manage", unscopedInternalOnly);
       authorize(context, "sales:read", unscopedInternalOnly);
       authorize(context, "collateral:manage", unscopedInternalOnly);
@@ -231,6 +232,7 @@ describe("commerce authorization boundaries", () => {
         "contract:read",
         "contract:write",
         "contract:approve",
+        "contract_template:manage",
         "signatory:manage",
         "sales:read",
         "collateral:manage",

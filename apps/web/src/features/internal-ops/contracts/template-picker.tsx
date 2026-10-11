@@ -15,33 +15,47 @@ import styles from "./contracts.module.css";
 
 export interface TemplateSummary {
   id: string;
+  name: string;
   contractType: ContractType;
-  status: "available" | "pending_legal";
-  version?: string;
-  requiresApproval?: boolean;
+  version: string;
+  requiresApproval: boolean;
+  /** How many optional sections the seller may include. */
+  sections: number;
 }
 
 /**
- * Every agreement Fil One can prepare from approved wording. Templates legal
- * has not supplied are named in one line so the team knows they are coming;
- * until one is ready, the page points to recording a signed agreement.
+ * The templates in use, one card each. Commerce administrators also get the
+ * way to the template store; everyone else is pointed to recording a signed
+ * agreement while a template they need is not in use.
  */
 export function TemplatePicker({
   t,
   templates,
+  canOpen,
   canWrite,
+  canManage,
 }: {
   t: Translator;
   templates: readonly TemplateSummary[];
+  /** Whether a form opens: to prepare, or in the demo to preview. */
+  canOpen: boolean;
   canWrite: boolean;
+  canManage: boolean;
 }) {
-  const ready = templates.filter((template) => template.status === "available");
-  const pending = templates
-    .filter((template) => template.status !== "available")
-    .map((template) => t(contractTypeLabels[template.contractType]));
   const record = canWrite ? (
-    <Link className={buttonClassName()} href="/internal/contracts/new">
+    <Link
+      className={buttonClassName({ variant: "secondary" })}
+      href="/internal/contracts/new"
+    >
       {t("operations.contracts.action.record")}
+    </Link>
+  ) : undefined;
+  const manage = canManage ? (
+    <Link
+      className={buttonClassName({ variant: "secondary" })}
+      href="/internal/contracts/manage-templates"
+    >
+      {t("operations.contractTemplates.manage")}
     </Link>
   ) : undefined;
   return (
@@ -60,76 +74,79 @@ export function TemplatePicker({
       <PageHeader
         title={t("operations.contracts.templates.title")}
         description={t("operations.contracts.templates.description")}
+        {...(manage ? { actions: manage } : {})}
       />
-      {ready.length === 0 ? (
+      {templates.length === 0 ? (
         <EmptyState
           title={t("operations.contracts.templates.noneReadyTitle")}
-          description={t("operations.contracts.templates.noneReadyBody", {
-            names: pending.join(", "),
-          })}
-          {...(record ? { action: record } : {})}
+          description={t(
+            canManage
+              ? "operations.contracts.templates.noneReadyAdmin"
+              : "operations.contracts.templates.noneReadyBody",
+          )}
+          {...(manage ? { action: manage } : record ? { action: record } : {})}
         />
       ) : (
         <>
           <ul className={styles.templateGrid}>
-            {ready.map((template) => {
-              const name = t(contractTypeLabels[template.contractType]);
-              return (
-                <li key={template.id}>
-                  <article
-                    className={`${styles.card} ${styles.templateCard}`}
-                    aria-labelledby={`template-${template.id}`}
-                  >
-                    <div className={styles.badges}>
-                      <StatusBadge tone="success">
-                        {t("operations.contracts.templates.ready")}
-                      </StatusBadge>
-                    </div>
-                    <div>
-                      <h2 id={`template-${template.id}`}>{name}</h2>
+            {templates.map((template) => (
+              <li key={template.id}>
+                <article
+                  className={`${styles.card} ${styles.templateCard}`}
+                  aria-labelledby={`template-${template.id}`}
+                >
+                  <div className={styles.badges}>
+                    <StatusBadge tone="success">
+                      {t("operations.contracts.templates.ready")}
+                    </StatusBadge>
+                    <StatusBadge tone="neutral">
+                      {t(contractTypeLabels[template.contractType])}
+                    </StatusBadge>
+                  </div>
+                  <div>
+                    <h2 id={`template-${template.id}`}>{template.name}</h2>
+                    <p className={styles.muted}>
+                      {t(
+                        template.requiresApproval
+                          ? "operations.contracts.templates.readyWithApproval"
+                          : "operations.contracts.templates.readyBody",
+                        { version: template.version },
+                      )}
+                    </p>
+                    {template.sections ? (
                       <p className={styles.muted}>
-                        {t(
-                          template.requiresApproval
-                            ? "operations.contracts.templates.readyWithApproval"
-                            : "operations.contracts.templates.readyBody",
-                          { version: template.version ?? "" },
-                        )}
+                        {t("operations.contractTemplates.optionalCount", {
+                          count: template.sections,
+                        })}
                       </p>
-                    </div>
-                    {canWrite ? (
-                      <div className={styles.formActions}>
-                        <Link
-                          className={buttonClassName()}
-                          href={
-                            `/internal/contracts/templates/${template.id}` as Route
-                          }
-                          aria-label={t(
-                            "operations.contracts.templates.prepareNamed",
-                            { name },
-                          )}
-                        >
-                          {t("operations.contracts.templates.prepare")}
-                        </Link>
-                      </div>
                     ) : null}
-                  </article>
-                </li>
-              );
-            })}
+                  </div>
+                  {canOpen ? (
+                    <div className={styles.formActions}>
+                      <Link
+                        className={buttonClassName()}
+                        href={
+                          `/internal/contracts/templates/${template.id}` as Route
+                        }
+                        aria-label={t(
+                          "operations.contracts.templates.prepareNamed",
+                          { name: template.name },
+                        )}
+                      >
+                        {t("operations.contracts.templates.prepare")}
+                      </Link>
+                    </div>
+                  ) : null}
+                </article>
+              </li>
+            ))}
           </ul>
-          {pending.length ? (
+          {record ? (
             <p className={styles.muted}>
-              {t("operations.contracts.templates.pendingList", {
-                names: pending.join(", "),
-              })}
-              {canWrite ? (
-                <>
-                  {" "}
-                  <Link href="/internal/contracts/new">
-                    {t("operations.contracts.action.record")}
-                  </Link>
-                </>
-              ) : null}
+              {t("operations.contracts.templates.otherAgreements")}{" "}
+              <Link href="/internal/contracts/new">
+                {t("operations.contracts.action.record")}
+              </Link>
             </p>
           ) : null}
         </>

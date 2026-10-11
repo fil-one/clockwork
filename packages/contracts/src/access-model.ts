@@ -103,6 +103,7 @@ export const permissionDescriptions = {
   "contract:read": "Read contracts",
   "contract:write": "Prepare contracts",
   "contract:approve": "Approve contracts",
+  "contract_template:manage": "Manage contract templates",
   "signatory:manage": "Choose who signs for Fil One and where notices go",
   "sales:read": "Use the sales workspace and references",
   "collateral:manage": "Manage sales collateral",

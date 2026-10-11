@@ -4,19 +4,24 @@ import { beforeEach, expect, it, vi } from "vitest";
 import type {
   TemplateField,
   TemplateLineItems,
+  TemplateSection,
   TemplateValue,
 } from "@clockwork/contracts";
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   prepare: vi.fn(),
+  preview: vi.fn(),
   list: vi.fn(),
   importLines: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.push, refresh: vi.fn() }),
 }));
-vi.mock("./actions", () => ({ prepareContract: mocks.prepare }));
+vi.mock("./actions", () => ({
+  prepareContract: mocks.prepare,
+  previewContract: mocks.preview,
+}));
 vi.mock("./scenario-import", () => ({
   listImportableScenarios: mocks.list,
   importScenarioLineItems: mocks.importLines,
@@ -70,7 +75,13 @@ function renderForm(initialValues?: Record<string, TemplateValue>) {
   render(
     <PrepareForm
       {...(initialValues ? { initialValues } : {})}
-      template={{ id: "test-fixture", requiresApproval: true, fields }}
+      template={{
+        id: "test-fixture",
+        version: "fixture-2",
+        requiresApproval: true,
+        fields,
+        sections: [],
+      }}
       countersigners={[
         {
           id: "019a44ac-0000-7000-8000-000000000001",
@@ -295,7 +306,13 @@ it("says when there is nothing to import and shows the server's line-item refusa
 it("starts from a voided contract's values, its line items included, with the signer left blank", () => {
   render(
     <PrepareForm
-      template={{ id: "test-fixture", requiresApproval: true, fields }}
+      template={{
+        id: "test-fixture",
+        version: "fixture-2",
+        requiresApproval: true,
+        fields,
+        sections: [],
+      }}
       countersigners={[
         {
           id: "019a44ac-0000-7000-8000-000000000001",
@@ -321,6 +338,7 @@ it("starts from a voided contract's values, its line items included, with the si
         ownerName: "R.W. Holleman",
         countersignerId: "019a44ac-0000-7000-8000-000000000001",
         values: { fixture_reference: "REF-7", order_lines: importedTable },
+        sections: [],
       }}
     />,
   );
@@ -339,4 +357,148 @@ it("starts from a voided contract's values, its line items included, with the si
   );
   expect(screen.getByLabelText("Signer's full name")).toHaveValue("");
   expect(screen.getByLabelText("Signer's email")).toHaveValue("");
+});
+
+const sectionFields: TemplateField[] = [
+  {
+    id: "model",
+    kind: "choice",
+    required: true,
+    label: { en: "Model" },
+    default: "Referral",
+    options: [
+      { value: "Referral", label: { en: "Referral" } },
+      { value: "Resale", label: { en: "Resale" } },
+    ],
+  },
+  {
+    id: "referral_percent",
+    kind: "percent",
+    required: true,
+    label: { en: "Referral fee" },
+    default: "20",
+  },
+  {
+    id: "resale_margin",
+    kind: "percent",
+    required: true,
+    section: "resale",
+    label: { en: "Resale margin" },
+  },
+  {
+    id: "nfr_capacity",
+    kind: "text",
+    required: true,
+    section: "nfr",
+    label: { en: "NFR capacity" },
+  },
+];
+const sections: TemplateSection[] = [
+  {
+    id: "resale",
+    label: { en: "Option A: Resale" },
+    default: false,
+    when: { field: "model", in: ["Resale"] },
+  },
+  { id: "nfr", label: { en: "Schedule D: NFR" }, default: true },
+  {
+    id: "exclusivity",
+    label: { en: "Schedule E: Exclusivity" },
+    default: false,
+  },
+];
+
+function renderSections(demo = false) {
+  render(
+    <PrepareForm
+      template={{
+        id: "test-sections",
+        version: "v3",
+        requiresApproval: false,
+        fields: sectionFields,
+        sections,
+      }}
+      countersigners={[
+        {
+          id: "019a44ac-0000-7000-8000-000000000001",
+          name: "James Kurz",
+          title: "CFO/CSO",
+          email: "james@fil.one",
+          isDefault: true,
+        },
+      ]}
+      ownerName="Seller"
+      today="2026-10-10"
+      signingReady
+      demo={demo}
+    />,
+  );
+}
+
+const submitted = () =>
+  mocks.prepare.mock.calls[0]?.[0] as {
+    templateVersion: string;
+    sections: string[];
+    values: Record<string, unknown>;
+  };
+
+it("ticks optional sections, asks only for their fields and submits the version", async () => {
+  const user = userEvent.setup();
+  renderSections();
+  // Schedule D starts ticked, so its field shows; Resale follows the model.
+  expect(screen.getByLabelText("Schedule D: NFR")).toBeChecked();
+  expect(screen.getByLabelText("NFR capacity")).toBeVisible();
+  expect(screen.getByLabelText("Resale margin")).not.toBeVisible();
+  expect(
+    screen.getByText("Option A: Resale: left out, set by Model."),
+  ).toBeInTheDocument();
+  expect(screen.getByLabelText("Referral fee")).toHaveValue("20");
+  expect(screen.getAllByText("%")).toHaveLength(2);
+
+  await user.selectOptions(screen.getByLabelText("Model"), "Resale");
+  expect(
+    screen.getByText("Option A: Resale: included, set by Model."),
+  ).toBeInTheDocument();
+  expect(screen.getByLabelText("Resale margin")).toBeVisible();
+  await user.type(screen.getByLabelText("Resale margin"), "12.5");
+  await user.click(screen.getByLabelText("Schedule D: NFR"));
+  expect(screen.getByLabelText("NFR capacity")).not.toBeVisible();
+  await user.click(screen.getByLabelText("Schedule E: Exclusivity"));
+
+  await user.click(screen.getByRole("button", { name: "Prepare document" }));
+  await waitFor(() => expect(mocks.prepare).toHaveBeenCalledOnce());
+  expect(submitted()).toMatchObject({
+    templateId: "test-sections",
+    templateVersion: "v3",
+    sections: ["exclusivity"],
+    values: { model: "Resale", referral_percent: "20", resale_margin: "12.5" },
+  });
+  expect(submitted().values).not.toHaveProperty("nfr_capacity");
+});
+
+it("previews the PDF without preparing, and in the demo only previews", async () => {
+  const user = userEvent.setup();
+  mocks.preview.mockResolvedValue({
+    ok: true,
+    value: { pdf: btoa("%PDF-1.7"), fileName: "Preview.pdf" },
+  });
+  const createObjectURL = vi.fn(() => "blob:preview");
+  vi.stubGlobal(
+    "URL",
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }),
+  );
+  renderSections(true);
+  expect(screen.getByText("Demo: preview only")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Prepare document" })).toBeNull();
+  await user.click(screen.getByRole("button", { name: "Preview PDF" }));
+  await waitFor(() => expect(mocks.preview).toHaveBeenCalledOnce());
+  expect(mocks.preview.mock.calls[0]?.[0]).toMatchObject({
+    templateId: "test-sections",
+    sections: ["nfr"],
+  });
+  expect(
+    await screen.findByRole("link", { name: "Open preview" }),
+  ).toHaveAttribute("href", "blob:preview");
+  expect(mocks.prepare).not.toHaveBeenCalled();
+  vi.unstubAllGlobals();
 });

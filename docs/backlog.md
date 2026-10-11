@@ -1871,19 +1871,27 @@ detail lives in `docs/operations/commerce-mnda.md`,
   typed by a seller are not checked against a price book; approval is the
   control. Values live in the signing row's `input`; no migration. Proven
   against the test fixture only: the order form, SOW and DPA schedule wording
-  that would use it remains `EXT-LEGAL-01`, and each ships as a template file
-  plus a registry entry. Evidence:
+  that would use it is imported into the template store. Evidence:
   `packages/documents/src/contract-templates/render.integration.test.ts`,
   `packages/contracts/src/contract-templates.test.ts`,
   `apps/web/src/features/internal-ops/contracts/actions.test.ts`,
   `apps/web/src/features/internal-ops/contracts/prepare-form.test.tsx`.
-- **Counsel templates `[EXTERNAL-ONLY]`:** all eight template ids in
-  `packages/documents/src/contract-templates/registry.ts` are stubs listed as
-  "Template pending from legal": channel partnership, customer MSA, order form,
-  DPA, security annex, one-way NDA, technology partner and SOW. Each needs
-  counsel's approved DOCX and approval of a rendered specimen (`EXT-LEGAL-01`).
-  No order form, SOW or technology-partner text exists yet. Sending stays in
-  SignWell test mode until `COMMERCE_CONTRACTS_TEST_MODE=false`.
+- **Contract template store `[COMPLETE]`:** templates are versioned data in
+  `commerce_contract_templates`
+  (`supabase/migrations/001475_contract_template_store.sql`), managed by
+  commerce administrators under **Manage templates**
+  (`contract_template:manage`): import or draft, edit drafts, preview a
+  specimen, activate, retire and duplicate, each audited. A version is frozen
+  once activated or used, and a prepared contract pins its key, version and
+  content hash. The engine supports optional sections (ticked or driven by a
+  choice field), `decimal` and `percent` fields, tables and worked-out figures.
+  Agreement wording is imported in Commerce and never committed; the repository
+  keeps only the demo's sample templates and the test fixtures. Sending stays in
+  SignWell test mode until `COMMERCE_CONTRACTS_TEST_MODE=false`. Evidence:
+  `supabase/tests/1475_contract_template_store.test.sql`,
+  `packages/db/src/repositories/contract-templates.integration.test.ts`,
+  `apps/web/src/features/internal-ops/contracts/template-store.integration.test.ts`,
+  `packages/documents/src/contract-templates/registry.test.ts`.
 
 ### Sales library and indicative pricing
 
