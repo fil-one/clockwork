@@ -153,6 +153,8 @@ module "app" {
     { name = "CLOCKWORK_TASK_RUNTIME", value = var.task_runtime },
     { name = "COMMERCE_MNDA_ENABLED", value = tostring(var.commerce_mnda_enabled) },
     { name = "COMMERCE_MNDA_TEST_MODE", value = tostring(!local.is_production) },
+    { name = "COMMERCE_CONTRACTS_SIGNING_ENABLED", value = tostring(var.commerce_contracts_signing_enabled) },
+    { name = "COMMERCE_CONTRACTS_TEST_MODE", value = tostring(!local.is_production) },
     # The poller sets a visibility timeout on every receive, and a per-message
     # value wins over the queue's own. Both come from here so the lease the
     # queue is built with is the lease a message actually gets.

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
-import type { ContractFileRecord } from "@clockwork/contracts";
+import type { ContractFileRecord, ContractPaper } from "@clockwork/contracts";
 import { Button, InlineNotice, Input, RadioGroup, Select } from "@clockwork/ui";
 import { useTranslations } from "@/src/i18n/client";
 import { prepareCounterpartyPaper } from "./actions";
@@ -14,18 +14,24 @@ import styles from "./contracts.module.css";
 type Signers = "fil-one" | "counterparty_then_fil_one";
 
 /**
- * Sends a contract on the counterparty's paper for the Fil One
- * countersignature: one of its uploaded PDFs with the Fil One signature page
- * appended. Preparing it records the request; approval and sending follow
- * on the signing panel that replaces this card.
+ * Sends one of a contract's uploaded PDFs for signature, on either party's
+ * paper, with the Fil One signature page appended. On Fil One's own paper
+ * the counterparty signs first by default; on theirs, Fil One alone. Preparing
+ * it records the request; approval and sending follow on the signing panel.
+ * After a request ended, the card offers the next one under the panel.
  */
 export function CounterpartyPaperCard({
   contractId,
+  paper,
+  again = false,
   files,
   countersigners,
   signingReady,
 }: {
   contractId: string;
+  paper: ContractPaper;
+  /** An earlier request ended; this one replaces it. */
+  again?: boolean;
   files: readonly ContractFileRecord[];
   countersigners: readonly Countersigner[];
   signingReady: boolean;
@@ -33,7 +39,9 @@ export function CounterpartyPaperCard({
   const t = useTranslations();
   const router = useRouter();
   const formId = useId();
-  const [signers, setSigners] = useState<Signers>("fil-one");
+  const [signers, setSigners] = useState<Signers>(
+    paper === "ours" ? "counterparty_then_fil_one" : "fil-one",
+  );
   const [problems, setProblems] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -79,9 +87,19 @@ export function CounterpartyPaperCard({
       <div className={styles.cardHeader}>
         <div>
           <h2 id={`${formId}-title`}>
-            {t("operations.contracts.paperSend.title")}
+            {t(
+              again
+                ? "operations.contracts.paperSend.titleAgain"
+                : "operations.contracts.paperSend.title",
+            )}
           </h2>
-          <p>{t("operations.contracts.paperSend.description")}</p>
+          <p>
+            {t(
+              again
+                ? "operations.contracts.paperSend.descriptionAgain"
+                : "operations.contracts.paperSend.description",
+            )}
+          </p>
         </div>
       </div>
       {countersigners.length === 0 ? (
@@ -149,14 +167,14 @@ export function CounterpartyPaperCard({
             onChange={(event) => setSigners(event.target.value as Signers)}
             options={[
               {
-                value: "fil-one",
-                label: t("operations.contracts.paperSend.filOneOnly"),
-                description: t("operations.contracts.paperSend.filOneOnlyHelp"),
-              },
-              {
-                value: "counterparty_then_fil_one",
+                value: "counterparty_then_fil_one" as const,
                 label: t("operations.contracts.paperSend.both"),
                 description: t("operations.contracts.paperSend.bothHelp"),
+              },
+              {
+                value: "fil-one" as const,
+                label: t("operations.contracts.paperSend.filOneOnly"),
+                description: t("operations.contracts.paperSend.filOneOnlyHelp"),
               },
             ]}
           />

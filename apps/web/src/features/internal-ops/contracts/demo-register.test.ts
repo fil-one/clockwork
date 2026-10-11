@@ -172,6 +172,59 @@ describe("demo contract register", () => {
     ).rejects.toThrow("CONTRACT_NOT_FOUND");
   });
 
+  it("shows Fil One's own PDFs out for signature, one sent again after a void", async () => {
+    const register = demoContractRegister(now, viewer);
+    const sent = await register.get(
+      "62000000-0000-4000-8000-000000000011",
+      today,
+    );
+    expect(sent.contract).toMatchObject({
+      counterpartyName: "Larkspur Data Cooperative",
+      paper: "ours",
+      status: "out_for_signature",
+    });
+    expect(sent.signing).toMatchObject({
+      documentType: "counterparty_paper",
+      counterpartySigns: true,
+      requestNumber: 1,
+      state: "viewed",
+    });
+    expect(sent.previousSigning).toEqual([]);
+    const again = await register.get(
+      "62000000-0000-4000-8000-000000000012",
+      today,
+    );
+    expect(again.signing).toMatchObject({ requestNumber: 2, state: "sent" });
+    expect(again.previousSigning).toEqual([
+      expect.objectContaining({
+        requestNumber: 1,
+        state: "canceled",
+        cancelCode: "voided",
+      }),
+    ]);
+    expect(again.activity.map((event) => event.eventType)).toContain(
+      "contract.voided",
+    );
+    const rows = await register.list(
+      query({ status: "out_for_signature" }),
+      today,
+      {
+        includeMndas: false,
+        viewerId: viewer.id,
+      },
+    );
+    expect(
+      rows.rows
+        .filter((row) => row.signingState)
+        .map((row) => [row.counterpartyName, row.signingState]),
+    ).toEqual(
+      expect.arrayContaining([
+        ["Larkspur Data Cooperative", "viewed"],
+        ["Quarry Lane Storage Partners", "sent"],
+      ]),
+    );
+  });
+
   it("lists current collateral before archived items", async () => {
     const items = await demoSalesLibrary(now).list();
     expect(items.map((item) => item.status)).toEqual([
@@ -197,6 +250,15 @@ describe("demo contract loaders", () => {
     await expect(
       loadContract("62000000-0000-4000-8000-000000000004"),
     ).resolves.toMatchObject({ kind: "ready", signingReady: false });
+    // A PDF out for signature reads in the demo, with nothing to send.
+    await expect(
+      loadContract("62000000-0000-4000-8000-000000000012"),
+    ).resolves.toMatchObject({
+      kind: "ready",
+      canWrite: false,
+      paperSources: [],
+      signing: { requestNumber: 2 },
+    });
     await expect(loadRenewals("90")).resolves.toMatchObject({ kind: "ready" });
     expect(mocks.database).not.toHaveBeenCalled();
   });

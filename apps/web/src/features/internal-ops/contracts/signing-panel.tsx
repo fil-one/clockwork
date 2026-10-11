@@ -6,9 +6,11 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   contractDeletedInSignWell,
+  contractResendableStates,
   contractSignerEmail,
   contractVoidableStates,
   terminalContractSigningStates,
+  type ContractSigningHistoryEntry,
   type ContractSigningRecord,
 } from "@clockwork/contracts";
 import {
@@ -31,6 +33,7 @@ import {
   correctContractSigner,
   decideContract,
   operateContract,
+  resendContract,
   voidContract,
 } from "./actions";
 import {
@@ -51,10 +54,14 @@ const mismatchNotes: Readonly<Record<string, MessageId>> = {
   signwell_binding_mismatch: "operations.contracts.signing.bindingMismatch",
   signwell_signed_mismatch: "operations.contracts.signing.signedMismatch",
   signwell_fields_mismatch: "operations.contracts.signing.fieldsMismatch",
+  signwell_copied_contacts_mismatch:
+    "operations.contracts.signing.copiedContactsMismatch",
 };
 
 /** Refusals that come after the request's new state was stored. */
 const storedBeforeRefusal = new Set([
+  // The request was replaced since the page loaded; show the current one.
+  "CONTRACT_REQUEST_CHANGED",
   "CONTRACT_NEEDS_ATTENTION",
   "CONTRACT_NOT_PENDING",
   "CONTRACT_STILL_PREPARING",
@@ -136,6 +143,7 @@ function steps(
 
 export function SigningPanel({
   signing,
+  previousSigning = [],
   generatedFileId,
   canWrite,
   canApprove,
@@ -144,6 +152,8 @@ export function SigningPanel({
   signingReady,
 }: {
   signing: ContractSigningRecord;
+  /** Earlier requests on this contract that ended and were replaced. */
+  previousSigning?: readonly ContractSigningHistoryEntry[];
   generatedFileId: string | null;
   canWrite: boolean;
   canApprove: boolean;
@@ -208,6 +218,12 @@ export function SigningPanel({
   const bounced =
     signing.state === "attention" && signing.error === "recipient_bounced";
   const paper = signing.documentType === "counterparty_paper";
+  // An ended request can be sent again to the same people. One voided for a
+  // different signer is prepared again instead, since the signer's name is
+  // printed in it: a template from the template, an uploaded PDF from the
+  // form below.
+  const ended = contractResendableStates.includes(signing.state);
+  const canResend = canWrite && ended && signing.cancelCode !== "signer_change";
   // Who a reminder goes to: Fil One once the counterparty has signed, or
   // from the start when Fil One alone signs.
   const filOneNext =
@@ -230,7 +246,11 @@ export function SigningPanel({
   }
   const operate = (operation: Operation) =>
     run(operation, () =>
-      operateContract({ contractId: signing.contractId, operation }),
+      operateContract({
+        contractId: signing.contractId,
+        requestNumber: signing.requestNumber,
+        operation,
+      }),
     );
 
   return (
@@ -269,7 +289,8 @@ export function SigningPanel({
           title={t("operations.contracts.signing.testMode")}
         />
       ) : null}
-      {!signingReady && !terminal ? (
+      {/* Only someone who could send needs to know sending is off. */}
+      {!signingReady && !terminal && canWrite ? (
         <InlineNotice
           tone="warning"
           title={t("operations.contracts.error.signingNotConfigured")}
@@ -295,9 +316,7 @@ export function SigningPanel({
           description={t(
             signedMismatch
               ? "operations.contracts.signing.signedMismatchNext"
-              : paper
-                ? "operations.contracts.signing.mismatchNextPaper"
-                : "operations.contracts.signing.mismatchNext",
+              : "operations.contracts.signing.mismatchNext",
           )}
         />
       ) : bounced ? (
@@ -312,46 +331,12 @@ export function SigningPanel({
           title={t("operations.contracts.signing.attentionTitle")}
           description={t("operations.contracts.signing.attentionBody")}
         />
-      ) : paper &&
-        ["declined", "expired", "canceled"].includes(signing.state) ? (
-        <InlineNotice
-          tone="info"
-          title={t("operations.contracts.signing.paperClosedTitle")}
-          description={t("operations.contracts.signing.paperClosedBody")}
-          {...(canWrite
-            ? {
-                // Two existing steps, in order: record the contract again
-                // from this one, then close this record so it is not
-                // counted twice.
-                action: (
-                  <span className={styles.headerActions}>
-                    <Link
-                      className={buttonClassName({ variant: "secondary" })}
-                      href={
-                        `/internal/contracts/new?from=${signing.contractId}` as Route
-                      }
-                    >
-                      {t("operations.contracts.signing.recordAgain")}
-                    </Link>
-                    <Link
-                      className={buttonClassName({ variant: "quiet" })}
-                      href={
-                        `/internal/contracts/${signing.contractId}/edit` as Route
-                      }
-                    >
-                      {t("operations.contracts.signing.closeThisOne")}
-                    </Link>
-                  </span>
-                ),
-              }
-            : {})}
-        />
-      ) : signing.cancelCode === "signer_change" ? (
+      ) : signing.cancelCode === "signer_change" && !paper ? (
         <InlineNotice
           tone="info"
           title={t("operations.contracts.signing.signerChangeTitle")}
           description={t("operations.contracts.signing.signerChangeBody")}
-          {...(canWrite && !paper
+          {...(canWrite
             ? {
                 action: (
                   <Link
@@ -360,6 +345,41 @@ export function SigningPanel({
                   >
                     {t("operations.contracts.signing.prepareAgain")}
                   </Link>
+                ),
+              }
+            : {})}
+        />
+      ) : ended ? (
+        <InlineNotice
+          tone="info"
+          title={t("operations.contracts.signing.endedTitle")}
+          description={t(
+            !canWrite
+              ? "operations.contracts.signing.endedBodyReader"
+              : paper
+                ? signing.cancelCode === "signer_change"
+                  ? "operations.contracts.signing.signerChangeBodyPaper"
+                  : "operations.contracts.signing.endedBodyPaper"
+                : "operations.contracts.signing.endedBody",
+          )}
+          {...(canResend
+            ? {
+                action: (
+                  <Button
+                    variant="secondary"
+                    disabled={busy !== null}
+                    loading={busy === "resend"}
+                    onClick={() =>
+                      void run("resend", () =>
+                        resendContract({
+                          contractId: signing.contractId,
+                          requestNumber: signing.requestNumber,
+                        }),
+                      )
+                    }
+                  >
+                    {t("operations.contracts.signing.sendAgain")}
+                  </Button>
                 ),
               }
             : {})}
@@ -428,6 +448,17 @@ export function SigningPanel({
           description={signing.rejectionReason}
         />
       ) : null}
+      {signing.approvalState === "pending" &&
+      !terminal &&
+      !signing.counterpartySigns ? (
+        // The signature page records that their signature is in the PDF, so
+        // whoever approves confirms it.
+        <InlineNotice
+          tone="warning"
+          title={t("operations.contracts.signing.filOneOnlyApprovalTitle")}
+          description={t("operations.contracts.signing.filOneOnlyApprovalBody")}
+        />
+      ) : null}
       {signing.approvalState === "pending" && !terminal ? (
         <p className={styles.muted}>
           {t(
@@ -465,6 +496,7 @@ export function SigningPanel({
                 void run("approve", () =>
                   decideContract({
                     contractId: signing.contractId,
+                    requestNumber: signing.requestNumber,
                     approve: true,
                   }),
                 )
@@ -493,6 +525,7 @@ export function SigningPanel({
             onConfirm={async (reason) => {
               const result = await decideContract({
                 contractId: signing.contractId,
+                requestNumber: signing.requestNumber,
                 approve: true,
                 selfApprovalReason: reason,
               });
@@ -570,16 +603,10 @@ export function SigningPanel({
             signing={signing}
             disabled={busy !== null || !signingReady}
             onDone={() => router.refresh()}
-            // Counterparty paper has one signing request per contract, so a
-            // different signer is not prepared again from here.
-            {...(paper
-              ? {}
-              : {
-                  onSomeoneElse: () => {
-                    setSignerChange(true);
-                    setVoiding(true);
-                  },
-                })}
+            onSomeoneElse={() => {
+              setSignerChange(true);
+              setVoiding(true);
+            }}
           />
         ) : null}
         {canVoid ? (
@@ -598,6 +625,10 @@ export function SigningPanel({
         ) : null}
       </div>
 
+      {previousSigning.length ? (
+        <EarlierRequests entries={previousSigning} />
+      ) : null}
+
       {rejecting ? (
         <form
           className={styles.reasonForm}
@@ -611,6 +642,7 @@ export function SigningPanel({
             void run("reject", () =>
               decideContract({
                 contractId: signing.contractId,
+                requestNumber: signing.requestNumber,
                 approve: false,
                 reason,
               }),
@@ -692,15 +724,23 @@ export function SigningPanel({
               void run("void", () =>
                 voidContract(
                   signerChange
-                    ? { contractId: signing.contractId, code: "signer_change" }
+                    ? {
+                        contractId: signing.contractId,
+                        requestNumber: signing.requestNumber,
+                        code: "signer_change",
+                      }
                     : {
                         contractId: signing.contractId,
+                        requestNumber: signing.requestNumber,
                         reason: voidReason.trim(),
                       },
                 ),
               ).then((ok) => {
                 setVoiding(false);
-                if (ok && signerChange) router.push(prepareAgainHref(signing));
+                // A template opens again for the new signer; an uploaded
+                // PDF is sent again from the form on this page.
+                if (ok && signerChange && !paper)
+                  router.push(prepareAgainHref(signing));
               });
             }}
           >
@@ -713,7 +753,11 @@ export function SigningPanel({
         </p>
         {signerChange ? (
           <p className={styles.muted}>
-            {t("operations.contracts.signing.void.signerChangeNote")}
+            {t(
+              paper
+                ? "operations.contracts.signing.void.signerChangeNotePaper"
+                : "operations.contracts.signing.void.signerChangeNote",
+            )}
           </p>
         ) : (
           <Textarea
@@ -735,6 +779,47 @@ export function SigningPanel({
   );
 }
 
+/** Requests on this contract that ended and were replaced, newest first. */
+function EarlierRequests({
+  entries,
+}: {
+  entries: readonly ContractSigningHistoryEntry[];
+}) {
+  const t = useTranslations();
+  const locale = useFormattingLocale();
+  const timeZone = useReaderTimeZone();
+  return (
+    <>
+      <h3 className={`${styles.sectionTitle} ${styles.spaced}`}>
+        {t("operations.contracts.signing.earlier.title")}
+      </h3>
+      <ul className={styles.changeList}>
+        {entries.map((entry) => (
+          <li key={entry.requestNumber}>
+            {t("operations.contracts.signing.earlier.entry", {
+              number: entry.requestNumber,
+              state: t(signingStateLabel(entry.state, entry.cancelCode)),
+              signer: entry.counterpartySigns
+                ? `${entry.counterpartySigner.name} (${entry.counterpartySigner.email})`
+                : entry.countersignerName,
+              time: formatOperationalTimestamp(
+                entry.updatedAt,
+                locale,
+                timeZone,
+              ),
+            })}
+            {entry.cancelReason
+              ? ` ${t("operations.contracts.activity.reason", {
+                  reason: entry.cancelReason,
+                })}`
+              : null}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 /** Refusals after which the counterparty's email cannot be fixed here. */
 const notCorrectable = new Set([
   "CONTRACT_SIGNER_STARTED",
@@ -744,7 +829,8 @@ const notCorrectable = new Set([
 /**
  * Fixes a bounced or mistyped counterparty email in place; SignWell sends the
  * request to the new address and the signer's name stays. When a different
- * person must sign, the request is voided and the template prepared again.
+ * person must sign, the request is voided and the template prepared again,
+ * or an uploaded PDF sent again from the form on the contract.
  */
 function CorrectSignerDialog({
   signing,
@@ -755,8 +841,7 @@ function CorrectSignerDialog({
   signing: ContractSigningRecord;
   disabled: boolean;
   onDone: () => void;
-  /** Absent where the request cannot be prepared again for someone else. */
-  onSomeoneElse?: () => void;
+  onSomeoneElse: () => void;
 }) {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
@@ -769,6 +854,7 @@ function CorrectSignerDialog({
     try {
       const result = await correctContractSigner({
         contractId: signing.contractId,
+        requestNumber: signing.requestNumber,
         signerEmail: email.trim(),
       });
       if (!result.ok) {
@@ -806,17 +892,15 @@ function CorrectSignerDialog({
       closeLabel={t("operations.contracts.form.cancel")}
       footer={
         <>
-          {onSomeoneElse ? (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setOpen(false);
-                onSomeoneElse();
-              }}
-            >
-              {t("operations.contracts.signing.correct.someoneElse")}
-            </Button>
-          ) : null}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setOpen(false);
+              onSomeoneElse();
+            }}
+          >
+            {t("operations.contracts.signing.correct.someoneElse")}
+          </Button>
           <Button
             loading={busy}
             disabled={error !== null && notCorrectable.has(error)}

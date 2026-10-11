@@ -779,3 +779,62 @@ it("sends counterparty paper they signed already to Fil One alone and archives i
     ]),
   );
 }, 60_000);
+
+it("sends a voided contract again as a new SignWell document and completes it", async () => {
+  const preparer = { kind: "user" as const, id: randomUUID(), display: "R.W." };
+  const approver = { kind: "user" as const, id: randomUUID(), display: "J." };
+  const id = await preparedContract(preparer);
+  const signWell = fakeSignWell();
+  const workflow = new ContractSigningWorkflow(
+    signing,
+    new SignWellContractClient("test-key", signWell.transport),
+    () => Promise.resolve(),
+  );
+  const first = await workflow.send(id, preparer);
+  const firstDocument = first.providerId;
+  await workflow.void(id, preparer, { reason: "Sent before pricing call" });
+
+  const { record } = await signing.resend(
+    id,
+    1,
+    { testMode: true, preparerEmail: null },
+    preparer,
+  );
+  expect(record).toMatchObject({
+    requestNumber: 2,
+    state: "draft",
+    providerId: null,
+  });
+  // The ended request's SignWell document no longer wakes the contract.
+  await expect(signing.byProvider(firstDocument ?? "")).resolves.toBeNull();
+  await expect(workflow.send(id, preparer)).rejects.toThrow(
+    "CONTRACT_APPROVAL_REQUIRED",
+  );
+  await workflow.decide(id, { approve: true }, approver);
+  const sent = await workflow.send(id, preparer);
+  expect(sent.state).toBe("sent");
+  expect(sent.providerId).not.toBe(firstDocument);
+  // The same prepared PDF went to SignWell both times.
+  expect(signWell.uploads).toHaveLength(2);
+  expect(
+    signWell.uploads[1]?.equals(signWell.uploads[0] ?? Buffer.alloc(0)),
+  ).toBe(true);
+  const document = signWell.documents.get(sent.providerId ?? "");
+  if (!document) throw new Error("SignWell document missing");
+  expect(document.metadata.commerce_contract_id).toBe(id);
+  document.status = "Completed";
+  expect((await workflow.sync(id, preparer)).state).toBe("completed");
+  const done = await register.get(id, "2026-10-10");
+  expect(done.contract.status).toBe("executed");
+  expect(done.previousSigning).toEqual([
+    expect.objectContaining({
+      requestNumber: 1,
+      state: "canceled",
+      cancelReason: "Sent before pricing call",
+    }),
+  ]);
+  // A completed request is never replaced.
+  await expect(
+    signing.resend(id, 2, { testMode: true, preparerEmail: null }, preparer),
+  ).rejects.toThrow("CONTRACT_PAPER_NOT_SENDABLE");
+}, 60_000);

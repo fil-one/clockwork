@@ -7,6 +7,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -114,9 +115,6 @@ export const contractFiles = pgTable(
   (t) => [
     unique().on(t.storageBackend, t.storageKey),
     index("commerce_contract_files_contract").on(t.contractId, t.createdAt),
-    uniqueIndex("commerce_contract_files_one_generated")
-      .on(t.contractId)
-      .where(sql`${t.kind} = 'generated'`),
     uniqueIndex("commerce_contract_files_one_executed")
       .on(t.contractId)
       .where(sql`${t.kind} = 'executed'`),
@@ -203,7 +201,29 @@ export const contractSigning = pgTable("commerce_contract_signing", {
     .notNull()
     .default("contract_template"),
   counterpartySigns: boolean("counterparty_signs").notNull().default(true),
+  /** 1, then one more each time an ended request is replaced (001465). */
+  requestNumber: integer("request_number").notNull().default(1),
+  /** Copied by SignWell on the completed document; null before 001465. */
+  preparerEmail: text("preparer_email"),
 });
+
+/** A request that ended without signatures and was replaced, as it stood:
+ * written by the delete trigger on the signing table, never changed. */
+export const contractSigningHistory = pgTable(
+  "commerce_contract_signing_history",
+  {
+    contractId: uuid("contract_id")
+      .notNull()
+      .references(() => commerceContracts.id),
+    requestNumber: integer("request_number").notNull(),
+    state: text("state").$type<ContractSigningState>().notNull(),
+    request: jsonb("request").$type<Record<string, unknown>>().notNull(),
+    archivedAt: timestamp("archived_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.contractId, t.requestNumber] })],
+);
 
 export const salesCollateral = pgTable(
   "commerce_sales_collateral",
@@ -247,5 +267,6 @@ export const contractsSchema = {
   contractFiles,
   contractEvents,
   contractSigning,
+  contractSigningHistory,
   salesCollateral,
 };
