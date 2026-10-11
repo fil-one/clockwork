@@ -268,6 +268,16 @@ async function Page() {
                             duration: duration(record.terms.extensionDays),
                           })}
                     </dd>
+                    <dt>
+                      {t("adminGovernance.channelPolicy.conversionLookback")}
+                    </dt>
+                    <dd>
+                      {record.terms.conversionLookbackDays === undefined
+                        ? t(
+                            "adminGovernance.channelPolicy.conversionLookbackDefault",
+                          )
+                        : duration(record.terms.conversionLookbackDays)}
+                    </dd>
                     <dt>{t("adminGovernance.channelPolicy.source")}</dt>
                     <dd>{record.terms.sourceEvidence}</dd>
                   </dl>

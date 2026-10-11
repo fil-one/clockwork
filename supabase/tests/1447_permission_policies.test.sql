@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(20);
 set local search_path = public, extensions;
 
 -- 001447 replaced every role test in the row policies with a permission test.
@@ -66,6 +66,9 @@ insert into replacements values
    $$app_has_any_permission(array['quote:write','partner:quote:write','quote:approve'])$$),
   (array['partner_admin','partner_seller','internal_operator'],
    $$app_has_any_permission(array['deal:register','operations:write'])$$),
+  -- 001479: registration decisions also admit quote:approve (finance).
+  (array['partner_admin','partner_seller','internal_operator','finance_approver'],
+   $$app_has_any_permission(array['deal:register','operations:write','quote:approve'])$$),
   (array['owner','admin','billing','partner_admin','partner_seller','internal_operator',
          'finance_approver','legal_approver','destructive_action_approver'],
    $$app_has_any_permission(array['account:write','billing:write','partner:quote:write','deal:register','billing:approve','agreement:approve','destructive:approve'])$$);

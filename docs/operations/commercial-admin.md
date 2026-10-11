@@ -190,13 +190,20 @@ price book. A registration naming an existing direct client stays open for
 channel-ops review with a recorded house-account match; a registration that
 duplicates an active deal on the same client and workload is refused. No staff
 screen shows the house-account match yet; check
-`core_deal_registration_exclusions` before approving. Creator, last editor, and
-proposer cannot review their own version. Approval is immutable; UTC effective
-dates select the policy for new requests. Each new registration retains the
-server-selected policy (or an explicit legacy-default marker), initial requested
-window, and extension count. Extensions require progress evidence and obey both
-per-extension and cumulative limits. Existing registrations are not rewritten
-when policy changes.
+`core_deal_registration_exclusions` before approving. A registration is created
+registered (or refused), and its partner, end client and workload never change.
+Approval is refused while another partner owns the same client and workload: a
+disputed registration, an approved one whose protection is current, or a
+converted one within the conversion lookback (the policy's **Ownership after
+conversion**, otherwise its maximum protection window). The same partner is
+never its own competitor, so a renewal or an expansion goes through. Finance
+approvers and commerce administrators decide registrations. Creator, last
+editor, and proposer cannot review their own version. Approval is immutable; UTC
+effective dates select the policy for new requests. Each new registration
+retains the server-selected policy (or an explicit legacy-default marker),
+initial requested window, and extension count. Extensions require progress
+evidence and obey both per-extension and cumulative limits. Existing
+registrations are not rewritten when policy changes.
 
 Explicitly configured demo deployments offer fictional PAYG/trial and channel
 policy workspaces. The seeded proposals have a different author, allowing the
