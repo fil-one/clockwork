@@ -156,6 +156,28 @@ it("copies a scenario's lines and currency into a table the prepare check accept
   expect(checkLineItems(result.value.lineItems).ok).toBe(true);
 });
 
+it("carries a capacity entered in PiB into the table beside its exact TB", async () => {
+  as("revenue");
+  const [line] = scenario.lines;
+  mocks.scenarios.get.mockResolvedValue({
+    ...scenario,
+    lines: [
+      {
+        ...line,
+        quantity: "11258.99906842624",
+        entered: { quantity: "10", unit: "PiB" },
+      },
+    ],
+  });
+  const result = await importScenarioLineItems({ id: scenario.id });
+  if (!result.ok || result.value.kind !== "lines") throw new Error("refused");
+  expect(result.value.lineItems.rows[0]).toMatchObject({
+    quantity: "11258.99906842624",
+    entered: { quantity: "10", unit: "PiB" },
+  });
+  expect(checkLineItems(result.value.lineItems).ok).toBe(true);
+});
+
 it("names the first scenario line the agreement cannot print", async () => {
   as("revenue");
   const [line] = scenario.lines;

@@ -10,7 +10,10 @@ import {
 } from "drizzle-orm/pg-core";
 import type { Currency } from "@clockwork/contracts";
 
-/** Mirrors supabase/migrations/001456_pricing_scenarios.sql. */
+/**
+ * Mirrors supabase/migrations/001456_pricing_scenarios.sql and
+ * 001467_pricing_partner_economics.sql.
+ */
 export const pricingScenarios = pgTable(
   "commerce_pricing_scenarios",
   {
@@ -24,6 +27,7 @@ export const pricingScenarios = pgTable(
     asOf: date("as_of", { mode: "string" }).notNull(),
     priceBooks: jsonb("price_books").$type<unknown>().notNull(),
     lines: jsonb("lines").$type<unknown>().notNull(),
+    partnerEconomics: jsonb("partner_economics").$type<unknown>(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -291,6 +291,91 @@
   color: var(--cw-muted);
 }
 
+/* Capacity and its unit side by side; the unit is short. */
+.capacity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(5rem, auto);
+  align-items: start;
+  gap: var(--cw-space-2);
+}
+
+.capacity > :only-child {
+  grid-column: 1 / -1;
+}
+
+/* Partner economics sit under the total, ruled off like the save fields. */
+.partner {
+  display: grid;
+  gap: var(--cw-space-3);
+  margin: 0;
+  padding: var(--cw-space-4) 0 0;
+  border: 0;
+  border-top: 1px solid var(--cw-border);
+}
+
+.partner legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  font-size: var(--cw-text-md);
+  font-weight: 600;
+}
+
+.partnerHelp {
+  margin: 0;
+  color: var(--cw-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.span2 {
+  grid-column: span 2;
+}
+
+.step {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: var(--cw-space-3) var(--cw-space-4);
+}
+
+.partnerFigures {
+  display: grid;
+  gap: var(--cw-space-4);
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--cw-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.table caption {
+  padding-bottom: var(--cw-space-2);
+  font-weight: 600;
+  text-align: start;
+}
+
+.table th,
+.table td {
+  padding: var(--cw-space-2) var(--cw-space-3);
+  border-bottom: 1px solid var(--cw-border);
+  text-align: end;
+  white-space: nowrap;
+}
+
+.table th:first-child {
+  text-align: start;
+}
+
+.table thead th {
+  color: var(--cw-muted);
+  font-weight: 500;
+}
+
 @media (max-width: 40rem) {
   .line,
   .totals,
@@ -303,8 +388,13 @@
   }
 
   .lineFields,
-  .saveFields {
+  .saveFields,
+  .step {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .span2 {
+    grid-column: auto;
   }
 
   .figures,
