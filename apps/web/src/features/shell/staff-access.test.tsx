@@ -148,6 +148,12 @@ describe("every staff route is guarded", () => {
     // The landing page decides for itself: sales home or the operations board.
     "page.tsx": "landing",
     "pricing/page.tsx": "sales:read",
+    // Partner records: read with the sales workspace, changed with
+    // contract:write; the loaders check the same again before any read.
+    "partners/page.tsx": "sales:read",
+    "partners/[id]/page.tsx": "sales:read",
+    "partners/new/page.tsx": "contract:write",
+    "partners/[id]/edit/page.tsx": "contract:write",
     "team/page.tsx": "staff:manage",
     "owner/page.tsx": "staff:manage",
     // Creating an organization is operations work, not only reading.
