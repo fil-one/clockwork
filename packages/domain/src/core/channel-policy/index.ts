@@ -20,6 +20,13 @@ export const ChannelPolicyTermsSchema = z
   .refine(
     (value) => value.defaultProtectionDays <= value.maximumProtectionDays,
     "Default protection cannot exceed the maximum requested window",
+  )
+  .refine(
+    (value) =>
+      value.maximumProtectionDays +
+        value.extensionDays * value.maximumExtensions <=
+      3650,
+    "The maximum window plus every extension cannot exceed 3,650 days",
   );
 export type ChannelPolicyTerms = z.infer<typeof ChannelPolicyTermsSchema>;
 export const ChannelPolicyRecordSchema = z

@@ -70,19 +70,19 @@ const fixtureText = {
     ar: "أسعار مستقبلية مجدولة USD",
   }),
   directApproved: demoText({
-    en: "Fil One list price for the demo: $5.99 per decimal TB-month, no egress fees.",
-    es: "Precio de lista de Fil One para la demostración: 5,99 USD por TB decimal al mes, sin cargos por salida de datos.",
-    fr: "Prix catalogue Fil One pour la démonstration : 5,99 USD par To décimal et par mois, sans frais de sortie de données.",
-    de: "Fil One-Listenpreis für die Demo: 5,99 USD pro dezimalem TB und Monat, ohne Gebühren für ausgehenden Datenverkehr.",
-    ja: "デモ用の Fil One 定価：10 進 TB・月あたり 5.99 米ドル、データ転送料は無料です。",
-    pt: "Preço de tabela da Fil One para a demonstração: US$ 5,99 por TB decimal por mês, sem tarifas de saída de dados.",
-    zh: "演示用 Fil One 标价：每十进制 TB 每月 5.99 美元，不收取出口流量费。",
-    ar: "سعر القائمة من Fil One للعرض التوضيحي: 5.99 دولار أمريكي لكل تيرابايت عشري شهريًا، دون رسوم على نقل البيانات الصادرة.",
+    en: "Fil One list price for the demo: $5.99 per TB-month; no egress charge, subject to reasonable use.",
+    es: "Precio de lista de Fil One para la demostración: 5,99 USD por TB al mes; sin cargo por salida de datos, sujeto a un uso razonable.",
+    fr: "Prix catalogue Fil One pour la démonstration\u202f: 5,99 USD par To et par mois\u202f; sans frais de sortie de données, sous réserve d’un usage raisonnable.",
+    de: "Fil One-Listenpreis für die Demo: 5,99 USD pro TB und Monat; keine Gebühren für ausgehenden Datenverkehr bei angemessener Nutzung.",
+    ja: "デモ用の Fil One 定価：TB・月あたり 5.99 米ドル。データ転送料は合理的な利用の範囲で無料です。",
+    pt: "Preço de tabela da Fil One para a demonstração: US$ 5,99 por TB por mês; sem tarifa de saída de dados, sujeito a uso razoável.",
+    zh: "演示用 Fil One 标价：每 TB 每月 5.99 美元；在合理使用范围内不收取出口流量费。",
+    ar: "سعر القائمة من Fil One للعرض التوضيحي: 5.99 دولار أمريكي لكل تيرابايت شهريًا؛ دون رسوم على نقل البيانات الصادرة ضمن حدود الاستخدام المعقول.",
   }),
   partnerApproved: demoText({
     en: "Demo GBP equivalent of the $5.99 USD list price; not an approved GBP price.",
     es: "Equivalente en GBP del precio de lista de 5,99 USD, solo para la demostración; no es un precio aprobado en GBP.",
-    fr: "Équivalent en GBP du prix catalogue de 5,99 USD, pour la démonstration uniquement ; ce n’est pas un prix approuvé en GBP.",
+    fr: "Équivalent en GBP du prix catalogue de 5,99 USD, pour la démonstration uniquement\u202f; ce n’est pas un prix approuvé en GBP.",
     de: "GBP-Gegenwert des Listenpreises von 5,99 USD, nur für die Demo; kein genehmigter GBP-Preis.",
     ja: "定価 5.99 米ドルのデモ用 GBP 換算額です。承認済みの GBP 価格ではありません。",
     pt: "Equivalente em GBP do preço de tabela de US$ 5,99, apenas para demonstração; não é um preço aprovado em GBP.",
@@ -92,7 +92,7 @@ const fixtureText = {
   reviewCompleted: demoText({
     en: "Proposed reseller transfer revision for the demo; list price stays $5.99.",
     es: "Revisión propuesta del precio de transferencia para revendedores en la demostración; el precio de lista se mantiene en 5,99 USD.",
-    fr: "Révision proposée du prix de cession revendeur pour la démonstration ; le prix catalogue reste à 5,99 USD.",
+    fr: "Révision proposée du prix de cession revendeur pour la démonstration\u202f; le prix catalogue reste à 5,99 USD.",
     de: "Vorgeschlagene Anpassung des Wiederverkäufer-Transferpreises für die Demo; der Listenpreis bleibt bei 5,99 USD.",
     ja: "デモ用に提案された再販業者向け移転価格の改定です。定価は 5.99 米ドルのままです。",
     pt: "Revisão proposta do preço de transferência para revendedores na demonstração; o preço de tabela continua US$ 5,99.",
@@ -110,22 +110,22 @@ const fixtureText = {
     ar: "سيناريو افتراضي للموافقة المسبقة؛ ولا يعني ذلك أي تفعيل في بيئة الإنتاج.",
   }),
   storageClaim: demoText({
-    en: "Object storage per decimal TB-month, no egress fees",
-    es: "Almacenamiento de objetos por TB decimal al mes, sin cargos por salida de datos",
-    fr: "Stockage objet par To décimal et par mois, sans frais de sortie de données",
-    de: "Objektspeicher pro dezimalem TB und Monat, ohne Gebühren für ausgehenden Datenverkehr",
-    ja: "10 進 TB・月単位のオブジェクトストレージ、データ転送料無料",
-    pt: "Armazenamento de objetos por TB decimal por mês, sem tarifas de saída de dados",
-    zh: "按十进制 TB/月计费的对象存储，不收取出口流量费",
-    ar: "تخزين كائنات لكل تيرابايت عشري شهريًا، دون رسوم على نقل البيانات الصادرة",
+    en: "S3-compatible object storage per TB-month",
+    es: "Almacenamiento de objetos compatible con S3 por TB al mes",
+    fr: "Stockage objet compatible S3 par To et par mois",
+    de: "S3-kompatibler Objektspeicher pro TB und Monat",
+    ja: "S3 互換オブジェクトストレージ（TB・月単位）",
+    pt: "Armazenamento de objetos compatível com S3 por TB por mês",
+    zh: "按 TB/月计费的 S3 兼容对象存储",
+    ar: "تخزين كائنات متوافق مع S3 لكل تيرابايت شهريًا",
   }),
 } as const;
 
 const en = (text: DemoLocalizedText) => demoTextIn(text, "en");
 
 /*
- * List prices are Fil One's public list, $5.99 per decimal TB-month with no
- * egress fee (October 2026). The GBP book is a demo conversion, not an
+ * List prices are Fil One's public list, $5.99 per TB-month with no egress
+ * charge subject to reasonable use (fil.one/pricing, October 2026). The GBP book is a demo conversion, not an
  * approved GBP price. Floors and partner transfer prices are illustrative demo
  * values; real ones are set per partner transfer tier.
  */

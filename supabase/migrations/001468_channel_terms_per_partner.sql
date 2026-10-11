@@ -3,10 +3,10 @@
 --
 -- 1. Channel policy windows keep sanity bounds only. Deal-registration
 --    protection and extension lengths were capped at 730 days and ten
---    extensions inside the constraint, below anything an approved policy could
---    choose. The approved policy version (two-person or reasoned
---    self-approval, immutable once approved) is the control; the constraint
---    now only rejects nonsense.
+--    extensions inside the constraint. The approved policy version (two-person
+--    or reasoned self-approval, immutable once approved) is the control; the
+--    constraint now only bounds the most a registration could ever be
+--    protected: initial maximum plus every extension, at most ten years.
 alter table public.core_channel_policy_versions
   drop constraint channel_policy_terms_check;
 alter table public.core_channel_policy_versions
@@ -26,6 +26,8 @@ alter table public.core_channel_policy_versions
   and (terms->>'maximumProtectionDays')::integer between (terms->>'defaultProtectionDays')::integer and 3650
   and (terms->>'extensionDays')::integer between 1 and 3650
   and (terms->>'maximumExtensions')::integer between 0 and 100
+  and (terms->>'maximumProtectionDays')::integer
+    + (terms->>'extensionDays')::integer * (terms->>'maximumExtensions')::integer <= 3650
   and length(trim(terms->>'sourceEvidence'))>=8
  );
 
@@ -55,3 +57,59 @@ with check (
       and app_has_account(registration.partner_account_id)
   )
 );
+
+-- 3. Channel ops decides a house-account match with the registration. Staff
+--    commands run on the tenant pool, where only the service role may update
+--    exclusion evidence, so this narrow function resolves the match in the
+--    decision's own transaction: an approved registration clears it and needs
+--    an override reason, a rejected one confirms it. The deciding staff user
+--    comes from the signed authorization context, never from an argument.
+create function public.core_resolve_house_account_match(
+  target_registration_id uuid,
+  override_reason text
+) returns integer
+language plpgsql security definer set search_path = pg_catalog, public as $$
+declare
+  claims jsonb := public.app_context_claims();
+  registration public.deal_registrations%rowtype;
+  next_status text;
+  resolved integer;
+begin
+  if coalesce((claims->>'isInternalStaff')::boolean, false) is not true
+    or claims->>'userId' is null then
+    raise exception using errcode = '42501', message = 'HOUSE_ACCOUNT_DECISION_STAFF_ONLY';
+  end if;
+  select * into registration from public.deal_registrations
+  where id = target_registration_id;
+  if registration.id is null or not public.app_has_account(registration.partner_account_id) then
+    raise exception using errcode = '42501', message = 'HOUSE_ACCOUNT_REGISTRATION_NOT_VISIBLE';
+  end if;
+  if registration.status = 'approved' then
+    if length(trim(coalesce(override_reason, ''))) not between 8 and 500 then
+      raise exception using errcode = '23514', message = 'HOUSE_ACCOUNT_OVERRIDE_REASON_REQUIRED';
+    end if;
+    next_status := 'cleared';
+  elsif registration.status = 'rejected' then
+    next_status := 'confirmed';
+  else
+    raise exception using errcode = '23514', message = 'HOUSE_ACCOUNT_DECISION_REQUIRES_DECIDED_REGISTRATION';
+  end if;
+  update public.core_deal_registration_exclusions exclusion
+  set status = next_status,
+      resolved_by = (claims->>'userId')::uuid,
+      resolved_at = now(),
+      updated_at = now(),
+      evidence = exclusion.evidence || jsonb_build_object('decision',
+        jsonb_build_object('status', next_status, 'decidedBy', claims->>'userId', 'decidedAt', now())
+        || case when next_status = 'cleared'
+             then jsonb_build_object('overrideReason', trim(override_reason))
+             else '{}'::jsonb end)
+  where exclusion.registration_id = registration.id
+    and exclusion.kind = 'house_account'
+    and exclusion.status = 'detected';
+  get diagnostics resolved = row_count;
+  return resolved;
+end $$;
+revoke all on function public.core_resolve_house_account_match(uuid, text) from public;
+grant execute on function public.core_resolve_house_account_match(uuid, text)
+  to clockwork_runtime, clockwork_service;

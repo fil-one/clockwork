@@ -124,10 +124,10 @@ describe("price book server read", () => {
         candidate.currency === "USD" && candidate.status === "active",
     );
     expect(active?.lastDecisionReason).toBe(
-      "Preço de tabela da Fil One para a demonstração: US$ 5,99 por TB decimal por mês, sem tarifas de saída de dados.",
+      "Preço de tabela da Fil One para a demonstração: US$ 5,99 por TB por mês; sem tarifa de saída de dados, sujeito a uso razoável.",
     );
     expect(active?.rateCards?.[0]?.approvedClaim).toBe(
-      "Armazenamento de objetos por TB decimal por mês, sem tarifas de saída de dados",
+      "Armazenamento de objetos compatível com S3 por TB por mês",
     );
     // Identifiers and money are facts, untouched by the language.
     expect(active?.rateCards?.[0]).toMatchObject({

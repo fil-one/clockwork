@@ -59,7 +59,7 @@ describe("multiple-line quoting", () => {
         [
           {
             offerId: authoritativeQuoteOffer.id,
-            capacity: "9",
+            capacity: "0",
             termMonths: "24",
           },
         ],
@@ -67,6 +67,6 @@ describe("multiple-line quoting", () => {
         authoritativeQuoteOffer.priceBookId,
         translatorFor("en"),
       ),
-    ).toContain("at least 10");
+    ).toContain("greater than zero");
   });
 });

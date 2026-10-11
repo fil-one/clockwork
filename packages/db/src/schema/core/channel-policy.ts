@@ -69,6 +69,8 @@ export const channelPolicyVersions = pgTable(
     and (${table.terms}->>'maximumProtectionDays')::integer between (${table.terms}->>'defaultProtectionDays')::integer and 3650
     and (${table.terms}->>'extensionDays')::integer between 1 and 3650
     and (${table.terms}->>'maximumExtensions')::integer between 0 and 100
+    and (${table.terms}->>'maximumProtectionDays')::integer
+      + (${table.terms}->>'extensionDays')::integer * (${table.terms}->>'maximumExtensions')::integer <= 3650
     and length(trim(${table.terms}->>'sourceEvidence'))>=8
   `,
     ),

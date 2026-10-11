@@ -5,6 +5,7 @@ import type { CoreCommandInput } from "@/src/features/contracts/commerce-client"
 import type { SupportedCurrency } from "../../shared/format";
 import { CommercialStop } from "./failure-message";
 import {
+  isCommittedCapacity,
   quotePayload,
   type QuoteOfferOption,
   type SelectorOption,
@@ -12,7 +13,6 @@ import {
 
 export const SELF_SERVE_CAPACITY_CEILING_TB = 100;
 export const SELF_SERVE_TERM_MONTHS = 12;
-export const SELF_SERVE_MINIMUM_TB = 10;
 
 export interface BuyDraft {
   offerId: string;
@@ -24,10 +24,7 @@ export function initialBuyDraft(offers: readonly QuoteOfferOption[]): BuyDraft {
 }
 
 export function buyCapacity(draft: BuyDraft): number | null {
-  const capacity = Number(draft.capacity);
-  return Number.isFinite(capacity) && capacity >= SELF_SERVE_MINIMUM_TB
-    ? capacity
-    : null;
+  return isCommittedCapacity(draft.capacity) ? Number(draft.capacity) : null;
 }
 
 export function needsFullQuote(

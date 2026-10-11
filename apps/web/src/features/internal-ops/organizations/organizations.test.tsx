@@ -397,8 +397,10 @@ describe("invitations", () => {
         "Invitation created for alex@bluefin.test. Copy the link below and send it to them.",
       ),
     ).toBeInTheDocument();
+    // The origin is read from `window.location` in an effect after mount, so
+    // the full link appears a render after the banner.
     expect(
-      screen.getByText(`http://localhost:3000/invite/${"t".repeat(43)}`),
+      await screen.findByText(`http://localhost:3000/invite/${"t".repeat(43)}`),
     ).toBeInTheDocument();
     expect(mocks.invites.createAsStaff).toHaveBeenCalledWith(
       { organizationId, email: "alex@bluefin.test", role: "owner" },

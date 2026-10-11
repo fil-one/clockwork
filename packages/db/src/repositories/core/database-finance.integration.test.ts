@@ -3018,19 +3018,43 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
     });
   });
 
-  it("flags house accounts and refuses prior deals from persisted truth", async () => {
-    const partnerAccountId = "10000000-0000-4000-8000-000000000002";
-    const partnerUserId = "20000000-0000-4000-8000-000000000003";
-    const partnerAuthorization: AuthorizationContext = {
-      userId: ids.user.parse(partnerUserId),
-      accountIds: [ids.account.parse(partnerAccountId)],
-      roles: ["partner_admin"],
-      isInternalStaff: false,
+  it("flags house accounts for an overridable review and refuses prior deals", async () => {
+    // Staff commands run on the tenant pool, scoped to the accounts in
+    // their signed context, so the decision names both partners.
+    const staffAuthorization: AuthorizationContext = {
+      userId: ids.user.parse("20000000-0000-4000-8000-000000000001"),
+      accountIds: [
+        ids.account.parse("10000000-0000-4000-8000-000000000002"),
+        ids.account.parse("10000000-0000-4000-8000-000000000003"),
+      ],
+      roles: ["internal_operator"],
+      isInternalStaff: true,
       mfaVerified: true,
       recentAuthenticationVerified: true,
     };
+    const partnerFor = (partnerAccountId: string, partnerUserId: string) => ({
+      partnerAccountId,
+      partnerUserId,
+      authorization: {
+        userId: ids.user.parse(partnerUserId),
+        accountIds: [ids.account.parse(partnerAccountId)],
+        roles: ["partner_admin"],
+        isInternalStaff: false,
+        mfaVerified: true,
+        recentAuthenticationVerified: true,
+      } satisfies AuthorizationContext,
+    });
+    const referral = partnerFor(
+      "10000000-0000-4000-8000-000000000002",
+      "20000000-0000-4000-8000-000000000003",
+    );
+    const reseller = partnerFor(
+      "10000000-0000-4000-8000-000000000003",
+      "20000000-0000-4000-8000-000000000008",
+    );
     const register = (input: {
       id: string;
+      partner: ReturnType<typeof partnerFor>;
       endClientAccountId: string;
       workload: string;
       callerHouseAccountIds: readonly string[];
@@ -3038,34 +3062,65 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       repository.mutate({
         resource: "deal_registrations",
         id: input.id,
-        accountId: partnerAccountId,
+        accountId: input.partner.partnerAccountId,
         action: "create",
         payload: {
-          partnerAccountId,
+          partnerAccountId: input.partner.partnerAccountId,
           endClientAccountId: input.endClientAccountId,
           workload: input.workload,
           expectedVolume: "10",
           protectionDays: 30,
           houseAccountIds: input.callerHouseAccountIds,
         },
-        actor: { kind: "user", id: partnerUserId },
-        authorization: partnerAuthorization,
+        actor: { kind: "user", id: input.partner.partnerUserId },
+        authorization: input.partner.authorization,
         requestId: `deal-registration-${input.id}`,
         idempotencyKey: `deal-registration-${input.id}`,
         occurredAt,
       });
+    const decide = (
+      id: string,
+      action: "approve" | "reject",
+      expectedVersion: number,
+      payload: Record<string, unknown> = {},
+    ) =>
+      repository.mutate({
+        resource: "deal_registrations",
+        id,
+        action,
+        expectedVersion,
+        payload,
+        actor: { kind: "user", id: staffAuthorization.userId },
+        authorization: staffAuthorization,
+        requestId: `deal-decision-${id}-${action}-${crypto.randomUUID()}`,
+        idempotencyKey: `deal-decision-${id}-${action}-${crypto.randomUUID()}`,
+        occurredAt,
+      });
+    const exclusionsFor = (registrationIds: string[]) =>
+      withInternalTransaction(db, `deal-exclusions-${runId}`, (tx) =>
+        tx
+          .select()
+          .from(dealRegistrationExclusions)
+          .where(
+            inArray(dealRegistrationExclusions.registrationId, registrationIds),
+          ),
+      );
 
+    // A fresh workload per run keeps the test independent of earlier runs.
+    const workload = `House review ${runId}`;
     const houseId = crypto.randomUUID();
     const priorId = crypto.randomUUID();
     const [house, prior] = await Promise.all([
       register({
         id: houseId,
+        partner: referral,
         endClientAccountId: accountId,
-        workload: "Caller cannot suppress a house match",
+        workload,
         callerHouseAccountIds: [],
       }),
       register({
         id: priorId,
+        partner: referral,
         endClientAccountId: "10000000-0000-4000-8000-000000000004",
         workload: "REFERRAL ARCHIVE MODERNIZATION",
         callerHouseAccountIds: [crypto.randomUUID()],
@@ -3075,34 +3130,91 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
     // a prior active deal on the same workload is still refused.
     expect(house.record.data.status).toBe("registered");
     expect(prior.record.data.status).toBe("rejected");
+    const derived = await exclusionsFor([houseId, priorId]);
+    expect(derived.map((exclusion) => exclusion.kind).sort()).toEqual([
+      "house_account",
+      "prior_deal",
+    ]);
+    expect(
+      derived.every(
+        (exclusion) =>
+          (exclusion.evidence as { source?: string }).source ===
+          "unified_account_and_active_deal_records",
+      ),
+    ).toBe(true);
 
-    await withInternalTransaction(
-      db,
-      "deal-derived-exclusion-assert",
-      async (tx) => {
-        const exclusions = await tx
-          .select()
-          .from(dealRegistrationExclusions)
-          .where(
-            inArray(dealRegistrationExclusions.registrationId, [
-              houseId,
-              priorId,
-            ]),
-          );
-        expect(exclusions).toHaveLength(2);
-        expect(exclusions.map((exclusion) => exclusion.kind).sort()).toEqual([
-          "house_account",
-          "prior_deal",
-        ]);
-        expect(
-          exclusions.every(
-            (exclusion) =>
-              (exclusion.evidence as { source?: string }).source ===
-              "unified_account_and_active_deal_records",
-          ),
-        ).toBe(true);
-      },
+    // Non-blocking: a registration still awaiting house-account review holds
+    // no economic ownership, so another partner on the same client and
+    // workload is not refused as a prior deal.
+    const rivalId = crypto.randomUUID();
+    const rival = await register({
+      id: rivalId,
+      partner: reseller,
+      endClientAccountId: accountId,
+      workload,
+      callerHouseAccountIds: [],
+    });
+    expect(rival.record.data.status).toBe("registered");
+
+    // Refuse: approval without an override reason is refused and changes
+    // nothing.
+    await expect(decide(houseId, "approve", 1)).rejects.toThrow(
+      /overrideReason/,
     );
+    await expect(
+      decide(houseId, "approve", 1, { overrideReason: "short" }),
+    ).rejects.toThrow(/overrideReason/);
+
+    // Override: a reasoned approval resolves the match in the same
+    // transaction and records the reason as evidence and in the audit record.
+    const overrideReason =
+      "Design partner brings net-new build-out for this direct client";
+    const approved = await decide(houseId, "approve", 1, { overrideReason });
+    expect(approved.record.data).toMatchObject({
+      status: "approved",
+      houseAccountDecision: { status: "cleared", overrideReason },
+    });
+    // Rejecting the rival confirms its match without a reason.
+    const rejected = await decide(rivalId, "reject", 1);
+    expect(rejected.record.data).toMatchObject({
+      status: "rejected",
+      houseAccountDecision: { status: "confirmed" },
+    });
+    const resolved = await exclusionsFor([houseId, rivalId]);
+    expect(
+      resolved
+        .map((exclusion) => ({
+          registrationId: exclusion.registrationId,
+          status: exclusion.status,
+          resolvedBy: exclusion.resolvedBy,
+          overrideReason: (
+            exclusion.evidence as { decision?: { overrideReason?: string } }
+          ).decision?.overrideReason,
+        }))
+        .sort((left, right) =>
+          left.registrationId === houseId
+            ? -1
+            : right.registrationId === houseId
+              ? 1
+              : 0,
+        ),
+    ).toEqual([
+      {
+        registrationId: houseId,
+        status: "cleared",
+        resolvedBy: staffAuthorization.userId,
+        overrideReason,
+      },
+      {
+        registrationId: rivalId,
+        status: "confirmed",
+        resolvedBy: staffAuthorization.userId,
+        overrideReason: undefined,
+      },
+    ]);
+
+    // Release the partner/client slot so a later run starts clean.
+    await decide(houseId, "reject", Number(approved.record.rowVersion));
   });
 });
 

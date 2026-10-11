@@ -8,6 +8,7 @@ import type { Route } from "next";
 
 import { contextHasPermission, uuidV7 } from "@clockwork/contracts";
 import {
+  coreCommandCapabilities,
   findActiveCustomerQuoteOffers,
   findCustomerQuoteCurrency,
   findPreparedOrderForm,
@@ -24,6 +25,8 @@ import {
   getOptionalRuntimeDatabase,
   getOptionalServiceDatabase,
 } from "@/src/db/service";
+import { getCapabilityState } from "@/src/features/internal-ops/capability-state";
+import { meetsRequirement } from "@/src/features/internal-ops/capability-state-model";
 import type { QuoteOfferOption } from "@/src/features/customer-partner/commercial/workflow-model";
 import {
   isOrderLifecycleStatus,
@@ -270,6 +273,15 @@ export async function loadCustomerQuoteOffers(): Promise<CustomerQuoteOffersLook
   const session = await getCommerceSession();
   const permitted = contextHasPermission(session, "quote:write");
   if (!permitted) return { status: "forbidden" };
+  // An active price book alone must not offer a purchase the server would
+  // refuse: offers load only while quote creation's switches are on.
+  if (
+    !meetsRequirement(
+      await getCapabilityState(session),
+      coreCommandCapabilities({ resource: "quotes", action: "create" }),
+    )
+  )
+    return { status: "unavailable" };
   const accountId = portalAccountId("customer", session);
   const runtime = getOptionalRuntimeDatabase();
   const service = getOptionalServiceDatabase();

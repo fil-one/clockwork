@@ -100,7 +100,10 @@ describe("commercial collection URL state", () => {
     expect(
       parseQuotePrefill({ capacity: ["250", "10"], term: ["24", "6"] }),
     ).toEqual({ capacity: "250", termMonths: "24" });
-    expect(parseQuotePrefill({ capacity: "9", term: "61" })).toEqual({});
+    expect(parseQuotePrefill({ capacity: "0", term: "61" })).toEqual({});
+    // No deal-size floor: the rate card minimum is applied when priced.
+    expect(parseQuotePrefill({ capacity: "0.5" })).toEqual({ capacity: "0.5" });
+    expect(parseQuotePrefill({ capacity: "1e3" })).toEqual({});
     expect(parseQuotePrefill({ capacity: "NaN", term: "12.5" })).toEqual({});
   });
 });

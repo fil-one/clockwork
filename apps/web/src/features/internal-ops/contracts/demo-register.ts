@@ -558,7 +558,7 @@ export function demoSalesLibrary(now: Date = new Date()) {
     }),
     item(3, {
       title: "Partner pricing sheet",
-      description: "Transfer prices and margin bands for resale partners.",
+      description: "List price and how per-partner transfer prices are set.",
       kind: "pricing_sheet",
       audience: "partner",
       status: "current",

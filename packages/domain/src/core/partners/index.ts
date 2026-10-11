@@ -127,6 +127,10 @@ export function evaluateRegistration(
     now: string;
     action: "approve" | "reject" | "extend";
     extensionDays?: number;
+    /** Exclusion kinds detected on this registration and not yet resolved. */
+    openExclusions?: readonly NonNullable<DealRegistration["exclusion"]>[];
+    /** Why channel ops approves despite a house-account match (8-500 chars). */
+    overrideReason?: string;
   },
 ): DealRegistration {
   if (
@@ -140,6 +144,16 @@ export function evaluateRegistration(
     input.action !== "extend"
   )
     return { ...registration, status: "expired", credit: "none" };
+  if (
+    input.action === "approve" &&
+    input.openExclusions?.includes("house_account")
+  ) {
+    const reason = input.overrideReason?.trim() ?? "";
+    if (reason.length < 8 || reason.length > 500)
+      throw new Error(
+        "HOUSE_ACCOUNT_OVERRIDE_REASON_REQUIRED: approving a registration on an existing direct client needs an override reason of 8 to 500 characters",
+      );
+  }
   if (input.action === "extend") {
     if (
       !input.extensionDays ||
