@@ -54,6 +54,7 @@ const mismatchNotes: Readonly<Record<string, MessageId>> = {
   signwell_binding_mismatch: "operations.contracts.signing.bindingMismatch",
   signwell_signed_mismatch: "operations.contracts.signing.signedMismatch",
   signwell_fields_mismatch: "operations.contracts.signing.fieldsMismatch",
+  signwell_reminders_on: "operations.contracts.signing.remindersOn",
   signwell_copied_contacts_mismatch:
     "operations.contracts.signing.copiedContactsMismatch",
 };

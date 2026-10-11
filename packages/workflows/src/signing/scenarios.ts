@@ -30,6 +30,34 @@ async function sent(make: () => SigningHarness) {
 
 export const signingScenarios: readonly SigningScenario[] = [
   {
+    // Owner rule: nothing reaches a signer without a person choosing to
+    // send it. A refresh, callback or scheduled check only reads SignWell.
+    name: "never messages a signer from a refresh, whatever SignWell shows",
+    async run(make) {
+      for (const status of [
+        "Sent",
+        "Viewed",
+        "Expired",
+        "Declined",
+        "Completed",
+      ]) {
+        const h = await sent(make);
+        h.provider.send.mockClear();
+        h.provider.createDraft.mockClear();
+        h.doc.status = status;
+        if (status === "Completed")
+          for (const r of h.doc.recipients) r.status = "completed";
+        await h.sync();
+        await h.sync();
+        expect(h.provider.send).not.toHaveBeenCalled();
+        expect(h.provider.createDraft).not.toHaveBeenCalled();
+        expect(h.provider.remind).not.toHaveBeenCalled();
+        expect(h.provider.cancel).not.toHaveBeenCalled();
+        expect(h.provider.updateRecipient ?? vi.fn()).not.toHaveBeenCalled();
+      }
+    },
+  },
+  {
     name: "binds the provider document before sending, then sends once",
     async run(make) {
       const h = make();
@@ -750,6 +778,28 @@ export const signingScenarios: readonly SigningScenario[] = [
       expect(h.provider.createDraft).not.toHaveBeenCalled();
       expect(h.provider.get).not.toHaveBeenCalled();
       expect(h.record().error).toBeNull();
+    },
+  },
+  {
+    name: "holds a draft SignWell reports with automatic reminders on, sending nothing",
+    async run(make) {
+      const h = make();
+      h.doc.reminders = true;
+      await expect(h.send()).rejects.toThrow(h.code("NEEDS_ATTENTION"));
+      const held = { state: "attention", error: "signwell_reminders_on" };
+      expect(h.record()).toMatchObject(held);
+      expect(await h.sync()).toMatchObject(held);
+      expect(h.provider.send).not.toHaveBeenCalled();
+      expect(
+        await h.void({ reason: "SignWell would remind them" }),
+      ).toMatchObject({ state: "canceled" });
+      // Off, or not reported at all, the draft is sent.
+      for (const reminders of [false, undefined]) {
+        const ok = make();
+        if (reminders === undefined) delete ok.doc.reminders;
+        else ok.doc.reminders = reminders;
+        expect((await ok.send()).state).toBe("sent");
+      }
     },
   },
   {

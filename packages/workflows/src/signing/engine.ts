@@ -6,6 +6,7 @@ import type {
 } from "@clockwork/contracts";
 import {
   assertSignWellFields,
+  assertSignWellNoAutomaticReminders,
   checkSignWellCopiedContacts,
   signWellAttentionReason,
   signWellFieldValues,
@@ -176,11 +177,13 @@ const message = (error: unknown) =>
  * request waits in `attention` until a person voids it. */
 const signWellFieldsMismatch = "signwell_fields_mismatch";
 const signWellCopiedContactsMismatch = "signwell_copied_contacts_mismatch";
+const signWellRemindersOn = "signwell_reminders_on";
 /** An unsent draft SignWell holds as it is: sending it again cannot change
  * it, so only a void moves the request on. */
 const heldDrafts: readonly string[] = [
   signWellFieldsMismatch,
   signWellCopiedContactsMismatch,
+  signWellRemindersOn,
 ];
 const mismatchReasons: Readonly<Record<string, string>> = {
   SIGNWELL_SIGNERS_MISMATCH: "signwell_signers_mismatch",
@@ -192,6 +195,8 @@ const mismatchReasons: Readonly<Record<string, string>> = {
   // The unsent draft does not copy whom the type copies on the completed
   // document; sending it again cannot change that either.
   SIGNWELL_COPIED_CONTACTS_MISMATCH: signWellCopiedContactsMismatch,
+  // The unsent draft would remind signers on its own.
+  SIGNWELL_AUTOMATIC_REMINDERS_ON: signWellRemindersOn,
 };
 const mismatchReason = (error: unknown) =>
   error instanceof Error ? mismatchReasons[error.message] : undefined;
@@ -547,6 +552,7 @@ export class SigningEngine<R> {
         return settled;
       }
       assertSignWellFields(doc, expected);
+      assertSignWellNoAutomaticReminders(doc);
       let note: SigningNote | undefined;
       if (this.type.copySender) {
         const copied = checkSignWellCopiedContacts(doc, bound.copiedContacts);

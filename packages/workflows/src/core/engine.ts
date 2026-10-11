@@ -535,11 +535,12 @@ export class CoreFinanceWorkflowEngine {
 
       let notificationMessageId: string | undefined;
       if (policyDecision.stage !== "current") {
+        // Only the Fil One collections owner is told. The customer's
+        // billing contacts hear about an overdue invoice only from a person
+        // who chooses to contact them; nothing is sent to them on a schedule.
         const notification = await this.dependencies.notifications.send({
           template: `collections.${policyDecision.stage}.v1`,
-          recipients: [
-            ...new Set([input.collectionsOwner, ...input.billingRecipients]),
-          ],
+          recipients: [input.collectionsOwner],
           data: {
             invoiceId: input.invoiceId,
             billingAccountId: input.billingAccountId,

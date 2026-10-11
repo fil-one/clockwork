@@ -421,7 +421,7 @@ describe("collections policy", () => {
     });
   });
 
-  it("records a collections exception and notifies only supplied billing-party recipients", async () => {
+  it("records a collections exception and tells only the Fil One collections owner, never the customer", async () => {
     const { engine, exceptions, kernel, records } = fixture();
     const outcome = await engine.applyDunning(dunning);
     expect(outcome).toMatchObject({
@@ -443,10 +443,7 @@ describe("collections policy", () => {
       recipients: string[];
       data: { outstanding?: { currency: string; minor: string } };
     };
-    expect(notification.recipients).toEqual([
-      "collections@clockwork.test",
-      "ap@partner.test",
-    ]);
+    expect(notification.recipients).toEqual(["collections@clockwork.test"]);
     expect(notification.data.outstanding).toEqual({
       currency: "USD",
       minor: "45000",

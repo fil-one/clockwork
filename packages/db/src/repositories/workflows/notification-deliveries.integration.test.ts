@@ -3,9 +3,12 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 
+import { IdempotencyKeySchema } from "@clockwork/contracts";
+
 import { createRuntimeDatabase } from "../../client";
 import { notificationDeliveries, orders } from "../../schema";
 import { withInternalTransaction } from "../../transaction";
+import { DatabaseCoreWorkflowRecordPort } from "./core";
 import { DatabaseAuthoritativeLifecycleTaskStore } from "./lifecycle";
 
 const databaseUrl =
@@ -91,6 +94,36 @@ describe.sequential("notification delivery evidence", () => {
       recipients: ["renewals@example.test"],
       status: "sent",
       providerMessageId: `msg_term_${suffix}`,
+    });
+  });
+
+  it("records a collections reminder as reaching the Fil One owner alone", async () => {
+    const invocationKey = IdempotencyKeySchema.parse(`dunning-${suffix}`);
+    // A task queued before customers stopped being emailed still names the
+    // billing contact; the evidence names only who was emailed.
+    await new DatabaseCoreWorkflowRecordPort(db).record({
+      invocationKey,
+      aggregateId: randomUUID(),
+      aggregateVersion: 1,
+      requestId: `dunning-record-${suffix}`,
+      occurredAt: now.toISOString(),
+      record: {
+        kind: "dunning_decided",
+        taskId: "core.collections.dunning.v1",
+        input: {
+          invoiceId: randomUUID(),
+          billingAccountId: "10000000-0000-4000-8000-000000000004",
+          collectionsOwner: "collections@fil.one",
+          billingRecipients: ["ap@customer.test"],
+        },
+        decision: { stage: "first_threshold" },
+        notificationMessageId: `msg_dunning_${suffix}`,
+      },
+    });
+    expect(await deliveryFor(invocationKey)).toMatchObject({
+      alertKind: "collections_dunning",
+      recipients: ["collections@fil.one"],
+      status: "sent",
     });
   });
 

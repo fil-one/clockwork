@@ -508,9 +508,20 @@ export interface PreparedLifecycleEffect {
  * remain in DatabaseLifecycleCommandRepository transactions.
  */
 export class DatabaseAuthoritativeLifecycleTaskStore {
+  /**
+   * `customerAlerts`: whether renewal, notice-window, POC-milestone and
+   * quote-expiry alerts are planned to an account's contacts on a schedule.
+   * Off by default and in every deployment: no message reaches a customer or
+   * partner unless a person chose to send that message (owner rule,
+   * 2026-10-10). The recipient rules stay, tested, for an approval step that
+   * sends each alert only once a person approves it.
+   */
   public constructor(
     private readonly database: RuntimeDatabase,
     private readonly now: () => Date = () => new Date(),
+    private readonly options: { customerAlerts: "off" | "planned" } = {
+      customerAlerts: "off",
+    },
   ) {}
 
   public prepare(input: {
@@ -660,6 +671,13 @@ export class DatabaseAuthoritativeLifecycleTaskStore {
           throw new Error(
             `LIFECYCLE_TASK_STALE_AGGREGATE_VERSION:${input.expectedAggregateVersion}:${stale.aggregateVersion}`,
           );
+        // A scheduled alert would email the account's contacts on its own,
+        // so none is planned unless alerts are explicitly on.
+        if (
+          isLifecycleAlertTask(input.spec.taskId) &&
+          this.options.customerAlerts !== "planned"
+        )
+          return [];
         const now = this.now();
         const due = selected.filter((aggregate) =>
           shouldPlanLifecycleTransition(

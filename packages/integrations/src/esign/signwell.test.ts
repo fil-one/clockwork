@@ -202,6 +202,26 @@ it("requires exactly the missing mixed-mode fields before sending", async () => 
   );
 });
 
+describe("no automatic messages to signers", () => {
+  it("turns SignWell's automatic reminders off on the draft and on sending", async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockImplementation(() =>
+        Promise.resolve(new Response(JSON.stringify(doc()))),
+      );
+    const client = new SignWellClient("private-key", transport);
+    await client.createDraft(fixtureRecord, Buffer.from("%PDF-test"));
+    await client.send(providerId, true);
+    const bodies = transport.mock.calls.map(
+      ([, init]) =>
+        JSON.parse(typeof init?.body === "string" ? init.body : "{}") as {
+          reminders?: boolean;
+        },
+    );
+    expect(bodies.map((body) => body.reminders)).toEqual([false, false]);
+  });
+});
+
 describe("partner-facing details and after-send corrections", () => {
   const created = async (record: typeof fixtureRecord) => {
     const transport = vi
