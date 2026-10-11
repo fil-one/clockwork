@@ -144,7 +144,13 @@ const person = {
   email: `mcp.rule.${tag}@clockwork.test`,
   name: `MCP Rule ${tag}`,
 };
-const roleTarget = { id: randomUUID(), membershipId: randomUUID() };
+// Order acceptance falls back to the first internal user by UUID. Keep this
+// disposable staff fixture after the persistent seed operator so concurrent
+// suites cannot assign their exception cases to a user this suite deletes.
+const roleTarget = {
+  id: `ffff${randomUUID().slice(4)}`,
+  membershipId: randomUUID(),
+};
 let secret = "";
 let next = 1;
 const partners: string[] = [];
@@ -153,6 +159,11 @@ const requestedMndaId = randomUUID();
 let countersignerId = "";
 
 beforeAll(async () => {
+  const persistentOperators = await sql`
+    select id from commerce_users
+    where id = '20000000-0000-4000-8000-000000000001'
+      and is_internal_staff and id < ${roleTarget.id}::uuid`;
+  expect(persistentOperators).toHaveLength(1);
   await sql`insert into commerce_users (id, workos_user_id, email, name, is_internal_staff, mfa_enrolled)
     values (${person.id}, ${`mcp_rule_${tag}`}, ${person.email}, ${person.name}, true, true)`;
   await sql`insert into memberships (id, organization_id, user_id, role)
