@@ -80,6 +80,12 @@ jobs:
       TF_VAR_commerce_mnda_enabled: ${{ vars.COMMERCE_MNDA_ENABLED || 'false' }}
       TF_VAR_commerce_contracts_signing_enabled:
         ${{ vars.COMMERCE_CONTRACTS_SIGNING_ENABLED || 'true' }}
+      TF_VAR_notifications_email_enabled:
+        ${{ vars.COMMERCE_NOTIFICATIONS_EMAIL_ENABLED || 'false' }}
+      TF_VAR_notifications_email_domain:
+        ${{ vars.COMMERCE_NOTIFICATIONS_EMAIL_DOMAIN }}
+      TF_VAR_notifications_slack_webhook_url:
+        ${{ secrets.COMMERCE_NOTIFICATIONS_SLACK_WEBHOOK_URL }}
     steps:
       - uses: actions/checkout@v4
         with:

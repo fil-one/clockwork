@@ -10,13 +10,22 @@ import {
   configureDatabaseTransactionInstrumentation,
   DatabaseSystemCapabilityAdmin,
   DatabaseSystemCapabilityGuard,
+  StaffNotificationStore,
   type RuntimeDatabase,
 } from "@clockwork/db";
 import {
   ClockworkTelemetry,
   OtlpHttpTelemetrySink,
   RuntimeBoundaryInstrumentation,
+  staffNotificationChannels,
 } from "@clockwork/integrations";
+
+import {
+  createStaffNotificationOutboxHandlers,
+  staffNotificationOrigin,
+} from "../staff-notifications";
+import { configureStaffNotificationRetry } from "../staff-notifications/retry-runtime";
+import type { OutboxTopicHandler } from "../system/outbox-dispatcher";
 
 import {
   createProductionWorkflowRuntime,
@@ -182,8 +191,53 @@ export async function createWorkflowRuntime(
   return createProductionWorkflowRuntime({
     db,
     ...adapters,
+    outboxHandlers: withStaffNotificationHandlers(
+      adapters.outboxHandlers,
+      db,
+      source,
+    ),
     instrumentation,
   });
+}
+
+/**
+ * Adds the staff notification handlers to whatever the adapters registered,
+ * and configures their retry task. They need no provider, gate or
+ * capability: the in-app inbox works on every deployment, and email and Slack
+ * are read from the environment, sending nothing until their settings exist.
+ * The handler never throws for a provider, so it cannot fail another
+ * handler's message; a topic another handler already owns runs that handler
+ * first.
+ */
+export function withStaffNotificationHandlers(
+  existing: ReadonlyMap<string, OutboxTopicHandler>,
+  db: RuntimeDatabase,
+  source: WorkflowRuntimeEnvironmentSource,
+): Map<string, OutboxTopicHandler> {
+  const handlers = new Map(existing);
+  // The environment is fixed for the life of the process, so the channels
+  // (and the SES client) are built once.
+  const channels = staffNotificationChannels(source);
+  const options = {
+    store: new StaffNotificationStore(db),
+    channels: () => channels,
+    origin: staffNotificationOrigin(source),
+  };
+  configureStaffNotificationRetry(options);
+  const notifications = createStaffNotificationOutboxHandlers(options);
+  for (const [topic, handler] of notifications) {
+    const earlier = handlers.get(topic);
+    handlers.set(
+      topic,
+      earlier
+        ? async (delivery) => {
+            await earlier(delivery);
+            await handler(delivery);
+          }
+        : handler,
+    );
+  }
+  return handlers;
 }
 
 export interface ActivatableWorkflowRuntime {
