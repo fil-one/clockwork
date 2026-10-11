@@ -134,3 +134,21 @@ never treats their session as verified.
 For bootstrap accounts enrolled under an operator's authority, transfer the
 authenticator setup material privately to that operator before handoff. Never
 commit QR codes, factor secrets, email codes, or session credentials.
+
+### In-app authenticator challenge preparation
+
+The MFA form prepares a challenge through an authenticated, same-origin POST
+before enabling code entry. Its signed, short-lived binding names the exact
+WorkOS user, organization, session, factor and challenge; it is not evidence of
+successful MFA. Preparation has a separate durable limit of five requests per
+ten minutes, so refreshing the form does not spend the verification budget. Each
+code verification still uses the existing five-attempt limit.
+
+On submission, Commerce checks that binding and sends the code directly for
+verification. It then reads the current factors before writing the successful
+receipt, refusing a deleted or replaced authenticator. The receipt's unique
+challenge ID also prevents replay from granting another confirmation. Provider
+code acceptance windows are unchanged. Preparation and factor lookup no longer
+consume code lifetime before verification; this reduces a timing risk without
+claiming that every rejected code was caused by expiry. No code or factor secret
+is stored in the browser binding or logged.

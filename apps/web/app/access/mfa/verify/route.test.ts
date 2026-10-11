@@ -27,23 +27,43 @@ vi.mock("@workos-inc/authkit-nextjs", () => ({
 }));
 import { SessionExpiredError } from "@/src/auth/session";
 import { POST } from "./route";
+import { prepareMfaProof } from "../prepared-challenge";
 function request(origin = "https://example.com", body = "code=123456") {
+  const form = new URLSearchParams(body);
+  if (!form.has("proof"))
+    form.set(
+      "proof",
+      prepareMfaProof({
+        sessionId: "session",
+        workosUserId: "user",
+        workosOrganizationId: "org",
+        challengeId: "challenge",
+        factorId: "factor",
+      }).proof,
+    );
   return new Request("https://example.com/access/mfa/verify", {
     method: "POST",
     headers: { origin, "content-type": "application/x-www-form-urlencoded" },
-    body,
+    body: form.toString(),
   });
 }
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("APP_ORIGIN", "https://example.com");
+  vi.stubEnv(
+    "WORKOS_COOKIE_PASSWORD",
+    "test-cookie-key-with-at-least-32-bytes",
+  );
   mocks.session.mockResolvedValue({
     sessionId: "session",
     organizationId: "org",
     user: { id: "user" },
   });
   mocks.claim.mockResolvedValue(true);
-  mocks.factors.mockResolvedValue({ data: [{ id: "factor", type: "totp" }] });
+  mocks.factors.mockResolvedValue({
+    autoPagination: () =>
+      Promise.resolve([{ id: "factor", type: "totp", userId: "user" }]),
+  });
   mocks.challenge.mockResolvedValue({ id: "challenge" });
   mocks.verify.mockResolvedValue({
     valid: true,
@@ -210,4 +230,96 @@ it("ignores duplicate return destinations", async () => {
       "location",
     ),
   ).toBe("/");
+});
+
+it("checks the code before any factor lookup and never creates a challenge after code entry", async () => {
+  mocks.verify.mockImplementation(() => {
+    expect(mocks.factors).not.toHaveBeenCalled();
+    expect(mocks.challenge).not.toHaveBeenCalled();
+    return Promise.resolve({
+      valid: true,
+      challenge: { id: "challenge", authenticationFactorId: "factor" },
+    });
+  });
+  expect((await POST(request())).headers.get("location")).toBe("/");
+  expect(mocks.challenge).not.toHaveBeenCalled();
+  expect(mocks.record).toHaveBeenCalledOnce();
+});
+it.each(
+  [
+    [],
+    [{ id: "reset", type: "totp", userId: "user" }],
+    [{ id: "factor", type: "totp", userId: "other" }],
+    [
+      { id: "factor", type: "totp", userId: "user" },
+      { id: "other", type: "totp", userId: "user" },
+    ],
+  ].map((factors) => ({ factors })),
+)(
+  "refuses a deleted, reset, foreign or ambiguous current factor",
+  async ({ factors }) => {
+    mocks.factors.mockResolvedValue({
+      autoPagination: () => Promise.resolve(factors),
+    });
+    expect((await POST(request())).headers.get("location")).toBe(
+      "/access/mfa?error=unavailable",
+    );
+    expect(mocks.verify).toHaveBeenCalledOnce();
+    expect(mocks.record).not.toHaveBeenCalled();
+  },
+);
+it("does not grant assurance when a challenge receipt is replayed", async () => {
+  mocks.record.mockRejectedValue(new Error("duplicate receipt"));
+  expect((await POST(request())).headers.get("location")).toBe(
+    "/access/mfa?error=unavailable",
+  );
+  expect(mocks.verify).toHaveBeenCalledOnce();
+});
+it.each(["", "tampered"])(
+  "refuses an absent or invalid binding before any provider call",
+  async (proof) => {
+    expect(
+      (
+        await POST(
+          request(
+            "https://example.com",
+            new URLSearchParams({ code: "123456", proof }).toString(),
+          ),
+        )
+      ).headers.get("location"),
+    ).toBe("/access/mfa?error=preparation");
+    expect(mocks.claim).not.toHaveBeenCalled();
+    expect(mocks.verify).not.toHaveBeenCalled();
+  },
+);
+it("refuses a proof after switching the signed-in session", async () => {
+  mocks.session.mockResolvedValue({
+    sessionId: "other",
+    organizationId: "org",
+    user: { id: "user" },
+  });
+  expect((await POST(request())).headers.get("location")).toBe(
+    "/access/mfa?error=preparation",
+  );
+  expect(mocks.verify).not.toHaveBeenCalled();
+});
+
+it("rejects duplicate proof and code fields before a provider verification", async () => {
+  const proof = prepareMfaProof({
+    sessionId: "session",
+    workosUserId: "user",
+    workosOrganizationId: "org",
+    challengeId: "challenge",
+    factorId: "factor",
+  }).proof;
+  for (const duplicate of ["code", "proof"]) {
+    const form = new URLSearchParams({ code: "123456", proof });
+    form.append(duplicate, form.get(duplicate) ?? "");
+    expect(
+      (await POST(request("https://example.com", form.toString()))).headers.get(
+        "location",
+      ),
+    ).toBe("/access/mfa?error=preparation");
+  }
+  expect(mocks.verify).not.toHaveBeenCalled();
 });

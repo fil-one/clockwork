@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import Page from "./page";
 
@@ -8,7 +8,16 @@ vi.mock("@/src/i18n/server", async () => {
   return { getTranslations: () => Promise.resolve(translatorFor("en")) };
 });
 
-afterEach(() => vi.unstubAllEnvs());
+beforeEach(() =>
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise(() => {})),
+  ),
+);
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 async function renderWith(error?: string) {
   vi.stubEnv("WORKOS_CLIENT_ID", "client_test");

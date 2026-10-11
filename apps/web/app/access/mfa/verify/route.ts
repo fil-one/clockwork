@@ -6,6 +6,7 @@ import {
 } from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
 import { mfaReturnTo } from "../return-to";
+import { readMfaProof } from "../prepared-challenge";
 
 function redirect(location: string) {
   return new Response(null, {
@@ -27,7 +28,7 @@ export async function POST(request: Request): Promise<Response> {
   )
     return new Response(null, { status: 415 });
   const body = await request.text();
-  if (body.length > 1024) return new Response(null, { status: 413 });
+  if (body.length > 4096) return new Response(null, { status: 413 });
   const form = new URLSearchParams(body);
   const code = form.get("code")?.trim() ?? "";
   const returnTo =
@@ -44,34 +45,50 @@ export async function POST(request: Request): Promise<Response> {
     const session = await getVerifiedWorkosSession();
     if (!session.organizationId || !session.sessionId || session.impersonator)
       return new Response(null, { status: 403 });
+    if (form.getAll("proof").length !== 1 || form.getAll("code").length !== 1)
+      return failure("preparation");
+    let prepared;
+    try {
+      prepared = readMfaProof(form.get("proof") ?? "", {
+        sessionId: session.sessionId,
+        workosUserId: session.user.id,
+        workosOrganizationId: session.organizationId,
+      });
+    } catch {
+      return failure("preparation");
+    }
     const database = getServiceDatabase();
     if (!(await claimMfaAttempt(database, session.user.id)))
       return failure("limited");
     const provider = getWorkOS().multiFactorAuth;
-    const factors = await provider.listUserAuthFactors({
-      userId: session.user.id,
-    });
-    const factor = factors.data.find((candidate) => candidate.type === "totp");
-    if (!factor) return failure("unavailable");
-    const challenge = await provider.challengeFactor({
-      authenticationFactorId: factor.id,
-    });
+    // Preparation is complete before code entry. No factor-list or challenge
+    // request consumes the code's remaining lifetime before this verification.
     const result = await provider.verifyChallenge({
-      authenticationChallengeId: challenge.id,
+      authenticationChallengeId: prepared.challengeId,
       code,
     });
     if (
       !result.valid ||
-      result.challenge.id !== challenge.id ||
-      result.challenge.authenticationFactorId !== factor.id
+      result.challenge.id !== prepared.challengeId ||
+      result.challenge.authenticationFactorId !== prepared.factorId
     )
       return failure("invalid");
+    // A reset/deletion since preparation must not grant an old factor a receipt.
+    // This provider read happens AFTER the time-sensitive code verification.
+    const factors = await (
+      await provider.listUserAuthFactors({ userId: session.user.id })
+    ).autoPagination();
+    const owned = factors.filter(
+      (factor) => factor.type === "totp" && factor.userId === session.user.id,
+    );
+    if (owned.length !== 1 || owned[0]?.id !== prepared.factorId)
+      return failure("unavailable");
     await recordMfaReceipt(database, {
       sessionId: session.sessionId,
       workosUserId: session.user.id,
       workosOrganizationId: session.organizationId,
-      challengeId: challenge.id,
-      factorId: factor.id,
+      challengeId: prepared.challengeId,
+      factorId: prepared.factorId,
     });
     return redirect(returnTo ?? "/");
   } catch (error) {

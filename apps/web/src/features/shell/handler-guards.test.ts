@@ -57,6 +57,11 @@ const routeExemptions: Readonly<
       "The MCP endpoint: a personal access token authenticates each request as its owner, and every tool runs the pages' own actions and loaders, which check permissions (mndaStaff, contractStaff, contractReader).",
     mustContain: "handleMcpRequest",
   },
+  "app/access/mfa/prepare/route.ts": {
+    reason:
+      "Prepares only the signed-in person’s own second-factor challenge; no assurance or role is granted.",
+    mustContain: "getVerifiedWorkosSession(",
+  },
   "app/access/mfa/verify/route.ts": {
     reason:
       "Verifies the signed-in person's own second factor; there is no role to check yet.",
