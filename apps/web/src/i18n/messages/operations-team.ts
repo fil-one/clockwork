@@ -221,6 +221,9 @@ export const teamMessages = defineStaffMessages({
   "operations.team.permission.contractRead": { en: "Read contracts" },
   "operations.team.permission.contractWrite": { en: "Prepare contracts" },
   "operations.team.permission.contractApprove": { en: "Approve contracts" },
+  "operations.team.permission.contractTemplateManage": {
+    en: "Manage contract templates",
+  },
   "operations.team.permission.signatoryManage": {
     en: "Choose who signs for Fil One and where notices go",
   },

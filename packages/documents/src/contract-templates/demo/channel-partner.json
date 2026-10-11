@@ -1,0 +1,144 @@
+{
+  "id": "sample-channel-partner",
+  "contractType": "channel_partnership",
+  "name": "Sample Channel Partner Agreement",
+  "version": "demo-1",
+  "requiresApproval": true,
+  "sourceNote": "Demo sample wording; not an agreement",
+  "fields": [
+    {
+      "id": "partner_model",
+      "kind": "choice",
+      "required": true,
+      "label": { "en": "Partner model" },
+      "help": {
+        "en": "Resale adds the resale terms and the wholesale margin."
+      },
+      "default": "Referral",
+      "options": [
+        { "value": "Referral", "label": { "en": "Referral" } },
+        { "value": "Resale", "label": { "en": "Resale" } }
+      ]
+    },
+    {
+      "id": "territory",
+      "kind": "text",
+      "required": true,
+      "maxLength": 120,
+      "label": { "en": "Territory" },
+      "default": "Worldwide"
+    },
+    {
+      "id": "referral_fee",
+      "kind": "percent",
+      "required": true,
+      "label": { "en": "Referral fee (% of Year-1 net collected fees)" },
+      "default": "20"
+    },
+    {
+      "id": "illustrative_revenue",
+      "kind": "decimal",
+      "required": true,
+      "label": { "en": "Illustrative annual revenue (USD)" },
+      "help": { "en": "Used only for the illustrative earnings line." },
+      "default": "250000"
+    },
+    {
+      "id": "wholesale_margin",
+      "kind": "percent",
+      "required": true,
+      "section": "resale",
+      "label": { "en": "Wholesale margin (% off list)" },
+      "default": "25"
+    },
+    {
+      "id": "nfr_capacity",
+      "kind": "text",
+      "required": true,
+      "section": "nfr",
+      "maxLength": 80,
+      "label": { "en": "NFR capacity" },
+      "default": "5 TiB for 60 days"
+    }
+  ],
+  "sections": [
+    {
+      "id": "resale",
+      "label": { "en": "Resale terms" },
+      "when": { "field": "partner_model", "in": ["Resale"] }
+    },
+    {
+      "id": "nfr",
+      "label": { "en": "Schedule B: Not-for-resale allocation" },
+      "help": { "en": "Demo and test capacity for the partner." },
+      "default": true
+    },
+    {
+      "id": "exclusivity",
+      "label": { "en": "Schedule C: Exclusivity" }
+    }
+  ],
+  "derived": [
+    {
+      "id": "illustrative_fee",
+      "op": "percent_of",
+      "of": ["referral_fee", "illustrative_revenue"]
+    }
+  ],
+  "document": {
+    "title": "SAMPLE CHANNEL PARTNER AGREEMENT (DEMO)",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "This is sample wording for the guided demo. It is not an agreement and binds no one. It is between FIL One LLC and [[counterparty_name]] (\"Partner\"), effective [[effective_date]]."
+      },
+      { "type": "heading", "text": "1. MODEL" },
+      {
+        "type": "paragraph",
+        "text": "**1.1 Model.** Partner works with FIL One under the [[partner_model]] model in [[territory]]."
+      },
+      {
+        "type": "paragraph",
+        "text": "**1.2 Referral fee.** FIL One pays Partner [[referral_fee]]% of Year-1 net collected fees on accounts Partner registers."
+      },
+      {
+        "type": "paragraph",
+        "text": "**1.3 Illustration.** On USD [[illustrative_revenue]] of Year-1 fees, Partner would earn USD [[illustrative_fee]]."
+      },
+      {
+        "type": "paragraph",
+        "section": "resale",
+        "text": "**1.4 Resale.** Partner may resell the services at a wholesale margin of [[wholesale_margin]]% off list."
+      },
+      {
+        "type": "table",
+        "rows": [
+          ["Element", "Sample term"],
+          ["Referral fee", "[[referral_fee]]% of Year-1 net collected fees"],
+          ["Territory", "[[territory]]"],
+          ["Payment", "Monthly, as fees are collected"]
+        ]
+      },
+      {
+        "type": "heading",
+        "section": "nfr",
+        "text": "SCHEDULE B: NOT-FOR-RESALE ALLOCATION"
+      },
+      {
+        "type": "paragraph",
+        "section": "nfr",
+        "text": "Partner receives [[nfr_capacity]] of not-for-resale capacity for demos and testing."
+      },
+      {
+        "type": "heading",
+        "section": "exclusivity",
+        "text": "SCHEDULE C: EXCLUSIVITY"
+      },
+      {
+        "type": "paragraph",
+        "section": "exclusivity",
+        "text": "Sample wording: exclusivity applies only to the accounts and period the parties list here."
+      }
+    ]
+  }
+}

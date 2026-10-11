@@ -1,43 +1,26 @@
 import {
-  pendingTemplate,
-  type AvailableContractTemplate,
+  TemplateFileSchema,
   type ContractTemplate,
   type ContractTemplateRegistry,
+  type ContractTemplateSource,
+  type TemplateFile,
 } from "./definition";
+import { availableTemplate } from "./render";
+import demoChannelPartner from "./demo/channel-partner.json";
+import demoOrderForm from "./demo/order-form.json";
 
 /**
- * Every contract template staff can see. Entries marked `pending_legal` are
- * placeholders until counsel supplies approved wording; they carry no text
- * and cannot be prepared. To add one, follow
- * `docs/operations/contract-templates.md`: add `<id>/template.json` beside
- * this file and replace the matching stub with `availableTemplate(json)`.
+ * The guided demo's templates: short sample wording for fictional deals,
+ * never used for a real contract. Live templates are kept in the template
+ * store (`docs/operations/contract-templates.md`).
  */
-export const contractTemplates: ContractTemplateRegistry = [
-  pendingTemplate(
-    "channel-partnership",
-    "channel_partnership",
-    "Channel Partnership Agreement",
-  ),
-  pendingTemplate(
-    "customer-msa",
-    "customer_msa",
-    "Customer Master Services Agreement",
-  ),
-  pendingTemplate("order-form", "order_form", "Order Form"),
-  pendingTemplate("dpa", "dpa", "Data Processing Addendum"),
-  pendingTemplate("security-annex", "security_annex", "Security Annex"),
-  pendingTemplate(
-    "nda-one-way",
-    "nda_one_way",
-    "One-way Non-Disclosure Agreement",
-  ),
-  pendingTemplate(
-    "technology-partner",
-    "technology_partner",
-    "Technology Partner Agreement",
-  ),
-  pendingTemplate("sow", "sow", "Statement of Work"),
-];
+export const demoContractTemplateFiles: readonly TemplateFile[] = [
+  demoChannelPartner,
+  demoOrderForm,
+].map((file) => TemplateFileSchema.parse(file));
+
+export const demoContractTemplates: ContractTemplateRegistry =
+  demoContractTemplateFiles.map(availableTemplate);
 
 export function findContractTemplate(
   registry: ContractTemplateRegistry,
@@ -50,10 +33,26 @@ export function findContractTemplate(
 export function availableContractTemplate(
   registry: ContractTemplateRegistry,
   id: string,
-): AvailableContractTemplate {
+): ContractTemplate {
   const template = findContractTemplate(registry, id);
   if (!template) throw new Error("CONTRACT_TEMPLATE_NOT_FOUND");
-  if (template.status !== "available")
-    throw new Error("CONTRACT_TEMPLATE_PENDING_LEGAL");
   return template;
+}
+
+/** A template source over a fixed list, for tests and the guided demo. */
+export function registryTemplateSource(
+  registry: ContractTemplateRegistry,
+): ContractTemplateSource {
+  return {
+    listActive: () => Promise.resolve(registry),
+    active: (id) =>
+      Promise.resolve().then(() => availableContractTemplate(registry, id)),
+    version: (id, version) =>
+      Promise.resolve().then(() => {
+        const template = availableContractTemplate(registry, id);
+        if (template.version !== version)
+          throw new Error("CONTRACT_TEMPLATE_VERSION_CHANGED");
+        return template;
+      }),
+  };
 }

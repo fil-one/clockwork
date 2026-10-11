@@ -1,8 +1,8 @@
 "use server";
 
 import { z } from "zod";
+import { contractToday } from "@clockwork/domain/contract-terms";
 import {
-  availableContractTemplate,
   counterpartySignaturePageVersion,
   renderCounterpartyPaper,
 } from "@clockwork/documents";
@@ -15,15 +15,19 @@ import {
   contractPdfFileName,
   contractSignerEmail,
 } from "@clockwork/contracts";
+import { explicitDemoIdentityEnabled } from "@/src/auth/session";
+import { demoNow } from "@/src/features/experience-server/demo-clock";
+import { demoMndaSigners } from "../mnda/demo-register";
 import { mndaRepository } from "../mnda/server";
 import type { MndaDuplicates } from "../mnda/actions";
 import { mayApproveOwnRequests } from "../self-approval/model";
 import { attempt } from "./action-result";
+import { contractReader } from "./demo-access";
 import {
   importedScenarioNotes,
   templateRateMinimums,
 } from "./line-items-server";
-import { prepareInputSchema } from "./prepare-input";
+import { prepareInputSchema, preparedSectionsKey } from "./prepare-input";
 import {
   contractActor,
   contractRepository,
@@ -31,7 +35,7 @@ import {
   contractSigningRepository,
   contractSigningWorkflow,
   contractStaff,
-  contractTemplateRegistry,
+  contractTemplateSource,
   sessionHas,
 } from "./server";
 
@@ -40,6 +44,16 @@ import {
  * refused (`CONTRACT_REQUEST_CHANGED`) rather than applied to the next. The
  * workflow checks it under the request's lease. */
 const requestNumber = z.number().int().min(1).optional();
+
+/** Whether a database error is the template store refusing a request for
+ * a version that is no longer in use (SQLSTATE CW409, migration 001475). */
+function staleTemplateVersion(error: unknown): boolean {
+  for (let cause = error, depth = 0; cause && depth < 4; depth++) {
+    if ((cause as { code?: unknown }).code === "CW409") return true;
+    cause = (cause as { cause?: unknown }).cause;
+  }
+  return false;
+}
 
 /** Records a new contract, or saves an edit made against a known version. */
 export async function saveContract(raw: unknown) {
@@ -113,23 +127,27 @@ export async function removeContractFile(raw: unknown) {
 }
 
 /**
- * Prepares a contract from an available template: validates the seller's
- * values against the template's fields, renders the PDF and records it as a
- * draft awaiting approval or sending. Templates pending from legal refuse.
+ * Prepares a contract from the template version the form was built for:
+ * validates the seller's values and optional sections against it, renders
+ * the PDF and records it as a draft awaiting approval or sending. A version
+ * that is no longer the one in use refuses, so the seller reloads the form.
  */
 export async function prepareContract(raw: unknown) {
   return attempt(async () => {
     const session = await contractStaff("contract:write");
-    const templateId = z
-      .object({ templateId: z.string().min(1).max(64) })
+    const { templateId, templateVersion } = z
+      .object({
+        templateId: z.string().min(1).max(64),
+        templateVersion: z.string().min(1).max(40),
+      })
       .loose()
-      .parse(raw).templateId;
-    const template = availableContractTemplate(
-      contractTemplateRegistry(),
+      .parse(raw);
+    const template = await contractTemplateSource().version(
       templateId,
+      templateVersion,
     );
     const input = prepareInputSchema(
-      template.fields,
+      template,
       await templateRateMinimums(template.fields),
     ).parse(raw);
     const repository = contractSigningRepository();
@@ -149,51 +167,138 @@ export async function prepareContract(raw: unknown) {
       counterpartyName: input.counterpartyName,
       effectiveDate: input.effectiveDate,
       values: input.values,
+      sections: input.sections,
       signer,
       countersigner,
     });
     const documentName =
       `Fil One ${template.name} - ${input.counterpartyName}`.slice(0, 200);
     const pricingNotes = await importedScenarioNotes(session, input.values);
-    await repository.prepare(
-      {
-        contract: {
-          id: input.id,
-          counterpartyName: input.counterpartyName,
-          title: template.name,
-          contractType: template.contractType,
-          paper: "ours",
-          status: "draft",
-          effectiveDate: input.effectiveDate,
-          initialTermMonths: null,
-          autoRenew: false,
-          renewalTermMonths: null,
-          noticePeriodDays: null,
-          valueMinor: null,
-          currency: null,
-          pricingNotes,
-          ownerName: input.ownerName,
-          internalNotes: "",
-          tags: [],
+    await repository
+      .prepare(
+        {
+          contract: {
+            id: input.id,
+            counterpartyName: input.counterpartyName,
+            title: template.name,
+            contractType: template.contractType,
+            paper: "ours",
+            status: "draft",
+            effectiveDate: input.effectiveDate,
+            initialTermMonths: null,
+            autoRenew: false,
+            renewalTermMonths: null,
+            noticePeriodDays: null,
+            valueMinor: null,
+            currency: null,
+            pricingNotes,
+            ownerName: input.ownerName,
+            internalNotes: "",
+            tags: [],
+          },
+          signing: {
+            templateId: template.id,
+            templateVersion: template.version,
+            templateHash: template.templateHash,
+            documentName,
+            input: input.sections.length
+              ? {
+                  ...input.values,
+                  [preparedSectionsKey]: input.sections.join(","),
+                }
+              : input.values,
+            counterpartySigner: signer,
+            countersignerId: countersigner.id,
+            approvalRequired: template.requiresApproval,
+            testMode: contractSigningConfiguration().testMode,
+            preparerEmail: session.profile.email,
+          },
+          pdf: rendered.bytes,
+          fileName: contractPdfFileName(documentName),
         },
-        signing: {
-          templateId: template.id,
-          templateVersion: template.version,
-          templateHash: template.templateHash,
-          documentName,
-          input: input.values,
-          counterpartySigner: signer,
-          countersignerId: countersigner.id,
-          approvalRequired: template.requiresApproval,
-          testMode: contractSigningConfiguration().testMode,
-          preparerEmail: session.profile.email,
-        },
-        pdf: rendered.bytes,
-        fileName: contractPdfFileName(documentName),
-      },
-      contractActor(session),
-    );
+        contractActor(session),
+      )
+      .catch((error: unknown) => {
+        // The database refused a version replaced since the form was read.
+        if (staleTemplateVersion(error))
+          throw new Error("CONTRACT_TEMPLATE_VERSION_CHANGED");
+        throw error;
+      });
     return { id: input.id };
+  });
+}
+
+/**
+ * Renders the PDF a preparation would produce, without saving anything, so
+ * the seller can read it first. Values are checked as Prepare checks them;
+ * signer details not entered yet print as blanks. The guided demo previews
+ * its sample templates the same way.
+ */
+export async function previewContract(raw: unknown) {
+  return attempt(async () => {
+    const demo = explicitDemoIdentityEnabled();
+    await contractReader(demo ? "contract:read" : "contract:write");
+    const { templateId, templateVersion } = z
+      .object({
+        templateId: z.string().min(1).max(64),
+        templateVersion: z.string().min(1).max(40),
+      })
+      .loose()
+      .parse(raw);
+    const template = await contractTemplateSource().version(
+      templateId,
+      templateVersion,
+    );
+    const blank = "________";
+    const given = z.record(z.string(), z.unknown()).parse(raw);
+    const filled = (name: string, fallback: string) =>
+      typeof given[name] === "string" && given[name].trim() !== ""
+        ? given[name]
+        : fallback;
+    const countersigners = demo
+      ? demoMndaSigners
+      : await contractSigningRepository().countersigners();
+    const countersigner = countersigners.find(
+      (signer) => signer.id === given.countersignerId,
+    );
+    const input = prepareInputSchema(
+      template,
+      demo ? new Map() : await templateRateMinimums(template.fields),
+    ).parse({
+      ...given,
+      id: "00000000-0000-4000-8000-000000000000",
+      counterpartyName: filled("counterpartyName", blank),
+      effectiveDate: filled("effectiveDate", contractToday(demoNow())),
+      signerName: filled("signerName", blank),
+      signerEmail: filled("signerEmail", "signer@example.com"),
+      signerTitle: filled("signerTitle", blank),
+      countersignerId:
+        countersigner?.id ?? "00000000-0000-4000-8000-000000000000",
+      ownerName: filled("ownerName", blank),
+    });
+    const rendered = await template.render({
+      contractId: input.id,
+      counterpartyName: input.counterpartyName,
+      effectiveDate: input.effectiveDate,
+      values: input.values,
+      sections: input.sections,
+      marking: "PREVIEW, NOT FOR SIGNATURE",
+      signer: {
+        name: input.signerName,
+        email: input.signerEmail,
+        title: input.signerTitle,
+      },
+      countersigner: countersigner ?? { name: blank, email: "", title: blank },
+    });
+    return {
+      pdf: rendered.bytes.toString("base64"),
+      fileName: contractPdfFileName(
+        `Preview - Fil One ${template.name} - ${input.counterpartyName}`.slice(
+          0,
+          200,
+        ),
+      ),
+    };
   });
 }
 
@@ -418,15 +523,22 @@ export async function resendContract(raw: unknown) {
   return attempt(async () => {
     const session = await contractStaff("contract:write");
     const { contractId, requestNumber } = ContractResendSchema.parse(raw);
-    const { record } = await contractSigningRepository().resend(
-      contractId,
-      requestNumber,
-      {
-        testMode: contractSigningConfiguration().testMode,
-        preparerEmail: session.profile.email,
-      },
-      contractActor(session),
-    );
+    const { record } = await contractSigningRepository()
+      .resend(
+        contractId,
+        requestNumber,
+        {
+          testMode: contractSigningConfiguration().testMode,
+          preparerEmail: session.profile.email,
+        },
+        contractActor(session),
+      )
+      .catch((error: unknown) => {
+        // The template version it was prepared from is not in the store.
+        if (staleTemplateVersion(error))
+          throw new Error("CONTRACT_TEMPLATE_VERSION_UNAVAILABLE");
+        throw error;
+      });
     return { state: record.state, requestNumber: record.requestNumber };
   });
 }

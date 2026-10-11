@@ -1,0 +1,48 @@
+{
+  "id": "sample-order-form",
+  "contractType": "order_form",
+  "name": "Sample Order Form",
+  "version": "demo-1",
+  "requiresApproval": true,
+  "sourceNote": "Demo sample wording; not an agreement",
+  "fields": [
+    {
+      "id": "regions",
+      "kind": "text",
+      "required": true,
+      "maxLength": 120,
+      "label": { "en": "Regions" },
+      "default": "us-east"
+    },
+    {
+      "id": "order_lines",
+      "kind": "line_items",
+      "required": true,
+      "label": { "en": "Order lines" }
+    },
+    {
+      "id": "support_tier",
+      "kind": "choice",
+      "required": true,
+      "label": { "en": "Support tier" },
+      "default": "Standard",
+      "options": [
+        { "value": "Standard", "label": { "en": "Standard" } },
+        { "value": "Premium", "label": { "en": "Premium" } }
+      ]
+    }
+  ],
+  "sections": [],
+  "derived": [],
+  "document": {
+    "title": "SAMPLE ORDER FORM (DEMO)",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "This is sample wording for the guided demo. It is not an order and binds no one. Customer: [[counterparty_name]]. Effective date: [[effective_date]]. Regions: [[regions]]. Support: [[support_tier]]."
+      },
+      { "type": "heading", "text": "Fees" },
+      { "type": "paragraph", "text": "[[order_lines]]" }
+    ]
+  }
+}

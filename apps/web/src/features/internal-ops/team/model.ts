@@ -160,6 +160,8 @@ export const permissionLabels: Readonly<Record<Permission, MessageId>> = {
   "contract:read": "operations.team.permission.contractRead",
   "contract:write": "operations.team.permission.contractWrite",
   "contract:approve": "operations.team.permission.contractApprove",
+  "contract_template:manage":
+    "operations.team.permission.contractTemplateManage",
   "signatory:manage": "operations.team.permission.signatoryManage",
   "sales:read": "operations.team.permission.salesRead",
   "collateral:manage": "operations.team.permission.collateralManage",

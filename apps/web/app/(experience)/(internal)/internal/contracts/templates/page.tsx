@@ -24,7 +24,9 @@ export default async function Page() {
     <TemplatePicker
       t={t}
       templates={loaded.templates}
+      canOpen={loaded.canOpen}
       canWrite={loaded.canWrite}
+      canManage={loaded.canManage}
     />
   );
 }
