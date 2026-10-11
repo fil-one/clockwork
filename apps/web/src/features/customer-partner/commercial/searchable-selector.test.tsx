@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -85,5 +85,40 @@ describe("searchable quote choices", () => {
     await user.tab();
     expect(input).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("button", { name: "Continue" })).toHaveFocus();
+  });
+
+  it("preserves a selected offer when Enter dismisses a refocused list", async () => {
+    const user = userEvent.setup();
+    const submit = vi.fn();
+    render(<Picker onSubmit={submit} />);
+    const input = screen.getByRole("combobox", { name: "Offer" });
+    await user.click(input);
+    await user.click(screen.getByRole("option", { name: /Storage · EU West/ }));
+    await user.tab();
+    await user.tab({ shift: true });
+    await user.keyboard("{Enter}");
+    expect(input).toHaveValue("Storage · EU West");
+    expect(input).toHaveAttribute("aria-expanded", "false");
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it("leaves candidate navigation and confirmation to the input method", async () => {
+    const user = userEvent.setup();
+    render(<Picker />);
+    const input = screen.getByRole("combobox", { name: "Offer" });
+    await user.click(input);
+    expect(
+      fireEvent.keyDown(input, { key: "ArrowDown", isComposing: true }),
+    ).toBe(true);
+    expect(input).not.toHaveAttribute("aria-activedescendant");
+    await user.keyboard("{ArrowDown}");
+    expect(fireEvent.keyDown(input, { key: "Enter", isComposing: true })).toBe(
+      true,
+    );
+    expect(fireEvent.keyDown(input, { key: "Enter", keyCode: 229 })).toBe(true);
+    expect(input).toHaveValue("");
+    expect(input).toHaveAttribute("aria-expanded", "true");
+    await user.keyboard("{Enter}");
+    expect(input).toHaveValue("Storage · US East");
   });
 });

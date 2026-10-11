@@ -255,7 +255,7 @@
 .workflow textarea,
 .selector input {
   background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--cw-border-strong);
   border-radius: var(--cw-radius-sm);
   box-shadow: var(--cw-shadow-xs);
   color: var(--color-text);

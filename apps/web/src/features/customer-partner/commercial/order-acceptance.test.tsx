@@ -788,6 +788,66 @@ describe("order acceptance two-pass bridge", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Order created");
   });
 
+  it.each(["created", "refused"] as const)(
+    "locks binding inputs while creation is pending and handles a %s response",
+    async (outcome) => {
+      renderSurface();
+      fillAcceptanceInputs();
+      await submitFirstPass();
+      storeOrderForm();
+      await elapse(2_000);
+      vi.useRealTimers();
+      const user = userEvent.setup();
+      const orderId = preparedOrderId();
+      let resolveCreate: (value: unknown) => void = () => {};
+      let rejectCreate: (reason: Error) => void = () => {};
+      mocks.sendCoreCommand.mockImplementationOnce(
+        () =>
+          new Promise((resolve, reject) => {
+            resolveCreate = resolve;
+            rejectCreate = reject;
+          }),
+      );
+
+      await settled(() => {
+        fireEvent.click(screen.getByRole("button", { name: createLabel }));
+      });
+
+      for (const label of [
+        "Purchase order",
+        "Service start",
+        "Service end",
+        "Authority title",
+      ]) {
+        expect(screen.getByLabelText(label)).toBeDisabled();
+      }
+      expect(screen.getByRole("checkbox")).toBeDisabled();
+      await user.type(screen.getByLabelText("Purchase order"), "-CHANGED");
+      await user.click(screen.getByRole("checkbox"));
+      expect(screen.getByLabelText("Purchase order")).toHaveValue("PO-NA-1092");
+      expect(screen.getByRole("checkbox")).toBeChecked();
+      expect(mocks.sendCoreCommand).toHaveBeenCalledTimes(2);
+
+      await settled(() => {
+        if (outcome === "created") resolveCreate({});
+        else rejectCreate(new Error("Order creation refused"));
+      });
+
+      if (outcome === "created") {
+        expect(screen.getByRole("status")).toHaveTextContent("Order created");
+        expect(
+          screen.getByRole("link", { name: "Open the created order" }),
+        ).toHaveAttribute("href", `/orders/order-${orderId}`);
+        expect(mocks.refresh).toHaveBeenCalledTimes(1);
+      } else {
+        expect(screen.getByRole("alert")).toBeVisible();
+        expect(screen.getByLabelText("Purchase order")).toBeEnabled();
+        expect(screen.getByRole("checkbox")).toBeEnabled();
+        expect(screen.getByRole("button", { name: createLabel })).toBeEnabled();
+      }
+    },
+  );
+
   it.each([
     null,
     {
@@ -964,6 +1024,32 @@ describe("order acceptance binds the form to the order it was prepared for", () 
     expect(
       screen.queryByRole("button", { name: recheckLabel }),
     ).not.toBeInTheDocument();
+  });
+
+  it("ignores a superseded preparation failure while the new form is pending", async () => {
+    let rejectPrepare: (reason: Error) => void = () => {};
+    mocks.sendCoreCommand.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectPrepare = reject;
+        }),
+    );
+    renderSurface();
+    fillAcceptanceInputs();
+    await submitFirstPass();
+    expect(screen.getByLabelText("Purchase order")).toBeEnabled();
+    fireEvent.change(screen.getByLabelText("Purchase order"), {
+      target: { value: "PO-NA-1093" },
+    });
+    await submitFirstPass();
+
+    await settled(() => rejectPrepare(new Error("Old preparation refused")));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Preparing order form…" }),
+    ).toBeDisabled();
+    expect(mocks.sendCoreCommand).toHaveBeenCalledTimes(2);
   });
 
   it("never creates under an order the document was not bound to", async () => {

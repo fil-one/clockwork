@@ -91,6 +91,8 @@ export function SearchableSelector({
             setOpen(true);
           }}
           onKeyDown={(event) => {
+            // Candidate navigation/confirmation belongs to the input method.
+            if (event.nativeEvent.isComposing || event.keyCode === 229) return;
             if (event.key === "Escape" && open) {
               event.preventDefault();
               event.stopPropagation();
@@ -110,8 +112,8 @@ export function SearchableSelector({
               );
             } else if (event.key === "Enter" && open) {
               event.preventDefault();
-              const option = active ?? results[0];
-              if (option) choose(option);
+              if (active) choose(active);
+              else setOpen(false);
             }
           }}
           placeholder={placeholder}

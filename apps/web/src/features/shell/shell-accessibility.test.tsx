@@ -190,6 +190,38 @@ describe("shell keyboard and screen reader wayfinding", () => {
     expect(live.textContent).not.toContain("Loading records");
   });
 
+  it("announces a ready page while a child widget remains busy", async () => {
+    const { rerender } = renderShell();
+    pathname = "/internal/reports";
+    rerender(
+      <AppShell audience="internal" session={session}>
+        <main id="main-content" aria-busy="true">
+          <h1>Loading records</h1>
+        </main>
+      </AppShell>,
+    );
+    const live = document.querySelector("[aria-live]") as HTMLElement;
+    expect(live.textContent).not.toContain("Page loaded");
+
+    rerender(
+      <AppShell audience="internal" session={session}>
+        <main id="main-content">
+          <h1>Operational reports</h1>
+          <section aria-label="Report preview" aria-busy="true">
+            Preparing preview
+          </section>
+        </main>
+      </AppShell>,
+    );
+
+    await waitFor(() =>
+      expect(live.textContent).toBe("Operational reports. Page loaded."),
+    );
+    expect(
+      screen.getByRole("region", { name: "Report preview" }),
+    ).toHaveAttribute("aria-busy", "true");
+  });
+
   it("does not announce a restored connection on an ordinary page load", () => {
     renderShell();
     const live = document.querySelector("[aria-live]") as HTMLElement;

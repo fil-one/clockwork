@@ -343,6 +343,7 @@ export function OrderAcceptance({
       boundFields(poNumber, serviceStart, serviceEnd, authorityTitle)
       ? orderForm
       : null;
+  const creatingOrder = phase === "submitting" && preparedFor !== null;
 
   /** Abandons a poll left running when the reader navigates away mid-wait. */
   useEffect(
@@ -399,7 +400,7 @@ export function OrderAcceptance({
    */
   const resetSubmission = () => {
     setValidationError(null);
-    if (phase === "created") return;
+    if (phase === "created" || creatingOrder) return;
     pollRef.current += 1;
     submissionRef.current += 1;
     setPhase("ready");
@@ -474,7 +475,7 @@ export function OrderAcceptance({
   };
 
   const accept = async () => {
-    if (!quote) return;
+    if (!quote || phase !== "ready") return;
     const invalid: { id: string; message: MessageId } | undefined =
       !poNumber.trim()
         ? {
@@ -586,12 +587,9 @@ export function OrderAcceptance({
         },
         { idempotencyKey },
       );
-      // A bound entry changed while this command was on the wire. The command
-      // itself stands -- the server has it either way -- but nothing it named
-      // describes what is on screen now, so it records nothing and starts no
-      // wait. The reader's next submission is a fresh prepare.
-      if (submissionRef.current !== submission) return;
       if (creating) {
+        // A completed creation is authoritative even if local inputs changed.
+        // Never discard its receipt and invite another order submission.
         setCreatedOrderId(orderId);
         setPhase("created");
         // The order and its commitment now exist on the server. Every other
@@ -601,6 +599,8 @@ export function OrderAcceptance({
         router.refresh();
         return;
       }
+      // Edits can supersede preparation, which has created no order yet.
+      if (submissionRef.current !== submission) return;
       // The first pass only asked for the document, and it named the order and
       // the entries the server will render it from. Both are recorded before
       // the wait starts: they are what says whether the form that turns up is
@@ -614,6 +614,8 @@ export function OrderAcceptance({
       // away and re-key the form.
       await awaitOrderForm(orderId, preparedRef.current.artifactRequestId);
     } catch (caught) {
+      // An abandoned preparation cannot overwrite a newer submission's state.
+      if (submissionRef.current !== submission) return;
       setError(
         commercialFailureText(caught, t, "customer.commercial.accept.failed"),
       );
@@ -790,7 +792,7 @@ export function OrderAcceptance({
                   })}
                 </p>
               </div>
-              <fieldset className={styles.stageFields}>
+              <fieldset className={styles.stageFields} disabled={creatingOrder}>
                 <legend>{t("customer.commercial.accept.inputs")}</legend>
                 <div className={styles.formGrid}>
                   <div className={styles.field}>
@@ -960,6 +962,7 @@ export function OrderAcceptance({
                     validationError?.id === "order-confirmation" || undefined
                   }
                   checked={confirmed}
+                  disabled={creatingOrder}
                   id="order-confirmation"
                   onChange={(event) => {
                     setConfirmed(event.target.checked);

@@ -691,12 +691,9 @@ export function AppShell({
     // Wait for its replacement before announcing the actual page heading.
     const announceWhenReady = () => {
       const main = document.getElementById("main-content");
-      if (
-        !main ||
-        main.matches('[aria-busy="true"]') ||
-        main.querySelector('[aria-busy="true"]')
-      )
-        return false;
+      // The route boundary marks the main landmark. A busy child widget
+      // does not mean the surrounding page is still loading.
+      if (!main || main.matches('[aria-busy="true"]')) return false;
       const heading = main.querySelector("h1")?.textContent?.trim();
       announcedPath.current = pathname;
       setAnnouncement(
