@@ -147,9 +147,10 @@ create trigger protect_commerce_contract_template
 /* A contract's first signing request for a stored template names the active
    version and that version's content hash. A later request on the same
    contract, sent again after the first ended (001465), keeps the version the
-   contract was prepared from: it must name a stored version with that hash,
-   whatever its status now. Template keys the store does not hold (the code
-   templates used by tests) are left to the application. */
+   contract was prepared from: it must name the version and hash of one of
+   this contract's own earlier requests, retired or active, never a draft.
+   Template keys the store does not hold (the code templates used by tests)
+   are left to the application. */
 create or replace function public.check_commerce_contract_signing_template() returns trigger
 language plpgsql set search_path = public as $$
 begin
@@ -159,7 +160,13 @@ begin
        select 1 from public.commerce_contract_templates t
        where t.template_key = new.template_id and 'v' || t.version = new.template_version
          and t.content_hash = new.template_hash
-         and (t.status = 'active' or new.request_number > 1)) then
+         and (t.status = 'active'
+           or (new.request_number > 1 and t.status <> 'draft' and exists (
+             select 1 from public.commerce_contract_signing_history h
+             where h.contract_id = new.contract_id
+               and h.request->>'template_id' = new.template_id
+               and h.request->>'template_version' = new.template_version
+               and h.request->>'template_hash' = new.template_hash)))) then
     -- CW409 lets the application ask the seller to reload the form.
     raise exception using errcode = 'CW409',
       message = 'A contract is prepared only from the active version of its template';

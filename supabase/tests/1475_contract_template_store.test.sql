@@ -2,7 +2,7 @@
 -- drafts, frozen on activation, one active version per template, never
 -- changed once used, and signing requests pinned to the active version.
 begin;
-select plan(33);
+select plan(38);
 set local search_path = public, extensions;
 
 -- Row security and grants: the service role only.
@@ -34,6 +34,13 @@ returns void language sql as $$
   insert into commerce_contract_signing (contract_id, template_id, template_version, template_hash, document_name, input,
     counterparty_signer, countersigner, preparer_id, preparer_name, approval_required, approval_state, test_mode)
   values (contract, template, version, hash, 'Doc', '{}', '{}', '{}',
+    'a1475000-0000-4000-8000-000000000002', 'R.W.', true, 'pending', true)
+$$;
+
+create function pg_temp.resend(version text, hash text) returns void language sql as $$
+  insert into commerce_contract_signing (contract_id, request_number, template_id, template_version, template_hash,
+    document_name, input, counterparty_signer, countersigner, preparer_id, preparer_name, approval_required, approval_state, test_mode)
+  values ('c1475000-0000-4000-8000-000000000001', 2, 'channel-partnership', version, hash, 'Doc', '{}', '{}', '{}',
     'a1475000-0000-4000-8000-000000000002', 'R.W.', true, 'pending', true)
 $$;
 
@@ -120,10 +127,24 @@ select lives_ok($$update commerce_contract_signing set state = 'canceled', cance
   'the first request ends unsent');
 select lives_ok($$delete from commerce_contract_signing where contract_id = 'c1475000-0000-4000-8000-000000000001'$$,
   'the ended request moves to the history');
-select lives_ok($$insert into commerce_contract_signing (contract_id, request_number, template_id, template_version, template_hash,
-    document_name, input, counterparty_signer, countersigner, preparer_id, preparer_name, approval_required, approval_state, test_mode)
-  values ('c1475000-0000-4000-8000-000000000001', 2, 'channel-partnership', 'v1', repeat('b',64), 'Doc', '{}', '{}', '{}',
-    'a1475000-0000-4000-8000-000000000002', 'R.W.', true, 'pending', true)$$,
+-- Only the version and hash of this contract's own earlier request: not a
+-- draft, and not another retired version it was never prepared from.
+select lives_ok($$select pg_temp.draft('b1475000-0000-4000-8000-000000000003', 3, repeat('e',64))$$,
+  'a third version is drafted');
+select lives_ok($$update commerce_contract_templates set status = 'active', activated_by_id = 'a1475000-0000-4000-8000-000000000001',
+    activated_by_name = 'Elena Brooks', activated_at = now(), revision = 2
+    where id = 'b1475000-0000-4000-8000-000000000003'$$,
+  'the third version is activated');
+select lives_ok($$update commerce_contract_templates set status = 'retired', retired_by_name = 'Elena Brooks',
+    retired_at = now(), revision = 3 where id = 'b1475000-0000-4000-8000-000000000003'$$,
+  'and retired');
+select throws_ok($$select pg_temp.resend('v2', repeat('c',64))$$,
+  'CW409', 'A contract is prepared only from the active version of its template',
+  'a contract is not sent again on a draft');
+select throws_ok($$select pg_temp.resend('v3', repeat('e',64))$$,
+  'CW409', 'A contract is prepared only from the active version of its template',
+  'a contract is not sent again on a retired version it was not prepared from');
+select lives_ok($$select pg_temp.resend('v1', repeat('b',64))$$,
   'a contract is sent again on its retired version');
 select lives_ok($$select pg_temp.sign('c1475000-0000-4000-8000-000000000003', 'fixture-2', repeat('d',64), 'test-fixture')$$,
   'a template key the store does not hold is left to the application');
