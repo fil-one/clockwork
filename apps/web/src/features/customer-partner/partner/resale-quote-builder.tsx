@@ -1,4 +1,5 @@
 "use client";
+import { SearchableSelector } from "../commercial/searchable-selector";
 import { localQuoteExpiry } from "./resale-quote-model";
 
 import type { MessageId } from "@/src/i18n";
@@ -428,30 +429,25 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
           <p className={styles.muted}>{t(stageHelp[stage])}</p>
           <div className={styles.formGrid}>
             {stage === 1 ? (
-              <label className={`${styles.field} ${styles.full}`}>
-                {t("partner.quote.new.field.offer")}
-                <input
+              <div className={styles.full}>
+                <SearchableSelector
+                  id="partner-offer"
                   name="offerName"
-                  list="partner-offers"
+                  label={t("partner.quote.new.field.offer")}
+                  placeholder={t("common.search")}
                   value={draft.offerName}
-                  onChange={(event) => update("offerName", event.target.value)}
-                  aria-invalid={Boolean(errors.offerName)}
-                  aria-describedby={
-                    errors.offerName ? "offer-error" : undefined
+                  onChange={(value) => update("offerName", value)}
+                  options={selectableOffers.map((option) => ({
+                    id: option.id,
+                    label: option.name,
+                  }))}
+                  error={
+                    errors.offerName
+                      ? t(errors.offerName.id, errors.offerName.values)
+                      : undefined
                   }
-                  autoComplete="off"
                 />
-                <datalist id="partner-offers">
-                  {selectableOffers.map((option) => (
-                    <option value={option.name} key={option.id} />
-                  ))}
-                </datalist>
-                {errors.offerName ? (
-                  <span className={styles.error} id="offer-error" role="alert">
-                    {t(errors.offerName.id, errors.offerName.values)}
-                  </span>
-                ) : null}
-              </label>
+              </div>
             ) : null}
             {stage === 2 ? (
               <>
@@ -492,29 +488,23 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                     </span>
                   ) : null}
                 </label>
-                <label className={styles.field}>
-                  {t("partner.quote.new.field.endClient")}
-                  <input
-                    name="endClientName"
-                    list="partner-clients"
-                    value={draft.endClientName}
-                    onChange={(event) =>
-                      update("endClientName", event.target.value)
-                    }
-                    aria-invalid={Boolean(errors.endClientName)}
-                    autoComplete="off"
-                  />
-                  <datalist id="partner-clients">
-                    {context.endClients.map((option) => (
-                      <option value={option.name} key={option.id} />
-                    ))}
-                  </datalist>
-                  {errors.endClientName ? (
-                    <span className={styles.error} role="alert">
-                      {t(errors.endClientName.id, errors.endClientName.values)}
-                    </span>
-                  ) : null}
-                </label>
+                <SearchableSelector
+                  id="partner-end-client"
+                  name="endClientName"
+                  label={t("partner.quote.new.field.endClient")}
+                  placeholder={t("common.search")}
+                  value={draft.endClientName}
+                  onChange={(value) => update("endClientName", value)}
+                  options={context.endClients.map((option) => ({
+                    id: option.id,
+                    label: option.name,
+                  }))}
+                  error={
+                    errors.endClientName
+                      ? t(errors.endClientName.id, errors.endClientName.values)
+                      : undefined
+                  }
+                />
                 <label className={styles.field}>
                   {t("partner.quote.new.field.expiry")}
                   <input

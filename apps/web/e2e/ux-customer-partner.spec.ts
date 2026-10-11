@@ -130,6 +130,7 @@ test("owner creates a priced draft from the session account", async ({
   );
 
   await page.getByLabel("Offer", { exact: true }).fill(OFFER);
+  await page.getByRole("option", { name: OFFER }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(
     page.getByRole("heading", {
@@ -362,7 +363,7 @@ test("order acceptance requires an explicit attestation before it binds", async 
     .getByRole("textbox", { name: "Authority title" })
     .fill("Director of Infrastructure");
   await page
-    .getByRole("button", { name: "Accept order and create commitment" })
+    .getByRole("button", { name: "Prepare order form for review" })
     .click();
   await expect(page.getByRole("checkbox")).toBeFocused();
   expect(accepted).toBe(false);

@@ -38,7 +38,7 @@ function BandHeading() {
 export default function InternalLoading() {
   const t = use(getTranslations());
   return (
-    <main className={styles.main} id="main-content">
+    <main className={styles.main} id="main-content" aria-busy="true">
       <p className="cw-sr-only" role="status">
         {t("common.loading")}
       </p>

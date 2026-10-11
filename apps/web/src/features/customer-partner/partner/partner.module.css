@@ -567,6 +567,7 @@ th[aria-sort="descending"] .sortButton::after {
 }
 
 .recordLink {
+  display: inline-block;
   color: var(--web-ink);
   font-size: var(--cw-text-md);
   font-weight: 500;
@@ -1186,4 +1187,10 @@ th[aria-sort="descending"] .sortButton::after {
 
 .filters > :first-child {
   flex: 2 1 16rem;
+}
+
+.success a {
+  display: inline-block;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }

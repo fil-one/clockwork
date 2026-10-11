@@ -275,7 +275,7 @@ function RecordCards({
 export function CommercialLoadingState() {
   const t = useTranslations();
   return (
-    <main className={styles.main} id="main-content">
+    <main className={styles.main} id="main-content" aria-busy="true">
       <section className={styles.state} role="status">
         <h1>{t("customer.commercial.state.loadingTitle")}</h1>
         <p>{t("customer.commercial.state.loadingBody")}</p>

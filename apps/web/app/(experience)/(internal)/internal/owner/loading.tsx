@@ -14,7 +14,7 @@ const panels = [0, 1, 2, 3, 4, 5];
 export default function OwnerConsoleLoading() {
   const t = use(getTranslations());
   return (
-    <main className={styles.main} id="main-content">
+    <main className={styles.main} id="main-content" aria-busy="true">
       <p className="cw-sr-only" role="status">
         {t("common.loading")}
       </p>

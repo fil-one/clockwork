@@ -441,7 +441,7 @@ test.describe("direct buyer flagship journey", () => {
         })
         .check();
       await page
-        .getByRole("button", { name: "Accept order and create commitment" })
+        .getByRole("button", { name: "Prepare order form for review" })
         .click();
 
       const orderForm = page.getByRole("link", { name: "Open the order form" });
@@ -1105,10 +1105,19 @@ test.describe("playable product-demo workflows", () => {
       await page
         .getByLabel("Offer and price book")
         .fill("LOCKED-STORAGE-TB · uk-south · Partner commerce GBP (GBP)");
+      await page
+        .getByRole("option", {
+          name: "LOCKED-STORAGE-TB · uk-south · Partner commerce GBP (GBP)",
+          exact: true,
+        })
+        .click();
       await page.getByRole("button", { name: "Continue" }).click();
       await page.getByLabel("Committed capacity (TB)").fill("40");
       await page.getByLabel("Term (months)").fill("12");
       await page.getByLabel("End client").fill("Aster House Media");
+      await page
+        .getByRole("option", { name: "Aster House Media", exact: true })
+        .click();
       await page
         .getByLabel("Partner resale price (GBP major units)")
         .fill("60000");
