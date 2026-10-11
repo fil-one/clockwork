@@ -1235,6 +1235,7 @@ test("@internal records a partner's terms, registers deals and is warned about a
   } finally {
     await sql.end();
   }
+  await expect(page).toHaveTitle("Partners · Fil One Commerce");
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations).toEqual([]);
 });
