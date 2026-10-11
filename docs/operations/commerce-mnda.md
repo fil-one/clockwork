@@ -253,10 +253,13 @@ person's staff membership and deactivates their WorkOS organization membership;
 their history stays. Neither the page nor the provisioning secret can remove the
 last commerce administrator.
 
-A person's authenticator counts as enrolled from their first verified in-app MFA
-check (`/access/mfa`). Staff authority checks that require an enrolled
-authenticator (capabilities, catalog, provider references, finance decisions)
-pass from then on; the enrollment is recorded in the audit log.
+A person's authenticator counts as enrolled after verified hosted WorkOS MFA or
+an in-app MFA check (`/access/mfa`). Hosted recognition is restricted to the
+session and factor checks in
+[WorkOS session MFA](production-bootstrap.md#workos-session-mfa). Staff
+authority checks that require an enrolled authenticator (capabilities, catalog,
+provider references, finance decisions) pass from then on; the enrollment is
+recorded in the audit log.
 
 The deployment path remains for a first administrator or when the page is not
 available. An optional protected `CLOCKWORK_STAFF_PROVISIONING` secret contains
@@ -272,9 +275,10 @@ does not email invitations, generate passwords, claim email verification or
 enroll another person's MFA. Remove the secret after successful provisioning and
 deploy again. Staff domain configuration includes `fil.org,fil.one`. The user
 must verify their email and enroll their own authenticator through the
-organization's required MFA policy on first login. A verified in-app MFA
-challenge may also be requested. The [revenue team guide](revenue-team-guide.md)
-walks a new seller through it.
+organization's required MFA policy on first login. An in-app MFA challenge
+remains available for sensitive actions or when hosted assurance cannot be
+established. The [revenue team guide](revenue-team-guide.md) walks a new seller
+through it.
 
 ## Recovery and verification
 

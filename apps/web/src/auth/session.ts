@@ -37,7 +37,11 @@ import {
   resolveProviderAssistedSession,
   type AssistedSessionView,
 } from "@/src/features/internal-ops/assisted-session/repository";
-import { findMfaReceipt, resolveWorkosIdentity } from "@clockwork/db";
+import {
+  findMfaReceipt,
+  recordHostedMfaEnrollment,
+  resolveWorkosIdentity,
+} from "@clockwork/db";
 import {
   getTokenClaims,
   type UserInfo,
@@ -57,6 +61,7 @@ import {
 } from "@/src/auth/demo-access";
 import { getServiceDatabase } from "@/src/db/service";
 import { requireStaffEmailDomains } from "@/src/auth/staff-domains";
+import { verifyWorkosHostedMfaSession } from "./workos-mfa-assurance";
 
 export const workosAuthenticationConfigured = () =>
   Boolean(
@@ -179,12 +184,13 @@ function assertPrivilegedMfa(
  * flags and nothing else -- so the claim is read the way AuthKit reads its own
  * undeclared `auth_time` for `checkRecentAuth`: through `getTokenClaims`. Which
  * claim carries it and which values count is a property of the WorkOS
- * environment, so both are configuration; anything unrecognised, absent or
- * misshapen is not a second factor.
+ * environment, so both are configuration. An absent claim is distinguished
+ * from an explicit negative or malformed claim so only the former may use
+ * the provider's verified hosted-session evidence below.
  */
 async function sessionAssuranceVerified(
   accessToken: string | undefined,
-): Promise<boolean> {
+): Promise<boolean | undefined> {
   const claimName = process.env.WORKOS_MFA_ASSURANCE_CLAIM?.trim() || "amr";
   const accepted = (
     process.env.WORKOS_MFA_ASSURANCE_VALUES ?? "mfa,mca,totp,otp"
@@ -199,7 +205,10 @@ async function sessionAssuranceVerified(
   const claims = await getTokenClaims<Record<string, unknown>>(
     accessToken,
   ).catch(() => undefined);
-  const presented = claims?.[claimName];
+  if (!claims || typeof claims !== "object" || Array.isArray(claims))
+    return false;
+  const presented = claims[claimName];
+  if (presented === undefined) return undefined;
   const values = Array.isArray(presented)
     ? presented
     : typeof presented === "string"
@@ -711,9 +720,38 @@ async function workosCommerceSession(
         workosUserId: session.user.id,
         workosOrganizationId: session.organizationId,
       });
+  const claimAssurance = await sessionAssuranceVerified(session.accessToken);
+  // AuthKit hosted sign-in can omit amr. Only that omission may fall back
+  // to an independently verified provider session; explicit claims, custom
+  // assurance policies and impersonated sessions keep their existing rules.
+  // This is ordinary MFA evidence, never a fresh authentication timestamp.
+  const hostedProof =
+    claimAssurance === undefined &&
+    (process.env.WORKOS_MFA_ASSURANCE_CLAIM?.trim() || "amr") === "amr" &&
+    process.env.WORKOS_MFA_ASSURANCE_VALUES === undefined &&
+    !session.impersonator &&
+    receiptTime === undefined &&
+    policyOrganizations.includes(session.organizationId)
+      ? await verifyWorkosHostedMfaSession(getSealedSessionClient(), {
+          sessionId: session.sessionId,
+          workosUserId: session.user.id,
+          workosOrganizationId: session.organizationId,
+        }).catch(() => undefined)
+      : undefined;
+  // Check the previously verified local factor even for enrolled users. A
+  // provider-side factor change requires the local challenge to revoke tokens
+  // bound to the old factor; hosted evidence cannot replace that receipt.
+  const hostedAssurance = hostedProof
+    ? await recordHostedMfaEnrollment(database, {
+        commerceUserId: identity.userId,
+        workosUserId: session.user.id,
+        workosOrganizationId: session.organizationId,
+        sessionId: session.sessionId,
+        factorId: hostedProof.factorId,
+      })
+    : false;
   const mfaVerified =
-    ((await sessionAssuranceVerified(session.accessToken)) ||
-      receiptTime !== undefined) &&
+    (claimAssurance === true || hostedAssurance || receiptTime !== undefined) &&
     assuranceOrganizations.some((organizationId) =>
       policyOrganizations.includes(organizationId),
     );
