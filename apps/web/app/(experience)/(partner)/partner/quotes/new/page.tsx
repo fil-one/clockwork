@@ -28,9 +28,8 @@ import {
 } from "@/src/features/customer-partner/partner/resale-quote-model";
 import { demoPartnerQuoteContext } from "@/src/features/customer-partner/partner/demo-partner-quote";
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
+import { quoteCreationOpenFor } from "@/src/features/experience-server/quote-creation";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
-import { getCapabilityState } from "@/src/features/internal-ops/capability-state";
-import { quoteCreationOpen } from "@/src/features/internal-ops/capability-state-model";
 import {
   getRouteIdentity,
   getRouteSession,
@@ -300,7 +299,7 @@ async function ResaleQuoteWorkspace({
   if (!truth.transferTier) return <NothingToQuote missing="agreement" />;
   // An active price book alone must not offer a quote the server would
   // refuse: offers load only while quote creation's switches are on.
-  const quoting = quoteCreationOpen(await getCapabilityState(session));
+  const quoting = await quoteCreationOpenFor(session);
   const offers = quoting
     ? await loadOffers({
         // A partner-priced quote is billed in the partner's own currency, and the

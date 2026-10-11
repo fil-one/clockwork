@@ -24,8 +24,7 @@ import {
   getOptionalRuntimeDatabase,
   getOptionalServiceDatabase,
 } from "@/src/db/service";
-import { getCapabilityState } from "@/src/features/internal-ops/capability-state";
-import { quoteCreationOpen } from "@/src/features/internal-ops/capability-state-model";
+import { quoteCreationOpenFor } from "./quote-creation";
 import type { QuoteOfferOption } from "@/src/features/customer-partner/commercial/workflow-model";
 import {
   isOrderLifecycleStatus,
@@ -274,8 +273,7 @@ export async function loadCustomerQuoteOffers(): Promise<CustomerQuoteOffersLook
   if (!permitted) return { status: "forbidden" };
   // An active price book alone must not offer a purchase the server would
   // refuse: offers load only while quote creation's switches are on.
-  if (!quoteCreationOpen(await getCapabilityState(session)))
-    return { status: "unavailable" };
+  if (!(await quoteCreationOpenFor(session))) return { status: "unavailable" };
   const accountId = portalAccountId("customer", session);
   const runtime = getOptionalRuntimeDatabase();
   const service = getOptionalServiceDatabase();
