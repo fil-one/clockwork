@@ -765,10 +765,26 @@ export const signingScenarios: readonly SigningScenario[] = [
         { [h.log.idKey]: h.record().id, providerId: h.doc.id },
       );
       warn.mockRestore();
+      // SignWell's draft leaves the sender out: the request is held for a
+      // void instead of failing every retry, and nothing is sent.
       const refused = make();
       refused.doc.copied_contacts = [];
-      await expect(refused.send()).rejects.toThrow("COPIED_CONTACTS");
+      await expect(refused.send()).rejects.toThrow(
+        refused.code("NEEDS_ATTENTION"),
+      );
+      const held = {
+        state: "attention",
+        error: "signwell_copied_contacts_mismatch",
+      };
+      expect(refused.record()).toMatchObject(held);
+      await expect(refused.send()).rejects.toThrow(
+        refused.code("NEEDS_ATTENTION"),
+      );
+      expect(await refused.sync()).toMatchObject(held);
       expect(refused.provider.send).not.toHaveBeenCalled();
+      expect(
+        await refused.void({ reason: "SignWell left out the copy" }),
+      ).toMatchObject({ state: "canceled" });
     },
   },
   {

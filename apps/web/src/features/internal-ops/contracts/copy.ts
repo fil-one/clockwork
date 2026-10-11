@@ -184,6 +184,9 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
   CONTRACT_FILE_SENT_FOR_SIGNATURE:
     "operations.contracts.error.fileSentForSignature",
   CONTRACT_SIGNING_EXISTS: "operations.contracts.error.signingExists",
+  CONTRACT_REQUEST_CHANGED: "operations.contracts.error.requestChanged",
+  CONTRACT_RESEND_SIGNER_CHANGE:
+    "operations.contracts.error.resendSignerChange",
   CONTRACT_PAPER_UNREADABLE: "operations.contracts.error.paperUnreadable",
   CONTRACT_PAPER_FORM_UNREADABLE:
     "operations.contracts.error.paperFormUnreadable",
