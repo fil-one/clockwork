@@ -44,12 +44,24 @@ export async function POST(request: Request) {
       });
     else {
       // Template contracts share the SignWell account; same wakeup rule.
-      const contract = await contractSigningRepository().byProvider(providerId);
+      const contracts = contractSigningRepository();
+      const contract = await contracts.byProvider(providerId);
       if (contract)
         await contractSigningWorkflow("sync").sync(contract.contractId, {
           kind: "provider",
           id: "signwell",
         });
+      else {
+        // A request sent again replaced this document's request; its late
+        // callbacks change nothing, and say so.
+        const replaced = await contracts.replacedByProvider(providerId);
+        if (replaced)
+          // i18n-exempt: operator log; identifiers only
+          console.info("CONTRACT wakeup for a replaced signing request", {
+            contractId: replaced.contractId,
+            requestNumber: replaced.requestNumber,
+          });
+      }
     }
     return Response.json({ received: true });
   } catch {

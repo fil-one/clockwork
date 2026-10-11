@@ -175,6 +175,13 @@ const message = (error: unknown) =>
 /** SignWell's copy disagrees with the record. Nothing is applied from it; the
  * request waits in `attention` until a person voids it. */
 const signWellFieldsMismatch = "signwell_fields_mismatch";
+const signWellCopiedContactsMismatch = "signwell_copied_contacts_mismatch";
+/** An unsent draft SignWell holds as it is: sending it again cannot change
+ * it, so only a void moves the request on. */
+const heldDrafts: readonly string[] = [
+  signWellFieldsMismatch,
+  signWellCopiedContactsMismatch,
+];
 const mismatchReasons: Readonly<Record<string, string>> = {
   SIGNWELL_SIGNERS_MISMATCH: "signwell_signers_mismatch",
   SIGNWELL_BINDING_MISMATCH: "signwell_binding_mismatch",
@@ -182,6 +189,9 @@ const mismatchReasons: Readonly<Record<string, string>> = {
   // PDF's own form fields; sending it again cannot change that.
   SIGNWELL_SIGNING_FIELDS_MISMATCH: signWellFieldsMismatch,
   SIGNWELL_SIGNING_ORDER_MISMATCH: signWellFieldsMismatch,
+  // The unsent draft does not copy whom the type copies on the completed
+  // document; sending it again cannot change that either.
+  SIGNWELL_COPIED_CONTACTS_MISMATCH: signWellCopiedContactsMismatch,
 };
 const mismatchReason = (error: unknown) =>
   error instanceof Error ? mismatchReasons[error.message] : undefined;
@@ -317,11 +327,11 @@ export class SigningEngine<R> {
       if (!reason) throw error;
       return this.mismatch(record, token, mismatchFor(doc, reason), actor);
     }
-    // A draft held for its fields stays held: its state reads as ready, but
-    // only voiding it moves the request on.
+    // A held draft stays held: its state reads as ready, but only voiding
+    // it moves the request on.
     if (
       view.state === "attention" &&
-      view.error === signWellFieldsMismatch &&
+      heldDrafts.includes(view.error ?? "") &&
       (state === "ready" || state === "preparing")
     )
       return record;

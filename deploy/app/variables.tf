@@ -158,6 +158,12 @@ variable "commerce_mnda_enabled" {
   default     = false
 }
 
+variable "commerce_contracts_signing_enabled" {
+  description = "Send contracts and uploaded PDFs for signature through SignWell. Staging sends in test mode; production sends live."
+  type        = bool
+  default     = true
+}
+
 # Staff notifications (docs/operations/notifications.md). The in-app inbox
 # needs none of these; email and Slack stay off until they are set.
 
