@@ -53,6 +53,7 @@ export function staffPermissions(roles: readonly string[]): Permission[] {
 
 export const teamErrorCodes = [
   "NOT_PERMITTED",
+  "ACTOR_CHANGED",
   "DIRECT_SESSION_REQUIRED",
   "RECENT_SIGN_IN_REQUIRED",
   "SESSION_EXPIRED",
@@ -81,6 +82,7 @@ export type TeamActionResult =
 
 export const teamErrorMessages: Readonly<Record<TeamErrorCode, MessageId>> = {
   NOT_PERMITTED: "operations.team.error.notPermitted",
+  ACTOR_CHANGED: "operations.team.review.actor",
   DIRECT_SESSION_REQUIRED: "operations.team.error.directSession",
   RECENT_SIGN_IN_REQUIRED: "operations.team.error.recentSignIn",
   SESSION_EXPIRED: "operations.session.expired",

@@ -17,7 +17,7 @@ const instructions = [
   "Every tool acts as the person who created the token, with their current permissions, and every call is audited.",
   "Call whoami first. Read before you write: write tools take the id and version you read.",
   "No tool sends, reminds or voids anything, or contacts a partner or any other external party: tools draft and prepare, and a person reviews and sends from the app using the link each draft returns.",
-  "Approvals, team and role changes, settings and anything that needs a fresh MFA check are done in the app.",
+  "Staff administrators can list_staff and prepare_staff_role_change, but the same person must review and explicitly confirm each role change in the app. Preparation never changes access. Approvals, settings and anything that needs a fresh MFA check are done in the app.",
 ].join(" ");
 
 export type RecordCall = (

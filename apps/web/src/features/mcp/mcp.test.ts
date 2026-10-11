@@ -85,10 +85,12 @@ describe("the MCP tool set", () => {
   });
 
   it("offers nothing that is kept to the app", () => {
-    for (const { name } of mcpTools)
+    for (const { name } of mcpTools) {
+      if (name === "prepare_staff_role_change") continue;
       expect(name).not.toMatch(
         /approv|decide|role|permission|capabilit|setting|owner_console|assist|impersonat|team|signatory|countersigner_manage|price_book_publish/u,
       );
+    }
   });
 
   it("marks every tool that changes something as a write", () => {
@@ -106,6 +108,7 @@ describe("the MCP tool set", () => {
         "prepare_contract_for_signature",
         "prepare_from_template",
         "prepare_mnda_preview",
+        "prepare_staff_role_change",
         "record_contract",
         "register_partner_deal",
         "save_pricing_scenario",

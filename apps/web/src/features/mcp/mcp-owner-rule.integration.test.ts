@@ -144,6 +144,7 @@ const person = {
   email: `mcp.rule.${tag}@clockwork.test`,
   name: `MCP Rule ${tag}`,
 };
+const roleTarget = { id: randomUUID(), membershipId: randomUUID() };
 let secret = "";
 let next = 1;
 const partners: string[] = [];
@@ -156,6 +157,10 @@ beforeAll(async () => {
     values (${person.id}, ${`mcp_rule_${tag}`}, ${person.email}, ${person.name}, true, true)`;
   await sql`insert into memberships (id, organization_id, user_id, role)
     values (${randomUUID()}, ${filOneOrganization}, ${person.id}, 'commerce_admin')`;
+  await sql`insert into commerce_users (id, workos_user_id, email, name, is_internal_staff, mfa_enrolled)
+    values (${roleTarget.id}, ${`mcp_role_target_${tag}`}, ${`mcp.target.${tag}@clockwork.test`}, 'MCP role review target', true, true)`;
+  await sql`insert into memberships (id, organization_id, user_id, role)
+    values (${roleTarget.membershipId}, ${filOneOrganization}, ${roleTarget.id}, 'revenue')`;
   secret = (
     await new AccessTokenRepository(db).create({
       userId: person.id,
@@ -188,6 +193,8 @@ afterAll(async () => {
   await sql`delete from commerce_partner_deals where partner_id = any(${partners})`;
   await sql`delete from commerce_partners where id = any(${partners})`;
   await sql`delete from memberships where user_id = ${person.id}`;
+  await sql`delete from memberships where user_id = ${roleTarget.id}`;
+  await sql`delete from commerce_users where id = ${roleTarget.id}`;
   await client.end();
   await sql.end();
 });
@@ -340,6 +347,12 @@ describe("the owner rule", () => {
         signerEmail: `ana.${tag}@acme.example`,
       }),
       mark_notifications_read: () => ({ all: true }),
+      prepare_staff_role_change: () => ({
+        userId: roleTarget.id,
+        action: "grant",
+        role: "internal_operator",
+        expectedRowVersion: 1,
+      }),
     };
     const writes = mcpTools
       .filter(({ access }) => access === "write")
@@ -403,6 +416,26 @@ describe("the owner rule", () => {
         expect((replay.value.mnda as { id: string }).id).toBe(requestedMndaId);
         expect((value.mnda as { id: string }).id).toBe(requestedMndaId);
       }
+      if (name === "prepare_staff_role_change") {
+        expect(value).toMatchObject({
+          status: "awaiting_browser_confirmation",
+          requiresBrowserConfirmation: true,
+          member: { userId: roleTarget.id },
+        });
+        const membership =
+          await sql`select role, row_version from memberships where id = ${roleTarget.membershipId}`;
+        expect(membership[0]).toMatchObject({
+          role: "revenue",
+          row_version: 1,
+        });
+        const roles = await sql<
+          { role: string }[]
+        >`select role from membership_roles where membership_id = ${roleTarget.membershipId}`;
+        expect(roles.map((row) => row.role)).toEqual(["revenue"]);
+        const changes =
+          await sql`select id from audit_events where aggregate_id = ${roleTarget.membershipId} and event_type in ('staff.role_granted', 'staff.role_revoked')`;
+        expect(changes).toHaveLength(0);
+      }
       if (name === "check_mnda_status") {
         expect(value.mnda).toMatchObject({ state: "viewed" });
         expect(
@@ -440,6 +473,7 @@ describe("the owner rule", () => {
       save_pricing_scenario: true,
       create_handoff_request: true,
       mark_notifications_read: true,
+      prepare_staff_role_change: true,
     });
   }, 30_000);
 

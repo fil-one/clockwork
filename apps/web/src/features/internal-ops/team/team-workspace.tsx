@@ -51,6 +51,8 @@ import {
 } from "./model";
 import { SessionExpiredReload } from "../session-expiry";
 import styles from "./team-workspace.module.css";
+import type { StaffRoleReview } from "./role-review";
+import { StaffRoleReviewCard } from "./role-review-card";
 
 type Outcome =
   | { tone: "success"; message: string }
@@ -112,10 +114,14 @@ function OutcomeBanner({
 export function TeamWorkspace({
   view,
   children,
+  review,
+  reviewKey,
 }: {
   view: TeamView;
   /** Further sections, such as everyone's access tokens. */
   children?: ReactNode;
+  review?: StaffRoleReview | null;
+  reviewKey?: string;
 }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
@@ -159,6 +165,8 @@ export function TeamWorkspace({
         title={t("operations.team.title")}
         description={t("operations.team.description")}
       />
+
+      {review ? <StaffRoleReviewCard key={reviewKey} review={review} /> : null}
 
       {view.mode === "demo" ? (
         <StateBanner tone="info" title={t("operations.team.demoNotice")} />

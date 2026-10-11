@@ -37,6 +37,7 @@ const RoleChangeSchema = z
     userId: z.uuid(),
     role: z.enum(teamRoles),
     expectedRowVersion: z.int().positive(),
+    expectedActorUserId: z.uuid().optional(),
     reason: z
       .string()
       .trim()
@@ -186,7 +187,9 @@ async function changeRoles(
   const parsed = RoleChangeSchema.safeParse(raw);
   if (!parsed.success) return fail("INVALID_INPUT");
   const { session, database } = authorized;
-  const { reason, ...change } = parsed.data;
+  const { reason, expectedActorUserId, ...change } = parsed.data;
+  if (expectedActorUserId && expectedActorUserId !== session.userId)
+    return fail("ACTOR_CHANGED");
   try {
     await new StaffTeamRepository(database)[operation]({
       actorUserId: session.userId,

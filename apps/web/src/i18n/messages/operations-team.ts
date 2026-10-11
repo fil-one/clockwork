@@ -6,6 +6,26 @@ import { defineStaffMessages, sameInAllLanguages } from "../define";
  */
 export const teamMessages = defineStaffMessages({
   "operations.team.title": { en: "Team" },
+  "operations.team.review.title": { en: "Review role change" },
+  "operations.team.review.description": {
+    en: "Check the person and their access below. Nothing changes until you confirm.",
+  },
+  "operations.team.review.grant": { en: "Add role: {role}" },
+  "operations.team.review.revoke": { en: "Remove role: {role}" },
+  "operations.team.review.before": { en: "Roles before" },
+  "operations.team.review.after": { en: "Roles after" },
+  "operations.team.review.permissionsBefore": { en: "Permissions before" },
+  "operations.team.review.permissionsAfter": { en: "Permissions after" },
+  "operations.team.review.confirm": { en: "Confirm role change" },
+  "operations.team.review.cancel": { en: "Discard review and return to Team" },
+  "operations.team.review.back": { en: "Return to Team" },
+  "operations.team.review.done": { en: "The role change was saved." },
+  "operations.team.review.invalid": {
+    en: "This review link is incomplete or invalid. Prepare a new role change, or use the Team controls below.",
+  },
+  "operations.team.review.actor": {
+    en: "This review was prepared for a different administrator. Sign in with the account that prepared it, or prepare a new review.",
+  },
   "operations.team.description": {
     en: "Fil One staff who can sign in to Fil One Commerce, and what each of them can do.",
   },
