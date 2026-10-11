@@ -371,4 +371,10 @@ it("renders a specimen with every optional section and sample values", async () 
   expect(rendered).toContain("The resale margin is 10%.");
   expect(rendered).toContain("NFR capacity: Sample NFR capacity.");
   expect(specimen.pages).toBe(2);
+  // Marked on every page and in the title; a prepared contract never is.
+  expect(text(specimen.bytes).match(/SPECIMEN/g)).toHaveLength(2);
+  const prepared = text((await sectioned.render(sectionedInput)).bytes);
+  expect(prepared).not.toMatch(/SPECIMEN|PREVIEW/);
+  expect(prepared).toContain("FIL One LLC");
+  expect(prepared).not.toContain("FIL ONE LLC");
 }, 30_000);

@@ -282,6 +282,7 @@ export async function previewContract(raw: unknown) {
       effectiveDate: input.effectiveDate,
       values: input.values,
       sections: input.sections,
+      marking: "PREVIEW, NOT FOR SIGNATURE",
       signer: {
         name: input.signerName,
         email: input.signerEmail,
@@ -522,15 +523,22 @@ export async function resendContract(raw: unknown) {
   return attempt(async () => {
     const session = await contractStaff("contract:write");
     const { contractId, requestNumber } = ContractResendSchema.parse(raw);
-    const { record } = await contractSigningRepository().resend(
-      contractId,
-      requestNumber,
-      {
-        testMode: contractSigningConfiguration().testMode,
-        preparerEmail: session.profile.email,
-      },
-      contractActor(session),
-    );
+    const { record } = await contractSigningRepository()
+      .resend(
+        contractId,
+        requestNumber,
+        {
+          testMode: contractSigningConfiguration().testMode,
+          preparerEmail: session.profile.email,
+        },
+        contractActor(session),
+      )
+      .catch((error: unknown) => {
+        // The template version it was prepared from is not in the store.
+        if (staleTemplateVersion(error))
+          throw new Error("CONTRACT_TEMPLATE_VERSION_UNAVAILABLE");
+        throw error;
+      });
     return { state: record.state, requestNumber: record.requestNumber };
   });
 }

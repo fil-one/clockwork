@@ -11,6 +11,7 @@ import {
   PostgresContractDocumentStore,
   createRuntimeDatabase,
 } from "@clockwork/db";
+import { ContractSigningWorkflow } from "@clockwork/workflows/contracts";
 import { fixtureSectionsContent } from "../../../../../../packages/documents/src/__fixtures__/contract-template";
 import { prepareInputSchema, preparedSectionsKey } from "./prepare-input";
 import { storedTemplateSource } from "./template-source";
@@ -187,5 +188,52 @@ it("prepares from the active stored version and pins it", async () => {
   await expect(templates.get(imported.id)).resolves.toMatchObject({
     status: "retired",
     usedBy: 1,
+  });
+}, 60_000);
+
+it("sends a contract again on the version it was prepared from, after that version is replaced", async () => {
+  const key = `test-${randomUUID().slice(0, 8)}`;
+  const marker = randomUUID().slice(0, 8);
+  const v1 = await templates.createDraft(
+    { ...fixtureSectionsContent, id: key },
+    admin,
+    "import",
+  );
+  await templates.activate(v1.id, 1, admin);
+  const { id } = await prepare(key, "v1", marker);
+  // Discarded before it reached SignWell, so no provider is called.
+  const unavailable = () => Promise.reject(new Error("no provider"));
+  await new ContractSigningWorkflow(signing, {
+    createContractDraft: unavailable,
+    createCounterpartyPaperDraft: unavailable,
+    getContract: unavailable,
+    send: unavailable,
+    remind: unavailable,
+    cancel: unavailable,
+    updateRecipient: unavailable,
+    completedPdf: unavailable,
+  }).cancel(id, seller);
+  const v2 = await templates.createDraft(
+    { ...fixtureSectionsContent, id: key, name: "Sections, revised" },
+    admin,
+    "duplicate",
+  );
+  await templates.activate(v2.id, 1, admin);
+
+  const { record } = await signing.resend(
+    id,
+    1,
+    { testMode: true, preparerEmail: null },
+    seller,
+  );
+  expect(record).toMatchObject({
+    requestNumber: 2,
+    templateVersion: "v1",
+    templateHash: v1.contentHash,
+  });
+  // The ended request and the new one both count as uses of v1.
+  await expect(templates.get(v1.id)).resolves.toMatchObject({
+    status: "retired",
+    usedBy: 2,
   });
 }, 60_000);

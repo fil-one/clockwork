@@ -103,6 +103,7 @@ export function specimenTemplateInput(
     ),
     sections: template.sections.map((section) => section.id),
     everySection: true,
+    marking: "SPECIMEN",
     signer: {
       name: "Sample Signer",
       email: "signer@example.com",

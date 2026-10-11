@@ -196,6 +196,8 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
     "operations.contracts.error.countersignerUnavailable",
   CONTRACT_TEMPLATE_VERSION_CHANGED:
     "operations.contracts.error.templateVersionChanged",
+  CONTRACT_TEMPLATE_VERSION_UNAVAILABLE:
+    "operations.contracts.error.templateVersionUnavailable",
   CONTRACT_TEMPLATE_NOT_FOUND: "operations.contracts.error.templateNotFound",
   CONTRACT_TEMPLATE_VALUE_CHARACTERS:
     "operations.contracts.error.valueCharacters",

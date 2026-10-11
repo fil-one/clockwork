@@ -60,6 +60,16 @@ const style = StyleSheet.create({
     lineHeight: 1.2,
   },
   textTableHead: { borderBottomWidth: 0.75, borderBottomColor: "#202020" },
+  marking: {
+    position: "absolute",
+    top: 22,
+    left: 48,
+    right: 48,
+    textAlign: "center",
+    fontFamily: "Helvetica-Bold",
+    fontSize: 8,
+    color: "#a01818",
+  },
   footer: {
     position: "absolute",
     bottom: 26,
@@ -178,9 +188,15 @@ function grouped(value: string) {
   return fraction === undefined ? withCommas : `${withCommas}.${fraction}`;
 }
 
+/** The value rounded half up to `decimals` places, still at full scale. */
+function roundFixed(value: bigint, decimals: number) {
+  const unit = 10n ** BigInt(12 - decimals);
+  return ((value + unit / 2n) / unit) * unit;
+}
+
 function printFixed(value: bigint, decimals: number) {
   const unit = 10n ** BigInt(12 - decimals);
-  const rounded = (value + unit / 2n) / unit;
+  const rounded = roundFixed(value, decimals) / unit;
   const text = rounded.toString().padStart(decimals + 1, "0");
   return grouped(
     decimals ? `${text.slice(0, -decimals)}.${text.slice(-decimals)}` : text,
@@ -210,7 +226,9 @@ export function derivedValues(
         : figure.op === "product"
           ? operands.reduce((a, b) => (a * b) / scale, scale)
           : ((operands[0] ?? 0n) * (operands[1] ?? 0n)) / scale / 100n;
-    known.set(figure.id, result);
+    // A later figure builds on this one as printed, so five times a printed
+    // 4,167 reads 20,835 and every line of an illustration adds up.
+    known.set(figure.id, roundFixed(result, figure.decimals));
     printed[figure.id] = printFixed(result, figure.decimals);
   }
   return printed;
@@ -553,6 +571,13 @@ export async function renderTemplateDocument(
     throw new Error("CONTRACT_TEMPLATE_VALUE_CHARACTERS");
   const reference = `${input.contractId.slice(0, 8)} · ${file.id} ${file.version}`;
   const fixedDate = new Date(`${input.effectiveDate}T00:00:00Z`);
+  // A preview or specimen says so on every page and in its title; a prepared
+  // contract never has a marking.
+  const marking = input.marking ? (
+    <Text fixed style={style.marking}>
+      {input.marking}
+    </Text>
+  ) : null;
   const footer = (
     <View fixed style={style.footer}>
       <Text>{reference}</Text>
@@ -563,8 +588,8 @@ export async function renderTemplateDocument(
   );
   const pdf = await renderToBuffer(
     <Document
-      title={title}
-      author="Fil One LLC"
+      title={input.marking ? `${input.marking}: ${title}` : title}
+      author="FIL One LLC"
       creationDate={fixedDate}
       modificationDate={fixedDate}
     >
@@ -574,13 +599,14 @@ export async function renderTemplateDocument(
           <Block key={i} block={block} />
         ))}
         <Text style={style.paragraph}>[Signature page follows]</Text>
+        {marking}
         {footer}
       </Page>
       <Page size="LETTER" style={style.page}>
         <Text style={style.title}>SIGNATURES</Text>
         <SignatureRow
           label="Party"
-          left={<Text>FIL ONE LLC</Text>}
+          left={<Text>FIL One LLC</Text>}
           right={<Text>{input.counterpartyName}</Text>}
           height={26}
         />
@@ -618,6 +644,7 @@ export async function renderTemplateDocument(
         <Text style={{ ...style.caption, width: "auto", marginTop: 12 }}>
           {`Signature page to ${file.name}`}
         </Text>
+        {marking}
         {footer}
       </Page>
     </Document>,

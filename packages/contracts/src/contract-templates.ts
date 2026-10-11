@@ -117,7 +117,7 @@ export function templateValueIssue(
  */
 export function printableTemplateValue(value: string) {
   return (
-    !/[<>[\]{}\p{Cc}]/u.test(value) &&
+    !/[<>[\]{}\p{Cc}\p{Cf}\u2028\u2029]/u.test(value) &&
     undrawableTemplateCharacter(value) === null
   );
 }

@@ -403,6 +403,11 @@ export class ContractTemplateRepository {
           ),
         ),
       );
+    // Requests a later one replaced still count (001465).
+    const [replaced] = await tx.execute<{ count: number }>(sql`
+      select count(*)::int as count from commerce_contract_signing_history
+      where request->>'template_id' = ${row.templateKey}
+        and request->>'template_version' = ${templateVersionLabel(row.version)}`);
     // A version whose content no longer validates or matches its hash is
     // still shown, with the problem, so an administrator can retire it.
     let checked: TemplateContent;
@@ -430,7 +435,7 @@ export class ContractTemplateRepository {
       ...summary(row),
       content: checked,
       problem,
-      usedBy: used?.count ?? 0,
+      usedBy: (used?.count ?? 0) + (replaced?.count ?? 0),
     };
   }
 

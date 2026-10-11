@@ -2,7 +2,7 @@
 -- drafts, frozen on activation, one active version per template, never
 -- changed once used, and signing requests pinned to the active version.
 begin;
-select plan(30);
+select plan(33);
 set local search_path = public, extensions;
 
 -- Row security and grants: the service role only.
@@ -113,6 +113,18 @@ select throws_ok($$update commerce_contract_templates set status = 'draft', acti
     activated_at = null, retired_by_name = null, retired_at = null, revision = 5
     where id = 'b1475000-0000-4000-8000-000000000001'$$,
   'P0001', null, 'a used version never returns to draft');
+-- Sent again after it ended, a contract keeps the version it was prepared
+-- from, even though that version has been retired.
+select lives_ok($$update commerce_contract_signing set state = 'canceled', cancel_code = 'discarded'
+    where contract_id = 'c1475000-0000-4000-8000-000000000001'$$,
+  'the first request ends unsent');
+select lives_ok($$delete from commerce_contract_signing where contract_id = 'c1475000-0000-4000-8000-000000000001'$$,
+  'the ended request moves to the history');
+select lives_ok($$insert into commerce_contract_signing (contract_id, request_number, template_id, template_version, template_hash,
+    document_name, input, counterparty_signer, countersigner, preparer_id, preparer_name, approval_required, approval_state, test_mode)
+  values ('c1475000-0000-4000-8000-000000000001', 2, 'channel-partnership', 'v1', repeat('b',64), 'Doc', '{}', '{}', '{}',
+    'a1475000-0000-4000-8000-000000000002', 'R.W.', true, 'pending', true)$$,
+  'a contract is sent again on its retired version');
 select lives_ok($$select pg_temp.sign('c1475000-0000-4000-8000-000000000003', 'fixture-2', repeat('d',64), 'test-fixture')$$,
   'a template key the store does not hold is left to the application');
 select lives_ok($$delete from commerce_contract_templates where id = 'b1475000-0000-4000-8000-000000000002'$$,

@@ -47,6 +47,9 @@ export interface PreparedTemplateInput {
   sections: readonly string[];
   /** A specimen: every optional section in, whatever the choices. */
   everySection?: boolean;
+  /** Printed on every page and in the PDF title of a preview or specimen,
+   * such as `SPECIMEN`. Never set for a prepared contract. */
+  marking?: "SPECIMEN" | "PREVIEW, NOT FOR SIGNATURE";
   signer: ContractSigner;
   countersigner: ContractSigner;
 }

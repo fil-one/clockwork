@@ -952,6 +952,9 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.error.countersignerUnavailable": {
     en: "That countersigner is no longer available. Choose another.",
   },
+  "operations.contracts.error.templateVersionUnavailable": {
+    en: "The template version this contract was prepared from is no longer in the template store. Prepare the contract again from the template in use.",
+  },
   "operations.contracts.error.templateVersionChanged": {
     en: "This template has a newer version in use, or none. Reload the page to prepare from the current one.",
   },

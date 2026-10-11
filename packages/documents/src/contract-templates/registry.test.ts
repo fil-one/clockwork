@@ -185,7 +185,7 @@ describe("optional sections", () => {
 
 describe("printed choice values and defaults", () => {
   it("refuses option values and defaults a seller value could not be", () => {
-    for (const value of ["[x]", "<b>", "≥ 99.9%"]) {
+    for (const value of ["[x]", "<b>", "≥ 99.9%", "Option\u200bA"]) {
       const option = sections();
       option.fields[0] = {
         ...option.fields[0],
@@ -238,6 +238,20 @@ describe("numeric fields and derived figures", () => {
     expect(() =>
       derivedValues(derived, { referral_percent: "10" }, new Set()),
     ).toThrow("CONTRACT_TEMPLATE_FIELD_UNRESOLVED");
+  });
+
+  it("builds each figure on the one before it as printed", () => {
+    const printed = derivedValues(
+      [
+        { id: "earn", op: "percent_of", of: ["rate", "spend"], decimals: 0 },
+        { id: "five", op: "product", of: ["earn", "5"], decimals: 0 },
+        { id: "both", op: "sum", of: ["earn", "five"], decimals: 0 },
+      ],
+      { rate: "16.6667", spend: "25000" },
+      new Set(),
+    );
+    // 16.6667% of 25,000 is 4,166.675, printed 4,167; five of those 20,835.
+    expect(printed).toEqual({ earn: "4,167", five: "20,835", both: "25,002" });
   });
 
   it("refuses a derived operand that is not a required number", () => {

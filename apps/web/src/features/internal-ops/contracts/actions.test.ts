@@ -1141,6 +1141,10 @@ describe("previewContract", () => {
       Buffer.from(result.value.pdf, "base64").subarray(0, 5).toString(),
     ).toBe("%PDF-");
     expect(result.value.fileName).toMatch(/^Preview - Fil One /);
+    // The marking is in the PDF title as well as on every page.
+    expect(
+      Buffer.from(result.value.pdf, "base64").toString("latin1"),
+    ).toContain("PREVIEW, NOT FOR SIGNATURE");
     expect(mocks.signing.prepare).not.toHaveBeenCalled();
   }, 30_000);
 
