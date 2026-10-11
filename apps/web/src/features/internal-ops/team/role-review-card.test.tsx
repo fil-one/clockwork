@@ -130,7 +130,7 @@ it.each(["STALE", "ACTOR_CHANGED"] as const)(
     );
     await screen.findByRole("alert");
     expect(
-      screen.getByRole("button", { name: "Confirm role change" }),
+      await screen.findByRole("button", { name: "Confirm role change" }),
     ).toBeDisabled();
     expect(mocks.refresh).not.toHaveBeenCalled();
   },
