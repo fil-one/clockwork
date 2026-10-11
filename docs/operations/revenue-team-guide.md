@@ -95,11 +95,14 @@ stopped shows as **Voided**.
 
 ### Reminders
 
-Nobody outside Fil One is reminded unless you choose to: SignWell sends no
-automatic reminders. **Remind** sends one now: to the counterparty, or to the
-Fil One countersigner once the counterparty has signed. Reminders are at least a
-minute apart. [Outbound messages](outbound-messages.md) lists everything
-Commerce can send to a counterparty, and the click that sends it.
+Nobody outside Fil One is reminded unless you choose to: requests sent from 10
+October 2026 onward get no automatic reminders from SignWell. A request sent
+before then keeps SignWell's own reminder schedule, which SignWell cannot change
+on a sent request; let it run, or void it and send it again. **Remind** sends
+one now: to the counterparty, or to the Fil One countersigner once the
+counterparty has signed. Reminders are at least a minute apart.
+[Outbound messages](outbound-messages.md) lists everything Commerce can send to
+a counterparty, and the click that sends it.
 
 ## Fix a wrong email
 

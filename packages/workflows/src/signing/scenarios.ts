@@ -781,6 +781,28 @@ export const signingScenarios: readonly SigningScenario[] = [
     },
   },
   {
+    name: "holds a draft SignWell reports with automatic reminders on, sending nothing",
+    async run(make) {
+      const h = make();
+      h.doc.reminders = true;
+      await expect(h.send()).rejects.toThrow(h.code("NEEDS_ATTENTION"));
+      const held = { state: "attention", error: "signwell_reminders_on" };
+      expect(h.record()).toMatchObject(held);
+      expect(await h.sync()).toMatchObject(held);
+      expect(h.provider.send).not.toHaveBeenCalled();
+      expect(
+        await h.void({ reason: "SignWell would remind them" }),
+      ).toMatchObject({ state: "canceled" });
+      // Off, or not reported at all, the draft is sent.
+      for (const reminders of [false, undefined]) {
+        const ok = make();
+        if (reminders === undefined) delete ok.doc.reminders;
+        else ok.doc.reminders = reminders;
+        expect((await ok.send()).state).toBe("sent");
+      }
+    },
+  },
+  {
     name: "checks the sender is copied where the type copies the sender",
     async run(make) {
       const h = make();

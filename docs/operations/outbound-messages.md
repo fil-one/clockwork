@@ -7,14 +7,14 @@ provider callback, or as a side effect of another change.
 
 ## What a person sends
 
-| Click                                           | What the counterparty receives                                                                                                 |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Send** on an MNDA, or on an approved contract | SignWell's signing request. When everyone has signed, SignWell emails the signed PDF to the signers and to the preparer, once. |
-| **Remind**                                      | One SignWell reminder to whoever signs next. SignWell sends no automatic reminders.                                            |
-| **Fix email**                                   | SignWell sends the same request to the corrected address.                                                                      |
-| **Void** on a sent MNDA or contract             | SignWell deletes the document, which stops signing. SignWell may tell the signers that the request was canceled.               |
-| **Send again** on an ended contract             | A new signing request, after approval where the first one needed it.                                                           |
-| **Create invitation** on an organization        | Nothing from Commerce: it shows an invitation link the person shares themselves. Commerce never emails an invitation.          |
+| Click                                           | What the counterparty receives                                                                                                                                                         |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Send** on an MNDA, or on an approved contract | SignWell's signing request. When everyone has signed, SignWell emails the signed PDF to the signers and to the preparer, once.                                                         |
+| **Remind**                                      | One SignWell reminder to whoever signs next. Requests sent from 10 October 2026 onward get no automatic reminders, and a draft SignWell reports with reminders on is held, never sent. |
+| **Fix email**                                   | SignWell sends the same request to the corrected address.                                                                                                                              |
+| **Void** on a sent MNDA or contract             | SignWell deletes the document, which stops signing. SignWell may tell the signers that the request was canceled.                                                                       |
+| **Send again** on an ended contract             | A new signing request, after approval where the first one needed it.                                                                                                                   |
+| **Create invitation** on an organization        | Nothing from Commerce: it shows an invitation link the person shares themselves. Commerce never emails an invitation.                                                                  |
 
 ## What runs on its own, and what it sends
 
@@ -26,6 +26,10 @@ provider callback, or as a side effect of another change.
 | Renewal, notice-window, POC-milestone and quote-expiry alerts         | Nothing: no alert is planned to a customer's or partner's contacts.                                          |
 | Staff notifications (in-app, email, Slack)                            | Fil One staff only. Recipients must be internal staff; the Slack channel must have no external guests.       |
 
+Requests sent before 10 October 2026 keep SignWell's automatic reminders, which
+SignWell cannot turn off on a sent request: let them run until the request is
+signed, expires or is voided, or void it and send it again.
+
 ## Not yet on, and must not be turned on as they are
 
 These send automatically once their capability and provider are switched on.
@@ -36,6 +40,9 @@ Each needs a step where a person sends each message before it is switched on:
   settings (billing capability).
 - The lifecycle agreement workflow sends a signature envelope to the customer's
   signer (legal capability, with a signature provider).
+- WorkOS `createInvitation` (`packages/integrations/src/workos`) emails the
+  invitee. Nothing in production calls it today; organization invites show a
+  link instead.
 
 Before adding anything that sends to someone outside Fil One, give it a click
 that sends that one message, and add it to the first table.

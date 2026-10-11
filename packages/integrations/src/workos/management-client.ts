@@ -191,6 +191,9 @@ export class WorkosSdkOrganizationClient implements WorkosClient {
     await this.options.mfaPolicyEnforcer.enforce(input);
   }
 
+  /** WorkOS emails the invitee. Nothing in production calls this today; a
+   * caller must be one person's click for one invitation
+   * (docs/operations/outbound-messages.md). */
   public async createInvitation(input: {
     organizationId: string;
     email: string;

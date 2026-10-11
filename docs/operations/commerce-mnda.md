@@ -153,14 +153,16 @@ says so above the register when more match, and the response carries
 The open page refreshes the register every 15 seconds while the tab is visible.
 **Check status** on a row reconciles a missed callback at once; a scheduled task
 checks open MNDAs in rotation ([missed callbacks](#missed-callbacks)); a check
-only reads SignWell and never messages anyone. SignWell sends no automatic
-reminders, and expiry is 30 days. **Remind** names who is reminded: the partner,
-or the Fil One countersigner once the partner has signed. Remind reads SignWell
-first and the row shows what it found. If the MNDA has completed, been declined
-or expired, nobody is reminded and the seller is told it is no longer waiting on
-anyone. If it needs attention, for example because an email bounced, nobody is
-reminded and the seller is told to follow its row (for a bounced partner email,
-**Fix email**). Manual reminders are a minute apart.
+only reads SignWell and never messages anyone. MNDAs sent from 10 October 2026
+onward get no automatic reminders from SignWell; one sent before then keeps
+SignWell's reminder schedule until it is signed, expires or is voided. Expiry is
+30 days. **Remind** names who is reminded: the partner, or the Fil One
+countersigner once the partner has signed. Remind reads SignWell first and the
+row shows what it found. If the MNDA has completed, been declined or expired,
+nobody is reminded and the seller is told it is no longer waiting on anyone. If
+it needs attention, for example because an email bounced, nobody is reminded and
+the seller is told to follow its row (for a bounced partner email, **Fix
+email**). Manual reminders are a minute apart.
 
 ## After sending
 

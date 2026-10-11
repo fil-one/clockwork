@@ -117,6 +117,11 @@ function rowNote(
       reason: "operations.mnda.note.fieldsMismatch",
       next: "operations.mnda.note.fieldsMismatchNext",
     };
+  if (r.state === "attention" && r.error === "signwell_reminders_on")
+    return {
+      reason: "operations.mnda.note.remindersOn",
+      next: "operations.mnda.note.fieldsMismatchNext",
+    };
   if (
     r.state === "attention" &&
     r.error === "signwell_copied_contacts_mismatch"
