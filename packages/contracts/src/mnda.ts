@@ -438,6 +438,9 @@ export const mndaAttentionReasons = [
   // SignWell's unsent draft does not copy the sender on the completed
   // document; held until voided.
   "signwell_copied_contacts_mismatch",
+  // SignWell's unsent draft would remind signers on its own; held until
+  // voided.
+  "signwell_reminders_on",
 ] as const;
 export type MndaAttentionReason = (typeof mndaAttentionReasons)[number];
 

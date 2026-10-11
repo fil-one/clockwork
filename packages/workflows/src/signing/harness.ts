@@ -88,6 +88,7 @@ export interface FakeDocument {
   metadata: Record<string, string>;
   apply_signing_order: boolean;
   copied_contacts?: { email: string }[] | null;
+  reminders?: boolean | null;
   recipients: Recipient[];
   fields: {
     recipient_id: string;

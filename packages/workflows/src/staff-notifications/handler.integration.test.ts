@@ -48,6 +48,7 @@ const legal = randomUUID(); // legal approver: approves contracts
 const admin = randomUUID(); // commerce administrator, Fil One countersigner
 const operator = randomUUID(); // internal operator: works handoffs
 const departed = randomUUID(); // staff whose membership was removed
+const outsider = randomUUID(); // not Fil One staff, though holding a staff role
 const run = randomUUID().slice(0, 8);
 const email = (id: string) => `${id}@fil-one-notify.test`;
 const company = `Notify ${run}, Inc.`;
@@ -110,14 +111,14 @@ async function emit(input: {
   return { eventId: event.id, payload: message?.payload };
 }
 
-async function mnda() {
+async function mnda(owner = seller) {
   const id = randomUUID();
   mndaIds.push(id);
   await client`insert into commerce_mnda_requests
     (id, input, countersigner, owner_id, owner_name, state, template_hash, test_mode)
     values (${id}, ${JSON.stringify({ company, signerName: "Pat Lee" })}::jsonb,
       ${JSON.stringify({ id: randomUUID(), name: "Admin", email: email(admin), title: "CFO" })}::jsonb,
-      ${seller}, 'Seller', 'sent', ${"a".repeat(64)}, true)`;
+      ${owner}, 'Seller', 'sent', ${"a".repeat(64)}, true)`;
   return id;
 }
 
@@ -169,13 +170,14 @@ beforeAll(async () => {
       [admin, "commerce_admin", "Ada Admin"],
       [operator, "internal_operator", "Oli Operator"],
       [departed, null, "Dana Departed"],
+      [outsider, "commerce_admin", "Pat Partner"],
     ] as const) {
       await tx.insert(commerceUsers).values({
         id,
         workosUserId: `user_notify_${id}`,
         email: email(id),
         name,
-        isInternalStaff: true,
+        isInternalStaff: id !== outsider,
         mfaEnrolled: true,
       });
       if (role)
@@ -211,6 +213,38 @@ afterAll(async () => {
 });
 
 describe("staff notifications from audit events", () => {
+  // Owner rule: nobody outside Fil One is ever messaged without a person's
+  // approval, and staff notifications never reach them at all.
+  it("never makes a non-staff user a recipient, whatever they hold", async () => {
+    // They hold the permission through their role; being outside Fil One
+    // staff alone keeps them out.
+    const [held] = await client<{ held: boolean }[]>`
+      select public.member_has_permission(${outsider}::uuid, 'mnda:send') as held`;
+    expect(held?.held).toBe(true);
+    expect((await store.holders(["mnda:send"])).map((s) => s.id)).not.toContain(
+      outsider,
+    );
+    expect(
+      (await store.holders(["operations:read", "operations:write"])).map(
+        (s) => s.id,
+      ),
+    ).not.toContain(outsider);
+    expect(await store.staff([outsider], ["mnda:send"])).toEqual([]);
+    expect(await store.staffIdByEmail(email(outsider))).toBeNull();
+    // An event naming them as the recipient notifies nobody.
+    const id = await mnda(outsider);
+    const { eventId, payload } = await emit({
+      aggregateId: id,
+      eventType: "mnda.completed",
+    });
+    await handleStaffNotificationEvent(payload, {
+      store,
+      channels: channels(new FakeStaffEmail(), new FakeStaffSlack()),
+      origin: "https://commerce.fil.one",
+    });
+    expect(await notified(eventId)).toEqual([]);
+  });
+
   it("notifies the sender and the countersigner when the partner signs, and nobody else", async () => {
     await setSettings({ emailEnabled: false, slackEnabled: false });
     const emailPort = new FakeStaffEmail();

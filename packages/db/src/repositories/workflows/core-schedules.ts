@@ -635,7 +635,6 @@ export class DatabaseCoreScheduledDispatchStore {
                   ["active", "suspended_write"].includes(item.status),
                 ),
             collectionsOwner: owner.email,
-            billingRecipients: [account.invoiceDeliveryEmail],
           },
         });
       }

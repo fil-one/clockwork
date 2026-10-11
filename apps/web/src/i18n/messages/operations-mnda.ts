@@ -227,6 +227,9 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.note.fieldsMismatch": {
     en: "SignWell's copy of this MNDA has fields that do not match the template.",
   },
+  "operations.mnda.note.remindersOn": {
+    en: "SignWell's copy of this MNDA would remind the partner on its own, so it was not sent.",
+  },
   "operations.mnda.note.copiedContactsMismatch": {
     en: "SignWell's copy of this MNDA would not email you the signed agreement, so it was not sent.",
   },

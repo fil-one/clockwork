@@ -756,7 +756,6 @@ const DunningDecidedWorkflowRecordSchema = z
         invoiceId: z.uuid(),
         billingAccountId: z.uuid(),
         collectionsOwner: z.email(),
-        billingRecipients: z.array(z.email()).min(1).max(100),
       })
       .passthrough(),
     decision: z.object({ stage: z.string().min(1) }).passthrough(),
@@ -771,7 +770,9 @@ type DunningDecidedWorkflowRecord = z.infer<
 /**
  * A dunning notice is only defensible if the platform can show who it reached.
  * The delivery lands in the same transaction as the workflow record, so the
- * evidence cannot survive a rolled-back decision or go missing after one.
+ * evidence cannot survive a rolled-back decision or go missing after one. It
+ * reached the Fil One collections owner alone: customers are never emailed
+ * on a schedule.
  */
 async function recordDunningNotification(
   transaction: RuntimeTransaction,
@@ -791,12 +792,7 @@ async function recordDunningNotification(
       subjectType: "invoice",
       subjectId: record.input.invoiceId,
       template: `collections.${record.decision.stage}.v1`,
-      recipients: [
-        ...new Set([
-          record.input.collectionsOwner,
-          ...record.input.billingRecipients,
-        ]),
-      ].sort(),
+      recipients: [record.input.collectionsOwner],
       idempotencyKey: input.invocationKey,
       status: "sent",
       providerMessageId: record.notificationMessageId,
