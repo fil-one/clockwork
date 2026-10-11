@@ -279,6 +279,12 @@ export const salesMessages = defineStaffMessages({
   "operations.sales.pricing.scenario.error.notFound": {
     en: "This scenario no longer exists.",
   },
+  "operations.sales.pricing.scenario.error.resaleUnits": {
+    en: "A resale summary is the partner's quote at one price per unit, so every line must be priced in the same unit. Open the scenario, make the units match and save it again.",
+  },
+  "operations.sales.pricing.scenario.downloadResaleUnits": {
+    en: "The customer summary for a resale needs every line in the same unit.",
+  },
   "operations.sales.pricing.scenario.error.partnerAboveSpend": {
     en: "The partner would earn more than the customer pays in some month. Lower the partner's share, fee or fixed amount.",
   },

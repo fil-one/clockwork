@@ -1,5 +1,8 @@
 import { ZodError, z } from "zod";
-import { pricingPartnerSummaryAvailable } from "@clockwork/contracts";
+import {
+  pricingCustomerSummaryAvailable,
+  pricingPartnerSummaryAvailable,
+} from "@clockwork/contracts";
 import { renderIndicativePricingSummary } from "@clockwork/documents";
 import { explicitDemoIdentityEnabled } from "@/src/auth/session";
 import { contractReader } from "@/src/features/internal-ops/contracts/demo-access";
@@ -54,6 +57,19 @@ export async function GET(
         ? "partner"
         : "customer";
     const t = await getTranslations();
+    const plain = (message: string) =>
+      new Response(message, {
+        status: 422,
+        headers: {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "private, no-store",
+          "x-content-type-options": "nosniff",
+        },
+      });
+    // A resale's customer summary is the partner's quote; it is refused
+    // rather than printed at Fil One's list when it cannot be priced.
+    if (audience === "customer" && !pricingCustomerSummaryAvailable(scenario))
+      return plain(t("operations.sales.pricing.scenario.error.resaleUnits"));
     const pdf = await withDocumentSlot(() =>
       renderIndicativePricingSummary({
         scenarioId: scenario.id,
@@ -71,17 +87,7 @@ export async function GET(
         error instanceof ZodError ||
         (error instanceof Error && error.message.startsWith("PRICING_SUMMARY_"))
       )
-        return new Response(
-          t("operations.sales.pricing.scenario.error.unprintable"),
-          {
-            status: 422,
-            headers: {
-              "content-type": "text/plain; charset=utf-8",
-              "cache-control": "private, no-store",
-              "x-content-type-options": "nosniff",
-            },
-          },
-        );
+        return plain(t("operations.sales.pricing.scenario.error.unprintable"));
       throw error;
     });
     if (pdf instanceof Response) return pdf;

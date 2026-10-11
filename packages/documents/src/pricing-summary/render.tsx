@@ -10,6 +10,7 @@ import {
 } from "@react-pdf/renderer";
 import {
   PricingPartnerEconomicsSchema,
+  pricingCustomerSummaryAvailable,
   pricingPartnerSummaryAvailable,
   PricingScenarioLinesSchema,
   pricingSummaryPrintable,
@@ -231,22 +232,25 @@ const quantity = (value: string) =>
 /**
  * A capacity cell: the quantity in the rate's unit or, when it was entered in
  * another unit that converts to it exactly, the entry with the converted
- * figure beneath it, rounded to whole units from 1,000 up and to three
- * places below ("10 PiB" over "about 11,259 TB"). The price uses the exact
- * quantity either way.
+ * figure beneath it ("10 PiB" over "about 11,259 TB"). An indicative summary
+ * rounds the converted figure to whole units from 1,000 up and to three
+ * places below; `exact` (a contract) prints every digit the price uses. An
+ * entry that no longer matches the quantity is ignored.
  */
 function capacity(
   stored: string,
   rateUnit: string,
   entered?: { quantity: string; unit: string },
+  { exact = false }: { exact?: boolean } = {},
 ): readonly [string, string] | string {
   const unit = rateUnit.replace(/-month$/u, "");
   const converted = entered
     ? convertCapacity(entered.quantity, entered.unit, unit)
     : null;
+  const whole = exact ? format(stored, 18) : quantity(stored);
   if (!entered || converted === null || compareQuantities(converted, stored))
-    return `${quantity(stored)} ${entered ? unit : rateUnit}`;
-  const digits = Number(stored) >= 1_000 ? 0 : 3;
+    return `${whole} ${rateUnit}`;
+  const digits = exact ? 18 : Number(stored) >= 1_000 ? 0 : 3;
   return [
     `${format(entered.quantity, 6)} ${entered.unit}`,
     `${decimals(stored) > digits ? "about" : "="} ${format(stored, digits)} ${unit}`,
@@ -514,6 +518,11 @@ export async function renderIndicativePricingSummary(
     partnerEconomics: saved,
   });
   const sharedUnit = shared ? lines[0]?.unit : undefined;
+  if (
+    input.audience !== "partner" &&
+    !pricingCustomerSummaryAvailable({ lines, partnerEconomics: saved })
+  )
+    throw new Error("PRICING_SUMMARY_RESALE_UNITS");
   // On a resale the customer pays the partner, so both summaries price every
   // line at the partner's customer price, with no list price or discount.
   // One price per unit needs every line in one unit.

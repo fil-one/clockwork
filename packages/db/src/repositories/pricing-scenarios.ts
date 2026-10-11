@@ -3,6 +3,7 @@ import { and, desc, eq, sql, type SQL } from "drizzle-orm";
 import {
   PricingScenarioBooksSchema,
   PricingScenarioInputSchema,
+  PricingScenarioLineSchema,
   PricingScenarioLinesSchema,
   PricingPartnerEconomicsSchema,
   pricingScenarioListLimit,
@@ -129,7 +130,13 @@ export function resolvePricingScenarioLines(
       unit: rate.unit,
       unitPrice: rate.unitPrice,
       minimumQuantity: rate.minimumQuantity,
-      ...(rate.egressTreatment
+      // Kept only when it fits the saved line's 60-character field, so a
+      // longer note on a rate card never blocks a save; the summary states
+      // free egress only for "included".
+      ...(rate.egressTreatment &&
+      PricingScenarioLineSchema.shape.egressTreatment.safeParse(
+        rate.egressTreatment,
+      ).success
         ? { egressTreatment: rate.egressTreatment }
         : {}),
       quantity,

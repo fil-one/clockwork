@@ -7,6 +7,7 @@ import { useState, type FormEvent } from "react";
 
 import {
   pricingCapacityUnits,
+  pricingCustomerSummaryAvailable,
   pricingPartnerSummaryAvailable,
   pricingScenarioLineLimit,
   type Money,
@@ -824,13 +825,23 @@ export function ScenarioBuilder({
               </Button>
               {opened && unchanged ? (
                 <>
-                  <a
-                    className={buttonClassName({ variant: "secondary" })}
-                    href={summaryPath(opened.id)}
-                    download
-                  >
-                    {t("operations.sales.pricing.scenario.download")}
-                  </a>
+                  {pricingCustomerSummaryAvailable(opened) ? (
+                    <a
+                      className={buttonClassName({ variant: "secondary" })}
+                      href={summaryPath(opened.id)}
+                      download
+                    >
+                      {t("operations.sales.pricing.scenario.download")}
+                    </a>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      disabled
+                      aria-describedby="summary-download-hint"
+                    >
+                      {t("operations.sales.pricing.scenario.download")}
+                    </Button>
+                  )}
                   {pricingPartnerSummaryAvailable(opened) ? (
                     <a
                       className={buttonClassName({ variant: "secondary" })}
@@ -861,9 +872,11 @@ export function ScenarioBuilder({
               <p className={styles.hint} id="summary-download-hint">
                 {opened && unchanged
                   ? t(
-                      opened.partnerEconomics?.model === "resale"
-                        ? "operations.sales.pricing.scenario.downloadHelpResale"
-                        : "operations.sales.pricing.scenario.downloadHelp",
+                      !pricingCustomerSummaryAvailable(opened)
+                        ? "operations.sales.pricing.scenario.downloadResaleUnits"
+                        : opened.partnerEconomics?.model === "resale"
+                          ? "operations.sales.pricing.scenario.downloadHelpResale"
+                          : "operations.sales.pricing.scenario.downloadHelp",
                     )
                   : t(
                       opened
@@ -910,20 +923,22 @@ export function ScenarioBuilder({
                   >
                     {t("operations.sales.pricing.scenario.open")}
                   </Link>
-                  <a
-                    className={buttonClassName({
-                      variant: "secondary",
-                      size: "small",
-                    })}
-                    href={summaryPath(example.id)}
-                    download
-                    aria-label={t(
-                      "operations.sales.pricing.scenario.downloadNamed",
-                      { name: example.name },
-                    )}
-                  >
-                    {t("operations.contracts.documents.download")}
-                  </a>
+                  {pricingCustomerSummaryAvailable(example) ? (
+                    <a
+                      className={buttonClassName({
+                        variant: "secondary",
+                        size: "small",
+                      })}
+                      href={summaryPath(example.id)}
+                      download
+                      aria-label={t(
+                        "operations.sales.pricing.scenario.downloadNamed",
+                        { name: example.name },
+                      )}
+                    >
+                      {t("operations.contracts.documents.download")}
+                    </a>
+                  ) : null}
                   {pricingPartnerSummaryAvailable(example) ? (
                     <a
                       className={buttonClassName({

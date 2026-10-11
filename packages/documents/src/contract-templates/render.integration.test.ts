@@ -180,10 +180,27 @@ it("prints a long converted quantity as entered, wrapped in its own cell", async
   );
   const layout = text(rendered.bytes);
   const raw = text(rendered.bytes, "-raw").replace(/\s+/g, " ");
-  expect(raw).toContain("1,234.567891 TiB about 1,357 TB");
-  // Without the entry, six places, said to be rounded.
-  expect(raw).toContain("about 1,357.421751 TB-month");
-  expect(raw).not.toContain("1,357.421751433");
+  // An order form states the exact quantity the price uses, as entered
+  // where there is an entry, and never rounds it.
+  expect(raw).toContain("1,234.567891 TiB = 1,357.421751433393340416 TB");
+  expect(raw).toContain("1,357.421751433393340416 TB-month");
+  expect(raw).not.toContain("about");
+  // A stale entry is ignored and the row's own unit prints.
+  const stale = text(
+    (
+      await fixtureContractTemplate.render(
+        withRows((rows) => {
+          rows.splice(0, rows.length, {
+            ...long,
+            entered: { quantity: "1", unit: "PiB" },
+          });
+        }),
+      )
+    ).bytes,
+    "-raw",
+  ).replace(/\s+/g, " ");
+  expect(stale).toContain("1,357.421751433393340416 TB-month");
+  expect(stale).not.toContain("PiB");
   // Each row's term still reads cleanly beside the quantity.
   expect(layout.match(/ 12 months /gu)).toHaveLength(2);
   expect(raw).toContain("$244,335.92");

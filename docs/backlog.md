@@ -1906,12 +1906,23 @@ detail lives in `docs/operations/commerce-mnda.md`,
   their own rows; `commerce_admin` reads, overwrites and deletes every seller's
   scenarios. A line below its rate's minimum quantity, or a company the PDF
   cannot print, is refused at save. Saves, deletes and downloads are audited as
-  `pricing_scenario.*`. The guided demo shows scenarios as unavailable. Prices
-  stay indicative until `EXT-COMMERCIAL-01` and the summary copy is interim
-  until `EXT-BRAND-01`. Evidence:
+  `pricing_scenario.*`. Capacity can be entered in TB, PB, TiB or PiB and is
+  stored exactly in the rate's unit beside the entry; lines and scenarios show
+  per month, year 1 and term totals. Optional partner economics (referral with
+  step-downs, resale, other) are saved in `partner_economics` (migration
+  `001467`), and the summary has a customer and a partner audience; a resale's
+  customer summary is the partner's quote at its own price. The guided demo
+  saves nothing and offers two fictional example scenarios. Prices stay
+  indicative until `EXT-COMMERCIAL-01`. **Forward-only:** once a scenario with
+  an entered unit, a rate's `egressTreatment` or partner inputs is saved, or a
+  PiB or TiB scenario is imported into a contract (18-decimal quantity with
+  `entered`), the schemas before `001467` reject those rows, so a rollback needs
+  a forward fix rather than a revert. Evidence:
   `packages/db/src/repositories/pricing-scenarios.integration.test.ts`,
   `packages/documents/src/pricing-summary/render.integration.test.ts`,
-  `apps/web/src/features/internal-ops/sales-pricing/scenario-builder.test.tsx`.
+  `packages/domain/src/core/pricing/scenario-economics.test.ts`,
+  `apps/web/src/features/internal-ops/sales-pricing/scenario-builder.test.tsx`,
+  `apps/web/e2e/demo-pricing.spec.ts`.
 - **CRM provider `[EXTERNAL-ONLY]`:** prospects, contacts, activities and
   pipeline live in HubSpot, outside this repository. The outbound CRM projection
   exists and is inert behind `CLOCKWORK_CRM_ENABLED` and `EXT-PROVIDER-01`; a

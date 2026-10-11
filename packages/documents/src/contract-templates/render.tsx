@@ -230,7 +230,10 @@ function LineItemsTable({
               `${price(row.unitPriceMinor)} / ${row.unit}`,
               // The entry over the converted quantity, so a long figure
               // wraps in its own cell rather than across the term.
-              [capacity(row.quantity, row.unit, row.entered)].flat().join("\n"),
+              // Exact: an order form states the quantity the price uses.
+              [capacity(row.quantity, row.unit, row.entered, { exact: true })]
+                .flat()
+                .join("\n"),
               row.termMonths === 1 ? "1 month" : `${row.termMonths} months`,
               percent(row.discountBps),
               price(row.extendedMinor),

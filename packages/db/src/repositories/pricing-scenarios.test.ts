@@ -140,4 +140,19 @@ describe("scenario lines", () => {
       )[0]?.quantity,
     ).toBe("10");
   });
+
+  it("keep a rate's egress terms only when they fit the saved field", () => {
+    const withEgress = (egressTreatment: string) =>
+      ({
+        ...book,
+        rateCards: [{ ...book.rateCards?.[0], egressTreatment }],
+      }) as unknown as IndicativePriceBookRecord;
+    expect(
+      resolvePricingScenarioLines([entry], [withEgress("included")])[0]
+        ?.egressTreatment,
+    ).toBe("included");
+    expect(
+      resolvePricingScenarioLines([entry], [withEgress("x".repeat(61))])[0],
+    ).not.toHaveProperty("egressTreatment");
+  });
 });

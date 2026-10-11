@@ -650,3 +650,40 @@ it("ignores line discounts on a resale and refuses partner earnings above spend"
     ),
   ).toBeInTheDocument();
 });
+
+it("offers no customer summary for a resale whose lines differ in unit", () => {
+  const line = {
+    bookId,
+    bookVersion: 3,
+    rateId: storage,
+    sku: "STORAGE-TB",
+    region: "us-east",
+    unit: "TB-month",
+    unitPrice: { currency: "USD", minor: "1500" },
+    minimumQuantity: "10",
+    quantity: "100",
+    termMonths: 12,
+    discountBps: 0,
+  } as PricingScenarioRecord["lines"][number];
+  const opened: PricingScenarioRecord = {
+    ...summary,
+    notes: "",
+    priceBooks: [{ id: bookId, version: 3 }],
+    lines: [line, { ...line, unit: "GB-month" }],
+    partnerEconomics: {
+      model: "resale",
+      customerPriceMinor: "650",
+      marginBps: 3200,
+    },
+    createdAt: summary.updatedAt,
+  };
+  render(<ScenarioBuilder books={books} state={ready(opened)} />);
+  expect(
+    screen.getByRole("button", { name: "Download summary PDF" }),
+  ).toHaveAccessibleDescription(
+    "The customer summary for a resale needs every line in the same unit.",
+  );
+  expect(
+    screen.queryByRole("link", { name: "Download summary PDF" }),
+  ).toBeNull();
+});

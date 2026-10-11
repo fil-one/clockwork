@@ -341,3 +341,16 @@ it("prints no partner figures when lines are in different units", async () => {
   expect(text).not.toContain("Partner economics");
   expect(text).not.toContain(indicativePartnerNotice);
 }, 30_000);
+
+it("refuses a resale customer summary it cannot price at one partner price", async () => {
+  await expect(
+    renderIndicativePricingSummary({
+      ...resale,
+      audience: "customer",
+      lines: [
+        ...resale.lines,
+        line({ unit: "GB-month", quantity: "1000", termMonths: 36 }),
+      ],
+    }),
+  ).rejects.toThrow("PRICING_SUMMARY_RESALE_UNITS");
+});

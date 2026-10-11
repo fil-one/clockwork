@@ -201,6 +201,21 @@ export function pricingPartnerSummaryAvailable(scenario: {
   );
 }
 
+/**
+ * Whether a scenario has a customer summary. A resale's customer summary is
+ * the partner's quote at one price per unit, so it needs every line in one
+ * unit; it never falls back to Fil One's list.
+ */
+export function pricingCustomerSummaryAvailable(scenario: {
+  lines: readonly { unit: string }[];
+  partnerEconomics: PricingPartnerEconomics | null;
+}) {
+  return (
+    scenario.partnerEconomics?.model !== "resale" ||
+    pricingPartnerSummaryAvailable(scenario)
+  );
+}
+
 /** A new scenario, or an overwrite of `id` when `expectedVersion` is given. */
 export const PricingScenarioInputSchema = z
   .object({
