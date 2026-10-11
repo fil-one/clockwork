@@ -28,6 +28,7 @@ import {
 } from "@/src/features/customer-partner/partner/resale-quote-model";
 import { demoPartnerQuoteContext } from "@/src/features/customer-partner/partner/demo-partner-quote";
 import { configuredDemoStateStore } from "@/src/features/experience-server/demo-state-store";
+import { quoteCreationOpenFor } from "@/src/features/experience-server/quote-creation";
 import { SurfacePermissionGate } from "@/src/features/shell/permission-gate";
 import {
   getRouteIdentity,
@@ -296,13 +297,18 @@ async function ResaleQuoteWorkspace({
   // Transfer pricing on a partner-priced route is the persisted tier; the
   // repository refuses the quote when the partner has none.
   if (!truth.transferTier) return <NothingToQuote missing="agreement" />;
-  const offers = await loadOffers({
-    // A partner-priced quote is billed in the partner's own currency, and the
-    // repository refuses a book that disagrees with it.
-    currency: truth.partnerCurrency,
-    transferTier: truth.transferTier,
-    now,
-  });
+  // An active price book alone must not offer a quote the server would
+  // refuse: offers load only while quote creation's switches are on.
+  const quoting = await quoteCreationOpenFor(session);
+  const offers = quoting
+    ? await loadOffers({
+        // A partner-priced quote is billed in the partner's own currency, and the
+        // repository refuses a book that disagrees with it.
+        currency: truth.partnerCurrency,
+        transferTier: truth.transferTier,
+        now,
+      })
+    : [];
   return (
     <ResaleQuoteBuilder
       context={{

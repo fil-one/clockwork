@@ -32,6 +32,20 @@ const draft: ChannelPolicyRecord = {
 };
 const now = draft.createdAt;
 describe("channel policy approval", () => {
+  it("allows multi-year protection but bounds the cumulative window at ten years", () => {
+    const terms = {
+      ...draft.terms,
+      defaultProtectionDays: 365,
+      maximumProtectionDays: 1095,
+      extensionDays: 365,
+      maximumExtensions: 7,
+    };
+    expect(ChannelPolicyTermsSchema.safeParse(terms).success).toBe(true);
+    expect(
+      ChannelPolicyTermsSchema.safeParse({ ...terms, maximumExtensions: 8 })
+        .success,
+    ).toBe(false);
+  });
   it("rejects impossible date, nonpositive threshold and default beyond allowed protection", () => {
     for (const patch of [
       { effectiveFrom: "2026-02-30" },

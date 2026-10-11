@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   runtimeDatabase: vi.fn(),
   serviceDatabase: vi.fn(),
   demoPreparedOrderForm: vi.fn(),
+  capabilities: { enabled: ["new_business", "legal"] as readonly string[] },
   database: false,
 }));
 
@@ -48,7 +49,19 @@ vi.mock("./demo-order-acceptance", () => ({
     preparedOrderForm: mocks.demoPreparedOrderForm,
   }),
 }));
+vi.mock("@/src/features/internal-ops/capability-state", () => ({
+  getCapabilityState: () =>
+    Promise.resolve({
+      isEnabled: (key: string) => mocks.capabilities.enabled.includes(key),
+      isRecoveryEnabled: () => false,
+    }),
+}));
 vi.mock("@clockwork/db", () => ({
+  // Quote creation's switches, as `coreCommandCapabilities` states them.
+  coreCommandCapabilities: () => ({
+    capabilities: ["new_business", "legal"],
+    recovery: false,
+  }),
   findPreparedOrderForm: mocks.findPreparedOrderForm,
   findPreparedQuoteArtifact: mocks.findPreparedQuoteArtifact,
   findCustomerQuoteCurrency: mocks.findCustomerQuoteCurrency,
@@ -219,6 +232,18 @@ describe("customer quote offer catalogue", () => {
     ).toBe(true);
     expect(mocks.findCustomerQuoteCurrency).not.toHaveBeenCalled();
     expect(mocks.findActiveCustomerQuoteOffers).not.toHaveBeenCalled();
+  });
+
+  it("offers nothing to buy while quote creation is switched off", async () => {
+    mocks.capabilities.enabled = ["new_business"];
+    try {
+      await expect(loadCustomerQuoteOffers()).resolves.toEqual({
+        status: "unavailable",
+      });
+      expect(mocks.findActiveCustomerQuoteOffers).not.toHaveBeenCalled();
+    } finally {
+      mocks.capabilities.enabled = ["new_business", "legal"];
+    }
   });
 
   it("never falls back to demo offers when the authoritative databases are missing", async () => {

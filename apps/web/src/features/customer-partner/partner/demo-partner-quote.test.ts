@@ -140,7 +140,7 @@ describe("durable partner quote demo", () => {
         rowVersion: 1,
         data: {
           status: "draft",
-          total: { currency: "GBP", minor: "2640000" },
+          total: { currency: "GBP", minor: "86160" },
           partnerResaleTotal: { currency: "GBP", minor: "3000000" },
         },
       },
@@ -154,7 +154,7 @@ describe("durable partner quote demo", () => {
     expect(created).toMatchObject({
       status: "draft",
       name: "Aster House Media · LOCKED-STORAGE-TB",
-      value: "£26,400.00 transfer / £30,000.00 resale",
+      value: "£861.60 transfer / £30,000.00 resale",
     });
     expect(
       demoPartnerQuoteRecord(
@@ -279,7 +279,7 @@ it("restores separate prices for drafts saved before the pricing display update"
     en,
   );
   expect(detail?.quotePricing).toEqual({
-    transferPrice: "£26,400.00",
+    transferPrice: "£861.60",
     resalePrice: "£30,000.00",
   });
   expect(
@@ -359,7 +359,7 @@ it("issues two bound documents, protects transfer prices, and safely replays", a
   expect(JSON.stringify(resale?.definition)).toContain(
     '"minorUnits":"3000000"',
   );
-  expect(JSON.stringify(resale?.definition)).not.toContain("2640000");
+  expect(JSON.stringify(resale?.definition)).not.toContain("86160");
   const command = {
     id: body.id,
     accountId: body.accountId,
@@ -443,7 +443,7 @@ it("issues two bound documents, protects transfer prices, and safely replays", a
     { ...orderInput, orderFormDocumentId: prepared.documentId },
     new Date(options.now),
   );
-  expect(accepted.totalMinor).toBe("2640000");
+  expect(accepted.totalMinor).toBe("86160");
   expect(accepted.domainOrder?.partnerAccountId).toBe(demoAccountIds.reseller);
   expect(
     demoPartnerQuoteRecord(
@@ -674,7 +674,7 @@ it("withdraws a quote with a reason and refuses stale or cross-account withdrawa
  * Demo state lives in Netlify Blobs and outlives any one reader. What a quote
  * writes there must be facts -- minor units, currency, ISO dates -- so that the
  * next reader, in any language, sees amounts and dates in their own format.
- * The writer used to store "£26,400.00 transfer / £30,000.00 resale" and
+ * The writer used to store "£861.60 transfer / £30,000.00 resale" and
  * "Draft · expires 18/09/2026", rendered once in British English.
  */
 describe("partner quotes persist facts, not one reader's rendering", () => {
@@ -707,7 +707,7 @@ describe("partner quotes persist facts, not one reader's rendering", () => {
       /£|\$|€|transfer|resale|expires|months|Draft/u,
     );
     expect(stored.snapshot).toMatchObject({
-      total: { currency: "GBP", minor: "2640000" },
+      total: { currency: "GBP", minor: "86160" },
       partnerResaleTotal: { currency: "GBP", minor: "3000000" },
       expiresAt: "2026-09-18T12:00:00.000Z",
     });
@@ -729,7 +729,7 @@ describe("partner quotes persist facts, not one reader's rendering", () => {
       );
       expect(quote?.value, locale).toBe(
         t("partner.position.transferAndResale", {
-          transfer: formatMoney("2640000", "GBP", formatting),
+          transfer: formatMoney("86160", "GBP", formatting),
           resale: formatMoney("3000000", "GBP", formatting),
         }),
       );
@@ -739,7 +739,7 @@ describe("partner quotes persist facts, not one reader's rendering", () => {
         }),
       );
       expect(quote?.quotePricing?.transferPrice, locale).toBe(
-        formatMoney("2640000", "GBP", formatting),
+        formatMoney("86160", "GBP", formatting),
       );
       expect(
         `${quote?.context} ${quote?.value} ${quote?.secondary} ${quote?.owner}`,
@@ -772,10 +772,10 @@ describe("partner quotes persist facts, not one reader's rendering", () => {
                 ...data.record,
                 context: "Resale · uk-south · 20 TB · 12 months",
                 owner: "Partner commercial team",
-                value: "£26,400.00 transfer / £30,000.00 resale",
+                value: "£861.60 transfer / £30,000.00 resale",
                 secondary: "Draft · expires 18/09/2026",
                 quotePricing: {
-                  transferPrice: "£26,400.00",
+                  transferPrice: "£861.60",
                   resalePrice: "£30,000.00",
                 },
               },
@@ -793,7 +793,7 @@ describe("partner quotes persist facts, not one reader's rendering", () => {
     );
     expect(quote?.value).toBe(
       german.t("partner.position.transferAndResale", {
-        transfer: formatMoney("2640000", "GBP", "de-DE"),
+        transfer: formatMoney("86160", "GBP", "de-DE"),
         resale: formatMoney("3000000", "GBP", "de-DE"),
       }),
     );
@@ -803,7 +803,7 @@ describe("partner quotes persist facts, not one reader's rendering", () => {
       }),
     );
     expect(quote?.quotePricing).toEqual({
-      transferPrice: formatMoney("2640000", "GBP", "de-DE"),
+      transferPrice: formatMoney("86160", "GBP", "de-DE"),
       resalePrice: formatMoney("3000000", "GBP", "de-DE"),
     });
     expect(`${quote?.context} ${quote?.owner}`).not.toMatch(

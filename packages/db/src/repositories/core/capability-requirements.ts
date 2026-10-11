@@ -27,8 +27,13 @@ export function coreCommandCapabilities(input: {
     case "quotes":
       return { capabilities: ["new_business", "legal"], recovery: false };
     case "procurement_profiles":
-    case "price_books":
       return { capabilities: ["legal"], recovery: false };
+    // Price-book administration is list-price configuration, not selling.
+    // Permissions, the two-person (or reasoned self-) approval, audit and
+    // published immutability govern it; quotes and orders keep their own
+    // switches, so an active book opens no sales path by itself.
+    case "price_books":
+      return { capabilities: [], recovery: false };
     case "orders": {
       const capabilities: CoreCapabilityKey[] = [
         "new_business",

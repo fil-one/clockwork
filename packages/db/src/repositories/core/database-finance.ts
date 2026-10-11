@@ -3931,17 +3931,30 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         const [partner, endClient, priorActiveDeals] = await Promise.all([
           accountCommercial(transaction, partnerId),
           accountCommercial(transaction, endClientId),
-          transaction.query.dealRegistrations.findMany({
-            where: and(
-              eq(dealRegistrations.endClientAccountId, endClientId),
-              inArray(dealRegistrations.status, [
-                "registered",
-                "approved",
-                "disputed",
-              ]),
+          // A registration still awaiting channel-ops review of its
+          // house-account match holds no economic ownership yet, so it does
+          // not refuse another partner's registration as a prior deal.
+          transaction
+            .select({
+              endClientAccountId: dealRegistrations.endClientAccountId,
+              workload: dealRegistrations.workload,
+            })
+            .from(dealRegistrations)
+            .where(
+              and(
+                eq(dealRegistrations.endClientAccountId, endClientId),
+                inArray(dealRegistrations.status, [
+                  "registered",
+                  "approved",
+                  "disputed",
+                ]),
+                sql`not (${dealRegistrations.status} = 'registered' and exists (
+                  select 1 from core_deal_registration_exclusions pending
+                  where pending.registration_id = ${dealRegistrations.id}
+                    and pending.kind = 'house_account'
+                    and pending.status = 'detected'))`,
+              ),
             ),
-            columns: { endClientAccountId: true, workload: true },
-          }),
         ]);
         return {
           partner,
@@ -8498,6 +8511,102 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           "The captured channel policy limits this extension; supply a permitted duration and documented progress of at least eight characters",
         );
     }
+    // A house-account match recorded at registration is decided here, with
+    // the registration: approval needs an override reason, and either
+    // decision resolves the evidence in the same transaction.
+    const openHouseMatches =
+      input.action === "approve" || input.action === "reject"
+        ? await transaction
+            .select({ id: dealRegistrationExclusions.id })
+            .from(dealRegistrationExclusions)
+            .where(
+              and(
+                eq(dealRegistrationExclusions.registrationId, prior.id),
+                eq(dealRegistrationExclusions.kind, "house_account"),
+                eq(dealRegistrationExclusions.status, "detected"),
+              ),
+            )
+        : [];
+    const overrideReason =
+      optionalString(input.payload.overrideReason, "overrideReason")?.trim() ??
+      "";
+    if (openHouseMatches.length > 0) {
+      if (!input.authorization.isInternalStaff)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Only Fil One channel operations can decide a registration on an existing direct client",
+        );
+      if (
+        input.action === "approve" &&
+        (overrideReason.length < 8 || overrideReason.length > 500)
+      )
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "This end client is an existing direct client; approving needs an overrideReason of 8 to 500 characters",
+        );
+    }
+    if (input.action === "approve") {
+      // One economic owner per end client and workload. The database trigger
+      // is the guarantee; this read gives the reason first.
+      const owner = await withInternalTransaction(
+        this.options.pricingDatabase,
+        `${input.requestId}:registration-owner`,
+        (service) =>
+          service
+            .select({ id: dealRegistrations.id })
+            .from(dealRegistrations)
+            .where(
+              and(
+                eq(
+                  dealRegistrations.endClientAccountId,
+                  prior.endClientAccountId,
+                ),
+                inArray(dealRegistrations.status, [
+                  "approved",
+                  "converted",
+                  "disputed",
+                ]),
+                sql`${dealRegistrations.id} <> ${prior.id}
+                  and lower(btrim(${dealRegistrations.workload})) = lower(btrim(${prior.workload}))`,
+              ),
+            )
+            .limit(1),
+      );
+      if (owner.length > 0)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Another registration already owns this end client and workload; reject or resolve it first",
+        );
+    }
+    if (input.action === "convert") {
+      if (prior.status !== "approved")
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Only an approved registration can be converted",
+        );
+      const orderId = string(input.payload.orderId, "orderId");
+      const linked = await withInternalTransaction(
+        this.options.pricingDatabase,
+        `${input.requestId}:registration-order`,
+        (service) =>
+          service.execute<{ matches: boolean }>(sql`
+            select exists (
+              select 1 from orders order_record
+              left join core_order_commercial_profiles profile
+                on profile.order_id = order_record.id
+              where order_record.id = ${orderId}::uuid
+                and order_record.partner_account_id = ${prior.partnerAccountId}::uuid
+                and order_record.account_id = ${prior.endClientAccountId}::uuid
+                and (profile.deal_registration_id is null
+                  or profile.deal_registration_id = ${prior.id}::uuid)
+            ) as matches`),
+      );
+      if (linked[0]?.matches !== true)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "The order must belong to this registration's partner and end client",
+        );
+    }
     const registration: DealRegistration = {
       id: prior.id,
       partnerAccountId: prior.partnerAccountId,
@@ -8530,6 +8639,12 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
                 : input.action === "reject"
                   ? "reject"
                   : "extend",
+            ...(openHouseMatches.length > 0
+              ? {
+                  openExclusions: ["house_account" as const],
+                  overrideReason,
+                }
+              : {}),
             ...(input.payload.extensionDays === undefined
               ? {}
               : {
@@ -8581,10 +8696,39 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         "VERSION_CONFLICT",
         "Deal registration version is stale",
       );
+    const resolution =
+      openHouseMatches.length > 0 &&
+      (row.status === "approved" || row.status === "rejected")
+        ? {
+            status: row.status === "approved" ? "cleared" : "confirmed",
+            ...(row.status === "approved" ? { overrideReason } : {}),
+          }
+        : undefined;
+    if (resolution) {
+      // Resolved in this transaction by a narrow security-definer function:
+      // the tenant pool cannot update exclusion evidence directly, and the
+      // deciding staff user is taken from the signed authorization context.
+      const [result] = await transaction.execute<{ resolved: number }>(sql`
+        select public.core_resolve_house_account_match(
+          ${row.id}::uuid, ${overrideReason}::text
+        ) as resolved
+      `);
+      if (Number(result?.resolved ?? 0) !== openHouseMatches.length)
+        throw new CoreServiceError(
+          "VERSION_CONFLICT",
+          "The house-account match was resolved concurrently",
+        );
+    }
+    const record = coreRecord("deal_registrations", row, row.partnerAccountId);
     return audited(
       transaction,
       input,
-      coreRecord("deal_registrations", row, row.partnerAccountId),
+      resolution
+        ? {
+            ...record,
+            data: { ...record.data, houseAccountDecision: resolution },
+          }
+        : record,
       prior,
     );
   }

@@ -10,16 +10,23 @@ export const ChannelPolicyTermsSchema = z
     version: z.number().int().positive(),
     effectiveFrom: z.iso.date(),
     selfServeThresholdTb: z.number().positive().max(1_000_000_000),
-    defaultProtectionDays: z.number().int().min(1).max(730),
-    maximumProtectionDays: z.number().int().min(1).max(730),
-    extensionDays: z.number().int().min(1).max(730),
-    maximumExtensions: z.number().int().min(0).max(10),
+    defaultProtectionDays: z.number().int().min(1).max(3650),
+    maximumProtectionDays: z.number().int().min(1).max(3650),
+    extensionDays: z.number().int().min(1).max(3650),
+    maximumExtensions: z.number().int().min(0).max(100),
     sourceEvidence: z.string().trim().min(8).max(2000),
   })
   .strict()
   .refine(
     (value) => value.defaultProtectionDays <= value.maximumProtectionDays,
     "Default protection cannot exceed the maximum requested window",
+  )
+  .refine(
+    (value) =>
+      value.maximumProtectionDays +
+        value.extensionDays * value.maximumExtensions <=
+      3650,
+    "The maximum window plus every extension cannot exceed 3,650 days",
   );
 export type ChannelPolicyTerms = z.infer<typeof ChannelPolicyTermsSchema>;
 export const ChannelPolicyRecordSchema = z
