@@ -60,6 +60,43 @@ export const StaffProvisioningSchema = z
   .strict();
 export type StaffProvisioning = z.infer<typeof StaffProvisioningSchema>;
 
+/** Deployment logs may expose only these fixed refusals, never provider bodies. */
+export function staffProvisioningFailureCode(error: unknown): string {
+  const known = new Set([
+    "STAFF_PROVISIONING_CONFIGURATION_REQUIRED",
+    "STAFF_PROVISIONING_DOMAIN_DENIED",
+    "STAFF_PROVISIONING_TARGET_MISMATCH",
+    "STAFF_PROVISIONING_SCOPE_MISMATCH",
+    "STAFF_PROVISIONING_EXISTING_IDENTITY_CONFLICT",
+    "STAFF_PROVISIONING_ROLE_CHANGE_NOT_REQUESTED",
+    "STAFF_PROVISIONING_BINDING_CONFLICT",
+    "STAFF_PROVISIONING_RETRY_REQUIRED",
+    "STAFF_PROVISIONING_LAST_ADMIN",
+    "STAFF_WORKOS_CONFIGURATION_REQUIRED",
+    "STAFF_IDENTITY_AMBIGUOUS",
+    "STAFF_IDENTITY_MISMATCH",
+    "STAFF_MEMBERSHIP_AMBIGUOUS",
+    "STAFF_MEMBERSHIP_MISMATCH",
+  ]);
+  if (error instanceof z.ZodError) return "STAFF_PROVISIONING_INVALID_INPUT";
+  if (error instanceof SyntaxError) return "STAFF_PROVISIONING_INVALID_JSON";
+  if (error instanceof Error) {
+    if (known.has(error.message)) return error.message;
+    if (/^STAFF_WORKOS_HTTP_[45]\d{2}$/u.test(error.message))
+      return error.message;
+    if (error.name === "TimeoutError") return "STAFF_WORKOS_TIMEOUT";
+  }
+  // Postgres SQLSTATE identifies the failure class without SQL, detail or values.
+  if (
+    error instanceof Error &&
+    "code" in error &&
+    typeof error.code === "string" &&
+    /^[0-9A-Z]{5}$/u.test(error.code)
+  )
+    return `STAFF_DATABASE_${error.code}`;
+  return "STAFF_PROVISIONING_UNEXPECTED";
+}
+
 /** Splits a comma-separated domain list the way the deployment writes it. */
 export function staffEmailDomains(configured: string | undefined): string[] {
   return (configured ?? "")
