@@ -158,6 +158,12 @@ variable "commerce_mnda_enabled" {
   default     = false
 }
 
+variable "commerce_contracts_signing_enabled" {
+  description = "Send contracts and uploaded PDFs for signature through SignWell. Staging sends in test mode; production sends live."
+  type        = bool
+  default     = true
+}
+
 # Production database sizing. Staging keeps upstream's db.t4g.micro.
 
 variable "production_db_instance_class" {

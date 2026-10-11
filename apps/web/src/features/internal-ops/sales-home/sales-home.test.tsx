@@ -229,8 +229,10 @@ describe("contract work on the home page", () => {
       },
       {
         id: "contracts-outForSignature",
-        mine: 1,
-        team: 1,
+        // Saltmarsh and the Larkspur term sheet are the reader's; the Quarry
+        // Lane teaming agreement is a colleague's.
+        mine: 2,
+        team: 3,
         href: "/internal/contracts?status=out_for_signature&mine=1",
       },
     ]);

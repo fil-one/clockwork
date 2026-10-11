@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   mndaByProvider: vi.fn(),
   mndaSync: vi.fn(),
   contractByProvider: vi.fn(),
+  contractReplaced: vi.fn(),
   contractSync: vi.fn(),
 }));
 vi.mock("@/src/features/internal-ops/mnda/server", () => ({
@@ -12,7 +13,10 @@ vi.mock("@/src/features/internal-ops/mnda/server", () => ({
   mndaWorkflow: () => ({ sync: mocks.mndaSync }),
 }));
 vi.mock("@/src/features/internal-ops/contracts/server", () => ({
-  contractSigningRepository: () => ({ byProvider: mocks.contractByProvider }),
+  contractSigningRepository: () => ({
+    byProvider: mocks.contractByProvider,
+    replacedByProvider: mocks.contractReplaced,
+  }),
   contractSigningWorkflow: () => ({ sync: mocks.contractSync }),
 }));
 import { POST } from "./route";
@@ -75,6 +79,25 @@ describe("SignWell webhook", () => {
       id: "signwell",
     });
     expect(mocks.mndaSync).not.toHaveBeenCalled();
+  });
+
+  it("names a late callback for a replaced request in the log, changing nothing", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const replacedDocument = "019a44ac-0000-7000-8000-0000000000d3";
+    mocks.contractReplaced.mockImplementation((id: string) =>
+      Promise.resolve(
+        id === replacedDocument
+          ? { contractId: "contract-record", requestNumber: 1 }
+          : null,
+      ),
+    );
+    expect((await post(wakeup(replacedDocument))).status).toBe(200);
+    expect(mocks.contractSync).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalledExactlyOnceWith(
+      "CONTRACT wakeup for a replaced signing request",
+      { contractId: "contract-record", requestNumber: 1 },
+    );
+    info.mockRestore();
   });
 
   it("answers 503 when the contract lookup fails, and keeps serving MNDAs", async () => {

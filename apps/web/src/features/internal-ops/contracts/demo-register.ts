@@ -7,6 +7,8 @@ import {
   type ContractListQuery,
   type ContractListRow,
   type ContractRecord,
+  type ContractSigningHistoryEntry,
+  type ContractSigningRecord,
   type SalesCollateralRecord,
 } from "@clockwork/contracts";
 import type { ContractListResult, ContractListScope } from "@clockwork/db";
@@ -15,7 +17,11 @@ import {
   addContractMonths,
   contractTermSchedule,
 } from "@clockwork/domain/contract-terms";
-import { demoMndaRecords, type DemoMndaViewer } from "../mnda/demo-register";
+import {
+  demoMndaRecords,
+  demoMndaSigners,
+  type DemoMndaViewer,
+} from "../mnda/demo-register";
 
 /**
  * The contract register and sales library the guided demo shows. Every
@@ -47,6 +53,14 @@ interface Fixture {
   tags?: string[];
   /** Days before today the record was last changed. */
   updatedDaysAgo: number;
+  /** One of the contract's own PDFs out for signature: the counterparty
+   * signs first, then Fil One. `earlier` is a request that was voided and
+   * replaced by this one. */
+  signing?: {
+    state: ContractSigningRecord["state"];
+    signer: [name: string, title: string, email: string];
+    earlier?: { reason: string; daysAgo: number };
+  };
 }
 
 const fixtures: readonly Fixture[] = [
@@ -180,6 +194,42 @@ const fixtures: readonly Fixture[] = [
     updatedDaysAgo: 90,
   },
   {
+    key: 11,
+    counterpartyName: "Larkspur Data Cooperative",
+    title: "Referral partner term sheet",
+    contractType: "channel_partnership",
+    paper: "ours",
+    status: "out_for_signature",
+    ownerName: "Priya Raman",
+    internalNotes:
+      "Our term sheet, drafted in Word and uploaded as a PDF. Full channel agreement to follow.",
+    tags: ["partner", "referral"],
+    updatedDaysAgo: 1,
+    signing: {
+      state: "viewed",
+      signer: ["Mara Ellison", "Chief Operating Officer", "mara@larkspur.test"],
+    },
+  },
+  {
+    key: 12,
+    counterpartyName: "Quarry Lane Storage Partners",
+    title: "Teaming agreement",
+    contractType: "other",
+    paper: "ours",
+    status: "out_for_signature",
+    ownerName: "Jonah Pike",
+    tags: ["partner"],
+    updatedDaysAgo: 2,
+    signing: {
+      state: "sent",
+      signer: ["Theo Marsh", "Managing Partner", "theo@quarrylane.test"],
+      earlier: {
+        reason: "Wrong effective date on page 2; corrected PDF uploaded.",
+        daysAgo: 4,
+      },
+    },
+  },
+  {
     key: 10,
     counterpartyName: "Ashgrove Digital Library",
     title: "Master services agreement",
@@ -256,6 +306,81 @@ function contract(fixture: Fixture, now: Date, today: string): ContractRecord {
   };
 }
 
+/** Fil One's own PDF out for signature, as the signing panel reads it, and
+ * the request it replaced, if any. Approved by a colleague; nothing here
+ * reaches SignWell. */
+function demoSigning(
+  fixture: Fixture,
+  now: Date,
+): {
+  signing: ContractSigningRecord | null;
+  previous: ContractSigningHistoryEntry[];
+} {
+  if (!fixture.signing) return { signing: null, previous: [] };
+  const [name, title, email] = fixture.signing.signer;
+  const countersigner = demoMndaSigners[0];
+  if (!countersigner) throw new Error("demo countersigner missing");
+  const earlier = fixture.signing.earlier;
+  const preparedDaysAgo = fixture.updatedDaysAgo + 1;
+  const signing: ContractSigningRecord = {
+    contractId: contractId(fixture.key),
+    templateId: "counterparty-paper",
+    templateVersion: "2026-10-10",
+    templateHash: "0".repeat(64),
+    documentName: `Fil One ${fixture.title} - ${fixture.counterpartyName}`,
+    input: {},
+    counterpartySigner: { name, email, title },
+    countersigner: {
+      id: countersigner.id,
+      name: countersigner.name,
+      email: countersigner.email,
+      title: countersigner.title,
+    },
+    preparerId: creatorIds[fixture.ownerName] ?? "",
+    preparerName: fixture.ownerName,
+    approvalRequired: true,
+    approvalState: "approved",
+    approverName: "Sofia Marchetti",
+    decidedAt: stamp(now, preparedDaysAgo - 0.5),
+    rejectionReason: null,
+    state: fixture.signing.state,
+    providerId: `64000000-0000-4000-8000-${String(fixture.key).padStart(12, "0")}`,
+    testMode: true,
+    error: null,
+    createdAt: stamp(now, preparedDaysAgo),
+    updatedAt: stamp(now, fixture.updatedDaysAgo),
+    completedAt: null,
+    remindedAt: null,
+    correctedSignerEmail: null,
+    pendingSignerEmail: null,
+    cancelCode: null,
+    cancelReason: null,
+    documentType: "counterparty_paper",
+    counterpartySigns: true,
+    requestNumber: earlier ? 2 : 1,
+    preparerEmail: null,
+    version: 4,
+  };
+  const previous: ContractSigningHistoryEntry[] = earlier
+    ? [
+        {
+          requestNumber: 1,
+          state: "canceled",
+          cancelCode: "voided",
+          cancelReason: earlier.reason,
+          documentType: "counterparty_paper",
+          counterpartySigns: true,
+          counterpartySigner: { name, email, title },
+          countersignerName: countersigner.name,
+          preparerName: fixture.ownerName,
+          createdAt: stamp(now, earlier.daysAgo + 1),
+          updatedAt: stamp(now, earlier.daysAgo),
+        },
+      ]
+    : [];
+  return { signing, previous };
+}
+
 function listRow(record: ContractRecord): ContractListRow {
   return {
     id: record.id,
@@ -271,7 +396,9 @@ function listRow(record: ContractRecord): ContractListRow {
     ownerName: record.ownerName,
     tags: record.tags,
     documentCount: 0,
-    signingState: null,
+    signingState:
+      fixtures.find((f) => contractId(f.key) === record.id)?.signing?.state ??
+      null,
     updatedAt: record.updatedAt,
     termEndDate: record.termEndDate,
     renewalDate: record.renewalDate,
@@ -471,9 +598,44 @@ export function demoContractRegister(now: Date, viewer: DemoMndaViewer) {
       });
     },
     get(id: string, _asOf: string) {
-      const record = records().find((candidate) => candidate.id === id);
-      if (!record) return Promise.reject(new Error("CONTRACT_NOT_FOUND"));
+      const fixture = fixtures.find((f) => contractId(f.key) === id);
+      if (!fixture) return Promise.reject(new Error("CONTRACT_NOT_FOUND"));
+      const record = contract(fixture, now, today);
+      const { signing, previous } = demoSigning(fixture, now);
+      const sent: ContractActivity[] = signing
+        ? [
+            {
+              id: `${record.id}-4`,
+              eventType: "contract.signing_sent",
+              actorName: record.ownerName,
+              changes: {
+                status: { from: "draft", to: "out_for_signature" },
+              },
+              occurredAt: signing.updatedAt,
+            },
+            {
+              id: `${record.id}-3`,
+              eventType: "contract.prepared",
+              actorName: record.ownerName,
+              changes: {
+                documentType: "counterparty_paper",
+                ...(signing.requestNumber > 1
+                  ? { requestNumber: signing.requestNumber }
+                  : {}),
+              },
+              occurredAt: signing.createdAt,
+            },
+            ...previous.map((entry) => ({
+              id: `${record.id}-voided-${entry.requestNumber}`,
+              eventType: "contract.voided",
+              actorName: record.ownerName,
+              changes: { cancelCode: "voided", reason: entry.cancelReason },
+              occurredAt: entry.updatedAt,
+            })),
+          ]
+        : [];
       const activity: ContractActivity[] = [
+        ...sent,
         ...(record.status === "executed"
           ? [
               {
@@ -499,7 +661,8 @@ export function demoContractRegister(now: Date, viewer: DemoMndaViewer) {
         contract: record,
         files: [],
         activity,
-        signing: null,
+        signing,
+        previousSigning: previous,
       });
     },
   };
