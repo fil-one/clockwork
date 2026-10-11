@@ -225,6 +225,8 @@ create policy staff_notification_preferences_service on public.commerce_staff_no
 -- about the last few days at once. These messages predate notifications, so
 -- they are consumed here, with no effect, and only new events notify. The
 -- list is the topics in packages/workflows/src/staff-notifications/sources.ts.
+set statement_timeout = '60s';
+
 update public.outbox_messages
 set processed_at = now()
 where processed_at is null
@@ -245,4 +247,5 @@ where processed_at is null
     'core.price_books.reject_activation'
   );
 
+reset statement_timeout;
 reset lock_timeout;

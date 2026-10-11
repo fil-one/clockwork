@@ -149,6 +149,9 @@ export interface SesSender {
 function defaultSesSender(region: string | undefined): SesSender {
   const client = new SESv2Client({
     ...(region ? { region } : {}),
+    // One call per attempt: an SDK retry after a timeout could send an
+    // email SES had already accepted. The retry task owns retries.
+    maxAttempts: 1,
     requestHandler: { requestTimeout: REQUEST_TIMEOUT_MS },
   });
   return { send: (command) => client.send(command) };
@@ -159,6 +162,8 @@ const transientSesErrors = new Set([
   "TooManyRequestsException",
   "ThrottlingException",
   "LimitExceededException",
+  // Task-role credentials rotate; the next attempt signs with fresh ones.
+  "ExpiredTokenException",
 ]);
 
 /** SES errors that a retry cannot fix, the deployment's own credentials and
@@ -168,7 +173,6 @@ const permanentSesErrors = new Set([
   "InvalidClientTokenId",
   "UnrecognizedClientException",
   "SignatureDoesNotMatch",
-  "ExpiredTokenException",
   "MessageRejected",
   "MailFromDomainNotVerifiedException",
   "AccountSuspendedException",

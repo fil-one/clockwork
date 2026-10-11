@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { and, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import {
   StaffNotificationPreferencesSchema,
@@ -98,6 +98,10 @@ export class StaffNotificationRepository {
     );
     return this.tx(async (tx) => {
       const before = options.before;
+      // The cursor carries the time the page showed, in milliseconds;
+      // ordering by the same rounding keeps a page boundary from skipping a
+      // notification written within the cursor's millisecond.
+      const shown = sql`date_trunc('milliseconds', ${staffNotifications.createdAt})`;
       const rows = await tx
         .select()
         .from(staffNotifications)
@@ -105,23 +109,11 @@ export class StaffNotificationRepository {
           and(
             this.visible(userId, kinds),
             before
-              ? or(
-                  lt(staffNotifications.createdAt, new Date(before.createdAt)),
-                  and(
-                    eq(
-                      staffNotifications.createdAt,
-                      new Date(before.createdAt),
-                    ),
-                    lt(staffNotifications.id, before.id),
-                  ),
-                )
+              ? sql`(${shown}, ${staffNotifications.id}) < (${before.createdAt}::timestamptz, ${before.id}::uuid)`
               : undefined,
           ),
         )
-        .orderBy(
-          desc(staffNotifications.createdAt),
-          desc(staffNotifications.id),
-        )
+        .orderBy(sql`${shown} desc`, desc(staffNotifications.id))
         .limit(limit + 1);
       const [count] = await tx
         .select({ unread: sql<number>`count(*)::int` })
@@ -300,6 +292,20 @@ export class StaffNotificationRepository {
         after: input,
       });
       return input;
+    });
+  }
+
+  /** Whether this administrator sent a test within the last `withinMs`. */
+  testedRecently(actorId: string, withinMs = 30_000) {
+    return this.tx(async (tx) => {
+      const [row] = await tx.execute<{ recent: boolean }>(sql`
+        select exists (
+          select 1 from audit_events
+          where event_type = 'staff_notifications.test_sent'
+            and actor->>'id' = ${actorId}
+            and occurred_at > now() - make_interval(secs => ${withinMs / 1000})
+        ) as recent`);
+      return row?.recent === true;
     });
   }
 
@@ -648,25 +654,42 @@ export class StaffNotificationStore {
   }
 
   /**
-   * Records one delivery's outcome. A sent delivery is never overwritten.
-   * `sending` is written before the provider is called, so a crash between
-   * the call and its outcome leaves a delivery nothing sends again.
+   * Records a delivery the first time it is decided: `sending` just before
+   * the provider is called, or `skipped` with its reason. A delivery is
+   * decided once: when another run of the same event has already recorded
+   * it, nothing is written and this returns false, so two runs racing on a
+   * redelivered outbox message never both call the provider.
    */
-  recordDelivery(input: StaffNotificationDeliveryRecord) {
+  startDelivery(input: StaffNotificationDeliveryRecord): Promise<boolean> {
+    return this.tx(async (tx) => {
+      const rows = await tx.execute<{ id: string }>(sql`
+        insert into commerce_staff_notification_deliveries
+          (event_id, channel, recipient_user_id, kind, status, reason)
+        values (${input.eventId}::uuid, ${input.channel}, ${input.recipientUserId}::uuid,
+          ${input.kind}, ${input.status}, ${input.reason})
+        on conflict on constraint commerce_staff_notification_deliveries_unique
+        do nothing
+        returning id`);
+      return rows.length === 1;
+    });
+  }
+
+  /**
+   * Records what became of a delivery this run holds as `sending`: the
+   * provider's answer, or a skip the retry task decided. A delivery no
+   * longer `sending` is left as it is.
+   */
+  finishDelivery(input: StaffNotificationDeliveryRecord) {
     return this.tx(async (tx) => {
       await tx.execute(sql`
-        insert into commerce_staff_notification_deliveries
-          (event_id, channel, recipient_user_id, kind, status, reason,
-           provider_message_id, provider_code)
-        values (${input.eventId}::uuid, ${input.channel}, ${input.recipientUserId}::uuid,
-          ${input.kind}, ${input.status}, ${input.reason},
-          ${input.providerMessageId ?? null}, ${input.providerCode ?? null})
-        on conflict on constraint commerce_staff_notification_deliveries_unique
-        do update set status = excluded.status, reason = excluded.reason,
-          provider_message_id = excluded.provider_message_id,
-          provider_code = excluded.provider_code,
+        update commerce_staff_notification_deliveries
+        set status = ${input.status}, reason = ${input.reason},
+          provider_message_id = ${input.providerMessageId ?? null},
+          provider_code = ${input.providerCode ?? null},
           updated_at = now()
-        where commerce_staff_notification_deliveries.status <> 'sent'`);
+        where event_id = ${input.eventId}::uuid and channel = ${input.channel}
+          and recipient_user_id is not distinct from ${input.recipientUserId}::uuid
+          and status = 'sending'`);
     });
   }
 

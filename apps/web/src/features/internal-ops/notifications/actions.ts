@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import {
   contextHasPermission,
+  StaffNotificationCursorSchema,
   StaffNotificationMarkReadSchema,
   type Actor,
 } from "@clockwork/contracts";
@@ -51,6 +52,22 @@ async function administrator() {
   if (!contextHasPermission(session, notificationSettingsPermission))
     throw new NotificationAccessError("NOTIFICATIONS_FORBIDDEN");
   return session;
+}
+
+/** The page of the reader's notifications older than the one they last
+ * loaded. The demo has one page. */
+export async function loadOlderNotifications(raw: unknown) {
+  return run(async () => {
+    const before = StaffNotificationCursorSchema.parse(raw);
+    const session = await notificationStaff();
+    if (notificationDemo())
+      return { notifications: [], unread: 0, more: false };
+    return notificationRepository().list(
+      session.userId,
+      readableNotificationKinds(session),
+      { before },
+    );
+  });
 }
 
 export async function markNotificationsRead(raw: unknown) {
@@ -126,6 +143,10 @@ export async function sendNotificationTest(channel: "email" | "slack") {
     if (notificationDemo()) throw new Error("NOTIFICATIONS_DEMO_UNAVAILABLE");
     if (channel !== "email" && channel !== "slack")
       throw new Error("INVALID_INPUT");
+    // One test per administrator every 30 seconds, so a held-down button
+    // cannot flood a channel or the SES quota.
+    if (await notificationRepository().testedRecently(session.userId))
+      throw new Error("NOTIFICATIONS_TEST_TOO_SOON");
     const result = await sendStaffNotificationTest(channel, {
       channels: staffNotificationChannels(process.env),
       origin: staffNotificationOrigin(process.env),

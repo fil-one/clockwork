@@ -116,7 +116,11 @@ export function NotificationSettingsWorkspace({
       if (!result.ok) {
         setMessage({
           tone: "danger",
-          text: t("operations.notifications.error"),
+          text: t(
+            result.code === "NOTIFICATIONS_TEST_TOO_SOON"
+              ? "operations.notifications.settings.testTooSoon"
+              : "operations.notifications.error",
+          ),
           ...(result.code === "SESSION_EXPIRED" ? { expired: true } : {}),
         });
         return;

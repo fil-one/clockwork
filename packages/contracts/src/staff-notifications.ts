@@ -203,3 +203,8 @@ export const defaultStaffNotificationPreferences: StaffNotificationPreferences =
 export const StaffNotificationMarkReadSchema = z
   .object({ ids: z.array(z.uuid()).min(1).max(staffNotificationPageSize) })
   .strict();
+
+/** Where the next page of the inbox starts: the last notification loaded. */
+export const StaffNotificationCursorSchema = z
+  .object({ createdAt: z.iso.datetime({ offset: true }), id: z.uuid() })
+  .strict();

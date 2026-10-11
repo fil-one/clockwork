@@ -36,7 +36,9 @@ locals {
     { name = "COMMERCE_NOTIFICATIONS_EMAIL_FROM", value = local.notifications_email_from },
   ] : []
 
-  # The shared root's zone is named for the hostname on the default network.
+  # The shared root's zone is named for the hostname on the default "hot"
+  # network, which both stages use (terraform.yml sets no network). On any
+  # other network the records are added by hand from the output below.
   notifications_dkim_in_route53 = var.notifications_email_enabled && var.network == "hot" && (
     local.notifications_email_domain == var.domain_base ||
     endswith(local.notifications_email_domain, ".${var.domain_base}")

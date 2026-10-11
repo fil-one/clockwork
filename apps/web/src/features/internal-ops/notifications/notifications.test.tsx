@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   savePreferences: vi.fn(),
   saveSettings: vi.fn(),
   sendTest: vi.fn(),
+  loadOlder: vi.fn(),
 }));
 vi.mock("./actions", () => ({
   markNotificationsRead: mocks.markRead,
@@ -19,6 +20,7 @@ vi.mock("./actions", () => ({
   saveNotificationPreferences: mocks.savePreferences,
   saveNotificationSettings: mocks.saveSettings,
   sendNotificationTest: mocks.sendTest,
+  loadOlderNotifications: mocks.loadOlder,
 }));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/internal",
@@ -169,6 +171,50 @@ describe("the inbox", () => {
     window.removeEventListener(notificationsChangedEvent, changed);
   });
 
+  it("loads older notifications from the last one shown", async () => {
+    mocks.loadOlder.mockResolvedValue({
+      ok: true,
+      value: {
+        notifications: [
+          notification({
+            id: "62000000-0000-4000-8000-000000000009",
+            kind: "mnda.expired",
+            subject: "Halden Archives AS",
+            createdAt: "2026-09-01T12:00:00.000Z",
+          }),
+        ],
+        unread: 4,
+        more: false,
+      },
+    });
+    const data = inbox();
+    render(
+      <NotificationInbox
+        initial={{ ...data, page: { ...data.page, unread: 4, more: true } }}
+      />,
+    );
+    // Two unread on the page and two older ones the server counted.
+    expect(
+      screen.getByRole("heading", { name: "4 unread" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show older" }));
+    await waitFor(() =>
+      expect(mocks.loadOlder).toHaveBeenCalledWith({
+        createdAt: "2026-10-10T12:00:00.000Z",
+        id: "62000000-0000-4000-8000-000000000003",
+      }),
+    );
+    expect(
+      await screen.findByRole("link", {
+        name: "The MNDA with Halden Archives AS expired before it was signed.",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show older" })).toBeNull();
+    expect(
+      screen.getByRole("heading", { name: "4 unread" }),
+    ).toBeInTheDocument();
+  });
+
   it("saves the reader's email choices", async () => {
     mocks.savePreferences.mockImplementation((value: unknown) =>
       Promise.resolve({ ok: true, value }),
@@ -273,6 +319,20 @@ describe("notification settings", () => {
     expect(mocks.saveSettings.mock.calls[0]?.[1]).toBe(3);
     expect(
       await screen.findByText("Notification settings saved."),
+    ).toBeInTheDocument();
+  });
+
+  it("says when a test was sent too recently", async () => {
+    mocks.sendTest.mockResolvedValue({
+      ok: false,
+      code: "NOTIFICATIONS_TEST_TOO_SOON",
+    });
+    render(<NotificationSettingsWorkspace initial={settingsData()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Send a test" }));
+    expect(
+      await screen.findByText(
+        "A test was sent a moment ago. Try again in 30 seconds.",
+      ),
     ).toBeInTheDocument();
   });
 

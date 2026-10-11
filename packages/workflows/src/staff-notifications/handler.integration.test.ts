@@ -352,6 +352,31 @@ describe("staff notifications from audit events", () => {
     expect(slackPort.posted).toHaveLength(0);
   });
 
+  it("sends each email and the Slack post once when two runs of the same event race", async () => {
+    await setSettings({ emailEnabled: true, slackEnabled: true });
+    const emailPort = new FakeStaffEmail();
+    const slackPort = new FakeStaffSlack();
+    const id = await mnda();
+    const { payload } = await emit({
+      aggregateId: id,
+      eventType: "mnda.completed",
+    });
+    const options = {
+      store,
+      channels: channels(emailPort, slackPort),
+      origin: null,
+    };
+    // A redelivered outbox message whose first lease was lost: both runs
+    // read the event's deliveries before either has claimed one.
+    await Promise.all([
+      handleStaffNotificationEvent(payload, options),
+      handleStaffNotificationEvent(payload, options),
+      handleStaffNotificationEvent(payload, options),
+    ]);
+    expect(emailPort.sent.map((m) => m.to)).toEqual([email(seller)]);
+    expect(slackPort.posted).toHaveLength(1);
+  });
+
   it("never sends again a delivery interrupted after the provider was called", async () => {
     await setSettings({ emailEnabled: true, slackEnabled: false });
     const emailPort = new FakeStaffEmail();
@@ -516,6 +541,72 @@ describe("staff notifications from audit events", () => {
     });
     expect(result.status).toBe("stale");
     expect(await notified(eventId)).toEqual([]);
+  });
+
+  it("pages the inbox from a cursor without skipping or repeating a notification", async () => {
+    const reader = randomUUID();
+    await withInternalTransaction(db, randomUUID(), (tx) =>
+      tx.insert(commerceUsers).values({
+        id: reader,
+        workosUserId: `user_notify_${reader}`,
+        email: email(reader),
+        name: "Pia Pager",
+        isInternalStaff: true,
+        mfaEnrolled: true,
+      }),
+    );
+    const id = await mnda();
+    const events = [];
+    for (let i = 0; i < 5; i++)
+      events.push(
+        (await emit({ aggregateId: id, eventType: "mnda.completed" })).eventId,
+      );
+    // Three written within one millisecond, the others before it.
+    const times = [
+      "2026-10-10T12:00:00.123901Z",
+      "2026-10-10T12:00:00.123501Z",
+      "2026-10-10T12:00:00.123101Z",
+      "2026-10-10T11:00:00.000000Z",
+      "2026-10-10T10:00:00.000000Z",
+    ];
+    for (const [index, eventId] of events.entries())
+      await client`insert into commerce_staff_notifications
+        (recipient_user_id, event_id, kind, record_type, record_id, href, subject, created_at)
+        values (${reader}, ${eventId}, 'mnda.completed', 'mnda', ${id},
+          '/internal/mndas', ${`Company ${index}`}, ${times[index] ?? ""}::timestamptz)`;
+    const seen: string[] = [];
+    let page = await repository.list(reader, staffNotificationKindList, {
+      limit: 2,
+    });
+    seen.push(...page.notifications.map((n) => n.subject));
+    while (page.more) {
+      const last = page.notifications.at(-1);
+      if (!last) break;
+      page = await repository.list(reader, staffNotificationKindList, {
+        limit: 2,
+        before: { createdAt: last.createdAt, id: last.id },
+      });
+      seen.push(...page.notifications.map((n) => n.subject));
+    }
+    expect(seen.sort()).toEqual([
+      "Company 0",
+      "Company 1",
+      "Company 2",
+      "Company 3",
+      "Company 4",
+    ]);
+    expect(page.unread).toBe(5);
+  });
+
+  it("limits each administrator to one test every 30 seconds", async () => {
+    expect(await repository.testedRecently(operator)).toBe(false);
+    await repository.recordTest(
+      "slack",
+      { delivered: true, code: null },
+      { kind: "user", id: operator },
+    );
+    expect(await repository.testedRecently(operator)).toBe(true);
+    expect(await repository.testedRecently(seller)).toBe(false);
   });
 
   it("shows a reader only the kinds their permissions reach, and marks only their own read", async () => {

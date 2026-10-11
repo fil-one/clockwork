@@ -142,6 +142,13 @@ describe("SES email adapter", () => {
     await expect(adapter(quota).send(message)).resolves.toMatchObject({
       kind: "transient",
     });
+    const expired = Object.assign(new Error("Token expired"), {
+      name: "ExpiredTokenException",
+      $metadata: { httpStatusCode: 403 },
+    });
+    await expect(adapter(expired).send(message)).resolves.toMatchObject({
+      kind: "transient",
+    });
     await expect(adapter(credentials).send(message)).resolves.toMatchObject({
       kind: "permanent",
       code: "SES_CredentialsProviderError",

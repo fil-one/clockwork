@@ -25,6 +25,7 @@ import { useTranslations } from "@/src/i18n/client";
 import { LocalTimestamp } from "../local-timestamp";
 import { SessionExpiredReload } from "../session-expiry";
 import {
+  loadOlderNotifications,
   markAllNotificationsRead,
   markNotificationsRead,
   saveNotificationPreferences,
@@ -52,9 +53,16 @@ export function NotificationInbox({
 }) {
   const t = useTranslations();
   const [items, setItems] = useState(initial.page.notifications);
+  const [more, setMore] = useState(initial.page.more);
+  // Unread notifications older than the loaded pages, which the server
+  // counted; the heading adds them to the unread items on the page.
+  const [unreadBeyond, setUnreadBeyond] = useState(
+    initial.page.unread -
+      initial.page.notifications.filter((n) => !n.readAt).length,
+  );
   const [message, setMessage] = useState<Message | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const unread = items.filter((n) => !n.readAt).length;
+  const unread = items.filter((n) => !n.readAt).length + unreadBeyond;
 
   const failed = (code: string): Message =>
     code === "SESSION_EXPIRED"
@@ -84,6 +92,30 @@ export function NotificationInbox({
     }
   }
 
+  async function showOlder() {
+    const last = items.at(-1);
+    if (!last) return;
+    setBusy("older");
+    try {
+      const result = await loadOlderNotifications({
+        createdAt: last.createdAt,
+        id: last.id,
+      });
+      if (!result.ok) {
+        setMessage(failed(result.code));
+        return;
+      }
+      const loaded = result.value.notifications;
+      setItems((current) => [...current, ...loaded]);
+      setMore(result.value.more);
+      setUnreadBeyond((count) =>
+        Math.max(0, count - loaded.filter((n) => !n.readAt).length),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function markAll() {
     setBusy("all");
     try {
@@ -96,6 +128,7 @@ export function NotificationInbox({
       setItems((current) =>
         current.map((n) => ({ ...n, readAt: n.readAt ?? now })),
       );
+      setUnreadBeyond(0);
       announce();
     } finally {
       setBusy(null);
@@ -172,10 +205,18 @@ export function NotificationInbox({
             ))}
           </ul>
         )}
-        {initial.page.more ? (
-          <p className={styles.muted}>
-            {t("operations.notifications.olderHidden", { count: items.length })}
-          </p>
+        {more ? (
+          <div>
+            <Button
+              variant="secondary"
+              size="small"
+              disabled={busy !== null}
+              loading={busy === "older"}
+              onClick={() => void showOlder()}
+            >
+              {t("operations.notifications.showOlder")}
+            </Button>
+          </div>
         ) : null}
       </section>
       <Preferences

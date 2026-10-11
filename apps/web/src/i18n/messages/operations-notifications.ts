@@ -38,9 +38,7 @@ export const notificationMessages = defineStaffMessages({
   "operations.notifications.empty.description": {
     en: "When an MNDA or contract you sent changes, or something waits on your approval, it shows here.",
   },
-  "operations.notifications.olderHidden": {
-    en: "Showing the newest {count}. Older notifications are kept.",
-  },
+  "operations.notifications.showOlder": { en: "Show older" },
   "operations.notifications.unavailable": {
     en: "Notifications could not be loaded right now. Reload the page in a minute.",
   },
@@ -278,6 +276,9 @@ export const notificationMessages = defineStaffMessages({
   },
   "operations.notifications.settings.testSlackSent": {
     en: "Test message posted to Slack.",
+  },
+  "operations.notifications.settings.testTooSoon": {
+    en: "A test was sent a moment ago. Try again in 30 seconds.",
   },
   "operations.notifications.settings.testFailed": {
     en: "The test was not delivered ({code}).",

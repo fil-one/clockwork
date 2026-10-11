@@ -27,7 +27,7 @@ settings change is audited as `staff_notifications.settings_changed`.
 | Contract approval requested                                                         | Holders of `contract:approve`, not the preparer unless they hold `approval:self` |
 | Contract approved or sent back with a note                                          | The preparer                                                                     |
 | Contract signed by the counterparty, executed, needs attention, declined or expired | The preparer                                                                     |
-| Handoff requested                                                                   | Holders of `operations:write`                                                    |
+| Handoff requested                                                                   | Holders of `operations:read` and `operations:write`                              |
 | Handoff in progress, done or declined with a note                                   | The requester                                                                    |
 | Capability or price-book activation requested                                       | Its eligible approvers, not the requester unless self-approval applies           |
 | Capability or price-book activation approved or rejected                            | The requester                                                                    |

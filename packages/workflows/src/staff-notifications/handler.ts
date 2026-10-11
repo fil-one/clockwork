@@ -81,7 +81,8 @@ export type StaffNotificationHandlerStore = Pick<
   | "record"
   | "deliveryContext"
   | "deliveries"
-  | "recordDelivery"
+  | "startDelivery"
+  | "finishDelivery"
 >;
 
 export interface StaffNotificationHandlerOptions {
@@ -158,11 +159,12 @@ function slackBlocked(
 
 /**
  * One delivery: skipped when settings, the person's preferences or the
- * deployment say so; otherwise recorded as `sending`, sent, and recorded
- * with what the provider answered.
+ * deployment say so; otherwise claimed as `sending`, sent, and recorded with
+ * what the provider answered. A first attempt that finds the delivery
+ * already claimed by another run sends nothing. A retry arrives claimed.
  */
 async function attempt(
-  store: Pick<StaffNotificationStore, "recordDelivery">,
+  store: Pick<StaffNotificationStore, "startDelivery" | "finishDelivery">,
   key: Pick<
     StaffNotificationDeliveryRecord,
     "eventId" | "channel" | "recipientUserId" | "kind"
@@ -171,18 +173,24 @@ async function attempt(
   send: (() => Promise<StaffDeliveryResult>) | { unavailable: string },
   options: { lastAttempt: boolean; claimed?: boolean },
 ) {
+  const record = options.claimed
+    ? (input: StaffNotificationDeliveryRecord) => store.finishDelivery(input)
+    : (input: StaffNotificationDeliveryRecord) => store.startDelivery(input);
   if (blocked || "unavailable" in send) {
-    await store.recordDelivery({
+    await record({
       ...key,
       status: "skipped",
       reason: blocked ?? (send as { unavailable: string }).unavailable,
     });
     return "skipped" as const;
   }
-  if (!options.claimed)
-    await store.recordDelivery({ ...key, status: "sending", reason: null });
+  if (
+    !options.claimed &&
+    !(await store.startDelivery({ ...key, status: "sending", reason: null }))
+  )
+    return "claimed_elsewhere" as const;
   const result = outcome(await send(), options.lastAttempt);
-  await store.recordDelivery({ ...key, ...result });
+  await store.finishDelivery({ ...key, ...result });
   return result.status;
 }
 
@@ -341,7 +349,11 @@ export async function retryStaffNotificationDeliveries(
   > & {
     store: Pick<
       StaffNotificationStore,
-      "claimRetries" | "deliveryContext" | "recordDelivery" | "staff"
+      | "claimRetries"
+      | "deliveryContext"
+      | "startDelivery"
+      | "finishDelivery"
+      | "staff"
     >;
     limit?: number;
   },
@@ -367,7 +379,7 @@ export async function retryStaffNotificationDeliveries(
       recipientUserId: row.recipientUserId,
     };
     if (!isStaffNotificationKind(kind)) {
-      await store.recordDelivery({
+      await store.finishDelivery({
         ...key,
         kind: kind as StaffNotificationKind,
         status: "skipped",
@@ -446,5 +458,18 @@ export function createStaffNotificationOutboxHandlers(
   const handler: OutboxTopicHandler = async ({ payload }) => {
     await handleStaffNotificationEvent(payload, options);
   };
-  return new Map(Object.keys(sources).map((topic) => [topic, handler]));
+  // The feature's own audit events notify nobody; consuming them keeps their
+  // outbox messages from waiting forever.
+  const consumed: OutboxTopicHandler = () => Promise.resolve();
+  return new Map([
+    ...Object.keys(sources).map((topic) => [topic, handler] as const),
+    ...staffNotificationAuditTopics.map((topic) => [topic, consumed] as const),
+  ]);
 }
+
+/** The audit events this feature writes for itself. */
+export const staffNotificationAuditTopics = [
+  "staff_notifications.settings_changed",
+  "staff_notifications.preferences_changed",
+  "staff_notifications.test_sent",
+] as const;
