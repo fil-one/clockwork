@@ -74,6 +74,9 @@ test.describe("pricing builder", () => {
     await expect(periods.getByRole("row")).toHaveCount(4);
     await expect(periods).toContainText("30%");
     await expect(periods).toContainText("10%");
+    // Next streams metadata separately from scenario content on navigation.
+    // Require the destination title before axe audits the settled document.
+    await expect(page).toHaveTitle("Pricing · Fil One Commerce");
     const axe = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
