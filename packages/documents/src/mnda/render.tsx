@@ -563,7 +563,7 @@ export async function renderMnda(
         <Row
           label="Party"
           height={tall("company_sign", 44, 26)}
-          left={<>FIL ONE LLC,{"\n"}on behalf of itself and its Affiliates</>}
+          left={<>FIL One LLC,{"\n"}on behalf of itself and its Affiliates</>}
           right={<Slot input={input} id="company_sign" />}
         />
         <Row
