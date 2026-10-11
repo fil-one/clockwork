@@ -695,6 +695,7 @@ export class ContractRepository {
     contractId: string,
     upload: { kind: ContractFileKind; fileName: string; bytes: Uint8Array },
     actor: Actor & { kind: "user" },
+    options: { deduplicate?: boolean } = {},
   ) {
     if (
       !(uploadableContractFileKinds as readonly string[]).includes(upload.kind)
@@ -706,13 +707,35 @@ export class ContractRepository {
       contentType: "application/pdf",
     });
     try {
-      return await this.tx(async (tx) => {
+      let reused = false;
+      const result = await this.tx(async (tx) => {
         const [contract] = await tx
           .select()
           .from(commerceContracts)
           .where(eq(commerceContracts.id, contractId))
           .for("update");
         if (!contract) throw new Error("CONTRACT_NOT_FOUND");
+        // MCP callers can retry after losing a response. The contract lock
+        // serializes concurrent retries so only one matching file is attached.
+        if (options.deduplicate) {
+          const [existing] = await tx
+            .select()
+            .from(contractFiles)
+            .where(
+              and(
+                eq(contractFiles.contractId, contractId),
+                eq(contractFiles.kind, upload.kind),
+                eq(contractFiles.fileName, fileName),
+                eq(contractFiles.sha256, stored.sha256),
+                eq(contractFiles.uploadedById, actor.id),
+              ),
+            )
+            .limit(1);
+          if (existing) {
+            reused = true;
+            return fileView(existing);
+          }
+        }
         const file = await insertFile(
           tx,
           contractId,
@@ -732,6 +755,8 @@ export class ContractRepository {
         );
         return fileView(file);
       });
+      if (reused) await this.stores.primary.delete(stored.key).catch(() => {});
+      return result;
     } catch (error) {
       await this.stores.primary.delete(stored.key).catch(() => {});
       throw error;

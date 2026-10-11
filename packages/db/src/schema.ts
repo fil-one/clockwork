@@ -172,6 +172,7 @@ export const commerceUsers = pgTable("commerce_users", {
   name: text("name").notNull(),
   isInternalStaff: boolean("is_internal_staff").notNull().default(false),
   mfaEnrolled: boolean("mfa_enrolled").notNull().default(false),
+  accessTokenMfaFactorId: text("access_token_mfa_factor_id"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
   rowVersion: rowVersion(),

@@ -15,7 +15,6 @@ import {
   runWithAccessTokenSession,
 } from "@/src/auth/session";
 import { getOptionalServiceDatabase } from "@/src/db/service";
-import { publicMetadataOrigin } from "@/src/features/shell/public-origin";
 
 import { mcpTools } from "./registry";
 import {
@@ -137,8 +136,21 @@ function calledTool(message: unknown): string | undefined {
  * request's own origin stands in. Undefined in production without one.
  */
 function appOrigin(request: Request): string | undefined {
-  if (process.env.CLOCKWORK_CANONICAL_ORIGIN)
-    return publicMetadataOrigin(process.env);
+  const configured = process.env.CLOCKWORK_CANONICAL_ORIGIN;
+  if (configured) {
+    try {
+      const url = new URL(configured);
+      if (
+        (url.protocol !== "https:" && url.protocol !== "http:") ||
+        url.username ||
+        url.password
+      )
+        return undefined;
+      return url.origin;
+    } catch {
+      return undefined;
+    }
+  }
   return process.env.NODE_ENV === "production"
     ? undefined
     : new URL(request.url).origin;
@@ -154,13 +166,18 @@ function appOrigin(request: Request): string | undefined {
 export async function handleMcpRequest(request: Request): Promise<Response> {
   if (explicitDemoIdentityEnabled() || demoDeployIdentityEnabled(process.env))
     return problem(404, "MCP_UNAVAILABLE", "MCP is not available in the demo");
+  const origin = appOrigin(request);
+  // CLI clients do not send Origin. Browser requests must name the trusted
+  // app origin; never use metadata fallbacks or echo an untrusted header.
+  const requestOrigin = request.headers.get("origin");
+  if (requestOrigin !== null && requestOrigin !== origin)
+    return problem(403, "MCP_ORIGIN_FORBIDDEN", "This origin is not allowed");
   if (request.method !== "POST")
     return problem(405, "MCP_METHOD_NOT_ALLOWED", "Use POST", {
       allow: "POST",
     });
   const secret = bearerSecret(request);
   if (!secret) return unauthorized();
-  const origin = appOrigin(request);
   if (!getOptionalServiceDatabase() || !origin)
     return problem(503, "MCP_UNAVAILABLE", "MCP is not available here");
   const repository = accessTokenRepository();

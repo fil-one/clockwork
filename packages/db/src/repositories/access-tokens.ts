@@ -119,6 +119,17 @@ export class AccessTokenRepository {
       await tx.execute(
         sql`select pg_advisory_xact_lock(hashtextextended(${`access_tokens:${input.userId}`}, 0))`,
       );
+      // MFA receipt changes take this same lock. An old session cannot mint
+      // a replacement token after a different authenticator revoked its tokens.
+      // Null factors are reserved by the caller for release-proof sessions.
+      if (input.mfaFactorId !== null) {
+        const [person] = await tx
+          .select({ factor: commerceUsers.accessTokenMfaFactorId })
+          .from(commerceUsers)
+          .where(eq(commerceUsers.id, input.userId));
+        if (person?.factor !== input.mfaFactorId)
+          throw new Error("ACCESS_TOKEN_MFA_CHANGED");
+      }
       const [live] = await tx
         .select({ count: sql<number>`count(*)::int` })
         .from(commerceAccessTokens)
@@ -333,13 +344,16 @@ export class AccessTokenRepository {
   }): Promise<string | null> {
     return this.tx(async (tx) => {
       const [row] = await tx.execute<{ factor_id: string }>(sql`
-        select factor_id from public.experience_mfa_receipts
-        where session_id = ${input.sessionId}
-          and workos_user_id = ${input.workosUserId}
-          and workos_organization_id = ${input.workosOrganizationId}
-          and expires_at > now()
-          and verified_at > now() - interval '30 minutes'
-        order by verified_at desc limit 1`);
+        select receipt.factor_id from public.experience_mfa_receipts receipt
+        join public.commerce_users person
+          on person.workos_user_id = receipt.workos_user_id
+          and person.access_token_mfa_factor_id = receipt.factor_id
+        where receipt.session_id = ${input.sessionId}
+          and receipt.workos_user_id = ${input.workosUserId}
+          and receipt.workos_organization_id = ${input.workosOrganizationId}
+          and receipt.expires_at > now()
+          and receipt.verified_at > now() - interval '30 minutes'
+        order by receipt.verified_at desc limit 1`);
       return row?.factor_id ?? null;
     });
   }

@@ -4,6 +4,7 @@ import "server-only";
 import { z } from "zod";
 
 import {
+  assertContractPdf,
   contractCurrencies,
   contractDocumentMaxBytes,
   contractPdfFileName,
@@ -312,6 +313,23 @@ export const recordContract = defineTool({
     context,
   ) => {
     const session = await contractStaff("contract:write");
+    // Validate uploads before saving metadata: a refused PDF must not leave
+    // an undisclosed new record or apply edits from a failed tool call.
+    const uploads = (files ?? []).map((file) => {
+      const bytes = new Uint8Array(Buffer.from(file.base64, "base64"));
+      if (bytes.length === 0) throw new McpToolError("DOCUMENT_EMPTY");
+      if (bytes.length > mcpUploadMaxBytes)
+        throw new McpToolError(
+          "DOCUMENT_TOO_LARGE",
+          "Files over 10 MB go through the contract page in the app.",
+        );
+      assertContractPdf(bytes);
+      return {
+        kind: file.kind ?? "main",
+        fileName: contractPdfFileName(file.fileName),
+        bytes,
+      };
+    });
     let contractId = id;
     const hasFieldChanges =
       Object.keys(fields).length > 0 ||
@@ -396,25 +414,12 @@ export const recordContract = defineTool({
       contractId = saved.id;
     }
     context.targets.contractId = contractId;
-    for (const file of files ?? []) {
-      const bytes = Buffer.from(file.base64, "base64");
-      if (bytes.length === 0) throw new McpToolError("DOCUMENT_EMPTY");
-      if (bytes.length > mcpUploadMaxBytes)
-        throw new McpToolError(
-          "DOCUMENT_TOO_LARGE",
-          "Files over 10 MB go through the contract page in the app.",
-        );
+    for (const upload of uploads) {
       const targetId = contractId;
       await withDocumentSlot(() =>
-        contractRepository().addFile(
-          targetId,
-          {
-            kind: file.kind ?? "main",
-            fileName: contractPdfFileName(file.fileName),
-            bytes: new Uint8Array(bytes),
-          },
-          contractActor(session),
-        ),
+        contractRepository().addFile(targetId, upload, contractActor(session), {
+          deduplicate: true,
+        }),
       );
     }
     return contractResult(contractId, context);
@@ -461,10 +466,11 @@ export const prepareContractForSignature = defineTool({
           ? `Name the PDF with fileId: ${sources.map((source) => `${source.id} (${source.fileName})`).join(", ")}.`
           : "This contract has no uploaded main or counterparty PDF that can be prepared, or its signing request is already prepared or out.",
       );
-    const countersigner =
-      detail.countersigners.find(
-        (signer) => signer.id === args.countersignerId,
-      ) ?? detail.countersigners[0];
+    const countersigner = args.countersignerId
+      ? detail.countersigners.find(
+          (signer) => signer.id === args.countersignerId,
+        )
+      : detail.countersigners[0];
     if (!countersigner)
       throw new McpToolError("CONTRACT_COUNTERSIGNER_UNAVAILABLE");
     const signers = args.signers ?? "counterparty_then_fil_one";

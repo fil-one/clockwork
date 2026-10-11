@@ -16,7 +16,7 @@ export const listNotifications = defineTool({
   name: "list_notifications",
   title: "List notifications",
   description:
-    "Your staff notifications, newest first, 50 at a time: what changed, on which record, by whom, and whether you have read it. Pass the last one's createdAt and id as before to page back.",
+    "Your staff notifications, newest first, 50 at a time: what changed, on which record, by whom, and whether you have read it. Pass nextCursor as before to page back, even when unreadOnly leaves a page empty. A null nextCursor means the end.",
   input: {
     unreadOnly: z.boolean().optional(),
     before: z
@@ -38,9 +38,12 @@ export const listNotifications = defineTool({
         );
       page = inbox.value.page;
     }
+    const last = page.notifications.at(-1);
     return {
       unread: page.unread,
       more: page.more,
+      nextCursor:
+        page.more && last ? { createdAt: last.createdAt, id: last.id } : null,
       notifications: page.notifications
         .filter((notification) => !unreadOnly || !notification.readAt)
         .map((notification) =>

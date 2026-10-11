@@ -622,6 +622,64 @@ describe("contract register", () => {
 });
 
 describe("contract documents", () => {
+  it("deduplicates concurrent and sequential MCP upload retries without another version or blob", async () => {
+    const input = contract(randomUUID(), { status: "in_negotiation" });
+    await repo.create(input, actor);
+    const upload = {
+      kind: "main" as const,
+      fileName: "agreement.pdf",
+      bytes: pdf(),
+    };
+    const results = await Promise.all(
+      Array.from({ length: 3 }, () =>
+        repo.addFile(input.id, upload, actor, { deduplicate: true }),
+      ),
+    );
+    const replay = await repo.addFile(input.id, upload, actor, {
+      deduplicate: true,
+    });
+    expect(new Set([...results, replay].map((file) => file.id)).size).toBe(1);
+    const detail = await repo.get(input.id, "2026-10-11");
+    expect(detail.files).toHaveLength(1);
+    expect(detail.contract.version).toBe(2);
+    expect(
+      detail.activity.filter(
+        (event) => event.eventType === "contract.document_added",
+      ),
+    ).toHaveLength(1);
+    const [stored] = await client<{ count: string }[]>`
+      select count(*) from commerce_stored_documents where sha256 = ${replay.sha256}`;
+    expect(Number(stored?.count)).toBe(1);
+  });
+
+  it("keeps distinct uploads and ordinary app uploads when MCP deduplication is enabled", async () => {
+    const input = contract(randomUUID(), { status: "in_negotiation" });
+    await repo.create(input, actor);
+    const upload = {
+      kind: "main" as const,
+      fileName: "agreement.pdf",
+      bytes: pdf(),
+    };
+    const options = { deduplicate: true };
+    await repo.addFile(input.id, upload, actor, options);
+    await repo.addFile(
+      input.id,
+      { ...upload, fileName: "revised.pdf" },
+      actor,
+      options,
+    );
+    await repo.addFile(
+      input.id,
+      { ...upload, kind: "counterparty_draft" },
+      actor,
+      options,
+    );
+    await repo.addFile(input.id, { ...upload, bytes: pdf() }, actor, options);
+    await repo.addFile(input.id, upload, approver, options);
+    await repo.addFile(input.id, upload, actor);
+    expect((await repo.get(input.id, "2026-10-11")).files).toHaveLength(6);
+  });
+
   it("attaches, verifies and removes uploads, and keeps an executed contract's documents", async () => {
     const marker = randomUUID();
     const input = contract(marker, { status: "in_negotiation" });
