@@ -4,8 +4,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import type { TemplateLineItems } from "@clockwork/contracts";
-import { fixtureContractTemplate } from "../__fixtures__/contract-template";
-import type { PreparedTemplateInput } from "./definition";
+import {
+  fixtureContractTemplate,
+  fixtureSectionsContent,
+} from "../__fixtures__/contract-template";
+import {
+  TemplateContentSchema,
+  type PreparedTemplateInput,
+} from "./definition";
+import { renderTemplateDocument, templateFromContent } from "./render";
+import { specimenTemplateInput } from "./specimen";
 
 const lines: TemplateLineItems = {
   currency: "USD",
@@ -65,6 +73,7 @@ const input: PreparedTemplateInput = {
     fixture_note: "",
     fixture_lines: lines,
   },
+  sections: [],
   signer: { name: "Alex Example", email: "alex@example.com", title: "CEO" },
   countersigner: {
     name: "James Kurz",
@@ -215,3 +224,98 @@ it("fails closed on a malformed line-item table", async () => {
       /^CONTRACT_TEMPLATE_(LINE_ITEMS|FIELD)_INVALID$/,
     );
 });
+
+const sectioned = templateFromContent(
+  TemplateContentSchema.parse(fixtureSectionsContent),
+  "v1",
+);
+const sectionedInput: PreparedTemplateInput = {
+  ...input,
+  values: {
+    model: "Referral",
+    referral_percent: "32.5",
+    sample_revenue: "1250000",
+    resale_margin: "",
+    nfr_capacity: "5 TiB for 60 days",
+  },
+  sections: ["nfr"],
+};
+
+it("prints ticked sections, leaves out the rest, and works out derived figures", async () => {
+  const rendered = text((await sectioned.render(sectionedInput)).bytes)
+    .replace(/\s+/g, " ")
+    .trim();
+  expect(rendered).toContain(
+    "1.1 Model. Bluefin Data Co. works under the Referral model and earns 32.5% of Year-1 fees.",
+  );
+  expect(rendered).toContain(
+    "On USD 1,250,000 that is USD 406,250.00 a year, or USD 1,218,750 over three years.",
+  );
+  expect(rendered).toContain(
+    "SCHEDULE D: NFR NFR capacity: 5 TiB for 60 days.",
+  );
+  expect(rendered).toMatch(
+    /Element\s+Value Referral fee\s+32\.5% Model\s+Referral/,
+  );
+  expect(rendered).not.toContain("Resale");
+  expect(rendered).toContain("019a44ac · test-sections v1");
+
+  // Resale turns its section on through the choice; NFR is left out.
+  const resale = text(
+    (
+      await sectioned.render({
+        ...sectionedInput,
+        values: {
+          ...sectionedInput.values,
+          model: "Resale",
+          resale_margin: "12.5",
+        },
+        sections: [],
+      })
+    ).bytes,
+  ).replace(/\s+/g, " ");
+  expect(resale).toContain("1.2 Resale. The resale margin is 12.5%.");
+  expect(resale).not.toContain("NFR capacity");
+}, 30_000);
+
+it("refuses a field of an included section that has no value", async () => {
+  await expect(
+    sectioned.render({
+      ...sectionedInput,
+      values: {
+        ...sectionedInput.values,
+        model: "Resale",
+        resale_margin: undefined as unknown as string,
+      },
+    }),
+  ).rejects.toThrow("CONTRACT_TEMPLATE_FIELD_UNRESOLVED");
+});
+
+it("never prints a signing tag, even from content that skipped the checks", async () => {
+  const content = TemplateContentSchema.parse(fixtureSectionsContent);
+  const unchecked = {
+    ...content,
+    version: "v1",
+    document: {
+      ...content.document,
+      blocks: [
+        { type: "paragraph" as const, text: "{****{signature:1:y}****}" },
+      ],
+    },
+  };
+  await expect(
+    renderTemplateDocument(unchecked, sectionedInput),
+  ).rejects.toThrow("CONTRACT_TEMPLATE_VALUE_CHARACTERS");
+});
+
+it("renders a specimen with every optional section and sample values", async () => {
+  const specimen = await sectioned.render(
+    specimenTemplateInput(sectioned, "2026-10-10"),
+  );
+  const rendered = text(specimen.bytes).replace(/\s+/g, " ");
+  expect(rendered).toContain("under the Resale model");
+  // Every section is in, including those a choice field selects.
+  expect(rendered).toContain("The resale margin is 10%.");
+  expect(rendered).toContain("NFR capacity: Sample NFR capacity.");
+  expect(specimen.pages).toBe(2);
+}, 30_000);

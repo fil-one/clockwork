@@ -175,6 +175,14 @@ describe("every staff route is guarded", () => {
     // Contract and sales library pages load through the contracts loaders,
     // which check `contract:*`, `sales:read` or `collateral:manage` before
     // any read.
+    // The template store's pages load through its own loaders, which check
+    // `contract_template:manage` (`templateAdmin`) before any read.
+    if (path.startsWith("contracts/manage-templates/")) {
+      expect(source).toContain(
+        "@/src/features/internal-ops/contract-templates/loaders",
+      );
+      return;
+    }
     if (path.startsWith("contracts/") || path.startsWith("sales-library/")) {
       expect(source).toContain("@/src/features/internal-ops/contracts/loaders");
       return;

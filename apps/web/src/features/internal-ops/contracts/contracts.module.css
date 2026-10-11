@@ -792,3 +792,13 @@
     display: grid;
   }
 }
+
+/* A template field on the prepare form: the field itself is the grid item,
+   and a field of a section left out is hidden but keeps its value. */
+.fieldSlot {
+  display: contents;
+}
+
+.fieldSlot[hidden] {
+  display: none;
+}

@@ -1,0 +1,124 @@
+/* Template store administration: the contract pages' console layout. */
+.page {
+  display: grid;
+  width: min(100%, var(--cw-page-width));
+  margin: 0 auto;
+  gap: var(--cw-space-6);
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 2.5rem);
+}
+
+.group {
+  display: grid;
+  gap: var(--cw-space-3);
+}
+
+.groupHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cw-space-3);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.groupHeader h2 {
+  margin: 0;
+  font-size: var(--cw-text-lg);
+}
+
+.muted {
+  color: var(--cw-muted);
+  margin: 0;
+}
+
+.code {
+  font-family: var(--cw-font-mono, ui-monospace, monospace);
+  font-size: 0.875em;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cw-space-2);
+  align-items: center;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--cw-space-3);
+  margin: 0;
+}
+
+.facts div {
+  display: grid;
+  gap: var(--cw-space-1);
+}
+
+.facts dt {
+  color: var(--cw-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.issues {
+  margin: var(--cw-space-2) 0 0;
+  padding-inline-start: var(--cw-space-5);
+  display: grid;
+  gap: var(--cw-space-1);
+}
+
+.card {
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-lg);
+  padding: var(--cw-space-4);
+  display: grid;
+  gap: var(--cw-space-3);
+  background: var(--cw-surface);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--cw-space-3);
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.item {
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-sm);
+  padding: var(--cw-space-3);
+  display: grid;
+  gap: var(--cw-space-3);
+}
+
+.itemHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cw-space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.itemHeader strong {
+  overflow-wrap: anywhere;
+}
+
+.outline {
+  margin: 0;
+  padding-inline-start: var(--cw-space-5);
+  display: grid;
+  gap: var(--cw-space-1);
+}
+
+.sectionTag {
+  color: var(--cw-muted);
+  font-size: var(--cw-text-xs);
+}

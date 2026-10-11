@@ -234,42 +234,43 @@ describe("renewal notices", () => {
 });
 
 describe("template picker", () => {
-  const pending = {
+  const ready = {
     id: "channel-partnership",
+    name: "Channel Partnership Agreement",
     contractType: "channel_partnership",
-    status: "pending_legal",
+    version: "v3",
+    requiresApproval: true,
+    sections: 4,
   } as const;
 
-  it("lists ready templates and names the pending ones in one line", () => {
+  it("lists the templates in use by name, with their version and sections", () => {
     render(
       <TemplatePicker
         t={t}
+        canOpen
         canWrite
-        templates={[
-          pending,
-          {
-            id: "test-fixture",
-            contractType: "other",
-            status: "available",
-            version: "fixture-1",
-            requiresApproval: true,
-          },
-        ]}
+        canManage={false}
+        templates={[ready]}
       />,
     );
+    const card = screen.getByRole("article", {
+      name: "Channel Partnership Agreement",
+    });
+    expect(within(card).getByText(/^Version v3\./u)).toBeInTheDocument();
+    expect(within(card).getByText("4 optional sections")).toBeInTheDocument();
     expect(
-      screen.queryByRole("article", { name: "Channel partnership agreement" }),
-    ).toBeNull();
-    const pendingLine = screen.getByText(
-      /^Not yet supplied by legal: Channel partnership agreement\. Record these manually once signed\./u,
+      within(card).getByRole("link", {
+        name: "Prepare Channel Partnership Agreement",
+      }),
+    ).toHaveAttribute(
+      "href",
+      "/internal/contracts/templates/channel-partnership",
     );
     expect(
-      within(pendingLine).getByRole("link", { name: "Record a contract" }),
+      screen.getByRole("link", { name: "Record a contract" }),
     ).toHaveAttribute("href", "/internal/contracts/new");
-    const ready = screen.getByRole("article", { name: "Other" });
-    expect(
-      within(ready).getByRole("link", { name: "Prepare Other" }),
-    ).toHaveAttribute("href", "/internal/contracts/templates/test-fixture");
+    expect(screen.queryByRole("link", { name: "Manage templates" })).toBeNull();
+    expect(screen.queryByText(/pending from legal/iu)).toBeNull();
     expect(
       within(screen.getByRole("navigation", { name: "Breadcrumb" })).getByRole(
         "link",
@@ -278,22 +279,46 @@ describe("template picker", () => {
     ).toHaveAttribute("href", "/internal/contracts");
   });
 
-  it("points to recording a signed agreement while legal has supplied none", () => {
-    render(<TemplatePicker t={t} canWrite templates={[pending]} />);
+  it("points a seller to recording a signed agreement while none is in use", () => {
+    render(
+      <TemplatePicker
+        t={t}
+        canOpen
+        canWrite
+        canManage={false}
+        templates={[]}
+      />,
+    );
     expect(
-      screen.getByRole("heading", {
-        name: "Legal has not supplied contract templates yet",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Record a signed agreement instead. Coming from legal: Channel partnership agreement.",
-      ),
+      screen.getByRole("heading", { name: "No templates in use yet" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Record a contract" }),
     ).toHaveAttribute("href", "/internal/contracts/new");
     expect(screen.queryByRole("link", { name: /^Prepare/ })).toBeNull();
+  });
+
+  it("points an administrator to the template store", () => {
+    render(<TemplatePicker t={t} canOpen canWrite canManage templates={[]} />);
+    expect(
+      screen.getAllByRole("link", { name: "Manage templates" })[0],
+    ).toHaveAttribute("href", "/internal/contracts/manage-templates");
+  });
+
+  it("opens no form for a reader who can neither prepare nor preview", () => {
+    render(
+      <TemplatePicker
+        t={t}
+        canOpen={false}
+        canWrite={false}
+        canManage={false}
+        templates={[ready]}
+      />,
+    );
+    expect(screen.queryByRole("link", { name: /^Prepare/ })).toBeNull();
+    expect(
+      screen.queryByRole("link", { name: "Record a contract" }),
+    ).toBeNull();
   });
 });
 

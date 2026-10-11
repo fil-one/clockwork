@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import {
-  ApplicationStatePanel,
-  PageHeader,
-  buttonClassName,
-} from "@clockwork/ui";
+import { ApplicationStatePanel, PageHeader } from "@clockwork/ui";
 import { getTranslations } from "@/src/i18n/server";
 import { ContractPageState } from "@/src/features/internal-ops/contracts/access-state";
-import { contractTypeLabels } from "@/src/features/internal-ops/contracts/copy";
 import { loadPrepare } from "@/src/features/internal-ops/contracts/loaders";
 import { PrepareForm } from "@/src/features/internal-ops/contracts/prepare-form";
 import styles from "@/src/features/internal-ops/contracts/contracts.module.css";
@@ -41,35 +35,16 @@ export default async function Page({
       />
     );
   const { template } = loaded;
-  const name = t(contractTypeLabels[template.contractType]);
   return (
     <main className={styles.page} id="main-content">
       <PageHeader
         eyebrow={t("operations.contracts.prepare.title")}
-        title={name}
-        description={
-          template.status === "available"
-            ? t("operations.contracts.prepare.description", {
-                version: template.version,
-              })
-            : undefined
-        }
+        title={template.name}
+        description={t("operations.contracts.prepare.description", {
+          version: template.version,
+        })}
       />
-      {template.status !== "available" ? (
-        <ApplicationStatePanel
-          state="empty"
-          title={t("operations.contracts.templates.pending")}
-          description={t("operations.contracts.templates.pendingBody")}
-          action={
-            <Link
-              className={buttonClassName({ variant: "secondary" })}
-              href={`/internal/contracts/new?type=${template.contractType}`}
-            >
-              {t("operations.contracts.templates.recordInstead")}
-            </Link>
-          }
-        />
-      ) : loaded.countersigners.length === 0 ? (
+      {loaded.countersigners.length === 0 ? (
         <ApplicationStatePanel
           state="partial"
           title={t("operations.contracts.prepare.noCountersignerTitle")}
@@ -83,6 +58,7 @@ export default async function Page({
           today={loaded.today}
           signingReady={loaded.signingReady}
           start={loaded.start}
+          demo={loaded.demo}
         />
       )}
     </main>

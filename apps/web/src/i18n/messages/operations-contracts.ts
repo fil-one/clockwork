@@ -158,6 +158,12 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.field.error.tooLong": { en: "This is too long." },
   "operations.contracts.field.error.format": { en: "Check the format." },
   "operations.contracts.field.error.number": { en: "Enter a whole number." },
+  "operations.contracts.field.error.decimal": {
+    en: "Enter a number, such as 2500 or 2500.75.",
+  },
+  "operations.contracts.field.error.percent": {
+    en: "Enter a percentage from 0 to 100, such as 32.5.",
+  },
   "operations.contracts.field.error.email": {
     en: "Enter a valid email address.",
   },
@@ -463,33 +469,29 @@ export const contractMessages = defineStaffMessages({
   },
   "operations.contracts.templates.title": { en: "Prepare from template" },
   "operations.contracts.templates.description": {
-    en: "Prepare a Fil One agreement from wording approved by legal, then send it for signature.",
+    en: "Prepare a Fil One agreement from a template in use, check the PDF, then send it for signature.",
   },
   "operations.contracts.templates.ready": { en: "Ready" },
-  "operations.contracts.templates.pending": {
-    en: "Template pending from legal",
-  },
   "operations.contracts.templates.readyBody": {
     en: "Version {version}. Fill in the details, check the PDF and send it for signature.",
   },
   "operations.contracts.templates.readyWithApproval": {
     en: "Version {version}. Someone other than the person who prepares it must approve it before it is sent.",
   },
-  "operations.contracts.templates.pendingBody": {
-    en: "Legal has not supplied this template yet. Until then, record the agreement manually once it is signed.",
-  },
   "operations.contracts.templates.noneReadyTitle": {
-    en: "Legal has not supplied contract templates yet",
+    en: "No templates in use yet",
   },
   "operations.contracts.templates.noneReadyBody": {
-    en: "Record a signed agreement instead. Coming from legal: {names}.",
+    en: "A Commerce administrator activates templates. Until then, record a signed agreement instead.",
   },
-  "operations.contracts.templates.pendingList": {
-    en: "Not yet supplied by legal: {names}. Record these manually once signed.",
+  "operations.contracts.templates.noneReadyAdmin": {
+    en: "Import or draft a template, check its specimen and activate it for sellers.",
+  },
+  "operations.contracts.templates.otherAgreements": {
+    en: "Another agreement, or one on the counterparty's paper?",
   },
   "operations.contracts.templates.prepare": { en: "Prepare" },
   "operations.contracts.templates.prepareNamed": { en: "Prepare {name}" },
-  "operations.contracts.templates.recordInstead": { en: "Record manually" },
   "operations.contracts.prepare.title": { en: "Prepare from template" },
   "operations.contracts.prepare.description": {
     en: "Template version {version}. You will see the PDF before anything is sent.",
@@ -950,8 +952,8 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.error.countersignerUnavailable": {
     en: "That countersigner is no longer available. Choose another.",
   },
-  "operations.contracts.error.pendingLegal": {
-    en: "This template is pending from legal and cannot be prepared yet.",
+  "operations.contracts.error.templateVersionChanged": {
+    en: "This template has a newer version in use, or none. Reload the page to prepare from the current one.",
   },
   "operations.contracts.error.templateNotFound": {
     en: "This template does not exist.",

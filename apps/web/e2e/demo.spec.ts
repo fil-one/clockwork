@@ -959,6 +959,109 @@ test.describe("playable product-demo workflows", () => {
     ).toBeVisible();
   });
 
+  test("seller fills a sample template, ticks optional sections and previews the PDF", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await passGate(page);
+    await resetDemoData(page);
+    await startAs(page, "Priya Raman");
+
+    await gotoHydrated(page, "/internal/contracts/templates");
+    const card = page.getByRole("article", {
+      name: "Sample Channel Partner Agreement",
+    });
+    await expect(card.getByText("3 optional sections")).toBeVisible();
+    await card
+      .getByRole("link", { name: "Prepare Sample Channel Partner Agreement" })
+      .click();
+    await expectShellHydrated(page);
+    await expect(page.getByText("Demo: preview only")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Prepare document" }),
+    ).toHaveCount(0);
+
+    // Resale is a choice-driven section; Schedule C is ticked by hand.
+    const margin = page.getByLabel("Wholesale margin (% off list)");
+    await expect(margin).toBeHidden();
+    await page.getByLabel("Partner model").selectOption("Resale");
+    await expect(margin).toBeVisible();
+    await page.getByLabel("Schedule C: Exclusivity").check();
+    const fee = page.getByLabel(
+      "Referral fee (% of Year-1 net collected fees)",
+    );
+    await fee.fill("132.5");
+    await page.getByRole("button", { name: "Preview PDF" }).click();
+    await expect(
+      page.getByText("Enter a percentage from 0 to 100, such as 32.5.").first(),
+    ).toBeVisible();
+    await fee.fill("32.5");
+    await page.getByLabel(/Counterparty legal name/).fill("Harbor Lights Ltd");
+    await page.getByRole("button", { name: "Preview PDF" }).click();
+    const open = page.getByRole("link", { name: "Open preview" });
+    await expect(open).toBeVisible();
+    await expect(open).toHaveAttribute("href", /^blob:/u);
+  });
+
+  test("administrator checks a template file and its specimen; saving stays off", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await passGate(page);
+    await resetDemoData(page);
+    await startAs(page, "Elena Brooks");
+
+    await gotoHydrated(page, "/internal/contracts/templates");
+    await page.getByRole("link", { name: "Manage templates" }).first().click();
+    await expectShellHydrated(page);
+    await expect(page.getByText("Demo: sample templates only")).toBeVisible();
+    await page.getByRole("link", { name: "Open v1" }).first().click();
+    await expectShellHydrated(page);
+    await expect(page.getByRole("button", { name: "Retire" })).toBeDisabled();
+    await page.getByRole("button", { name: "Preview specimen PDF" }).click();
+    await expect(
+      page.getByRole("link", { name: "Open specimen" }),
+    ).toBeVisible();
+
+    await gotoHydrated(page, "/internal/contracts/manage-templates/new");
+    await page.getByLabel("Template file").setInputFiles({
+      name: "referral.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          id: "sample-referral",
+          contractType: "other",
+          name: "Sample Referral Letter",
+          requiresApproval: true,
+          fields: [
+            {
+              id: "fee",
+              kind: "percent",
+              required: true,
+              label: { en: "Referral fee" },
+            },
+          ],
+          sections: [{ id: "nfr", label: { en: "NFR" }, default: true }],
+          document: {
+            title: "SAMPLE REFERRAL LETTER",
+            blocks: [
+              { type: "paragraph", text: "Referral fee: [[fee]]%." },
+              { type: "paragraph", section: "nfr", text: "Sample NFR text." },
+            ],
+          },
+        }),
+      ),
+    });
+    await expect(page.getByText("v1, a new template")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Save as draft" }),
+    ).toBeDisabled();
+    await page.getByRole("button", { name: "Preview specimen PDF" }).click();
+    await expect(
+      page.getByRole("link", { name: "Open specimen" }),
+    ).toBeVisible();
+  });
+
   test("partner registration, priced quote, and renewal decisions remain visible", async ({
     page,
   }) => {

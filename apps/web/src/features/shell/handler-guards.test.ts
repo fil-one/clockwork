@@ -28,6 +28,10 @@ const guardCalls = [
   "mndaStaff(",
   "contractStaff(",
   "contractReader(",
+  // contract-templates/server.ts: contractStaff("contract_template:manage"),
+  // or in the guided demo the same permission on the persona's session.
+  "templateAdmin(",
+  "templateAdminWriter(",
   "contextHasPermission(",
   "contextHasAnyPermission(",
   "permissions.includes(",

@@ -4,7 +4,15 @@ import type * as ScenarioServer from "../sales-pricing/scenario-server";
 import type * as LineItemsServer from "./line-items-server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fixtureContractInput } from "../../../../../../packages/contracts/src/contract-fixture";
-import { fixtureContractTemplateRegistry } from "../../../../../../packages/documents/src/__fixtures__/contract-template";
+import {
+  registryTemplateSource,
+  templateFromContent,
+  TemplateContentSchema,
+} from "@clockwork/documents";
+import {
+  fixtureContractTemplateRegistry,
+  fixtureSectionsContent,
+} from "../../../../../../packages/documents/src/__fixtures__/contract-template";
 
 const mocks = vi.hoisted(() => ({
   session: vi.fn(),
@@ -31,7 +39,7 @@ const mocks = vi.hoisted(() => ({
     correctSigner: vi.fn(),
   },
   library: { create: vi.fn(), update: vi.fn() },
-  registry: vi.fn(),
+  source: vi.fn(),
   mnda: { duplicates: vi.fn(), contractDuplicates: vi.fn() },
   scenarios: { get: vi.fn() },
   minimums: vi.fn(),
@@ -52,7 +60,7 @@ vi.mock("./server", async (original) => ({
   contractSigningRepository: () => mocks.signing,
   contractSigningWorkflow: () => mocks.workflow,
   salesLibraryRepository: () => mocks.library,
-  contractTemplateRegistry: mocks.registry,
+  contractTemplateSource: mocks.source,
 }));
 vi.mock("../mnda/server", () => ({ mndaRepository: () => mocks.mnda }));
 vi.mock("../sales-pricing/scenario-server", async (original) => ({
@@ -71,6 +79,7 @@ import {
   operateContract,
   prepareContract,
   prepareCounterpartyPaper,
+  previewContract,
   removeContractFile,
   resendContract,
   saveContract,
@@ -98,6 +107,7 @@ const countersigner = {
 const prepareInput = (patch: Record<string, unknown> = {}) => ({
   id: "019a44ac-0000-7000-8000-0000000000c9",
   templateId: "test-fixture",
+  templateVersion: "fixture-2",
   counterpartyName: "Bluefin Data Co.",
   effectiveDate: "2026-10-05",
   signerName: "Alex Example",
@@ -143,9 +153,32 @@ const storageRate = {
   minimumQuantity: "10.000000000000000000",
 };
 
+const sectionsTemplate = templateFromContent(
+  TemplateContentSchema.parse(fixtureSectionsContent),
+  "v3",
+);
+const sectionsInput = (patch: Record<string, unknown> = {}) => ({
+  ...prepareInput(),
+  templateId: "test-sections",
+  templateVersion: "v3",
+  values: {
+    model: "Referral",
+    referral_percent: "32.5",
+    sample_revenue: "250000",
+    nfr_capacity: "5 TiB",
+  },
+  sections: ["nfr"],
+  ...patch,
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.registry.mockReturnValue(fixtureContractTemplateRegistry);
+  mocks.source.mockReturnValue(
+    registryTemplateSource([
+      ...fixtureContractTemplateRegistry,
+      sectionsTemplate,
+    ]),
+  );
   mocks.signing.countersigners.mockResolvedValue([countersigner]);
   mocks.signing.prepare.mockResolvedValue({ duplicate: false });
   mocks.signing.decide.mockResolvedValue({ approvalState: "approved" });
@@ -346,11 +379,93 @@ describe("prepareContract", () => {
     expect(Buffer.from(prepared.pdf.subarray(0, 5)).toString()).toBe("%PDF-");
   }, 30_000);
 
-  it("refuses templates pending from legal", async () => {
+  it("refuses a form built for a version no longer in use, or no template", async () => {
     as("revenue");
     await expect(
+      prepareContract(prepareInput({ templateVersion: "fixture-1" })),
+    ).resolves.toEqual({
+      ok: false,
+      code: "CONTRACT_TEMPLATE_VERSION_CHANGED",
+    });
+    await expect(
       prepareContract(prepareInput({ templateId: "channel-partnership" })),
-    ).resolves.toEqual({ ok: false, code: "CONTRACT_TEMPLATE_PENDING_LEGAL" });
+    ).resolves.toEqual({ ok: false, code: "CONTRACT_TEMPLATE_NOT_FOUND" });
+    expect(mocks.signing.prepare).not.toHaveBeenCalled();
+  });
+
+  it("asks for a reload when the database refuses a replaced version", async () => {
+    as("revenue");
+    mocks.signing.prepare.mockRejectedValueOnce(
+      Object.assign(new Error("Failed query"), {
+        cause: Object.assign(new Error("not active"), { code: "CW409" }),
+      }),
+    );
+    await expect(prepareContract(prepareInput())).resolves.toEqual({
+      ok: false,
+      code: "CONTRACT_TEMPLATE_VERSION_CHANGED",
+    });
+  }, 30_000);
+
+  it("prepares optional sections and keeps the ticked ones with the request", async () => {
+    as("revenue");
+    await expect(
+      prepareContract(
+        sectionsInput({
+          values: { ...sectionsInput().values, resale_margin: "12" },
+        }),
+      ),
+    ).resolves.toEqual({ ok: true, value: { id: prepareInput().id } });
+    const [[prepared]] = mocks.signing.prepare.mock.calls as [
+      [{ signing: Record<string, unknown> }],
+    ];
+    expect(prepared.signing).toMatchObject({
+      templateId: "test-sections",
+      templateVersion: "v3",
+      templateHash: sectionsTemplate.templateHash,
+      input: {
+        model: "Referral",
+        referral_percent: "32.5",
+        nfr_capacity: "5 TiB",
+        _sections: "nfr",
+      },
+    });
+    // Resale is off, so its margin is neither asked for nor kept.
+    expect(prepared.signing.input).not.toHaveProperty("resale_margin");
+  }, 30_000);
+
+  it("asks for a section's fields only when the section is in", async () => {
+    as("revenue");
+    await expect(
+      prepareContract(
+        sectionsInput({
+          values: { ...sectionsInput().values, model: "Resale" },
+          sections: [],
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: "INVALID_INPUT",
+      fields: { "values.resale_margin": "required" },
+    });
+    await expect(
+      prepareContract(
+        sectionsInput({
+          values: { ...sectionsInput().values, referral_percent: "100.5" },
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: "INVALID_INPUT",
+      fields: { "values.referral_percent": "percent" },
+    });
+    await expect(
+      prepareContract(
+        sectionsInput({
+          values: { ...sectionsInput().values, sample_revenue: "1,000" },
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: "INVALID_INPUT",
+      fields: { "values.sample_revenue": "number" },
+    });
     expect(mocks.signing.prepare).not.toHaveBeenCalled();
   });
 
@@ -1011,5 +1126,40 @@ describe("saveCollateral", () => {
     await expect(
       saveCollateral({ item: { ...item, linkUrl: "javascript:alert(1)" } }),
     ).resolves.toMatchObject({ code: "INVALID_INPUT" });
+  });
+});
+
+describe("previewContract", () => {
+  it("renders the PDF without saving, with blanks for details not entered", async () => {
+    as("revenue");
+    const result = await previewContract(
+      sectionsInput({ signerName: "", counterpartyName: "" }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(
+      Buffer.from(result.value.pdf, "base64").subarray(0, 5).toString(),
+    ).toBe("%PDF-");
+    expect(result.value.fileName).toMatch(/^Preview - Fil One /);
+    expect(mocks.signing.prepare).not.toHaveBeenCalled();
+  }, 30_000);
+
+  it("checks values as Prepare does and needs contract write access", async () => {
+    as("revenue");
+    await expect(
+      previewContract(
+        sectionsInput({
+          values: { ...sectionsInput().values, referral_percent: "abc" },
+        }),
+      ),
+    ).resolves.toMatchObject({
+      code: "INVALID_INPUT",
+      fields: { "values.referral_percent": "percent" },
+    });
+    as("finance_approver");
+    await expect(previewContract(sectionsInput())).resolves.toEqual({
+      ok: false,
+      code: "CONTRACT_FORBIDDEN",
+    });
   });
 });

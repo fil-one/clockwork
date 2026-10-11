@@ -225,9 +225,10 @@ it("prepares from a template, enforces two-person approval, sends, and archives 
   const marker = randomUUID().slice(0, 8);
 
   // 1. Prepare: the seller's values are validated against the template.
-  const input = prepareInputSchema(template.fields, minimums).parse({
+  const input = prepareInputSchema(template, minimums).parse({
     id: randomUUID(),
     templateId: template.id,
+    templateVersion: template.version,
     counterpartyName: `Bluefin Data ${marker}`,
     effectiveDate: "2026-10-05",
     signerName: "Alex Example",
@@ -251,6 +252,7 @@ it("prepares from a template, enforces two-person approval, sends, and archives 
     counterpartyName: input.counterpartyName,
     effectiveDate: input.effectiveDate,
     values: input.values,
+    sections: [],
     signer,
     countersigner,
   });
@@ -403,9 +405,10 @@ async function preparedContract(preparer: {
     email: `alex.${marker}@example.com`,
     title: "CEO",
   };
-  const { values } = prepareInputSchema(template.fields, minimums).parse({
+  const { values } = prepareInputSchema(template, minimums).parse({
     id,
     templateId: template.id,
+    templateVersion: template.version,
     counterpartyName: `Deleted Data ${marker}`,
     effectiveDate: "2026-10-09",
     signerName: signer.name,
@@ -424,6 +427,7 @@ async function preparedContract(preparer: {
     counterpartyName: `Deleted Data ${marker}`,
     effectiveDate: "2026-10-09",
     values,
+    sections: [],
     signer,
     countersigner,
   });
@@ -681,6 +685,7 @@ it("sends counterparty paper they signed already to Fil One alone and archives i
       fixture_note: "",
       fixture_lines: fixtureLines,
     },
+    sections: [],
     signer: { name: "Pat", email: "pat@example.com", title: "CEO" },
     countersigner: { name: "Sam", email: "sam@example.com", title: "CFO" },
   });

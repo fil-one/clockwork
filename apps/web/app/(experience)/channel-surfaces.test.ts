@@ -297,6 +297,9 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/channel-policy",
       // Standalone staff contract register and its pages; no projection channel.
       "/internal/contracts",
+      // The contract template store, read directly.
+      "/internal/contracts/manage-templates",
+      "/internal/contracts/manage-templates/new",
       "/internal/contracts/new",
       "/internal/contracts/notices",
       "/internal/contracts/templates",

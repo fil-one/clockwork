@@ -4,28 +4,37 @@
   "name": "Engine Test Fixture",
   "version": "fixture-2",
   "requiresApproval": true,
-  "source": {
-    "path": "packages/documents/src/__fixtures__/contract-template/source-fixture-2.txt",
-    "sha256": "0fbd388790655e2fbce0ea685b4aa6323a214bb4c81c35f32d487e9913aa36d3",
-    "counselApprovedBy": "Not applicable (test fixture)",
-    "counselApprovedOn": "2026-10-10"
-  },
+  "sourceNote": "Engine test fixture; not an agreement",
   "fields": [
     {
       "id": "fixture_reference",
       "kind": "text",
       "required": true,
       "maxLength": 80,
-      "label": { "en": "Fixture reference" }
+      "label": {
+        "en": "Fixture reference"
+      }
     },
     {
       "id": "fixture_tier",
       "kind": "choice",
       "required": true,
-      "label": { "en": "Fixture tier" },
+      "label": {
+        "en": "Fixture tier"
+      },
       "options": [
-        { "value": "alpha", "label": { "en": "Alpha" } },
-        { "value": "beta", "label": { "en": "Beta" } }
+        {
+          "value": "alpha",
+          "label": {
+            "en": "Alpha"
+          }
+        },
+        {
+          "value": "beta",
+          "label": {
+            "en": "Beta"
+          }
+        }
       ]
     },
     {
@@ -33,19 +42,26 @@
       "kind": "text",
       "required": false,
       "maxLength": 120,
-      "label": { "en": "Fixture note" }
+      "label": {
+        "en": "Fixture note"
+      }
     },
     {
       "id": "fixture_lines",
       "kind": "line_items",
       "required": true,
-      "label": { "en": "Fixture line items" }
+      "label": {
+        "en": "Fixture line items"
+      }
     }
   ],
   "document": {
     "title": "ENGINE TEST FIXTURE",
     "blocks": [
-      { "type": "heading", "text": "Test document" },
+      {
+        "type": "heading",
+        "text": "Test document"
+      },
       {
         "type": "paragraph",
         "text": "This document exists only to test the contract engine. It is not an agreement. Counterparty: [[counterparty_name]]. Date: [[effective_date]]."
@@ -54,8 +70,14 @@
         "type": "paragraph",
         "text": "Reference [[fixture_reference]], tier [[fixture_tier]], note [[fixture_note]]."
       },
-      { "type": "heading", "text": "Fixture lines" },
-      { "type": "paragraph", "text": "[[fixture_lines]]" }
+      {
+        "type": "heading",
+        "text": "Fixture lines"
+      },
+      {
+        "type": "paragraph",
+        "text": "[[fixture_lines]]"
+      }
     ]
   }
 }

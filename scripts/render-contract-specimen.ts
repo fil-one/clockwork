@@ -1,105 +1,55 @@
-// Renders a specimen PDF of an available contract template, for counsel to
-// compare with their approved wording before the template is used.
+// Renders a specimen PDF of a contract template, the same specimen the
+// template store's "Preview specimen PDF" shows: every optional section in,
+// and every field filled with its default or a visible sample value.
 //
-//   pnpm exec tsx scripts/render-contract-specimen.ts <template-id> <output.pdf>
+//   pnpm exec tsx scripts/render-contract-specimen.ts <template.json> <output.pdf>
+//   pnpm exec tsx scripts/render-contract-specimen.ts --demo <template-id> <output.pdf>
 //
-// Every field is filled with a visible sample value, and a line-item field
-// with a sample table. `--fixture` also loads the test-only fixture template,
-// to try the script without legal wording.
-import { writeFileSync } from "node:fs";
+// The JSON is a template file as the store imports it. A file that does not
+// validate prints its problems and writes nothing.
+import { readFileSync, writeFileSync } from "node:fs";
 
-import type { Money, TemplateLineItems } from "../packages/contracts/src";
-import { fixtureContractTemplateRegistry } from "../packages/documents/src/__fixtures__/contract-template";
+import { TemplateContentSchema } from "../packages/contracts/src";
 import {
   availableContractTemplate,
-  contractTemplates,
+  demoContractTemplates,
+  specimenTemplateInput,
+  templateFromContent,
 } from "../packages/documents/src/contract-templates";
-import { indicativeLinePrice } from "../packages/domain/src/core";
 
-const args = process.argv.slice(2).filter((arg) => arg !== "--fixture");
-const [templateId, output] = args;
-if (!templateId || !output) {
+const demo = process.argv.includes("--demo");
+const [source, output] = process.argv
+  .slice(2)
+  .filter((arg) => arg !== "--demo");
+if (!source || !output) {
   console.error(
-    "Usage: pnpm exec tsx scripts/render-contract-specimen.ts <template-id> <output.pdf> [--fixture]",
+    "Usage: pnpm exec tsx scripts/render-contract-specimen.ts [--demo] <template.json | demo-template-id> <output.pdf>",
   );
   process.exit(2);
 }
-const registry = process.argv.includes("--fixture")
-  ? fixtureContractTemplateRegistry
-  : contractTemplates;
-const template = availableContractTemplate(registry, templateId);
-const sample = (label: string) => `Sample ${label}`.slice(0, 120);
-// One row as a pricing scenario import brings it, one entered by hand.
-const sampleRows = [
-  {
-    sku: "SAMPLE-STORAGE",
-    description: "Sample description",
-    region: "sample-region",
-    unit: "TB-month",
-    quantity: "100",
-    termMonths: 12,
-    unitPriceMinor: "1500",
-    minimumQuantity: "10",
-    discountBps: 1000,
-  },
-  {
-    sku: "SAMPLE-SERVICE",
-    description: "Sample service",
-    region: "",
-    unit: "engagement",
-    quantity: "1",
-    termMonths: 1,
-    unitPriceMinor: "250000",
-    minimumQuantity: "0",
-    discountBps: 0,
-  },
-];
-const sampleTable: TemplateLineItems = {
-  currency: "USD",
-  rows: sampleRows.map((row) => ({
-    ...row,
-    extendedMinor: indicativeLinePrice({
-      ...row,
-      unitPrice: { currency: "USD", minor: row.unitPriceMinor } as Money,
-    }).total.minor,
-  })),
-};
-async function main(output: string) {
-  const rendered = await template.render({
-    contractId: "00000000-0000-4000-8000-000000000000",
-    counterpartyName: "Sample Counterparty Inc.",
-    effectiveDate: new Date().toISOString().slice(0, 10),
-    values: Object.fromEntries(
-      template.fields.map((field) => [
-        field.id,
-        field.kind === "line_items"
-          ? sampleTable
-          : field.kind === "choice"
-            ? (field.options?.[0]?.value ?? "")
-            : field.kind === "date"
-              ? new Date().toISOString().slice(0, 10)
-              : field.kind === "number"
-                ? "1"
-                : field.kind === "email"
-                  ? "sample@example.com"
-                  : sample(field.label.en),
-      ]),
-    ),
-    signer: {
-      name: "Sample Signer",
-      email: "signer@example.com",
-      title: "Sample Title",
-    },
-    countersigner: {
-      name: "Sample Countersigner",
-      email: "countersigner@example.com",
-      title: "Sample Title",
-    },
-  });
+
+function template(source: string) {
+  if (demo) return availableContractTemplate(demoContractTemplates, source);
+  const parsed = TemplateContentSchema.safeParse(
+    JSON.parse(readFileSync(source, "utf8")),
+  );
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues)
+      console.error(`${issue.path.join(".") || "template"}: ${issue.message}`);
+    process.exit(1);
+  }
+  return templateFromContent(parsed.data, "specimen");
+}
+
+async function main(source: string, output: string) {
+  const chosen = template(source);
+  const rendered = await chosen.render(
+    specimenTemplateInput(chosen, new Date().toISOString().slice(0, 10)),
+  );
   writeFileSync(output, rendered.bytes);
   console.log(
-    `${template.name} ${template.version}: ${rendered.pages} pages, SHA-256 ${rendered.sha256}, source ${template.templateHash}`,
+    `${chosen.name}: ${rendered.pages} pages, PDF SHA-256 ${rendered.sha256}, content SHA-256 ${chosen.templateHash}`,
   );
 }
 
-void main(output);
+void main(source, output);

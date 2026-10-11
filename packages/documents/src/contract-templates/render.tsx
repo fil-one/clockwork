@@ -8,7 +8,14 @@ import {
   View,
   renderToBuffer,
 } from "@react-pdf/renderer";
-import { templateLineItemPricingLines } from "@clockwork/contracts";
+import {
+  includedTemplateSections,
+  templateContentJson,
+  templateLineItemPricingLines,
+  printableTemplateValue,
+  type TemplateContent,
+  type TemplateDerived,
+} from "@clockwork/contracts";
 import { indicativeScenarioPrice } from "@clockwork/domain/core";
 import { canonicalMndaPdf } from "../mnda/render";
 import { pricingSummaryPrint } from "../pricing-summary/render";
@@ -18,8 +25,6 @@ import {
   type AvailableContractTemplate,
   type PreparedTemplateInput,
   type RenderedContract,
-  type TemplateBlock,
-  type TemplateFile,
   type TemplateValue,
 } from "./definition";
 
@@ -45,6 +50,16 @@ const style = StyleSheet.create({
     marginBottom: 6,
   },
   paragraph: { marginBottom: 8, lineHeight: 1.25 },
+  bold: { fontFamily: "Times-Bold" },
+  textTable: { marginTop: 2, marginBottom: 10, fontSize: 9.5 },
+  textTableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#c8c8c8",
+    paddingVertical: 4,
+    lineHeight: 1.2,
+  },
+  textTableHead: { borderBottomWidth: 0.75, borderBottomColor: "#202020" },
   footer: {
     position: "absolute",
     bottom: 26,
@@ -115,34 +130,11 @@ const tableColumns = [
   { label: "EXTENDED PRICE", width: 90, align: "right" },
 ] as const;
 
-// The PDF base fonts encode WinAnsi only. A value outside it would be dropped
-// silently, so it is refused instead. Brackets and braces are refused so a
-// value can never form a template token or a SignWell text tag.
-const winAnsi: readonly (readonly [number, number])[] = [
-  [0x20, 0x7e],
-  [0xa0, 0xff],
-  [0x152, 0x153],
-  [0x160, 0x161],
-  [0x178, 0x178],
-  [0x192, 0x192],
-  [0x2c6, 0x2c6],
-  [0x2dc, 0x2dc],
-  [0x2013, 0x2014],
-  [0x2018, 0x201a],
-  [0x201c, 0x201e],
-  [0x2020, 0x2022],
-  [0x2026, 0x2026],
-  [0x2030, 0x2030],
-  [0x2039, 0x203a],
-  [0x20ac, 0x20ac],
-];
-const drawable = (value: string) =>
-  [...value].every((character) => {
-    const point = character.codePointAt(0) ?? 0;
-    return winAnsi.some(([from, to]) => point >= from && point <= to);
-  });
+// Values the PDF fonts cannot draw are refused rather than dropped, and
+// brackets and braces are refused so a value can never form a template token
+// or a SignWell text tag.
 export function assertTemplateValue(value: string) {
-  if (/[<>[\]{}]/.test(value) || !drawable(value))
+  if (!printableTemplateValue(value))
     throw new Error("CONTRACT_TEMPLATE_VALUE_CHARACTERS");
 }
 
@@ -153,6 +145,75 @@ function resolve(text: string, values: Readonly<Record<string, string>>) {
       throw new Error("CONTRACT_TEMPLATE_FIELD_UNRESOLVED");
     return value;
   });
+}
+
+/** Text split at `**` markers, each run resolved; odd runs print bold. The
+ * markers are read from the template before values go in, so a value can
+ * never turn bold on or off. */
+function runs(text: string, values: Readonly<Record<string, string>>) {
+  return text
+    .split("**")
+    .map((run, index) => ({
+      text: resolve(run, values),
+      bold: index % 2 === 1,
+    }))
+    .filter((run) => run.text !== "");
+}
+
+// Fixed-point arithmetic for derived figures: twelve decimal places, exact
+// for every value a numeric field accepts.
+const scale = 10n ** 12n;
+function fixed(value: string) {
+  if (!/^\d{1,15}(\.\d{1,12})?$/.test(value))
+    throw new Error("CONTRACT_TEMPLATE_FIELD_INVALID");
+  const [whole = "0", fraction = ""] = value.split(".");
+  return BigInt(whole) * scale + BigInt(fraction.padEnd(12, "0").slice(0, 12));
+}
+
+/** Thousands separators, the decimals kept as given. */
+function grouped(value: string) {
+  const [whole = "0", fraction] = value.split(".");
+  const digits = whole.replace(/^0+(?=\d)/, "");
+  const withCommas = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return fraction === undefined ? withCommas : `${withCommas}.${fraction}`;
+}
+
+function printFixed(value: bigint, decimals: number) {
+  const unit = 10n ** BigInt(12 - decimals);
+  const rounded = (value + unit / 2n) / unit;
+  const text = rounded.toString().padStart(decimals + 1, "0");
+  return grouped(
+    decimals ? `${text.slice(0, -decimals)}.${text.slice(-decimals)}` : text,
+  );
+}
+
+/** Each derived figure, worked out in order from the typed numbers. */
+export function derivedValues(
+  derived: readonly TemplateDerived[],
+  numbers: Readonly<Record<string, string>>,
+  included: ReadonlySet<string>,
+) {
+  const known = new Map<string, bigint>();
+  const printed: Record<string, string> = {};
+  for (const figure of derived) {
+    if (figure.section && !included.has(figure.section)) continue;
+    const operands = figure.of.map((operand) => {
+      if (/^\d/.test(operand)) return fixed(operand);
+      const value = known.get(operand) ?? numbers[operand];
+      if (value === undefined || value === "")
+        throw new Error("CONTRACT_TEMPLATE_FIELD_UNRESOLVED");
+      return typeof value === "bigint" ? value : fixed(value);
+    });
+    const result =
+      figure.op === "sum"
+        ? operands.reduce((a, b) => a + b, 0n)
+        : figure.op === "product"
+          ? operands.reduce((a, b) => (a * b) / scale, scale)
+          : ((operands[0] ?? 0n) * (operands[1] ?? 0n)) / scale / 100n;
+    known.set(figure.id, result);
+    printed[figure.id] = printFixed(result, figure.decimals);
+  }
+  return printed;
 }
 
 /**
@@ -258,22 +319,103 @@ function LineItemsTable({
   );
 }
 
+type Run = ReturnType<typeof runs>[number];
 type ResolvedBlock =
-  | TemplateBlock
+  | { type: "pageBreak" }
+  | { type: "heading" | "paragraph"; runs: Run[] }
+  | {
+      type: "table";
+      header: boolean;
+      widths: readonly number[] | undefined;
+      rows: Run[][][];
+    }
   | { type: "lineItems"; table: ReturnType<typeof pricedLineItems> };
+
+function Runs({ runs }: { runs: readonly Run[] }) {
+  return (
+    <>
+      {runs.map((run, index) =>
+        run.bold ? (
+          <Text key={index} style={style.bold}>
+            {run.text.replaceAll("\t", " ")}
+          </Text>
+        ) : (
+          run.text.replaceAll("\t", " ")
+        ),
+      )}
+    </>
+  );
+}
+
+const unbroken = {
+  ...{ hyphenationPenalty: 1000000 },
+  hyphenationCallback: (word: string) => [word],
+};
+
+function TextTable({
+  header,
+  widths,
+  rows,
+}: {
+  header: boolean;
+  widths: readonly number[] | undefined;
+  rows: readonly Run[][][];
+}) {
+  const columns = Math.max(...rows.map((row) => row.length));
+  const weights = widths ?? Array.from({ length: columns }, () => 1);
+  const total = weights.reduce((a, b) => a + b, 0);
+  const width = (column: number) => (516 * (weights[column] ?? 1)) / total;
+  return (
+    <View style={style.textTable}>
+      {rows.map((row, r) => (
+        <View
+          key={r}
+          wrap={false}
+          style={[
+            style.textTableRow,
+            ...(header && r === 0 ? [style.textTableHead] : []),
+          ]}
+        >
+          {Array.from({ length: columns }, (_, c) => (
+            <Text
+              key={c}
+              style={{
+                width: width(c),
+                paddingRight: c === columns - 1 ? 0 : 6,
+                ...(header && r === 0 ? style.bold : {}),
+              }}
+              {...unbroken}
+            >
+              <Runs runs={row[c] ?? []} />
+            </Text>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
 
 function Block({ block }: { block: ResolvedBlock }) {
   if (block.type === "pageBreak") return <View break />;
   if (block.type === "lineItems") return <LineItemsTable table={block.table} />;
+  if (block.type === "table")
+    return (
+      <TextTable
+        header={block.header}
+        widths={block.widths}
+        rows={block.rows}
+      />
+    );
   return (
     <Text
       style={block.type === "heading" ? style.heading : style.paragraph}
-      {...{ hyphenationPenalty: 1000000 }}
       orphans={3}
       widows={3}
-      hyphenationCallback={(word) => [word]}
+      // A heading never ends a page on its own.
+      {...(block.type === "heading" ? { minPresenceAhead: 48 } : {})}
+      {...unbroken}
     >
-      {block.text.replaceAll("\t", " ")}
+      <Runs runs={block.runs} />
     </Text>
   );
 }
@@ -313,33 +455,50 @@ function SignatureRow({
   );
 }
 
+/** A template's content with the version label it prints. */
+export type VersionedTemplate = TemplateContent & { version: string };
+
 /**
- * Renders counsel's blocks with resolved fields, then a signature page with
- * SignWell text tags. Recipient 1 is the counterparty and signs first;
- * recipient 2 is the Fil One countersigner. Output is byte-deterministic for
- * the same input.
+ * Renders the template's blocks with resolved fields, leaving out sections
+ * the contract does not include, then a signature page with SignWell text
+ * tags. Recipient 1 is the counterparty and signs first; recipient 2 is the
+ * Fil One countersigner. Output is byte-deterministic for the same input.
  */
 export async function renderTemplateDocument(
-  file: TemplateFile,
+  file: VersionedTemplate,
   input: PreparedTemplateInput,
 ): Promise<RenderedContract> {
+  const included = input.everySection
+    ? new Set(file.sections.map((section) => section.id))
+    : includedTemplateSections(file, input.sections, input.values);
+  const inContract = (section: string | undefined) =>
+    section === undefined || included.has(section);
+  const fields = file.fields.filter((f) => inContract(f.section));
   const tableFields = new Set(
-    file.fields.filter((f) => f.kind === "line_items").map((f) => f.id),
+    fields.filter((f) => f.kind === "line_items").map((f) => f.id),
   );
   const text: Record<string, string> = {};
-  for (const [key, value] of Object.entries(input.values))
-    if (!tableFields.has(key)) {
-      if (typeof value !== "string")
-        throw new Error("CONTRACT_TEMPLATE_FIELD_INVALID");
-      text[key] = value;
-    }
+  for (const field of fields) {
+    if (tableFields.has(field.id)) continue;
+    const value = input.values[field.id];
+    if (value === undefined) continue;
+    if (typeof value !== "string")
+      throw new Error("CONTRACT_TEMPLATE_FIELD_INVALID");
+    text[field.id] = field.kind === "decimal" ? grouped(value) : value;
+  }
   const tables = new Map(
     [...tableFields].map(
       (id) => [id, pricedLineItems(input.values[id])] as const,
     ),
   );
+  const raw = Object.fromEntries(
+    Object.entries(input.values).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
   const values: Record<string, string> = {
     ...text,
+    ...derivedValues(file.derived, raw, included),
     counterparty_name: input.counterpartyName,
     effective_date: input.effectiveDate,
     signer_name: input.signer.name,
@@ -351,14 +510,42 @@ export async function renderTemplateDocument(
   for (const value of Object.values(values)) assertTemplateValue(value);
   // Every token resolves before layout starts, so a missing value fails
   // with its own code rather than inside the PDF renderer.
-  const title = resolve(file.document.title, values);
-  const blocks = file.document.blocks.map((block): ResolvedBlock => {
-    if (block.type === "pageBreak") return block;
-    const table = tables.get(/^\[\[([^\]]*)\]\]$/.exec(block.text)?.[1] ?? "");
-    if (block.type === "paragraph" && table)
-      return { type: "lineItems", table };
-    return { ...block, text: resolve(block.text, values) };
-  });
+  const title = resolve(file.document.title.replaceAll("**", ""), values);
+  const blocks = file.document.blocks
+    .filter((block) => inContract(block.section))
+    .map((block): ResolvedBlock => {
+      if (block.type === "pageBreak") return { type: "pageBreak" };
+      if (block.type === "table")
+        return {
+          type: "table",
+          header: block.header,
+          widths: block.widths,
+          rows: block.rows.map((row) => row.map((cell) => runs(cell, values))),
+        };
+      const table = tables.get(
+        /^\[\[([^\]]*)\]\]$/.exec(block.text)?.[1] ?? "",
+      );
+      if (block.type === "paragraph" && table)
+        return { type: "lineItems", table };
+      return { type: block.type, runs: runs(block.text, values) };
+    });
+  // Signing tags are only the signature page's own. Whatever the wording,
+  // markers and values, no printed text may hold one.
+  const printed = [
+    title,
+    file.name,
+    ...blocks.flatMap((block) =>
+      block.type === "heading" || block.type === "paragraph"
+        ? [block.runs.map((run) => run.text).join("")]
+        : block.type === "table"
+          ? block.rows.flatMap((row) =>
+              row.map((cell) => cell.map((run) => run.text).join("")),
+            )
+          : [],
+    ),
+  ];
+  if (printed.some((text) => /\{\{|\}\}/.test(text)))
+    throw new Error("CONTRACT_TEMPLATE_VALUE_CHARACTERS");
   const reference = `${input.contractId.slice(0, 8)} · ${file.id} ${file.version}`;
   const fixedDate = new Date(`${input.effectiveDate}T00:00:00Z`);
   const footer = (
@@ -371,7 +558,7 @@ export async function renderTemplateDocument(
   );
   const pdf = await renderToBuffer(
     <Document
-      title={file.document.title}
+      title={title}
       author="Fil One LLC"
       creationDate={fixedDate}
       modificationDate={fixedDate}
@@ -440,22 +627,39 @@ export async function renderTemplateDocument(
   };
 }
 
-/**
- * Validates a template file and binds it to the renderer. An invalid file
- * fails when the registry loads, never halfway through a preparation.
- */
-export function availableTemplate(raw: unknown): AvailableContractTemplate {
-  const file = TemplateFileSchema.parse(raw);
+/** SHA-256 of a template's content (`templateContentJson`). */
+export function templateContentHash(content: TemplateContent) {
+  return createHash("sha256")
+    .update(templateContentJson(content))
+    .digest("hex");
+}
+
+/** Binds validated content to the renderer under a version label. */
+export function templateFromContent(
+  content: TemplateContent,
+  version: string,
+): AvailableContractTemplate {
+  const file = { ...content, version };
   return {
-    id: file.id,
-    contractType: file.contractType,
-    name: file.name,
-    status: "available",
-    version: file.version,
-    templateHash: file.source.sha256,
-    sourcePath: file.source.path,
-    requiresApproval: file.requiresApproval,
-    fields: file.fields,
+    id: content.id,
+    contractType: content.contractType,
+    name: content.name,
+    version,
+    templateHash: templateContentHash(content),
+    sourceNote: content.sourceNote ?? "",
+    requiresApproval: content.requiresApproval,
+    fields: content.fields,
+    sections: content.sections,
+    derived: content.derived,
     render: (input) => renderTemplateDocument(file, input),
   };
+}
+
+/**
+ * Validates a template kept in code and binds it to the renderer. An invalid
+ * file fails when the registry loads, never halfway through a preparation.
+ */
+export function availableTemplate(raw: unknown): AvailableContractTemplate {
+  const { version, ...content } = TemplateFileSchema.parse(raw);
+  return templateFromContent(content, version);
 }
