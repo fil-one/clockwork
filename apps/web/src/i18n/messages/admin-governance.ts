@@ -749,6 +749,12 @@ export const adminGovernanceMessages = defineStaffMessages({
     en: "{default} by default; maximum {maximum}",
   },
   "adminGovernance.channelPolicy.extensions": { en: "Extensions" },
+  "adminGovernance.channelPolicy.conversionLookback": {
+    en: "Ownership after conversion",
+  },
+  "adminGovernance.channelPolicy.conversionLookbackDefault": {
+    en: "The maximum protection window",
+  },
   "adminGovernance.channelPolicy.noExtensions": { en: "No extensions" },
   "adminGovernance.channelPolicy.extensionTerms": {
     count: "count",
@@ -782,6 +788,12 @@ export const adminGovernanceMessages = defineStaffMessages({
   },
   "adminGovernance.channelPolicy.field.maximumExtensions": {
     en: "Maximum extensions",
+  },
+  "adminGovernance.channelPolicy.field.conversionLookback": {
+    en: "Ownership after conversion (days)",
+  },
+  "adminGovernance.channelPolicy.field.conversionLookbackHint": {
+    en: "How long a converted registration keeps another partner from being approved on the same client and workload. Leave blank to use the maximum protection window.",
   },
   "adminGovernance.channelPolicy.field.effectiveDate": {
     en: "Effective date (UTC)",

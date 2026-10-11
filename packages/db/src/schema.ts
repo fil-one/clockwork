@@ -1228,7 +1228,11 @@ export const dealRegistrations = pgTable(
       table.id,
     ),
     uniqueIndex("deal_registration_active_unique")
-      .on(table.partnerAccountId, table.endClientAccountId)
+      .on(
+        table.partnerAccountId,
+        table.endClientAccountId,
+        sql`lower(btrim(${table.workload}))`,
+      )
       .where(sql`${table.status} in ('registered','approved','disputed')`),
     check(
       "deal_registrations_status_check",

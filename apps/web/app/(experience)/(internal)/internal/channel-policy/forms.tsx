@@ -111,6 +111,22 @@ export function ChannelTermsForm({
             />
           </label>
         ))}
+        <label className={styles.field} htmlFor={`${prefix}-lookback`}>
+          {t("adminGovernance.channelPolicy.field.conversionLookback")}
+          <input
+            id={`${prefix}-lookback`}
+            name="conversionLookbackDays"
+            type="number"
+            min={1}
+            max={3650}
+            step={1}
+            aria-describedby={`${prefix}-lookback-hint`}
+            defaultValue={terms.conversionLookbackDays ?? ""}
+          />
+          <span id={`${prefix}-lookback-hint`} className={styles.fieldHint}>
+            {t("adminGovernance.channelPolicy.field.conversionLookbackHint")}
+          </span>
+        </label>
         <label className={styles.field} htmlFor={`${prefix}-effective`}>
           {t("adminGovernance.channelPolicy.field.effectiveDate")}
           <input

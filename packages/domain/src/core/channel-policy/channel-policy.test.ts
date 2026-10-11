@@ -32,6 +32,21 @@ const draft: ChannelPolicyRecord = {
 };
 const now = draft.createdAt;
 describe("channel policy approval", () => {
+  it("accepts an optional conversion lookback within sanity bounds", () => {
+    expect(ChannelPolicyTermsSchema.safeParse(draft.terms).success).toBe(true);
+    for (const [conversionLookbackDays, valid] of [
+      [180, true],
+      [3650, true],
+      [0, false],
+      [3651, false],
+    ] as const)
+      expect(
+        ChannelPolicyTermsSchema.safeParse({
+          ...draft.terms,
+          conversionLookbackDays,
+        }).success,
+      ).toBe(valid);
+  });
   it("allows multi-year protection but bounds the cumulative window at ten years", () => {
     const terms = {
       ...draft.terms,

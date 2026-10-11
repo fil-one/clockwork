@@ -3948,6 +3948,14 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
                   "approved",
                   "disputed",
                 ]),
+                // Another partner's open or approved registration owns the
+                // opportunity only while its protection is current. The same
+                // partner's own active registration on this workload is a
+                // duplicate and is refused; once converted it no longer
+                // counts, so a renewal or expansion goes through.
+                sql`(${dealRegistrations.partnerAccountId} = ${partnerId}::uuid
+                  or ${dealRegistrations.status} = 'disputed'
+                  or ${dealRegistrations.protectionEndsAt} > now())`,
                 sql`not (${dealRegistrations.status} = 'registered' and exists (
                   select 1 from core_deal_registration_exclusions pending
                   where pending.registration_id = ${dealRegistrations.id}
@@ -8546,33 +8554,15 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         );
     }
     if (input.action === "approve") {
-      // One economic owner per end client and workload. The database trigger
-      // is the guarantee; this read gives the reason first.
-      const owner = await withInternalTransaction(
-        this.options.pricingDatabase,
-        `${input.requestId}:registration-owner`,
-        (service) =>
-          service
-            .select({ id: dealRegistrations.id })
-            .from(dealRegistrations)
-            .where(
-              and(
-                eq(
-                  dealRegistrations.endClientAccountId,
-                  prior.endClientAccountId,
-                ),
-                inArray(dealRegistrations.status, [
-                  "approved",
-                  "converted",
-                  "disputed",
-                ]),
-                sql`${dealRegistrations.id} <> ${prior.id}
-                  and lower(btrim(${dealRegistrations.workload})) = lower(btrim(${prior.workload}))`,
-              ),
-            )
-            .limit(1),
-      );
-      if (owner.length > 0)
+      // One economic owner per end client and workload, as the database
+      // guard defines it (`core_registration_owner_conflict`); the trigger is
+      // the guarantee and this read gives the reason first.
+      const owner = await transaction.execute<{ owner: string | null }>(sql`
+        select public.core_registration_owner_conflict(
+          ${prior.id}::uuid, ${prior.partnerAccountId}::uuid,
+          ${prior.endClientAccountId}::uuid, ${prior.workload}::text
+        ) as owner`);
+      if (owner[0]?.owner)
         throw new CoreServiceError(
           "INVALID_STATE",
           "Another registration already owns this end client and workload; reject or resolve it first",
