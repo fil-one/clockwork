@@ -1,3 +1,4 @@
+import { PDFDocument } from "pdf-lib";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
@@ -174,6 +175,13 @@ it("preserves every supplied legal paragraph, both signers and all four tags in 
     normalize("as of October 2, 2026 (“Effective Date”)"),
   );
   expect(text).toContain("[Signature page follows]");
+  // The entity prints exactly as registered, in the signature block and
+  // the PDF's metadata alike.
+  expect(text).toMatch(
+    /FIL One LLC,\s.*on behalf of itself and its Affiliates/su,
+  );
+  expect(text).not.toMatch(/FIL ONE LLC|Fil One,? LLC|FIL One, LLC/u);
+  expect((await PDFDocument.load(a.bytes)).getAuthor()).toBe("FIL One LLC");
   for (let page = 1; page <= a.pages; page++)
     expect(text).toContain(
       `Mutual Non-Disclosure Agreement · Ref ${fixtureInput.id.slice(0, 8)} · Template ${mndaTemplateVersion} · ${page} / ${a.pages}`,
