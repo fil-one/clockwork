@@ -1,5 +1,11 @@
 import { z } from "zod";
-import type { TemplateField, TemplateValue } from "@clockwork/contracts";
+import {
+  includedTemplateSections,
+  templateValueIssue,
+  type TemplateField,
+  type TemplateSection,
+  type TemplateValue,
+} from "@clockwork/contracts";
 import { checkLineItems, type RateMinimums } from "./line-items";
 
 const text = (max: number) =>
@@ -19,50 +25,49 @@ const lineItems = (minimums: RateMinimums) =>
 function fieldSchema(field: TemplateField, minimums: RateMinimums) {
   if (field.kind === "line_items") return lineItems(minimums);
   const max = field.maxLength ?? 200;
-  const base =
-    field.kind === "email"
-      ? z.union([z.literal(""), z.email({ message: "email" }).max(254)])
-      : field.kind === "date"
-        ? z.union([z.literal(""), z.iso.date({ message: "invalid_format" })])
-        : field.kind === "number"
-          ? z.union([
-              z.literal(""),
-              z.string().regex(/^\d{1,12}$/, { message: "number" }),
-            ])
-          : field.kind === "choice"
-            ? z.union([
-                z.literal(""),
-                z.enum(
-                  (field.options ?? []).map((o) => o.value) as [
-                    string,
-                    ...string[],
-                  ],
-                  { message: "required" },
-                ),
-              ])
-            : text(max);
   // A field left out of the submission is the same as one left empty.
   const trimmed = z.preprocess(
     (value) => value ?? "",
-    z.string().trim().pipe(base),
+    z
+      .string()
+      .trim()
+      .max(field.kind === "text" ? max : 254, { message: "too_big" })
+      .transform((value, ctx) => {
+        const issue = templateValueIssue(field, value);
+        if (issue) ctx.addIssue({ code: "custom", message: issue });
+        return field.kind === "email" ? value.toLowerCase() : value;
+      }),
   );
   return field.required
     ? trimmed.refine((value) => value !== "", { message: "required" })
     : trimmed;
 }
 
+/** What the prepare form needs to know about a template. */
+export interface PrepareTemplate {
+  fields: readonly TemplateField[];
+  sections: readonly TemplateSection[];
+}
+
 /**
- * What a seller enters to prepare a contract from one template. `minimums`
+ * What a seller enters to prepare a contract from one template version.
+ * `sections` lists the optional sections the seller ticked; a field of a
+ * section the contract leaves out is neither asked for nor kept. `minimums`
  * holds the in-force rate minimums a line-item table is checked against.
  */
 export function prepareInputSchema(
-  fields: readonly TemplateField[],
+  template: PrepareTemplate,
   minimums: RateMinimums,
 ) {
+  const toggles = new Set(
+    template.sections.filter((s) => !s.when).map((s) => s.id),
+  );
+  const known = new Set(template.fields.map((field) => field.id));
   return z
     .object({
       id: z.uuid(),
       templateId: z.string().min(1).max(64),
+      templateVersion: z.string().min(1).max(40),
       counterpartyName: requiredText(200),
       effectiveDate: z.iso.date({ message: "required" }),
       signerName: requiredText(120),
@@ -73,17 +78,64 @@ export function prepareInputSchema(
       signerTitle: requiredText(120),
       countersignerId: z.uuid({ message: "required" }),
       ownerName: requiredText(120),
-      values: z
+      sections: z
+        .array(z.string().max(48))
+        .max(30)
+        .default([])
+        .transform((ids) => [...new Set(ids)].filter((id) => toggles.has(id))),
+      values: z.record(z.string(), z.unknown()),
+    })
+    .strict()
+    .transform((input, ctx) => {
+      for (const key of Object.keys(input.values))
+        if (!known.has(key))
+          ctx.addIssue({
+            code: "custom",
+            path: ["values", key],
+            message: "unrecognized_keys",
+          });
+      // Sections follow the choice values as they are checked and printed:
+      // trimmed, so a padded value cannot include wording the check skipped.
+      const included = includedTemplateSections(
+        template,
+        input.sections,
+        Object.fromEntries(
+          Object.entries(input.values).map(([key, value]) => [
+            key,
+            typeof value === "string" ? value.trim() : value,
+          ]),
+        ),
+      );
+      const asked = template.fields.filter(
+        (field) => !field.section || included.has(field.section),
+      );
+      const values = z
         .object(
           Object.fromEntries(
-            fields.map((field) => [field.id, fieldSchema(field, minimums)]),
+            asked.map((field) => [field.id, fieldSchema(field, minimums)]),
           ),
         )
-        .strict(),
-    })
-    .strict();
+        .safeParse(input.values);
+      if (!values.success) {
+        for (const issue of values.error.issues)
+          ctx.addIssue({
+            code: "custom",
+            path: ["values", ...issue.path.map(String)],
+            message: issue.message,
+          });
+        return z.NEVER;
+      }
+      return {
+        ...input,
+        values: values.data,
+      };
+    });
 }
 export type PrepareInput = z.infer<ReturnType<typeof prepareInputSchema>>;
+
+/** The key a signing request keeps the ticked sections under. Field ids
+ * start with a letter, so it can never be a field's. */
+export const preparedSectionsKey = "_sections";
 
 /** What a preparation starts from when it replaces an earlier contract from
  * the same template, for a different counterparty signer. */
@@ -94,4 +146,6 @@ export interface PrepareStart {
   countersignerId: string;
   /** Text values, and a line-item table where the template has one. */
   values: Record<string, TemplateValue>;
+  /** The optional sections the earlier contract included. */
+  sections: string[];
 }

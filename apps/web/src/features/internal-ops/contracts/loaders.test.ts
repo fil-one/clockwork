@@ -5,6 +5,7 @@ import {
   fixtureSigningRecord,
 } from "../../../../../../packages/contracts/src/contract-fixture";
 import { fixtureRecord } from "../../../../../../packages/contracts/src/mnda-fixture";
+import { registryTemplateSource } from "@clockwork/documents";
 import { fixtureContractTemplateRegistry } from "../../../../../../packages/documents/src/__fixtures__/contract-template";
 
 const mocks = vi.hoisted(() => ({
@@ -17,7 +18,8 @@ vi.mock("./server", async (original) => ({
   ...(await original<typeof Server>()),
   contractRepository: () => mocks.contracts,
   contractSigningRepository: () => mocks.signing,
-  contractTemplateRegistry: () => fixtureContractTemplateRegistry,
+  contractTemplateSource: () =>
+    registryTemplateSource(fixtureContractTemplateRegistry),
 }));
 vi.mock("@/src/auth/session", () => ({
   getCommerceSession: mocks.session,
@@ -142,7 +144,9 @@ describe("preparing a template again for someone else", () => {
           // A line-item table is carried whole.
           fixture_lines: { currency: "USD", rows: [{ sku: "SUPPORT" }] },
         },
+        sections: [],
       },
+      template: { id: "test-fixture", version: "fixture-2", sections: [] },
     });
     expect(JSON.stringify(loaded)).not.toContain(
       fixtureSigningRecord.counterpartySigner.email,
@@ -168,6 +172,28 @@ describe("preparing a template again for someone else", () => {
       start: null,
     });
     expect(mocks.signing.get).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("preparing from a template", () => {
+  it("restores the sections an earlier contract included", async () => {
+    mocks.signing.get.mockResolvedValueOnce({
+      ...fixtureSigningRecord,
+      input: { ...fixtureSigningRecord.input, _sections: "nfr,schedule_e" },
+    });
+    mocks.contracts.get.mockResolvedValue({ contract: fixtureContractRecord });
+    await expect(
+      loadPrepare("test-fixture", fixtureContractRecord.id),
+    ).resolves.toMatchObject({
+      kind: "ready",
+      start: { sections: ["nfr", "schedule_e"] },
+    });
+  });
+
+  it("reads as missing when no version of the template is in use", async () => {
+    await expect(loadPrepare("customer-msa")).resolves.toEqual({
+      kind: "missing",
+    });
   });
 });
 

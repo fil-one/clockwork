@@ -129,8 +129,10 @@ One countersigner not to sign it.
 
 - **Record a contract** adds an agreement signed outside Commerce, or one you
   are negotiating on either side's paper, with its PDFs and key dates.
-- **New from template** prepares a Fil One agreement for signature. Templates
-  show **Template pending from legal** until counsel approves them.
+- **New from template** prepares a Fil One agreement for signature from the
+  templates in use. Tick the optional sections the deal includes, then **Preview
+  PDF** to read it before you prepare it. Commerce administrators add and update
+  templates under **Manage templates**.
 - To send any PDF for signature (their agreement, or a term sheet or letter you
   drafted in Word), record the contract, upload the PDF as the main document and
   choose **Prepare for signature** on the contract. Commerce adds a Fil One

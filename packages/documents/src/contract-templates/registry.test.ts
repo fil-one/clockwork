@@ -1,60 +1,270 @@
-import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  includedTemplateSections,
+  templateContentJson,
+  type TemplateContent,
+} from "@clockwork/contracts";
+import {
   fixtureContractTemplate,
-  fixtureContractTemplateRegistry,
+  fixtureSectionsContent,
 } from "../__fixtures__/contract-template";
 import fixtureFile from "../__fixtures__/contract-template/template.json";
-import { TemplateFileSchema } from "./definition";
-import { availableContractTemplate, contractTemplates } from "./registry";
+import { TemplateContentSchema, TemplateFileSchema } from "./definition";
+import {
+  availableContractTemplate,
+  demoContractTemplates,
+  registryTemplateSource,
+} from "./registry";
+import { derivedValues, templateContentHash } from "./render";
 
-const repositoryRoot = new URL("../../../../", import.meta.url);
+const sections = () =>
+  structuredClone(fixtureSectionsContent) as unknown as Record<
+    string,
+    unknown
+  > & {
+    fields: Record<string, unknown>[];
+    sections: Record<string, unknown>[];
+    derived: Record<string, unknown>[];
+    document: { title: string; blocks: Record<string, unknown>[] };
+  };
+const problems = (raw: unknown) =>
+  TemplateContentSchema.safeParse(raw).error?.issues.map(
+    (issue) => issue.message,
+  ) ?? [];
 
-describe("production contract templates", () => {
-  it("lists one pending template per agreement counsel has not yet supplied", () => {
-    expect(contractTemplates.map((t) => [t.contractType, t.status])).toEqual([
-      ["channel_partnership", "pending_legal"],
-      ["customer_msa", "pending_legal"],
-      ["order_form", "pending_legal"],
-      ["dpa", "pending_legal"],
-      ["security_annex", "pending_legal"],
-      ["nda_one_way", "pending_legal"],
-      ["technology_partner", "pending_legal"],
-      ["sow", "pending_legal"],
+describe("templates kept in code", () => {
+  it("are the guided demo's samples, clearly marked and never the fixture", () => {
+    expect(demoContractTemplates.map((t) => t.id)).toEqual([
+      "sample-channel-partner",
+      "sample-order-form",
     ]);
-    expect(new Set(contractTemplates.map((t) => t.id)).size).toBe(
-      contractTemplates.length,
+    for (const template of demoContractTemplates) {
+      expect(template.name).toMatch(/^Sample /);
+      expect(template.sourceNote).toMatch(/^Demo sample wording/);
+    }
+    expect(demoContractTemplates).not.toContain(fixtureContractTemplate);
+  });
+
+  it("finds a template by id and pins the version a form was built for", async () => {
+    const source = registryTemplateSource(demoContractTemplates);
+    expect(() =>
+      availableContractTemplate(demoContractTemplates, "missing"),
+    ).toThrow("CONTRACT_TEMPLATE_NOT_FOUND");
+    await expect(
+      source.version("sample-order-form", "demo-1"),
+    ).resolves.toMatchObject({ id: "sample-order-form" });
+    await expect(source.version("sample-order-form", "demo-0")).rejects.toThrow(
+      "CONTRACT_TEMPLATE_VERSION_CHANGED",
+    );
+    await expect(source.active("missing")).rejects.toThrow(
+      "CONTRACT_TEMPLATE_NOT_FOUND",
+    );
+  });
+});
+
+describe("content hash", () => {
+  const content = TemplateContentSchema.parse(fixtureSectionsContent);
+
+  it("is the same for the same content in any key order, without the note", () => {
+    const reordered = TemplateContentSchema.parse(
+      Object.fromEntries(Object.entries(sections()).reverse()),
+    );
+    expect(templateContentHash(reordered)).toBe(templateContentHash(content));
+    expect(
+      templateContentHash({ ...content, sourceNote: "Another note" }),
+    ).toBe(templateContentHash(content));
+    expect(templateContentJson(content)).not.toContain("sourceNote");
+    expect(templateContentHash(content)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("changes with any wording, field or section change", () => {
+    const base = templateContentHash(content);
+    const changes: ((c: TemplateContent) => void)[] = [
+      (c) => {
+        const block = c.document.blocks[0];
+        if (block?.type === "paragraph") block.text += " ";
+      },
+      (c) => {
+        if (c.fields[1]) c.fields[1].required = false;
+      },
+      (c) => {
+        if (c.sections[1]) c.sections[1].default = false;
+      },
+      (c) => {
+        c.requiresApproval = true;
+      },
+    ];
+    for (const change of changes) {
+      const changed = structuredClone(content);
+      change(changed);
+      expect(templateContentHash(changed)).not.toBe(base);
+    }
+  });
+});
+
+describe("optional sections", () => {
+  const content = TemplateContentSchema.parse(fixtureSectionsContent);
+
+  it("includes ticked sections and those a choice field turns on", () => {
+    expect([
+      ...includedTemplateSections(content, ["nfr"], { model: "Referral" }),
+    ]).toEqual(["nfr"]);
+    expect([
+      ...includedTemplateSections(content, [], { model: "Resale" }),
+    ]).toEqual(["resale"]);
+    // A choice-driven section cannot be ticked on by hand.
+    expect([
+      ...includedTemplateSections(content, ["resale"], { model: "Referral" }),
+    ]).toEqual([]);
+  });
+
+  it("refuses a section, a section field or a token that does not resolve", () => {
+    const unknown = sections();
+    unknown.document.blocks.push({
+      type: "paragraph",
+      section: "schedule_z",
+      text: "Text",
+    });
+    expect(problems(unknown)).toContain("unknown section schedule_z");
+
+    const outside = sections();
+    outside.document.blocks.push({
+      type: "paragraph",
+      text: "Margin [[resale_margin]].",
+    });
+    expect(problems(outside)).toContain(
+      "[[resale_margin]] belongs to section resale",
+    );
+
+    const driver = sections();
+    driver.sections[0] = {
+      id: "resale",
+      label: { en: "Resale" },
+      when: { field: "model", in: ["Wholesale"] },
+    };
+    expect(problems(driver)).toContain("Wholesale is not an option of model");
+
+    const notChoice = sections();
+    notChoice.sections[0] = {
+      id: "resale",
+      label: { en: "Resale" },
+      when: { field: "referral_percent", in: ["10"] },
+    };
+    expect(problems(notChoice)).toContain(
+      "referral_percent must be a choice field outside any section",
     );
   });
 
-  it("never registers the test fixture", () => {
-    expect(contractTemplates).not.toContain(fixtureContractTemplate);
-    expect(contractTemplates.some((t) => t.id.startsWith("test"))).toBe(false);
-    expect(fixtureContractTemplateRegistry).toContain(fixtureContractTemplate);
+  it("refuses characters the PDF cannot print and stray bold markers", () => {
+    const symbol = sections();
+    symbol.document.blocks.push({ type: "paragraph", text: "Uptime ≥ 99.9%" });
+    expect(problems(symbol)).toContain("U+2265 (≥) cannot be printed");
+    const bold = sections();
+    bold.document.blocks.push({ type: "paragraph", text: "**Open bold" });
+    expect(problems(bold)).toContain("unbalanced ** bold marker");
+    const tag = sections();
+    tag.document.blocks.push({
+      type: "table",
+      rows: [["{{signature:1:y}}"]],
+    });
+    expect(problems(tag)).toContain("{ and } are reserved for signing tags");
+    // Bold markers between braces, a lone brace beside a token, or a brace
+    // in the name could still print a tag; any brace is refused.
+    for (const text of ["{****{signature:1:y}****}", "{[[model]]{x"]) {
+      const split = sections();
+      split.document.blocks.push({ type: "paragraph", text });
+      expect(problems(split)).toContain(
+        "{ and } are reserved for signing tags",
+      );
+    }
+    const named = sections();
+    named.name = "Probe {{signature:1:y}}";
+    expect(problems(named)).toContain("{ and } are reserved for signing tags");
   });
+});
 
-  it("pins every available template to counsel's source file by SHA-256", () => {
-    for (const template of fixtureContractTemplateRegistry) {
-      if (template.status !== "available") continue;
-      const source = readFileSync(new URL(template.sourcePath, repositoryRoot));
-      expect(createHash("sha256").update(source).digest("hex")).toBe(
-        template.templateHash,
+describe("printed choice values and defaults", () => {
+  it("refuses option values and defaults a seller value could not be", () => {
+    for (const value of ["[x]", "<b>", "≥ 99.9%", "Option\u200bA"]) {
+      const option = sections();
+      option.fields[0] = {
+        ...option.fields[0],
+        options: [
+          { value: "Referral", label: { en: "Referral" } },
+          { value, label: { en: "Odd" } },
+        ],
+      };
+      expect(problems(option)).toContain(
+        "option values and defaults print: use characters the PDF can draw, without < > [ ] { }",
       );
     }
   });
+});
 
-  it("refuses to prepare a template that is pending from legal", () => {
-    expect(() =>
-      availableContractTemplate(contractTemplates, "channel-partnership"),
-    ).toThrow("CONTRACT_TEMPLATE_PENDING_LEGAL");
-    expect(() =>
-      availableContractTemplate(contractTemplates, "missing"),
-    ).toThrow("CONTRACT_TEMPLATE_NOT_FOUND");
+describe("numeric fields and derived figures", () => {
+  it("accepts percentages from 0 to 100 and decimals without business caps", () => {
+    const percent = sections();
+    for (const value of ["0", "32.5", "100", "99.9999"]) {
+      percent.fields[1] = { ...percent.fields[1], default: value };
+      expect(problems(percent)).toEqual([]);
+    }
+    for (const value of ["100.5", "-1", "1e2", "12.34567", "abc"]) {
+      percent.fields[1] = { ...percent.fields[1], default: value };
+      expect(problems(percent)).toContain(
+        "the default does not suit the field",
+      );
+    }
+    const decimal = sections();
+    decimal.fields[2] = { ...decimal.fields[2], default: "999999999999999.5" };
+    expect(problems(decimal)).toEqual([]);
+  });
+
+  it("works derived figures out exactly, rounding half up", () => {
+    const { derived } = TemplateContentSchema.parse(fixtureSectionsContent);
     expect(
-      availableContractTemplate(fixtureContractTemplateRegistry, "test-fixture")
-        .requiresApproval,
-    ).toBe(true);
+      derivedValues(
+        derived,
+        { referral_percent: "32.5", sample_revenue: "250000" },
+        new Set(),
+      ),
+    ).toEqual({ sample_fee: "81,250.00", sample_three_years: "243,750" });
+    expect(
+      derivedValues(
+        derived,
+        { referral_percent: "33.3333", sample_revenue: "0.15" },
+        new Set(),
+      ),
+    ).toEqual({ sample_fee: "0.05", sample_three_years: "0" });
+    expect(() =>
+      derivedValues(derived, { referral_percent: "10" }, new Set()),
+    ).toThrow("CONTRACT_TEMPLATE_FIELD_UNRESOLVED");
+  });
+
+  it("builds each figure on the one before it as printed", () => {
+    const printed = derivedValues(
+      [
+        { id: "earn", op: "percent_of", of: ["rate", "spend"], decimals: 0 },
+        { id: "five", op: "product", of: ["earn", "5"], decimals: 0 },
+        { id: "both", op: "sum", of: ["earn", "five"], decimals: 0 },
+      ],
+      { rate: "16.6667", spend: "25000" },
+      new Set(),
+    );
+    // 16.6667% of 25,000 is 4,166.675, printed 4,167; five of those 20,835.
+    expect(printed).toEqual({ earn: "4,167", five: "20,835", both: "25,002" });
+  });
+
+  it("refuses a derived operand that is not a required number", () => {
+    const text = sections();
+    text.derived[0] = { id: "x", op: "sum", of: ["nfr_capacity", "1"] };
+    expect(problems(text)).toContain(
+      "nfr_capacity must be a required numeric field or an earlier derived figure",
+    );
+    const later = sections();
+    later.derived.reverse();
+    expect(problems(later)).toContain(
+      "sample_fee must be a required numeric field or an earlier derived figure",
+    );
   });
 });
 
@@ -93,8 +303,11 @@ describe("template file format", () => {
     for (const block of [
       { type: "paragraph", text: "Lines: [[fixture_lines]]" },
       { type: "heading", text: "[[fixture_lines]]" },
+      { type: "table", rows: [["[[fixture_lines]]"]] },
     ]) {
-      const broken = structuredClone(fixtureFile);
+      const broken = structuredClone(fixtureFile) as unknown as {
+        document: { blocks: unknown[] };
+      };
       broken.document.blocks.push(block);
       expect(TemplateFileSchema.safeParse(broken).success).toBe(false);
     }
@@ -103,8 +316,12 @@ describe("template file format", () => {
     expect(TemplateFileSchema.safeParse(titled).success).toBe(false);
   });
 
-  it("requires a line-item field and gives it no length", () => {
-    for (const change of [{ required: false }, { maxLength: 80 }]) {
+  it("requires a line-item field and gives it no length or default", () => {
+    for (const change of [
+      { required: false },
+      { maxLength: 80 },
+      { default: "" },
+    ]) {
       const broken = structuredClone(fixtureFile);
       Object.assign(broken.fields[3] ?? {}, change);
       expect(TemplateFileSchema.safeParse(broken).success).toBe(false);

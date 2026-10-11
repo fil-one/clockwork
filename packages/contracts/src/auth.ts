@@ -54,6 +54,9 @@ export const permissions = [
   "contract:read",
   "contract:write",
   "contract:approve",
+  // Draft, import, activate and retire contract templates. Held by the
+  // commerce administrator only.
+  "contract_template:manage",
   "signatory:manage",
   "sales:read",
   "collateral:manage",

@@ -3,14 +3,24 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import type {
-  LocalizedText,
-  TemplateField,
-  TemplateValue,
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import {
+  includedTemplateSections,
+  type LocalizedText,
+  type TemplateField,
+  type TemplateSection,
+  type TemplateValue,
 } from "@clockwork/contracts";
 import {
   Button,
+  Checkbox,
   Fieldset,
   InlineNotice,
   Input,
@@ -20,7 +30,7 @@ import {
 } from "@clockwork/ui";
 import { useLocale, useTranslations } from "@/src/i18n/client";
 import type { MessageId } from "@/src/i18n";
-import { prepareContract } from "./actions";
+import { prepareContract, previewContract } from "./actions";
 import { errorMessage, fieldMessage } from "./copy";
 import {
   LineItemsEditor,
@@ -57,11 +67,14 @@ export function PrepareForm({
   signingReady,
   initialValues,
   start = null,
+  demo = false,
 }: {
   template: {
     id: string;
+    version: string;
     requiresApproval: boolean;
     fields: readonly TemplateField[];
+    sections: readonly TemplateSection[];
   };
   countersigners: readonly Countersigner[];
   ownerName: string;
@@ -71,6 +84,8 @@ export function PrepareForm({
   initialValues?: Readonly<Record<string, TemplateValue>>;
   /** An earlier contract's values, for a different counterparty signer. */
   start?: PrepareStart | null;
+  /** The guided demo: the form previews the PDF and prepares nothing. */
+  demo?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -80,7 +95,39 @@ export function PrepareForm({
   const [problems, setProblems] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [preview, setPreview] = useState<{
+    url: string;
+    fileName: string;
+  } | null>(null);
   const local = (text: LocalizedText) => text[locale] ?? text.en;
+  const toggles = template.sections.filter((section) => !section.when);
+  const [ticked, setTicked] = useState<readonly string[]>(
+    () =>
+      start?.sections ??
+      toggles.filter((section) => section.default).map(({ id }) => id),
+  );
+  // Choice values decide the sections a choice field turns on.
+  const [choices, setChoices] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      template.fields
+        .filter((field) => field.kind === "choice")
+        .map((field) => {
+          const value = start?.values[field.id] ?? field.default ?? "";
+          return [field.id, typeof value === "string" ? value : ""];
+        }),
+    ),
+  );
+  const included = useMemo(
+    () => includedTemplateSections(template, ticked, choices),
+    [template, ticked, choices],
+  );
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview.url);
+    },
+    [preview],
+  );
   const defaultSigner =
     countersigners.find((signer) => signer.id === start?.countersignerId) ??
     countersigners.find((signer) => signer.isDefault) ??
@@ -104,18 +151,18 @@ export function PrepareForm({
     }
   }, [start]);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  function payload(form: FormData) {
     const text = (name: string) => {
       const value = form.get(name);
       return typeof value === "string" ? value : "";
     };
-    setBusy(true);
-    setError(null);
-    const result = await prepareContract({
+    const asked = template.fields.filter(
+      (field) => !field.section || included.has(field.section),
+    );
+    return {
       id: id.current,
       templateId: template.id,
+      templateVersion: template.version,
       counterpartyName: text("counterpartyName"),
       effectiveDate: text("effectiveDate"),
       signerName: text("signerName"),
@@ -123,25 +170,61 @@ export function PrepareForm({
       signerTitle: text("signerTitle"),
       countersignerId: text("countersignerId"),
       ownerName: text("ownerName"),
+      sections: [...ticked],
       values: Object.fromEntries(
-        template.fields.map((field) => [
+        asked.map((field) => [
           field.id,
           field.kind === "line_items"
             ? lineItemsFormValue(text(`value.${field.id}`))
             : text(`value.${field.id}`),
         ]),
       ),
-    });
-    setBusy(false);
-    if (result.ok) {
-      router.push(`/internal/contracts/${result.value.id}` as Route);
-      return;
-    }
+    };
+  }
+
+  function report(result: { code: string; fields?: Record<string, string> }) {
     if (result.fields) setProblems(result.fields);
     else {
       setProblems({});
       setError(result.code);
     }
+  }
+
+  async function showPreview() {
+    const form = formRef.current;
+    if (!form) return;
+    setPreviewing(true);
+    setError(null);
+    const result = await previewContract(payload(new FormData(form)));
+    setPreviewing(false);
+    if (!result.ok) {
+      report(result);
+      return;
+    }
+    setProblems({});
+    const bytes = Uint8Array.from(atob(result.value.pdf), (c) =>
+      c.charCodeAt(0),
+    );
+    setPreview({
+      url: URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })),
+      fileName: result.value.fileName,
+    });
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (demo) return;
+    setBusy(true);
+    setError(null);
+    const result = await prepareContract(
+      payload(new FormData(event.currentTarget)),
+    );
+    setBusy(false);
+    if (result.ok) {
+      router.push(`/internal/contracts/${result.value.id}` as Route);
+      return;
+    }
+    report(result);
   }
 
   // A template value is worded by its kind; a standard field by its name.
@@ -203,6 +286,13 @@ export function PrepareForm({
           description={t("operations.contracts.prepare.fromBody")}
         />
       ) : null}
+      {demo ? (
+        <InlineNotice
+          tone="info"
+          title={t("operations.contractTemplates.prepare.demoTitle")}
+          description={t("operations.contractTemplates.prepare.demoBody")}
+        />
+      ) : null}
       {template.requiresApproval ? (
         <InlineNotice
           tone="info"
@@ -210,7 +300,7 @@ export function PrepareForm({
           description={t("operations.contracts.prepare.approvalBody")}
         />
       ) : null}
-      {!signingReady ? (
+      {!signingReady && !demo ? (
         <InlineNotice
           tone="warning"
           title={t("operations.contracts.error.signingNotConfigured")}
@@ -265,10 +355,54 @@ export function PrepareForm({
           />
         </div>
       </Fieldset>
+      {toggles.length || template.sections.some((section) => section.when) ? (
+        <Fieldset
+          legend={t("operations.contractTemplates.prepare.sections")}
+          description={t("operations.contractTemplates.prepare.sectionsHelp")}
+        >
+          {toggles.map((section) => (
+            <Checkbox
+              key={section.id}
+              id={`${formId}-section-${section.id}`}
+              label={local(section.label)}
+              {...(section.help ? { description: local(section.help) } : {})}
+              checked={ticked.includes(section.id)}
+              onChange={(event) =>
+                setTicked((current) =>
+                  event.target.checked
+                    ? [...current, section.id]
+                    : current.filter((id) => id !== section.id),
+                )
+              }
+            />
+          ))}
+          {template.sections
+            .filter((section) => section.when)
+            .map((section) => {
+              const driver = template.fields.find(
+                (field) => field.id === section.when?.field,
+              );
+              return (
+                <p key={section.id} className={styles.muted}>
+                  {t(
+                    included.has(section.id)
+                      ? "operations.contractTemplates.prepare.followsOn"
+                      : "operations.contractTemplates.prepare.followsOff",
+                    {
+                      section: local(section.label),
+                      field: driver ? local(driver.label) : "",
+                    },
+                  )}
+                </p>
+              );
+            })}
+        </Fieldset>
+      ) : null}
       {template.fields.length ? (
         <Fieldset legend={t("operations.contracts.prepare.terms")}>
           <div className={styles.fieldGrid}>
             {template.fields.map((field) => {
+              const shown = !field.section || included.has(field.section);
               const common = {
                 id: `${formId}-values-${field.id}`,
                 name: `value.${field.id}`,
@@ -280,45 +414,64 @@ export function PrepareForm({
                   ? {}
                   : { optionalLabel: t("operations.contracts.form.optional") }),
               };
-              return field.kind === "line_items" ? (
-                <LineItemsEditor
+              // A field of a section left out stays mounted, hidden, so its
+              // value comes back when the section is ticked again.
+              const control =
+                field.kind === "line_items" ? (
+                  <LineItemsEditor
+                    {...common}
+                    initialValue={initialTable(startValues?.[field.id])}
+                  />
+                ) : field.kind === "choice" ? (
+                  <Select
+                    {...common}
+                    defaultValue={field.default ?? ""}
+                    onChange={(event) =>
+                      setChoices((current) => ({
+                        ...current,
+                        [field.id]: event.target.value,
+                      }))
+                    }
+                    options={[
+                      {
+                        value: "",
+                        label: t("operations.contracts.prepare.choose"),
+                        disabled: field.required,
+                      },
+                      ...(field.options ?? []).map((option) => ({
+                        value: option.value,
+                        label: local(option.label),
+                      })),
+                    ]}
+                  />
+                ) : (
+                  <Input
+                    {...common}
+                    type={
+                      field.kind === "email"
+                        ? "email"
+                        : field.kind === "date"
+                          ? "date"
+                          : "text"
+                    }
+                    defaultValue={field.default ?? ""}
+                    {...(field.kind === "number"
+                      ? { inputMode: "numeric" as const }
+                      : field.kind === "decimal" || field.kind === "percent"
+                        ? { inputMode: "decimal" as const }
+                        : {})}
+                    {...(field.kind === "percent" ? { trailing: "%" } : {})}
+                    maxLength={field.maxLength ?? 200}
+                  />
+                );
+              return (
+                <div
                   key={field.id}
-                  {...common}
-                  initialValue={initialTable(startValues?.[field.id])}
-                />
-              ) : field.kind === "choice" ? (
-                <Select
-                  key={field.id}
-                  {...common}
-                  defaultValue=""
-                  options={[
-                    {
-                      value: "",
-                      label: t("operations.contracts.prepare.choose"),
-                      disabled: field.required,
-                    },
-                    ...(field.options ?? []).map((option) => ({
-                      value: option.value,
-                      label: local(option.label),
-                    })),
-                  ]}
-                />
-              ) : (
-                <Input
-                  key={field.id}
-                  {...common}
-                  type={
-                    field.kind === "email"
-                      ? "email"
-                      : field.kind === "date"
-                        ? "date"
-                        : "text"
-                  }
-                  {...(field.kind === "number"
-                    ? { inputMode: "numeric" as const }
-                    : {})}
-                  maxLength={field.maxLength ?? 200}
-                />
+                  hidden={!shown}
+                  className={styles.fieldSlot}
+                >
+                  {control}
+                </div>
               );
             })}
           </div>
@@ -349,13 +502,42 @@ export function PrepareForm({
           />
         </div>
       </Fieldset>
+      {preview ? (
+        <InlineNotice
+          tone="success"
+          title={t("operations.contractTemplates.prepare.previewReady")}
+          description={t("operations.contractTemplates.prepare.previewBody")}
+          action={
+            <a
+              className={buttonClassName({ variant: "secondary" })}
+              href={preview.url}
+              target="_blank"
+              rel="noreferrer"
+              download={preview.fileName}
+            >
+              {t("operations.contractTemplates.prepare.openPreview")}
+            </a>
+          }
+        />
+      ) : null}
       <div className={styles.formActions}>
+        {demo ? null : (
+          <Button
+            type="submit"
+            loading={busy}
+            loadingLabel={t("operations.contracts.prepare.preparing")}
+          >
+            {t("operations.contracts.prepare.submit")}
+          </Button>
+        )}
         <Button
-          type="submit"
-          loading={busy}
-          loadingLabel={t("operations.contracts.prepare.preparing")}
+          type="button"
+          variant={demo ? "primary" : "secondary"}
+          loading={previewing}
+          loadingLabel={t("operations.contractTemplates.prepare.previewing")}
+          onClick={() => void showPreview()}
         >
-          {t("operations.contracts.prepare.submit")}
+          {t("operations.contractTemplates.prepare.preview")}
         </Button>
         <Link
           className={buttonClassName({ variant: "secondary" })}

@@ -1,126 +1,160 @@
 # Contract templates
 
 Staff prepare Fil One agreements from templates with **New from template** on
-the Contracts page (`/internal/contracts/templates`). A template is counsel's
-approved wording stored as data, the fields a seller fills in, and the SHA-256
-of counsel's source DOCX. Commerce never writes or edits agreement wording.
+the Contracts page (`/internal/contracts/templates`). A template is agreement
+wording stored as data: headings, paragraphs and tables with `[[field]]` tokens,
+the fields a seller fills in, the optional sections a contract may include, and
+the SHA-256 of that content.
 
-Until counsel supplies a template, its contract type is listed as **Template
-pending from legal** and cannot be prepared. These are registered that way
-today:
+Templates live in the template store, a table in the Commerce database, and
+commerce administrators manage them in Commerce (`contract_template:manage`).
+Agreement wording never goes in this repository, which is public. It holds only
+the guided demo's sample templates and a test fixture.
 
-| Template id           | Contract type                 |
-| --------------------- | ----------------------------- |
-| `channel-partnership` | Channel partnership agreement |
-| `customer-msa`        | Customer MSA                  |
-| `order-form`          | Order form                    |
-| `dpa`                 | Data processing addendum      |
-| `security-annex`      | Security annex                |
-| `nda-one-way`         | One-way NDA                   |
-| `technology-partner`  | Technology partner agreement  |
-| `sow`                 | Statement of work             |
+Staff can still record any agreement manually, with its PDFs, with **Record a
+contract** on the same page.
 
-Staff can still record any of these agreements manually, with their PDFs, with
-**Record a contract** on the same page.
+## Making a template live
 
-## Adding a template
+1. **Import or draft.** On **Prepare from template**, choose **Manage
+   templates** (`/internal/contracts/manage-templates`), then **New template
+   version**. Import a template file (format below) or start blank. Commerce
+   checks a file and lists any problems before anything is saved. The result is
+   a draft: version 1 of a new template, or the next version of an existing
+   template key.
+2. **Edit the draft.** The editor covers the basics, fields, optional sections,
+   worked-out figures and the wording block by block. Give it a source note that
+   says where the wording came from, for example
+   `Counsel draft 8 Sept 2026, clean`. The note is kept with the version and
+   never printed.
+3. **Check the specimen.** **Preview specimen PDF** renders the template with
+   every optional section in, including each alternative a choice field selects,
+   and every field showing its default or a sample value. Share it with counsel
+   when they review the wording.
+4. **Activate for use.** Your name and the time are recorded as the activation,
+   on the version and in the audit log, and sellers prepare from it at once. The
+   version in use before it is retired. Activation records who put a version
+   into use; it is not a record of counsel's approval.
+5. **Change it later.** An activated version is fixed. **Duplicate as new
+   version** starts a draft from it, and activating that draft retires the old
+   one. **Retire** takes a template out of use; a retired version can be
+   activated again. **Download JSON** gives you the file of any version.
 
-You need counsel's approved DOCX, the date and name of the approval, and a list
-of the blanks a seller fills in.
+Creating, editing, activating, retiring and discarding are audited as
+`contract_template.*` events. A prepared contract keeps the template key, the
+version label (such as `v3`) and the content hash. The database refuses a
+preparation against anything but the active version with that hash, and refuses
+any change to a version a contract was prepared from, or to the record of who
+activated or retired a version. A seller whose form was built for a version that
+has since been replaced or retired is asked to reload. A discarded draft's
+version number is never reused, and its audit event keeps its content.
 
-### 1. Pin counsel's DOCX
+A stored version whose content no longer passes the checks or matches its hash
+is left out of the templates sellers see, and its page offers only **Retire**.
 
-Put the file under `docs/legal/contracts/<template-id>/`, named as counsel named
-it, and record its SHA-256:
+Before relying on a new template, prepare one contract from it with your own
+email as the counterparty signer, approve it from a second account, send it and
+sign both sides. Sending stays in SignWell test mode until
+`COMMERCE_CONTRACTS_TEST_MODE` is set to `false`; test-mode signatures are not
+legally binding.
 
-```sh
-mkdir -p docs/legal/contracts/channel-partnership
-cp "~/Downloads/FIL One - Channel Partnership Agreement (approved).docx" \
-  docs/legal/contracts/channel-partnership/
-shasum -a 256 docs/legal/contracts/channel-partnership/*.docx
-```
+In the guided demo, sellers fill in the sample templates and preview the PDF,
+and administrators can check a file and preview its specimen. Preparing and
+every change to the template store are refused.
 
-That hash identifies the legal wording. It is checked by a test against the file
-in the repository, stored on every contract prepared from the template, and sent
-to SignWell as document metadata, which Commerce checks again every time it
-reads the document back. Never edit the DOCX in place: a new approval is a new
-file and a new hash.
-
-### 2. Write `template.json`
-
-Create `packages/documents/src/contract-templates/<template-id>/template.json`:
+## Template file format
 
 ```json
 {
   "id": "channel-partnership",
   "contractType": "channel_partnership",
   "name": "Channel Partnership Agreement",
-  "version": "2026-10-15",
   "requiresApproval": true,
-  "source": {
-    "path": "docs/legal/contracts/channel-partnership/FIL One - Channel Partnership Agreement (approved).docx",
-    "sha256": "<the 64-character hash from step 1>",
-    "counselApprovedBy": "<counsel's name and firm>",
-    "counselApprovedOn": "2026-10-14"
-  },
+  "sourceNote": "Counsel draft 8 Sept 2026, clean",
   "fields": [
-    {
-      "id": "partner_entity_type",
-      "kind": "text",
-      "required": true,
-      "maxLength": 120,
-      "label": {
-        "en": "Partner entity type",
-        "es": "Tipo de entidad del socio"
-      },
-      "help": { "en": "For example, Delaware corporation." }
-    },
     {
       "id": "partnership_model",
       "kind": "choice",
       "required": true,
-      "label": { "en": "Partnership model" },
+      "label": { "en": "Elected commercial model" },
+      "default": "Option B (default)",
       "options": [
-        { "value": "referral", "label": { "en": "Referral" } },
-        { "value": "resale", "label": { "en": "Resale" } }
+        {
+          "value": "Option B (default)",
+          "label": { "en": "Option B (default)" }
+        },
+        { "value": "Option A", "label": { "en": "Option A" } }
       ]
+    },
+    {
+      "id": "referral_fee_percent",
+      "kind": "percent",
+      "required": true,
+      "label": { "en": "Referral fee" },
+      "help": { "en": "Percent of first-year fees." }
     }
   ],
+  "sections": [
+    {
+      "id": "option_a",
+      "label": { "en": "Option A hard gate" },
+      "when": { "field": "partnership_model", "in": ["Option A"] }
+    },
+    { "id": "schedule_e", "label": { "en": "Schedule E: Exclusivity" } }
+  ],
+  "derived": [],
   "document": {
     "title": "CHANNEL PARTNERSHIP AGREEMENT",
     "blocks": [
+      { "type": "heading", "text": "2. FEES" },
       {
         "type": "paragraph",
-        "text": "<counsel's first paragraph, with [[counterparty_name]] where the partner's name goes>"
+        "text": "**2.1 Referral fee.** Partner earns [[referral_fee_percent]]% of the fees its accounts pay in their first year."
       },
-      { "type": "heading", "text": "<counsel's heading>" },
-      { "type": "paragraph", "text": "<counsel's next paragraph>" },
+      {
+        "type": "table",
+        "section": "option_a",
+        "widths": [1, 10, 2],
+        "rows": [
+          ["#", "Question", "Answer"],
+          ["1", "Will Partner resell under its own paper?", "Yes / No"]
+        ]
+      },
       { "type": "pageBreak" }
     ]
   }
 }
 ```
 
-| Key                | Meaning                                                                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`               | Must match the stub it replaces (table above). Lowercase letters, digits and hyphens.                                                        |
-| `contractType`     | The register type the prepared contract is filed under.                                                                                      |
-| `name`             | English name, used in the PDF and in the SignWell document name and email subject (`Fil One <name> - <counterparty>`).                       |
-| `version`          | Change it whenever the wording or fields change. Contracts already prepared keep their own version, hash and PDF.                            |
-| `requiresApproval` | `true` means someone with contract approval rights, other than the person who prepared it, must approve before it can be sent.               |
-| `source`           | Where counsel's DOCX is, its SHA-256 (step 1), who approved it and when.                                                                     |
-| `fields`           | The blanks a seller fills in, in the order shown on the form.                                                                                |
-| `document`         | Counsel's wording as `heading`, `paragraph` and `pageBreak` blocks. The signature page is added automatically and is not part of the blocks. |
+| Key                | Meaning                                                                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | The template key, shared by every version. Lowercase letters, digits and hyphens. Sellers' links use it.                                        |
+| `contractType`     | The register type the prepared contract is filed under.                                                                                         |
+| `name`             | English name, used in the PDF and in the SignWell document name and email subject (`Fil One <name> - <counterparty>`).                          |
+| `requiresApproval` | `true` means someone with contract approval rights, other than the person who prepared it, must approve before it can be sent.                  |
+| `sourceNote`       | Optional. Where the wording came from. Not part of the content hash and never printed.                                                          |
+| `fields`           | The blanks a seller fills in, in the order shown on the form.                                                                                   |
+| `sections`         | Optional parts of the agreement. See [Optional sections](#optional-sections).                                                                   |
+| `derived`          | Figures worked out from numeric fields. See [Worked-out figures](#worked-out-figures).                                                          |
+| `document`         | The wording as `heading`, `paragraph`, `table` and `pageBreak` blocks. The signature page is added automatically and is not part of the blocks. |
 
-#### Copying the wording
+A file downloaded from a version imports as it is. A file may be up to 900 KB.
 
-Copy each heading and paragraph of the DOCX into its own block, in order,
-exactly as written. The only change you make is to replace each blank with a
-token: `[[field_id]]`. Nothing else in the text may differ from counsel's file.
+### Wording
 
-Literal brackets in counsel's text, such as `[ ]` checkboxes, are fine; only
-double brackets are tokens. Every token must be declared, or the template fails
-to load. A missing value is an error, never a blank in the PDF.
+Copy each heading and paragraph of the source into its own block, in order, and
+put each blank's token where the blank was: `[[field_id]]`. `**text**` prints
+bold. A `table` block has `rows` of up to six cells; the first row is a heading
+unless `"header": false`, and optional `widths` set relative column widths. In
+the editor, cells are separated by `|`; write `\|` for a `|` inside a cell.
+Tokens work in table cells too.
+
+Literal brackets, such as `[ ]` checkboxes, are fine; only double brackets are
+tokens. Every token must be declared, or the template is refused. A missing
+value is an error, never a blank in the PDF. Text must use characters the PDF
+fonts draw (Latin script and common punctuation), so a symbol such as `≥` is
+refused: write it in words. Braces, `{` and `}`, are reserved for signing tags
+and refused anywhere in the wording, the title and the name.
 
 These tokens are always available and need no field:
 
@@ -134,28 +168,65 @@ These tokens are always available and need no field:
 | `[[countersigner_name]]`  | Fil One countersigner's name    |
 | `[[countersigner_title]]` | Fil One countersigner's title   |
 
-#### Fields
+### Fields
 
 | `kind`       | Form control     | Value in the PDF                                                            |
 | ------------ | ---------------- | --------------------------------------------------------------------------- |
-| `text`       | Text box         | As typed, up to `maxLength` (default 200)                                   |
+| `text`       | Text box         | As typed, up to `maxLength` (default 200, at most 2000)                     |
 | `email`      | Email box        | As typed, lowercased                                                        |
 | `date`       | Date picker      | `YYYY-MM-DD`                                                                |
 | `number`     | Numeric box      | Whole number                                                                |
+| `decimal`    | Numeric box      | Up to six decimal places, printed with thousands separators                 |
+| `percent`    | Numeric box, `%` | 0 to 100, up to four decimal places, as typed; write `%` after the token    |
 | `choice`     | Drop-down list   | The option's `value` (so write values as they should read in the agreement) |
 | `line_items` | Line-item editor | A priced table; see [Line items](#line-items)                               |
 
 `label`, `help` and option labels need `en`; add `es`, `fr`, `de`, `ja`, `pt`,
 `zh` and `ar` so sellers see their own language. A missing language shows the
-English label. A field with `"required": false` may be left blank and then
-prints as nothing, so only make a field optional where counsel's text reads
-correctly without it.
+English label. `default` is the value the form starts with. `section` makes a
+field part of an optional section: it is asked for, and printed, only when the
+section is in. A field with `"required": false` may be left blank and then
+prints as nothing, so only make a field optional where the text reads correctly
+without it. There are no business limits on numbers: a percentage can be any
+figure from 0 to 100, and the approval step is where a figure is questioned.
 
 Values are limited to the characters the PDF font can draw (Latin script) and
 may not contain `< > [ ] { }`, so a value can never turn into a token or a
-signing tag.
+signing tag. Choice option values and defaults print too, so a template whose
+options or defaults break these rules is refused when it is saved.
 
-#### Line items
+### Optional sections
+
+A section is a part of the agreement a contract includes or leaves out: an
+option, a schedule, an annex. Mark each block that belongs to it with
+`"section": "<id>"`. Sellers tick a section on the form, starting from its
+`default`. A section with `when` follows a choice field instead: it is in
+exactly when that field holds one of the listed values, and sellers cannot tick
+it. A token of a section field may only appear in blocks of the same section.
+
+The sections a contract included are kept with its signing request, and a
+preparation that replaces a voided contract starts with the same ones ticked.
+
+### Worked-out figures
+
+A `derived` entry works out a figure from numeric fields and prints it as
+`[[id]]`, for example an illustrative commission:
+
+```json
+{
+  "id": "earn_one",
+  "op": "percent_of",
+  "of": ["first_year_rate", "illustrative_spend"],
+  "decimals": 0
+}
+```
+
+`percent_of` takes a percent and an amount; `product` and `sum` take two or more
+operands. An operand is a required numeric field, an earlier figure or a number
+such as `5`. Results print with thousands separators and `decimals` places,
+rounded half up.
+
+### Line items
 
 An order form, SOW or DPA schedule that prices services declares a `line_items`
 field and puts its token in a paragraph of its own, where the table goes:
@@ -178,7 +249,7 @@ price, quantity, term, discount and extended price, then the subtotal before
 discounts, the discounts and the total with its currency. It uses the indicative
 pricing summary's fonts and money formatting. A `line_items` field is always
 required and takes no `maxLength`; its token cannot sit inside other text, in a
-heading or in the title, or the template fails to load.
+heading, a table or the title, or the template is refused.
 
 Sellers type lines in or choose **Import from pricing scenario**, which copies a
 saved scenario's lines and currency (their own scenarios, or every one for a
@@ -213,43 +284,15 @@ preparation until it is detached.
 The table's header and total labels are Commerce's wording, so counsel approves
 them with the rest of the specimen.
 
-### 3. Register it
-
-In `packages/documents/src/contract-templates/registry.ts`, replace the stub
-with the file:
-
-```ts
-import channelPartnership from "./channel-partnership/template.json";
-
-export const contractTemplates: ContractTemplateRegistry = [
-  availableTemplate(channelPartnership),
-  // ...the other entries unchanged
-];
-```
-
-`availableTemplate` validates the file when the app starts, so a mistake fails
-the build and tests rather than a preparation.
-
-### 4. Check it
+### A specimen from the command line
 
 ```sh
-# The DOCX hash matches, tokens are declared, ids are unique.
-pnpm --filter @clockwork/documents exec vitest run src/contract-templates
-
-# A specimen PDF with sample values, for counsel to compare with their file.
-pnpm exec tsx scripts/render-contract-specimen.ts channel-partnership /tmp/specimen.pdf
+pnpm exec tsx scripts/render-contract-specimen.ts template.json /tmp/specimen.pdf
 ```
 
-Send the specimen to counsel. The renderer lays the wording out in its own
-style, so counsel approves the specimen PDF as well as the DOCX. Then update
-`registry.test.ts`, whose first test lists which templates are still pending.
-
-### 5. Send in test mode first
-
-Prepare one contract from the new template with your own email as the
-counterparty signer, approve it from a second account, send it, and sign both
-sides. Sending stays in SignWell test mode until `COMMERCE_CONTRACTS_TEST_MODE`
-is set to `false`; test-mode signatures are not legally binding.
+The script checks the file as the store does, prints any problems, and writes
+the same specimen as **Preview specimen PDF**. `--demo <template-id>` renders
+one of the demo's sample templates.
 
 ## How signing works
 

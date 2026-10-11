@@ -194,7 +194,10 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
   CONTRACT_NOT_CORRECTABLE: "operations.contracts.error.notCorrectable",
   CONTRACT_COUNTERSIGNER_UNAVAILABLE:
     "operations.contracts.error.countersignerUnavailable",
-  CONTRACT_TEMPLATE_PENDING_LEGAL: "operations.contracts.error.pendingLegal",
+  CONTRACT_TEMPLATE_VERSION_CHANGED:
+    "operations.contracts.error.templateVersionChanged",
+  CONTRACT_TEMPLATE_VERSION_UNAVAILABLE:
+    "operations.contracts.error.templateVersionUnavailable",
   CONTRACT_TEMPLATE_NOT_FOUND: "operations.contracts.error.templateNotFound",
   CONTRACT_TEMPLATE_VALUE_CHARACTERS:
     "operations.contracts.error.valueCharacters",
@@ -238,6 +241,7 @@ const fieldMessages: Readonly<Record<string, MessageId>> = {
   control_character: "operations.contracts.field.error.characters",
   https: "operations.salesLibrary.error.https",
   number: "operations.contracts.field.error.number",
+  percent: "operations.contracts.field.error.percent",
   email: "operations.contracts.field.error.email",
   characters: "operations.contracts.lineItems.error.characters",
   below_minimum: "operations.contracts.lineItems.error.belowMinimum",
@@ -248,6 +252,7 @@ const fieldMessages: Readonly<Record<string, MessageId>> = {
 /** Codes that mean "this value is malformed" rather than "missing". */
 const malformed = new Set([
   "number",
+  "percent",
   "invalid_format",
   "invalid_type",
   "check",
@@ -273,6 +278,8 @@ const malformedByField: Readonly<Record<string, MessageId>> = {
   signerEmail: "operations.contracts.field.error.email",
   "kind:date": "operations.contracts.field.error.date",
   "kind:email": "operations.contracts.field.error.email",
+  "kind:decimal": "operations.contracts.field.error.decimal",
+  "kind:percent": "operations.contracts.field.error.percent",
 };
 
 export function fieldMessage(code: string, field?: string): MessageId {

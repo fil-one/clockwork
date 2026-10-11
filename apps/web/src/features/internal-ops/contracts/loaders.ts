@@ -12,18 +12,23 @@ import {
   type Permission,
 } from "@clockwork/contracts";
 import { contractToday } from "@clockwork/domain/contract-terms";
-import { getRequestCommerceSession } from "@/src/auth/session";
+import type { ContractTemplate } from "@clockwork/documents";
+import {
+  explicitDemoIdentityEnabled,
+  getRequestCommerceSession,
+} from "@/src/auth/session";
 import { demoNow } from "@/src/features/experience-server/demo-clock";
+import { demoMndaSigners } from "../mnda/demo-register";
 import { mndaRepository } from "../mnda/server";
 import { mayApproveOwnRequests } from "../self-approval/model";
 import { contractReader, contractRegisterReader } from "./demo-access";
-import type { PrepareStart } from "./prepare-input";
+import { preparedSectionsKey, type PrepareStart } from "./prepare-input";
 import {
   ContractAccessError,
   contractRepository,
   contractSigningConfiguration,
   contractSigningRepository,
-  contractTemplateRegistry,
+  contractTemplateSource,
   sessionHas,
   type ContractAccessFailure,
   type ContractStaffSession,
@@ -149,49 +154,59 @@ export function loadRenewals(window: unknown) {
   });
 }
 
+/** What the template picker shows of a template. */
+export const templateSummary = (template: ContractTemplate) => ({
+  id: template.id,
+  name: template.name,
+  contractType: template.contractType,
+  version: template.version,
+  requiresApproval: template.requiresApproval,
+  sections: template.sections.length,
+});
+
 export function loadTemplates() {
-  return loadWith("contract:read", (session) =>
-    Promise.resolve({
-      templates: contractTemplateRegistry().map((template) => ({
-        id: template.id,
-        contractType: template.contractType,
-        status: template.status,
-        ...(template.status === "available"
-          ? {
-              version: template.version,
-              requiresApproval: template.requiresApproval,
-            }
-          : {}),
-      })),
-      ...permissions(session),
-    }),
-  );
+  return loadWith("contract:read", async (session) => ({
+    templates: (await contractTemplateSource().listActive()).map(
+      templateSummary,
+    ),
+    // In the guided demo a form opens for a preview; nothing is prepared.
+    canOpen:
+      sessionHas(session, "contract:write") || explicitDemoIdentityEnabled(),
+    canManage: sessionHas(session, "contract_template:manage"),
+    ...permissions(session),
+  }));
 }
 
-/** The earlier values, with the counterparty signer left blank for the
- * person who will sign instead. */
+/** The earlier values and sections, with the counterparty signer left blank
+ * for the person who will sign instead. */
 async function prepareStart(
   from: string | undefined,
-  templateId: string,
-  fieldIds: readonly string[],
+  template: ContractTemplate,
 ): Promise<PrepareStart | null> {
   // Only an id is read; anything else starts an empty form.
   if (!from || !z.uuid().safeParse(from).success) return null;
   try {
     const signing = await contractSigningRepository().get(from);
-    if (signing.templateId !== templateId) return null;
+    if (signing.templateId !== template.id) return null;
     const { contract } = await contractRepository().get(
       from,
       contractToday(demoNow()),
     );
+    const sections = signing.input[preparedSectionsKey];
     return {
       counterpartyName: contract.counterpartyName,
       effectiveDate: contract.effectiveDate,
       ownerName: contract.ownerName,
       countersignerId: signing.countersigner.id,
+      // Only the template's current fields: a later version may add or
+      // drop some. A field nothing was kept for starts from its default.
       values: Object.fromEntries(
-        fieldIds.map((id) => [id, signing.input[id] ?? ""]),
+        template.fields.map((field) => [
+          field.id,
+          signing.input[field.id] ?? field.default ?? "",
+        ]),
       ),
+      sections: typeof sections === "string" ? sections.split(",") : [],
     };
   } catch (error) {
     if (
@@ -205,46 +220,39 @@ async function prepareStart(
   }
 }
 
+/**
+ * The prepare form for a template's version in use. In the guided demo a
+ * persona reads it to fill in and preview the PDF; preparing stays refused.
+ */
 export function loadPrepare(templateId: string, from?: string) {
-  return loadWith("contract:write", async (session) => {
-    const template = contractTemplateRegistry().find(
-      (candidate) => candidate.id === templateId,
-    );
-    if (!template) throw new Error("CONTRACT_TEMPLATE_NOT_FOUND");
-    return {
-      start:
-        template.status === "available"
-          ? await prepareStart(
-              from,
-              template.id,
-              template.fields.map((field) => field.id),
-            )
-          : null,
-      template:
-        template.status === "available"
-          ? {
-              id: template.id,
-              contractType: template.contractType,
-              status: template.status,
-              version: template.version,
-              requiresApproval: template.requiresApproval,
-              fields: template.fields,
-            }
-          : {
-              id: template.id,
-              contractType: template.contractType,
-              status: template.status,
-            },
-      countersigners:
-        template.status === "available"
-          ? await contractSigningRepository().countersigners()
-          : [],
-      ownerName: session.profile.name,
-      signingReady: contractSigningConfiguration().ready,
-      testMode: contractSigningConfiguration().testMode,
-      today: contractToday(demoNow()),
-    };
-  });
+  const demo = explicitDemoIdentityEnabled();
+  return loadWith(
+    demo ? "contract:read" : "contract:write",
+    async (session) => {
+      const template = await contractTemplateSource().active(templateId);
+      return {
+        demo,
+        start: demo ? null : await prepareStart(from, template),
+        template: {
+          id: template.id,
+          name: template.name,
+          contractType: template.contractType,
+          version: template.version,
+          sourceNote: template.sourceNote,
+          requiresApproval: template.requiresApproval,
+          fields: template.fields,
+          sections: template.sections,
+        },
+        countersigners: demo
+          ? demoMndaSigners.filter((signer) => signer.active)
+          : await contractSigningRepository().countersigners(),
+        ownerName: session.profile.name,
+        signingReady: contractSigningConfiguration().ready,
+        testMode: contractSigningConfiguration().testMode,
+        today: contractToday(demoNow()),
+      };
+    },
+  );
 }
 
 /** A signed MNDA the reader may open in the MNDA register, to start a

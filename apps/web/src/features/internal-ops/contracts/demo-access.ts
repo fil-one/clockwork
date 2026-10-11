@@ -17,11 +17,13 @@ import {
   type ContractStaffSession,
 } from "./server";
 
-/** What a demo persona may do here: read, and see signed MNDAs. */
+/** What a demo persona may do here: read, see signed MNDAs, and for an
+ * administrator open the sample templates, whose every save is refused. */
 const demoPermissions: readonly Permission[] = [
   "contract:read",
   "sales:read",
   "mnda:send",
+  "contract_template:manage",
 ];
 
 /**

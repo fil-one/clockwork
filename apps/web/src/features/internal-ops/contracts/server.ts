@@ -8,10 +8,15 @@ import {
   ContractDocumentStores,
   ContractRepository,
   ContractSigningRepository,
+  ContractTemplateRepository,
   PostgresContractDocumentStore,
   SalesLibraryRepository,
 } from "@clockwork/db";
-import { contractTemplates } from "@clockwork/documents";
+import {
+  demoContractTemplates,
+  registryTemplateSource,
+  type ContractTemplateSource,
+} from "@clockwork/documents";
 import { SignWellContractClient } from "@clockwork/integrations";
 import { ContractSigningWorkflow } from "@clockwork/workflows/contracts";
 import {
@@ -20,6 +25,7 @@ import {
   type CommerceSession,
 } from "@/src/auth/session";
 import { getServiceDatabase } from "@/src/db/service";
+import { storedTemplateSource } from "./template-source";
 
 export type ContractAccessFailure =
   "CONTRACT_DEMO_UNAVAILABLE" | "CONTRACT_MFA_REQUIRED" | "CONTRACT_FORBIDDEN";
@@ -98,8 +104,15 @@ export const contractSigningRepository = () =>
 export const salesLibraryRepository = () =>
   new SalesLibraryRepository(getServiceDatabase(), documentStores);
 
-/** Production templates. Tests supply their own registry instead. */
-export const contractTemplateRegistry = () => contractTemplates;
+export const contractTemplateRepository = () =>
+  new ContractTemplateRepository(getServiceDatabase());
+
+/** Where sellers prepare from: the template store, or in the guided demo
+ * the sample templates kept in code. Tests supply their own. */
+export const contractTemplateSource = (): ContractTemplateSource =>
+  explicitDemoIdentityEnabled()
+    ? registryTemplateSource(demoContractTemplates)
+    : storedTemplateSource(contractTemplateRepository());
 
 export function contractSigningConfiguration() {
   return {

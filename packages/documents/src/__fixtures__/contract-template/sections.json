@@ -1,0 +1,106 @@
+{
+  "id": "test-sections",
+  "contractType": "channel_partnership",
+  "name": "Sections Test Fixture",
+  "requiresApproval": false,
+  "sourceNote": "Engine test fixture; not an agreement",
+  "fields": [
+    {
+      "id": "model",
+      "kind": "choice",
+      "required": true,
+      "label": { "en": "Model" },
+      "default": "Referral",
+      "options": [
+        { "value": "Referral", "label": { "en": "Referral" } },
+        { "value": "Resale", "label": { "en": "Resale" } }
+      ]
+    },
+    {
+      "id": "referral_percent",
+      "kind": "percent",
+      "required": true,
+      "label": { "en": "Referral fee" },
+      "help": { "en": "Percent of Year-1 net collected fees." }
+    },
+    {
+      "id": "sample_revenue",
+      "kind": "decimal",
+      "required": true,
+      "label": { "en": "Illustrative revenue" },
+      "default": "250000"
+    },
+    {
+      "id": "resale_margin",
+      "kind": "percent",
+      "required": true,
+      "section": "resale",
+      "label": { "en": "Resale margin" }
+    },
+    {
+      "id": "nfr_capacity",
+      "kind": "text",
+      "required": true,
+      "section": "nfr",
+      "maxLength": 80,
+      "label": { "en": "NFR capacity" }
+    }
+  ],
+  "sections": [
+    {
+      "id": "resale",
+      "label": { "en": "Option A: Resale" },
+      "when": { "field": "model", "in": ["Resale"] }
+    },
+    {
+      "id": "nfr",
+      "label": { "en": "Schedule D: NFR" },
+      "default": true
+    }
+  ],
+  "derived": [
+    {
+      "id": "sample_fee",
+      "op": "percent_of",
+      "of": ["referral_percent", "sample_revenue"],
+      "decimals": 2
+    },
+    {
+      "id": "sample_three_years",
+      "op": "product",
+      "of": ["sample_fee", "3"]
+    }
+  ],
+  "document": {
+    "title": "SECTIONS TEST FIXTURE",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "**1.1 Model.** [[counterparty_name]] works under the [[model]] model and earns [[referral_percent]]% of Year-1 fees."
+      },
+      {
+        "type": "paragraph",
+        "text": "On USD [[sample_revenue]] that is USD [[sample_fee]] a year, or USD [[sample_three_years]] over three years."
+      },
+      {
+        "type": "paragraph",
+        "section": "resale",
+        "text": "**1.2 Resale.** The resale margin is [[resale_margin]]%."
+      },
+      {
+        "type": "table",
+        "rows": [
+          ["Element", "Value"],
+          ["Referral fee", "[[referral_percent]]%"],
+          ["Model", "[[model]]"]
+        ]
+      },
+      { "type": "heading", "section": "nfr", "text": "SCHEDULE D: NFR" },
+      {
+        "type": "paragraph",
+        "section": "nfr",
+        "text": "NFR capacity: [[nfr_capacity]]."
+      }
+    ]
+  }
+}

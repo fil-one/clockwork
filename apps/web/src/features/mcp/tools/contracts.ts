@@ -531,7 +531,7 @@ export const listContractTemplates = defineTool({
   name: "list_contract_templates",
   title: "List contract templates",
   description:
-    "The contract templates counsel has made available, and those still pending. With templateId, that template's fields and the Fil One countersigners prepare_from_template takes.",
+    "The contract templates in use, as commerce administrators publish them in Commerce: name, type, the version in use and whether it needs approval. With templateId, that version's fields, optional sections and the Fil One countersigners prepare_from_template takes.",
   input: { templateId: z.string().min(1).max(64).optional() },
   access: "read",
   run: async ({ templateId }) => {
@@ -557,7 +557,7 @@ export const prepareFromTemplate = defineTool({
   name: "prepare_from_template",
   title: "Prepare a contract from a template",
   description:
-    "Prepares a contract from an available template: checks the values against the template's fields (see list_contract_templates), renders the PDF and records the contract as a draft. Nothing is sent: a person reviews and sends it from the contract page in Commerce.",
+    "Prepares a contract from a template's version in use: checks the values and sections against it (see list_contract_templates), renders the PDF and records the contract as a draft. Nothing is sent: a person reviews and sends it from the contract page in Commerce.",
   input: {
     id: z
       .uuid()
@@ -566,6 +566,19 @@ export const prepareFromTemplate = defineTool({
         "Your own id for the new record, so a retried call cannot create it twice",
       ),
     templateId: z.string().min(1).max(64),
+    templateVersion: z
+      .string()
+      .min(1)
+      .max(40)
+      .optional()
+      .describe(
+        "The version you read with list_contract_templates; defaults to the version in use now",
+      ),
+    sections: z
+      .array(z.string().min(1).max(48))
+      .max(30)
+      .optional()
+      .describe("Optional sections to include, by id"),
     counterpartyName: z.string().min(1).max(200),
     effectiveDate: z.iso.date(),
     signerName: z.string().min(1).max(120),
@@ -581,10 +594,17 @@ export const prepareFromTemplate = defineTool({
   run: async (args, context) => {
     const id = args.id ?? crypto.randomUUID();
     context.targets.contractId = id;
+    // A template replaced since it was read is refused rather than prepared
+    // from a version the caller did not look at.
+    const templateVersion =
+      args.templateVersion ??
+      loaded(await loadPrepare(args.templateId)).template.version;
     unwrap(
       await prepareContract({
         id,
         templateId: args.templateId,
+        templateVersion,
+        sections: args.sections ?? [],
         counterpartyName: args.counterpartyName,
         effectiveDate: args.effectiveDate,
         signerName: args.signerName,
@@ -595,7 +615,11 @@ export const prepareFromTemplate = defineTool({
         values: args.values,
       }),
     );
-    return contractResult(id, context);
+    return {
+      prepared: true,
+      next: `Review and send in Commerce: ${contractLink(context, id)}. Sending is always done by a person in the app.`,
+      ...(await contractResult(id, context)),
+    };
   },
 });
 
