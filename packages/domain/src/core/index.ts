@@ -10,6 +10,7 @@ export * from "./partners";
 export * from "./payg";
 export * from "./pricing";
 export * from "./pricing/exchange";
+export * from "./pricing/scenario-economics";
 export * from "./procurement";
 export * from "./quotes";
 export * from "./reports";

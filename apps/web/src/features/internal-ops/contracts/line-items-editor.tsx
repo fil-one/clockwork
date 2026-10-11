@@ -43,6 +43,13 @@ interface DraftRow {
   minimumQuantity: string;
   /** The scenario line this row was imported from, until detached. */
   scenarioLine?: number;
+  /** The capacity as entered in another unit, kept while `quantity` is the
+   * converted figure it stands for. */
+  entered?: {
+    readonly quantity: string;
+    readonly unit: string;
+    readonly for: string;
+  };
 }
 
 type ScenarioLink = NonNullable<TemplateLineItems["scenario"]>;
@@ -91,6 +98,7 @@ const draftRows = (items: TemplateLineItems): DraftRow[] =>
     ...(row.scenarioLine === undefined
       ? {}
       : { scenarioLine: row.scenarioLine }),
+    ...(row.entered ? { entered: { ...row.entered, for: row.quantity } } : {}),
   }));
 
 /** One draft row as the table value holds it, priced when it is complete. */
@@ -126,6 +134,15 @@ function rowValue(row: DraftRow, currency: ContractCurrency) {
       ...(row.scenarioLine === undefined
         ? {}
         : { scenarioLine: row.scenarioLine }),
+      // An edited quantity no longer matches what was entered.
+      ...(row.entered && row.entered.for === row.quantity.trim()
+        ? {
+            entered: {
+              quantity: row.entered.quantity,
+              unit: row.entered.unit as "TB" | "PB" | "TiB" | "PiB",
+            },
+          }
+        : {}),
     },
   };
 }

@@ -39,10 +39,32 @@ const quantity = z
   .trim()
   .regex(/^(0|[1-9]\d{0,11})(\.\d{1,6})?$/, "number")
   .refine((value) => /[1-9]/.test(value), "too_small");
+/**
+ * A quantity in the rate's own unit. An entry in another capacity unit
+ * converts to it exactly: 1 PiB is 1,125.899906842624 TB, so up to 18
+ * decimal places, as numeric(38,18) holds.
+ */
+const canonicalQuantity = z
+  .string()
+  .trim()
+  .regex(/^(0|[1-9]\d{0,15})(\.\d{1,18})?$/, "number")
+  .refine((value) => /[1-9]/.test(value), "too_small");
 const termMonths = z.int().min(1).max(120);
 const discountBps = z.int().min(0).max(10_000);
 /** The entry rules, shared with contract template line items. */
-export const pricingEntrySchemas = { quantity, termMonths, discountBps };
+export const pricingEntrySchemas = {
+  quantity,
+  canonicalQuantity,
+  termMonths,
+  discountBps,
+};
+
+/**
+ * The capacity units a seller may enter: decimal TB and PB (1 TB is 1,000
+ * GB) and binary TiB and PiB. Rates are priced per decimal TB-month.
+ */
+export const pricingCapacityUnits = ["TB", "PB", "TiB", "PiB"] as const;
+export const PricingCapacityUnitSchema = z.enum(pricingCapacityUnits);
 
 /** One line as the seller enters it. Prices are never taken from the browser. */
 export const PricingScenarioLineInputSchema = z
@@ -50,6 +72,8 @@ export const PricingScenarioLineInputSchema = z
     bookId: z.guid(),
     rateId: z.guid(),
     quantity,
+    /** The unit `quantity` is entered in; absent means the rate's own unit. */
+    quantityUnit: PricingCapacityUnitSchema.optional(),
     termMonths,
     discountBps,
   })
@@ -57,6 +81,140 @@ export const PricingScenarioLineInputSchema = z
 export type PricingScenarioLineInput = z.infer<
   typeof PricingScenarioLineInputSchema
 >;
+
+const printableLine = (max: number) =>
+  line(max).refine(
+    (value) => pricingSummaryPrintable.test(value),
+    "unprintable",
+  );
+const percentBps = z.int().min(0).max(10_000);
+/** A price per capacity unit per month, in minor units of the scenario currency. */
+const unitMinor = z.string().regex(/^(0|[1-9]\d{0,9})$/, "number");
+
+/**
+ * How a partner shares in a scenario, entered by the seller to size a
+ * conversation. Indicative only: no policy cap or floor applies here, and
+ * nothing is read from the price book's floors or transfer prices. A direct
+ * scenario carries none.
+ *
+ * - referral: the customer buys from Fil One and the partner earns a
+ *   commission on what the customer pays, at `commissionBps` from month 1 and
+ *   at each step's rate from its month on.
+ * - resale: the partner buys from Fil One and sets its own customer price.
+ *   The seller gives Fil One's price to the partner or the partner's margin
+ *   on its customer price; the other is derived.
+ * - other: a share of what the customer pays, a fee per unit and a fixed
+ *   monthly amount, in any combination.
+ */
+export const PricingPartnerEconomicsSchema = z
+  .discriminatedUnion("model", [
+    z
+      .object({
+        model: z.literal("referral"),
+        partnerName: printableLine(120).optional(),
+        commissionBps: percentBps,
+        steps: z
+          .array(
+            z
+              .object({
+                fromMonth: z.int().min(2).max(120),
+                commissionBps: percentBps,
+              })
+              .strict(),
+          )
+          .max(12)
+          .default([])
+          .refine(
+            (steps) =>
+              steps.every(
+                (step, index) =>
+                  index === 0 ||
+                  step.fromMonth > (steps[index - 1]?.fromMonth ?? 0),
+              ),
+            "steps_order",
+          ),
+      })
+      .strict(),
+    z
+      .object({
+        model: z.literal("resale"),
+        partnerName: printableLine(120).optional(),
+        customerPriceMinor: unitMinor,
+        buyPriceMinor: unitMinor.optional(),
+        marginBps: percentBps.optional(),
+      })
+      .strict(),
+    z
+      .object({
+        model: z.literal("other"),
+        partnerName: printableLine(120).optional(),
+        label: printableLine(80).optional(),
+        partnerShareBps: percentBps.default(0),
+        partnerPerUnitMinor: unitMinor.default("0"),
+        partnerMonthlyMinor: z
+          .string()
+          .regex(/^(0|[1-9]\d{0,11})$/, "number")
+          .default("0"),
+      })
+      .strict(),
+  ])
+  .superRefine((value, context) => {
+    if (
+      value.model === "resale" &&
+      (value.buyPriceMinor === undefined) === (value.marginBps === undefined)
+    )
+      context.addIssue({
+        code: "custom",
+        message: "resale_basis",
+        path: ["buyPriceMinor"],
+      });
+    // A partner cannot buy above its own price: that is a loss, not a margin.
+    if (
+      value.model === "resale" &&
+      value.buyPriceMinor !== undefined &&
+      /^\d+$/.test(value.buyPriceMinor) &&
+      /^\d+$/.test(value.customerPriceMinor) &&
+      BigInt(value.buyPriceMinor) > BigInt(value.customerPriceMinor)
+    )
+      context.addIssue({
+        code: "custom",
+        message: "buy_above_customer",
+        path: ["buyPriceMinor"],
+      });
+  });
+export type PricingPartnerEconomics = z.infer<
+  typeof PricingPartnerEconomicsSchema
+>;
+
+/**
+ * Whether a scenario has a partner summary: it has partner inputs and every
+ * line is priced in one unit, since partner prices and fees apply per unit
+ * across all lines.
+ */
+export function pricingPartnerSummaryAvailable(scenario: {
+  lines: readonly { unit: string }[];
+  partnerEconomics: PricingPartnerEconomics | null;
+}) {
+  return (
+    scenario.partnerEconomics !== null &&
+    scenario.lines.every((entry) => entry.unit === scenario.lines[0]?.unit)
+  );
+}
+
+/**
+ * Whether a scenario has a customer summary. A resale's customer summary is
+ * the partner's quote at one price per unit, so it needs every line in one
+ * unit; it never falls back to Fil One's list.
+ */
+export function pricingCustomerSummaryAvailable(scenario: {
+  lines: readonly { unit: string }[];
+  partnerEconomics: PricingPartnerEconomics | null;
+}) {
+  return (
+    scenario.partnerEconomics?.model !== "resale" ||
+    pricingPartnerSummaryAvailable(scenario)
+  );
+}
 
 /** A new scenario, or an overwrite of `id` when `expectedVersion` is given. */
 export const PricingScenarioInputSchema = z
@@ -72,6 +230,7 @@ export const PricingScenarioInputSchema = z
       .array(PricingScenarioLineInputSchema)
       .min(1)
       .max(pricingScenarioLineLimit),
+    partnerEconomics: PricingPartnerEconomicsSchema.nullable().default(null),
     expectedVersion: z.int().min(1).optional(),
   })
   .strict();
@@ -91,7 +250,15 @@ export const PricingScenarioLineSchema = z
     unit: line(60),
     unitPrice: MoneySchema,
     minimumQuantity: z.string().regex(/^\d{1,18}(\.\d{1,18})?$/),
-    quantity,
+    /** In the rate's unit, so prices and minimums apply to it directly. */
+    quantity: canonicalQuantity,
+    /** What the seller typed when it was in another unit, for display. */
+    entered: z
+      .object({ quantity, unit: PricingCapacityUnitSchema })
+      .strict()
+      .optional(),
+    /** The rate's egress terms, so a summary states free egress only when the book does. */
+    egressTreatment: line(60).optional(),
     termMonths,
     discountBps,
   })
@@ -127,6 +294,7 @@ export interface PricingScenarioRecord {
   asOf: string;
   priceBooks: readonly { id: string; version: number }[];
   lines: readonly PricingScenarioLine[];
+  partnerEconomics: PricingPartnerEconomics | null;
   createdAt: string;
   updatedAt: string;
   version: number;

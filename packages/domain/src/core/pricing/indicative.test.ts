@@ -19,6 +19,7 @@ describe("indicative line price", () => {
     ).toEqual({
       unitPrice: usd("1500"),
       monthly: usd("750000"),
+      annual: usd("9000000"),
       total: usd("9000000"),
       belowMinimum: false,
     });

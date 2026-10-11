@@ -46,3 +46,30 @@ export function bookLabel(book: IndicativePriceBook, t: Translator): string {
     version: String(book.version),
   });
 }
+
+/**
+ * The names the summary PDF prints for each line's SKU and region, from the
+ * same words the builder shows. A code with no name is left out, so the PDF
+ * prints it as it is.
+ */
+export function summaryNames(
+  lines: readonly { sku: string; region: string }[],
+  t: Translator,
+) {
+  const named = (codes: readonly string[], name: (code: string) => string) =>
+    Object.fromEntries(
+      codes.flatMap((code) =>
+        name(code) === code ? [] : [[code, name(code)] as const],
+      ),
+    );
+  return {
+    productNames: named(
+      lines.map(({ sku }) => sku),
+      (sku) => productName(sku, t),
+    ),
+    regionNames: named(
+      lines.map(({ region }) => region),
+      (region) => regionName(region, t),
+    ),
+  };
+}

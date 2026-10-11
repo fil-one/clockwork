@@ -3,7 +3,9 @@ import { and, desc, eq, sql, type SQL } from "drizzle-orm";
 import {
   PricingScenarioBooksSchema,
   PricingScenarioInputSchema,
+  PricingScenarioLineSchema,
   PricingScenarioLinesSchema,
+  PricingPartnerEconomicsSchema,
   pricingScenarioListLimit,
   type Actor,
   type PricingScenarioLine,
@@ -11,7 +13,11 @@ import {
   type PricingScenarioRecord,
   type PricingScenarioSummary,
 } from "@clockwork/contracts";
-import { indicativeScenarioPrice } from "@clockwork/domain/core";
+import {
+  convertCapacity,
+  indicativeScenarioPrice,
+  scenarioPartnerEconomics,
+} from "@clockwork/domain/core";
 import type { RuntimeDatabase, RuntimeTransaction } from "../client";
 import { pricingScenarios } from "../schema/pricing-scenarios";
 import { withInternalTransaction } from "../transaction";
@@ -42,10 +48,33 @@ const view = (row: Row): PricingScenarioRecord => ({
   asOf: row.asOf,
   priceBooks: PricingScenarioBooksSchema.parse(row.priceBooks),
   lines: PricingScenarioLinesSchema.parse(row.lines),
+  partnerEconomics:
+    row.partnerEconomics === null
+      ? null
+      : PricingPartnerEconomicsSchema.parse(row.partnerEconomics),
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
   version: row.version,
 });
+
+/**
+ * Rows that no longer parse, such as one written by a later version and read
+ * after a rollback, are left out of lists rather than failing the page. Only
+ * the row id and the error's name are logged.
+ */
+function readable<T>(rows: readonly Row[], read: (row: Row) => T): T[] {
+  return rows.flatMap((row) => {
+    try {
+      return [read(row)];
+    } catch (error) {
+      console.error("pricing scenario skipped: it does not parse", {
+        id: row.id,
+        error: error instanceof Error ? error.name : "unknown",
+      });
+      return [];
+    }
+  });
+}
 
 const summary = (row: Row): PricingScenarioSummary => {
   const record = view(row);
@@ -69,9 +98,11 @@ const inScope = (scope: PricingScenarioScope, row: Row) =>
 
 /**
  * Prices each entered line from the books in force: the list price, unit and
- * minimum come from the book, never from the caller. A line whose book or
- * rate is no longer in force is refused, as are lines in two currencies and
- * quantities below a rate's minimum.
+ * minimum come from the book, never from the caller. A quantity entered in
+ * another capacity unit is converted exactly to the rate's unit, and the
+ * entry is kept beside it for display. A line whose book or rate is no
+ * longer in force is refused, as are a unit that does not convert exactly,
+ * lines in two currencies and quantities below a rate's minimum.
  */
 export function resolvePricingScenarioLines(
   lines: readonly PricingScenarioLineInput[],
@@ -81,6 +112,15 @@ export function resolvePricingScenarioLines(
     const book = books.find(({ id }) => id === entry.bookId);
     const rate = book?.rateCards?.find(({ id }) => id === entry.rateId);
     if (!book || !rate) throw new Error("PRICING_SCENARIO_RATE_UNAVAILABLE");
+    const rateUnit = rate.unit.replace(/-month$/u, "");
+    const converted =
+      entry.quantityUnit && entry.quantityUnit !== rateUnit
+        ? entry.quantityUnit
+        : undefined;
+    const quantity = converted
+      ? convertCapacity(entry.quantity, converted, rateUnit)
+      : entry.quantity;
+    if (quantity === null) throw new Error("PRICING_SCENARIO_UNIT_UNSUPPORTED");
     return {
       bookId: book.id,
       bookVersion: book.version,
@@ -90,7 +130,19 @@ export function resolvePricingScenarioLines(
       unit: rate.unit,
       unitPrice: rate.unitPrice,
       minimumQuantity: rate.minimumQuantity,
-      quantity: entry.quantity,
+      // Kept only when it fits the saved line's 60-character field, so a
+      // longer note on a rate card never blocks a save; the summary states
+      // free egress only for "included".
+      ...(rate.egressTreatment &&
+      PricingScenarioLineSchema.shape.egressTreatment.safeParse(
+        rate.egressTreatment,
+      ).success
+        ? { egressTreatment: rate.egressTreatment }
+        : {}),
+      quantity,
+      ...(converted
+        ? { entered: { quantity: entry.quantity, unit: converted } }
+        : {}),
       termMonths: entry.termMonths,
       discountBps: entry.discountBps,
     };
@@ -126,14 +178,15 @@ export class PricingScenarioRepository {
         ? eq(pricingScenarios.ownerId, scope.ownerId)
         : undefined;
     return this.tx(async (tx) =>
-      (
+      readable(
         await tx
           .select()
           .from(pricingScenarios)
           .where(where)
           .orderBy(desc(pricingScenarios.updatedAt), desc(pricingScenarios.id))
-          .limit(pricingScenarioListLimit)
-      ).map(summary),
+          .limit(pricingScenarioListLimit),
+        summary,
+      ),
     );
   }
 
@@ -170,6 +223,17 @@ export class PricingScenarioRepository {
       input.lines,
       await this.books.listInForce({ today }),
     );
+    // A partner cannot earn more than the customer pays in any month.
+    if (
+      input.partnerEconomics &&
+      lines.every((line) => line.unit === lines[0]?.unit) &&
+      scenarioPartnerEconomics(lines, input.partnerEconomics).periods.some(
+        ({ monthly }) =>
+          BigInt(monthly.partnerEarnings.minor) >
+          BigInt(monthly.customerSpend.minor),
+      )
+    )
+      throw new Error("PRICING_SCENARIO_PARTNER_ABOVE_SPEND");
     const priceBooks = [
       ...new Map(
         lines.map((line) => [
@@ -186,6 +250,7 @@ export class PricingScenarioRepository {
       asOf: today,
       priceBooks,
       lines,
+      partnerEconomics: input.partnerEconomics,
     };
     return this.tx(async (tx) => {
       const [current] = await tx
@@ -262,8 +327,15 @@ export class PricingScenarioRepository {
     });
   }
 
-  /** Records who downloaded a scenario's summary, as its own audit aggregate. */
-  recordDownload(actor: Actor, scenarioId: string) {
+  /**
+   * Records who downloaded a scenario's summary and for which audience, as
+   * its own audit aggregate.
+   */
+  recordDownload(
+    actor: Actor,
+    scenarioId: string,
+    audience: "customer" | "partner" = "customer",
+  ) {
     return this.tx((tx) =>
       appendAuditAndOutbox(tx, {
         aggregateType: "document",
@@ -272,7 +344,7 @@ export class PricingScenarioRepository {
         eventType: "pricing_scenario.downloaded",
         actor,
         requestId: randomUUID(),
-        after: { scenarioId },
+        after: { scenarioId, audience },
       }),
     );
   }
@@ -298,6 +370,10 @@ export class PricingScenarioRepository {
         asOf: row.asOf,
         priceBooks: row.priceBooks,
         lineCount: Array.isArray(row.lines) ? row.lines.length : 0,
+        partnerModel:
+          row.partnerEconomics === null
+            ? null
+            : PricingPartnerEconomicsSchema.parse(row.partnerEconomics).model,
       },
     });
   }
