@@ -3122,7 +3122,8 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       tx.execute(sql`
         update deal_registrations set status = 'rejected'
         where end_client_account_id = ${accountId}::uuid
-          and (workload like 'House review %' or workload like 'Lapsed review %')
+          and (workload like 'House review %' or workload like 'Lapsed review %'
+            or workload like 'Self decision %')
           and status in ('registered', 'approved')`),
     );
     const workload = `House review ${runId}`;
@@ -3246,6 +3247,32 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       },
     ]);
 
+    // A partner cannot decide its own registration, even below the API: the
+    // database requires decision authority on the tenant pool.
+    const selfDecided = await register({
+      id: crypto.randomUUID(),
+      partner: reseller,
+      endClientAccountId: accountId,
+      workload: `Self decision ${runId}`,
+      callerHouseAccountIds: [],
+    });
+    await expect(
+      repository.mutate({
+        resource: "deal_registrations",
+        id: selfDecided.record.id,
+        accountId: reseller.partnerAccountId,
+        action: "approve",
+        expectedVersion: 1,
+        payload: { overrideReason },
+        actor: { kind: "user", id: reseller.partnerUserId },
+        authorization: reseller.authorization,
+        requestId: `deal-self-approve-${runId}`,
+        idempotencyKey: `deal-self-approve-${runId}`,
+        occurredAt: decidedAt,
+      }),
+    ).rejects.toThrow();
+    await decide(selfDecided.record.id, "reject", 1);
+
     // The same partner may register another workload on the same client.
     const expansion = await register({
       id: crypto.randomUUID(),
@@ -3281,6 +3308,22 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       twoDaysAgo,
     );
     expect(lapsedApproved.record.data.status).toBe("approved");
+    // A lapsed registration cannot be extended back beside a new owner.
+    await expect(
+      repository.mutate({
+        resource: "deal_registrations",
+        id: lapsed.record.id,
+        accountId: referral.partnerAccountId,
+        action: "extend",
+        expectedVersion: Number(lapsedApproved.record.rowVersion),
+        payload: { extensionDays: 30, reason: "Partner still working it" },
+        actor: { kind: "user", id: referral.partnerUserId },
+        authorization: referral.authorization,
+        requestId: `deal-extend-${runId}`,
+        idempotencyKey: `deal-extend-${runId}`,
+        occurredAt: decidedAt,
+      }),
+    ).rejects.toThrow(/lapsed and cannot be extended/);
     const successor = await register({
       id: crypto.randomUUID(),
       partner: reseller,

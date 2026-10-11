@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(22);
 set local search_path = public, extensions;
 
 -- 1. Registrations start registered or rejected, and their identity is fixed.
@@ -50,6 +50,28 @@ update deal_registrations set protection_ends_at = now() - interval '1 day' wher
 select lives_ok($$update deal_registrations set status = 'approved' where id = '94000000-0000-4000-8000-000000001483'$$,
   'an approval past its protection window no longer blocks another partner');
 
+-- 2e. Extensions (legacy-default snapshots, before a policy is approved). A lapsed registration cannot be extended back to life (A
+-- lapses, B is approved, A must not return beside B), and an approved one is
+-- re-checked for a competing owner when its window moves forward.
+insert into deal_registrations(id,partner_account_id,end_client_account_id,workload,expected_volume,status,protection_starts_at,protection_ends_at) values
+  ('94000000-0000-4000-8000-000000001486','10000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000004','Lapse extension check',1,'registered',now(),now()+interval '30 days'),
+  ('94000000-0000-4000-8000-000000001487','10000000-0000-4000-8000-000000000008','10000000-0000-4000-8000-000000000004','Lapse extension check',1,'registered',now(),now()+interval '30 days');
+update deal_registrations set status = 'approved' where id = '94000000-0000-4000-8000-000000001486';
+update deal_registrations set protection_ends_at = now() - interval '1 day' where id = '94000000-0000-4000-8000-000000001486';
+update deal_registrations set status = 'approved' where id = '94000000-0000-4000-8000-000000001487';
+select throws_ok($$update deal_registrations set protection_ends_at = now() + interval '30 days' where id = '94000000-0000-4000-8000-000000001486'$$,
+  '23514', 'REGISTRATION_PROTECTION_LAPSED', 'a lapsed owner cannot extend itself back beside the new one');
+insert into deal_registrations(id,partner_account_id,end_client_account_id,workload,expected_volume,status,protection_starts_at,protection_ends_at) values
+  ('94000000-0000-4000-8000-000000001488','10000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000004','Extension owner check',1,'registered',now(),now()+interval '30 days'),
+  ('94000000-0000-4000-8000-000000001489','10000000-0000-4000-8000-000000000008','10000000-0000-4000-8000-000000000004','Extension owner check',1,'registered',now(),now()+interval '30 days');
+update deal_registrations set status = 'approved' where id = '94000000-0000-4000-8000-000000001488';
+update deal_registrations set status = 'disputed' where id = '94000000-0000-4000-8000-000000001489';
+select throws_ok($$update deal_registrations set protection_ends_at = protection_ends_at + interval '30 days' where id = '94000000-0000-4000-8000-000000001488'$$,
+  '23514', 'REGISTRATION_ECONOMIC_OWNER_EXISTS', 'an extension is refused while another partner owns the workload');
+update deal_registrations set status = 'rejected' where id = '94000000-0000-4000-8000-000000001489';
+select lives_ok($$update deal_registrations set protection_ends_at = protection_ends_at + interval '30 days' where id = '94000000-0000-4000-8000-000000001488'$$,
+  'a current approval with no competitor extends');
+
 -- 2d. The lookback is a channel-policy term.
 insert into core_channel_policy_versions(id,terms,created_by,last_edited_by) values('99000000-0000-4000-8000-000000001478',
  jsonb_build_object('version',1478,'effectiveFrom',current_date::text,'selfServeThresholdTb',100,'defaultProtectionDays',90,'maximumProtectionDays',90,'extensionDays',30,'maximumExtensions',1,'conversionLookbackDays',500,'sourceEvidence','conversion lookback policy'),
@@ -71,6 +93,26 @@ select throws_ok($$insert into core_channel_policy_versions(terms,created_by,las
   select jsonb_set(jsonb_set(terms,'{version}','14781'),'{conversionLookbackDays}','0'),created_by,last_edited_by
   from core_channel_policy_versions where id='99000000-0000-4000-8000-000000001478'$$, '23514', null,
   'a zero-day lookback is rejected');
+
+-- 5. Decisions need decision authority on the tenant pool, whatever the row
+-- policies admit: a partner cannot approve or dispute its own registration.
+insert into deal_registrations(id,partner_account_id,end_client_account_id,workload,expected_volume,status,protection_starts_at,protection_ends_at) values
+  ('94000000-0000-4000-8000-000000001490','10000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000004','Self decision check',1,'registered',now(),now()+interval '30 days');
+select set_config('app.authorization_context', jsonb_build_object(
+  'userId','20000000-0000-4000-8000-000000000005',
+  'accountIds',jsonb_build_array('10000000-0000-4000-8000-000000000006'),
+  'roles',jsonb_build_array('partner_admin'),'isInternalStaff',false,'requestId','registration-self-decision-1478',
+  'expiresAt',(clock_timestamp() + interval '5 minutes')::text)::text, true);
+select set_config('app.authorization_signature', encode(extensions.hmac(
+  current_setting('app.authorization_context'),
+  (select secret from private.authorization_secrets where active order by created_at desc limit 1),'sha256'),'hex'), true);
+set local role clockwork_runtime;
+set local search_path = public, extensions;
+select throws_ok($$update deal_registrations set status = 'approved' where id = '94000000-0000-4000-8000-000000001490'$$,
+  '42501', 'REGISTRATION_DECISION_AUTHORITY_REQUIRED', 'a partner cannot approve its own registration in SQL');
+select throws_ok($$update deal_registrations set status = 'disputed' where id = '94000000-0000-4000-8000-000000001490'$$,
+  '42501', 'REGISTRATION_DECISION_AUTHORITY_REQUIRED', 'a partner cannot dispute its way into blocking everyone');
+reset role;
 
 -- 3. A finance approver (quote:approve) passes the row-level update guard.
 insert into deal_registrations(id,partner_account_id,end_client_account_id,workload,expected_volume,status,protection_starts_at,protection_ends_at) values

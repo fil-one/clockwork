@@ -13,6 +13,12 @@
 --        defaults to the policy's maximum, then default, protection window.
 -- 3. One active registration per partner, end client and workload, so the
 --    same partner can register a different workload on the same client.
+-- 4. Extending protection is ownership too: a lapsed registration cannot be
+--    extended back to life, and an approved one is re-checked for a competing
+--    owner when its window moves forward.
+-- 5. Decisions need decision authority. On the tenant pool, a change to
+--    approved, rejected, converted or disputed requires `quote:approve` in the
+--    signed claim, whatever the row-level policies admit.
 set lock_timeout = '5s';
 
 -- The conversion lookback is an optional channel-policy term.
@@ -92,6 +98,19 @@ begin
     or new.workload is distinct from old.workload then
     raise exception using errcode = '23514', message = 'REGISTRATION_IDENTITY_IMMUTABLE';
   end if;
+  if new.protection_ends_at > old.protection_ends_at then
+    if old.protection_ends_at <= now() then
+      raise exception using errcode = '23514', message = 'REGISTRATION_PROTECTION_LAPSED';
+    end if;
+    if new.status = 'approved' then
+      perform pg_advisory_xact_lock(hashtextextended(
+        new.end_client_account_id::text || ':' || lower(btrim(new.workload)), 1468));
+      if public.core_registration_owner_conflict(
+        new.id, new.partner_account_id, new.end_client_account_id, new.workload) is not null then
+        raise exception using errcode = '23514', message = 'REGISTRATION_ECONOMIC_OWNER_EXISTS';
+      end if;
+    end if;
+  end if;
   if new.status is not distinct from old.status then
     return new;
   end if;
@@ -123,6 +142,24 @@ revoke all on function public.guard_deal_registration_ownership() from public;
 create trigger deal_registration_ownership_guard
   before insert or update on public.deal_registrations
   for each row execute function public.guard_deal_registration_ownership();
+
+-- Runs as the caller, so it sees the tenant pool's own role and claim. The
+-- service pool and the migration owner are trusted callers.
+create function public.guard_deal_registration_decision_authority() returns trigger
+language plpgsql set search_path = pg_catalog, public as $$
+begin
+  if current_user = 'clockwork_runtime'
+    and new.status is distinct from old.status
+    and new.status in ('approved', 'rejected', 'converted', 'disputed')
+    and not public.app_has_permission('quote:approve') then
+    raise exception using errcode = '42501', message = 'REGISTRATION_DECISION_AUTHORITY_REQUIRED';
+  end if;
+  return new;
+end $$;
+revoke all on function public.guard_deal_registration_decision_authority() from public;
+create trigger deal_registration_decision_authority
+  before update on public.deal_registrations
+  for each row execute function public.guard_deal_registration_decision_authority();
 
 drop index public.deal_registration_active_unique;
 create unique index deal_registration_active_unique
