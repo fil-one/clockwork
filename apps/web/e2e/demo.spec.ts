@@ -441,7 +441,7 @@ test.describe("direct buyer flagship journey", () => {
         })
         .check();
       await page
-        .getByRole("button", { name: "Accept order and create commitment" })
+        .getByRole("button", { name: "Prepare order form for review" })
         .click();
 
       const orderForm = page.getByRole("link", { name: "Open the order form" });

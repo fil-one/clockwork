@@ -8,6 +8,7 @@ export default function ExperienceLoading() {
     <main
       className="experience-main loading-page"
       id="main-content"
+      aria-busy="true"
       aria-label={t("state.loading.title")}
     >
       <Skeleton width="28%" height="1rem" label={t("state.loading.title")} />

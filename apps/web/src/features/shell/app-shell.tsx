@@ -687,13 +687,35 @@ export function AppShell({
       return;
     }
     if (announcedPath.current === pathname) return;
-    announcedPath.current = pathname;
-    const heading = document
-      .querySelector("#main-content h1")
-      ?.textContent?.trim();
-    setAnnouncement(
-      t("app.pageLoaded", { page: heading || destination || pathname }),
-    );
+    // Route content can still be a streamed loading boundary at this point.
+    // Wait for its replacement before announcing the actual page heading.
+    const announceWhenReady = () => {
+      const main = document.getElementById("main-content");
+      if (
+        !main ||
+        main.matches('[aria-busy="true"]') ||
+        main.querySelector('[aria-busy="true"]')
+      )
+        return false;
+      const heading = main.querySelector("h1")?.textContent?.trim();
+      announcedPath.current = pathname;
+      setAnnouncement(
+        t("app.pageLoaded", { page: heading || destination || pathname }),
+      );
+      return true;
+    };
+    if (announceWhenReady()) return;
+    const observer = new MutationObserver(() => {
+      if (announceWhenReady()) observer.disconnect();
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["aria-busy"],
+      characterData: true,
+    });
+    return () => observer.disconnect();
   }, [destination, pathname, t]);
 
   useEffect(() => {
@@ -703,7 +725,10 @@ export function AppShell({
       setOnline(next);
       setAnnouncement(t(next ? "app.online" : "app.offline"));
     };
-    update();
+    // Initial connectivity is not a reconnection. Only an actual browser
+    // event should announce that a connection has been restored.
+    setOnline(navigator.onLine);
+    if (!navigator.onLine) setAnnouncement(t("app.offline"));
     window.addEventListener("online", update);
     window.addEventListener("offline", update);
     return () => {

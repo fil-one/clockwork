@@ -1,4 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -154,6 +160,48 @@ describe("shell keyboard and screen reader wayfinding", () => {
     );
     // Still one region: the connection and organization messages share it.
     expect(document.querySelectorAll("[aria-live]")).toHaveLength(1);
+  });
+
+  it("waits for streamed page content before announcing that it loaded", async () => {
+    const { rerender } = renderShell();
+    pathname = "/internal/reports";
+    rerender(
+      <AppShell audience="internal" session={session}>
+        <main id="main-content" aria-busy="true">
+          <h1>Loading records</h1>
+        </main>
+      </AppShell>,
+    );
+    const live = document.querySelector("[aria-live]") as HTMLElement;
+    expect(live.textContent).not.toContain("Page loaded");
+    rerender(
+      <AppShell audience="internal" session={session}>
+        <main id="main-content">
+          <h1>Operational reports</h1>
+        </main>
+      </AppShell>,
+    );
+    await waitFor(() =>
+      expect(live.textContent).toBe("Operational reports. Page loaded."),
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(live.textContent).not.toContain("Loading records");
+  });
+
+  it("does not announce a restored connection on an ordinary page load", () => {
+    renderShell();
+    const live = document.querySelector("[aria-live]") as HTMLElement;
+    expect(live).toBeEmptyDOMElement();
+    const connection = vi.spyOn(navigator, "onLine", "get");
+    connection.mockReturnValue(false);
+    fireEvent(window, new Event("offline"));
+    expect(live.textContent).toContain("offline");
+    connection.mockReturnValue(true);
+    fireEvent(window, new Event("online"));
+    expect(live.textContent).toContain("Connection restored");
+    connection.mockRestore();
   });
 
   it("names the destination from the rail when the page has no heading yet", async () => {

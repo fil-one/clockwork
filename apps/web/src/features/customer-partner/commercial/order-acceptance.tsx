@@ -1056,8 +1056,10 @@ export function OrderAcceptance({
                   promise a command the server refuses.
                 */}
                 {t(
-                  phase === "submitting"
-                    ? "customer.commercial.accept.accepting"
+                  phase === "submitting" || phase === "awaiting_form"
+                    ? preparedFor
+                      ? "customer.commercial.accept.accepting"
+                      : "customer.commercial.accept.preparing"
                     : preparedFor
                       ? "customer.commercial.accept.createOrder"
                       : "customer.commercial.accept.submit",

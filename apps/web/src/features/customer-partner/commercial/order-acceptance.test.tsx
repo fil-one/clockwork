@@ -110,7 +110,7 @@ describe("order acceptance", () => {
     const purchaseOrder = screen.getByLabelText("Purchase order");
     await user.click(
       screen.getByRole("button", {
-        name: "Accept order and create commitment",
+        name: "Prepare order form for review",
       }),
     );
 
@@ -137,7 +137,7 @@ describe("order acceptance", () => {
     await user.type(screen.getByLabelText("Service start"), "2026-08-15");
     await user.click(
       screen.getByRole("button", {
-        name: "Accept order and create commitment",
+        name: "Prepare order form for review",
       }),
     );
 
@@ -159,7 +159,7 @@ describe("order acceptance", () => {
     await user.type(screen.getByLabelText("Service end"), "2026-08-14");
     await user.click(
       screen.getByRole("button", {
-        name: "Accept order and create commitment",
+        name: "Prepare order form for review",
       }),
     );
 
@@ -183,7 +183,7 @@ describe("order acceptance", () => {
     );
     await user.click(
       screen.getByRole("button", {
-        name: "Accept order and create commitment",
+        name: "Prepare order form for review",
       }),
     );
 
@@ -207,7 +207,7 @@ describe("order acceptance", () => {
     );
     expect(
       screen.queryByRole("button", {
-        name: "Accept order and create commitment",
+        name: "Prepare order form for review",
       }),
     ).not.toBeInTheDocument();
   });
@@ -222,7 +222,7 @@ const orderFormDocumentId = "80000000-0000-4000-8000-000000000001";
  */
 const orderFormArtifactId = "80000000-0000-4000-8000-0000000000a1";
 
-const acceptLabel = "Accept order and create commitment";
+const acceptLabel = "Prepare order form for review";
 const createLabel = "Create the order and commitment";
 const recheckLabel = "Check for the order form again";
 
@@ -430,7 +430,9 @@ describe("order acceptance two-pass bridge", () => {
     await elapse(2_000);
 
     expect(mocks.fetch).toHaveBeenCalledTimes(2);
-    expect(screen.getByRole("button", { name: acceptLabel })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Preparing order form…" }),
+    ).toBeDisabled();
     expect(screen.getByRole("status")).toHaveTextContent(
       /order form requested/i,
     );
@@ -530,7 +532,9 @@ describe("order acceptance two-pass bridge", () => {
       `/api/experience/artifacts/order_form/${orderFormArtifactId}?representation=json`,
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
-    expect(screen.getByRole("button", { name: acceptLabel })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Preparing order form…" }),
+    ).toBeDisabled();
   });
 
   it("releases the create pass once the form is stored, keeping every entry", async () => {

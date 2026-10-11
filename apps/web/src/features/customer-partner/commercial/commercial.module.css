@@ -386,6 +386,10 @@ th[aria-sort="descending"] .sortLink::after {
   content: "↓";
 }
 
+.recordLink {
+  display: inline-block;
+}
+
 .recordLink,
 .cardLink {
   color: var(--color-text);
@@ -1045,4 +1049,57 @@ td .badge {
 
 .filters > .filterSubmit {
   flex: 0 0 auto;
+}
+
+.selectorControl {
+  position: relative;
+  min-width: 0;
+}
+
+.selectorPopover {
+  position: absolute;
+  z-index: 20;
+  inset-inline: 0;
+  top: calc(100% + 4px);
+  border: 1px solid var(--cw-border-strong);
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-surface);
+  box-shadow: var(--cw-shadow-xs);
+  overflow-wrap: anywhere;
+}
+
+.selectorPopover ul {
+  list-style: none;
+  padding: 4px;
+  margin: 0;
+  max-height: 16rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.selectorPopover li {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: var(--cw-radius-sm);
+  cursor: pointer;
+  font-size: var(--cw-text-sm);
+}
+
+.selectorPopover li[data-active],
+.selectorPopover li[aria-selected="true"] {
+  background: var(--cw-brand-soft);
+  outline: 1px solid var(--cw-border-strong);
+  outline-offset: -1px;
+}
+
+.selectorPopover li span,
+.selectorPopover p {
+  color: var(--cw-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.selectorPopover p {
+  padding: 12px;
+  margin: 0;
 }

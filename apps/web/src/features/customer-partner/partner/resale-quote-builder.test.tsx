@@ -65,13 +65,6 @@ const blueHarbor: PartnerQuoteContext = {
   endClients: [blueHarborClient],
 };
 
-/** Every name the selectors offer, which lives in `value`, not in text. */
-function offeredNames(): string[] {
-  return [...document.querySelectorAll("datalist option")].map(
-    (option) => (option as HTMLOptionElement).value,
-  );
-}
-
 function quoteSummary(): HTMLElement {
   return screen.getByRole("complementary", { name: "Quote summary" });
 }
@@ -173,10 +166,19 @@ describe("what the partner quote builder states before anyone types", () => {
     // The two selectors belong to different stages, so each is read where it
     // is mounted rather than both at once.
     async function selectorsFor(offerName: string) {
-      const offers = offeredNames();
-      await user.type(screen.getByLabelText("Offer and price book"), offerName);
+      await user.click(
+        screen.getByRole("combobox", { name: "Offer and price book" }),
+      );
+      const offers = screen
+        .getAllByRole("option")
+        .map((option) => option.textContent);
+      await user.click(screen.getByRole("option", { name: offerName }));
       await user.click(screen.getByRole("button", { name: "Continue" }));
-      return [...offers, ...offeredNames()];
+      await user.click(screen.getByRole("combobox", { name: "End client" }));
+      return [
+        ...offers,
+        ...screen.getAllByRole("option").map((option) => option.textContent),
+      ];
     }
 
     const first = render(<ResaleQuoteBuilder context={redwood} />);
