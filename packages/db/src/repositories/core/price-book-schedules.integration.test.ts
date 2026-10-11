@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { ids } from "@clockwork/contracts";
 import { createRuntimeDatabase } from "../../client";
@@ -86,6 +86,20 @@ describe("approved price-book schedules", () => {
               tx: Parameters<Parameters<typeof withInternalTransaction>[2]>[0],
             ) => Promise<T>,
           ) => withInternalTransaction(db, randomUUID(), run);
+          // List-price administration runs with selling switched off: every
+          // draft, proposal, approval and execution below happens with new
+          // business and legal disabled, as production starts.
+          await read((tx) =>
+            tx
+              .update(systemCapabilities)
+              .set({ enabled: false })
+              .where(
+                inArray(systemCapabilities.capabilityKey, [
+                  "new_business",
+                  "legal",
+                ]),
+              ),
+          );
           const command = (
             id: string,
             action: string,
@@ -224,22 +238,6 @@ describe("approved price-book schedules", () => {
             command(immediate.id, "activate", reason, approver),
           ).rejects.toThrow("Cancel the approved schedule");
           await read(async (tx) => {
-            await tx
-              .update(systemCapabilities)
-              .set({ enabled: false })
-              .where(eq(systemCapabilities.capabilityKey, "new_business"));
-          });
-          await expect(
-            worker.execute(schedule.id, "2026-09-08T00:00:00Z"),
-          ).rejects.toThrow("NEW_BUSINESS_DISABLED");
-          expect(await getBook(incumbent.id)).toMatchObject({
-            status: "active",
-          });
-          await read(async (tx) => {
-            await tx
-              .update(systemCapabilities)
-              .set({ enabled: true })
-              .where(eq(systemCapabilities.capabilityKey, "new_business"));
             await tx
               .delete(memberships)
               .where(eq(memberships.userId, approver));

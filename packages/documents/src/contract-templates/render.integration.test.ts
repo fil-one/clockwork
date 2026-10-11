@@ -153,6 +153,59 @@ it("prints a line-item table with its subtotal, discounts and total", async () =
     expect(raw).toContain(expected);
 }, 30_000);
 
+it("prints a long converted quantity as entered, wrapped in its own cell", async () => {
+  const long = {
+    sku: "STORAGE-TB",
+    description: "",
+    region: "us-east",
+    unit: "TB-month",
+    // 1,234.567891 TiB in decimal TB.
+    quantity: "1357.421751433393340416",
+    termMonths: 12,
+    unitPriceMinor: "1500",
+    minimumQuantity: "0",
+    discountBps: 0,
+    // 15.00 x 1,357.421751433393340416 x 12 = 244,335.915258...
+    extendedMinor: "24433592",
+  };
+  const rendered = await fixtureContractTemplate.render(
+    withRows((rows) => {
+      rows.splice(
+        0,
+        rows.length,
+        { ...long, entered: { quantity: "1234.567891", unit: "TiB" } },
+        long,
+      );
+    }),
+  );
+  const layout = text(rendered.bytes);
+  const raw = text(rendered.bytes, "-raw").replace(/\s+/g, " ");
+  // An order form states the exact quantity the price uses, as entered
+  // where there is an entry, and never rounds it.
+  expect(raw).toContain("1,234.567891 TiB = 1,357.421751433393340416 TB");
+  expect(raw).toContain("1,357.421751433393340416 TB-month");
+  expect(raw).not.toContain("about");
+  // A stale entry is ignored and the row's own unit prints.
+  const stale = text(
+    (
+      await fixtureContractTemplate.render(
+        withRows((rows) => {
+          rows.splice(0, rows.length, {
+            ...long,
+            entered: { quantity: "1", unit: "PiB" },
+          });
+        }),
+      )
+    ).bytes,
+    "-raw",
+  ).replace(/\s+/g, " ");
+  expect(stale).toContain("1,357.421751433393340416 TB-month");
+  expect(stale).not.toContain("PiB");
+  // Each row's term still reads cleanly beside the quantity.
+  expect(layout.match(/ 12 months /gu)).toHaveLength(2);
+  expect(raw).toContain("$244,335.92");
+}, 30_000);
+
 it("refuses values that could form tags or that the PDF font cannot draw", async () => {
   for (const value of [
     "{{signature:1:y}}",

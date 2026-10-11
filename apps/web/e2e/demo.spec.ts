@@ -643,12 +643,12 @@ test.describe("playable product-demo workflows", () => {
           name: "Edit rate LOCKED-STORAGE-TB in us-east-2",
         })
         .click();
-      await page.getByLabel("Unit price (USD)").fill("159.00");
+      await page.getByLabel("Unit price (USD)").fill("6.19");
       await page.getByRole("button", { name: "Save rate card" }).click();
       await expect(
         page
           .getByRole("table", { name: "Rate card economics" })
-          .getByText("$159.00", { exact: true }),
+          .getByText("$6.19", { exact: true }),
       ).toBeVisible();
       await page
         .getByLabel("Finance decision reason")
@@ -710,9 +710,9 @@ test.describe("playable product-demo workflows", () => {
 
       await authoring.getByLabel("SKU").fill("BROWSER-PROOF-TB");
       await authoring.getByLabel("Region").fill("us-east-2");
-      await authoring.getByLabel("Unit price (USD)").fill("150.00");
-      await authoring.getByLabel("Floor price (USD)").fill("100.00");
-      await authoring.getByLabel("Overage rate (USD)").fill("180.00");
+      await authoring.getByLabel("Unit price (USD)").fill("5.99");
+      await authoring.getByLabel("Floor price (USD)").fill("4.49");
+      await authoring.getByLabel("Overage rate (USD)").fill("5.99");
       await authoring.getByLabel("Stripe tax code").fill("txcd_10103000");
       await authoring
         .getByLabel("Approved commercial description")
@@ -787,7 +787,7 @@ test.describe("playable product-demo workflows", () => {
         .getByRole("button", { name: "Calculate monthly estimate" })
         .click();
       await expect(
-        page.getByText(/Estimated monthly total: \$4\.99/),
+        page.getByText(/Estimated monthly total: \$5\.99/),
       ).toBeVisible();
       await page.getByLabel("Average daily storage (TB)").fill("10");
       await page.getByLabel("Total monthly egress (TB)").fill("100");
@@ -795,7 +795,7 @@ test.describe("playable product-demo workflows", () => {
         .getByRole("button", { name: "Calculate monthly estimate" })
         .click();
       await expect(
-        page.getByText(/Estimated monthly total: \$49\.90/),
+        page.getByText(/Estimated monthly total: \$59\.90/),
       ).toBeVisible();
       await page
         .getByLabel("Decision reason")

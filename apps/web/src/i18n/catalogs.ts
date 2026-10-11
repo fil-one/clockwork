@@ -21,6 +21,7 @@ import { operationsFinanceMessages } from "./messages/operations-finance";
 import { mndaMessages } from "./messages/operations-mnda";
 import { contractMessages } from "./messages/operations-contracts";
 import { handoffMessages } from "./messages/operations-handoff";
+import { staffPartnerMessages } from "./messages/operations-partners";
 import { notificationMessages } from "./messages/operations-notifications";
 import { organizationMessages } from "./messages/operations-organizations";
 import { partnerMessages } from "./messages/partner";
@@ -83,6 +84,7 @@ export const messageModules = {
       ...teamMessages,
       ...contractMessages,
       ...handoffMessages,
+      ...staffPartnerMessages,
       ...organizationMessages,
       ...notificationMessages,
     },

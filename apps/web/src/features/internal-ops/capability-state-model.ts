@@ -95,6 +95,18 @@ export function availableActions(
   );
 }
 
+/**
+ * Whether a new quote can be created with the switches as they are. Pages that
+ * offer something to quote or buy read this, so an active price book alone
+ * never presents a purchase the server would refuse.
+ */
+export function quoteCreationOpen(capabilities: CapabilityState): boolean {
+  return meetsRequirement(
+    capabilities,
+    coreCommandCapabilities({ resource: "quotes", action: "create" }),
+  );
+}
+
 /** Only a row that says so counts; a missing key is off for both halves. */
 export function capabilityStateFrom(
   rows: readonly {

@@ -5,7 +5,9 @@ import { join } from "node:path";
 import { expect, it } from "vitest";
 import type { PricingScenarioLine } from "@clockwork/contracts";
 import {
+  indicativePartnerNotice,
   indicativePricingSummaryNotice,
+  partnerQuoteNotice,
   renderIndicativePricingSummary,
   type IndicativePricingSummaryInput,
 } from "./render";
@@ -32,8 +34,10 @@ const input: IndicativePricingSummaryInput = {
   scenarioId: "019a44ac-0000-7000-8000-00000000ab01",
   company: "Société Générale Nguyễn, Inc.",
   asOf: "2026-10-10",
+  productNames: { "STORAGE-TB": "Storage", "ARCHIVE-TB": "Archive storage" },
+  regionNames: { "us-east": "US East (N. Virginia)" },
   lines: [
-    line(),
+    line({ entered: { quantity: "0.5", unit: "PB" } }),
     line({
       sku: "ARCHIVE-TB",
       region: "eu-west",
@@ -45,6 +49,26 @@ const input: IndicativePricingSummaryInput = {
     line({ sku: "EGRESS-TB", quantity: "20", termMonths: 1, discountBps: 0 }),
   ],
 };
+
+/** What Poppler reads on each page, whitespace collapsed. */
+function pageTexts(bytes: Buffer, pages: number) {
+  const dir = mkdtempSync(join(tmpdir(), "pricing-summary-pages-"));
+  try {
+    const path = join(dir, "summary.pdf");
+    writeFileSync(path, bytes);
+    return Array.from({ length: pages }, (_, index) =>
+      execFileSync(
+        "pdftotext",
+        ["-raw", "-f", String(index + 1), "-l", String(index + 1), path, "-"],
+        { encoding: "utf8" },
+      )
+        .replace(/\s+/g, " ")
+        .trim(),
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
 
 /** Renders and returns what Poppler reads, whitespace collapsed. */
 async function extract(value: IndicativePricingSummaryInput) {
@@ -89,53 +113,244 @@ it("prints list prices, entered discounts and recomputed totals deterministicall
     "Prepared for Société Générale Nguyễn, Inc.",
     "Prepared by FIL One LLC",
     "List prices as of October 10, 2026",
+    "Storage US East (N. Virginia)",
+    // An unnamed code prints as it is.
+    "EGRESS-TB US East",
+    "Archive storage eu-west",
     "$15.00 / TB-month",
-    "1,250.5 TB-month",
+    "0.5 PB = 500 TB",
+    "1,250.5 TB",
     "12.5%",
+    // 6,750.00 + 4,376.75 + 300.00 a month; the first year is 81,000 +
+    // 52,521 + the one-month line's 300.00.
+    "Per month $11,426.75",
+    "Year 1 $133,821.00",
     // 13.50 x 500 x 12 + 3.50 x 1,250.5 x 36 + 15.00 x 20 = 238,863.00.
     "Subtotal at list price $270,372.00",
     "Discounts -$31,509.00",
-    "Total (USD) $238,863.00",
+    "Term total (USD) $238,863.00",
+    "Prices are per decimal terabyte (TB) per month: 1 TB is 1,000 GB.",
+    "List prices are as of October 10, 2026 and can change.",
     "Ref 019a44ac · 1 / 1",
   ])
     expect(text).toContain(expected);
   expect(text).toContain(indicativePricingSummaryNotice);
+  expect(text).not.toContain("Partner");
+  // A line here prices egress, so the summary does not call it free.
+  expect(text).not.toContain("No egress fees");
 }, 30_000);
 
-it("embeds every font", async () => {
-  const { fonts } = await extract(input);
-  const rows = fonts.split("\n").slice(2).filter(Boolean);
-  expect(rows.length).toBeGreaterThanOrEqual(2);
-  for (const row of rows) expect(row).toMatch(/ yes +yes +yes /);
+const referral = {
+  scenarioId: "019a44ac-0000-7000-8000-00000000ab01",
+  company: "Meridian Data Vaults",
+  asOf: "2026-10-10",
+  productNames: { "STORAGE-TB": "Storage" },
+  lines: [
+    line({
+      unitPrice: { currency: "USD", minor: "599" },
+      minimumQuantity: "1",
+      quantity: "11258.99906842624",
+      entered: { quantity: "10", unit: "PiB" },
+      egressTreatment: "included",
+      termMonths: 36,
+      discountBps: 0,
+    }),
+  ],
+  partnerEconomics: {
+    model: "referral",
+    partnerName: "Copperline Partners",
+    commissionBps: 3000,
+    steps: [
+      { fromMonth: 13, commissionBps: 2000 },
+      { fromMonth: 25, commissionBps: 1000 },
+    ],
+  },
+} satisfies IndicativePricingSummaryInput;
+
+const resale = {
+  ...referral,
+  partnerEconomics: {
+    model: "resale" as const,
+    partnerName: "Tidewater Systems",
+    customerPriceMinor: "650",
+    marginBps: 3200,
+  },
+} satisfies IndicativePricingSummaryInput;
+
+it("adds the partner's earnings for a partner and never Fil One's net", async () => {
+  const [a, b] = await Promise.all([
+    renderIndicativePricingSummary({ ...referral, audience: "partner" }),
+    renderIndicativePricingSummary({ ...referral, audience: "partner" }),
+  ]);
+  expect(a.sha256).toBe(b.sha256);
+  const { text } = await extract({ ...referral, audience: "partner" });
+  for (const expected of [
+    "Partner Copperline Partners",
+    "10 PiB about 11,259 TB",
+    "Per month $67,441.40",
+    "Year 1 $809,296.85",
+    "No egress fees: reading and downloading stored data is free.",
+    "Term total (USD) $2,427,890.56",
+    "Partner economics",
+    "Model Referral",
+    "Commission 30% from month 1; 20% from month 13; 10% from month 25",
+    "PER TB-MONTH",
+    // 67,441.40 a month at 30%, 20% and 10%; $5.99 per TB at each rate.
+    "Months 1-12 at 30%, per month $20,232.42 $1.80",
+    "Months 13-24 at 20%, per month $13,488.28 $1.20",
+    "Months 25-36 at 10%, per month $6,744.14 $0.60",
+    "Year 1 $242,789.06",
+    "Year 2 $161,859.37",
+    "Year 3 $80,929.68",
+    "Term, 36 months $485,578.11",
+    indicativePartnerNotice,
+  ])
+    expect(text).toContain(expected);
+  // Fil One keeps 2,427,890.56 - 485,578.11 = 1,942,312.45; it never prints.
+  expect(text).not.toContain("1,942,312.45");
+  expect(text).not.toMatch(/net/iu);
 }, 30_000);
 
-it("runs to a second page with the notice on each", async () => {
-  const lines = Array.from({ length: 20 }, (_, index) =>
-    line({ sku: `SKU-${index + 1}`, region: "ap-southeast-2" }),
+it("prints a resale partner's prices and margin for the partner", async () => {
+  const partner = await extract({ ...resale, audience: "partner" });
+  for (const expected of [
+    // The lines and totals are at the partner's price, as the figures are.
+    "ITEM PRICE QUANTITY",
+    "$6.50 / TB-month",
+    "Per month $73,183.49",
+    "Term total (USD) $2,634,605.78",
+    "Model Resale",
+    "Customer price $6.50 / TB-month",
+    "Partner buy price $4.42 / TB-month",
+    "Partner margin $2.08 / TB-month (32%)",
+  ])
+    expect(partner.text).toContain(expected);
+  expect(partner.text).not.toContain("$5.99");
+  expect(partner.text).not.toContain("Subtotal at list price");
+}, 30_000);
+
+it("quotes a resale customer at the partner's price, never Fil One's list", async () => {
+  const [a, b] = await Promise.all([
+    renderIndicativePricingSummary({ ...resale, audience: "customer" }),
+    renderIndicativePricingSummary({ ...resale, audience: "customer" }),
+  ]);
+  expect(a.sha256).toBe(b.sha256);
+  const { text } = await extract({ ...resale, audience: "customer" });
+  // 11,258.99906842624 TB x 6.50 = 73,183.49 a month, 878,201.93 for 12
+  // months and 2,634,605.78 for 36.
+  for (const expected of [
+    "Indicative Pricing Summary Partner quote from Tidewater Systems, on Fil One storage",
+    "Prepared for Meridian Data Vaults",
+    "Quoted by Tidewater Systems",
+    "Prices as of October 10, 2026",
+    "ITEM PRICE QUANTITY",
+    "$6.50 / TB-month",
+    "Per month $73,183.49",
+    "Year 1 $878,201.93",
+    "Term total (USD) $2,634,605.78",
+    "Prices are the partner's indicative prices as of October 10, 2026",
+    partnerQuoteNotice,
+    "Indicative Pricing Summary · Tidewater Systems · Ref 019a44ac",
+  ])
+    expect(text).toContain(expected);
+  for (const absent of [
+    "$5.99",
+    "$4.42",
+    "FIL One LLC",
+    "List prices",
+    "Subtotal at list price",
+    "Partner economics",
+    "Partner buy price",
+    indicativePartnerNotice,
+  ])
+    expect(text).not.toContain(absent);
+  // Without a partner name the quote still names who is quoting.
+  const unnamed = await extract({
+    ...resale,
+    partnerEconomics: {
+      model: "resale",
+      customerPriceMinor: "650",
+      marginBps: 3200,
+    },
+    audience: "customer",
+  });
+  expect(unnamed.text).toContain(
+    "Partner quote from your Fil One partner, on Fil One storage",
   );
-  const { pdf, text } = await extract({ ...input, lines });
-  expect(pdf.pages).toBeLessThanOrEqual(2);
+  expect(unnamed.text).toContain("Quoted by Your Fil One partner");
+}, 30_000);
+
+it("keeps direct and referral customer summaries at Fil One list", async () => {
+  const { text } = await extract({ ...referral, audience: "customer" });
+  for (const expected of [
+    "Prepared by FIL One LLC",
+    "List prices as of October 10, 2026",
+    "$5.99 / TB-month",
+    "Per month $67,441.40",
+    indicativePricingSummaryNotice,
+  ])
+    expect(text).toContain(expected);
+  expect(text).not.toContain("Partner");
+  expect(text).not.toContain("Quoted by");
+}, 30_000);
+
+it("runs a long partner schedule onto another page and leaves out steps past the term", async () => {
+  const steps = Array.from({ length: 11 }, (_, index) => ({
+    fromMonth: 10 * (index + 1) + 1,
+    commissionBps: 3000 - index * 200,
+  }));
+  const lines = Array.from({ length: 11 }, (_, index) =>
+    line({ quantity: "100", termMonths: 10 * (index + 1) - 3 }),
+  );
+  const { pdf, text } = await extract({
+    ...referral,
+    lines,
+    audience: "partner",
+    partnerEconomics: { model: "referral", commissionBps: 3000, steps },
+  });
+  expect(pdf.pages).toBeGreaterThan(1);
   for (let page = 1; page <= pdf.pages; page++)
     expect(text).toContain(`Ref 019a44ac · ${page} / ${pdf.pages}`);
-  expect(text.split(indicativePricingSummaryNotice)).toHaveLength(
-    pdf.pages + 1,
-  );
+  // Each table's head repeats only on the pages its own rows reach.
+  const pages = pageTexts(pdf.bytes, pdf.pages);
+  for (const page of pages) {
+    const lineRows = page.includes("/ TB-month 100 TB");
+    const partnerRows = /, per month \$|Year \d+ \$|Term, \d+ months/u.test(
+      page,
+    );
+    expect(page.includes("ITEM LIST PRICE QUANTITY")).toBe(lineRows);
+    expect(page.includes("PERIOD PARTNER EARNINGS")).toBe(partnerRows);
+  }
+  expect(pages.some((page) => !page.includes("ITEM LIST PRICE"))).toBe(true);
+  expect(text).toContain("Term, 107 months");
+  expect(text).toContain("Year 9, months 97-107");
+  // The longest term is 107 months, so the step from month 111 never prints.
+  expect(text).not.toContain("from month 111");
+  expect(text).toContain("from month 101");
 }, 30_000);
 
-it("accepts saved list-price lines only and refuses what it cannot print", async () => {
+it("prints no partner figures when lines are in different units", async () => {
+  const { text } = await extract({
+    ...referral,
+    audience: "partner",
+    lines: [
+      ...referral.lines,
+      line({ unit: "GB-month", quantity: "1000", termMonths: 36 }),
+    ],
+  });
+  expect(text).not.toContain("Partner economics");
+  expect(text).not.toContain(indicativePartnerNotice);
+}, 30_000);
+
+it("refuses a resale customer summary it cannot price at one partner price", async () => {
   await expect(
     renderIndicativePricingSummary({
-      ...input,
-      lines: [{ ...line(), floorPrice: { currency: "USD", minor: "1111" } }],
-    } as unknown as IndicativePricingSummaryInput),
-  ).rejects.toThrow();
-  await expect(
-    renderIndicativePricingSummary({
-      ...input,
-      lines: [line(), line({ unitPrice: { currency: "EUR", minor: "1" } })],
+      ...resale,
+      audience: "customer",
+      lines: [
+        ...resale.lines,
+        line({ unit: "GB-month", quantity: "1000", termMonths: 36 }),
+      ],
     }),
-  ).rejects.toThrow();
-  await expect(
-    renderIndicativePricingSummary({ ...input, company: "株式会社" }),
-  ).rejects.toThrow("PRICING_SUMMARY_UNPRINTABLE");
+  ).rejects.toThrow("PRICING_SUMMARY_RESALE_UNITS");
 });

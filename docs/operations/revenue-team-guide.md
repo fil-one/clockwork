@@ -19,9 +19,9 @@ made-up companies and sends nothing.
    Google Authenticator or Authy). Keep it on a device you carry.
 4. You land on **Home**, which shows your own work.
 
-New sellers get the **Revenue** role: Home, MNDAs, Contracts, Sales library and
-Pricing. Commerce administrators also see Team, the owner console, MNDA settings
-and the operations groups.
+New sellers get the **Revenue** role: Home, MNDAs, Contracts, Partners, Sales
+library and Pricing. Commerce administrators also see Team, the owner console,
+MNDA settings and the operations groups.
 
 Commerce asks for the 6-digit code from your authenticator. A verification lasts
 eight hours, and sensitive actions may ask again if your last check is more than
@@ -176,6 +176,55 @@ read.
 Once a commerce administrator turns on email, you also get each one by email.
 Turn email off, or choose which kinds you get, under **Email** on the same page.
 
+## Partners
+
+**Partners** keeps what we agreed, or are negotiating, with each channel,
+referral, affiliate and technology partner. Record a partner at the first
+conversation; nothing has to exist in Commerce first.
+
+1. Choose **New partner**. Only the name is required. Add the website, the
+   region or territory in your own words, the partnership models (referral,
+   resale, affiliate, distributor, MSP, teaming, technology, other), the status,
+   the owner and the key contacts.
+2. Under **Terms**, fill in what applies: commission or revenue share (any rate
+   from 0 to 100, decimals allowed), how long it runs or how it steps down,
+   partner margin or discount, territory, exclusivity, contracting currency
+   (USD, EUR or GBP), NFR (not-for-resale) allowance, and the trial period and
+   targets. A step-down schedule takes one row per change, for example 32% from
+   month 1, 26% from month 13, 20% from month 25. Anything else, such as a
+   second commission rate for data-center build-outs or a resale price per TB,
+   goes in **Other terms** as its own row.
+3. Set a **Next step** and its due date. Home shows partner next steps that are
+   overdue or due this week, yours and the team's.
+4. Once operations has set up the partner's organization, link it on the record.
+
+Anyone with the Revenue role can edit any partner. Every change is recorded with
+who made it and what changed, under **History** on the partner. If someone else
+saved while you were editing, Commerce asks you to reload rather than overwrite
+their change.
+
+The partner page also lists MNDAs and contracts with the same company, matched
+the way the MNDA form spots duplicates. A teaming agreement or channel agreement
+on the partner's paper goes in **Contracts** as usual; it then shows here.
+
+### Registered deals
+
+On the partner, choose **Register a deal** and enter the end client, the
+registration date, the estimated size (TB, PB, TiB or PiB), the model for this
+deal (referral, resale or other) and notes. Leave **Protected until** empty to
+take the channel policy's protection (90 days when no policy is set), or set
+your own date.
+
+If another partner has an open registration for the same end client, a warning
+names that partner and its dates while you type and again on both partners'
+records. It never stops you saving: decide with the owners, then mark the losing
+registration **Withdrawn** or **Disputed**. A registration still **Registered**
+or **Accepted** when its protection ends becomes **Expired** on its own.
+
+These records do not change billing, commission payments or anything the partner
+sees. **Export CSV** on the Partners page downloads the filtered list, up to
+5,000 rows.
+
 ## Find a signed PDF
 
 - MNDAs: filter the register to **Signed**, then download from the row. The file
@@ -190,8 +239,50 @@ Turn email off, or choose which kinds you get, under **Email** on the same page.
   10,000 rows.
 - Contracts: **Export CSV** on the Contracts page downloads the filtered
   register, including signed MNDAs, up to 5,000 rows.
+- Partners: **Export CSV** on the Partners page downloads the filtered list with
+  each partner's headline terms, up to 5,000 rows.
 
 Every download and export is recorded under your name.
+
+## Pricing
+
+Pricing gives you an indicative number in a meeting. It is not a quote or an
+offer; the price that applies is the one in a signed order form.
+
+- **Capacity.** Enter it in TB, PB, TiB or PiB. Prices are per decimal TB per
+  month (1 TB = 1,000 GB), so the page shows the conversion under the field: 10
+  PiB is about 11,259 TB, which at $5.99 is about $67,441 a month. A "10 PiB at
+  $60K a month" model treats a PiB as 1,000 TB; check which the other side
+  means.
+- **Totals.** Each line and the scenario show per month, year 1 (the first 12
+  months, or the whole term when shorter) and the total for the term.
+- **Partner economics.** Optional. Pick a model:
+  - Referral: the customer buys from Fil One and the partner earns a commission
+    on what the customer pays. Add step-downs for a rate that changes later, for
+    example 30% from month 1, 20% from month 13 and 10% from month 25.
+  - Resale: enter the partner's price to its customer and either the partner's
+    margin or Fil One's price to the partner, which cannot be higher than the
+    partner's price; the page works out the other. For example, a 32% margin on
+    $6.50 is a price to the partner of $4.42. Line discounts do not apply: both
+    summaries price every line at the partner's price.
+  - Other: a share of what the customer pays, a fee per TB-month and a fixed
+    monthly amount, in any mix.
+
+  The panel shows what the customer pays, what the partner earns and Fil One's
+  net revenue for month 1, year 1, the term and per TB-month. The partner cannot
+  earn more than the customer pays in a month; otherwise no cap or floor is
+  applied, and the figures commit nobody to a commission or margin.
+
+- **Summary PDF.** Save the scenario, then download the summary for the customer
+  or, when it has partner economics, the partner summary, which adds the
+  partner's terms and earnings and does not print Fil One's net revenue. On a
+  resale, the customer summary is the partner's quote to its customer: every
+  line at the partner's price, under the partner's name, with no Fil One list or
+  buy price on it. Direct and referral customer summaries show Fil One list
+  prices.
+
+The demo has two example scenarios, a resale and a referral with step-downs,
+that you can open and download.
 
 ## If your session expires
 
@@ -204,9 +295,10 @@ again.
 
 | Page          | What it is for                                                                                              |
 | ------------- | ----------------------------------------------------------------------------------------------------------- |
-| Home          | Your MNDAs and contracts by what they are waiting on, then the start guide.                                 |
+| Home          | Your MNDAs, contracts and partner next steps by what they are waiting on, then the start guide.             |
 | MNDAs         | Send, remind, fix an email, void, check status, download, export.                                           |
 | Contracts     | Every agreement. Record one, prepare from a template, send, remind, void, export.                           |
+| Partners      | Each partner's terms, owner, next step and registered deals.                                                |
 | Sales library | Current decks, one-pagers, pricing sheets and case studies.                                                 |
 | Pricing       | Indicative prices for a conversation, worked out from the current price book. Not a quote and not an offer. |
 | Team          | Commerce administrators only: add staff, change roles, remove access.                                       |

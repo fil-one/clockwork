@@ -136,6 +136,8 @@ describe("indicative price books", () => {
   });
 });
 
+const demoState = { kind: "demo", examples: [], opened: null } as const;
+
 describe("pricing builder, line 1 as the calculator", () => {
   const books = indicativePriceBooks(
     [
@@ -149,7 +151,7 @@ describe("pricing builder, line 1 as the calculator", () => {
 
   it("prices a monthly figure and a total from the list price", async () => {
     const user = userEvent.setup();
-    render(<ScenarioBuilder books={books} state={{ kind: "demo" }} />);
+    render(<ScenarioBuilder books={books} state={demoState} />);
     expect(screen.getByRole("note")).toHaveTextContent(
       "Prices from the active price book, effective on 2026-09-01.",
     );
@@ -157,19 +159,25 @@ describe("pricing builder, line 1 as the calculator", () => {
     await user.clear(capacity);
     await user.type(capacity, "500");
     expect(within(line()).getByText("$7,500.00")).toBeInTheDocument();
-    expect(within(line()).getByText("$90,000.00")).toBeInTheDocument();
+    // A 12-month term: the year and the term are the same figure.
+    expect(within(line()).getAllByText("$90,000.00")).toHaveLength(2);
     expect(
       within(line()).getByText("Price per TB per month"),
     ).toBeInTheDocument();
     expect(
       within(line()).getByText("$18.00 per TB per month"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Total$90,000.00");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Per month$7,500.00Year 1$90,000.00",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Term total$90,000.00",
+    );
     expect(screen.getByText(/^Indicative only\./u)).toBeInTheDocument();
   });
 
   it("names the book, product and region in words", () => {
-    render(<ScenarioBuilder books={books} state={{ kind: "demo" }} />);
+    render(<ScenarioBuilder books={books} state={demoState} />);
     expect(
       within(line()).getByRole("option", {
         name: "Standard (USD), version 1",
@@ -184,7 +192,7 @@ describe("pricing builder, line 1 as the calculator", () => {
 
   it("marks a capacity below the minimum on the field", async () => {
     const user = userEvent.setup();
-    render(<ScenarioBuilder books={books} state={{ kind: "demo" }} />);
+    render(<ScenarioBuilder books={books} state={demoState} />);
     const capacity = within(line()).getByLabelText("Capacity (TB)");
     await user.clear(capacity);
     await user.type(capacity, "2");
@@ -198,7 +206,7 @@ describe("pricing builder, line 1 as the calculator", () => {
 
   it("says against each field what to enter", async () => {
     const user = userEvent.setup();
-    render(<ScenarioBuilder books={books} state={{ kind: "demo" }} />);
+    render(<ScenarioBuilder books={books} state={demoState} />);
     const capacity = within(line()).getByLabelText("Capacity (TB)");
     const term = within(line()).getByLabelText("Term (months)");
     const discount = within(line()).getByLabelText("Discount (%)");
@@ -231,7 +239,7 @@ describe("pricing builder, line 1 as the calculator", () => {
   });
 
   it("offers no partner route, tier or save in the demo", () => {
-    render(<ScenarioBuilder books={books} state={{ kind: "demo" }} />);
+    render(<ScenarioBuilder books={books} state={demoState} />);
     expect(screen.queryByLabelText(/route|tier/iu)).toBeNull();
     expect(screen.getAllByRole("button")).toEqual([
       screen.getByRole("button", { name: "Add line" }),

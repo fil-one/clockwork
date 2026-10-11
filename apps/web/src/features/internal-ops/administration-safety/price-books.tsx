@@ -132,7 +132,7 @@ function formString(values: FormData, name: string): string {
   return typeof value === "string" ? value : "";
 }
 
-/** Minor units as the plain decimal an input edits ("150.00"). */
+/** Minor units as the plain decimal an input edits ("5.99"). */
 function minorDecimal(value: string): string {
   const minor = BigInt(value);
   return `${minor / 100n}.${(minor % 100n).toString().padStart(2, "0")}`;
@@ -140,7 +140,7 @@ function minorDecimal(value: string): string {
 
 /**
  * A typed price in minor units. Either decimal separator is accepted, so a
- * reader who writes "150,00" is not refused; at most two decimals, never a
+ * reader who writes "5,99" is not refused; at most two decimals, never a
  * grouping separator, so "1.500" cannot be read as fifteen hundred.
  */
 function currencyMinor(value: string): string | undefined {
@@ -778,7 +778,7 @@ export function PriceBookAdministration({
                   inputMode="decimal"
                   required
                   pattern={decimalPattern}
-                  placeholder="150.00"
+                  placeholder="5.99"
                 />
               </label>
               <label className={styles.field}>

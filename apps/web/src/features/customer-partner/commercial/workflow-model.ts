@@ -1,6 +1,28 @@
-import { uuidV7 } from "@clockwork/contracts";
+import { QuantitySchema, uuidV7 } from "@clockwork/contracts";
 
 import type { MessageId, Translator } from "@/src/i18n";
+
+/**
+ * A committed capacity the builders may send: a bare positive decimal. There
+ * is no deal-size floor here. The rate card's own minimum quantity is the only
+ * one, and the server applies it when the quote is priced.
+ */
+export function isCommittedCapacity(value: string): boolean {
+  return committedCapacity(value) !== undefined;
+}
+
+/**
+ * The committed capacity as the exact decimal the server parses, or undefined
+ * when it is not one. The typed text is kept as is: converting it through a
+ * number would write a tiny value in exponent notation, which the server
+ * refuses.
+ */
+export function committedCapacity(value: string): string | undefined {
+  const capacity = value.trim();
+  return QuantitySchema.safeParse(capacity).success && /[1-9]/u.test(capacity)
+    ? capacity
+    : undefined;
+}
 
 /** The three quote-creation stages, in order, as message IDs. */
 export const quoteStageLabels = [
@@ -97,8 +119,7 @@ export function validateQuoteStage(
       errors.offer = "customer.commercial.quoteError.offer";
   }
   if (stage === 2) {
-    const capacity = Number(draft.capacity);
-    if (!Number.isFinite(capacity) || capacity < 10)
+    if (!isCommittedCapacity(draft.capacity))
       errors.capacity = "customer.commercial.quoteError.capacity";
     const term = Number(draft.termMonths);
     if (!Number.isInteger(term) || term < 1 || term > 60)

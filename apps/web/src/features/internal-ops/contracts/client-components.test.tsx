@@ -57,6 +57,19 @@ import { SigningPanel } from "./signing-panel";
 const pdf = (name: string, size = 10) =>
   new File([new Uint8Array(size)], name, { type: "application/pdf" });
 
+/**
+ * The contract form's submit button, found by its text. A role query
+ * computes the accessible name of every element in this long form, about a
+ * third of a test's time, enough to push a full journey past the default
+ * timeout under CI load; the text query is a fraction of that and still
+ * requires a button.
+ */
+function formButton(label: string) {
+  const button = screen.getByText(label).closest("button");
+  if (!button) throw new Error(`No button labelled ${label}`);
+  return button;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.saveContract.mockResolvedValue({
@@ -108,7 +121,7 @@ describe("record a contract", () => {
       "main",
       "attachment",
     ]);
-    fireEvent.click(screen.getByRole("button", { name: "Save contract" }));
+    fireEvent.click(formButton("Save contract"));
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledWith(
         "/internal/contracts/019a44ac-0000-7000-8000-0000000000c1",
@@ -139,14 +152,17 @@ describe("record a contract", () => {
       ["Signed MSA.pdf", "main"],
       ["DPA.pdf", "attachment"],
     ]);
-  });
+    // A full journey on the longest staff form: fill it, preview the term,
+    // attach two PDFs and save. Cold on a loaded CI runner it has taken just
+    // over the 5s default.
+  }, 15_000);
 
   it("points out fields to fix before anything is saved", async () => {
     render(<ContractForm contract={null} ownerName="" today="2026-10-04" />);
     fireEvent.change(screen.getByLabelText(/Initial term/), {
       target: { value: "twelve" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save contract" }));
+    fireEvent.click(formButton("Save contract"));
     const summary = (await screen.findByText("Check these fields")).closest(
       "section",
     ) as HTMLElement;
@@ -187,7 +203,7 @@ describe("record a contract", () => {
     fireEvent.change(screen.getByLabelText(/Choose PDFs/), {
       target: { files: [pdf("Huge.pdf")] },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save contract" }));
+    fireEvent.click(formButton("Save contract"));
     expect(
       await screen.findByText(
         "The contract was saved, but some files did not upload",
@@ -211,7 +227,7 @@ describe("record a contract", () => {
     expect(screen.getByLabelText(/Counterparty legal name/)).toHaveValue(
       fixtureContractRecord.counterpartyName,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Save contract" }));
+    fireEvent.click(formButton("Save contract"));
     await waitFor(() => expect(mocks.saveContract).toHaveBeenCalledOnce());
     const [saved] = mocks.saveContract.mock.calls[0] as [
       { contract: { id: string; status: string; paper: string } },
@@ -304,7 +320,7 @@ describe("record a contract", () => {
       "href",
       "/internal/contracts/019a44ac-0000-7000-8000-0000000000c7",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Save contract" }));
+    fireEvent.click(formButton("Save contract"));
     await waitFor(() => expect(mocks.saveContract).toHaveBeenCalledOnce());
     expect(mocks.findContractDuplicates).toHaveBeenCalledWith({
       counterpartyName: "Bluefin Data Co",
@@ -324,7 +340,7 @@ describe("record a contract", () => {
       />,
     );
     expect(screen.queryByLabelText(/Choose PDFs/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(formButton("Save changes"));
     expect(
       await screen.findByText(
         /Someone else changed this while you were editing/,

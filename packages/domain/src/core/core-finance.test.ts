@@ -25,6 +25,8 @@ import {
   prorateMoney,
   projectStripeTruth,
   reconcileCommitmentToSource,
+  evaluateRegistration,
+  registerDeal,
   threeWayTieOut,
   validatePartnerHierarchy,
 } from ".";
@@ -704,6 +706,78 @@ describe("core commercial domain", () => {
     expect(() =>
       validatePartnerHierarchy([distributor, reseller, sub]),
     ).toThrow(/two tiers/);
+  });
+
+  it("flags a house account for review and refuses only a prior active deal", () => {
+    const partner = account({
+      id: "partner",
+      roles: ["partner"],
+      partner: { agreementType: "referral", creditLimit: money(1000n) },
+    });
+    const directClient = account({ id: "direct", roles: ["direct_client"] });
+    const base = {
+      partner,
+      endClient: directClient,
+      workload: "Archive expansion",
+      expectedVolume: "500",
+      registeredAt: "2026-10-10T00:00:00.000Z",
+      protectionDays: 90,
+      houseAccountIds: new Set([directClient.id]),
+    };
+    expect(
+      registerDeal({ ...base, id: "house", priorActiveDeals: [] }),
+    ).toMatchObject({
+      status: "registered",
+      credit: "sourced",
+      exclusion: "house_account",
+    });
+    expect(
+      registerDeal({
+        ...base,
+        id: "prior",
+        priorActiveDeals: [
+          {
+            endClientAccountId: directClient.id,
+            workload: "archive EXPANSION",
+          },
+        ],
+      }),
+    ).toMatchObject({
+      status: "rejected",
+      credit: "none",
+      exclusion: "prior_deal",
+    });
+  });
+
+  it("approves a flagged house account only with an override reason", () => {
+    const partner = account({
+      id: "partner",
+      roles: ["partner"],
+      partner: { agreementType: "referral", creditLimit: money(1000n) },
+    });
+    const flagged = registerDeal({
+      id: "house",
+      partner,
+      endClient: account({ id: "direct", roles: ["direct_client"] }),
+      workload: "Archive expansion",
+      expectedVolume: "500",
+      registeredAt: "2026-10-10T00:00:00.000Z",
+      protectionDays: 90,
+      houseAccountIds: new Set(["direct"]),
+      priorActiveDeals: [],
+    });
+    const decide = (overrideReason?: string) =>
+      evaluateRegistration(flagged, {
+        now: "2026-10-11T00:00:00.000Z",
+        action: "approve",
+        openExclusions: ["house_account"],
+        ...(overrideReason === undefined ? {} : { overrideReason }),
+      });
+    expect(() => decide()).toThrow(/OVERRIDE_REASON_REQUIRED/);
+    expect(() => decide("short")).toThrow(/OVERRIDE_REASON_REQUIRED/);
+    expect(decide("Net-new build-out brought by the partner").status).toBe(
+      "approved",
+    );
   });
 });
 

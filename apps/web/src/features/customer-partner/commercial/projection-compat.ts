@@ -53,7 +53,7 @@ export const projectionCompat: Readonly<
     nextAction: "No action due",
   },
   "Q-2026-0184-v3": {
-    description: "400 TB · US East · annual · direct",
+    description: "2,500 TB · US East · annual · direct",
     statusLabel: "Open",
     value: "$184,800.00",
     valueLabel: "Estimated annual spend",
@@ -62,7 +62,7 @@ export const projectionCompat: Readonly<
     nextAction: "Accept or cancel before expiry",
   },
   "Q-2026-0171-v1": {
-    description: "80 TB · EU West · monthly commit · direct",
+    description: "500 TB · EU West · monthly commit · direct",
     statusLabel: "Draft",
     value: "€31,680.00",
     valueLabel: "Estimated annual spend",
@@ -71,7 +71,7 @@ export const projectionCompat: Readonly<
     nextAction: "Finish and issue quote",
   },
   "Q-2026-0165-v2": {
-    description: "120 TB · UK South · annual · direct",
+    description: "825 TB · UK South · annual · direct",
     statusLabel: "Accepted",
     value: "$55,440.00",
     valueLabel: "Accepted estimated spend",
@@ -80,7 +80,7 @@ export const projectionCompat: Readonly<
     nextAction: "Review and accept resulting order",
   },
   "Q-2026-0140-v1": {
-    description: "40 TB · US East · three months · direct",
+    description: "275 TB · US East · three months · direct",
     statusLabel: "Canceled",
     value: "$4,620.00",
     valueLabel: "Canceled estimate",
@@ -89,7 +89,7 @@ export const projectionCompat: Readonly<
     nextAction: "No actions available",
   },
   "ORD-2026-0098": {
-    description: "500 TB · US East · direct · PO-NA-1048",
+    description: "2,500 TB · US East · direct · PO-NA-1048",
     statusLabel: "Active",
     value: "$184,800.00",
     valueLabel: "Committed annual spend",
@@ -98,7 +98,7 @@ export const projectionCompat: Readonly<
     nextAction: "Renewal notice opens Nov 1, 2026",
   },
   "ORD-2026-0112": {
-    description: "120 TB · EU West · direct · PO-NA-1081",
+    description: "825 TB · EU West · direct · PO-NA-1081",
     statusLabel: "Provisioning",
     value: "$55,440.00",
     valueLabel: "Committed annual spend",
@@ -107,7 +107,7 @@ export const projectionCompat: Readonly<
     nextAction: "Complete provisioning checklist",
   },
   "SVC-PRIMARY-01": {
-    description: "500 TB committed · 311 TB stored · US East",
+    description: "2,500 TB committed · 1,555 TB stored · US East",
     statusLabel: "Active",
     value: "62% used",
     valueLabel: "Capacity usage",
@@ -116,7 +116,7 @@ export const projectionCompat: Readonly<
     nextAction: "No action due",
   },
   "SVC-REPLICA-02": {
-    description: "120 TB committed · provisioning at 78% · EU West",
+    description: "825 TB committed · provisioning at 78% · EU West",
     statusLabel: "Provisioning",
     value: "78% ready",
     valueLabel: "Provisioning",

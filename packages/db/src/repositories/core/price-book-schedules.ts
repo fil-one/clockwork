@@ -3,7 +3,6 @@ import { activatePriceBook } from "@clockwork/domain/core";
 import type { RuntimeDatabase } from "../../client";
 import { approvals, priceBooks } from "../../schema";
 import { priceBookSchedules } from "../../schema/core/price-book-schedules";
-import { systemCapabilities } from "../../schema/system";
 import { withInternalTransaction } from "../../transaction";
 import { appendAuditAndOutbox } from "../audit-outbox";
 import { serverPriceBook } from "./database-finance";
@@ -105,14 +104,8 @@ export class DatabasePriceBookScheduleRepository {
         )
           throw new Error("PRICE_SCHEDULE_REVIEW_CHANGED");
         if (!expired) {
-          // Hold the kill-switch row until the price transition commits.
-          const [capability] = await tx
-            .select()
-            .from(systemCapabilities)
-            .where(eq(systemCapabilities.capabilityKey, "new_business"))
-            .for("share");
-          if (capability?.enabled !== true)
-            throw new Error("PRICE_SCHEDULE_NEW_BUSINESS_DISABLED");
+          // No capability switch gates list-price changes: quotes and orders
+          // keep their own switches, and the retained approval is the control.
           const [decision] = await tx
             .select()
             .from(approvals)

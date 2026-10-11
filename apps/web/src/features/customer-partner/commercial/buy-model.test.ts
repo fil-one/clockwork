@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildBuyQuoteCommand,
+  buyCapacity,
   initialBuyDraft,
   needsFullQuote,
   quoteHandoff,
@@ -33,6 +34,15 @@ describe("self-serve buy model", () => {
       thresholdTb: 250,
     });
     expect(command.resource).toBe("quotes");
+  });
+  it("sets no deal-size floor; the rate card minimum applies when priced", () => {
+    expect(buyCapacity({ ...initial, capacity: "1" })).toBe(1);
+    expect(buyCapacity({ ...initial, capacity: "0.5" })).toBe(0.5);
+    expect(buyCapacity({ ...initial, capacity: "0" })).toBeNull();
+    expect(buyCapacity({ ...initial, capacity: "1e3" })).toBeNull();
+    expect(quoteHandoff({ ...initial, capacity: "0.0000001" })).toBe(
+      "/quotes/new?capacity=0.0000001&term=12",
+    );
   });
   it("keeps 99 TB self-serve and routes 100 TB to the full quote", () => {
     expect(needsFullQuote({ ...initial, capacity: "99" })).toBe(false);

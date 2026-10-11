@@ -83,12 +83,23 @@ describe("quote workflow model", () => {
     });
   });
 
+  it("accepts a committed capacity below 10 TB", () => {
+    expect(
+      validateQuoteStage(
+        2,
+        { ...validDraft, capacity: "1" },
+        accounts,
+        authoritativeQuoteOffers,
+      ).capacity,
+    ).toBeUndefined();
+  });
+
   it("validates by stage and identifies the first field to focus", () => {
     const errors = validateQuoteStage(
       2,
       {
         ...validDraft,
-        capacity: "4",
+        capacity: "0",
         termMonths: "0",
         expiresAt: "",
       },
@@ -96,7 +107,9 @@ describe("quote workflow model", () => {
       authoritativeQuoteOffers,
     );
     const t = translatorFor("en");
-    expect(errors.capacity && t(errors.capacity)).toContain("at least 10 TB");
+    expect(errors.capacity && t(errors.capacity)).toContain(
+      "greater than zero",
+    );
     expect(errors.termMonths && t(errors.termMonths)).toContain(
       "between 1 and 60",
     );

@@ -61,7 +61,7 @@ describe("the demo read boundary renders fixtures for the reader", () => {
 
     expect(quote.data).toMatchObject({
       title: "Renovação anual · capacidade contratada",
-      description: "400 TB · Leste dos EUA · 12 meses · renovação direta",
+      description: "2.500 TB · Leste dos EUA · 12 meses · renovação direta",
       statusLabel: "Emitida · aguardando aceite",
       value: formatMoney("18480000", "USD", "pt-BR"),
       valueLabel: "Gasto anual estimado",
