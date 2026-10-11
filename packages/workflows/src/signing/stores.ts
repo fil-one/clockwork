@@ -6,7 +6,10 @@ import {
   type MndaRecord,
 } from "@clockwork/contracts";
 import type { ContractSigningRepository, MndaRepository } from "@clockwork/db";
-import { signWellCopiedContacts } from "@clockwork/integrations";
+import {
+  contractCopiedContacts,
+  signWellCopiedContacts,
+} from "@clockwork/integrations";
 import type { SigningStore } from "./engine";
 
 /** Thin adapters: each repository keeps its own table, lease, history and
@@ -96,9 +99,10 @@ const contractPatchKeys: ReadonlySet<string> = new Set([
 
 /** The contract table keeps the counterparty's pending and confirmed email
  * corrections and a cancel code (001459), with before-images in the
- * contract's history, one entry per change. It has no `superseded` code or
- * captured-field columns, and the adapter refuses a change carrying anything
- * else it cannot keep, or a note with a follow-up, rather than drop it. */
+ * contract's history, one entry per change, and copies the preparer on the
+ * completed document (001465). It has no `superseded` code or captured-field
+ * columns, and the adapter refuses a change carrying anything else it cannot
+ * keep, or a note with a follow-up, rather than drop it. */
 export function contractSigningStore(
   repo: ContractSigningStoreRepository,
 ): SigningStore<ContractSigningRecord> {
@@ -136,7 +140,7 @@ export function contractSigningStore(
           pending: null,
         },
       },
-      copiedContacts: [],
+      copiedContacts: contractCopiedContacts(r).map((c) => c.email),
     }),
     claim: (id) => repo.claim(id),
     extendLease: (id, token) => repo.extendLease(id, token),
@@ -144,10 +148,15 @@ export function contractSigningStore(
     get: (id) => repo.get(id),
     originalPdf: (id) => repo.generatedPdf(id),
     update: async (r, token, patch, actor, executed, note) => {
+      // A note without its own event, such as whether SignWell reported the
+      // preparer's copy, is kept on the state change's entry.
+      const eventType =
+        note?.eventType ??
+        (note && patch.state ? `contract.signing_${patch.state}` : undefined);
       if (
         Object.keys(patch).some((key) => !contractPatchKeys.has(key)) ||
         note?.followUp ||
-        (note && !note.eventType)
+        (note && !eventType)
       )
         throw new Error("CONTRACT_SIGNING_CHANGE_NOT_STORABLE");
       const { cancelCode, ...kept } = patch;
@@ -162,9 +171,9 @@ export function contractSigningStore(
           bytes: executed,
           fileName: contractPdfFileName(r.documentName, " (executed)"),
         },
-        note?.eventType
+        note && eventType
           ? {
-              eventType: note.eventType,
+              eventType,
               ...(note.detail ? { detail: note.detail } : {}),
               ...(note.before ? { before: note.before } : {}),
             }

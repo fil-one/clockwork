@@ -204,23 +204,41 @@ describe("counterparty paper sources", () => {
     executedAt: null,
   };
 
-  it("offers their main PDF and drafts on an unsigned contract on their paper", () => {
-    expect(
-      counterpartyPaperSources({ contract: open, files, signing: null }).map(
-        (f) => f.kind,
-      ),
-    ).toEqual(["main", "counterparty_draft"]);
+  it("offers the main PDF and drafts on an unsigned contract on either paper", () => {
+    for (const paper of ["theirs", "ours"] as const)
+      expect(
+        counterpartyPaperSources({
+          contract: { ...open, paper },
+          files,
+          signing: null,
+        }).map((f) => f.kind),
+      ).toEqual(["main", "counterparty_draft"]);
   });
 
-  it("offers nothing on our paper, once executed, or once a request exists", () => {
+  it("offers them again once the request ended without signatures", () => {
+    for (const state of ["declined", "expired", "canceled"] as const)
+      expect(
+        counterpartyPaperSources({
+          contract: open,
+          files,
+          signing: { ...fixtureSigningRecord, state },
+        }),
+      ).toHaveLength(2);
+  });
+
+  it("offers nothing once executed, or while a request is open or completed", () => {
     for (const detail of [
-      { contract: { ...open, paper: "ours" as const }, files, signing: null },
       {
         contract: { ...open, status: "executed" as const },
         files,
         signing: null,
       },
       { contract: open, files, signing: fixtureSigningRecord },
+      {
+        contract: open,
+        files,
+        signing: { ...fixtureSigningRecord, state: "completed" as const },
+      },
     ])
       expect(counterpartyPaperSources(detail)).toEqual([]);
   });

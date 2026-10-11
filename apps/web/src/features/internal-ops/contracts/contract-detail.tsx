@@ -7,6 +7,7 @@ import {
   type ContractActivity,
   type ContractFileRecord,
   type ContractRecord,
+  type ContractSigningHistoryEntry,
   type ContractSigningRecord,
   type UploadableContractFileKind,
 } from "@clockwork/contracts";
@@ -106,7 +107,13 @@ function activityTitle(event: ContractActivity, t: Translator) {
         name: typeof changes.fileName === "string" ? changes.fileName : "",
       });
     case "contract.prepared":
-      return t("operations.contracts.activity.prepared");
+      return t(
+        typeof changes.requestNumber === "number"
+          ? "operations.contracts.activity.preparedAgain"
+          : changes.documentType === "counterparty_paper"
+            ? "operations.contracts.activity.preparedPdf"
+            : "operations.contracts.activity.prepared",
+      );
     case "contract.approved":
       return t("operations.contracts.activity.approved");
     case "contract.self_approved":
@@ -255,6 +262,7 @@ export function ContractDetail({
   files,
   activity,
   signing,
+  previousSigning = [],
   today,
   canWrite,
   canApprove,
@@ -265,8 +273,8 @@ export function ContractDetail({
   paperSources = [],
   countersigners = [],
 }: {
-  /** PDFs on the counterparty's paper this reader may send for the Fil One
-   * countersignature, and who may countersign. */
+  /** Uploaded PDFs this reader may send for signature, and who may
+   * countersign. */
   paperSources?: readonly ContractFileRecord[];
   countersigners?: readonly Countersigner[];
   t: Translator;
@@ -275,6 +283,8 @@ export function ContractDetail({
   files: readonly ContractFileRecord[];
   activity: readonly ContractActivity[];
   signing: ContractSigningRecord | null;
+  /** Earlier requests that ended and were replaced. */
+  previousSigning?: readonly ContractSigningHistoryEntry[];
   today: string;
   canWrite: boolean;
   canApprove: boolean;
@@ -355,8 +365,10 @@ export function ContractDetail({
           {signing ? (
             <SigningPanel
               signing={signing}
+              previousSigning={previousSigning}
+              // The current request's PDF is the latest prepared one.
               generatedFileId={
-                files.find((file) => file.kind === "generated")?.id ?? null
+                files.findLast((file) => file.kind === "generated")?.id ?? null
               }
               canWrite={canWrite}
               canApprove={canApprove}
@@ -364,9 +376,12 @@ export function ContractDetail({
               canSelfApprove={canSelfApprove}
               signingReady={signingReady}
             />
-          ) : canWrite && paperSources.length ? (
+          ) : null}
+          {canWrite && paperSources.length ? (
             <CounterpartyPaperCard
               contractId={contract.id}
+              paper={contract.paper}
+              again={signing !== null}
               files={paperSources}
               countersigners={countersigners}
               signingReady={signingReady}

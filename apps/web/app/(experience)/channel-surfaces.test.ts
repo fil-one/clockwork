@@ -315,6 +315,9 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/organizations/new",
       // The owner console reads notices, controls and audit events directly.
       "/internal/owner",
+      // Staff partner records and registered deals, read from their own tables.
+      "/internal/partners",
+      "/internal/partners/new",
       "/internal/payg-offers",
       // Finance reads verified customer handoff requests directly.
       "/internal/payg-requests",

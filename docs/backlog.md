@@ -1820,12 +1820,19 @@ detail lives in `docs/operations/commerce-mnda.md`,
   (`supabase/migrations/001464_contract_counterparty_paper.sql`), with approval,
   reminders, correction, void and the executed PDF as for templates. The
   procedure it follows is
-  [adding a signed document type](operations/add-a-document-type.md). One
-  request per contract: a voided one is not sent again on the same record.
-- **Counterparty paper signature page and live run `[EXTERNAL-ONLY]`:** the
-  signature page wording is interim pending counsel (`EXT-LEGAL-01`), and no
-  counterparty-paper request has yet been signed in SignWell, in test mode or
-  live.
+  [adding a signed document type](operations/add-a-document-type.md).
+- **Any uploaded PDF, sending again and the signed copy `[COMPLETE]`:** an
+  uploaded PDF on either party's paper can be sent for signature, and a contract
+  whose request was declined, expired or voided is sent again from the same
+  record, with the ended request kept in `commerce_contract_signing_history`
+  (`supabase/migrations/001465_contract_signing_any_pdf_resend.sql`). The
+  signature page matches the PDF's paper size and has standard execution,
+  counterparts and electronic-signature wording (version `2026-10-10`; counsel
+  may revise it as a new version). SignWell copies the preparer on the signed
+  PDF. Contract signing is on in deployed environments: test mode on staging,
+  live on production.
+- **Uploaded PDF live run `[EXTERNAL-ONLY]`:** no uploaded-PDF request has yet
+  been signed in SignWell, in test mode or live.
 - **Renewal reminders outside the app `[OPEN]`:** notice deadlines appear in the
   notices list and on the contract record only. Email or chat reminders need a
   scheduled task and a sender, and the sender waits on a notification provider
@@ -2001,6 +2008,29 @@ detail lives in `docs/operations/commerce-mnda.md`,
 - **Handoff notifications `[OPEN]`:** nobody is told when a request is raised or
   decided; operations watches the queue and the seller watches Home. A notice
   waits on a notification provider (`EXT-PROVIDER-01`).
+
+### Partner records
+
+- **Staff partner records and registered deals `[COMPLETE]`:**
+  `/internal/partners` keeps each partner's models, status, owner, contacts,
+  next step and terms (commission or revenue share, step-down rows, margin,
+  territory, exclusivity, currency, NFR allowance, trial, free-form rows) before
+  any organization exists, with an optional link to one later. Holders of
+  `sales:read` read and export; `contract:write` changes. Registered deals take
+  the channel policy's protection by default, warn on another partner's open
+  registration for the same normalized end client without blocking, and expire
+  on read once protection ends. Home counts partner next steps overdue and due
+  this week. Every change is audited as `partner.*`. The records do not feed
+  billing, commissions or the switched-off partner-portal engine
+  (`docs/operations/partner-records.md`,
+  `supabase/migrations/001466_commerce_partners.sql`,
+  `packages/db/src/repositories/partners.ts`,
+  `apps/web/src/features/internal-ops/partners/`). Evidence:
+  `supabase/tests/1466_commerce_partners.test.sql`,
+  `packages/db/src/repositories/partners.integration.test.ts`,
+  `apps/web/src/features/internal-ops/partners/partners.test.tsx`.
+- **Partner next-step reminders `[OPEN]`:** nobody is emailed when a next step
+  falls due; Home shows it. A reminder reads `PartnerRepository.nextStepsDue`.
 
 ### Permission model
 
