@@ -237,7 +237,7 @@ function isCollectionKind(channel: string): channel is CollectionKind {
  * A commercial demo record carries `facts` beside English display strings
  * kept for older consumers (`projection-compat.ts`). The commercial surfaces
  * render the facts; this loader read the English strings, so the dashboard
- * showed "Open", "$184,800.00" and "400 TB · US East · annual · direct" to a
+ * showed "Open", "$184,800.00" and "2,500 TB · US East · annual · direct" to a
  * Spanish reader. A record without facts keeps its strings as written.
  */
 function readerStrings(

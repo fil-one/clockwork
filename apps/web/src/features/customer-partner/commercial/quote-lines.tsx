@@ -4,6 +4,7 @@ import { useTranslations } from "@/src/i18n/client";
 import type { MessageId, Translator } from "@/src/i18n";
 
 import styles from "./commercial.module.css";
+import { isCommittedCapacity } from "./workflow-model";
 
 export interface EditableQuoteLine {
   offerId: string;
@@ -41,7 +42,7 @@ export function additionalLineProblem(
         message: "customer.commercial.lines.problem.offer",
         line: number,
       };
-    if (!Number.isFinite(Number(line.capacity)) || Number(line.capacity) < 10)
+    if (!isCommittedCapacity(line.capacity))
       return {
         message: "customer.commercial.lines.problem.capacity",
         line: number,
@@ -124,7 +125,8 @@ export function QuoteLines({
               {t("customer.commercial.lines.capacityFor", { line: index + 2 })}
               <input
                 type="number"
-                min="10"
+                min="0"
+                step="any"
                 value={line.capacity}
                 onChange={(event) =>
                   onChange(

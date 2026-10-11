@@ -39,8 +39,8 @@ const offer: PaygOfferRecord = {
     owner: "Finance",
     payg: {
       currency: "USD",
-      storageTbMonthMinor: "499",
-      monthlyMinimumMinor: "499",
+      storageTbMonthMinor: "599",
+      monthlyMinimumMinor: "599",
       partialMonthMinimum: "full",
       correctionWindowDays: 90,
       aggregation: "hourly_average_daily_utc",
@@ -105,7 +105,7 @@ describe("operable PAYG and trial policy administration", () => {
     await user.click(screen.getByRole("button", { name: /Direct PAYG/ }));
     const price = screen.getByRole("textbox", { name: /Price per TB-month/ });
     await user.clear(price);
-    await user.type(price, "5.49");
+    await user.type(price, "6.49");
     const grace = screen.getByRole("spinbutton", {
       name: "Read-only grace period (days)",
     });
@@ -121,7 +121,7 @@ describe("operable PAYG and trial policy administration", () => {
       id: offer.id,
       expectedRowVersion: 1,
       terms: {
-        payg: { storageTbMonthMinor: "549", monthlyMinimumMinor: "499" },
+        payg: { storageTbMonthMinor: "649", monthlyMinimumMinor: "599" },
         trial: { gracePeriodDays: 14 },
       },
     });
@@ -237,7 +237,7 @@ describe("operable PAYG and trial policy administration", () => {
     const user = userEvent.setup();
     mocks.fetch.mockResolvedValue(
       new Response(
-        JSON.stringify({ total: { currency: "USD", minor: "499" }, lines: [] }),
+        JSON.stringify({ total: { currency: "USD", minor: "599" }, lines: [] }),
         { status: 200 },
       ),
     );
@@ -268,7 +268,7 @@ describe("operable PAYG and trial policy administration", () => {
       apiOperations: "1000000",
     });
     expect(
-      await screen.findByText("Estimated monthly total: $4.99"),
+      await screen.findByText("Estimated monthly total: $5.99"),
     ).toBeVisible();
   });
 });
@@ -301,7 +301,7 @@ describe("PAYG and trial policies for a reader of another language", () => {
     );
     expect(
       screen.getByText(
-        "US$ 4,99 per TB-month; monthly minimum US$ 4,99. Partial-month minimum: Full monthly minimum.",
+        "US$ 5,99 per TB-month; monthly minimum US$ 5,99. Partial-month minimum: Full monthly minimum.",
       ),
     ).toBeVisible();
     expect(screen.getByText(/Trial: 30 days, then 7 days/)).toBeVisible();
@@ -344,20 +344,20 @@ describe("PAYG and trial policies for a reader of another language", () => {
 describe("the storage price input", () => {
   /**
    * The hint told a Spanish reader to use a decimal point, and the input
-   * refused "4,99": the example and the parser now follow the separator the
+   * refused "5,99": the example and the parser now follow the separator the
    * reader writes, and either separator is accepted.
    */
   it("gives an example in the reader's own decimal notation", () => {
-    expect(exampleAmount("es-ES")).toBe("4,99");
-    expect(exampleAmount("de-DE")).toBe("4,99");
-    expect(exampleAmount("pt-BR")).toBe("4,99");
-    expect(exampleAmount("en-US")).toBe("4.99");
-    expect(exampleAmount("ja-JP")).toBe("4.99");
+    expect(exampleAmount("es-ES")).toBe("5,99");
+    expect(exampleAmount("de-DE")).toBe("5,99");
+    expect(exampleAmount("pt-BR")).toBe("5,99");
+    expect(exampleAmount("en-US")).toBe("5.99");
+    expect(exampleAmount("ja-JP")).toBe("5.99");
   });
 
   it("accepts the example it gives, with either separator", () => {
-    expect(minor("4,99")).toBe("499");
-    expect(minor("4.99")).toBe("499");
+    expect(minor("5,99")).toBe("599");
+    expect(minor("5.99")).toBe("599");
     expect(minor(" 150,5 ")).toBe("15050");
     expect(() => minor("1.500,00")).toThrow();
   });

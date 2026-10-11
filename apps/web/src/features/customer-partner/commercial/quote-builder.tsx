@@ -608,7 +608,8 @@ export function QuoteBuilder({
                     aria-invalid={Boolean(errors.capacity) || undefined}
                     id="capacity"
                     inputMode="decimal"
-                    min="10"
+                    min="0"
+                    step="any"
                     onChange={(event) => update("capacity", event.target.value)}
                     type="number"
                     value={draft.capacity}

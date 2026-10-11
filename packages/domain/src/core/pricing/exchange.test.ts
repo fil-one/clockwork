@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { expect, it } from "vitest";
 import {
   importedPriceBook,
@@ -5,6 +7,7 @@ import {
   PriceBookExchangeSchema,
   PRICE_BOOK_IMPORT_MAX_BYTES,
 } from "./exchange";
+import { priceQuote } from "./index";
 
 const sourceId = "66000000-0000-4000-8000-000000000001";
 export const exchangeFixture = {
@@ -156,4 +159,45 @@ it("refuses the foreign source identity even when it is absent from the destinat
       () => "66100000-0000-4000-8000-000000000002",
     ),
   ).toThrow("new price-book identity");
+});
+
+it("imports the published Fil One list book at $5.99 per TB-month", () => {
+  const document = parsePriceBookExchange(
+    readFileSync(
+      new URL(
+        "../../../../../docs/operations/price-books/fil-one-list-usd.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  const book = importedPriceBook(
+    document,
+    {
+      id: "66000000-0000-4000-8000-000000000599",
+      name: "Fil One list USD",
+      version: 1,
+      effectiveFrom: "2026-10-12",
+    },
+    () => crypto.randomUUID(),
+  );
+  for (const rate of book.rateCards) {
+    expect(rate.unitPrice).toEqual({ currency: "USD", minor: "599" });
+    expect(rate.egressTreatment).toBe("included");
+  }
+  const quoted = priceQuote({
+    book: { ...book, status: "active" },
+    lines: [
+      {
+        sku: "OBJECT_COMMIT",
+        region: "france",
+        quantity: "100",
+        termMonths: 12,
+      },
+    ],
+    route: "direct",
+    quotedAt: "2026-10-12T00:00:00.000Z",
+  });
+  // 100 TB x 12 months x $5.99.
+  expect(quoted.total).toEqual({ currency: "USD", minor: "718800" });
 });

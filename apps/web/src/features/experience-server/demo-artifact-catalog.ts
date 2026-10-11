@@ -351,18 +351,19 @@ function line(
 /**
  * The annual committed-capacity offer, $184,800.00 net.
  *
- * 400 × $420.00 = $168,000.00, plus $16,800.00 of enhanced support, which is
- * the `$184,800.00` the quote and order surfaces already show.
+ * 2,500 TB-year × $67.20 ($5.60 per TB-month, a negotiated committed price
+ * below the $5.99 list) = $168,000.00, plus $16,800.00 of enhanced support,
+ * which is the `$184,800.00` the quote and order surfaces already show.
  */
 export const annualCapacityLines: readonly DocumentLineItem[] = [
   line(
     "line-capacity",
-    "Committed archive capacity — 400 TB · US East",
-    "Term drawdown with contracted overage pricing above the commitment",
-    "400",
+    "Committed archive capacity — 2,500 TB · US East",
+    "Negotiated committed price, $5.60 per TB-month against the $5.99 list",
+    "2500",
     "TB-year",
     "USD",
-    "42000",
+    "6720",
     "16800000",
   ),
   line(
@@ -377,68 +378,77 @@ export const annualCapacityLines: readonly DocumentLineItem[] = [
   ),
 ];
 
-/** One monthly invoice, $15,400.00 net: $12,320.00 committed plus overage. */
+/**
+ * One monthly invoice, $15,400.00 net: the July ramp of 2,200 TB plus 550 TB
+ * above it, both at the contracted $5.60 per TB-month.
+ */
 const monthlyInvoiceLines: readonly DocumentLineItem[] = [
   line(
     "line-capacity",
     "Committed archive capacity — July 2026",
-    "Monthly drawdown against the annual commitment",
-    "400",
+    "Monthly drawdown of the July ramp against the annual commitment",
+    "2200",
     "TB-month",
     "USD",
-    "3080",
+    "560",
     "1232000",
   ),
   line(
     "line-overage",
-    "Metered overage — 100 TB",
-    "Reconciled from provider metering at the contracted overage rate",
-    "100",
+    "Usage above the July ramp — 550 TB",
+    "Reconciled from provider metering at the contracted rate",
+    "550",
     "TB-month",
     "USD",
-    "3080",
+    "560",
     "308000",
   ),
 ];
 
-/** Transfer price to the reseller, £17,250.00 net. */
+/**
+ * Transfer price to the reseller, £17,250.00 net (£2.875 per TB-month, below
+ * the demo floor under an approved pricing exception).
+ */
 const transferLines: readonly DocumentLineItem[] = [
   line(
     "line-transfer",
-    "Committed archive capacity — 120 TB · EU West",
-    "Partner transfer price; confidential partner commercial information",
-    "120",
+    "Committed archive capacity — 500 TB · EU West",
+    "Partner transfer price under an approved pricing exception; confidential partner commercial information",
+    "500",
     "TB-year",
     "GBP",
-    "14375",
+    "3450",
     "1725000",
   ),
 ];
 
-/** Reseller's customer-priced offer to its end client, £21,400.00 net. */
+/**
+ * Reseller's customer-priced offer to its end client, £21,400.00 net
+ * (£3.57 per TB-month, set by the reseller as merchant of record).
+ */
 const resaleLines: readonly DocumentLineItem[] = [
   line(
     "line-resale",
-    "Committed archive capacity — 120 TB · EU West",
+    "Committed archive capacity — 500 TB · EU West",
     "Issued by Ember Peak Systems Ltd as merchant of record",
-    "120",
+    "500",
     "TB-year",
     "GBP",
-    "17833",
+    "4280",
     "2140000",
   ),
 ];
 
-/** Distributor's two-tier offer for its German end client, €31,680.00 net. */
+/** Distributor's two-tier offer for its German end client, €31,680.00 net (€5.28 per TB-month). */
 const distributorLines: readonly DocumentLineItem[] = [
   line(
     "line-eu-capacity",
-    "Committed archive capacity — 80 TB · EU West",
+    "Committed archive capacity — 500 TB · EU West",
     "Two-tier distribution to Cobalt Orchard GmbH",
-    "80",
+    "500",
     "TB-year",
     "EUR",
-    "39600",
+    "6336",
     "3168000",
   ),
 ];
@@ -573,12 +583,12 @@ async function amendment(): Promise<DemoDocumentBody> {
     {
       ...line(
         "delta-capacity",
-        "Madrid compliance replica — additional 40 TB",
+        "Madrid compliance replica — additional 160 TB",
         "Co-terminated with the existing service period",
-        "40",
+        "160",
         "TB-year",
         "USD",
-        "26400",
+        "6600",
         "1056000",
       ),
       change: "add" as const,

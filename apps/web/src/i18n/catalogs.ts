@@ -23,6 +23,7 @@ import { contractMessages } from "./messages/operations-contracts";
 import { contractTemplateMessages } from "./messages/operations-contract-templates";
 import { handoffMessages } from "./messages/operations-handoff";
 import { staffPartnerMessages } from "./messages/operations-partners";
+import { notificationMessages } from "./messages/operations-notifications";
 import { organizationMessages } from "./messages/operations-organizations";
 import { partnerMessages } from "./messages/partner";
 import { platformMessages } from "./messages/platform";
@@ -87,6 +88,7 @@ export const messageModules = {
       ...handoffMessages,
       ...staffPartnerMessages,
       ...organizationMessages,
+      ...notificationMessages,
     },
     prefixes: ["operations."],
     staffOnly: true,

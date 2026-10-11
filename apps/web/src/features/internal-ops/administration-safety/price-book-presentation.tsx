@@ -132,9 +132,11 @@ export function rateQuantityText(
     : t("adminPricing.unit.quantity", { quantity: formatted, unit });
 }
 
-/** Egress treatment is free text; the seeded value "metered" has a label. */
+/** Egress treatment is free text; the common values have labels. */
 export function egressTreatmentLabel(value: string, t: Translator): string {
-  return value === "metered" ? t("adminPricing.egress.metered") : value;
+  if (value === "metered") return t("adminPricing.egress.metered");
+  if (value === "included") return t("adminPricing.egress.included");
+  return value;
 }
 
 /**

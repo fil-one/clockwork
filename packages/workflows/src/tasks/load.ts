@@ -23,6 +23,7 @@ export const productionTaskImporters: readonly TaskModuleImporter[] = [
   () => import("../provisioning/tasks"),
   () => import("../quotes/tasks"),
   () => import("../renewals/tasks"),
+  () => import("../staff-notifications/tasks"),
   () => import("../system/tasks"),
   () => import("../system/gate-activation-tasks"),
   () => import("../webhook-replay/tasks"),

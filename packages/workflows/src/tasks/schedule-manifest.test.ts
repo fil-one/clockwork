@@ -71,7 +71,7 @@ describe("buildScheduleManifest", { timeout: 60_000 }, () => {
   it("covers every scheduled task", async () => {
     const manifest = await buildScheduleManifest();
     expect(manifest.version).toBe(1);
-    expect(manifest.schedules).toHaveLength(28);
+    expect(manifest.schedules).toHaveLength(29);
   });
 
   it("sorts entries by task id and converts each cron", async () => {

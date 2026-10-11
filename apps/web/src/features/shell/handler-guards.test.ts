@@ -27,6 +27,7 @@ const guardCalls = [
   "requireAudience(",
   "mndaStaff(",
   "contractStaff(",
+  "notificationStaff(",
   "contractReader(",
   // contract-templates/server.ts: contractStaff("contract_template:manage"),
   // or in the guided demo the same permission on the persona's session.
