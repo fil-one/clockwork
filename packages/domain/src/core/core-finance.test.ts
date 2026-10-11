@@ -749,6 +749,40 @@ describe("core commercial domain", () => {
     });
   });
 
+  it("compares workloads as the database does and never revives a lapsed registration", () => {
+    const partner = account({
+      id: "partner",
+      roles: ["partner"],
+      partner: { agreementType: "referral", creditLimit: money(1000n) },
+    });
+    const endClient = account({ id: "client", roles: ["end_client"] });
+    const duplicate = registerDeal({
+      id: "dup",
+      partner,
+      endClient,
+      workload: "  Archive Expansion  ",
+      expectedVolume: "10",
+      registeredAt: "2026-10-10T00:00:00.000Z",
+      protectionDays: 30,
+      houseAccountIds: new Set(),
+      priorActiveDeals: [
+        { endClientAccountId: "client", workload: "archive expansion" },
+      ],
+    });
+    expect(duplicate).toMatchObject({
+      status: "rejected",
+      exclusion: "prior_deal",
+    });
+    const fresh = { ...duplicate, status: "approved" as const };
+    expect(() =>
+      evaluateRegistration(fresh, {
+        now: "2026-12-01T00:00:00.000Z",
+        action: "extend",
+        extensionDays: 30,
+      }),
+    ).toThrow(/PROTECTION_LAPSED/);
+  });
+
   it("approves a flagged house account only with an override reason", () => {
     const partner = account({
       id: "partner",

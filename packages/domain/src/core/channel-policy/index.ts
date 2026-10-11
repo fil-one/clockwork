@@ -14,6 +14,12 @@ export const ChannelPolicyTermsSchema = z
     maximumProtectionDays: z.number().int().min(1).max(3650),
     extensionDays: z.number().int().min(1).max(3650),
     maximumExtensions: z.number().int().min(0).max(100),
+    /**
+     * How long a converted registration still owns its end client and
+     * workload against another partner. Absent, the maximum protection
+     * window applies.
+     */
+    conversionLookbackDays: z.number().int().min(1).max(3650).optional(),
     sourceEvidence: z.string().trim().min(8).max(2000),
   })
   .strict()

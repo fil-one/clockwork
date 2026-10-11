@@ -50,11 +50,11 @@ export function derivePocPartnerAccountId(input: {
 }): string | undefined {
   const now = Date.parse(input.now);
   if (!Number.isFinite(now)) throw new Error("POC_RELATIONSHIP_TIME_INVALID");
-  const workload = input.workload.trim().toLocaleLowerCase();
+  const workload = normalizedWorkload(input.workload);
   const candidates = input.relationships.filter(
     (relationship) =>
       relationship.endClientAccountId === input.endClientAccountId &&
-      relationship.workload.trim().toLocaleLowerCase() === workload &&
+      normalizedWorkload(relationship.workload) === workload &&
       (relationship.status === "approved" ||
         relationship.status === "converted") &&
       Date.parse(relationship.protectionStartsAt) <= now &&
@@ -72,6 +72,16 @@ export function derivePocPartnerAccountId(input: {
   )
     throw new Error("POC_PARTNER_RELATIONSHIP_FORGED");
   return derived;
+}
+
+/**
+ * A workload as the database compares it: `lower(btrim(workload))`, which
+ * trims spaces only. The active-registration index and the ownership guard
+ * use the same form, so a duplicate is refused here as a prior deal rather
+ * than failing on the index.
+ */
+export function normalizedWorkload(value: string): string {
+  return value.replace(/^ +| +$/gu, "").toLowerCase();
 }
 
 export function registerDeal(input: {
@@ -94,10 +104,11 @@ export function registerDeal(input: {
   const start = Date.parse(input.registeredAt);
   if (Number.isNaN(start)) throw new Error("Registration time is invalid");
   const house = input.houseAccountIds.has(input.endClient.id);
+  const workload = normalizedWorkload(input.workload);
   const prior = input.priorActiveDeals.some(
     (deal) =>
       deal.endClientAccountId === input.endClient.id &&
-      deal.workload.toLocaleLowerCase() === input.workload.toLocaleLowerCase(),
+      normalizedWorkload(deal.workload) === workload,
   );
   // A prior active deal on the same workload keeps one economic owner, so it
   // is refused. A house-account match is commercial judgement, not integrity:
@@ -139,11 +150,15 @@ export function evaluateRegistration(
   )
     throw new Error("Registration is not eligible for a decision");
   const now = Date.parse(input.now);
-  if (
-    now >= Date.parse(registration.protectionEndsAt) &&
-    input.action !== "extend"
-  )
+  if (now >= Date.parse(registration.protectionEndsAt)) {
+    // A lapsed registration is not revived by an extension; the partner
+    // registers again and channel ops decides afresh.
+    if (input.action === "extend")
+      throw new Error(
+        "REGISTRATION_PROTECTION_LAPSED: a lapsed registration cannot be extended",
+      );
     return { ...registration, status: "expired", credit: "none" };
+  }
   if (
     input.action === "approve" &&
     input.openExclusions?.includes("house_account")

@@ -817,6 +817,12 @@ const QuoteCreateCommandSchema = z.object({
   partnerTier: z.string().optional(),
   marketplaceProvider: z.enum(["aws", "azure", "gcp"]).optional(),
   partnerResaleTotal: MoneySchema.optional(),
+  /**
+   * The approved registration this partner quote is for. Required only when
+   * the partner holds more than one approved, protected registration on the
+   * end client (one per workload); otherwise the single one is used.
+   */
+  dealRegistrationId: z.uuid().optional(),
   expiresAt: z.iso.datetime(),
   whiteLabel: QuoteSnapshotSchema.shape.whiteLabel,
   /**
@@ -3948,6 +3954,14 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
                   "approved",
                   "disputed",
                 ]),
+                // Another partner's open or approved registration owns the
+                // opportunity only while its protection is current. The same
+                // partner's own active registration on this workload is a
+                // duplicate and is refused; once converted it no longer
+                // counts, so a renewal or expansion goes through.
+                sql`(${dealRegistrations.partnerAccountId} = ${partnerId}::uuid
+                  or ${dealRegistrations.status} = 'disputed'
+                  or ${dealRegistrations.protectionEndsAt} > now())`,
                 sql`not (${dealRegistrations.status} = 'registered' and exists (
                   select 1 from core_deal_registration_exclusions pending
                   where pending.registration_id = ${dealRegistrations.id}
@@ -4328,13 +4342,13 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
 
         const partnerId = z.uuid().parse(command.partnerAccountId);
         const endClientId = z.uuid().parse(command.endClientAccountId);
-        const [partner, partnerRow, registration] = await Promise.all([
+        const [partner, partnerRow, approvedRegistrations] = await Promise.all([
           accountCommercial(transaction, partnerId),
           transaction.query.accounts.findFirst({
             where: eq(accounts.id, partnerId),
             columns: { screeningStatus: true },
           }),
-          transaction.query.dealRegistrations.findFirst({
+          transaction.query.dealRegistrations.findMany({
             where: and(
               eq(dealRegistrations.partnerAccountId, partnerId),
               eq(dealRegistrations.endClientAccountId, endClientId),
@@ -4348,9 +4362,27 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
                 new Date(input.occurredAt),
               ),
             ),
-            orderBy: (row, { desc }) => [desc(row.protectionEndsAt)],
           }),
         ]);
+        // A partner may hold one approved registration per workload on the
+        // same end client, so attribution names the one the quote is for.
+        const registration = command.dealRegistrationId
+          ? approvedRegistrations.find(
+              (candidate) => candidate.id === command.dealRegistrationId,
+            )
+          : approvedRegistrations.length === 1
+            ? approvedRegistrations[0]
+            : undefined;
+        if (command.dealRegistrationId && !registration)
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "The named deal registration is not approved and protected for this partner and end client",
+          );
+        if (!registration && approvedRegistrations.length > 1)
+          throw new CoreServiceError(
+            "INVALID_STATE",
+            "This partner holds several approved registrations on the end client; name the dealRegistrationId the quote is for",
+          );
         if (!partnerRow)
           throw new CoreServiceError(
             "NOT_FOUND",
@@ -8484,6 +8516,14 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
       );
     if (
       input.action === "extend" &&
+      prior.protectionEndsAt.getTime() <= this.now().getTime()
+    )
+      throw new CoreServiceError(
+        "INVALID_STATE",
+        "This registration's protection has lapsed and cannot be extended; register the opportunity again",
+      );
+    if (
+      input.action === "extend" &&
       prior.channelPolicySnapshot &&
       typeof prior.channelPolicySnapshot === "object" &&
       "source" in prior.channelPolicySnapshot &&
@@ -8546,33 +8586,15 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
         );
     }
     if (input.action === "approve") {
-      // One economic owner per end client and workload. The database trigger
-      // is the guarantee; this read gives the reason first.
-      const owner = await withInternalTransaction(
-        this.options.pricingDatabase,
-        `${input.requestId}:registration-owner`,
-        (service) =>
-          service
-            .select({ id: dealRegistrations.id })
-            .from(dealRegistrations)
-            .where(
-              and(
-                eq(
-                  dealRegistrations.endClientAccountId,
-                  prior.endClientAccountId,
-                ),
-                inArray(dealRegistrations.status, [
-                  "approved",
-                  "converted",
-                  "disputed",
-                ]),
-                sql`${dealRegistrations.id} <> ${prior.id}
-                  and lower(btrim(${dealRegistrations.workload})) = lower(btrim(${prior.workload}))`,
-              ),
-            )
-            .limit(1),
-      );
-      if (owner.length > 0)
+      // One economic owner per end client and workload, as the database
+      // guard defines it (`core_registration_owner_conflict`); the trigger is
+      // the guarantee and this read gives the reason first.
+      const owner = await transaction.execute<{ owner: string | null }>(sql`
+        select public.core_registration_owner_conflict(
+          ${prior.id}::uuid, ${prior.partnerAccountId}::uuid,
+          ${prior.endClientAccountId}::uuid, ${prior.workload}::text
+        ) as owner`);
+      if (owner[0]?.owner)
         throw new CoreServiceError(
           "INVALID_STATE",
           "Another registration already owns this end client and workload; reject or resolve it first",

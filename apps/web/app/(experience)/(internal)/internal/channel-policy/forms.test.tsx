@@ -15,7 +15,7 @@ vi.mock("@/src/features/internal-ops/self-approval/actions", () => ({
   approveOwnChannelPolicy: mocks.approveOwn,
 }));
 
-import { ChannelDecisionForm } from "./forms";
+import { ChannelDecisionForm, ChannelTermsForm } from "./forms";
 
 const author = "20000000-0000-4000-8000-000000000001";
 const record: ChannelPolicyRecord = {
@@ -96,4 +96,16 @@ it("keeps the second-approver note for anyone who may not approve their own", ()
   expect(
     screen.queryByRole("button", { name: "Approve my own request" }),
   ).not.toBeInTheDocument();
+});
+
+it("offers the conversion lookback as an optional policy term", () => {
+  render(<ChannelTermsForm nextVersion={2} today="2026-10-10" />);
+  const lookback = screen.getByRole("spinbutton", {
+    name: /^Ownership after conversion \(days\)/u,
+  });
+  expect(lookback).not.toBeRequired();
+  expect(lookback).toHaveValue(null);
+  expect(lookback).toHaveAccessibleDescription(
+    /Leave blank to use the maximum protection window/u,
+  );
 });

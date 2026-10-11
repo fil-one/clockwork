@@ -16,6 +16,7 @@ import {
   amendmentLines,
   amendments,
   auditEvents,
+  dealRegistrations,
   entitlements,
   invoices,
   keyTerms,
@@ -3027,10 +3028,9 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
         ids.account.parse("10000000-0000-4000-8000-000000000002"),
         ids.account.parse("10000000-0000-4000-8000-000000000003"),
       ],
-      // Deciding needs quote approval (API and resolution function) and
-      // operations write (the registration update policy); the commerce
-      // administrator holds both.
-      roles: ["commerce_admin"],
+      // A finance approver decides with quote:approve alone: the API, the
+      // resolution function and the registration update guard all admit it.
+      roles: ["finance_approver"],
       isInternalStaff: true,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -3055,12 +3055,17 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       "10000000-0000-4000-8000-000000000003",
       "20000000-0000-4000-8000-000000000008",
     );
+    // Ownership counts an approval only while its protection is current, so
+    // this test registers and decides at the real time.
+    const decidedAt = new Date().toISOString();
     const register = (input: {
       id: string;
       partner: ReturnType<typeof partnerFor>;
       endClientAccountId: string;
       workload: string;
       callerHouseAccountIds: readonly string[];
+      occurredAt?: string;
+      protectionDays?: number;
     }) =>
       repository.mutate({
         resource: "deal_registrations",
@@ -3072,20 +3077,21 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
           endClientAccountId: input.endClientAccountId,
           workload: input.workload,
           expectedVolume: "10",
-          protectionDays: 30,
+          protectionDays: input.protectionDays ?? 30,
           houseAccountIds: input.callerHouseAccountIds,
         },
         actor: { kind: "user", id: input.partner.partnerUserId },
         authorization: input.partner.authorization,
         requestId: `deal-registration-${input.id}`,
         idempotencyKey: `deal-registration-${input.id}`,
-        occurredAt,
+        occurredAt: input.occurredAt ?? decidedAt,
       });
     const decide = (
       id: string,
       action: "approve" | "reject" | "convert",
       expectedVersion: number,
       payload: Record<string, unknown> = {},
+      at = decidedAt,
     ) =>
       repository.mutate({
         resource: "deal_registrations",
@@ -3097,7 +3103,7 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
         authorization: staffAuthorization,
         requestId: `deal-decision-${id}-${action}-${crypto.randomUUID()}`,
         idempotencyKey: `deal-decision-${id}-${action}-${crypto.randomUUID()}`,
-        occurredAt,
+        occurredAt: at,
       });
     const exclusionsFor = (registrationIds: string[]) =>
       withInternalTransaction(db, `deal-exclusions-${runId}`, (tx) =>
@@ -3116,7 +3122,8 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       tx.execute(sql`
         update deal_registrations set status = 'rejected'
         where end_client_account_id = ${accountId}::uuid
-          and workload like 'House review %'
+          and (workload like 'House review %' or workload like 'Lapsed review %'
+            or workload like 'Self decision %')
           and status in ('registered', 'approved')`),
     );
     const workload = `House review ${runId}`;
@@ -3240,8 +3247,116 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       },
     ]);
 
+    // A partner cannot decide its own registration, even below the API: the
+    // database requires decision authority on the tenant pool.
+    const selfDecided = await register({
+      id: crypto.randomUUID(),
+      partner: reseller,
+      endClientAccountId: accountId,
+      workload: `Self decision ${runId}`,
+      callerHouseAccountIds: [],
+    });
+    await expect(
+      repository.mutate({
+        resource: "deal_registrations",
+        id: selfDecided.record.id,
+        accountId: reseller.partnerAccountId,
+        action: "approve",
+        expectedVersion: 1,
+        payload: { overrideReason },
+        actor: { kind: "user", id: reseller.partnerUserId },
+        authorization: reseller.authorization,
+        requestId: `deal-self-approve-${runId}`,
+        idempotencyKey: `deal-self-approve-${runId}`,
+        occurredAt: decidedAt,
+      }),
+    ).rejects.toThrow();
+    await decide(selfDecided.record.id, "reject", 1);
+
+    // The same partner may register another workload on the same client.
+    const expansion = await register({
+      id: crypto.randomUUID(),
+      partner: referral,
+      endClientAccountId: accountId,
+      workload: `${workload} expansion`,
+      callerHouseAccountIds: [],
+    });
+    expect(expansion.record.data.status).toBe("registered");
+
     // Release the partner/client slot so a later run starts clean.
     await decide(houseId, "reject", Number(approved.record.rowVersion));
+    await decide(expansion.record.id, "reject", 1);
+
+    // An approval past its protection window no longer owns the workload: a
+    // registration approved two days ago for one day lets another partner in.
+    const lapsedWorkload = `Lapsed review ${runId}`;
+    const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000).toISOString();
+    const lapsed = await register({
+      id: crypto.randomUUID(),
+      partner: referral,
+      endClientAccountId: accountId,
+      workload: lapsedWorkload,
+      callerHouseAccountIds: [],
+      occurredAt: twoDaysAgo,
+      protectionDays: 1,
+    });
+    const lapsedApproved = await decide(
+      lapsed.record.id,
+      "approve",
+      1,
+      { overrideReason },
+      twoDaysAgo,
+    );
+    expect(lapsedApproved.record.data.status).toBe("approved");
+    // A lapsed registration cannot be extended back beside a new owner.
+    await expect(
+      repository.mutate({
+        resource: "deal_registrations",
+        id: lapsed.record.id,
+        accountId: referral.partnerAccountId,
+        action: "extend",
+        expectedVersion: Number(lapsedApproved.record.rowVersion),
+        payload: { extensionDays: 30, reason: "Partner still working it" },
+        actor: { kind: "user", id: referral.partnerUserId },
+        authorization: referral.authorization,
+        requestId: `deal-extend-${runId}`,
+        idempotencyKey: `deal-extend-${runId}`,
+        occurredAt: decidedAt,
+      }),
+    ).rejects.toThrow(/lapsed and cannot be extended/);
+    const successor = await register({
+      id: crypto.randomUUID(),
+      partner: reseller,
+      endClientAccountId: accountId,
+      workload: lapsedWorkload,
+      callerHouseAccountIds: [],
+    });
+    expect(successor.record.data.status).toBe("registered");
+    const successorApproved = await decide(successor.record.id, "approve", 1, {
+      overrideReason,
+    });
+    expect(successorApproved.record.data.status).toBe("approved");
+    await decide(
+      successor.record.id,
+      "reject",
+      Number(successorApproved.record.rowVersion),
+    );
+
+    // A registration cannot be written straight into a decided status.
+    await expect(
+      withInternalTransaction(db, `registration-insert-${runId}`, (tx) =>
+        tx.insert(dealRegistrations).values({
+          id: crypto.randomUUID(),
+          partnerAccountId: reseller.partnerAccountId,
+          endClientAccountId: accountId,
+          workload: `Inserted approved ${runId}`,
+          expectedVolume: "1",
+          status: "approved",
+          protectionStartsAt: new Date(),
+          protectionEndsAt: new Date(Date.now() + 86_400_000),
+        }),
+      ),
+    ).rejects.toThrow();
   });
 });
 

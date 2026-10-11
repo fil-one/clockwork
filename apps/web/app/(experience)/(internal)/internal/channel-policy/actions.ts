@@ -56,6 +56,11 @@ export async function changeChannelPolicy(
     maximumProtectionDays: Number(field(data, "maximumProtectionDays")),
     extensionDays: Number(field(data, "extensionDays")),
     maximumExtensions: Number(field(data, "maximumExtensions")),
+    ...(field(data, "conversionLookbackDays").trim()
+      ? {
+          conversionLookbackDays: Number(field(data, "conversionLookbackDays")),
+        }
+      : {}),
     sourceEvidence: field(data, "sourceEvidence"),
   };
   const parsed = ChannelPolicyCommandSchema.safeParse(
