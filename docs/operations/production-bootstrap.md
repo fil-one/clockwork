@@ -85,12 +85,34 @@ successes.
 
 ## WorkOS session MFA
 
-A production WorkOS Magic Auth login can require and successfully verify TOTP
-without including an `amr` assurance claim in its access token. Clockwork does
-not infer MFA from that login, factor enrollment, or the organization policy.
-Privileged users are sent to `/access/mfa` to verify an actual WorkOS challenge.
-The server selects the signed-in user's factor and stores a verification receipt
-bound to the verified WorkOS user, organization, and session IDs.
+A production WorkOS Magic Auth login can successfully verify TOTP without
+including an `amr` assurance claim in its access token. When that default claim
+is absent, Clockwork checks WorkOS's session and factor APIs before asking for
+another code. The exact session must belong to the signed-in user and selected
+organization, be active and unexpired, and use password or Magic Auth. The user
+must have exactly one current TOTP factor, created strictly before the original
+session. Both lists are fully paginated. Provider errors, unknown dates,
+replaced or ambiguous factors, impersonation, and other authentication methods
+do not satisfy this fallback. Explicit negative or malformed claims and custom
+assurance-claim names or accepted values retain their existing behavior.
+
+This is based on
+[WorkOS's documented authentication rule](https://workos.com/docs/reference/authkit/authentication)
+that enrolled users complete TOTP at sign-in; it is not a new MFA claim or a
+locally fabricated challenge receipt.
+[Hosted MFA excludes SSO](https://workos.com/docs/authkit/mfa), so SSO and other
+unsupported methods still need explicit assurance or an actual challenge.
+Ordinary use does not refresh the sensitive-action authentication clock. The
+configured MFA organization allowlist remains required. Confirmed provider
+enrollment is synchronized to the existing user's membership with an audit
+event; this does not create a local challenge receipt. A provider factor that
+differs from the authenticator already bound to MCP access requires the actual
+challenge, preserving token revocation when authenticators change.
+
+When verification is needed, `/access/mfa` verifies an actual WorkOS challenge.
+The server stores a receipt bound to the verified user, organization, session,
+and authenticator. Creating an MCP token still needs this recent, factor-bound
+receipt, so replacing an authenticator can revoke tokens issued under it.
 
 Receipts expire after eight hours. Sensitive actions require authentication or a
 fresh MFA receipt within thirty minutes; `/access/mfa` can renew verification.

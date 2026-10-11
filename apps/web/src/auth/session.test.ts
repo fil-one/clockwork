@@ -20,6 +20,8 @@ const authMocks = vi.hoisted(() => ({
   resolveReleaseProofIdentity: vi.fn(),
   resolveWorkosIdentity: vi.fn(),
   findMfaReceipt: vi.fn(),
+  recordHostedMfaEnrollment: vi.fn(),
+  verifyWorkosHostedMfaSession: vi.fn(),
   requestHeaders: new Map<string, string>(),
   requestCookies: new Map<string, string>(),
   authenticateCookie: vi.fn(),
@@ -48,6 +50,11 @@ vi.mock("@workos-inc/node", async (importOriginal) => ({
 vi.mock("@clockwork/db", () => ({
   resolveWorkosIdentity: authMocks.resolveWorkosIdentity,
   findMfaReceipt: authMocks.findMfaReceipt,
+  recordHostedMfaEnrollment: authMocks.recordHostedMfaEnrollment,
+}));
+
+vi.mock("./workos-mfa-assurance", () => ({
+  verifyWorkosHostedMfaSession: authMocks.verifyWorkosHostedMfaSession,
 }));
 
 vi.mock("@/src/auth/identity-repository", async (importOriginal) => ({
@@ -198,6 +205,8 @@ describe("WorkOS commerce session mapping", () => {
     authMocks.requestCookies.clear();
     configuredEnvironment();
     authMocks.findMfaReceipt.mockResolvedValue(undefined);
+    authMocks.recordHostedMfaEnrollment.mockResolvedValue(true);
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue(undefined);
     authMocks.assistedCookie = undefined;
     authMocks.withAuth.mockResolvedValue(workosSession());
     authMocks.requestCookies.set("wos-session", "sealed-session");
@@ -233,6 +242,134 @@ describe("WorkOS commerce session mapping", () => {
       workosUserId: workosSession().user.id,
       workosOrganizationId: workosSession().organizationId,
     });
+    expect(authMocks.verifyWorkosHostedMfaSession).not.toHaveBeenCalled();
+  });
+
+  it("accepts verified hosted MFA evidence when the default assurance claim is omitted", async () => {
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+      factorId: "factor-hosted-001",
+    });
+
+    await expect(getCommerceSession()).resolves.toMatchObject({
+      mfaVerified: true,
+      recentAuthenticationVerified: false,
+    });
+    expect(authMocks.verifyWorkosHostedMfaSession).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        sessionId: fixture.sessionId,
+        workosUserId: fixture.workosUserId,
+        workosOrganizationId: fixture.workosOrganizationId,
+      },
+    );
+    expect(authMocks.recordHostedMfaEnrollment).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        commerceUserId: fixture.commerceUserId,
+        workosUserId: fixture.workosUserId,
+        workosOrganizationId: fixture.workosOrganizationId,
+        sessionId: fixture.sessionId,
+        factorId: "factor-hosted-001",
+      },
+    );
+  });
+
+  it("records observed hosted enrollment without granting fresh authentication", async () => {
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ mfaEnrolled: false }),
+    );
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+      factorId: "factor-hosted-001",
+    });
+
+    await expect(getCommerceSession()).resolves.toMatchObject({
+      mfaVerified: true,
+      recentAuthenticationVerified: false,
+    });
+    expect(authMocks.recordHostedMfaEnrollment).toHaveBeenCalledOnce();
+    expect(authMocks.recordHostedMfaEnrollment).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        commerceUserId: fixture.commerceUserId,
+        workosUserId: fixture.workosUserId,
+        workosOrganizationId: fixture.workosOrganizationId,
+        sessionId: fixture.sessionId,
+        factorId: "factor-hosted-001",
+      },
+    );
+  });
+
+  it("requires a local MFA challenge after the hosted factor changes", async () => {
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+      factorId: "factor-hosted-replacement",
+    });
+    authMocks.recordHostedMfaEnrollment.mockResolvedValue(false);
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Privileged commerce roles require an MFA-policy-enforced session",
+    );
+    expect(authMocks.recordHostedMfaEnrollment).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        commerceUserId: fixture.commerceUserId,
+        workosUserId: fixture.workosUserId,
+        workosOrganizationId: fixture.workosOrganizationId,
+        sessionId: fixture.sessionId,
+        factorId: "factor-hosted-replacement",
+      },
+    );
+  });
+
+  it("does not return a session before observed hosted enrollment is recorded", async () => {
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ mfaEnrolled: false }),
+    );
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+      factorId: "factor-hosted-001",
+    });
+    authMocks.recordHostedMfaEnrollment.mockRejectedValue(
+      new Error("Enrollment recording failed"),
+    );
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Enrollment recording failed",
+    );
+  });
+
+  it("does not turn hosted MFA evidence into fresh authentication for serious actions", async () => {
+    authMocks.getTokenClaims.mockResolvedValue({
+      auth_time: Math.floor(Date.now() / 1000) - 31 * 60,
+    });
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+      factorId: "factor-hosted-001",
+    });
+
+    await expect(getCommerceSession()).resolves.toMatchObject({
+      mfaVerified: true,
+      recentAuthenticationVerified: false,
+    });
+    await expect(requireRecentAuthentication()).rejects.toThrow(
+      "Sensitive action requires recent authentication",
+    );
+  });
+
+  it("fails closed when hosted-session verification cannot be completed", async () => {
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ mfaEnrolled: false }),
+    );
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.verifyWorkosHostedMfaSession.mockRejectedValue(
+      new Error("Provider unavailable"),
+    );
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Privileged commerce roles require an MFA-policy-enforced session",
+    );
+    expect(authMocks.recordHostedMfaEnrollment).not.toHaveBeenCalled();
   });
 
   it("maps only the selected server membership to its commerce account", async () => {
@@ -493,6 +630,9 @@ describe("WorkOS commerce session mapping", () => {
   });
 
   it("keeps the persisted staff actor authoritative during provider impersonation", async () => {
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ mfaEnrolled: false }),
+    );
     const actualUserId = "20000000-0000-4000-8000-000000000001";
     const staffOrganizationId = "30000000-0000-4000-8000-000000000008";
     const staffAccountId = "10000000-0000-4000-8000-000000000009";
@@ -556,6 +696,19 @@ describe("WorkOS commerce session mapping", () => {
       },
     });
     expect(session.userId).toBe(session.impersonation?.actualUserId);
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+      factorId: "factor-hosted-001",
+    });
+    vi.stubEnv(
+      "WORKOS_MFA_POLICY_ORGANIZATION_IDS",
+      `${staffWorkosOrganizationId},${fixture.workosOrganizationId}`,
+    );
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Privileged commerce roles require an MFA-policy-enforced session",
+    );
+    expect(authMocks.verifyWorkosHostedMfaSession).not.toHaveBeenCalled();
+    expect(authMocks.recordHostedMfaEnrollment).not.toHaveBeenCalled();
   });
 
   it("rejects a forged or inconsistent selected membership", async () => {
@@ -729,10 +882,15 @@ describe("WorkOS commerce session mapping", () => {
 
   it("denies a privileged role when the selected organization lacks MFA policy", async () => {
     vi.stubEnv("WORKOS_MFA_POLICY_ORGANIZATION_IDS", "org_other");
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+      factorId: "factor-hosted-001",
+    });
 
     await expect(getCommerceSession()).rejects.toThrow(
       "Privileged commerce roles require an MFA-policy-enforced session",
     );
+    expect(authMocks.verifyWorkosHostedMfaSession).not.toHaveBeenCalled();
   });
 
   it("reads the second factor from the session token, not the organization list", async () => {
@@ -742,6 +900,7 @@ describe("WorkOS commerce session mapping", () => {
       "access-token-deterministic-001",
     );
     expect(session.mfaVerified).toBe(true);
+    expect(authMocks.verifyWorkosHostedMfaSession).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -759,22 +918,51 @@ describe("WorkOS commerce session mapping", () => {
       // which is exactly the state that used to authorize a single-factor
       // session for every owner, admin and approver in it.
       authMocks.getTokenClaims.mockResolvedValue(claims);
+      // Only missing claims may consult hosted-session evidence; malformed
+      // or explicitly negative claims must not be overridden even if it exists.
+      authMocks.verifyWorkosHostedMfaSession.mockResolvedValue(
+        "amr" in claims ? { factorId: "factor-hosted-001" } : undefined,
+      );
 
       await expect(getCommerceSession()).rejects.toThrow(
         "Privileged commerce roles require an MFA-policy-enforced session",
       );
+      if ("amr" in claims)
+        expect(authMocks.verifyWorkosHostedMfaSession).not.toHaveBeenCalled();
     },
   );
 
   it("denies a privileged role when the assurance claim cannot be read", async () => {
     authMocks.getTokenClaims.mockRejectedValue(new Error("malformed token"));
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+      factorId: "factor-hosted-001",
+    });
 
     await expect(getCommerceSession()).rejects.toThrow(
       "Privileged commerce roles require an MFA-policy-enforced session",
     );
+    expect(authMocks.verifyWorkosHostedMfaSession).not.toHaveBeenCalled();
   });
 
+  it.each([null, undefined, [], "malformed", 42])(
+    "does not treat malformed decoded claims %j as an omitted assurance claim",
+    async (claims) => {
+      authMocks.getTokenClaims.mockResolvedValue(claims);
+      authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+        factorId: "factor-hosted-001",
+      });
+
+      await expect(getCommerceSession()).rejects.toThrow(
+        "Privileged commerce roles require an MFA-policy-enforced session",
+      );
+      expect(authMocks.verifyWorkosHostedMfaSession).not.toHaveBeenCalled();
+    },
+  );
+
   it("reads the assurance claim and its accepted values from configuration", async () => {
+    authMocks.resolveWorkosIdentity.mockResolvedValue(
+      commerceIdentity({ mfaEnrolled: false }),
+    );
     vi.stubEnv("WORKOS_MFA_ASSURANCE_CLAIM", "acr");
     vi.stubEnv("WORKOS_MFA_ASSURANCE_VALUES", "urn:workos:mfa");
     authMocks.getTokenClaims.mockResolvedValue({
@@ -788,10 +976,29 @@ describe("WorkOS commerce session mapping", () => {
     });
 
     authMocks.getTokenClaims.mockResolvedValue({ amr: ["mfa"] });
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+      factorId: "factor-hosted-001",
+    });
 
     await expect(getCommerceSession()).rejects.toThrow(
       "Privileged commerce roles require an MFA-policy-enforced session",
     );
+    expect(authMocks.verifyWorkosHostedMfaSession).not.toHaveBeenCalled();
+    expect(authMocks.recordHostedMfaEnrollment).not.toHaveBeenCalled();
+  });
+
+  it("does not bypass custom accepted assurance values when amr is absent", async () => {
+    vi.stubEnv("WORKOS_MFA_ASSURANCE_VALUES", "webauthn");
+    authMocks.getTokenClaims.mockResolvedValue({});
+    authMocks.verifyWorkosHostedMfaSession.mockResolvedValue({
+      factorId: "factor-hosted-001",
+    });
+
+    await expect(getCommerceSession()).rejects.toThrow(
+      "Privileged commerce roles require an MFA-policy-enforced session",
+    );
+    expect(authMocks.verifyWorkosHostedMfaSession).not.toHaveBeenCalled();
+    expect(authMocks.recordHostedMfaEnrollment).not.toHaveBeenCalled();
   });
 
   it("keeps a non-privileged role signed in without claiming a second factor", async () => {
