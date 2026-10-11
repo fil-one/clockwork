@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { realpathSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import {
   assertStaffAdministratorRemains,
   assertStaffProvisioningTarget,
@@ -13,24 +15,27 @@ import postgres from "postgres";
 import { provisionWorkosStaff } from "../packages/integrations/src/workos/provision-staff";
 
 let phase = "configuration";
-async function main() {
-  const raw = process.env.STAFF_PROVISIONING;
+export async function provisionStaff(
+  environment: NodeJS.ProcessEnv = process.env,
+  provisionIdentity: typeof provisionWorkosStaff = provisionWorkosStaff,
+) {
+  const raw = environment.STAFF_PROVISIONING;
   if (!raw) return;
   const person = StaffProvisioningSchema.parse(JSON.parse(raw));
   const manifest = JSON.parse(
-    process.env.BOOTSTRAP_MANIFEST ?? "null",
+    environment.BOOTSTRAP_MANIFEST ?? "null",
   ) as StaffProvisioningManifest | null;
-  const url = process.env.DIRECT_DATABASE_URL,
-    key = process.env.WORKOS_API_KEY;
+  const url = environment.DIRECT_DATABASE_URL,
+    key = environment.WORKOS_API_KEY;
   if (!manifest || !url || !key)
     throw new Error("STAFF_PROVISIONING_CONFIGURATION_REQUIRED");
   assertStaffProvisioningTarget({
     manifest,
     databaseHost: new URL(url).hostname,
-    deployStage: process.env.DEPLOY_STAGE,
+    deployStage: environment.DEPLOY_STAGE,
   });
   if (
-    !staffEmailDomainAllowed(person.email, process.env.INTERNAL_EMAIL_DOMAINS)
+    !staffEmailDomainAllowed(person.email, environment.INTERNAL_EMAIL_DOMAINS)
   )
     throw new Error("STAFF_PROVISIONING_DOMAIN_DENIED");
   const client = postgres(url, {
@@ -59,7 +64,7 @@ async function main() {
     });
     console.log("staff provisioning: identity plan", { plan: plan.kind });
     phase = "workos";
-    const binding = await provisionWorkosStaff(
+    const binding = await provisionIdentity(
       key,
       manifest.organization.workosOrganizationId,
       person,
@@ -74,13 +79,20 @@ async function main() {
     const actor = { kind: "user", id: manifest.operatorUserId };
     const appendEvent = async (
       tx: postgres.TransactionSql,
+      membership: { id: string; row_version: number },
       eventType: string,
       after: Record<string, string | boolean>,
       before?: Record<string, string | boolean>,
     ) => {
       const eventId = randomUUID();
-      await tx`insert into audit_events(id,aggregate_type,aggregate_id,aggregate_version,event_type,event_version,actor,occurred_at,request_id,before,after) values(${eventId},'organization',${manifest.organization.id},1,${eventType},1,${tx.json(actor)},now(),${randomUUID()},${before ? tx.json(before) : null},${tx.json(after)})`;
-      await tx`insert into outbox_messages(id,event_id,topic,payload) values(${randomUUID()},${eventId},${eventType},${tx.json(after)})`;
+      const associatedAfter = {
+        ...after,
+        organizationId: manifest.organization.id,
+      };
+      // Staff changes share Team's membership stream and its persisted version.
+      // Organization version 1 may already belong to an unrelated earlier event.
+      await tx`insert into audit_events(id,aggregate_type,aggregate_id,aggregate_version,event_type,event_version,actor,occurred_at,request_id,before,after) values(${eventId},'membership',${membership.id},${membership.row_version},${eventType},1,${tx.json(actor)},now(),${randomUUID()},${before ? tx.json(before) : null},${tx.json(associatedAfter)})`;
+      await tx`insert into outbox_messages(id,event_id,topic,payload) values(${randomUUID()},${eventId},${eventType},${tx.json(associatedAfter)})`;
     };
     if (plan.kind === "update_role") {
       phase = "update_role";
@@ -99,13 +111,16 @@ async function main() {
           otherAdministrators: administrators?.total ?? 0,
         });
         phase = "role_update";
-        const updated =
-          await tx`update memberships set role=${person.role} where user_id=${plan.userId} and organization_id=${manifest.organization.id} and role=${plan.from} returning id`;
-        if (updated.length !== 1)
+        const updated = await tx<
+          { id: string; row_version: number }[]
+        >`update memberships set role=${person.role} where user_id=${plan.userId} and organization_id=${manifest.organization.id} and role=${plan.from} returning id,row_version`;
+        const membership = updated[0];
+        if (updated.length !== 1 || !membership)
           throw new Error("STAFF_PROVISIONING_RETRY_REQUIRED");
         phase = "role_audit";
         await appendEvent(
           tx,
+          membership,
           "staff.role_changed",
           { email: person.email, role: person.role },
           { email: person.email, role: plan.from },
@@ -132,8 +147,14 @@ async function main() {
           await tx`select id from memberships where user_id=${plan.userId}`;
         if (current.length)
           throw new Error("STAFF_PROVISIONING_RETRY_REQUIRED");
-        await tx`insert into memberships(id,organization_id,user_id,workos_membership_id,role) values(${randomUUID()},${manifest.organization.id},${plan.userId},${binding.workosMembershipId},${person.role})`;
-        await appendEvent(tx, "staff.reactivated", after);
+        const membershipId = randomUUID();
+        await tx`insert into memberships(id,organization_id,user_id,workos_membership_id,role) values(${membershipId},${manifest.organization.id},${plan.userId},${binding.workosMembershipId},${person.role})`;
+        await appendEvent(
+          tx,
+          { id: membershipId, row_version: 1 },
+          "staff.reactivated",
+          after,
+        );
         return;
       }
       const duplicate =
@@ -141,9 +162,15 @@ async function main() {
       if (duplicate.length)
         throw new Error("STAFF_PROVISIONING_RETRY_REQUIRED");
       const id = randomUUID();
+      const membershipId = randomUUID();
       await tx`insert into commerce_users(id,workos_user_id,email,name,is_internal_staff,mfa_enrolled) values(${id},${binding.workosUserId},${person.email},${person.name},true,false)`;
-      await tx`insert into memberships(id,organization_id,user_id,workos_membership_id,role) values(${randomUUID()},${manifest.organization.id},${id},${binding.workosMembershipId},${person.role})`;
-      await appendEvent(tx, "staff.provisioned", after);
+      await tx`insert into memberships(id,organization_id,user_id,workos_membership_id,role) values(${membershipId},${manifest.organization.id},${id},${binding.workosMembershipId},${person.role})`;
+      await appendEvent(
+        tx,
+        { id: membershipId, row_version: 1 },
+        "staff.provisioned",
+        after,
+      );
     });
     console.log(
       `staff provisioning: identity and ${person.role} membership ${plan.kind === "restore" ? "restored" : "created"}; email verification and MFA remain required at login`,
@@ -152,10 +179,14 @@ async function main() {
     await client.end();
   }
 }
-main().catch((error: unknown) => {
-  console.error("staff provisioning failed", {
-    phase,
-    code: staffProvisioningFailureCode(error),
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
+)
+  provisionStaff().catch((error: unknown) => {
+    console.error("staff provisioning failed", {
+      phase,
+      code: staffProvisioningFailureCode(error),
+    });
+    process.exitCode = 1;
   });
-  process.exitCode = 1;
-});
