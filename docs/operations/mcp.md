@@ -234,17 +234,17 @@ pagination, explicit countersigner selection, upload retry duplication and PDF
 validation order, and added caller-provided IDs for MNDA creation.
 
 Validation used an isolated copy of the local database upgraded through
-migration 001481. It included 40 MCP unit/SDK transport tests, 16 real-route and
-outbound-message guard integration tests, 9 token repository tests, 37 contract
-repository tests, and 30 scoped database assertions. The token tests cover both
-concurrent creation/factor-change orders. A rollback-only migration probe
-checked populated receipt history, stale-token repair, and preservation of
-matching tokens and users without receipt history. Web and database type checks,
-lint, formatting and dependency boundaries passed.
+migration 001481. It included 40 MCP unit/protocol transport tests, 16
+real-route and outbound-message guard integration tests, 9 token repository
+tests, 37 contract repository tests, and 30 scoped database assertions. The
+token tests cover both concurrent creation/factor-change orders. A rollback-only
+migration probe checked populated receipt history, stale-token repair, and
+preservation of matching tokens and users without receipt history. Web and
+database type checks, lint, formatting and dependency boundaries passed.
 
 Every registered write tool completed a successful local path with signing,
 email, Slack and off-host network calls trapped. Status refresh used a read-only
-provider response; no real provider or counterparty was contacted. SDK client
+provider response; no real provider or counterparty was contacted. HTTP protocol
 initialization, listing and calling were exercised with local authentication
 fixtures. Hosted token issuance, a live Claude connection and production
 deployment were not exercised by this pass.

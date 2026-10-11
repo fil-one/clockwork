@@ -252,6 +252,8 @@ async function samplePdf() {
 }
 
 describe("the owner rule", () => {
+  // This sequential journey exercises every write tool and renders real PDFs;
+  // allow for shared CI runners without relaxing other integration test budgets.
   it("lets no write tool contact anyone outside Fil One", async () => {
     const state: Record<string, string | number> = {};
     const pdf = await samplePdf();
@@ -439,7 +441,7 @@ describe("the owner rule", () => {
       create_handoff_request: true,
       mark_notifications_read: true,
     });
-  });
+  }, 30_000);
 
   it("would notice a tool that sent", async () => {
     const { SignWellClient } = await import("@clockwork/integrations");
