@@ -27,7 +27,9 @@ export const whoami = defineTool({
       },
       roles: session.roles,
       permissions: session.permissions,
-      mfaVerified: session.mfaVerified,
+      // Whether commerce records the person as MFA-enrolled; a token request
+      // is never a fresh verification.
+      mfaEnrolled: session.mfaVerified,
       token: {
         id: session.accessToken.id,
         name: session.accessToken.name,

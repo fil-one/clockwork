@@ -8,9 +8,13 @@ records, price scenarios and raise handoffs.
 **Nothing reaches a partner or any other external party from MCP.** No tool
 sends, reminds, re-sends, voids or redirects a signing request, or emails or
 messages anyone outside Fil One. Tools draft and prepare, then return a **Review
-and send in Commerce** link; a person sends from the app. A test
-(`apps/web/src/features/mcp/mcp.test.ts`) fails if a tool is added that calls a
-sending action.
+and send in Commerce** link; a person sends from the app.
+`mcp-owner-rule.integration.test.ts` runs every write tool against a real
+database with SignWell switched on but its clients replaced by spies that allow
+only reads, the staff email and Slack senders replaced by spies, and every
+network request off the machine refused; it fails if any tool tries to send, and
+if a write tool is added without a case. `mcp.test.ts` also refuses tool code
+that names a sending action.
 
 Every call acts as you, with the permissions your roles give you today, and
 every call is recorded in the audit trail with the token that made it.
@@ -88,7 +92,7 @@ JSON-RPC message; batches are refused.
 
 | Tool                             | Access | What it does                                                                                                 |
 | -------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------ |
-| `whoami`                         | read   | You, your roles and permissions, and the token's scope and expiry                                            |
+| `whoami`                         | read   | You, your roles and permissions, whether you are MFA-enrolled, and the token's scope and expiry              |
 | `home_summary`                   | read   | What Home shows you: MNDA, contract and partner counts, renewal notices, your open handoffs                  |
 | `list_mndas`                     | read   | Search the MNDA register by text, status group, state or "prepared by me"                                    |
 | `get_mnda`                       | read   | One MNDA with its signer, state, dates and links                                                             |
@@ -167,6 +171,9 @@ The guided demo has no MCP endpoint, so nothing can be sent from it.
   it, so a commerce administrator who resets someone's authenticator also
   revokes their tokens on the Team page.
 - Commerce administrators see and revoke everyone's tokens on the **Team** page.
+- Links in results use the configured canonical origin
+  (`CLOCKWORK_CANONICAL_ORIGIN`); without it a production deployment answers
+  `503` rather than build links from the request's host.
 - Each token may make 120 requests a minute. Past that the endpoint answers
   `429` with `Retry-After`.
 
@@ -182,18 +189,20 @@ The guided demo has no MCP endpoint, so nothing can be sent from it.
   `partner.created` or `mnda.drafted`, with the person as actor. That event does
   not carry the channel; match it to the `mcp.tool_called` event by the record
   id and time.
-- Calls refused before they run (a write tool on a read-only token, an unknown
-  tool, invalid arguments) are recorded as `refused` too. If recording a call
-  fails, the server logs it; the call's own audit event still exists.
+- Calls refused before they run are recorded as `refused` too: a write tool on a
+  read-only token (`READ_ONLY_TOKEN`), an unknown tool (`UNKNOWN_TOOL`), invalid
+  arguments (`INVALID_ARGUMENTS`), or a request the transport refused, such as a
+  wrong `Accept` header (`TRANSPORT_REFUSED`, with `httpStatus`). If recording a
+  call fails, the server logs it; the call's own audit event still exists.
 
 ## When something is refused
 
-| Answer                        | What to do                                                             |
-| ----------------------------- | ---------------------------------------------------------------------- |
-| `401` with `WWW-Authenticate` | The token is missing, mistyped, expired or revoked. Create a new one.  |
-| `429`                         | Wait for the seconds in `Retry-After`.                                 |
-| `… disabled`                  | The token is read-only. Create a read-and-write token.                 |
-| `*_FORBIDDEN`                 | Your role does not allow it, as in the app.                            |
-| `RECENT_AUTH_REQUIRED`        | It needs a fresh MFA check. Do it in the app.                          |
-| `*_VERSION_CONFLICT`          | Someone changed the record since you read it. Read it again and retry. |
-| `*_NOT_CONFIGURED`            | SignWell is not switched on in this environment.                       |
+| Answer                        | What to do                                                                                                                               |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `401` with `WWW-Authenticate` | The token is missing, mistyped, expired or revoked, or you no longer have staff access. The answer does not say which. Create a new one. |
+| `429`                         | Wait for the seconds in `Retry-After`.                                                                                                   |
+| `… disabled`                  | The token is read-only. Create a read-and-write token.                                                                                   |
+| `*_FORBIDDEN`                 | Your role does not allow it, as in the app.                                                                                              |
+| `RECENT_AUTH_REQUIRED`        | It needs a fresh MFA check. Do it in the app.                                                                                            |
+| `*_VERSION_CONFLICT`          | Someone changed the record since you read it. Read it again and retry.                                                                   |
+| `*_NOT_CONFIGURED`            | SignWell is not switched on in this environment.                                                                                         |

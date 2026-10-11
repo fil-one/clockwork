@@ -421,6 +421,60 @@ describe("the MCP endpoint", () => {
     );
   });
 
+  it("audits a call the transport refused with its HTTP status", async () => {
+    const response = await POST(
+      new Request("https://commerce.fil.one/api/mcp", {
+        method: "POST",
+        headers: {
+          accept: "text/plain",
+          "content-type": "application/json",
+          ...bearer(readOnly),
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "list_partners", arguments: {} },
+        }),
+      }),
+    );
+    expect(response.status).toBe(406);
+    const [audited] = await sql<{ code: string; status: string }[]>`
+      select a.metadata->>'code' as code, a.metadata->>'httpStatus' as status
+      from audit_events a
+      join commerce_access_tokens t on t.id = a.aggregate_id
+      where a.aggregate_type = 'access_token' and t.user_id = ${seller.id}
+        and t.scope = 'read' and a.metadata->>'tool' = 'list_partners'
+        and a.metadata->>'outcome' = 'refused'`;
+    expect(audited).toEqual({ code: "TRANSPORT_REFUSED", status: "406" });
+  });
+
+  it("stops reading a body past the limit, whatever length it declares", async () => {
+    let sent = 0;
+    const chunk = new Uint8Array(1024 * 1024).fill(32);
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        sent += chunk.length;
+        if (sent > 40 * chunk.length) controller.close();
+        else controller.enqueue(chunk);
+      },
+    });
+    const response = await POST(
+      new Request("https://commerce.fil.one/api/mcp", {
+        method: "POST",
+        headers: {
+          accept: "application/json, text/event-stream",
+          "content-type": "application/json",
+          ...bearer(readOnly),
+        },
+        body,
+        duplex: "half",
+      } as RequestInit),
+    );
+    expect(response.status).toBe(413);
+    expect(sent).toBeLessThan(20 * chunk.length);
+  });
+
   it("limits each token to its requests per minute", async () => {
     const limited = await tokens.create({
       userId: seller.id,

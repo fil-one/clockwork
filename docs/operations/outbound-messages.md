@@ -25,6 +25,7 @@ provider callback, or as a side effect of another change.
 | Collections reminders (`core.schedule.dunning.v1`)                    | An email to the Fil One collections owner only. The customer's billing contacts are not emailed.             |
 | Renewal, notice-window, POC-milestone and quote-expiry alerts         | Nothing: no alert is planned to a customer's or partner's contacts.                                          |
 | Staff notifications (in-app, email, Slack)                            | Fil One staff only. Recipients must be internal staff; the Slack channel must have no external guests.       |
+| MCP tools (`/api/mcp`, [Using Commerce from Claude](mcp.md))          | Nothing: no tool sends, reminds, voids or corrects a signer; drafts return a link to send from the app.      |
 
 Requests sent before 10 October 2026 keep SignWell's automatic reminders, which
 SignWell cannot turn off on a sent request: let them run until the request is

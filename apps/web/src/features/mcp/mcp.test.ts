@@ -332,6 +332,17 @@ describe("the endpoint", () => {
     expect(get.headers.get("allow")).toBe("POST");
   });
 
+  it("builds no links from the request's Host in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("CLOCKWORK_CANONICAL_ORIGIN", "");
+    const response = await handleMcpRequest(
+      request({
+        headers: { authorization: `Bearer fo_pat_${"a".repeat(43)}` },
+      }),
+    );
+    expect(response.status).toBe(503);
+  });
+
   it("is turned off in the demo", async () => {
     vi.stubEnv("CLOCKWORK_EXPERIENCE_ADAPTER", "demo");
     vi.stubEnv("NEXT_PUBLIC_CLOCKWORK_RUNTIME_ENV", "development");

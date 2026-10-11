@@ -51,9 +51,15 @@ function problem(
   );
 }
 
-const unauthorized = (description: string) =>
-  problem(401, "MCP_TOKEN_REQUIRED", description, {
-    "www-authenticate": `Bearer realm="Fil One Commerce", error="invalid_token", error_description="${description}"`,
+/**
+ * One answer for a missing, unknown, expired or revoked token and for an
+ * owner who lost staff access, so the response says nothing about which.
+ */
+const unauthorizedDescription =
+  "Send a valid Fil One Commerce access token as Authorization: Bearer <token>";
+const unauthorized = () =>
+  problem(401, "MCP_TOKEN_REQUIRED", unauthorizedDescription, {
+    "www-authenticate": `Bearer realm="Fil One Commerce", error="invalid_token", error_description="${unauthorizedDescription}"`,
   });
 
 /** The secret from `Authorization: Bearer <token>`; cookies never count. */
@@ -71,18 +77,30 @@ export function bearerSecret(request: Request): string | null {
 async function readMessage(
   request: Request,
 ): Promise<{ ok: true; message: unknown } | { ok: false; response: Response }> {
+  const tooLarge = {
+    ok: false as const,
+    response: problem(413, "MCP_BODY_TOO_LARGE", "The request is too large"),
+  };
   const declared = Number(request.headers.get("content-length") ?? "0");
-  if (declared > maxRequestBodyBytes)
-    return {
-      ok: false,
-      response: problem(413, "MCP_BODY_TOO_LARGE", "The request is too large"),
-    };
-  const text = await request.text();
-  if (Buffer.byteLength(text) > maxRequestBodyBytes)
-    return {
-      ok: false,
-      response: problem(413, "MCP_BODY_TOO_LARGE", "The request is too large"),
-    };
+  if (declared > maxRequestBodyBytes) return tooLarge;
+  // Counted as it streams, so a chunked body or an understated length cannot
+  // make the server buffer more than the limit.
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  if (request.body) {
+    const reader = request.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxRequestBodyBytes) {
+        await reader.cancel().catch(() => {});
+        return tooLarge;
+      }
+      chunks.push(value);
+    }
+  }
+  const text = Buffer.concat(chunks).toString("utf8");
   let message: unknown;
   try {
     message = JSON.parse(text) as unknown;
@@ -113,11 +131,16 @@ function calledTool(message: unknown): string | undefined {
   return typeof name === "string" ? name.slice(0, 80) : "(unnamed)";
 }
 
-/** The app's public origin, for links in tool results. */
-function appOrigin(request: Request): string {
-  const configured = process.env.CLOCKWORK_CANONICAL_ORIGIN;
-  return configured
-    ? publicMetadataOrigin(process.env)
+/**
+ * The app's public origin, for links in tool results: the configured
+ * canonical origin, never the request's Host in production. Elsewhere the
+ * request's own origin stands in. Undefined in production without one.
+ */
+function appOrigin(request: Request): string | undefined {
+  if (process.env.CLOCKWORK_CANONICAL_ORIGIN)
+    return publicMetadataOrigin(process.env);
+  return process.env.NODE_ENV === "production"
+    ? undefined
     : new URL(request.url).origin;
 }
 
@@ -136,16 +159,13 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       allow: "POST",
     });
   const secret = bearerSecret(request);
-  if (!secret)
-    return unauthorized(
-      "Send a Fil One Commerce access token as Authorization: Bearer <token>",
-    );
-  if (!getOptionalServiceDatabase())
+  if (!secret) return unauthorized();
+  const origin = appOrigin(request);
+  if (!getOptionalServiceDatabase() || !origin)
     return problem(503, "MCP_UNAVAILABLE", "MCP is not available here");
   const repository = accessTokenRepository();
   const token = await repository.authenticate(secret);
-  if (!token)
-    return unauthorized("The access token is unknown, expired or revoked");
+  if (!token) return unauthorized();
   if (token.windowCount > accessTokenRequestsPerMinute)
     return problem(
       429,
@@ -156,8 +176,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       },
     );
   const session = await accessTokenCommerceSession(token);
-  if (!session?.accessToken)
-    return unauthorized("The access token's owner no longer has staff access");
+  if (!session?.accessToken) return unauthorized();
   const body = await readMessage(request);
   if (!body.ok) return body.response;
   const accessToken = session.accessToken;
@@ -189,7 +208,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
       });
   };
   const server = createCommerceMcpServer(
-    { session: { ...session, accessToken }, origin: appOrigin(request) },
+    { session: { ...session, accessToken }, origin },
     record,
   );
   const transport = new WebStandardStreamableHTTPServerTransport({
@@ -201,20 +220,32 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
     const response = await runWithAccessTokenSession(session, () =>
       transport.handleRequest(request, { parsedBody: body.message }),
     );
-    // A call the SDK refused before the tool ran (a write tool on a read-only
-    // token, an unknown tool or invalid arguments) is audited too.
+    // A call that never reached its tool is audited too. The transport
+    // refusing the request (wrong Accept or Content-Type, a malformed
+    // envelope) answers with an HTTP error; the SDK refusing the call (a
+    // write tool on a read-only token, an unknown tool, invalid arguments)
+    // answers 200 with an error result.
     const tool = calledTool(body.message);
     if (tool && !ran) {
       const known = mcpTools.find(({ name }) => name === tool);
-      await record({
-        tool,
-        outcome: "refused",
-        code: !known
-          ? "UNKNOWN_TOOL"
-          : toolAllowed(known, accessToken.scope)
-            ? "INVALID_ARGUMENTS"
-            : "READ_ONLY_TOKEN",
-      });
+      await record(
+        response.status !== 200
+          ? {
+              tool,
+              outcome: "refused",
+              code: "TRANSPORT_REFUSED",
+              httpStatus: response.status,
+            }
+          : {
+              tool,
+              outcome: "refused",
+              code: !known
+                ? "UNKNOWN_TOOL"
+                : toolAllowed(known, accessToken.scope)
+                  ? "INVALID_ARGUMENTS"
+                  : "READ_ONLY_TOKEN",
+            },
+      );
     }
     const headers = new Headers(response.headers);
     for (const [name, value] of Object.entries(baseHeaders))

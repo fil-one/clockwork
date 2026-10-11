@@ -174,3 +174,16 @@ test("the MCP SDK's client and OAuth code stay unused while its advisory is acce
     "Re-review GHSA-6qxp-vccf-f47h: Commerce must not use the MCP SDK client or OAuth code",
   );
 });
+
+test("the MCP SDK advisory acceptance expires on 2026-10-26", async () => {
+  const versions = await resolvedVersions("@modelcontextprotocol/sdk");
+  assert.ok(versions.length > 0, "@modelcontextprotocol/sdk is missing");
+  const unpatched = versions.filter(
+    (version) => compareSemver(version, "1.31.0") < 0,
+  );
+  if (unpatched.length === 0) return;
+  assert.ok(
+    Date.now() < Date.parse("2026-10-27T00:00:00Z"),
+    `@modelcontextprotocol/sdk@${unpatched.join(", ")} is still below 1.31.0: upgrade it (1.31.0 is two weeks old from 2026-10-12) and drop GHSA-6qxp-vccf-f47h`,
+  );
+});

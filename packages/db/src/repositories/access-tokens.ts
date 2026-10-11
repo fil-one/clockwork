@@ -83,6 +83,8 @@ export interface AccessTokenToolCall {
   code?: string;
   /** The ids the call named, so the trail can be followed. */
   targets?: Record<string, string>;
+  /** The HTTP status when the transport refused the request. */
+  httpStatus?: number;
   requestId: string;
 }
 
@@ -364,6 +366,7 @@ export class AccessTokenRepository {
           tool: call.tool,
           outcome: call.outcome,
           ...(call.code ? { code: call.code } : {}),
+          ...(call.httpStatus ? { httpStatus: call.httpStatus } : {}),
           ...(call.targets && Object.keys(call.targets).length
             ? { targets: call.targets }
             : {}),
