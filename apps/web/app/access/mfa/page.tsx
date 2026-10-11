@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BrandLogo, Button, Input, buttonClassName } from "@clockwork/ui";
 
 import { brandAsset } from "@/src/features/shell/brand-assets";
+import { mfaReturnTo } from "./return-to";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
@@ -14,10 +15,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{
+    error?: string | string[];
+    returnTo?: string | string[];
+  }>;
 }) {
   const t = await getTranslations();
-  const { error } = await searchParams;
+  const { error, returnTo: requestedReturnTo } = await searchParams;
+  const returnTo = mfaReturnTo(requestedReturnTo);
   return (
     <main className="access-main">
       <section className="access-card">
@@ -36,6 +41,9 @@ export default async function Page({
             action="/access/mfa/verify"
             method="post"
           >
+            {returnTo && (
+              <input type="hidden" name="returnTo" value={returnTo} />
+            )}
             <p>{t("platform.mfa.prompt")}</p>
             {error && (
               <p role="alert">

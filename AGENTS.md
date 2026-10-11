@@ -24,6 +24,13 @@ a fresh qualification of the entire product.
   application deployment.
 - Report the outcome, relevant checks and any remaining limitation briefly.
   Separate implementation time from time spent waiting for CI or deployment.
+- Prefer the authenticated Commerce MCP server for routine operational reads and
+  supported changes. For staff roles, use `list_staff` and
+  `prepare_staff_role_change`, then complete the explicit Team review with
+  recent authentication. Never treat a prepared request as an applied change.
+  Use deployment-time staff provisioning only for initial access or recovery
+  when an administrator cannot use Team. Keep access tokens out of chat and
+  repository files; see [MCP setup](docs/operations/mcp.md).
 
 This guidance does not change hooks or deployment automation. GitHub has no
 required checks; the Deploy workflow deploys only after a green CI run on

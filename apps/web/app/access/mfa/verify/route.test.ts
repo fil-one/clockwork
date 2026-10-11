@@ -128,3 +128,86 @@ it("keeps any other session failure unavailable", async () => {
   );
   expect(mocks.record).not.toHaveBeenCalled();
 });
+
+const reviewDestination =
+  "/internal/team?reviewAction=grant&reviewUserId=20000000-0000-4000-8000-000000000001&reviewRole=commerce_admin&reviewVersion=3&reviewActorId=20000000-0000-4000-8000-000000000002";
+function reviewRequest(returnTo = reviewDestination, code = "123456") {
+  return request(
+    "https://example.com",
+    new URLSearchParams({ code, returnTo }).toString(),
+  );
+}
+
+it("returns to the pending Team review only after successful MFA", async () => {
+  const response = await POST(reviewRequest());
+  expect(response.status).toBe(303);
+  expect(response.headers.get("location")).toBe(reviewDestination);
+  expect(response.headers.get("cache-control")).toBe("private, no-store");
+  expect(mocks.record).toHaveBeenCalledOnce();
+});
+
+it.each(["invalid-code", "invalid", "limited", "unavailable", "expired"])(
+  "retains the review destination after %s so verification can be retried",
+  async (failure) => {
+    if (failure === "invalid") mocks.verify.mockResolvedValue({ valid: false });
+    if (failure === "limited") mocks.claim.mockResolvedValue(false);
+    if (failure === "unavailable")
+      mocks.verify.mockRejectedValue(new Error("private detail"));
+    if (failure === "expired")
+      mocks.session.mockRejectedValue(new SessionExpiredError());
+    const response = await POST(
+      reviewRequest(
+        reviewDestination,
+        failure === "invalid-code" ? "bad" : "123456",
+      ),
+    );
+    const location = new URL(
+      response.headers.get("location") ?? "",
+      "https://example.com",
+    );
+    expect(location.pathname).toBe("/access/mfa");
+    expect(location.searchParams.get("error")).toBe(
+      failure === "invalid-code" ? "invalid" : failure,
+    );
+    expect(location.searchParams.get("returnTo")).toBe(reviewDestination);
+    expect(mocks.record).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  "https://attacker.example/internal/team",
+  "//attacker.example/internal/team",
+  "/\\attacker.example/internal/team",
+  "/internal/team/../other",
+  "/internal/team?x=\\attacker.example",
+  "/internal/team?x=%5cattacker.example",
+  "/internal/team?x=%0d%0aLocation:https://attacker.example",
+  "/internal/team?x=\nheader",
+  "/internal/team#fragment",
+  "/internal/team?x=%zz",
+  "/internal/other",
+  "/internal/team?x=" + "a".repeat(700),
+])(
+  "ignores unsafe return destination %j on success and retry",
+  async (returnTo) => {
+    expect((await POST(reviewRequest(returnTo))).headers.get("location")).toBe(
+      "/",
+    );
+    expect(
+      (await POST(reviewRequest(returnTo, "bad"))).headers.get("location"),
+    ).toBe("/access/mfa?error=invalid");
+  },
+);
+
+it("ignores duplicate return destinations", async () => {
+  const body = new URLSearchParams({
+    code: "123456",
+    returnTo: "/internal/team",
+  });
+  body.append("returnTo", reviewDestination);
+  expect(
+    (await POST(request("https://example.com", body.toString()))).headers.get(
+      "location",
+    ),
+  ).toBe("/");
+});

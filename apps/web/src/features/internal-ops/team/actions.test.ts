@@ -105,6 +105,43 @@ beforeEach(() => {
   mocks.completeDeactivate.mockResolvedValue(undefined);
 });
 
+it.each([grantStaffRole, revokeStaffRole])(
+  "refuses a reviewed change after switching administrator sessions",
+  async (action) => {
+    await expect(
+      action({
+        userId: seller,
+        role: "revenue",
+        expectedRowVersion: 2,
+        expectedActorUserId: "20000000-0000-4000-8000-000000000099",
+      }),
+    ).resolves.toEqual({ ok: false, code: "ACTOR_CHANGED" });
+    expect(mocks.grantRole).not.toHaveBeenCalled();
+    expect(mocks.revokeRole).not.toHaveBeenCalled();
+  },
+);
+
+it("confirms a reviewed change using the authorized actor and exact reviewed version", async () => {
+  await expect(
+    grantStaffRole({
+      userId: seller,
+      role: "finance_approver",
+      expectedRowVersion: 7,
+      expectedActorUserId: admin.userId,
+    }),
+  ).resolves.toEqual({ ok: true });
+  expect(mocks.grantRole).toHaveBeenCalledWith(
+    expect.objectContaining({
+      actorUserId: admin.userId,
+      expectedRowVersion: 7,
+      userId: seller,
+    }),
+  );
+  expect(mocks.grantRole.mock.calls[0]?.[0]).not.toHaveProperty(
+    "expectedActorUserId",
+  );
+});
+
 describe("inviting staff", () => {
   it("creates the WorkOS identity without an email, then the commerce membership", async () => {
     await expect(inviteStaffMember(invite)).resolves.toEqual({ ok: true });

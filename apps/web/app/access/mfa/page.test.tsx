@@ -29,3 +29,36 @@ it("keeps unknown errors on the unavailable message", async () => {
     "Verification is unavailable.",
   );
 });
+
+it("preserves a safe Team review destination in the verification form", async () => {
+  vi.stubEnv("WORKOS_CLIENT_ID", "client_test");
+  const returnTo =
+    "/internal/team?reviewAction=grant&reviewRole=commerce_admin";
+  const { container } = render(
+    await Page({
+      searchParams: Promise.resolve({ returnTo, error: "invalid" }),
+    }),
+  );
+  expect(container.querySelector('input[name="returnTo"]')).toHaveValue(
+    returnTo,
+  );
+  expect(container.querySelector("form")).toHaveAttribute(
+    "action",
+    "/access/mfa/verify",
+  );
+});
+
+it.each([
+  "https://attacker.example",
+  "//attacker.example",
+  ["/internal/team", "/internal/team"],
+])(
+  "does not render an unsafe or ambiguous destination %j",
+  async (returnTo) => {
+    vi.stubEnv("WORKOS_CLIENT_ID", "client_test");
+    const { container } = render(
+      await Page({ searchParams: Promise.resolve({ returnTo }) }),
+    );
+    expect(container.querySelector('input[name="returnTo"]')).toBeNull();
+  },
+);

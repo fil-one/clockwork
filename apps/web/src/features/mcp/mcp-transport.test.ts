@@ -32,6 +32,17 @@ vi.mock("@/src/auth/demo-deploy", () => ({
 vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: () => ({}),
 }));
+vi.mock("@workos-inc/authkit-nextjs", () => {
+  const unreachable = () => {
+    throw new Error("Token transport must not use browser authentication");
+  };
+  return {
+    withAuth: unreachable,
+    getTokenClaims: unreachable,
+    getWorkOS: unreachable,
+    signOut: unreachable,
+  };
+});
 
 const { handleMcpRequest } = await import("./handler");
 
