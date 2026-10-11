@@ -348,9 +348,10 @@ sent from. A completed request is never replaced, and an executed contract is
 not sent again. A template voided because someone else will sign is prepared
 again from the template, since the signer's name is printed in it.
 
-Reminders go to whoever signs next and are spaced at least a minute apart,
-counted from the last reminder. Each one is recorded in the contract's history
-as `contract.reminded` with its recipient.
+SignWell sends no automatic reminders. **Remind** goes to whoever signs next,
+and reminders are spaced at least a minute apart, counted from the last
+reminder. Each one is recorded in the contract's history as `contract.reminded`
+with its recipient.
 
 Downloading a contract PDF, exporting the register (which includes signed MNDAs
 for readers of the MNDA register) and downloading a sales library PDF are each

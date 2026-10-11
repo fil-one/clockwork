@@ -122,7 +122,10 @@ apply refuses to create a second one.
 
 1. In Slack, create an incoming webhook for the channel (a Slack app with
    **Incoming Webhooks**, added to that channel). Copy the
-   `https://hooks.slack.com/services/...` URL.
+   `https://hooks.slack.com/services/...` URL. Use a channel of Fil One staff
+   only: no Slack Connect channel, external guests or shared workspaces, since
+   the posts name counterparties and nothing may reach them without a person
+   choosing to send it ([outbound messages](outbound-messages.md)).
 2. Add it to the GitHub environment as the secret
    `COMMERCE_NOTIFICATIONS_SLACK_WEBHOOK_URL`, then run the **Deploy** workflow
    from `main`. OpenTofu stores it in Secrets Manager and the task reads it at

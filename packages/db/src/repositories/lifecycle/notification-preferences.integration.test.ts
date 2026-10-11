@@ -39,7 +39,11 @@ const preferences = new DatabaseNotificationPreferenceRepository({
     process.env.AUTHORIZATION_CONTEXT_SECRET ??
     "clockwork-local-auth-context-secret-change-me",
 });
-const tasks = new DatabaseAuthoritativeLifecycleTaskStore(db, () => now);
+// Deployments keep customer alerts off (no message without a person's
+// approval); the preference rules are checked with them on.
+const tasks = new DatabaseAuthoritativeLifecycleTaskStore(db, () => now, {
+  customerAlerts: "planned",
+});
 
 function authorization(accountIds: readonly string[]): AuthorizationContext {
   return {
@@ -52,8 +56,12 @@ function authorization(accountIds: readonly string[]): AuthorizationContext {
   } as AuthorizationContext;
 }
 
-function plan(taskId: string, transition: string) {
-  return tasks.prepare({
+function plan(
+  taskId: string,
+  transition: string,
+  store: DatabaseAuthoritativeLifecycleTaskStore = tasks,
+) {
+  return store.prepare({
     spec: {
       taskId,
       loader: "order",
@@ -161,6 +169,19 @@ describe.sequential("notification preferences", () => {
       "plan_renewal_term_alerts_off",
     );
     expect(suppressed).toEqual([]);
+  });
+
+  it("plans no alert to the account's contacts while customer alerts are off", async () => {
+    const off = new DatabaseAuthoritativeLifecycleTaskStore(db, () => now);
+    await setEnabled("renewal_term_window", true);
+    for (const [taskId, transition] of [
+      ["lifecycle-renewals-term-alerts-v1", "plan_renewal_term_alerts_default"],
+      [
+        "lifecycle-renewals-notice-windows-v1",
+        "plan_renewal_notice_windows_default",
+      ],
+    ] as const)
+      expect(await plan(taskId, transition, off)).toEqual([]);
   });
 
   it("still emits the contractual notice window for the same account", async () => {

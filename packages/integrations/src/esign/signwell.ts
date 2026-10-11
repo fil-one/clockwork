@@ -169,7 +169,9 @@ export abstract class SignWellSigningClient<K extends string> {
       ...(type.copySender ? { copied_contacts: draft.copiedContacts } : {}),
       apply_signing_order: true,
       text_tags: true,
-      reminders: true,
+      // No message reaches a signer without a person choosing to send it:
+      // SignWell's automatic reminders stay off, and Remind is a click.
+      reminders: false,
       expires_in: 30,
       embedded_signing: false,
       allow_reassign: false,
@@ -190,7 +192,7 @@ export abstract class SignWellSigningClient<K extends string> {
     await this.request(`documents/${z.uuid().parse(id)}/send`, "POST", {
       test_mode: testMode,
       apply_signing_order: true,
-      reminders: true,
+      reminders: false,
       allow_reassign: false,
     });
   }

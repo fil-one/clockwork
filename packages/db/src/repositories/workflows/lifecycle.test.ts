@@ -113,6 +113,9 @@ function plannerDatabase(
 }
 
 describe("scheduled lifecycle effect identity", () => {
+  // Every deployment keeps customer alerts off; these tests turn them on to
+  // check the recipient rules an approval step would use.
+  const alertsOn = { customerAlerts: "planned" } as const;
   const dueOrder = {
     id: "80000000-0000-4000-8000-000000000001",
     accountId: "10000000-0000-4000-8000-000000000001",
@@ -132,6 +135,7 @@ describe("scheduled lifecycle effect identity", () => {
     const store = new DatabaseAuthoritativeLifecycleTaskStore(
       plannerDatabase(dueOrder, contacts),
       () => new Date("2026-08-01T09:00:00Z"),
+      alertsOn,
     );
     const prepare = (scheduleOccurrenceId: string) =>
       store.prepare({
@@ -153,10 +157,12 @@ describe("scheduled lifecycle effect identity", () => {
     const before = new DatabaseAuthoritativeLifecycleTaskStore(
       plannerDatabase(dueOrder, contacts),
       () => new Date("2026-07-30T09:00:00Z"),
+      alertsOn,
     );
     const after = new DatabaseAuthoritativeLifecycleTaskStore(
       plannerDatabase(dueOrder, contacts),
       () => new Date("2026-07-31T09:00:00Z"),
+      alertsOn,
     );
     const request = {
       spec: termAlertSpec,
@@ -183,6 +189,7 @@ describe("scheduled lifecycle effect identity", () => {
     const store = new DatabaseAuthoritativeLifecycleTaskStore(
       plannerDatabase(dueOrder, []),
       () => new Date("2026-08-01T09:00:00Z"),
+      alertsOn,
     );
     expect(
       await store.prepare({
@@ -204,6 +211,7 @@ describe("scheduled lifecycle effect identity", () => {
         { accountId: "10000000-0000-4000-8000-000000000001" },
       ]),
       () => new Date("2026-08-01T09:00:00Z"),
+      alertsOn,
     );
     expect(
       await store.prepare({
@@ -230,6 +238,7 @@ describe("scheduled lifecycle effect identity", () => {
         },
       ]),
       () => new Date("2026-08-01T09:00:00Z"),
+      alertsOn,
     );
     const planned = await store.prepare({
       spec: termAlertSpec,
@@ -242,6 +251,29 @@ describe("scheduled lifecycle effect identity", () => {
       (planned[0]?.persistedState.providerInput as { recipients: string[] })
         .recipients,
     ).toEqual(["partner@example.test"]);
+  });
+
+  it("plans no scheduled alert to an account's contacts unless alerts are on", async () => {
+    for (const store of [
+      new DatabaseAuthoritativeLifecycleTaskStore(
+        plannerDatabase(dueOrder, contacts),
+        () => new Date("2026-08-01T09:00:00Z"),
+      ),
+      new DatabaseAuthoritativeLifecycleTaskStore(
+        plannerDatabase(dueOrder, contacts),
+        () => new Date("2026-08-01T09:00:00Z"),
+        { customerAlerts: "off" },
+      ),
+    ])
+      expect(
+        await store.prepare({
+          spec: termAlertSpec,
+          aggregateId: "10000000-0000-5000-8000-000000000015",
+          expectedAggregateVersion: 1,
+          scheduled: true,
+          requestId: "test:alerts-off",
+        }),
+      ).toEqual([]);
   });
 });
 
