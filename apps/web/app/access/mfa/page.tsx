@@ -2,10 +2,11 @@ import { getTranslations } from "@/src/i18n/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { BrandLogo, Button, Input, buttonClassName } from "@clockwork/ui";
+import { BrandLogo, buttonClassName } from "@clockwork/ui";
 
 import { brandAsset } from "@/src/features/shell/brand-assets";
 import { mfaReturnTo } from "./return-to";
+import { MfaForm } from "./form";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations();
@@ -36,40 +37,10 @@ export default async function Page({
         <h1>{t("session.mfa.title")}</h1>
         <p>{t("session.mfa.description")}</p>
         {process.env.WORKOS_CLIENT_ID ? (
-          <form
-            className="access-form"
-            action="/access/mfa/verify"
-            method="post"
-          >
-            {returnTo && (
-              <input type="hidden" name="returnTo" value={returnTo} />
-            )}
-            <p>{t("platform.mfa.prompt")}</p>
-            {error && (
-              <p role="alert">
-                {t(
-                  error === "limited"
-                    ? "platform.mfa.error.limited"
-                    : error === "invalid"
-                      ? "platform.mfa.error.invalid"
-                      : error === "expired"
-                        ? "platform.mfa.error.expired"
-                        : "platform.mfa.error.unavailable",
-                )}
-              </p>
-            )}
-            <Input
-              label={t("platform.mfa.code")}
-              name="code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]{6}"
-              maxLength={6}
-              required
-            />
-            <Button type="submit">{t("platform.mfa.submit")}</Button>
-            <Link href="/sign-in">{t("session.expired.action")}</Link>
-          </form>
+          <MfaForm
+            returnTo={returnTo}
+            error={typeof error === "string" ? error : undefined}
+          />
         ) : (
           <Link
             className={buttonClassName({ variant: "primary" })}

@@ -84,10 +84,27 @@ export async function recordHostedMfaEnrollment(
 export async function claimMfaAttempt(
   db: RuntimeDatabase,
   workosUserId: string,
-) {
+): Promise<boolean> {
+  return claimMfaBudget(db, workosUserId);
+}
+
+/** Preparation has its own fixed budget and cannot spend or reset code attempts. */
+export async function claimMfaPreparationAttempt(
+  db: RuntimeDatabase,
+  workosUserId: string,
+): Promise<boolean> {
+  // Provider user IDs start with user_, so this internal namespace cannot
+  // overlap the existing verification keys. Callers cannot choose a purpose.
+  return claimMfaBudget(db, `mfa-prepare:${workosUserId}`);
+}
+
+async function claimMfaBudget(
+  db: RuntimeDatabase,
+  key: string,
+): Promise<boolean> {
   const rows = await db.execute<{ attempts: number }>(sql`
     insert into public.experience_mfa_attempts(workos_user_id, window_started_at, attempts)
-    values (${workosUserId}, now(), 1)
+    values (${key}, now(), 1)
     on conflict (workos_user_id) do update set
       window_started_at = case when experience_mfa_attempts.window_started_at <= now() - interval '10 minutes' then now() else experience_mfa_attempts.window_started_at end,
       attempts = case when experience_mfa_attempts.window_started_at <= now() - interval '10 minutes' then 1 else experience_mfa_attempts.attempts + 1 end
