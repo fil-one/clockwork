@@ -23,6 +23,7 @@ import {
   retryStaffNotificationDeliveries,
   staffNotificationMaxAttempts,
 } from "./handler";
+import { remindPartnerNextSteps } from "./partner-reminders";
 
 /**
  * The path from a committed change to what staff are told: the audit event
@@ -47,6 +48,7 @@ const legal = randomUUID(); // legal approver: approves contracts
 const admin = randomUUID(); // commerce administrator, Fil One countersigner
 const operator = randomUUID(); // internal operator: works handoffs
 const departed = randomUUID(); // staff whose membership was removed
+const outsider = randomUUID(); // not Fil One staff, though holding a staff role
 const run = randomUUID().slice(0, 8);
 const email = (id: string) => `${id}@fil-one-notify.test`;
 const company = `Notify ${run}, Inc.`;
@@ -109,14 +111,14 @@ async function emit(input: {
   return { eventId: event.id, payload: message?.payload };
 }
 
-async function mnda() {
+async function mnda(owner = seller) {
   const id = randomUUID();
   mndaIds.push(id);
   await client`insert into commerce_mnda_requests
     (id, input, countersigner, owner_id, owner_name, state, template_hash, test_mode)
     values (${id}, ${JSON.stringify({ company, signerName: "Pat Lee" })}::jsonb,
       ${JSON.stringify({ id: randomUUID(), name: "Admin", email: email(admin), title: "CFO" })}::jsonb,
-      ${seller}, 'Seller', 'sent', ${"a".repeat(64)}, true)`;
+      ${owner}, 'Seller', 'sent', ${"a".repeat(64)}, true)`;
   return id;
 }
 
@@ -168,13 +170,14 @@ beforeAll(async () => {
       [admin, "commerce_admin", "Ada Admin"],
       [operator, "internal_operator", "Oli Operator"],
       [departed, null, "Dana Departed"],
+      [outsider, "commerce_admin", "Pat Partner"],
     ] as const) {
       await tx.insert(commerceUsers).values({
         id,
         workosUserId: `user_notify_${id}`,
         email: email(id),
         name,
-        isInternalStaff: true,
+        isInternalStaff: id !== outsider,
         mfaEnrolled: true,
       });
       if (role)
@@ -210,6 +213,38 @@ afterAll(async () => {
 });
 
 describe("staff notifications from audit events", () => {
+  // Owner rule: nobody outside Fil One is ever messaged without a person's
+  // approval, and staff notifications never reach them at all.
+  it("never makes a non-staff user a recipient, whatever they hold", async () => {
+    // They hold the permission through their role; being outside Fil One
+    // staff alone keeps them out.
+    const [held] = await client<{ held: boolean }[]>`
+      select public.member_has_permission(${outsider}::uuid, 'mnda:send') as held`;
+    expect(held?.held).toBe(true);
+    expect((await store.holders(["mnda:send"])).map((s) => s.id)).not.toContain(
+      outsider,
+    );
+    expect(
+      (await store.holders(["operations:read", "operations:write"])).map(
+        (s) => s.id,
+      ),
+    ).not.toContain(outsider);
+    expect(await store.staff([outsider], ["mnda:send"])).toEqual([]);
+    expect(await store.staffIdByEmail(email(outsider))).toBeNull();
+    // An event naming them as the recipient notifies nobody.
+    const id = await mnda(outsider);
+    const { eventId, payload } = await emit({
+      aggregateId: id,
+      eventType: "mnda.completed",
+    });
+    await handleStaffNotificationEvent(payload, {
+      store,
+      channels: channels(new FakeStaffEmail(), new FakeStaffSlack()),
+      origin: "https://commerce.fil.one",
+    });
+    expect(await notified(eventId)).toEqual([]);
+  });
+
   it("notifies the sender and the countersigner when the partner signs, and nobody else", async () => {
     await setSettings({ emailEnabled: false, slackEnabled: false });
     const emailPort = new FakeStaffEmail();
@@ -643,6 +678,100 @@ describe("staff notifications from audit events", () => {
       0,
     );
     expect(eventId).toBeTruthy();
+  });
+
+  it("reminds a partner's owner once per due date, and not after the step moved", async () => {
+    await setSettings({ emailEnabled: true, slackEnabled: false });
+    const emailPort = new FakeStaffEmail();
+    const partnerId = randomUUID();
+    const today = new Date().toISOString().slice(0, 10);
+    await client`insert into commerce_partners
+      (id, name, status, owner_id, owner_name, next_step, next_step_due, commission_pct,
+       created_by_id, created_by_name)
+      values (${partnerId}, ${`Partner ${run}`}, 'talking', ${seller}, 'Sam Seller',
+        'Send the referral letter', ${today}::date, 12.5, ${seller}, 'Sam Seller')`;
+    const first = await remindPartnerNextSteps(today, {
+      store,
+      log: () => {},
+    });
+    expect(first.reminded).toBeGreaterThanOrEqual(1);
+    // A second run the same day, or a redelivered tick, writes nothing new.
+    await remindPartnerNextSteps(today, { store, log: () => {} });
+    const events = await client<{ id: string }[]>`
+      select e.id::text as id from audit_events e
+      where e.event_type = 'partner.next_step_due'
+        and e.after->>'partnerId' = ${partnerId}`;
+    expect(events).toHaveLength(1);
+    const [message] = await client<{ payload: unknown }[]>`
+      select payload from outbox_messages where event_id = ${events[0]?.id ?? ""}`;
+    await handleStaffNotificationEvent(message?.payload, {
+      store,
+      channels: channels(emailPort, new FakeStaffSlack()),
+      origin: "https://commerce.fil.one",
+    });
+    const [row] = await client<
+      { recipient: string; kind: string; href: string }[]
+    >`
+      select recipient_user_id::text as recipient, kind, href
+      from commerce_staff_notifications where event_id = ${events[0]?.id ?? ""}`;
+    expect(row).toEqual({
+      recipient: seller,
+      kind: "partner.next_step_due",
+      href: `/internal/partners/${partnerId}`,
+    });
+    // Who and when only: neither the step's words nor the terms are sent.
+    expect(emailPort.sent).toHaveLength(1);
+    expect(emailPort.sent[0]?.text).not.toContain("referral letter");
+    expect(emailPort.sent[0]?.text).not.toContain("12.5");
+
+    // Moved to tomorrow: the old reminder says nothing on a replay, and the
+    // new date reminds on its own day.
+    await client`update commerce_partners set next_step_due = ${today}::date + 1, version = version + 1
+      where id = ${partnerId}`;
+    const replay = await emit({
+      aggregateId: randomUUID(),
+      eventType: "partner.next_step_due",
+      after: { partnerId, nextStepDue: today, overdue: false },
+    });
+    await expect(
+      handleStaffNotificationEvent(replay.payload, {
+        store,
+        channels: channels(emailPort, new FakeStaffSlack()),
+        origin: null,
+      }),
+    ).resolves.toMatchObject({ status: "ignored" });
+  });
+
+  it("reaches newly due partners however many were reminded before", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const partner = async (due: string) => {
+      const id = randomUUID();
+      await client`insert into commerce_partners
+        (id, name, status, owner_id, owner_name, next_step_due, created_by_id, created_by_name)
+        values (${id}, ${`Paged ${run} ${id.slice(0, 4)}`}, 'talking', ${seller}, 'Sam Seller',
+          ${due}::date, ${seller}, 'Sam Seller')`;
+      return id;
+    };
+    // Long overdue and already reminded, earliest in due-date order.
+    const old = await Promise.all([1, 2, 3].map(() => partner("2020-01-01")));
+    await remindPartnerNextSteps(today, { store, log: () => {} });
+    const fresh = await Promise.all([1, 2].map(() => partner(today)));
+    // Pages of one: the reminded partners are not read again, so they cannot
+    // fill a page ahead of the new ones.
+    const run2 = await remindPartnerNextSteps(today, {
+      store,
+      pageSize: 1,
+      log: () => {},
+    });
+    expect(run2.reminded).toBe(2);
+    expect(run2.failed).toBe(0);
+    const reminded = await client<{ partner: string }[]>`
+      select after->>'partnerId' as partner from audit_events
+      where event_type = 'partner.next_step_due'
+        and after->>'partnerId' = any(${[...old, ...fresh]})`;
+    expect(reminded.map((r) => r.partner).sort()).toEqual(
+      [...old, ...fresh].sort(),
+    );
   });
 
   it("audits a settings change and refuses a stale save", async () => {

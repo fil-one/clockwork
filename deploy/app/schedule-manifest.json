@@ -170,6 +170,12 @@
       "stages": ["staging", "production"]
     },
     {
+      "taskId": "system.partner-next-steps.remind.v1",
+      "cron": "0 13 * * *",
+      "scheduleExpression": "cron(0 13 * * ? *)",
+      "stages": ["staging", "production"]
+    },
+    {
       "taskId": "system.staff-notifications.retry.v1",
       "cron": "*/5 * * * *",
       "scheduleExpression": "cron(*/5 * * * ? *)",

@@ -122,6 +122,12 @@ export const notificationMessages = defineStaffMessages({
   "operations.notifications.kind.price_book.rejected": {
     en: "{actor} rejected the activation of {subject}.",
   },
+  "operations.notifications.kind.partner.next_step_due": {
+    en: "The next step with {subject} is due today.",
+  },
+  "operations.notifications.kind.partner.next_step_overdue": {
+    en: "The next step with {subject} is overdue.",
+  },
   "operations.notifications.someone": { en: "Someone" },
 
   "operations.notifications.label.mnda.counterparty_signed": {
@@ -188,11 +194,19 @@ export const notificationMessages = defineStaffMessages({
     en: "Price book rejected",
   },
 
+  "operations.notifications.label.partner.next_step_due": {
+    en: "Partner next step due",
+  },
+  "operations.notifications.label.partner.next_step_overdue": {
+    en: "Partner next step overdue",
+  },
+
   "operations.notifications.group.mnda": { en: "MNDAs" },
   "operations.notifications.group.contract": { en: "Contracts" },
   "operations.notifications.group.handoff": { en: "Handoffs" },
   "operations.notifications.group.capability": { en: "Capabilities" },
   "operations.notifications.group.price_book": { en: "Price books" },
+  "operations.notifications.group.partner": { en: "Partners" },
 
   "operations.notifications.preferences.title": { en: "Email" },
   "operations.notifications.preferences.description": {

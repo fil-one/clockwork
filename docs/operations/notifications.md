@@ -31,6 +31,7 @@ settings change is audited as `staff_notifications.settings_changed`.
 | Handoff in progress, done or declined with a note                                   | The requester                                                                    |
 | Capability or price-book activation requested                                       | Its eligible approvers, not the requester unless self-approval applies           |
 | Capability or price-book activation approved or rejected                            | The requester                                                                    |
+| Partner next step due today or overdue (daily at 13:00 UTC, once per due date)      | The partner's owner                                                              |
 
 Nobody is told about their own action. A person sees a notification only while
 they hold the permissions its record needs. Slack carries, by default, MNDA
@@ -122,7 +123,10 @@ apply refuses to create a second one.
 
 1. In Slack, create an incoming webhook for the channel (a Slack app with
    **Incoming Webhooks**, added to that channel). Copy the
-   `https://hooks.slack.com/services/...` URL.
+   `https://hooks.slack.com/services/...` URL. Use a channel of Fil One staff
+   only: no Slack Connect channel, external guests or shared workspaces, since
+   the posts name counterparties and nothing may reach them without a person
+   choosing to send it ([outbound messages](outbound-messages.md)).
 2. Add it to the GitHub environment as the secret
    `COMMERCE_NOTIFICATIONS_SLACK_WEBHOOK_URL`, then run the **Deploy** workflow
    from `main`. OpenTofu stores it in Secrets Manager and the task reads it at

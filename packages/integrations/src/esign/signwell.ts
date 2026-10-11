@@ -50,6 +50,9 @@ export function signWellDocumentSchema<K extends string>(bindingKey: K) {
       ),
     ),
     apply_signing_order: z.boolean(),
+    // Whether SignWell reminds signers on its own. Commerce sets it off;
+    // whether SignWell echoes it on a fetched draft is not yet confirmed.
+    reminders: z.boolean().nullable().optional(),
     copied_contacts: z
       .array(z.object({ email: z.string() }))
       .nullable()
@@ -169,7 +172,9 @@ export abstract class SignWellSigningClient<K extends string> {
       ...(type.copySender ? { copied_contacts: draft.copiedContacts } : {}),
       apply_signing_order: true,
       text_tags: true,
-      reminders: true,
+      // No message reaches a signer without a person choosing to send it:
+      // SignWell's automatic reminders stay off, and Remind is a click.
+      reminders: false,
       expires_in: 30,
       embedded_signing: false,
       allow_reassign: false,
@@ -190,7 +195,7 @@ export abstract class SignWellSigningClient<K extends string> {
     await this.request(`documents/${z.uuid().parse(id)}/send`, "POST", {
       test_mode: testMode,
       apply_signing_order: true,
-      reminders: true,
+      reminders: false,
       allow_reassign: false,
     });
   }
@@ -274,6 +279,18 @@ export function checkSignWellCopiedContacts(
   if (!expected.every((email) => actual.has(email)))
     throw new Error("SIGNWELL_COPIED_CONTACTS_MISMATCH");
   return "verified";
+}
+/**
+ * Before delivery: a draft SignWell reports with automatic reminders on
+ * would message signers without a person sending each reminder, so sending
+ * stops. A draft that does not report the setting passes; Commerce sets it
+ * off on every draft and send.
+ */
+export function assertSignWellNoAutomaticReminders(
+  doc: SignWellSigningDocument,
+) {
+  if (doc.reminders === true)
+    throw new Error("SIGNWELL_AUTOMATIC_REMINDERS_ON");
 }
 export function assertSignWellCopiedContacts(
   doc: SignWellDocument,

@@ -78,6 +78,7 @@ export type StaffNotificationHandlerStore = Pick<
   | "capabilityRequest"
   | "priceBook"
   | "approvalRequester"
+  | "partner"
   | "record"
   | "deliveryContext"
   | "deliveries"

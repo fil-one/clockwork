@@ -107,6 +107,28 @@ describe("SignWell template contracts", () => {
     expect(await created(record, "createContractDraft")).toEqual([]);
   });
 
+  it("never asks SignWell for automatic reminders on a contract", async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockImplementation(() =>
+        Promise.resolve(new Response(JSON.stringify(doc()))),
+      );
+    const client = new SignWellContractClient("private-key", transport);
+    await client.createContractDraft(record, Buffer.from("%PDF-test"));
+    await client.createCounterpartyPaperDraft(record, Buffer.from("%PDF-test"));
+    await client.send(providerId, true);
+    expect(
+      transport.mock.calls.map(
+        ([, init]) =>
+          (
+            JSON.parse(typeof init?.body === "string" ? init.body : "{}") as {
+              reminders?: boolean;
+            }
+          ).reminders,
+      ),
+    ).toEqual([false, false, false]);
+  });
+
   it("rejects a document bound to another record, mode or signer", () => {
     expect(contractSignWellState(doc(), record)).toBe("ready");
     expect(() =>

@@ -253,7 +253,9 @@ export const DunningInputSchema = z
     ]),
     serviceRunning: z.boolean(),
     collectionsOwner: EmailSchema,
-    billingRecipients: z.array(EmailSchema).min(1).max(100),
+    // Read from tasks queued before collections stopped emailing customers;
+    // never a recipient. Nothing writes it any more.
+    billingRecipients: z.array(EmailSchema).max(100).optional(),
   })
   .strict()
   .superRefine((input, context) => {

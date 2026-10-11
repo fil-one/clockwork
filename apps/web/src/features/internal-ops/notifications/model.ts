@@ -38,6 +38,10 @@ export const notificationLineIds = {
     "operations.notifications.kind.price_book.approval_requested",
   "price_book.approved": "operations.notifications.kind.price_book.approved",
   "price_book.rejected": "operations.notifications.kind.price_book.rejected",
+  "partner.next_step_due":
+    "operations.notifications.kind.partner.next_step_due",
+  "partner.next_step_overdue":
+    "operations.notifications.kind.partner.next_step_overdue",
 } as const satisfies Record<StaffNotificationKind, MessageId>;
 
 /** The short name of each kind, for the settings and preference forms. */
@@ -70,6 +74,10 @@ export const notificationLabelIds = {
     "operations.notifications.label.price_book.approval_requested",
   "price_book.approved": "operations.notifications.label.price_book.approved",
   "price_book.rejected": "operations.notifications.label.price_book.rejected",
+  "partner.next_step_due":
+    "operations.notifications.label.partner.next_step_due",
+  "partner.next_step_overdue":
+    "operations.notifications.label.partner.next_step_overdue",
 } as const satisfies Record<StaffNotificationKind, MessageId>;
 
 export const notificationGroupIds = {
@@ -78,6 +86,7 @@ export const notificationGroupIds = {
   handoff: "operations.notifications.group.handoff",
   capability: "operations.notifications.group.capability",
   price_book: "operations.notifications.group.price_book",
+  partner: "operations.notifications.group.partner",
 } as const satisfies Record<StaffNotificationGroup, MessageId>;
 
 export const deliveryStatusIds = {
