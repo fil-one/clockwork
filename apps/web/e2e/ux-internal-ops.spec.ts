@@ -442,6 +442,62 @@ test.describe("destructive-action approver journey", () => {
   });
 });
 
+test.describe("partner records in the guided demo", () => {
+  test.beforeEach(async ({ page }) => usePersona(page, "revenue"));
+
+  test("lists fictional partners, filters them and flags an overlapping registration read-only", async ({
+    page,
+  }) => {
+    await gotoHydrated(page, "/internal/partners");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Partners" }),
+    ).toBeVisible();
+    await expect(page.getByText(/These partners are fictional/u)).toBeVisible();
+    // The demo changes nothing, so it offers no way to.
+    await expect(page.getByRole("link", { name: "New partner" })).toHaveCount(
+      0,
+    );
+    const table = page.getByRole("table");
+    await expect(
+      table.getByRole("link", { name: "Kestrelpoint Affiliates" }),
+    ).toBeVisible();
+
+    await page.getByLabel(/^Next step due/u).selectOption("overdue");
+    await expect(page).toHaveURL(/due=overdue/u);
+    await expect(
+      table.getByRole("link", { name: "Meridian Ridge Infrastructure" }),
+    ).toBeVisible();
+    await expect(
+      table.getByRole("link", { name: "Kestrelpoint Affiliates" }),
+    ).toHaveCount(0);
+
+    await gotoHydrated(page, "/internal/partners");
+    await table
+      .getByRole("link", { name: "Brightwater Systems Integrators Ltd" })
+      .click();
+    // The first visit compiles the record route on the development server.
+    await page.waitForURL(/\/internal\/partners\/[0-9a-f-]{36}$/u);
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "Brightwater Systems Integrators Ltd",
+      }),
+    ).toBeVisible();
+    await expect(page.getByText("From month 13: 26%")).toBeVisible();
+    await expect(
+      page.getByText("Another partner has registered this end client"),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^Larchmont Data Services: Registered/u }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Register a deal" }),
+    ).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+    await expectAxeClean(page);
+  });
+});
+
 test.describe("internal responsive and accessibility coverage", () => {
   test.beforeEach(async ({ page }) => usePersona(page, "internal_operator"));
 

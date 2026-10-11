@@ -168,6 +168,7 @@ const filtered = (
         overageRate: rate.overageRate,
         minimumQuantity: rate.minimumQuantity,
         commitType: rate.commitType,
+        egressTreatment: rate.egressTreatment,
       })),
     }))
     .toSorted((left, right) => left.id.localeCompare(right.id));

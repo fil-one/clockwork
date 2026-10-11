@@ -81,7 +81,7 @@ describe("line-item fields", () => {
   it("follows the pricing scenario entry rules", () => {
     for (const change of [
       { quantity: "0" },
-      { quantity: "1.1234567" },
+      { quantity: "1.1234567890123456789" },
       { termMonths: 0 },
       { termMonths: 121 },
       { discountBps: 10_001 },

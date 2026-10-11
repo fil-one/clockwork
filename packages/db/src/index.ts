@@ -19,3 +19,4 @@ export * from "./repositories/contracts";
 export * from "./repositories/contract-templates";
 export * from "./repositories/sales-library";
 export * from "./repositories/pricing-scenarios";
+export * from "./repositories/partners";
