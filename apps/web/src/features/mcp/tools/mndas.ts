@@ -36,7 +36,11 @@ import {
 /** PDFs at or below this size can come back inline as well as by link. */
 const inlinePdfLimit = 4 * 1024 * 1024;
 
-function mndaView(record: MndaRecord, context: McpToolContext) {
+function mndaView(
+  record: MndaRecord,
+  context: McpToolContext,
+  includeDetails = false,
+) {
   return compact({
     id: record.id,
     company: record.input.company,
@@ -56,6 +60,20 @@ function mndaView(record: MndaRecord, context: McpToolContext) {
     closedBecause: record.cancelCode,
     error: record.error,
     version: record.version,
+    ...(includeDetails
+      ? {
+          details: {
+            detailsMode: record.input.detailsMode,
+            shortName: record.input.shortName,
+            entityDescription: record.input.entityDescription,
+            streetAddress: record.input.streetAddress,
+            locality: record.input.locality,
+            noticesContact: record.input.noticesContact,
+            noticesEmail: record.input.noticesEmail,
+            countersignerId: record.countersigner.id,
+          },
+        }
+      : {}),
     links: compact({
       register: appLink(
         context,
@@ -84,7 +102,7 @@ export const listMndas = defineTool({
   name: "list_mndas",
   title: "List MNDAs",
   description:
-    "Search the MNDA register. Filter by company or signer text, by what the MNDA is waiting on (drafts, waiting_partner, waiting_fil_one, attention, completed, closed) or by exact states, and to the ones you prepared. Newest first, 25 per page by default.",
+    "Search the MNDA register. Filter by company or signer text, by what the MNDA is waiting on (drafts, waiting_partner, waiting_fil_one, attention, completed, closed) or by exact states, and to the ones you prepared. Newest first, 25 per page by default. Also lists active Fil One countersigner IDs for preparing drafts.",
   input: {
     search: z.string().max(120).optional().describe("Company or signer text"),
     group: z.enum(groupNames).optional(),
@@ -117,6 +135,14 @@ export const listMndas = defineTool({
       mndas: data.register.records.map((record) => mndaView(record, context)),
       sendingReady: data.ready,
       testMode: data.testMode,
+      countersigners: data.signers
+        .filter((signer) => signer.active)
+        .map((signer) => ({
+          id: signer.id,
+          name: signer.name,
+          title: signer.title,
+          isDefault: signer.isDefault,
+        })),
     };
   },
 });
@@ -124,12 +150,13 @@ export const listMndas = defineTool({
 export const getMnda = defineTool({
   name: "get_mnda",
   title: "Get an MNDA",
-  description: "One MNDA with its signer, state, dates and links.",
+  description:
+    "One MNDA with its signer, state, dates, links and the saved legal entity, address and notices details needed to review or revise a draft.",
   input: { id: z.uuid() },
   access: "read",
   run: async ({ id }, context) => {
     context.targets.mndaId = id;
-    return mndaView(await readMnda(id), context);
+    return mndaView(await readMnda(id), context, true);
   },
 });
 
@@ -188,7 +215,7 @@ async function prepareDraft(
   if (!countersigner)
     throw new McpToolError(
       "countersigner_unavailable",
-      "No active Fil One countersigner was found. Pick one from the MNDA settings page.",
+      "The selected or default Fil One countersigner is unavailable. Run list_mndas to choose an active countersignerId, or ask an administrator to configure one in Commerce.",
     );
   const record = unwrap(
     await prepareMnda({
@@ -218,7 +245,7 @@ async function prepareDraft(
     excludeId: record.id,
   });
   return {
-    mnda: mndaView(record, context),
+    mnda: mndaView(record, context, true),
     next: `Review and send in Commerce: ${appLink(context, `/internal/mndas?q=${encodeURIComponent(record.input.company)}`)}. Sending is always done by a person in the app.`,
     ...(duplicates.ok &&
     (duplicates.value.mndas.length || duplicates.value.contracts.length)
@@ -273,7 +300,7 @@ export const prepareMndaPreview = defineTool({
     context.targets.mndaId = id;
     const current = await readMnda(id);
     if (!changes || Object.keys(changes).length === 0)
-      return { mnda: mndaView(current, context) };
+      return { mnda: mndaView(current, context, true) };
     if (!["draft", "ready"].includes(current.state))
       throw new McpToolError(
         "not_a_draft",

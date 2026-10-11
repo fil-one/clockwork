@@ -178,21 +178,38 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
     });
   const secret = bearerSecret(request);
   if (!secret) return unauthorized();
-  if (!getOptionalServiceDatabase() || !origin)
-    return problem(503, "MCP_UNAVAILABLE", "MCP is not available here");
-  const repository = accessTokenRepository();
-  const token = await repository.authenticate(secret);
-  if (!token) return unauthorized();
-  if (token.windowCount > accessTokenRequestsPerMinute)
+  let repository: ReturnType<typeof accessTokenRepository>;
+  let token: Awaited<ReturnType<typeof repository.authenticate>>;
+  let session: Awaited<ReturnType<typeof accessTokenCommerceSession>>;
+  try {
+    if (!getOptionalServiceDatabase() || !origin)
+      return problem(503, "MCP_UNAVAILABLE", "MCP is not available here");
+    repository = accessTokenRepository();
+    token = await repository.authenticate(secret);
+    if (!token) return unauthorized();
+    if (token.windowCount > accessTokenRequestsPerMinute)
+      return problem(
+        429,
+        "MCP_RATE_LIMITED",
+        "Too many requests for this token",
+        {
+          "retry-after": String(token.windowResetSeconds),
+        },
+      );
+    session = await accessTokenCommerceSession(token);
+  } catch {
+    // Only authentication setup is retryable here: no tool has run. Keep
+    // provider/database details private, and do not mislabel an outage as an
+    // invalid token or encourage a retry after a tool may have changed data.
     return problem(
-      429,
-      "MCP_RATE_LIMITED",
-      "Too many requests for this token",
+      503,
+      "MCP_UNAVAILABLE",
+      "MCP is temporarily unavailable. Try again shortly.",
       {
-        "retry-after": String(token.windowResetSeconds),
+        "retry-after": "5",
       },
     );
-  const session = await accessTokenCommerceSession(token);
+  }
   if (!session?.accessToken) return unauthorized();
   const body = await readMessage(request);
   if (!body.ok) return body.response;

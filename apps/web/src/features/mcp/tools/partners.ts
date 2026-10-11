@@ -13,6 +13,7 @@ import {
   partnerModels,
   partnerSizeUnits,
   partnerStatuses,
+  PartnerListQuerySchema,
   type PartnerDealWithConflicts,
   type PartnerRecord,
 } from "@clockwork/contracts";
@@ -23,7 +24,6 @@ import {
 } from "@/src/features/internal-ops/partners/actions";
 import {
   loadPartner,
-  loadPartnerList,
   partnerRepository,
   partnerToday,
 } from "@/src/features/internal-ops/partners/server";
@@ -97,7 +97,7 @@ export const listPartners = defineTool({
   name: "list_partners",
   title: "List partners",
   description:
-    "Channel, referral and technology partners, most recently changed first: status, models, owner, next step, headline commission and margin, and open deal counts. Filter by text, status, model, owner, your own, or next steps overdue or due this week.",
+    "Channel, referral and technology partners, most recently changed first: status, models, owner, next step, headline commission and margin, and open deal counts. Filter by text, status, model, owner, your own, or next steps overdue or due this week. Use limit and the returned nextCursor as cursor to continue with the same filters.",
   input: {
     search: z.string().max(100).optional(),
     status: z.enum(partnerStatuses).optional(),
@@ -105,25 +105,38 @@ export const listPartners = defineTool({
     ownerId: z.uuid().optional(),
     mine: z.boolean().optional(),
     due: z.enum(partnerDueFilters).optional(),
+    limit: z.int().min(1).max(100).optional(),
+    cursor: z.string().min(1).max(500).optional(),
   },
   access: "read",
   run: async (args, context) => {
-    const list = loaded(
-      await loadPartnerList({
-        ...(args.search ? { q: args.search } : {}),
-        ...(args.status ? { status: args.status } : {}),
-        ...(args.model ? { model: args.model } : {}),
-        ...(args.ownerId ? { owner: args.ownerId } : {}),
-        ...(args.mine ? { mine: "1" } : {}),
-        ...(args.due ? { due: args.due } : {}),
-      }),
-    );
+    const session = await contractStaff("sales:read");
+    const repository = partnerRepository();
+    const query = PartnerListQuerySchema.parse({
+      ...(args.search ? { q: args.search } : {}),
+      ...(args.status ? { status: args.status } : {}),
+      ...(args.model ? { model: args.model } : {}),
+      ...(args.ownerId ? { owner: args.ownerId } : {}),
+      ...(args.mine ? { mine: "1" } : {}),
+      ...(args.due ? { due: args.due } : {}),
+    });
+    const [page, owners] = await Promise.all([
+      repository.listPage(
+        query,
+        { viewerId: session.userId, today: partnerToday() },
+        {
+          ...(args.limit !== undefined ? { limit: args.limit } : {}),
+          ...(args.cursor !== undefined ? { cursor: args.cursor } : {}),
+        },
+      ),
+      repository.owners(),
+    ]);
     return {
-      truncated: list.result.truncated || undefined,
-      partners: list.result.rows.map((row) =>
+      nextCursor: page.nextCursor,
+      partners: page.rows.map((row) =>
         compact({ ...row, link: partnerLink(context, row.id) }),
       ),
-      owners: list.owners,
+      owners,
     };
   },
 });

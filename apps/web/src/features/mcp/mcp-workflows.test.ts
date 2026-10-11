@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+
+import { fixtureRecord as mndaFixture } from "../../../../../packages/contracts/src/mnda-fixture";
 
 import type { McpToolContext } from "./tool";
 
@@ -7,7 +10,9 @@ const mocks = vi.hoisted(() => ({
   loadOlderNotifications: vi.fn(),
   loadMndas: vi.fn(),
   prepareMnda: vi.fn(),
+  readMnda: vi.fn(),
   loadContract: vi.fn(),
+  operateContract: vi.fn(),
   saveContract: vi.fn(),
   addFile: vi.fn(),
   prepareCounterpartyPaper: vi.fn(),
@@ -29,10 +34,11 @@ vi.mock("@/src/features/internal-ops/mnda/actions", () => ({
 }));
 vi.mock("@/src/features/internal-ops/mnda/server", () => ({
   mndaActor: vi.fn(),
-  mndaRepository: vi.fn(),
+  mndaRepository: () => ({ get: mocks.readMnda }),
   mndaStaff: vi.fn(),
 }));
 vi.mock("@/src/features/internal-ops/contracts/actions", () => ({
+  operateContract: mocks.operateContract,
   saveContract: mocks.saveContract,
   prepareCounterpartyPaper: mocks.prepareCounterpartyPaper,
   prepareContract: vi.fn(),
@@ -58,8 +64,9 @@ vi.mock("@/src/features/internal-ops/contracts/http", () => ({
 }));
 
 const { listNotifications } = await import("./tools/notifications");
-const { createMndaDraft } = await import("./tools/mndas");
-const { prepareContractForSignature, recordContract } =
+const { createMndaDraft, listMndas, getMnda, prepareMndaPreview } =
+  await import("./tools/mndas");
+const { prepareContractForSignature, recordContract, checkContractStatus } =
   await import("./tools/contracts");
 
 const contractId = "30000000-0000-4000-8000-000000000001";
@@ -74,6 +81,117 @@ const context = () =>
 beforeEach(() => vi.resetAllMocks());
 
 describe("MCP workflow boundaries", () => {
+  it("exposes active countersigner IDs for an MNDA draft without exposing inactive choices", async () => {
+    mocks.loadMndas.mockResolvedValue({
+      ok: true,
+      value: {
+        register: { total: 0, page: 1, pageSize: 25, records: [] },
+        signers: [
+          {
+            id: signerId,
+            name: "Signer",
+            title: "Director",
+            active: true,
+            isDefault: true,
+            email: "signer@example.test",
+          },
+          {
+            id: unavailableSignerId,
+            name: "Retired signer",
+            active: false,
+            isDefault: false,
+          },
+        ],
+      },
+    });
+    const result = await listMndas.run({}, context());
+    expect(result).toMatchObject({
+      countersigners: [
+        { id: signerId, name: "Signer", title: "Director", isDefault: true },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain(unavailableSignerId);
+    expect(JSON.stringify(result)).not.toContain("signer@example.test");
+  });
+
+  it.each([getMnda, prepareMndaPreview])(
+    "returns saved draft detail through $name before revising",
+    async (tool) => {
+      const record = {
+        ...mndaFixture,
+        input: {
+          ...mndaFixture.input,
+          shortName: "Acme",
+          entityDescription: "a Delaware corporation",
+          streetAddress: "1 Main Street",
+          locality: "Wilmington, DE",
+          noticesContact: "Legal department",
+          noticesEmail: "notices@acme.example",
+        },
+      };
+      mocks.readMnda.mockResolvedValue(record);
+      const result = await tool.run({ id: record.id }, context());
+      const detail =
+        tool.name === "get_mnda" ? result : (result as { mnda: unknown }).mnda;
+      expect(detail).toMatchObject({
+        details: {
+          detailsMode: record.input.detailsMode,
+          shortName: "Acme",
+          entityDescription: "a Delaware corporation",
+          streetAddress: "1 Main Street",
+          locality: "Wilmington, DE",
+          noticesContact: "Legal department",
+          noticesEmail: "notices@acme.example",
+          countersignerId: record.countersigner.id,
+        },
+      });
+      expect(mocks.prepareMnda).not.toHaveBeenCalled();
+    },
+  );
+
+  it("requires an explicit signing request number for a contract refresh", () => {
+    expect(
+      z.object(checkContractStatus.input).safeParse({ contractId }).success,
+    ).toBe(false);
+  });
+
+  it("refuses refresh after the signing request has been replaced", async () => {
+    mocks.loadContract.mockResolvedValue({
+      kind: "ready",
+      signing: { requestNumber: 2 },
+    });
+    await expect(
+      checkContractStatus.run({ contractId, requestNumber: 1 }, context()),
+    ).rejects.toMatchObject({ code: "CONTRACT_REQUEST_CHANGED" });
+    expect(mocks.operateContract).not.toHaveBeenCalled();
+  });
+
+  it("refuses refresh when the contract has no signing request", async () => {
+    mocks.loadContract.mockResolvedValue({ kind: "ready", signing: null });
+    await expect(
+      checkContractStatus.run({ contractId, requestNumber: 1 }, context()),
+    ).rejects.toMatchObject({ code: "CONTRACT_SIGNING_NOT_FOUND" });
+    expect(mocks.operateContract).not.toHaveBeenCalled();
+  });
+
+  it("passes the exact request number and only sync to the existing contract action", async () => {
+    mocks.loadContract.mockResolvedValue({
+      kind: "ready",
+      signing: { requestNumber: 3 },
+    });
+    mocks.operateContract.mockResolvedValue({
+      ok: false,
+      code: "STOP_AFTER_SYNC",
+    });
+    await expect(
+      checkContractStatus.run({ contractId, requestNumber: 3 }, context()),
+    ).rejects.toMatchObject({ code: "STOP_AFTER_SYNC" });
+    expect(mocks.operateContract).toHaveBeenCalledExactlyOnceWith({
+      contractId,
+      requestNumber: 3,
+      operation: "sync",
+    });
+  });
   it("returns a usable cursor when an unread-only page contains only read notifications", async () => {
     const read = {
       id: "40000000-0000-4000-8000-000000000001",

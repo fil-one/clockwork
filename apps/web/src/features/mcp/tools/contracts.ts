@@ -23,6 +23,7 @@ import {
 } from "@clockwork/contracts";
 
 import {
+  operateContract,
   prepareContract,
   prepareCounterpartyPaper,
   saveContract,
@@ -257,6 +258,36 @@ export const getContract = defineTool({
   run: async ({ id }, context) => {
     context.targets.contractId = id;
     return contractResult(id, context);
+  },
+});
+
+export const checkContractStatus = defineTool({
+  name: "check_contract_status",
+  title: "Refresh a contract's signing status",
+  description:
+    "Refresh one signing request from SignWell, as the contract page's Refresh button does. Pass the requestNumber returned by get_contract; a replaced request is refused. This only reads provider status and saves what it observes: it never sends, reminds, voids or approves a request.",
+  input: {
+    contractId: z.uuid(),
+    requestNumber: z.int().positive(),
+  },
+  access: "write",
+  run: async ({ contractId, requestNumber }, context) => {
+    context.targets.contractId = contractId;
+    const detail = await contractDetail(contractId);
+    if (!detail.signing)
+      throw new McpToolError(
+        "CONTRACT_SIGNING_NOT_FOUND",
+        "This contract has no signing request to refresh.",
+      );
+    if (detail.signing.requestNumber !== requestNumber)
+      throw new McpToolError(
+        "CONTRACT_REQUEST_CHANGED",
+        "The signing request changed. Read get_contract again before refreshing it.",
+      );
+    unwrap(
+      await operateContract({ contractId, requestNumber, operation: "sync" }),
+    );
+    return contractResult(contractId, context);
   },
 });
 
@@ -632,6 +663,7 @@ export const prepareFromTemplate = defineTool({
 export const contractTools = [
   listContracts,
   getContract,
+  checkContractStatus,
   recordContract,
   prepareContractForSignature,
   renewalNotices,

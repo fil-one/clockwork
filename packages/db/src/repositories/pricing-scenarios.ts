@@ -23,6 +23,13 @@ import { pricingScenarios } from "../schema/pricing-scenarios";
 import { withInternalTransaction } from "../transaction";
 import { appendAuditAndOutbox } from "./audit-outbox";
 import {
+  beforeCursor,
+  cursorTimestamp,
+  nextPageCursor,
+  pageOptions,
+  type KeysetPageOptions,
+} from "./keyset-page";
+import {
   DatabaseIndicativePriceBookReader,
   type IndicativePriceBookRecord,
 } from "./core/indicative-price-books";
@@ -188,6 +195,46 @@ export class PricingScenarioRepository {
         summary,
       ),
     );
+  }
+
+  /** Uncapped traversal for API readers; ownership applies before pagination. */
+  listPage(scope: PricingScenarioScope, options: KeysetPageOptions = {}) {
+    const { limit, cursor } = pageOptions("pricing", options);
+    return this.tx(async (tx) => {
+      const rows = await tx
+        .select({
+          row: pricingScenarios,
+          cursorAt: cursorTimestamp(pricingScenarios.updatedAt),
+        })
+        .from(pricingScenarios)
+        .where(
+          and(
+            scope.kind === "own"
+              ? eq(pricingScenarios.ownerId, scope.ownerId)
+              : undefined,
+            beforeCursor(
+              pricingScenarios.updatedAt,
+              pricingScenarios.id,
+              cursor,
+            ),
+          ),
+        )
+        .orderBy(desc(pricingScenarios.updatedAt), desc(pricingScenarios.id))
+        .limit(limit + 1);
+      const page = rows.slice(0, limit);
+      const last = page.at(-1);
+      return {
+        rows: readable(
+          page.map(({ row }) => row),
+          summary,
+        ),
+        nextCursor: nextPageCursor(
+          "pricing",
+          rows.length > limit,
+          last ? { id: last.row.id, cursorAt: last.cursorAt } : undefined,
+        ),
+      };
+    });
   }
 
   /** A scenario outside the caller's scope reads as missing. */
