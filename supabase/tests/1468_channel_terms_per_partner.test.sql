@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(17);
 set local search_path=public,extensions;
 
 -- Channel policy windows keep sanity bounds only.
@@ -64,7 +64,7 @@ update deal_registrations set status = 'approved' where id = '94000000-0000-4000
 select set_config('app.authorization_context', jsonb_build_object(
   'userId','20000000-0000-4000-8000-000000000001',
   'accountIds',jsonb_build_array('10000000-0000-4000-8000-000000000002'),
-  'roles',jsonb_build_array('internal_operator'),'isInternalStaff',true,'requestId','channel-terms-1468-staff',
+  'roles',jsonb_build_array('finance_approver'),'isInternalStaff',true,'requestId','channel-terms-1468-staff',
   'expiresAt',(clock_timestamp() + interval '5 minutes')::text)::text, true);
 select set_config('app.authorization_signature', encode(extensions.hmac(
   current_setting('app.authorization_context'),
@@ -81,6 +81,37 @@ select is((select status || ':' || resolved_by::text || ':' || (evidence->'decis
   where registration_id = '94000000-0000-4000-8000-000000001468' and kind = 'house_account'),
  'cleared:20000000-0000-4000-8000-000000000001:Net-new build-out from the partner',
  'the cleared match records the deciding staff user and the override reason');
+
+-- One economic owner, and conversion only from an approval with a matching
+-- order. 94..01 is the seeded approved referral registration (partner 0002,
+-- end client 0004) and 80..02 its referral order.
+insert into deal_registrations(id,partner_account_id,end_client_account_id,workload,expected_volume,status,protection_starts_at,protection_ends_at) values
+ ('94000000-0000-4000-8000-000000001470','10000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000004','referral archive modernization ',1,'registered',now(),now()+interval '30 days');
+select throws_ok($$update deal_registrations set status = 'approved' where id = '94000000-0000-4000-8000-000000001470'$$,
+ '23514', 'REGISTRATION_ECONOMIC_OWNER_EXISTS', 'a second partner cannot be approved on an owned client and workload');
+select throws_ok($$update deal_registrations set status = 'converted', converted_order_id = '80000000-0000-4000-8000-000000000002'
+  where id = '94000000-0000-4000-8000-000000001470'$$,
+ '23514', 'REGISTRATION_CONVERT_REQUIRES_APPROVAL', 'an unapproved registration cannot be converted');
+select throws_ok($$update deal_registrations set status = 'converted', converted_order_id = '80000000-0000-4000-8000-000000000003'
+  where id = '94000000-0000-4000-8000-000000000001'$$,
+ '23514', 'REGISTRATION_CONVERT_ORDER_MISMATCH', 'conversion needs an order for the same partner and end client');
+select lives_ok($$update deal_registrations set status = 'converted', converted_order_id = '80000000-0000-4000-8000-000000000002'
+  where id = '94000000-0000-4000-8000-000000000001'$$,
+ 'an approved registration converts to its own partner and end client order');
+-- Staff without quote approval authority cannot resolve a match.
+select set_config('app.authorization_context', jsonb_build_object(
+  'userId','20000000-0000-4000-8000-000000000001',
+  'accountIds',jsonb_build_array('10000000-0000-4000-8000-000000000002'),
+  'roles',jsonb_build_array('internal_operator'),'isInternalStaff',true,'requestId','channel-terms-1468-operator',
+  'expiresAt',(clock_timestamp() + interval '5 minutes')::text)::text, true);
+select set_config('app.authorization_signature', encode(extensions.hmac(
+  current_setting('app.authorization_context'),
+  (select secret from private.authorization_secrets where active order by created_at desc limit 1),'sha256'),'hex'), true);
+set local role clockwork_runtime;
+set local search_path = public, extensions;
+select throws_ok($$select core_resolve_house_account_match('94000000-0000-4000-8000-000000001468', 'A reason that is long enough')$$,
+ '42501', 'HOUSE_ACCOUNT_DECISION_STAFF_ONLY', 'resolving a match needs quote approval authority');
+reset role;
 
 select * from finish();
 rollback;

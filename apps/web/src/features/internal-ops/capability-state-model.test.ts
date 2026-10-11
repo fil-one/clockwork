@@ -7,6 +7,7 @@ import {
   availableActions,
   capabilityStateFrom,
   isActive,
+  quoteCreationOpen,
 } from "./capability-state-model";
 
 const switches = (
@@ -38,6 +39,23 @@ describe("capability state", () => {
   it("has every switch on for the no-database demo", () => {
     expect(allCapabilitiesEnabled.isEnabled("billing")).toBe(true);
     expect(allCapabilitiesEnabled.isRecoveryEnabled("billing")).toBe(true);
+  });
+});
+
+describe("quote creation gate", () => {
+  const only = (...keys: string[]) =>
+    capabilityStateFrom(
+      keys.map((capabilityKey) => ({
+        capabilityKey,
+        enabled: true,
+        recoveryEnabled: false,
+      })),
+    );
+  it("opens only with new business and legal both on", () => {
+    expect(quoteCreationOpen(only("new_business", "legal"))).toBe(true);
+    expect(quoteCreationOpen(only("new_business"))).toBe(false);
+    expect(quoteCreationOpen(only("legal"))).toBe(false);
+    expect(quoteCreationOpen(capabilityStateFrom([]))).toBe(false);
   });
 });
 

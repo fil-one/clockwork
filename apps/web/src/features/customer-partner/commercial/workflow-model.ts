@@ -8,8 +8,20 @@ import type { MessageId, Translator } from "@/src/i18n";
  * one, and the server applies it when the quote is priced.
  */
 export function isCommittedCapacity(value: string): boolean {
+  return committedCapacity(value) !== undefined;
+}
+
+/**
+ * The committed capacity as the exact decimal the server parses, or undefined
+ * when it is not one. The typed text is kept as is: converting it through a
+ * number would write a tiny value in exponent notation, which the server
+ * refuses.
+ */
+export function committedCapacity(value: string): string | undefined {
   const capacity = value.trim();
-  return QuantitySchema.safeParse(capacity).success && Number(capacity) > 0;
+  return QuantitySchema.safeParse(capacity).success && /[1-9]/u.test(capacity)
+    ? capacity
+    : undefined;
 }
 
 /** The three quote-creation stages, in order, as message IDs. */

@@ -16,9 +16,9 @@ page) belongs to the PAYG offer policy at `/internal/payg-offers`.
 
 Price-book work needs no capability switch, so `legal`, `new_business` and the
 other switches can stay off. An active book then prices the seller Pricing page.
-Customer buy and quote pages show no offers, and quote and order commands are
-refused, until quote creation's own switches (`new_business` and `legal`) are
-on.
+Customer buy and quote pages and the partner quote page show no offers, and
+quote and order commands are refused, until quote creation's own switches
+(`new_business` and `legal`) are on.
 
 ## Steps
 

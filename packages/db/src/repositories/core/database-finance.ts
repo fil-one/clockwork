@@ -8545,6 +8545,68 @@ export class DatabaseCoreFinanceRepository implements CoreFinanceService {
           "This end client is an existing direct client; approving needs an overrideReason of 8 to 500 characters",
         );
     }
+    if (input.action === "approve") {
+      // One economic owner per end client and workload. The database trigger
+      // is the guarantee; this read gives the reason first.
+      const owner = await withInternalTransaction(
+        this.options.pricingDatabase,
+        `${input.requestId}:registration-owner`,
+        (service) =>
+          service
+            .select({ id: dealRegistrations.id })
+            .from(dealRegistrations)
+            .where(
+              and(
+                eq(
+                  dealRegistrations.endClientAccountId,
+                  prior.endClientAccountId,
+                ),
+                inArray(dealRegistrations.status, [
+                  "approved",
+                  "converted",
+                  "disputed",
+                ]),
+                sql`${dealRegistrations.id} <> ${prior.id}
+                  and lower(btrim(${dealRegistrations.workload})) = lower(btrim(${prior.workload}))`,
+              ),
+            )
+            .limit(1),
+      );
+      if (owner.length > 0)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Another registration already owns this end client and workload; reject or resolve it first",
+        );
+    }
+    if (input.action === "convert") {
+      if (prior.status !== "approved")
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "Only an approved registration can be converted",
+        );
+      const orderId = string(input.payload.orderId, "orderId");
+      const linked = await withInternalTransaction(
+        this.options.pricingDatabase,
+        `${input.requestId}:registration-order`,
+        (service) =>
+          service.execute<{ matches: boolean }>(sql`
+            select exists (
+              select 1 from orders order_record
+              left join core_order_commercial_profiles profile
+                on profile.order_id = order_record.id
+              where order_record.id = ${orderId}::uuid
+                and order_record.partner_account_id = ${prior.partnerAccountId}::uuid
+                and order_record.account_id = ${prior.endClientAccountId}::uuid
+                and (profile.deal_registration_id is null
+                  or profile.deal_registration_id = ${prior.id}::uuid)
+            ) as matches`),
+      );
+      if (linked[0]?.matches !== true)
+        throw new CoreServiceError(
+          "INVALID_STATE",
+          "The order must belong to this registration's partner and end client",
+        );
+    }
     const registration: DealRegistration = {
       id: prior.id,
       partnerAccountId: prior.partnerAccountId,

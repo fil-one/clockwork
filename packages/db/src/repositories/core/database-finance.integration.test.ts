@@ -3027,7 +3027,10 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
         ids.account.parse("10000000-0000-4000-8000-000000000002"),
         ids.account.parse("10000000-0000-4000-8000-000000000003"),
       ],
-      roles: ["internal_operator"],
+      // Deciding needs quote approval (API and resolution function) and
+      // operations write (the registration update policy); the commerce
+      // administrator holds both.
+      roles: ["commerce_admin"],
       isInternalStaff: true,
       mfaVerified: true,
       recentAuthenticationVerified: true,
@@ -3080,7 +3083,7 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       });
     const decide = (
       id: string,
-      action: "approve" | "reject",
+      action: "approve" | "reject" | "convert",
       expectedVersion: number,
       payload: Record<string, unknown> = {},
     ) =>
@@ -3106,7 +3109,16 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
           ),
       );
 
-    // A fresh workload per run keeps the test independent of earlier runs.
+    // A fresh workload per run keeps the test independent of earlier runs,
+    // and an earlier run that failed midway must not hold the partner/client
+    // slot of the active-registration index.
+    await withInternalTransaction(db, `house-review-cleanup-${runId}`, (tx) =>
+      tx.execute(sql`
+        update deal_registrations set status = 'rejected'
+        where end_client_account_id = ${accountId}::uuid
+          and workload like 'House review %'
+          and status in ('registered', 'approved')`),
+    );
     const workload = `House review ${runId}`;
     const houseId = crypto.randomUUID();
     const priorId = crypto.randomUUID();
@@ -3174,6 +3186,21 @@ describe("database core direct-owner artifact chain", slowIntegration, () => {
       status: "approved",
       houseAccountDecision: { status: "cleared", overrideReason },
     });
+    // One economic owner: the rival cannot be approved over the house
+    // registration, with or without a reason.
+    await expect(
+      decide(rivalId, "approve", 1, { overrideReason }),
+    ).rejects.toThrow(/already owns this end client and workload/);
+    // Conversion needs an approval and an order for the same partner and
+    // end client.
+    await expect(
+      decide(rivalId, "convert", 1, { orderId: crypto.randomUUID() }),
+    ).rejects.toThrow(/Only an approved registration/);
+    await expect(
+      decide(houseId, "convert", Number(approved.record.rowVersion), {
+        orderId: crypto.randomUUID(),
+      }),
+    ).rejects.toThrow(/partner and end client/);
     // Rejecting the rival confirms its match without a reason.
     const rejected = await decide(rivalId, "reject", 1);
     expect(rejected.record.data).toMatchObject({

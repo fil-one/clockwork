@@ -405,12 +405,15 @@ const monthlyInvoiceLines: readonly DocumentLineItem[] = [
   ),
 ];
 
-/** Transfer price to the reseller, £17,250.00 net (£2.875 per TB-month). */
+/**
+ * Transfer price to the reseller, £17,250.00 net (£2.875 per TB-month, below
+ * the demo floor under an approved pricing exception).
+ */
 const transferLines: readonly DocumentLineItem[] = [
   line(
     "line-transfer",
     "Committed archive capacity — 500 TB · EU West",
-    "Partner transfer price; confidential partner commercial information",
+    "Partner transfer price under an approved pricing exception; confidential partner commercial information",
     "500",
     "TB-year",
     "GBP",

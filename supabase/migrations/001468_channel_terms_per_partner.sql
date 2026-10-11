@@ -76,7 +76,8 @@ declare
   resolved integer;
 begin
   if coalesce((claims->>'isInternalStaff')::boolean, false) is not true
-    or claims->>'userId' is null then
+    or claims->>'userId' is null
+    or not public.app_has_permission('quote:approve') then
     raise exception using errcode = '42501', message = 'HOUSE_ACCOUNT_DECISION_STAFF_ONLY';
   end if;
   select * into registration from public.deal_registrations
@@ -113,3 +114,51 @@ end $$;
 revoke all on function public.core_resolve_house_account_match(uuid, text) from public;
 grant execute on function public.core_resolve_house_account_match(uuid, text)
   to clockwork_runtime, clockwork_service;
+
+-- 4. One economic owner per end client and workload, and conversion only from
+--    an approval. A house-account match no longer refuses a registration, so
+--    two partners can hold open registrations on one client; the approval is
+--    where ownership is decided. Approving is refused while another
+--    registration on the same client and workload is approved, converted or
+--    disputed (serialized per client and workload). Converting requires an
+--    approved registration and an order for the same partner and end client
+--    that names no other registration.
+create function public.guard_deal_registration_ownership() returns trigger
+language plpgsql security definer set search_path = pg_catalog, public as $$
+begin
+  if new.status is not distinct from old.status then
+    return new;
+  end if;
+  if new.status = 'approved' then
+    perform pg_advisory_xact_lock(hashtextextended(
+      new.end_client_account_id::text || ':' || lower(btrim(new.workload)), 1468));
+    if exists (
+      select 1 from public.deal_registrations other
+      where other.id <> new.id
+        and other.end_client_account_id = new.end_client_account_id
+        and lower(btrim(other.workload)) = lower(btrim(new.workload))
+        and other.status in ('approved', 'converted', 'disputed')
+    ) then
+      raise exception using errcode = '23514', message = 'REGISTRATION_ECONOMIC_OWNER_EXISTS';
+    end if;
+  elsif new.status = 'converted' then
+    if old.status <> 'approved' then
+      raise exception using errcode = '23514', message = 'REGISTRATION_CONVERT_REQUIRES_APPROVAL';
+    end if;
+    if new.converted_order_id is null or not exists (
+      select 1 from public.orders order_record
+      left join public.core_order_commercial_profiles profile on profile.order_id = order_record.id
+      where order_record.id = new.converted_order_id
+        and order_record.partner_account_id = new.partner_account_id
+        and order_record.account_id = new.end_client_account_id
+        and (profile.deal_registration_id is null or profile.deal_registration_id = new.id)
+    ) then
+      raise exception using errcode = '23514', message = 'REGISTRATION_CONVERT_ORDER_MISMATCH';
+    end if;
+  end if;
+  return new;
+end $$;
+revoke all on function public.guard_deal_registration_ownership() from public;
+create trigger deal_registration_ownership_guard
+  before update of status on public.deal_registrations
+  for each row execute function public.guard_deal_registration_ownership();

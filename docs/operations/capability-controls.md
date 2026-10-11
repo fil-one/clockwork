@@ -5,7 +5,8 @@ and teardown disabled, including recovery work. Price-book administration
 (drafts, import, clone, activation and scheduled activation) needs no switch;
 its permissions, approval, audit and published immutability govern it. Quote and
 order commands keep their own switches: while `new_business` or `legal` is off
-they are refused, and customer buy and quote pages show no offers. See
+they are refused, and the customer buy and quote pages and the partner quote
+page show no offers. See
 [publishing the Fil One list price book](fil-one-list-price-book.md). The demo
 seed explicitly turns on its fictional development paths; **never apply
 `supabase/seed.sql` to staging or production**. Migration 001423 changes only

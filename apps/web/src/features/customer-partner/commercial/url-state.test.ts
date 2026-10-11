@@ -104,6 +104,10 @@ describe("commercial collection URL state", () => {
     // No deal-size floor: the rate card minimum is applied when priced.
     expect(parseQuotePrefill({ capacity: "0.5" })).toEqual({ capacity: "0.5" });
     expect(parseQuotePrefill({ capacity: "1e3" })).toEqual({});
+    // Kept as the exact decimal typed, never in exponent notation.
+    expect(parseQuotePrefill({ capacity: "0.0000001" })).toEqual({
+      capacity: "0.0000001",
+    });
     expect(parseQuotePrefill({ capacity: "NaN", term: "12.5" })).toEqual({});
   });
 });

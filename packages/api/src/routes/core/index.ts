@@ -350,6 +350,8 @@ const actionPermissionByResource: Partial<
   deal_registrations: {
     approve: "quote:approve",
     reject: "quote:approve",
+    // Conversion records economic ownership of an order: staff only.
+    convert: "quote:approve",
     decide_dispute: "quote:approve",
   },
 };

@@ -1,7 +1,7 @@
 import type { Route } from "next";
 
 import type { CommercialRecord } from "./model";
-import { isCommittedCapacity } from "./workflow-model";
+import { committedCapacity } from "./workflow-model";
 
 export const standardCollectionParams = [
   "q",
@@ -71,12 +71,11 @@ export function firstSearchParam(
  */
 export function parseQuotePrefill(input: RawSearchParams): QuotePrefill {
   const capacityInput = first(input.capacity).trim();
+  const capacity = committedCapacity(capacityInput);
   const termInput = first(input.term).trim();
   const term = Number(termInput);
   return {
-    ...(isCommittedCapacity(capacityInput)
-      ? { capacity: String(Number(capacityInput)) }
-      : {}),
+    ...(capacity === undefined ? {} : { capacity }),
     ...(termInput && Number.isInteger(term) && term >= 1 && term <= 60
       ? { termMonths: String(term) }
       : {}),

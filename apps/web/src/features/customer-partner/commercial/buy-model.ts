@@ -5,7 +5,7 @@ import type { CoreCommandInput } from "@/src/features/contracts/commerce-client"
 import type { SupportedCurrency } from "../../shared/format";
 import { CommercialStop } from "./failure-message";
 import {
-  isCommittedCapacity,
+  committedCapacity,
   quotePayload,
   type QuoteOfferOption,
   type SelectorOption,
@@ -24,7 +24,8 @@ export function initialBuyDraft(offers: readonly QuoteOfferOption[]): BuyDraft {
 }
 
 export function buyCapacity(draft: BuyDraft): number | null {
-  return isCommittedCapacity(draft.capacity) ? Number(draft.capacity) : null;
+  const capacity = committedCapacity(draft.capacity);
+  return capacity === undefined ? null : Number(capacity);
 }
 
 export function needsFullQuote(
@@ -38,7 +39,9 @@ export function needsFullQuote(
 export function quoteHandoff(draft: BuyDraft): Route {
   const capacity = buyCapacity(draft);
   const parameters = new URLSearchParams({
-    ...(capacity === null ? {} : { capacity: String(capacity) }),
+    ...(capacity === null
+      ? {}
+      : { capacity: committedCapacity(draft.capacity) ?? "" }),
     term: String(SELF_SERVE_TERM_MONTHS),
   });
   return `/quotes/new?${parameters.toString()}` as Route;
@@ -66,7 +69,7 @@ export function buildBuyQuoteCommand(input: {
       account: input.account.label,
       offer: input.draft.offerId,
       region: "",
-      capacity: String(capacity),
+      capacity: committedCapacity(input.draft.capacity) ?? "",
       termMonths: String(SELF_SERVE_TERM_MONTHS),
       expiresAt: buyQuoteExpiry(input.now),
     },
