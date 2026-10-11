@@ -84,11 +84,22 @@ Restart Claude desktop after editing the file.
 Write tools appear only for a **Read and write** token. A read-only token does
 not list them, and refuses them if called (the refusal is audited).
 
-Tools that create a record (`create_partner`, `register_partner_deal`,
-`record_contract`, `prepare_from_template`, `create_handoff_request`,
-`save_pricing_scenario`) accept an `id` you choose, so a retried call returns
-the record it made instead of making a second one. A request carries one
-JSON-RPC message; batches are refused.
+Tools that create a record (`create_mnda_draft`, `create_partner`,
+`register_partner_deal`, `record_contract`, `prepare_from_template`,
+`create_handoff_request`, `save_pricing_scenario`) accept an `id` you choose, so
+a retried call returns the record it made instead of making a second one. A
+request carries one JSON-RPC message; batches are refused.
+
+Reuse the same `id` and explicit input values when retrying a creation. For
+`record_contract`, an identical PDF attachment (same filename, kind, bytes and
+uploader) is reused, including concurrent retries. Invalid PDFs are refused
+before contract metadata is saved. Updates still require the current version;
+read the record again after a version conflict.
+
+When an MNDA or contract preparation names a `countersignerId`, that signer must
+be available. An unavailable ID is refused rather than replaced with a default.
+`list_notifications` returns `nextCursor`; pass it as `before` to continue, even
+if `unreadOnly` leaves the current page empty. A null cursor means the end.
 
 | Tool                             | Access | What it does                                                                                                 |
 | -------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------ |
@@ -162,6 +173,9 @@ The guided demo has no MCP endpoint, so nothing can be sent from it.
 - A request authenticates with `Authorization: Bearer` and nothing else. Session
   cookies never authenticate the endpoint, so no CSRF check applies. The
   endpoint is outside the page proxy, like the other API namespaces.
+- CLI requests may omit `Origin`. A present `Origin` must match the configured
+  canonical origin; other origins receive `403`. Invalid canonical-origin
+  configuration does not fall back to a request host or metadata default.
 - Each request reads your current staff membership and roles. Removing your
   staff access revokes your tokens, and so does an authenticator reset: when you
   next verify MFA with a different authenticator, tokens created under the old
@@ -170,6 +184,10 @@ The guided demo has no MCP endpoint, so nothing can be sent from it.
   by a verification leaves the token alive until it expires or someone revokes
   it, so a commerce administrator who resets someone's authenticator also
   revokes their tokens on the Team page.
+- Token creation and authenticator changes share a per-user lock. An older
+  session cannot create a replacement token after a different authenticator has
+  become current; it must verify again. Migration 001481 records the current
+  factor and revokes existing tokens that disagree with known receipt history.
 - Commerce administrators see and revoke everyone's tokens on the **Team** page.
 - Links in results use the configured canonical origin
   (`CLOCKWORK_CANONICAL_ORIGIN`); without it a production deployment answers
@@ -206,3 +224,27 @@ The guided demo has no MCP endpoint, so nothing can be sent from it.
 | `RECENT_AUTH_REQUIRED`        | It needs a fresh MFA check. Do it in the app.                                                                                            |
 | `*_VERSION_CONFLICT`          | Someone changed the record since you read it. Read it again and retry.                                                                   |
 | `*_NOT_CONFIGURED`            | SignWell is not switched on in this environment.                                                                                         |
+
+## QA evidence — October 11, 2026
+
+Three reviewers examined transport interoperability, access-token lifecycle, and
+tool workflows, then independently reviewed the resulting fixes. The pass
+corrected Origin validation, stale-authenticator token creation, notification
+pagination, explicit countersigner selection, upload retry duplication and PDF
+validation order, and added caller-provided IDs for MNDA creation.
+
+Validation used an isolated copy of the local database upgraded through
+migration 001481. It included 40 MCP unit/protocol transport tests, 16
+real-route and outbound-message guard integration tests, 9 token repository
+tests, 37 contract repository tests, and 30 scoped database assertions. The
+token tests cover both concurrent creation/factor-change orders. A rollback-only
+migration probe checked populated receipt history, stale-token repair, and
+preservation of matching tokens and users without receipt history. Web and
+database type checks, lint, formatting and dependency boundaries passed.
+
+Every registered write tool completed a successful local path with signing,
+email, Slack and off-host network calls trapped. Status refresh used a read-only
+provider response; no real provider or counterparty was contacted. HTTP protocol
+initialization, listing and calling were exercised with local authentication
+fixtures. Hosted token issuance, a live Claude connection and production
+deployment were not exercised by this pass.

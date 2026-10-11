@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createRuntimeDatabase } from "../client";
 import { AccessTokenRepository, hashAccessTokenSecret } from "./access-tokens";
@@ -23,6 +23,131 @@ beforeAll(async () => {
   await client`insert into commerce_users (id, workos_user_id, email, name, is_internal_staff, mfa_enrolled)
     values (${person}, ${`tokens_${tag}`}, ${`tokens.${tag}@clockwork.test`}, 'Token Person', true, true),
            (${other}, ${`tokens_admin_${tag}`}, ${`tokens.admin.${tag}@clockwork.test`}, 'Admin', true, true)`;
+  await client`insert into experience_mfa_receipts
+    (challenge_id, session_id, workos_user_id, workos_organization_id, factor_id)
+    values (${randomUUID()}, ${`token_session_${tag}`}, ${`tokens_${tag}`}, 'org_token_tests', 'factor_1')`;
+});
+
+describe("access tokens after an authenticator change", () => {
+  async function fixture() {
+    const userId = randomUUID();
+    const workosUserId = `factor_${userId}`;
+    const workosOrganizationId = "org_token_factor_tests";
+    const oldSession = `old_${userId}`;
+    const newSession = `new_${userId}`;
+    await client`insert into commerce_users
+      (id, workos_user_id, email, name, is_internal_staff, mfa_enrolled)
+      values (${userId}, ${workosUserId}, ${`${userId}@clockwork.test`}, 'Factor Test', true, true)`;
+    const receipt = (factor: string, sessionId: string) =>
+      client`insert into experience_mfa_receipts
+        (challenge_id, session_id, workos_user_id, workos_organization_id, factor_id)
+        values (${randomUUID()}, ${sessionId}, ${workosUserId}, ${workosOrganizationId}, ${factor})`;
+    await receipt("factor_old", oldSession);
+    return {
+      userId,
+      oldSession,
+      newSession,
+      receipt,
+      binding: { workosUserId, workosOrganizationId },
+      create: (factor = "factor_old") =>
+        create({
+          userId,
+          mfaFactorId: factor,
+          actor: { ...actor, id: userId },
+        }),
+    };
+  }
+
+  it("refuses a still-recent old-session receipt and a stale creation request", async () => {
+    const user = await fixture();
+    const old = await user.create();
+    expect(
+      await repository.sessionFactor({
+        ...user.binding,
+        sessionId: user.oldSession,
+      }),
+    ).toBe("factor_old");
+
+    await user.receipt("factor_new", user.newSession);
+
+    expect(await repository.authenticate(old.secret)).toBeNull();
+    expect(
+      await repository.sessionFactor({
+        ...user.binding,
+        sessionId: user.oldSession,
+      }),
+    ).toBeNull();
+    await expect(user.create()).rejects.toThrow("ACCESS_TOKEN_MFA_CHANGED");
+    expect(
+      await repository.sessionFactor({
+        ...user.binding,
+        sessionId: user.newSession,
+      }),
+    ).toBe("factor_new");
+    const current = await user.create("factor_new");
+    expect(await repository.authenticate(current.secret)).not.toBeNull();
+
+    // Reverification with the current factor keeps its tokens usable.
+    await user.receipt("factor_new", user.newSession);
+    expect(await repository.authenticate(current.secret)).not.toBeNull();
+  });
+
+  it.each(["creation", "receipt"] as const)(
+    "serializes a concurrent creation and factor change with %s first",
+    async (first) => {
+      const user = await fixture();
+      const key = `access_tokens:${user.userId}`;
+      const waitForWaiters = (count: number) =>
+        vi.waitFor(async () => {
+          const [row] = await client<{ count: number }[]>`
+            select count(*)::int as count from pg_locks
+            where locktype = 'advisory' and not granted
+              and classid = ((hashtextextended(${key}, 0) >> 32) & 4294967295)::oid
+              and objid = (hashtextextended(${key}, 0) & 4294967295)::oid`;
+          expect(row?.count).toBe(count);
+        });
+      type Creation = Awaited<ReturnType<typeof create>>;
+      let pendingCreate: Promise<Creation | Error> | undefined;
+      let pendingReceipt: Promise<unknown> | undefined;
+      const startCreation = () => {
+        pendingCreate = user.create().catch((error: unknown) => {
+          if (error instanceof Error) return error;
+          throw error;
+        });
+      };
+      const startReceipt = () => {
+        pendingReceipt = user
+          .receipt("factor_new", user.newSession)
+          .then(() => {});
+      };
+      // Hold the shared lock, then queue both real operations in a known
+      // order. Inspect lock waiters instead of guessing with sleep timings.
+      await client.begin(async (tx) => {
+        await tx`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+        if (first === "creation") startCreation();
+        else startReceipt();
+        await waitForWaiters(1);
+        if (first === "creation") startReceipt();
+        else startCreation();
+        await waitForWaiters(2);
+      });
+      const [created] = await Promise.all([pendingCreate, pendingReceipt]);
+      if (first === "receipt") {
+        expect(created).toBeInstanceOf(Error);
+        expect((created as Error).message).toBe("ACCESS_TOKEN_MFA_CHANGED");
+      } else {
+        expect(created).not.toBeInstanceOf(Error);
+        if (!created || created instanceof Error)
+          throw new Error("Creation failed");
+        expect(await repository.authenticate(created.secret)).toBeNull();
+        const [revocation] = await client<{ revoked_reason: string }[]>`
+          select revoked_reason from commerce_access_tokens where id = ${created.record.id}`;
+        expect(revocation?.revoked_reason).toBe("mfa_reset");
+      }
+      const current = await user.create("factor_new");
+      expect(await repository.authenticate(current.secret)).not.toBeNull();
+    },
+  );
 });
 
 afterAll(() => client.end());

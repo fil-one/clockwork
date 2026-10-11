@@ -72,6 +72,8 @@ export async function createAccessToken(
     revalidatePath("/settings");
     return { ok: true, value: created };
   } catch (error) {
+    if (error instanceof Error && error.message === "ACCESS_TOKEN_MFA_CHANGED")
+      return fail("RECENT_SIGN_IN_REQUIRED");
     if (error instanceof Error && error.message === "ACCESS_TOKEN_LIMIT")
       return fail("LIMIT_REACHED");
     console.error("Access token could not be created", {

@@ -10,9 +10,19 @@ import { randomUUID } from "node:crypto";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { AccessTokenRepository, createRuntimeDatabase } from "@clockwork/db";
+import {
+  AccessTokenRepository,
+  ContractTemplateRepository,
+  MndaRepository,
+  createRuntimeDatabase,
+} from "@clockwork/db";
+import { fixtureSectionsContent } from "../../../../../packages/documents/src/__fixtures__/contract-template";
 
-const contact = vi.hoisted(() => ({ attempts: [] as string[] }));
+const contact = vi.hoisted(() => ({
+  attempts: [] as string[],
+  reads: [] as string[],
+  readResponses: new Map<string, unknown>(),
+}));
 
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
 vi.mock("next/headers", () => ({
@@ -43,10 +53,16 @@ vi.mock("@clockwork/integrations", async (importOriginal) => {
           {
             get:
               (_target, method) =>
-              (..._args: unknown[]): Promise<never> => {
+              (...args: unknown[]): Promise<unknown> => {
                 const name = String(method);
-                if (!reads.has(name))
+                if (!reads.has(name)) {
                   contact.attempts.push(`${provider}.${name}`);
+                } else {
+                  const key = `${provider}.${name}:${String(args[0])}`;
+                  contact.reads.push(key);
+                  if (contact.readResponses.has(key))
+                    return Promise.resolve(contact.readResponses.get(key));
+                }
                 return Promise.reject(new Error("SIGNWELL_UNAVAILABLE"));
               },
           },
@@ -131,6 +147,9 @@ const person = {
 let secret = "";
 let next = 1;
 const partners: string[] = [];
+const templateId = `mcp-rule-${tag}`;
+const requestedMndaId = randomUUID();
+let countersignerId = "";
 
 beforeAll(async () => {
   await sql`insert into commerce_users (id, workos_user_id, email, name, is_internal_staff, mfa_enrolled)
@@ -148,6 +167,20 @@ beforeAll(async () => {
       actor: { kind: "user", id: person.id, display: person.name },
     })
   ).secret;
+  const templates = new ContractTemplateRepository(db);
+  const template = await templates.createDraft(
+    { ...fixtureSectionsContent, id: templateId },
+    { kind: "user", id: person.id, display: person.name },
+    "import",
+  );
+  await templates.activate(template.id, 1, {
+    kind: "user",
+    id: person.id,
+    display: person.name,
+  });
+  const signers = await new MndaRepository(db).signers();
+  countersignerId = signers.find((signer) => signer.active)?.id ?? "";
+  expect(countersignerId).not.toBe("");
 });
 
 afterAll(async () => {
@@ -219,13 +252,27 @@ async function samplePdf() {
 }
 
 describe("the owner rule", () => {
+  // This sequential journey exercises every write tool and renders real PDFs;
+  // allow for shared CI runners without relaxing other integration test budgets.
   it("lets no write tool contact anyone outside Fil One", async () => {
     const state: Record<string, string | number> = {};
     const pdf = await samplePdf();
-    // One case per write tool, in an order where each can use what the
-    // earlier ones made. Every case runs whether or not the app accepts it.
+    // A contract signed outside Commerce and recorded as executed is a
+    // legitimate handoff source. This fixture only writes local records.
+    const signed = await call("record_contract", {
+      id: randomUUID(),
+      counterpartyName: `Rule Acme ${tag}, Inc.`,
+      paper: "theirs",
+      status: "executed",
+      files: [{ fileName: "signed-acme.pdf", base64: pdf }],
+    });
+    expect(signed.ok, JSON.stringify(signed.value)).toBe(true);
+    const signedContractId = (signed.value.contract as { id: string }).id;
+    // One successful case per write tool, in an order where each can use
+    // what the earlier ones made. An early refusal must fail this proof.
     const cases: Record<string, () => Record<string, unknown>> = {
       create_mnda_draft: () => ({
+        id: requestedMndaId,
         company: `Rule Acme ${tag}, Inc.`,
         signerName: "Ana Ruiz",
         signerEmail: `ana.${tag}@acme.example`,
@@ -249,14 +296,20 @@ describe("the owner rule", () => {
         signerTitle: "CFO",
       }),
       prepare_from_template: () => ({
-        templateId: "no-such-template",
+        templateId,
         counterpartyName: `Rule Acme ${tag}, Inc.`,
         effectiveDate: "2026-10-11",
         signerName: "Ana Ruiz",
         signerEmail: `ana.${tag}@acme.example`,
         signerTitle: "CFO",
-        countersignerId: randomUUID(),
-        values: {},
+        countersignerId,
+        sections: ["nfr"],
+        values: {
+          model: "Referral",
+          referral_percent: "15",
+          sample_revenue: "100000",
+          nfr_capacity: "5 TiB for 60 days",
+        },
       }),
       create_partner: () => ({ name: `Rule Northwind ${tag}` }),
       update_partner: () => ({
@@ -280,7 +333,7 @@ describe("the owner rule", () => {
         lines: [{ rateId: state.rateId, quantity: "100", termMonths: 12 }],
       }),
       create_handoff_request: () => ({
-        contractIds: [state.contractId],
+        contractIds: [signedContractId],
         requestedSide: "customer",
         counterpartyLegalName: `Rule Acme ${tag}, Inc.`,
         signerName: "Ana Ruiz",
@@ -302,9 +355,60 @@ describe("the owner rule", () => {
 
     const outcomes: Record<string, boolean> = {};
     for (const [name, args] of Object.entries(cases)) {
+      if (name === "check_mnda_status") {
+        // Simulate an already sent request locally, then let the real sync
+        // workflow observe a provider read and advance it to viewed.
+        const repository = new MndaRepository(db);
+        const id = String(state.mndaId);
+        const { record, token } = await repository.claim(id);
+        const providerId = randomUUID();
+        await repository.update(
+          id,
+          token,
+          { state: "sent", providerId },
+          { kind: "user", id: person.id, display: person.name },
+        );
+        await repository.release(id, token);
+        contact.readResponses.set(`signwell-mnda.get:${providerId}`, {
+          id: providerId,
+          status: "Viewed",
+          test_mode: record.testMode,
+          metadata: {
+            commerce_mnda_id: record.id,
+            template_sha256: record.templateHash,
+          },
+          apply_signing_order: true,
+          recipients: [
+            {
+              id: "counterparty",
+              name: record.input.signerName,
+              email: record.input.signerEmail,
+            },
+            {
+              id: "fil-one",
+              name: record.countersigner.name,
+              email: record.countersigner.email,
+            },
+          ],
+          fields: [],
+        });
+      }
       const result = await call(name, args());
       outcomes[name] = result.ok;
       const value = result.value;
+      expect(result.ok, `${name}: ${JSON.stringify(value)}`).toBe(true);
+      if (name === "create_mnda_draft") {
+        const replay = await call(name, args());
+        expect(replay.ok, JSON.stringify(replay.value)).toBe(true);
+        expect((replay.value.mnda as { id: string }).id).toBe(requestedMndaId);
+        expect((value.mnda as { id: string }).id).toBe(requestedMndaId);
+      }
+      if (name === "check_mnda_status") {
+        expect(value.mnda).toMatchObject({ state: "viewed" });
+        expect(
+          contact.reads.some((read) => read.startsWith("signwell-mnda.get:")),
+        ).toBe(true);
+      }
       if (name === "create_mnda_draft" || name === "prepare_mnda_preview")
         state.mndaId = (value.mnda as { id: string } | undefined)?.id ?? "";
       if (name === "record_contract")
@@ -325,16 +429,19 @@ describe("the owner rule", () => {
     expect(outcomes).toMatchObject({
       create_mnda_draft: true,
       prepare_mnda_preview: true,
+      check_mnda_status: true,
       record_contract: true,
       prepare_contract_for_signature: true,
+      prepare_from_template: true,
       create_partner: true,
       update_partner: true,
       register_partner_deal: true,
       update_partner_deal: true,
       save_pricing_scenario: true,
+      create_handoff_request: true,
       mark_notifications_read: true,
     });
-  });
+  }, 30_000);
 
   it("would notice a tool that sent", async () => {
     const { SignWellClient } = await import("@clockwork/integrations");

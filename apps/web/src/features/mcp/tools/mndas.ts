@@ -177,12 +177,14 @@ async function prepareDraft(
   fields: DraftFields,
   supersedes: string[] | undefined,
   context: McpToolContext,
+  id = crypto.randomUUID(),
 ) {
   const workspace = unwrap(await loadMndas({ pageSize: 25 }));
-  const countersigner =
-    workspace.signers.find(
-      (signer) => signer.active && signer.id === fields.countersignerId,
-    ) ?? workspace.signers.find((signer) => signer.active && signer.isDefault);
+  const countersigner = fields.countersignerId
+    ? workspace.signers.find(
+        (signer) => signer.active && signer.id === fields.countersignerId,
+      )
+    : workspace.signers.find((signer) => signer.active && signer.isDefault);
   if (!countersigner)
     throw new McpToolError(
       "countersigner_unavailable",
@@ -191,7 +193,7 @@ async function prepareDraft(
   const record = unwrap(
     await prepareMnda({
       input: {
-        id: crypto.randomUUID(),
+        id,
         detailsMode: fields.detailsMode ?? "team",
         company: fields.company,
         shortName: fields.shortName ?? "",
@@ -244,9 +246,17 @@ export const createMndaDraft = defineTool({
   title: "Create an MNDA draft",
   description:
     "Prepares a Fil One mutual NDA draft from the approved template and renders its PDF for preview. Nothing is sent: a person reviews and sends it in Commerce. Returns the draft, a preview link, the link to send it from, and any MNDAs or contracts already on file for the same company.",
-  input: draftFields,
+  input: {
+    id: z
+      .uuid()
+      .optional()
+      .describe(
+        "Your own id for the new draft, so an identical retried call cannot create it twice",
+      ),
+    ...draftFields,
+  },
   access: "write",
-  run: (args, context) => prepareDraft(args, undefined, context),
+  run: ({ id, ...args }, context) => prepareDraft(args, undefined, context, id),
 });
 
 export const prepareMndaPreview = defineTool({
