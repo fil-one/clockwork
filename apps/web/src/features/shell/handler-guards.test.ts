@@ -48,6 +48,11 @@ const routeExemptions: Readonly<
       "The experience API: handleExperienceRequest checks the audience per request (requireAudience).",
     mustContain: "handleExperienceRequest",
   },
+  "app/api/mcp/route.ts": {
+    reason:
+      "The MCP endpoint: a personal access token authenticates each request as its owner, and every tool runs the pages' own actions and loaders, which check permissions (mndaStaff, contractStaff, contractReader).",
+    mustContain: "handleMcpRequest",
+  },
   "app/access/mfa/verify/route.ts": {
     reason:
       "Verifies the signed-in person's own second factor; there is no role to check yet.",
@@ -114,6 +119,10 @@ const actionExemptions: Readonly<Record<string, string>> = {
   "app/(experience)/settings/actions.ts#saveLanguage":
     "Stores the caller's own interface language in a cookie.",
   "src/auth/sign-out.ts#signOutCommerceSession": "Ends the caller's session.",
+  "src/features/internal-ops/access-tokens/actions.ts#createAccessToken":
+    "Creates a token for the caller alone, from their own MFA-verified staff session checked in the last 30 minutes (mayHoldAccessTokens); the token carries no permissions of its own.",
+  "src/features/internal-ops/access-tokens/actions.ts#revokeOwnAccessToken":
+    "Revokes one of the caller's own tokens; the repository refuses anyone else's.",
   "src/auth/actions.ts#switchCommerceAccount":
     "Switches among the caller's own memberships, which it re-reads.",
   "src/auth/actions.ts#chooseCommerceAccount":

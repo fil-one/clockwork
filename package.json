@@ -86,6 +86,7 @@
   "pnpm": {
     "auditConfig": {
       "ignoreGhsas": [
+        "GHSA-6qxp-vccf-f47h",
         "GHSA-jmr9-qjv8-65gv",
         "GHSA-7pqw-9j4j-h8q3",
         "GHSA-86w9-cpqp-85rv",

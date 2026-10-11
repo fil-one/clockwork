@@ -14,6 +14,10 @@ const workspaceRoot = fileURLToPath(new URL("../", import.meta.url));
 // advisory in the manifest without recording why fails the suite.
 const acceptedAdvisories = new Map([
   [
+    "GHSA-6qxp-vccf-f47h",
+    "@modelcontextprotocol/sdk OAuth client could send stored credentials to an authorization server the MCP server names; fixed in 1.31.0, which is not yet two weeks old (released 2026-09-28). The advisory states MCP servers built with the SDK are not affected. Commerce uses only the SDK's server and web-standard transport for /api/mcp and never imports its client or OAuth code; a check below fails if any source file does. Upgrade to 1.31.0 or later and drop this entry once it is two weeks old.",
+  ],
+  [
     "GHSA-vfj7-8cjw-p6xm",
     "braces deeply nested glob stack exhaustion: no published fix through 3.0.3. Reached only through root development dependencies (Netlify CLI and Secretlint via micromatch/fast-glob). Commerce accepts no untrusted glob patterns through those tools, and the package is absent from the production dependency graph. A regression check below fails if it becomes a production dependency.",
   ],
@@ -143,5 +147,30 @@ test("the unpatched braces package stays outside production dependencies", async
     JSON.parse(stdout),
     [],
     "Re-review GHSA-vfj7-8cjw-p6xm: braces must not enter the production dependency graph",
+  );
+});
+
+test("the MCP SDK's client and OAuth code stay unused while its advisory is accepted", async () => {
+  const { stdout } = await execFileAsync(
+    "git",
+    [
+      "grep",
+      "-l",
+      "-E",
+      "@modelcontextprotocol/sdk/(client|server/auth|shared/auth)",
+      "--",
+      "apps",
+      "packages",
+    ],
+    { cwd: workspaceRoot },
+  ).catch((error) => {
+    // git grep exits 1 when nothing matches.
+    if (error.code === 1) return { stdout: "" };
+    throw error;
+  });
+  assert.equal(
+    stdout.trim(),
+    "",
+    "Re-review GHSA-6qxp-vccf-f47h: Commerce must not use the MCP SDK client or OAuth code",
   );
 });

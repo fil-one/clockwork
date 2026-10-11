@@ -284,6 +284,12 @@ offer; the price that applies is the one in a signed order form.
 The demo has two example scenarios, a resale and a referral with step-downs,
 that you can open and download.
 
+## Use Commerce from Claude
+
+Claude Code can look things up and prepare drafts through a personal access
+token you create under **Settings**. It never sends anything to a partner: you
+review and send from Commerce. See [Using Fil One Commerce from Claude](mcp.md).
+
 ## If your session expires
 
 If an action shows "Your session expired. Reload to continue.", choose

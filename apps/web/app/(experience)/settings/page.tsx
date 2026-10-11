@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { AccessTokensSection } from "@/src/features/internal-ops/access-tokens/access-tokens";
+import { loadOwnAccessTokens } from "@/src/features/internal-ops/access-tokens/server";
 import { AppShell } from "@/src/features/shell/app-shell";
+import { publicMetadataOrigin } from "@/src/features/shell/public-origin";
 import {
   getAuthenticatedHome,
   getRouteSession,
@@ -23,9 +26,18 @@ export default async function SettingsPage() {
         ? "partner"
         : "customer";
   const session = await getRouteSession(audience);
+  // Staff manage their MCP access tokens here, beside their language.
+  const tokens = audience === "internal" ? await loadOwnAccessTokens() : null;
   return (
     <AppShell audience={audience} session={session}>
-      <LanguageSettings />
+      <LanguageSettings>
+        {tokens ? (
+          <AccessTokensSection
+            view={tokens}
+            endpoint={`${publicMetadataOrigin(process.env)}/api/mcp`}
+          />
+        ) : null}
+      </LanguageSettings>
     </AppShell>
   );
 }

@@ -1239,3 +1239,94 @@ test("@internal records a partner's terms, registers deals and is warned about a
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations).toEqual([]);
 });
+
+test("@internal creates an access token, calls MCP with it and revokes it", async ({
+  page,
+  playwright,
+  baseURL,
+}) => {
+  const name = `Proof token ${Date.now().toString(36)}`;
+  await page.goto("/settings");
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Access tokens" }),
+  ).toBeVisible();
+  await page.getByLabel("Name", { exact: true }).fill(name);
+  await page.getByRole("radio", { name: /^Read only/u }).check();
+  await page.getByRole("button", { name: "Create token" }).click();
+  const secretField = page.getByLabel("Token", { exact: true });
+  // The first server action on a cold production server can take a while.
+  await expect(secretField).toBeVisible({ timeout: 15_000 });
+  const secret = await secretField.inputValue();
+  expect(secret).toMatch(/^fo_pat_[A-Za-z0-9_-]{43}$/u);
+
+  // A client with no cookies at all, as an MCP client is.
+  const client = await playwright.request.newContext(
+    baseURL ? { baseURL } : {},
+  );
+  const mcp = (token?: string) =>
+    client.post("/api/mcp", {
+      headers: {
+        accept: "application/json, text/event-stream",
+        "content-type": "application/json",
+        "mcp-protocol-version": "2025-06-18",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      data: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "whoami", arguments: {} },
+      },
+    });
+  try {
+    const answered = await mcp(secret);
+    expect(answered.status()).toBe(200);
+    const body = (await answered.json()) as {
+      result: { content: { text: string }[] };
+    };
+    const me = JSON.parse(body.result.content[0]?.text ?? "{}") as {
+      user: { id: string };
+      token: { scope: string; name: string };
+    };
+    expect(me.user.id).toBe("20000000-0000-4000-8000-000000000001");
+    expect(me.token).toMatchObject({ scope: "read", name });
+    // The signed-in browser's cookies never authenticate the endpoint.
+    const withCookies = await page.request.post("/api/mcp", {
+      headers: { "content-type": "application/json" },
+      data: { jsonrpc: "2.0", id: 1, method: "tools/list" },
+    });
+    expect(withCookies.status()).toBe(401);
+
+    await page.getByRole("button", { name: "Done" }).click();
+    await page.getByRole("button", { name: `Revoke ${name}` }).click();
+    await page.getByRole("button", { name: "Revoke token" }).click();
+    await expect(page.getByText("Revoked by its owner").first()).toBeVisible({
+      timeout: 15_000,
+    });
+    expect((await mcp(secret)).status()).toBe(401);
+  } finally {
+    await client.dispose();
+  }
+
+  const databaseUrl = process.env.DIRECT_DATABASE_URL;
+  if (!databaseUrl)
+    throw new Error("DIRECT_DATABASE_URL is required for the token proof");
+  const sql = createDirectMigrationClient(databaseUrl);
+  try {
+    const events = await sql<{ event_type: string; tool: string | null }[]>`
+      select a.event_type, a.metadata->>'tool' as tool
+      from public.commerce_access_tokens t
+      join public.audit_events a on a.aggregate_type = 'access_token' and a.aggregate_id = t.id
+      where t.name = ${name}
+      order by a.aggregate_version`;
+    expect(events).toEqual([
+      { event_type: "access_token.created", tool: null },
+      { event_type: "mcp.tool_called", tool: "whoami" },
+      { event_type: "access_token.revoked", tool: null },
+    ]);
+  } finally {
+    await sql.end();
+  }
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations).toEqual([]);
+});
