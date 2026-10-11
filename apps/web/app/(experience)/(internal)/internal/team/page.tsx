@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { StaffAccessTokens } from "@/src/features/internal-ops/access-tokens/access-tokens";
+import { loadStaffAccessTokens } from "@/src/features/internal-ops/access-tokens/server";
 import { loadTeamView } from "@/src/features/internal-ops/team/server";
 import { TeamWorkspace } from "@/src/features/internal-ops/team/team-workspace";
 import { withStaffPermission } from "@/src/features/shell/staff-access";
@@ -14,7 +16,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 async function Page() {
-  return <TeamWorkspace view={await loadTeamView()} />;
+  const [view, tokens] = await Promise.all([
+    loadTeamView(),
+    loadStaffAccessTokens(),
+  ]);
+  return (
+    <TeamWorkspace view={view}>
+      <StaffAccessTokens view={tokens} />
+    </TeamWorkspace>
+  );
 }
 
 export default withStaffPermission("staff:manage", Page);

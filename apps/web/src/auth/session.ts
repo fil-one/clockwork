@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import {
   internalRoles,
   permissionsForRoles,
@@ -76,7 +78,33 @@ export interface CommerceSession extends SessionClaims {
   assistedSession?: AssistedSessionView;
   assistedSessionProvider?: "clockwork" | "workos";
   providerBacked: boolean;
-  authenticationSource: "local" | "workos" | "release-proof";
+  authenticationSource: "local" | "workos" | "release-proof" | "access-token";
+  /** The personal access token an MCP request presented. */
+  accessToken?: {
+    id: string;
+    name: string;
+    scope: "read" | "read_write";
+    expiresAt: string;
+  };
+}
+
+const accessTokenSessions = new AsyncLocalStorage<CommerceSession>();
+
+/**
+ * Runs an MCP request as the person whose access token it presented. Inside,
+ * every reader of the session (actions, loaders and permission checks) sees
+ * that person with their current permissions, and no cookie is consulted.
+ * The session never counts as a recent sign-in, so actions that need a fresh
+ * MFA check refuse.
+ */
+export function runWithAccessTokenSession<T>(
+  session: CommerceSession,
+  operation: () => T,
+): T {
+  if (session.authenticationSource !== "access-token" || !session.accessToken)
+    // i18n-exempt: server-side invariant for logs; never rendered
+    throw new Error("Only an access-token session may be bound this way");
+  return accessTokenSessions.run(session, operation);
 }
 
 export function explicitDemoIdentityEnabled(
@@ -451,6 +479,8 @@ export async function requireRecentAuthentication(): Promise<CommerceSession> {
 }
 
 export async function getCommerceSession(): Promise<CommerceSession> {
+  const tokenSession = accessTokenSessions.getStore();
+  if (tokenSession) return tokenSession;
   assertAuthenticationConfiguration();
   if (releaseProofConfiguration()) {
     const [cookieStore, headerStore] = await Promise.all([

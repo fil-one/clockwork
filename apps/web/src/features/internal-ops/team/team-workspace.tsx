@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 
 import {
   Button,
@@ -102,7 +109,14 @@ function OutcomeBanner({
   );
 }
 
-export function TeamWorkspace({ view }: { view: TeamView }) {
+export function TeamWorkspace({
+  view,
+  children,
+}: {
+  view: TeamView;
+  /** Further sections, such as everyone's access tokens. */
+  children?: ReactNode;
+}) {
   const t = useTranslations();
   const locale = useFormattingLocale();
   const router = useRouter();
@@ -241,6 +255,7 @@ export function TeamWorkspace({ view }: { view: TeamView }) {
           </>
         )}
       </section>
+      {children}
     </main>
   );
 }

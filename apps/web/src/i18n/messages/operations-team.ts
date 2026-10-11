@@ -450,4 +450,121 @@ export const teamMessages = defineStaffMessages({
   "operations.owner.selfApprovals.line": {
     en: "{actor} approved their own request: {subject}",
   },
+  "operations.accessTokens.title": { en: "Access tokens" },
+  "operations.accessTokens.description": {
+    en: "A personal access token lets Claude Code or another MCP client use Fil One Commerce as you, with your current permissions. Every call is recorded. Treat a token like a password.",
+  },
+  "operations.accessTokens.unavailable": {
+    en: "Access tokens are not available in this session. Sign in to Fil One Commerce directly, with your authenticator, to manage them.",
+  },
+  "operations.accessTokens.demo": {
+    en: "The demo has no access tokens.",
+  },
+  "operations.accessTokens.verify": {
+    en: "Creating a token needs an MFA check in the last 30 minutes.",
+  },
+  "operations.accessTokens.verifyAction": {
+    en: "Verify with your authenticator",
+  },
+  "operations.accessTokens.name": { en: "Name" },
+  "operations.accessTokens.nameHelp": {
+    en: "Where you will use it, such as Claude Code on your laptop.",
+  },
+  "operations.accessTokens.scope": { en: "Access" },
+  "operations.accessTokens.scope.read": { en: "Read only" },
+  "operations.accessTokens.scope.readWrite": { en: "Read and write" },
+  "operations.accessTokens.scope.readHelp": {
+    en: "Look things up: registers, records, pricing and links.",
+  },
+  "operations.accessTokens.scope.readWriteHelp": {
+    en: "Also draft MNDAs, prepare contracts and keep records. Sending to anyone outside Fil One stays in the app.",
+  },
+  "operations.accessTokens.expiry": { en: "Expires after" },
+  "operations.accessTokens.expiry.days": {
+    count: "days",
+    en: { one: "{days} day", other: "{days} days" },
+  },
+  "operations.accessTokens.create": { en: "Create token" },
+  "operations.accessTokens.creating": { en: "Creating…" },
+  "operations.accessTokens.created.title": {
+    en: "Copy your token now",
+  },
+  "operations.accessTokens.created.description": {
+    en: "This is the only time it is shown. Fil One Commerce keeps only a fingerprint of it.",
+  },
+  "operations.accessTokens.created.secret": { en: "Token" },
+  "operations.accessTokens.created.command": {
+    en: "Add it to Claude Code",
+  },
+  "operations.accessTokens.copy": { en: "Copy" },
+  "operations.accessTokens.copied": { en: "Copied" },
+  "operations.accessTokens.done": { en: "Done" },
+  "operations.accessTokens.list": { en: "Your tokens" },
+  "operations.accessTokens.empty": { en: "You have no access tokens." },
+  "operations.accessTokens.column.name": { en: "Name" },
+  "operations.accessTokens.column.owner": { en: "Person" },
+  "operations.accessTokens.column.access": { en: "Access" },
+  "operations.accessTokens.column.created": { en: "Created" },
+  "operations.accessTokens.column.expires": { en: "Expires" },
+  "operations.accessTokens.column.lastUsed": { en: "Last used" },
+  "operations.accessTokens.column.status": { en: "Status" },
+  "operations.accessTokens.column.actions": { en: "Actions" },
+  "operations.accessTokens.neverUsed": { en: "Never" },
+  "operations.accessTokens.status.active": { en: "Active" },
+  "operations.accessTokens.status.expired": { en: "Expired" },
+  "operations.accessTokens.status.revoked": { en: "Revoked" },
+  "operations.accessTokens.status.revokedBy.owner": {
+    en: "Revoked by its owner",
+  },
+  "operations.accessTokens.status.revokedBy.admin": {
+    en: "Revoked by an administrator",
+  },
+  "operations.accessTokens.status.revokedBy.membership_removed": {
+    en: "Revoked: staff access removed",
+  },
+  "operations.accessTokens.status.revokedBy.mfa_reset": {
+    en: "Revoked: authenticator reset",
+  },
+  "operations.accessTokens.revoke": { en: "Revoke" },
+  "operations.accessTokens.revokeNamed": { en: "Revoke {name}" },
+  "operations.accessTokens.revokeConfirm": {
+    en: "Revoke {name}? Anything using it stops working at once.",
+  },
+  "operations.accessTokens.revokeYes": { en: "Revoke token" },
+  "operations.accessTokens.cancel": { en: "Cancel" },
+  "operations.accessTokens.revoked": { en: "Token revoked." },
+  "operations.accessTokens.error.RECENT_SIGN_IN_REQUIRED": {
+    en: "Verify with your authenticator first, then create the token again.",
+  },
+  "operations.accessTokens.error.DIRECT_SESSION_REQUIRED": {
+    en: "Only you, signed in directly with your authenticator, can do this.",
+  },
+  "operations.accessTokens.error.NOT_PERMITTED": {
+    en: "Your role does not allow this.",
+  },
+  "operations.accessTokens.error.NOT_AVAILABLE": {
+    en: "Access tokens are not available here.",
+  },
+  "operations.accessTokens.error.INVALID_INPUT": {
+    en: "Give the token a name of up to 100 characters.",
+  },
+  "operations.accessTokens.error.LIMIT_REACHED": {
+    en: "You have 20 active tokens. Revoke one you no longer use first.",
+  },
+  "operations.accessTokens.error.NOT_FOUND": {
+    en: "That token no longer exists. Reload the page.",
+  },
+  "operations.accessTokens.error.SESSION_EXPIRED": {
+    en: "Your session expired. Reload the page and try again.",
+  },
+  "operations.accessTokens.error.UNEXPECTED": {
+    en: "That did not work. Try again in a minute.",
+  },
+  "operations.accessTokens.team.title": { en: "Access tokens" },
+  "operations.accessTokens.team.description": {
+    en: "Every staff member's personal access tokens for MCP clients. Revoking one stops it at once. Tokens also stop when someone's staff access is removed or their authenticator is reset.",
+  },
+  "operations.accessTokens.team.empty": {
+    en: "No one has an access token.",
+  },
 });

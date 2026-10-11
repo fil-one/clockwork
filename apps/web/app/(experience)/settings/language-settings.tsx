@@ -1,13 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import { Button } from "@clockwork/ui";
 import { languageNames } from "@/src/i18n";
 import { useLocale, useTranslations } from "@/src/i18n/client";
 import { saveLanguage } from "./actions";
 import styles from "./settings.module.css";
 
-export function LanguageSettings() {
+export function LanguageSettings({
+  children,
+}: {
+  /** Further sections, such as a staff member's access tokens. */
+  children?: ReactNode;
+}) {
   const locale = useLocale();
   const t = useTranslations();
   const [state, action, pending] = useActionState(saveLanguage, {
@@ -52,6 +57,7 @@ export function LanguageSettings() {
         </form>
         <p>{t("settings.language.records")}</p>
       </section>
+      {children}
     </main>
   );
 }

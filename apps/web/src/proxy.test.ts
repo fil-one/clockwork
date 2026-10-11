@@ -20,7 +20,7 @@ function event() {
 }
 
 describe("request telemetry proxy", () => {
-  it("leaves both self-authenticating API namespaces outside middleware", () => {
+  it("leaves the self-authenticating API namespaces outside middleware", () => {
     const entry = config.matcher.at(0);
     if (!entry) throw new Error("Proxy matcher is missing");
     const source = typeof entry === "string" ? entry : entry.source;
@@ -30,6 +30,7 @@ describe("request telemetry proxy", () => {
       "/api/v1",
       "/api/experience/projections/customer/quotes",
       "/api/experience",
+      "/api/mcp",
       "/api/demo/payments",
       "/api/demo/payments/sessions",
       "/api/demo/orders/provision",
@@ -40,6 +41,7 @@ describe("request telemetry proxy", () => {
       "/customer",
       "/api/telemetry",
       "/api/experiential",
+      "/api/mcpx",
       "/api/demo/reset",
       "/api/demo/projections/queues/refresh",
       "/api/demo/paymentss",

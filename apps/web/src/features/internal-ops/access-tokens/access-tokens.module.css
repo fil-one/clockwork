@@ -1,0 +1,150 @@
+.panel {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  border: 1px solid var(--cw-border);
+  border-radius: var(--cw-radius-lg);
+  background: var(--cw-surface);
+  box-shadow: var(--cw-shadow-xs);
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: var(--cw-text-lg);
+  font-weight: 600;
+}
+
+.panel > p {
+  margin: 0;
+  color: var(--cw-muted);
+  line-height: var(--cw-leading-body);
+}
+
+.form,
+.created {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 34rem;
+}
+
+.form label,
+.created label,
+.choices legend {
+  font-size: var(--cw-text-md);
+  font-weight: 500;
+}
+
+.form input:not([type="radio"]),
+.form select {
+  min-height: 2.5rem;
+}
+
+.choices {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  border: 0;
+  padding: 0;
+}
+
+.choices label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.5rem;
+  align-items: baseline;
+  font-weight: 400;
+}
+
+.choices label .muted {
+  grid-column: 2;
+}
+
+.note,
+.muted {
+  margin: 0;
+  color: var(--cw-muted);
+  font-size: var(--cw-text-sm);
+}
+
+.muted {
+  display: block;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.error {
+  margin: 0;
+  color: var(--cw-danger, #b42318);
+}
+
+.copyRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.secret {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--cw-font-mono, ui-monospace, monospace);
+  font-size: var(--cw-text-sm);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--cw-text-sm);
+}
+
+.table caption {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  text-align: start;
+}
+
+.table th,
+.table td {
+  border-top: 1px solid var(--cw-border);
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  text-align: start;
+  vertical-align: top;
+}
+
+.table tbody th {
+  font-weight: 500;
+}
+
+.prefix {
+  display: block;
+  color: var(--cw-muted);
+  font-size: var(--cw-text-xs, 0.75rem);
+}
+
+.active {
+  color: var(--cw-success, #067647);
+}
+
+.ended {
+  color: var(--cw-muted);
+}
+
+.confirm {
+  display: grid;
+  gap: 0.25rem;
+  max-width: 20rem;
+}
+
+.confirm p {
+  margin: 0;
+}

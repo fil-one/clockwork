@@ -10,6 +10,7 @@ import {
   assistedSessionCookieName,
   getCommerceSession,
   workosAuthenticationConfigured,
+  type CommerceSession,
 } from "@/src/auth/session";
 
 /**
@@ -26,7 +27,7 @@ import {
  * it behind makes signing out look like it did nothing.
  */
 export async function signOutCommerceSession(): Promise<never> {
-  let authenticationSource: "local" | "workos" | "release-proof" = "local";
+  let authenticationSource: CommerceSession["authenticationSource"] = "local";
   try {
     ({ authenticationSource } = await getCommerceSession());
   } catch {
