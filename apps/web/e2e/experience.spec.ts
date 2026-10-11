@@ -158,6 +158,7 @@ test("direct buyer sends a protected priced-draft command and receives its recei
     page.getByRole("heading", { level: 1, name: "Create a quote" }),
   ).toBeVisible();
   await page.getByLabel("Offer", { exact: true }).fill(OFFER);
+  await page.getByRole("option", { name: OFFER }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByLabel("Committed capacity (TB)").fill("120");
   await page.getByLabel("Term (months)").fill("12");

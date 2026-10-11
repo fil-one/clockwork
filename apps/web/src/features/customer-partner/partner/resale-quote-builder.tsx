@@ -434,7 +434,7 @@ function QuoteWorkspace({ context }: { context: PartnerQuoteContext }) {
                   id="partner-offer"
                   name="offerName"
                   label={t("partner.quote.new.field.offer")}
-                  placeholder={t("customer.commercial.builder.search.offer")}
+                  placeholder={t("common.search")}
                   value={draft.offerName}
                   onChange={(value) => update("offerName", value)}
                   options={selectableOffers.map((option) => ({
