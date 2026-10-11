@@ -182,8 +182,8 @@ describe("registerAllTriggerTasks", () => {
   });
 
   it("hands every production task to the Trigger SDK", () => {
-    expect(capturedTasks.length + capturedSchedules.length).toBe(50);
-    expect(capturedSchedules).toHaveLength(29);
+    expect(capturedTasks.length + capturedSchedules.length).toBe(51);
+    expect(capturedSchedules).toHaveLength(30);
   });
 
   it("stages every application schedule and expires only the superseded sweeps", () => {

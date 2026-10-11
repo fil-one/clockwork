@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
@@ -9,6 +9,7 @@ import {
   isStaffNotificationKind,
   staffNotificationPageSize,
   type Actor,
+  type PartnerNextStepDue,
   type Permission,
   type StaffNotification,
   type StaffNotificationChannel,
@@ -400,6 +401,13 @@ export type StaffNotificationCapabilityRequest = {
   status: string;
   decisionReason: string | null;
 };
+export type StaffNotificationPartner = {
+  id: string;
+  name: string;
+  ownerId: string | null;
+  status: string;
+  nextStepDue: string | null;
+};
 export type StaffNotificationPriceBook = {
   id: string;
   name: string;
@@ -572,6 +580,61 @@ export class StaffNotificationStore {
         select id::text as id, name, currency, version
         from price_books where id::text = ${id}`);
       return row ?? null;
+    });
+  }
+
+  /** A partner as its next-step reminder reads it. */
+  partner(id: string): Promise<StaffNotificationPartner | null> {
+    return this.tx(async (tx) => {
+      const [row] = await tx.execute<StaffNotificationPartner>(sql`
+        select id::text as id, name, owner_id::text as "ownerId", status,
+          next_step_due::text as "nextStepDue"
+        from commerce_partners where id::text = ${id}`);
+      return row ?? null;
+    });
+  }
+
+  /**
+   * Records that a partner's next step is due, once per partner and due
+   * date: the event's aggregate is derived from both, so a second run of the
+   * daily reminder, or a run after a restart, writes nothing. The event's
+   * outbox message notifies the owner. Returns whether it was written.
+   */
+  remindPartnerNextStep(due: PartnerNextStepDue): Promise<boolean> {
+    const aggregateId = derivedUuid(
+      `partner-next-step:${due.partnerId}:${due.nextStepDue}`,
+    );
+    return this.tx(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${aggregateId}, 0))`,
+      );
+      const [existing] = await tx.execute<{ id: string }>(sql`
+        select id::text as id from audit_events
+        where aggregate_type = 'partner' and aggregate_id = ${aggregateId}::uuid
+        limit 1`);
+      if (existing) return false;
+      await appendAuditAndOutbox(tx, {
+        aggregateType: "partner",
+        aggregateId,
+        aggregateVersion: 1,
+        eventType: "partner.next_step_due",
+        actor: {
+          kind: "system",
+          id: "partner-next-step-reminder",
+          display: "Daily partner reminder",
+        },
+        requestId: randomUUID(),
+        // Who and when only: the step's own words and the partner's terms
+        // stay on the partner record.
+        after: {
+          partnerId: due.partnerId,
+          partnerName: due.partnerName,
+          ownerId: due.ownerId,
+          nextStepDue: due.nextStepDue,
+          overdue: due.overdue,
+        },
+      });
+      return true;
     });
   }
 
@@ -774,3 +837,11 @@ export const deliveryKey = (
   channel: StaffNotificationChannel,
   recipientUserId: string | null,
 ) => `${channel}:${recipientUserId ?? "channel"}`;
+
+/** A stable UUID (version 8, RFC 9562) for a name, so a repeated run lands
+ * on the same audit aggregate. */
+function derivedUuid(name: string) {
+  const hex = createHash("sha256").update(name).digest("hex").slice(0, 32);
+  const variant = ((parseInt(hex.charAt(16), 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}

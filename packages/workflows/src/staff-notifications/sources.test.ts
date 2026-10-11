@@ -101,6 +101,14 @@ function lookups(
     priceBook: (id) =>
       Promise.resolve({ id, name: "List", currency: "USD", version: 4 }),
     approvalRequester: () => Promise.resolve(ids.finance),
+    partner: (id) =>
+      Promise.resolve({
+        id,
+        name: "Northwind Channel Co.",
+        ownerId: ids.seller,
+        status: "talking",
+        nextStepDue: "2026-10-10",
+      }),
     ...overrides,
   };
 }
@@ -134,6 +142,8 @@ describe("staff notification sources", () => {
       const resolution = await resolve(eventType, {
         activationRequestedBy: ids.finance,
         rejectedApprovalId: "ap000000-0000-4000-8000-000000000001",
+        partnerId: "p0000000-0000-4000-8000-000000000001",
+        nextStepDue: "2026-10-10",
       });
       if (!resolution) continue;
       expect(staffNotificationKindList).toContain(resolution.kind);
@@ -321,6 +331,49 @@ describe("staff notification sources", () => {
       recipients: [ids.finance],
       detail: "Discount too deep",
     });
+  });
+
+  it("tell a partner's owner that its next step is due or overdue", async () => {
+    const data = {
+      partnerId: "p0000000-0000-4000-8000-000000000001",
+      nextStepDue: "2026-10-10",
+    };
+    expect(await resolve("partner.next_step_due", data)).toMatchObject({
+      kind: "partner.next_step_due",
+      recipients: [ids.seller],
+      recordType: "partner",
+      href: "/internal/partners/p0000000-0000-4000-8000-000000000001",
+      subject: "Northwind Channel Co.",
+    });
+    expect(
+      await resolve("partner.next_step_due", { ...data, overdue: true }),
+    ).toMatchObject({ kind: "partner.next_step_overdue" });
+  });
+
+  it("say nothing once the step moved, the partner ended or nobody owns it", async () => {
+    const data = {
+      partnerId: "p0000000-0000-4000-8000-000000000001",
+      nextStepDue: "2026-10-09",
+    };
+    expect(await resolve("partner.next_step_due", data)).toBeNull();
+    for (const patch of [{ status: "ended" }, { ownerId: null }])
+      expect(
+        await resolve(
+          "partner.next_step_due",
+          { ...data, nextStepDue: "2026-10-10" },
+          {
+            partner: (id) =>
+              Promise.resolve({
+                id,
+                name: "Northwind Channel Co.",
+                ownerId: ids.seller,
+                status: "talking",
+                nextStepDue: "2026-10-10",
+                ...patch,
+              }),
+          },
+        ),
+      ).toBeNull();
   });
 
   it("declare permissions for every kind", () => {

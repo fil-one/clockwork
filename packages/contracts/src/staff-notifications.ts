@@ -76,6 +76,13 @@ export const staffNotificationKinds = {
     record: "price_book",
     permissions: ["operations:read"],
   },
+  // A partner's next step falls due: told to the partner's owner once per
+  // due date, by the daily reminder task.
+  "partner.next_step_due": { record: "partner", permissions: ["sales:read"] },
+  "partner.next_step_overdue": {
+    record: "partner",
+    permissions: ["sales:read"],
+  },
 } as const satisfies Record<
   string,
   {
@@ -115,6 +122,7 @@ export const staffNotificationGroups = [
   "handoff",
   "capability",
   "price_book",
+  "partner",
 ] as const;
 export type StaffNotificationGroup = (typeof staffNotificationGroups)[number];
 export const staffNotificationGroup = (kind: StaffNotificationKind) =>

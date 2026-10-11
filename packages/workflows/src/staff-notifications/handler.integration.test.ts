@@ -8,6 +8,7 @@ import {
   commerceUsers,
   createRuntimeDatabase,
   memberships,
+  PartnerRepository,
   StaffNotificationRepository,
   StaffNotificationStore,
   withInternalTransaction,
@@ -23,6 +24,7 @@ import {
   retryStaffNotificationDeliveries,
   staffNotificationMaxAttempts,
 } from "./handler";
+import { remindPartnerNextSteps } from "./partner-reminders";
 
 /**
  * The path from a committed change to what staff are told: the audit event
@@ -643,6 +645,70 @@ describe("staff notifications from audit events", () => {
       0,
     );
     expect(eventId).toBeTruthy();
+  });
+
+  it("reminds a partner's owner once per due date, and not after the step moved", async () => {
+    await setSettings({ emailEnabled: true, slackEnabled: false });
+    const emailPort = new FakeStaffEmail();
+    const partnerId = randomUUID();
+    const today = new Date().toISOString().slice(0, 10);
+    await client`insert into commerce_partners
+      (id, name, status, owner_id, owner_name, next_step, next_step_due, commission_pct,
+       created_by_id, created_by_name)
+      values (${partnerId}, ${`Partner ${run}`}, 'talking', ${seller}, 'Sam Seller',
+        'Send the referral letter', ${today}::date, 12.5, ${seller}, 'Sam Seller')`;
+    const partners = new PartnerRepository(db);
+    const first = await remindPartnerNextSteps(today, {
+      partners,
+      store,
+      log: () => {},
+    });
+    expect(first.reminded).toBeGreaterThanOrEqual(1);
+    // A second run the same day, or a redelivered tick, writes nothing new.
+    await remindPartnerNextSteps(today, { partners, store, log: () => {} });
+    const events = await client<{ id: string }[]>`
+      select e.id::text as id from audit_events e
+      where e.event_type = 'partner.next_step_due'
+        and e.after->>'partnerId' = ${partnerId}`;
+    expect(events).toHaveLength(1);
+    const [message] = await client<{ payload: unknown }[]>`
+      select payload from outbox_messages where event_id = ${events[0]?.id ?? ""}`;
+    await handleStaffNotificationEvent(message?.payload, {
+      store,
+      channels: channels(emailPort, new FakeStaffSlack()),
+      origin: "https://commerce.fil.one",
+    });
+    const [row] = await client<
+      { recipient: string; kind: string; href: string }[]
+    >`
+      select recipient_user_id::text as recipient, kind, href
+      from commerce_staff_notifications where event_id = ${events[0]?.id ?? ""}`;
+    expect(row).toEqual({
+      recipient: seller,
+      kind: "partner.next_step_due",
+      href: `/internal/partners/${partnerId}`,
+    });
+    // Who and when only: neither the step's words nor the terms are sent.
+    expect(emailPort.sent).toHaveLength(1);
+    expect(emailPort.sent[0]?.text).not.toContain("referral letter");
+    expect(emailPort.sent[0]?.text).not.toContain("12.5");
+
+    // Moved to tomorrow: the old reminder says nothing on a replay, and the
+    // new date reminds on its own day.
+    await client`update commerce_partners set next_step_due = ${today}::date + 1, version = version + 1
+      where id = ${partnerId}`;
+    const replay = await emit({
+      aggregateId: randomUUID(),
+      eventType: "partner.next_step_due",
+      after: { partnerId, nextStepDue: today, overdue: false },
+    });
+    await expect(
+      handleStaffNotificationEvent(replay.payload, {
+        store,
+        channels: channels(emailPort, new FakeStaffSlack()),
+        origin: null,
+      }),
+    ).resolves.toMatchObject({ status: "ignored" });
   });
 
   it("audits a settings change and refuses a stale save", async () => {

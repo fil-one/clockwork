@@ -46,6 +46,10 @@ const lines: Record<StaffNotificationKind, (w: Words) => string> = {
   "price_book.approved": (w) => `${w.actor} activated ${w.subject}.`,
   "price_book.rejected": (w) =>
     `${w.actor} rejected the activation of ${w.subject}.`,
+  "partner.next_step_due": (w) =>
+    `The next step with ${w.subject} is due today.`,
+  "partner.next_step_overdue": (w) =>
+    `The next step with ${w.subject} is overdue.`,
 };
 
 /** Short Slack labels: the record type and its new status. */
@@ -73,6 +77,8 @@ const slackLabels: Record<StaffNotificationKind, string> = {
   "price_book.approval_requested": "Price book approval requested",
   "price_book.approved": "Price book activated",
   "price_book.rejected": "Price book rejected",
+  "partner.next_step_due": "Partner next step due",
+  "partner.next_step_overdue": "Partner next step overdue",
 };
 
 const words = (n: Pick<StaffNotification, "subject" | "actorName">) => ({
