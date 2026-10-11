@@ -595,6 +595,58 @@ export class StaffNotificationStore {
   }
 
   /**
+   * One page of partners the daily reminder still has to tell: next step due
+   * on or before `today`, an owner, not ended, and no reminder yet for that
+   * due date. Pages run in due-date order from `after`, so already-reminded
+   * partners never crowd newly due ones out of a page and every run ends.
+   */
+  partnerNextStepsToRemind(input: {
+    today: string;
+    limit: number;
+    after?: { nextStepDue: string; partnerId: string };
+  }): Promise<PartnerNextStepDue[]> {
+    const after = input.after;
+    return this.tx(async (tx) =>
+      [
+        ...(await tx.execute<{
+          partnerId: string;
+          partnerName: string;
+          ownerId: string;
+          ownerName: string | null;
+          nextStepDue: string;
+        }>(sql`
+          select p.id::text as "partnerId", p.name as "partnerName",
+            p.owner_id::text as "ownerId", p.owner_name as "ownerName",
+            p.next_step_due::text as "nextStepDue"
+          from commerce_partners p
+          where p.next_step_due is not null
+            and p.next_step_due <= ${input.today}::date
+            and p.status <> 'ended'
+            and p.owner_id is not null
+            and not exists (
+              select 1 from audit_events e
+              where e.event_type = 'partner.next_step_due'
+                and e.aggregate_type = 'partner'
+                and e.after->>'partnerId' = p.id::text
+                and e.after->>'nextStepDue' = p.next_step_due::text)
+            ${
+              after
+                ? sql`and (p.next_step_due, p.id) > (${after.nextStepDue}::date, ${after.partnerId}::uuid)`
+                : sql``
+            }
+          order by p.next_step_due, p.id
+          limit ${input.limit}`)),
+      ].map((row) => ({
+        ...row,
+        // The step's words stay on the partner record; the reminder never
+        // carries them.
+        nextStep: "",
+        overdue: row.nextStepDue < input.today,
+      })),
+    );
+  }
+
+  /**
    * Records that a partner's next step is due, once per partner and due
    * date: the event's aggregate is derived from both, so a second run of the
    * daily reminder, or a run after a restart, writes nothing. The event's

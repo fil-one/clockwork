@@ -10,7 +10,6 @@ import {
   configureDatabaseTransactionInstrumentation,
   DatabaseSystemCapabilityAdmin,
   DatabaseSystemCapabilityGuard,
-  PartnerRepository,
   StaffNotificationStore,
   type RuntimeDatabase,
 } from "@clockwork/db";
@@ -226,10 +225,7 @@ export function withStaffNotificationHandlers(
     origin: staffNotificationOrigin(source),
   };
   configureStaffNotificationRetry(options);
-  configurePartnerNextStepReminders({
-    partners: new PartnerRepository(db),
-    store: options.store,
-  });
+  configurePartnerNextStepReminders({ store: options.store });
   const notifications = createStaffNotificationOutboxHandlers(options);
   for (const [topic, handler] of notifications) {
     const earlier = handlers.get(topic);

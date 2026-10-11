@@ -1,4 +1,4 @@
-import type { PartnerRepository, StaffNotificationStore } from "@clockwork/db";
+import type { StaffNotificationStore } from "@clockwork/db";
 
 /**
  * The daily partner reminder: every partner whose next step is due today or
@@ -8,8 +8,12 @@ import type { PartnerRepository, StaffNotificationStore } from "@clockwork/db";
  * after its date; moving the date to a new day reminds again on that day.
  */
 export interface PartnerReminderOptions {
-  partners: Pick<PartnerRepository, "nextStepsDue">;
-  store: Pick<StaffNotificationStore, "remindPartnerNextStep">;
+  store: Pick<
+    StaffNotificationStore,
+    "partnerNextStepsToRemind" | "remindPartnerNextStep"
+  >;
+  /** Partners read per page; every page is read. */
+  pageSize?: number;
   log?: (entry: Record<string, unknown>) => void;
 }
 
@@ -17,26 +21,48 @@ const jsonLog = (entry: Record<string, unknown>) =>
   // i18n-exempt: operator log; identifiers and counts only
   console.log(JSON.stringify(entry));
 
-/** `today` is the UTC calendar date of the scheduled run. */
+const errorCode = (error: unknown) =>
+  error instanceof Error ? error.message.slice(0, 200) : typeof error;
+
+/**
+ * `today` is the UTC calendar date of the scheduled run. Reads every partner
+ * still to remind, page by page. One partner's failure is logged and the run
+ * goes on; that partner is tried again on the next run.
+ */
 export async function remindPartnerNextSteps(
   today: string,
   options: PartnerReminderOptions,
 ) {
-  const { log = jsonLog } = options;
-  const due = await options.partners.nextStepsDue({ through: today, today });
+  const { log = jsonLog, pageSize = 200 } = options;
+  let due = 0;
   let reminded = 0;
-  for (const row of due) {
-    // A partner with no owner has nobody to tell.
-    if (!row.ownerId) continue;
-    if (await options.store.remindPartnerNextStep(row)) reminded += 1;
+  let failed = 0;
+  let after: { nextStepDue: string; partnerId: string } | undefined;
+  for (;;) {
+    const page = await options.store.partnerNextStepsToRemind({
+      today,
+      limit: pageSize,
+      ...(after ? { after } : {}),
+    });
+    for (const row of page) {
+      due += 1;
+      try {
+        if (await options.store.remindPartnerNextStep(row)) reminded += 1;
+      } catch (error) {
+        failed += 1;
+        log({
+          event: "PARTNER_NEXT_STEP_REMINDER_FAILED",
+          partnerId: row.partnerId,
+          error: errorCode(error),
+        });
+      }
+    }
+    const last = page.at(-1);
+    if (page.length < pageSize || !last) break;
+    after = { nextStepDue: last.nextStepDue, partnerId: last.partnerId };
   }
-  log({
-    event: "PARTNER_NEXT_STEP_REMINDERS",
-    today,
-    due: due.length,
-    reminded,
-  });
-  return { today, due: due.length, reminded };
+  log({ event: "PARTNER_NEXT_STEP_REMINDERS", today, due, reminded, failed });
+  return { today, due, reminded, failed };
 }
 
 let configured: PartnerReminderOptions | undefined;

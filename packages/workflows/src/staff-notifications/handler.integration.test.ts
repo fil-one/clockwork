@@ -8,7 +8,6 @@ import {
   commerceUsers,
   createRuntimeDatabase,
   memberships,
-  PartnerRepository,
   StaffNotificationRepository,
   StaffNotificationStore,
   withInternalTransaction,
@@ -657,15 +656,13 @@ describe("staff notifications from audit events", () => {
        created_by_id, created_by_name)
       values (${partnerId}, ${`Partner ${run}`}, 'talking', ${seller}, 'Sam Seller',
         'Send the referral letter', ${today}::date, 12.5, ${seller}, 'Sam Seller')`;
-    const partners = new PartnerRepository(db);
     const first = await remindPartnerNextSteps(today, {
-      partners,
       store,
       log: () => {},
     });
     expect(first.reminded).toBeGreaterThanOrEqual(1);
     // A second run the same day, or a redelivered tick, writes nothing new.
-    await remindPartnerNextSteps(today, { partners, store, log: () => {} });
+    await remindPartnerNextSteps(today, { store, log: () => {} });
     const events = await client<{ id: string }[]>`
       select e.id::text as id from audit_events e
       where e.event_type = 'partner.next_step_due'
@@ -709,6 +706,38 @@ describe("staff notifications from audit events", () => {
         origin: null,
       }),
     ).resolves.toMatchObject({ status: "ignored" });
+  });
+
+  it("reaches newly due partners however many were reminded before", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const partner = async (due: string) => {
+      const id = randomUUID();
+      await client`insert into commerce_partners
+        (id, name, status, owner_id, owner_name, next_step_due, created_by_id, created_by_name)
+        values (${id}, ${`Paged ${run} ${id.slice(0, 4)}`}, 'talking', ${seller}, 'Sam Seller',
+          ${due}::date, ${seller}, 'Sam Seller')`;
+      return id;
+    };
+    // Long overdue and already reminded, earliest in due-date order.
+    const old = await Promise.all([1, 2, 3].map(() => partner("2020-01-01")));
+    await remindPartnerNextSteps(today, { store, log: () => {} });
+    const fresh = await Promise.all([1, 2].map(() => partner(today)));
+    // Pages of one: the reminded partners are not read again, so they cannot
+    // fill a page ahead of the new ones.
+    const run2 = await remindPartnerNextSteps(today, {
+      store,
+      pageSize: 1,
+      log: () => {},
+    });
+    expect(run2.reminded).toBe(2);
+    expect(run2.failed).toBe(0);
+    const reminded = await client<{ partner: string }[]>`
+      select after->>'partnerId' as partner from audit_events
+      where event_type = 'partner.next_step_due'
+        and after->>'partnerId' = any(${[...old, ...fresh]})`;
+    expect(reminded.map((r) => r.partner).sort()).toEqual(
+      [...old, ...fresh].sort(),
+    );
   });
 
   it("audits a settings change and refuses a stale save", async () => {
