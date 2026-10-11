@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   contractTypes,
   type ContractType,
@@ -40,6 +40,10 @@ export function NewTemplate({ demo }: { demo: boolean }) {
   const [problem, setProblem] = useState<Failure | null>(null);
   const [busy, setBusy] = useState<"check" | "save" | "specimen" | null>(null);
   const [link, setLink] = usePdfLink();
+  // The file box opens once the page is interactive, so a file chosen while
+  // it loads is never silently dropped.
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
 
   async function read(file: File | undefined) {
     if (!file) return;
@@ -100,7 +104,7 @@ export function NewTemplate({ demo }: { demo: boolean }) {
           label={t("operations.contractTemplates.import.file")}
           help={t("operations.contractTemplates.import.fileHelp")}
           onChange={(event) => void read(event.target.files?.[0])}
-          disabled={busy === "check"}
+          disabled={!ready || busy === "check"}
         />
         {checked ? (
           <>

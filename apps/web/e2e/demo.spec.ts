@@ -1024,6 +1024,7 @@ test.describe("playable product-demo workflows", () => {
     ).toBeVisible();
 
     await gotoHydrated(page, "/internal/contracts/manage-templates/new");
+    await expect(page.getByLabel("Template file")).toBeEnabled();
     await page.getByLabel("Template file").setInputFiles({
       name: "referral.json",
       mimeType: "application/json",
