@@ -4,6 +4,7 @@ import {
   assertStaffProvisioningTarget,
   planStaffProvisioning,
   staffEmailDomainAllowed,
+  staffProvisioningFailureCode,
   StaffProvisioningSchema,
   type ExistingStaffIdentityRow,
   type StaffProvisioningManifest,
@@ -11,6 +12,7 @@ import {
 import postgres from "postgres";
 import { provisionWorkosStaff } from "../packages/integrations/src/workos/provision-staff";
 
+let phase = "configuration";
 async function main() {
   const raw = process.env.STAFF_PROVISIONING;
   if (!raw) return;
@@ -37,6 +39,7 @@ async function main() {
     ssl: new URL(url).hostname === "127.0.0.1" ? false : "require",
   });
   try {
+    phase = "scope";
     // Fail before provider changes unless the bootstrapped staff organization
     // and authorizing operator both exist in this exact deployed database. The
     // operator holds operations:write: an operator or a commerce administrator.
@@ -44,6 +47,8 @@ async function main() {
       await client`select o.id from organizations o join memberships m on m.organization_id=o.id join commerce_users u on u.id=m.user_id where o.id=${manifest.organization.id} and o.workos_organization_id=${manifest.organization.workosOrganizationId} and u.id=${manifest.operatorUserId} and u.is_internal_staff and public.member_has_permission(u.id, 'operations:write', o.id)`;
     if (scope.length !== 1)
       throw new Error("STAFF_PROVISIONING_SCOPE_MISMATCH");
+    console.log("staff provisioning: environment and operator scope verified");
+    phase = "identity";
     const existing = await client<
       ExistingStaffIdentityRow[]
     >`select u.id,u.workos_user_id,u.is_internal_staff,m.role,m.organization_id from commerce_users u left join memberships m on m.user_id=u.id where lower(u.email)=${person.email}`;
@@ -52,11 +57,14 @@ async function main() {
       person,
       organizationId: manifest.organization.id,
     });
+    console.log("staff provisioning: identity plan", { plan: plan.kind });
+    phase = "workos";
     const binding = await provisionWorkosStaff(
       key,
       manifest.organization.workosOrganizationId,
       person,
     );
+    phase = "binding";
     if (plan.kind !== "create" && plan.workosUserId !== binding.workosUserId)
       throw new Error("STAFF_PROVISIONING_BINDING_CONFLICT");
     if (plan.kind === "verify") {
@@ -75,11 +83,13 @@ async function main() {
       await tx`insert into outbox_messages(id,event_id,topic,payload) values(${randomUUID()},${eventId},${eventType},${tx.json(after)})`;
     };
     if (plan.kind === "update_role") {
+      phase = "update_role";
       await client.begin(async (tx) => {
         await tx`select pg_advisory_xact_lock(hashtext(${person.email}))`;
         // The same lock the Team page takes, so the administrator count below
         // cannot change underneath this update.
         await tx`select id from memberships where organization_id=${manifest.organization.id} for update`;
+        phase = "role_authority";
         const [administrators] = await tx<
           { total: number }[]
         >`select count(*)::int as total from memberships m join commerce_users u on u.id=m.user_id where m.organization_id=${manifest.organization.id} and public.member_has_permission(m.user_id, 'staff:manage', m.organization_id) and u.is_internal_staff and m.user_id<>${plan.userId}`;
@@ -88,10 +98,12 @@ async function main() {
           to: person.role,
           otherAdministrators: administrators?.total ?? 0,
         });
+        phase = "role_update";
         const updated =
           await tx`update memberships set role=${person.role} where user_id=${plan.userId} and organization_id=${manifest.organization.id} and role=${plan.from} returning id`;
         if (updated.length !== 1)
           throw new Error("STAFF_PROVISIONING_RETRY_REQUIRED");
+        phase = "role_audit";
         await appendEvent(
           tx,
           "staff.role_changed",
@@ -104,6 +116,7 @@ async function main() {
       );
       return;
     }
+    phase = plan.kind;
     await client.begin(async (tx) => {
       await tx`select pg_advisory_xact_lock(hashtext(${person.email}))`;
       const after = {
@@ -139,9 +152,10 @@ async function main() {
     await client.end();
   }
 }
-main().catch(() => {
-  console.error(
-    "staff provisioning failed; no credentials or identity-provider response bodies logged",
-  );
+main().catch((error: unknown) => {
+  console.error("staff provisioning failed", {
+    phase,
+    code: staffProvisioningFailureCode(error),
+  });
   process.exitCode = 1;
 });

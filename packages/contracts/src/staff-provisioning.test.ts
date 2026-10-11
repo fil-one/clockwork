@@ -5,6 +5,7 @@ import {
   assertStaffProvisioningTarget,
   planStaffProvisioning,
   staffEmailDomainAllowed,
+  staffProvisioningFailureCode,
   StaffProvisioningSchema,
   type ExistingStaffIdentityRow,
 } from "./staff-provisioning";
@@ -26,6 +27,52 @@ const staffRow = (
   role: "revenue",
   organization_id: organizationId,
   ...input,
+});
+
+describe("staff provisioning diagnostics", () => {
+  it.each([
+    "STAFF_PROVISIONING_SCOPE_MISMATCH",
+    "STAFF_PROVISIONING_BINDING_CONFLICT",
+    "STAFF_PROVISIONING_EXISTING_IDENTITY_CONFLICT",
+    "STAFF_WORKOS_HTTP_401",
+    "STAFF_WORKOS_HTTP_429",
+  ])("retains the safe refusal %s", (code) => {
+    expect(staffProvisioningFailureCode(new Error(code))).toBe(code);
+  });
+
+  it("reports SQLSTATE without database detail, SQL or credentials", () => {
+    const error = Object.assign(new Error("secret database connection"), {
+      code: "42703",
+      detail: "private identity",
+      query: "secret SQL",
+    });
+    expect(staffProvisioningFailureCode(error)).toBe("STAFF_DATABASE_42703");
+  });
+
+  it.each([
+    new Error("STAFF_PROVISIONING_API_KEY_SECRET"),
+    new Error("STAFF_WORKOS_HTTP_401 secret-token"),
+    Object.assign(new Error("private provider body"), { code: "secret-value" }),
+    { message: "STAFF_PROVISIONING_SCOPE_MISMATCH", secret: "private" },
+    "secret response",
+  ])("redacts unexpected failures %#", (error) => {
+    expect(staffProvisioningFailureCode(error)).toBe(
+      "STAFF_PROVISIONING_UNEXPECTED",
+    );
+  });
+
+  it("redacts malformed provisioning values", () => {
+    const parsed = StaffProvisioningSchema.safeParse({
+      email: "private-invalid",
+    });
+    if (parsed.success) throw new Error("Expected invalid provisioning input");
+    expect(staffProvisioningFailureCode(parsed.error)).toBe(
+      "STAFF_PROVISIONING_INVALID_INPUT",
+    );
+    expect(staffProvisioningFailureCode(new SyntaxError("private JSON"))).toBe(
+      "STAFF_PROVISIONING_INVALID_JSON",
+    );
+  });
 });
 
 describe("staff provisioning input", () => {
