@@ -493,6 +493,11 @@ test.describe("partner records in the guided demo", () => {
     await expect(
       page.getByRole("button", { name: "Register a deal" }),
     ).toHaveCount(0);
+    // After a client-side navigation the record's title can land after its
+    // content, and axe checks the title, so wait for it first.
+    await expect(page).toHaveTitle(
+      "Brightwater Systems Integrators Ltd · Fil One Commerce",
+    );
     await expectNoHorizontalOverflow(page);
     await expectAxeClean(page);
   });
