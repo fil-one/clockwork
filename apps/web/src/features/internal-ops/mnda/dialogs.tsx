@@ -13,7 +13,7 @@ import { SessionExpiredReload } from "../session-expiry";
 import styles from "./workspace.module.css";
 
 /**
- * Voids a sent MNDA. SignWell stops the request and deletes its copy; the
+ * Voids an incomplete MNDA. SignWell stops the request and deletes its copy; the
  * original PDF and the history stay here. With `signerChange` no reason is
  * typed: the void is recorded as "a different person will sign".
  */
@@ -93,6 +93,9 @@ export function VoidDialog({
       }
     >
       <p className={styles.muted}>{t("operations.mnda.void.evidence")}</p>
+      {record.state === "awaiting_countersignature" ? (
+        <p>{t("operations.mnda.void.partialWarning")}</p>
+      ) : null}
       {signerChange ? (
         <p className={styles.muted}>
           {t("operations.mnda.void.signerChangeNote")}

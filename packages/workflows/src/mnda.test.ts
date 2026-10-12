@@ -177,7 +177,8 @@ it("stops waiting when the lease is lost while SignWell prepares the draft", asy
   );
   expect(warn).toHaveBeenCalledWith("MNDA send failure not recorded", {
     mndaId: fixtureRecord.id,
-    error: "MNDA_LEASE_LOST",
+    phase: "read_draft",
+    code: "other",
   });
   warn.mockRestore();
   expect(s.wait).toHaveBeenCalledOnce();
@@ -242,7 +243,8 @@ it("returns the sent request when SignWell accepted the send but the read back f
   const sent = await s.workflow.send(fixtureRecord.id, actor);
   expect(warn).toHaveBeenCalledWith("MNDA state not read after send", {
     mndaId: fixtureRecord.id,
-    error: "This operation was aborted",
+    phase: "read_after_send",
+    code: "timeout",
   });
   warn.mockRestore();
   expect(sent).toMatchObject({ state: "sending", error: null });
@@ -327,16 +329,51 @@ it("records a signer change as a code, not as typed text", async () => {
     await s.workflow.void(fixtureRecord.id, actor, { code: "signer_change" }),
   ).toMatchObject({ cancelCode: "signer_change", cancelReason: null });
 });
-it("never voids once the partner has signed, even when only SignWell knows it", async () => {
+it("voids a bound partially signed request with a reason and makes repeats idempotent", async () => {
+  const s = setup();
+  await s.workflow.send(fixtureRecord.id, actor);
+  partnerOf(s.doc).status = "signed";
+  expect(
+    await s.workflow.void(fixtureRecord.id, actor, { reason: "Wrong entity" }),
+  ).toMatchObject({ state: "canceled", cancelReason: "Wrong entity" });
+  expect(
+    await s.workflow.void(fixtureRecord.id, actor, { reason: "Repeat" }),
+  ).toMatchObject({ state: "canceled", cancelReason: "Wrong entity" });
+  expect(s.provider.cancel).toHaveBeenCalledExactlyOnceWith(s.doc.id);
+  expect(s.events.filter((event) => event === "mnda.voided")).toHaveLength(1);
+});
+it("requires a typed reason after a signature instead of the signer-change shortcut", async () => {
   const s = setup();
   await s.workflow.send(fixtureRecord.id, actor);
   partnerOf(s.doc).status = "signed";
   await expect(
-    s.workflow.void(fixtureRecord.id, actor, { reason: "Too late" }),
+    s.workflow.void(fixtureRecord.id, actor, { code: "signer_change" }),
   ).rejects.toThrow("NOT_VOIDABLE");
   expect(s.record().state).toBe("awaiting_countersignature");
+  expect(s.provider.cancel).not.toHaveBeenCalled();
+});
+it.each(["Sent", "Unexpected provider status"])(
+  "preserves all signatures while %s awaits finalization",
+  async (status) => {
+    const s = setup();
+    await s.workflow.send(fixtureRecord.id, actor);
+    s.doc.status = status;
+    for (const recipient of s.doc.recipients) recipient.status = "signed";
+    await expect(
+      s.workflow.void(fixtureRecord.id, actor, { reason: "Too late" }),
+    ).rejects.toThrow("ALREADY_COMPLETED");
+    expect(s.provider.cancel).not.toHaveBeenCalled();
+    expect(s.record().state).not.toBe("canceled");
+    expect(s.archived()).toBeUndefined();
+  },
+);
+it("refuses a partially signed document whose provider status is unknown", async () => {
+  const s = setup();
+  await s.workflow.send(fixtureRecord.id, actor);
+  partnerOf(s.doc).status = "signed";
+  s.doc.status = "Unexpected provider status";
   await expect(
-    s.workflow.void(fixtureRecord.id, actor, { reason: "Too late" }),
+    s.workflow.void(fixtureRecord.id, actor, { reason: "Uncertain" }),
   ).rejects.toThrow("NOT_VOIDABLE");
   expect(s.provider.cancel).not.toHaveBeenCalled();
 });
@@ -630,7 +667,8 @@ it("reports the original send failure when the lease was lost before it could be
   );
   expect(warn).toHaveBeenCalledWith("MNDA send failure not recorded", {
     mndaId: fixtureRecord.id,
-    error: "MNDA_LEASE_LOST",
+    phase: "create_draft",
+    code: "other",
   });
   warn.mockRestore();
 });
@@ -753,7 +791,7 @@ it("settles a correction SignWell applied late instead of refusing it as a signe
   ).rejects.toThrow("NOT_CORRECTABLE");
   expect(s.provider.updateRecipient).toHaveBeenCalledTimes(1);
 });
-it("never voids a document the partner signed while the countersigner's email bounced", async () => {
+it("voids a bound incomplete document after the countersigner's email bounced", async () => {
   const s = setup();
   await s.workflow.send(fixtureRecord.id, actor);
   partnerOf(s.doc).status = "signed";
@@ -767,7 +805,77 @@ it("never voids a document the partner signed while the countersigner's email bo
   });
   await expect(
     s.workflow.void(fixtureRecord.id, actor, { reason: "Bounced" }),
-  ).rejects.toThrow("MNDA_NOT_VOIDABLE");
-  expect(s.provider.cancel).not.toHaveBeenCalled();
-  expect(s.record().state).toBe("attention");
+  ).resolves.toMatchObject({ state: "canceled", cancelReason: "Bounced" });
+  expect(s.provider.cancel).toHaveBeenCalledExactlyOnceWith(s.doc.id);
+});
+
+it("logs a safe create-draft failure phase and status without changing persisted error compatibility", async () => {
+  const s = setup();
+  vi.mocked(s.provider.createDraft).mockRejectedValueOnce(
+    new Error("SIGNWELL_HTTP_422"),
+  );
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+      "SIGNWELL_HTTP_422",
+    );
+    expect(log).toHaveBeenCalledWith("MNDA send failed", {
+      mndaId: fixtureRecord.id,
+      phase: "create_draft",
+      code: "http",
+      status: 422,
+    });
+    expect(s.record()).toMatchObject({
+      state: "preparing",
+      error: "provider_unavailable",
+    });
+  } finally {
+    log.mockRestore();
+  }
+});
+
+it("logs the send phase without leaking an unexpected transport error body", async () => {
+  const s = setup();
+  vi.mocked(s.provider.send).mockRejectedValueOnce(
+    new Error("private provider body with a secret signing URL"),
+  );
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+      "private provider body",
+    );
+    expect(log).toHaveBeenCalledWith("MNDA send failed", {
+      mndaId: fixtureRecord.id,
+      phase: "send",
+      code: "other",
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain("secret signing URL");
+    expect(s.record()).toMatchObject({
+      state: "sending",
+      error: "provider_unavailable",
+    });
+  } finally {
+    log.mockRestore();
+  }
+});
+
+it("distinguishes original-PDF failure before any provider creation call", async () => {
+  const s = setup();
+  vi.spyOn(s.repo, "readArtifact").mockRejectedValueOnce(
+    new Error("private storage error"),
+  );
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    await expect(s.workflow.send(fixtureRecord.id, actor)).rejects.toThrow(
+      "private storage error",
+    );
+    expect(log).toHaveBeenCalledWith("MNDA send failed", {
+      mndaId: fixtureRecord.id,
+      phase: "prepare_pdf",
+      code: "other",
+    });
+    expect(s.provider.createDraft).not.toHaveBeenCalled();
+  } finally {
+    log.mockRestore();
+  }
 });

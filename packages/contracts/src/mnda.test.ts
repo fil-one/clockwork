@@ -166,7 +166,8 @@ it("voids with a typed reason or the signer-change code, never with neither", ()
   expect(MndaVoidSchema.safeParse({ id, code: "superseded" }).success).toBe(
     false,
   );
-  expect(mndaVoidableStates).not.toContain("awaiting_countersignature");
+  expect(mndaVoidableStates).toContain("awaiting_countersignature");
+  expect(mndaVoidableStates).not.toContain("completed");
 });
 
 it("refuses new partner-completes drafts while existing ones still parse", () => {

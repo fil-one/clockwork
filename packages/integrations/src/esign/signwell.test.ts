@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { fixtureRecord } from "../../../contracts/src/mnda-fixture";
 import {
+  classifySignWellFailure,
   assertSignWellCopiedContacts,
   assertSignWellSigningFields,
   signWellRefused,
@@ -498,5 +499,62 @@ describe("partner-entered values at completion", () => {
         "signer_title",
       ]),
     ).toEqual({});
+  });
+});
+
+describe("safe signing diagnostics", () => {
+  it("retains only an allowlisted category and HTTP status", () => {
+    expect(classifySignWellFailure(new Error("SIGNWELL_HTTP_422"))).toEqual({
+      code: "http",
+      status: 422,
+    });
+    expect(
+      classifySignWellFailure(new Error("SIGNWELL_HTTP_422 private response")),
+    ).toEqual({ code: "other" });
+    expect(classifySignWellFailure(new Error("private data"))).toBeNull();
+  });
+  it.each([
+    "not JSON: private provider data",
+    JSON.stringify({ recipients: [{ email: "private@example.test" }] }),
+  ])("sanitizes malformed document responses", async (body) => {
+    const client = new SignWellClient(
+      "private-key",
+      vi.fn<typeof fetch>().mockResolvedValue(new Response(body)),
+    );
+    await expect(client.get(providerId)).rejects.toThrow(
+      /^SIGNWELL_INVALID_RESPONSE$/,
+    );
+  });
+  it("normalizes a failed connection without exposing its URL", async () => {
+    const client = new SignWellClient(
+      "private-key",
+      vi
+        .fn<typeof fetch>()
+        .mockRejectedValue(new TypeError("fetch failed: private URL")),
+    );
+    await expect(client.get(providerId)).rejects.toThrow(
+      /^SIGNWELL_NETWORK_ERROR$/,
+    );
+  });
+  it("classifies the client deadline as a timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      const transport = vi.fn<typeof fetch>().mockImplementation(
+        (_input, init) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () =>
+              reject(new Error("private abort reason")),
+            );
+          }),
+      );
+      const request = new SignWellClient("private-key", transport).get(
+        providerId,
+      );
+      const assertion = expect(request).rejects.toThrow(/^SIGNWELL_TIMEOUT$/);
+      await vi.advanceTimersByTimeAsync(20_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

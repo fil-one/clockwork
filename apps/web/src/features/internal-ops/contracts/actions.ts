@@ -397,7 +397,7 @@ async function assertMayChangeSigning(
 }
 
 /**
- * Voids a sent request the counterparty has not signed, or closes one whose
+ * Voids an incomplete request, including after the counterparty signs, or closes one whose
  * document was deleted in SignWell, with a typed reason or the code for "a
  * different person will sign". Sending needs `contract:write`, and so does
  * voiding; as with MNDAs, someone other than the preparer also needs to be an

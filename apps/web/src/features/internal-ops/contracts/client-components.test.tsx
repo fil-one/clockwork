@@ -505,47 +505,81 @@ describe("signing panel", () => {
     expect(screen.queryByRole("button", { name: "Discard draft" })).toBeNull();
   });
 
-  it("voids a sent request only with a reason", async () => {
-    mocks.voidContract.mockResolvedValue({
-      ok: true,
-      value: { state: "canceled" },
-    });
-    panel({ state: "sent", providerId: "x" });
-    fireEvent.click(screen.getByRole("button", { name: "Void" }));
-    const dialog = await screen.findByRole("dialog");
-    expect(
-      within(dialog).getByText("Alex Example can no longer sign it."),
-    ).toBeInTheDocument();
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: "Void contract" }),
-    );
-    expect(
-      await within(dialog).findByText(
-        "Enter a reason of at least 3 characters.",
-      ),
-    ).toBeInTheDocument();
-    expect(mocks.voidContract).not.toHaveBeenCalled();
-    fireEvent.change(within(dialog).getByRole("textbox"), {
-      target: { value: "Wrong legal entity" },
-    });
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: "Void contract" }),
-    );
-    await waitFor(() =>
-      expect(mocks.voidContract).toHaveBeenCalledWith({
-        contractId: fixtureSigningRecord.contractId,
-        requestNumber: 1,
-        reason: "Wrong legal entity",
-      }),
-    );
-    expect(mocks.refresh).toHaveBeenCalled();
-  });
+  it.each([
+    {
+      state: "sent" as const,
+      documentType: "contract_template" as const,
+      counterpartySigns: true,
+    },
+    {
+      state: "awaiting_countersignature" as const,
+      documentType: "contract_template" as const,
+      counterpartySigns: true,
+    },
+    {
+      state: "awaiting_countersignature" as const,
+      documentType: "counterparty_paper" as const,
+      counterpartySigns: true,
+    },
+    {
+      state: "sent" as const,
+      documentType: "counterparty_paper" as const,
+      counterpartySigns: false,
+    },
+  ])(
+    "voids $documentType / $state only with confirmation and a reason",
+    async ({ state, documentType, counterpartySigns }) => {
+      mocks.voidContract.mockResolvedValue({
+        ok: true,
+        value: { state: "canceled" },
+      });
+      panel({ state, documentType, counterpartySigns, providerId: "x" });
+      if (state === "awaiting_countersignature" || !counterpartySigns)
+        expect(screen.queryByRole("button", { name: "Fix email" })).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Void" }));
+      const dialog = await screen.findByRole("dialog");
+      if (state === "awaiting_countersignature")
+        expect(
+          within(dialog).getByText(
+            /Their partially signed copy will be deleted/,
+          ),
+        ).toBeVisible();
+      expect(
+        within(dialog).getByText(
+          "No remaining signer can sign this contract after it is voided.",
+        ),
+      ).toBeInTheDocument();
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Void contract" }),
+      );
+      expect(
+        await within(dialog).findByText(
+          "Enter a reason of at least 3 characters.",
+        ),
+      ).toBeInTheDocument();
+      expect(mocks.voidContract).not.toHaveBeenCalled();
+      fireEvent.change(within(dialog).getByRole("textbox"), {
+        target: { value: "Wrong legal entity" },
+      });
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Void contract" }),
+      );
+      await waitFor(() =>
+        expect(mocks.voidContract).toHaveBeenCalledWith({
+          contractId: fixtureSigningRecord.contractId,
+          requestNumber: 1,
+          reason: "Wrong legal entity",
+        }),
+      );
+      expect(mocks.refresh).toHaveBeenCalled();
+    },
+  );
 
-  it("offers no void once the counterparty has signed, or to a colleague without approval", () => {
-    panel({ state: "awaiting_countersignature", providerId: "x" });
+  it("offers no void once completed, or to a colleague without approval", () => {
+    panel({ state: "completed", providerId: "x" });
     expect(screen.queryByRole("button", { name: "Void" })).toBeNull();
     panel(
-      { state: "sent", providerId: "x" },
+      { state: "awaiting_countersignature", providerId: "x" },
       { canApprove: false, isPreparer: false },
     );
     expect(screen.queryByRole("button", { name: "Void" })).toBeNull();

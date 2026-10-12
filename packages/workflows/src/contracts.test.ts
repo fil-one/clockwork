@@ -365,27 +365,105 @@ it("closes a request whose document was deleted in SignWell without calling dele
   expect(provider.cancel).not.toHaveBeenCalled();
 });
 
-it("refuses to void once the counterparty has signed, and keeps a completed contract", async () => {
-  const signed = setup(sent);
-  signed.doc.status = "Sent";
-  const counterparty = signed.doc.recipients[0];
-  if (counterparty) counterparty.status = "signed";
-  await expect(
-    signed.workflow.void(signed.record().contractId, actor, {
-      reason: "Too late",
-    }),
-  ).rejects.toThrow("CONTRACT_NOT_VOIDABLE");
-  expect(signed.record().state).toBe("awaiting_countersignature");
-  expect(signed.provider.cancel).not.toHaveBeenCalled();
+it.each(["contract_template", "counterparty_paper"] as const)(
+  "voids the incomplete counterparty-signed %s request, but preserves completed contracts",
+  async (documentType) => {
+    const signed = setup({
+      ...sent,
+      documentType,
+      state: "awaiting_countersignature",
+    });
+    signed.doc.status = "Sent";
+    const counterparty = signed.doc.recipients[0];
+    if (!counterparty) throw new Error("Missing counterparty");
+    counterparty.status = "signed";
+    await expect(
+      signed.workflow.void(signed.record().contractId, actor, {
+        reason: "Wrong entity",
+      }),
+    ).resolves.toMatchObject({
+      state: "canceled",
+      cancelReason: "Wrong entity",
+    });
+    expect(signed.provider.cancel).toHaveBeenCalledExactlyOnceWith(
+      signed.doc.id,
+    );
+    expect(signed.notes.at(-1)).toEqual({
+      eventType: "contract.voided",
+      detail: { reason: "Wrong entity" },
+    });
 
-  const completed = setup(sent);
-  completed.doc.status = "Completed";
+    const completed = setup({ ...sent, state: "awaiting_countersignature" });
+    completed.doc.status = "Completed";
+    await expect(
+      completed.workflow.void(completed.record().contractId, actor, {
+        reason: "Too late",
+      }),
+    ).rejects.toThrow("CONTRACT_ALREADY_COMPLETED");
+    expect(completed.archived()).toBeDefined();
+    expect(completed.provider.cancel).not.toHaveBeenCalled();
+  },
+);
+
+it.each([true, false])(
+  "never deletes a request with every required signer finished (counterpartySigns=%s)",
+  async (counterpartySigns) => {
+    const s = setup({ ...sent, counterpartySigns });
+    s.doc.status = "Sent";
+    for (const recipient of s.doc.recipients) recipient.status = "completed";
+    await expect(
+      s.workflow.void(s.record().contractId, actor, { reason: "Too late" }),
+    ).rejects.toThrow("CONTRACT_ALREADY_COMPLETED");
+    expect(s.provider.cancel).not.toHaveBeenCalled();
+    expect(s.record().state).not.toBe("canceled");
+    expect(s.archived()).toBeUndefined();
+  },
+);
+
+it("retains a partial signature when delete fails, then allows a safe retry", async () => {
+  const s = setup(sent);
+  s.doc.status = "Sent";
+  const counterparty = s.doc.recipients[0];
+  if (!counterparty) throw new Error("Missing counterparty");
+  counterparty.status = "signed";
+  vi.mocked(s.provider.cancel).mockRejectedValueOnce(
+    new Error("SIGNWELL_HTTP_502"),
+  );
   await expect(
-    completed.workflow.void(completed.record().contractId, actor, {
-      reason: "Too late",
-    }),
+    s.workflow.void(s.record().contractId, actor, { reason: "Wrong entity" }),
+  ).rejects.toThrow("SIGNWELL_HTTP_502");
+  expect(s.record().state).toBe("awaiting_countersignature");
+  expect(s.notes.some((note) => note?.eventType === "contract.voided")).toBe(
+    false,
+  );
+  await expect(
+    s.workflow.void(s.record().contractId, actor, { reason: "Wrong entity" }),
+  ).resolves.toMatchObject({ state: "canceled" });
+  expect(s.provider.cancel).toHaveBeenCalledTimes(2);
+});
+
+it("keeps and archives completion observed after an ambiguous delete refusal", async () => {
+  const s = setup(sent);
+  s.doc.status = "Sent";
+  const counterparty = s.doc.recipients[0];
+  if (!counterparty) throw new Error("Missing counterparty");
+  counterparty.status = "signed";
+  vi.mocked(s.provider.cancel).mockImplementationOnce(async () => {
+    s.doc.status = "Completed";
+    throw new Error("SIGNWELL_HTTP_502");
+  });
+  await expect(
+    s.workflow.void(s.record().contractId, actor, { reason: "Too late" }),
+  ).rejects.toThrow("SIGNWELL_HTTP_502");
+  expect(s.record().state).toBe("completed");
+  expect(s.archived()).toBeDefined();
+  expect(s.notes.some((note) => note?.eventType === "contract.voided")).toBe(
+    false,
+  );
+  await expect(
+    s.workflow.void(s.record().contractId, actor, { reason: "Too late" }),
   ).rejects.toThrow("CONTRACT_ALREADY_COMPLETED");
-  expect(completed.archived()).toBeDefined();
+  expect(s.provider.cancel).toHaveBeenCalledOnce();
 });
 
 it("treats an unclear delete as done when a re-read finds the document gone", async () => {
@@ -433,7 +511,7 @@ it("names the executed copy within the file name limit", async () => {
   expect(fileName.endsWith(" (executed).pdf")).toBe(true);
 });
 
-it("refuses to void when the counterparty signed and the countersigner's email bounced", async () => {
+it("voids an incomplete counterparty-signed request after the countersigner's email bounced", async () => {
   const { workflow, doc, record, provider } = setup(sent);
   doc.status = "Sent";
   const [counterparty, filOne] = doc.recipients;
@@ -442,9 +520,8 @@ it("refuses to void when the counterparty signed and the countersigner's email b
   filOne.bounced = true;
   await expect(
     workflow.void(record().contractId, actor, { reason: "Wrong legal entity" }),
-  ).rejects.toThrow("CONTRACT_NOT_VOIDABLE");
-  expect(record().state).toBe("attention");
-  expect(provider.cancel).not.toHaveBeenCalled();
+  ).resolves.toMatchObject({ state: "canceled" });
+  expect(provider.cancel).toHaveBeenCalledExactlyOnceWith(doc.id);
 });
 
 it("holds a contract whose SignWell copy names other signers, and answers the wakeup", async () => {
@@ -639,3 +716,29 @@ describe("counterparty paper the counterparty signed already", () => {
     });
   });
 });
+
+it.each(["request", "provider", "signer", "template", "mode"] as const)(
+  "refuses signed documents with a mismatched %s binding",
+  async (mismatch) => {
+    const s = setup({ ...sent, state: "awaiting_countersignature" });
+    s.doc.status = "Sent";
+    const counterparty = s.doc.recipients[0];
+    if (!counterparty) throw new Error("Missing counterparty");
+    counterparty.status = "signed";
+    if (mismatch === "request")
+      s.doc.metadata.commerce_contract_id = randomUUID();
+    if (mismatch === "provider") s.doc.id = randomUUID();
+    if (mismatch === "signer") counterparty.email = "different@example.com";
+    if (mismatch === "template")
+      s.doc.metadata.template_sha256 = "c".repeat(64);
+    if (mismatch === "mode") s.doc.test_mode = false;
+    await expect(
+      s.workflow.void(s.record().contractId, actor, { reason: "Wrong entity" }),
+    ).rejects.toThrow("CONTRACT_NOT_VOIDABLE");
+    expect(s.provider.cancel).not.toHaveBeenCalled();
+    expect(s.record()).toMatchObject({
+      state: "attention",
+      error: "signwell_signed_mismatch",
+    });
+  },
+);

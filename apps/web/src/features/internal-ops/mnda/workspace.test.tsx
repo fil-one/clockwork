@@ -424,38 +424,52 @@ it("filters by status and owner through the URL", async () => {
   );
 });
 
-it("voids a sent MNDA only after a reason is given", async () => {
-  mocks.void.mockResolvedValue({
-    ok: true,
-    value: { ...sent, state: "canceled", cancelReason: "Wrong entity" },
-  });
-  render(<MndaWorkspace initial={data([sent])} initialQuery={query} />);
-  openMore(screen);
-  fireEvent.click(screen.getByRole("button", { name: "Void" }));
-  const dialog = await screen.findByRole("dialog", {
-    name: "Void this MNDA?",
-  });
-  fireEvent.click(within(dialog).getByRole("button", { name: "Void MNDA" }));
-  expect(
-    await within(dialog).findByText("Enter a reason of at least 3 characters."),
-  ).toBeVisible();
-  expect(mocks.void).not.toHaveBeenCalled();
-  fireEvent.change(within(dialog).getByLabelText(/Reason/), {
-    target: { value: "Wrong entity" },
-  });
-  act(() => {
+it.each(["sent", "awaiting_countersignature"] as const)(
+  "voids a %s MNDA only after confirmation and a reason",
+  async (state) => {
+    mocks.void.mockResolvedValue({
+      ok: true,
+      value: { ...sent, state: "canceled", cancelReason: "Wrong entity" },
+    });
+    render(
+      <MndaWorkspace
+        initial={data([{ ...sent, state }])}
+        initialQuery={query}
+      />,
+    );
+    openMore(screen);
+    fireEvent.click(screen.getByRole("button", { name: "Void" }));
+    const dialog = await screen.findByRole("dialog", {
+      name: "Void this MNDA?",
+    });
+    if (state === "awaiting_countersignature")
+      expect(
+        within(dialog).getByText(/Their partially signed copy will be deleted/),
+      ).toBeVisible();
     fireEvent.click(within(dialog).getByRole("button", { name: "Void MNDA" }));
-  });
-  expect(mocks.void).toHaveBeenCalledWith({
-    id: sent.id,
-    reason: "Wrong entity",
-  });
-  expect(
-    await screen.findByText(
-      "MNDA voided. The counterparty can no longer sign it.",
-    ),
-  ).toBeVisible();
-});
+    expect(
+      await within(dialog).findByText(
+        "Enter a reason of at least 3 characters.",
+      ),
+    ).toBeVisible();
+    expect(mocks.void).not.toHaveBeenCalled();
+    fireEvent.change(within(dialog).getByLabelText(/Reason/), {
+      target: { value: "Wrong entity" },
+    });
+    act(() => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Void MNDA" }),
+      );
+    });
+    expect(mocks.void).toHaveBeenCalledWith({
+      id: sent.id,
+      reason: "Wrong entity",
+    });
+    expect(
+      await screen.findByText("MNDA voided. No remaining signer can sign it."),
+    ).toBeVisible();
+  },
+);
 
 it("says a draft SignWell is still preparing was not sent", async () => {
   mocks.operate.mockResolvedValueOnce({ ok: false, code: "still_preparing" });
@@ -561,7 +575,7 @@ it("turns off every control the demo would refuse and says why", () => {
       expect(button).toHaveAttribute("aria-disabled", "true");
 });
 
-it("offers void and email fixes only to the preparer, and never after the partner signed", () => {
+it("offers partial-signature void only to the preparer, while email correction stays unavailable", () => {
   const colleague = {
     ...sent,
     id: "019a44ac-0000-7000-8000-0000000000aa",
@@ -596,7 +610,41 @@ it("offers void and email fixes only to the preparer, and never after the partne
   expect(
     row("Colleague Co").getByRole("button", { name: /^Remind/ }),
   ).toBeVisible();
-  expect(row("Signed Co").queryByRole("button", { name: "Void" })).toBeNull();
+  expect(row("Signed Co").getByRole("button", { name: "Void" })).toBeVisible();
+  expect(
+    row("Signed Co").queryByRole("button", { name: "Fix email" }),
+  ).toBeNull();
+});
+
+it("keeps completed MNDAs immutable while managers can void another person's incomplete request", () => {
+  const completed = {
+    ...sent,
+    state: "completed" as const,
+    input: { ...sent.input, company: "Completed Co" },
+  };
+  const other = {
+    ...sent,
+    id: "019a44ac-0000-7000-8000-0000000000cc",
+    ownerId: "019a44ac-0000-7000-8000-0000000000bb",
+    state: "awaiting_countersignature" as const,
+    input: { ...sent.input, company: "Colleague Co" },
+  };
+  render(
+    <MndaWorkspace
+      initial={{ ...data([completed, other]), canManage: true }}
+      initialQuery={query}
+    />,
+  );
+  const row = (company: string) =>
+    within(screen.getByText(company).closest("tr") as HTMLElement);
+  openMore(row("Completed Co"));
+  openMore(row("Colleague Co"));
+  expect(
+    row("Completed Co").queryByRole("button", { name: "Void" }),
+  ).toBeNull();
+  expect(
+    row("Colleague Co").getByRole("button", { name: "Void" }),
+  ).toBeVisible();
 });
 
 it("refreshes an expired session through a navigation and retries the poll once", async () => {
@@ -769,7 +817,14 @@ it("leads each row with one action for its state and folds the rest under More",
   // Void comes last, after the other actions.
   const row = within(screen.getByText("Sent Co").closest("tr") as HTMLElement);
   openMore(row);
-  const more = row.getAllByRole("listitem").map((item) => item.textContent);
+  const panelId = row
+    .getByRole("button", { name: /^More actions for/ })
+    .getAttribute("aria-controls");
+  const panel = panelId ? document.getElementById(panelId) : null;
+  if (!panel) throw new Error("Missing row action menu");
+  const more = within(panel)
+    .getAllByRole("listitem")
+    .map((item) => item.textContent);
   expect(more).toEqual([
     "Open PDF",
     "Fix email",

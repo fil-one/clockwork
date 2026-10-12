@@ -208,13 +208,14 @@ export const terminalContractSigningStates: readonly ContractSigningState[] = [
   "expired",
   "canceled",
 ];
-/** A request can be voided until the counterparty has signed. */
+/** An incomplete request can be voided, including after the counterparty signs. */
 export const contractVoidableStates: readonly ContractSigningState[] = [
   "draft",
   "preparing",
   "ready",
   "sent",
   "viewed",
+  "awaiting_countersignature",
   "attention",
 ];
 /** Why a request in `attention` needs a person, beyond SignWell's status. */

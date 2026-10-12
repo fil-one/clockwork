@@ -8,6 +8,7 @@ import {
   assertSignWellFields,
   assertSignWellNoAutomaticReminders,
   checkSignWellCopiedContacts,
+  classifySignWellFailure,
   signWellAttentionReason,
   signWellFieldValues,
   signWellRefused,
@@ -137,7 +138,7 @@ const terminal: readonly SigningState[] = [
   "expired",
   "canceled",
 ];
-/** A request can be voided until the first signer has signed. */
+/** Incomplete requests can be voided after checking their provider state. */
 const voidable: readonly SigningState[] = [
   "draft",
   "preparing",
@@ -145,6 +146,7 @@ const voidable: readonly SigningState[] = [
   "sent",
   "viewed",
   "attention",
+  "awaiting_countersignature",
 ];
 /** The states in which SignWell has the request out for signature. */
 const outForSignature: readonly SigningState[] = [
@@ -171,8 +173,6 @@ const failure = (code: string) => new Error(`SIGNING_${code}`);
 const is = (error: unknown, ...codes: string[]) =>
   error instanceof Error &&
   codes.some((code) => error.message === `SIGNING_${code}`);
-const message = (error: unknown) =>
-  error instanceof Error ? error.message.slice(0, 120) : "";
 /** SignWell's copy disagrees with the record. Nothing is applied from it; the
  * request waits in `attention` until a person voids it. */
 const signWellFieldsMismatch = "signwell_fields_mismatch";
@@ -471,6 +471,8 @@ export class SigningEngine<R> {
   async send(id: string, actor: Actor) {
     const { record, token } = await this.store.claim(id);
     let current = record;
+    let phase: "prepare_pdf" | "create_draft" | "read_draft" | "send" =
+      "read_draft";
     // The bound document as last read, so a mismatch found while sending is
     // named as apply() names it.
     let seen: SignWellSigningDocument | null = null;
@@ -487,7 +489,9 @@ export class SigningEngine<R> {
           { state: "preparing", error: null },
           actor,
         );
+        phase = "prepare_pdf";
         const pdf = await this.store.originalPdf(id);
+        phase = "create_draft";
         const doc = await this.signWell.createDraft(current, pdf);
         if (
           !["ready", "preparing"].includes(
@@ -505,6 +509,7 @@ export class SigningEngine<R> {
       const bound = this.store.view(current);
       const providerId = bound.providerId;
       if (!providerId) throw failure("PROVIDER_ID_REQUIRED");
+      phase = "read_draft";
       let doc = (seen = await this.fetch(providerId));
       const expected = this.signing(bound).map((slot) => ({
         id: slot.id,
@@ -570,6 +575,7 @@ export class SigningEngine<R> {
         undefined,
         note,
       );
+      phase = "send";
       await this.signWell.send(providerId, bound.testMode);
       // SignWell accepted the send. Failing to read it back is not a send
       // failure: the webhook or the reconcile task settles the state.
@@ -583,7 +589,10 @@ export class SigningEngine<R> {
         return await this.apply(stored, token, sent, actor);
       } catch (error) {
         if (is(error, "NEEDS_ATTENTION")) throw error;
-        this.warn("state not read after send", id, { error: message(error) });
+        this.warn("state not read after send", id, {
+          phase: "read_after_send",
+          ...(classifySignWellFailure(error) ?? { code: "other" }),
+        });
         return sending;
       }
     } catch (error) {
@@ -600,6 +609,14 @@ export class SigningEngine<R> {
         )
       )
         throw error;
+      // Fixed phase/category/status only: provider bodies and signer data
+      // must never reach operator logs even when a transport fails unexpectedly.
+      // i18n-exempt: operator log; identifiers and fixed diagnostic codes only
+      console.error(`${this.type.errorPrefix} send failed`, {
+        [`${this.type.auditPrefix}Id`]: id,
+        phase,
+        ...(classifySignWellFailure(error) ?? { code: "other" }),
+      });
       const found = this.store.view(current).providerId
         ? mismatchReason(error)
         : undefined;
@@ -620,7 +637,8 @@ export class SigningEngine<R> {
         () => true,
         (unrecorded: unknown) => {
           this.warn("send failure not recorded", id, {
-            error: message(unrecorded),
+            phase,
+            ...(classifySignWellFailure(unrecorded) ?? { code: "other" }),
           });
           return false;
         },
@@ -720,10 +738,11 @@ export class SigningEngine<R> {
   }
 
   /**
-   * Voids a request the first signer has not signed. The authoritative state
-   * is read first, so a request signed in the meantime is refused and one
-   * that completed keeps its executed PDF. SignWell's cancel deletes its
-   * copy; the original PDF, the reason and the history stay in Commerce.
+   * Voids an incomplete request, including one waiting for countersignature.
+   * Refreshes the bound provider state and refuses completed/finalizing copies.
+   * SignWell deletes its copy; Commerce keeps the original, reason and history.
+   * The provider has no documented conditional-delete API: its remote signers
+   * can still finish between this read and the delete despite our local lease.
    */
   async void(id: string, actor: Actor, why: SigningVoidReason) {
     const { record, token } = await this.store.claim(id);
@@ -741,13 +760,29 @@ export class SigningEngine<R> {
           if (settled.state === "completed") throw failure("ALREADY_COMPLETED");
           if (terminal.includes(settled.state)) return current;
           if (!voidable.includes(settled.state)) throw failure("NOT_VOIDABLE");
-          // The state may not show a signature: a mismatched copy is not
-          // applied, and a bounce outranks the signature. Never delete a
-          // document anyone signed.
-          if (signedInSignWell(doc))
-            throw failure(
-              mismatched(settled) ? "SIGNED_IN_SIGNWELL" : "NOT_VOIDABLE",
-            );
+          // A bounce or mismatch can hide signatures in the applied state.
+          // Never delete a signed copy whose exact request/signers differ.
+          if (signedInSignWell(doc)) {
+            if (mismatched(settled)) throw failure("SIGNED_IN_SIGNWELL");
+            // Binding validation above establishes the complete recipient set,
+            // including requests where only the countersigner must sign. Their
+            // final signatures can precede the provider's Completed status.
+            if (
+              doc.recipients.every((recipient) =>
+                ["signed", "completed"].includes(
+                  recipient.status?.toLowerCase() ?? "",
+                ),
+              )
+            )
+              throw failure("ALREADY_COMPLETED");
+            // A partial signature may only be voided with an explicit reason
+            // while SignWell reports a recognized in-flight document status.
+            if (
+              "code" in why ||
+              !["sent", "pending", "viewed"].includes(doc.status.toLowerCase())
+            )
+              throw failure("NOT_VOIDABLE");
+          }
           await this.deleteInSignWell(current, token, actor);
         }
       }

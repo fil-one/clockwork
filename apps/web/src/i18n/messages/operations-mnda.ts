@@ -190,7 +190,7 @@ export const mndaMessages = defineStaffMessages({
     en: "SignWell is sending the request to {email}.",
   },
   "operations.mnda.voidedMessage": {
-    en: "MNDA voided. The counterparty can no longer sign it.",
+    en: "MNDA voided. No remaining signer can sign it.",
   },
 
   "operations.mnda.note.bounced": {
@@ -201,9 +201,11 @@ export const mndaMessages = defineStaffMessages({
   },
   "operations.mnda.note.stopped": { en: "SignWell stopped this request." },
   "operations.mnda.note.stoppedNext": { en: "Void it, then send it again." },
-  "operations.mnda.note.sendUnfinished": { en: "Sending did not finish." },
+  "operations.mnda.note.sendUnfinished": {
+    en: "Sending has not been confirmed.",
+  },
   "operations.mnda.note.sendUnfinishedNext": {
-    en: "Choose Continue and send again. The counterparty never gets two copies.",
+    en: "Choose Continue to review and retry this request. Commerce checks its existing SignWell copy before sending.",
   },
   "operations.mnda.note.unreachable": {
     en: "SignWell did not answer the last check.",
@@ -255,12 +257,15 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.void.action": { en: "Void" },
   "operations.mnda.void.title": { en: "Void this MNDA?" },
   "operations.mnda.void.description": {
-    en: "The signer at {company} can no longer sign it.",
+    en: "This stops all remaining signatures on the MNDA for {company}.",
   },
   "operations.mnda.void.evidence": {
-    en: "SignWell stops the request and deletes its copy. This register keeps the original PDF and the history. Once the counterparty has signed, the MNDA can no longer be voided.",
+    en: "SignWell stops the request and deletes its copy, including any partial signatures. This register keeps the original PDF and the history. A completed MNDA cannot be voided.",
   },
 
+  "operations.mnda.void.partialWarning": {
+    en: "The counterparty has already signed. Their partially signed copy will be deleted from SignWell, and the countersigner can no longer sign.",
+  },
   "operations.mnda.void.reason": { en: "Reason" },
   "operations.mnda.void.reasonHelp": {
     en: "For example: wrong legal entity. Saved with the record.",
@@ -316,8 +321,20 @@ export const mndaMessages = defineStaffMessages({
   "operations.mnda.error.busy": {
     en: "Someone else is updating this MNDA. Try again in a moment.",
   },
+  "operations.mnda.error.providerTimeout": {
+    en: "SignWell took too long to respond. Check status before retrying; the last action may have succeeded.",
+  },
+  "operations.mnda.error.providerAccess": {
+    en: "SignWell refused access. Ask a Commerce administrator to check the signing connection before retrying.",
+  },
+  "operations.mnda.error.providerRateLimit": {
+    en: "SignWell is limiting requests. Wait a minute, then check status before retrying.",
+  },
+  "operations.mnda.error.providerRejected": {
+    en: "SignWell rejected this request. Ask a Commerce administrator to check the signing connection and document details before retrying.",
+  },
   "operations.mnda.error.providerFailed": {
-    en: "SignWell did not respond. Try again in a minute. Nothing was sent twice.",
+    en: "Commerce could not confirm the result with SignWell. Check status before retrying. If this continues, contact a Commerce administrator.",
   },
   "operations.mnda.error.forbidden": {
     en: "Your account can't do this. Ask a commerce administrator for access.",
@@ -435,7 +452,7 @@ export const mndaMessages = defineStaffMessages({
     en: "Only the person who prepared this MNDA or a commerce administrator can do this.",
   },
   "operations.mnda.error.notVoidable": {
-    en: "The counterparty has already signed, so this MNDA can't be voided. If it must not take effect, tell the Fil One countersigner not to sign it.",
+    en: "This MNDA is no longer available to void. Refresh its status; completed MNDAs cannot be voided.",
   },
 
   "operations.mnda.error.settingsChanged": {

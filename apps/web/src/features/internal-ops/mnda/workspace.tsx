@@ -37,6 +37,7 @@ import {
 } from "./actions";
 import { MndaComposer, type ComposerStart } from "./composer";
 import { CorrectSignerDialog, DiscardDialog, VoidDialog } from "./dialogs";
+import { SigningProgress } from "../signing-progress";
 import { emptyValues, valuesFromRecord } from "./form-model";
 import { formatMndaDate } from "./format";
 import {
@@ -836,6 +837,12 @@ export function MndaWorkspace({
                           <StatusBadge tone={tones[r.state] ?? "neutral"}>
                             {t(mndaRecordStateLabel(r))}
                           </StatusBadge>
+                          <SigningProgress
+                            subject={r.input.company}
+                            state={r.state}
+                            prepared
+                            sent={Boolean(r.sentAt)}
+                          />
                           {r.testMode ? (
                             <span className={styles.testMark}>
                               {t("operations.mnda.testBadge")}

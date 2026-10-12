@@ -4,6 +4,22 @@ import { defineStaffMessages, sameInAllLanguages } from "../define";
  * Internal operations: queues, search, finance lifecycle, reconciliation, revenue, recovery, status. Owned by the operations lane.
  */
 export const operationsMessages = defineStaffMessages({
+  "operations.signingProgress.view": { en: "View progress" },
+  "operations.signingProgress.for": {
+    en: "View signing progress for {subject}",
+  },
+  "operations.signingProgress.title": { en: "Last confirmed signing progress" },
+  "operations.signingProgress.step.prepared": { en: "Prepared" },
+  "operations.signingProgress.step.approved": { en: "Approved" },
+  "operations.signingProgress.step.sent": { en: "Sent for signature" },
+  "operations.signingProgress.step.counterparty": { en: "Counterparty signed" },
+  "operations.signingProgress.step.countersigned": { en: "Fil One signed" },
+  "operations.signingProgress.step.saved": { en: "Final PDF saved" },
+  "operations.signingProgress.status.done": { en: "Done" },
+  "operations.signingProgress.status.current": { en: "Current step" },
+  "operations.signingProgress.status.pending": { en: "Pending" },
+  "operations.signingProgress.status.unconfirmed": { en: "Not confirmed" },
+  "operations.signingProgress.status.rejected": { en: "Rejected" },
   "operations.cases": {
     count: "count",
     en: { one: "{count} case", other: "{count} cases" },

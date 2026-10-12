@@ -839,10 +839,13 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.signing.void.action": { en: "Void" },
   "operations.contracts.signing.void.title": { en: "Void this contract?" },
   "operations.contracts.signing.void.description": {
-    en: "{signer} can no longer sign it.",
+    en: "No remaining signer can sign this contract after it is voided.",
   },
   "operations.contracts.signing.void.evidence": {
-    en: "SignWell stops the request and deletes its copy. The register keeps the prepared PDF and the history. Once the counterparty has signed, the contract can no longer be voided.",
+    en: "SignWell stops the request and deletes its copy, including any partial signatures. The register keeps the prepared PDF and the history. A completed contract cannot be voided.",
+  },
+  "operations.contracts.signing.void.partialWarning": {
+    en: "The counterparty has already signed. Their partially signed copy will be deleted from SignWell, and the countersigner can no longer sign.",
   },
   "operations.contracts.signing.void.reason": { en: "Reason" },
   "operations.contracts.signing.void.reasonHelp": {
@@ -938,7 +941,7 @@ export const contractMessages = defineStaffMessages({
     en: "Both sides have signed this contract, so it can no longer be voided.",
   },
   "operations.contracts.error.notVoidable": {
-    en: "The counterparty has already signed, so this contract can no longer be voided.",
+    en: "This contract is no longer available to void. Refresh its status; completed contracts cannot be voided.",
   },
   "operations.contracts.error.notPreparer": {
     en: "Only the person who prepared this contract, or an approver, can void it.",
@@ -973,8 +976,20 @@ export const contractMessages = defineStaffMessages({
   "operations.contracts.error.uploadInterrupted": {
     en: "The upload was interrupted. Check your connection and try again.",
   },
+  "operations.contracts.error.providerTimeout": {
+    en: "SignWell took too long to respond. Check status before retrying; the last action may have succeeded.",
+  },
+  "operations.contracts.error.providerAccess": {
+    en: "SignWell refused access. Ask a Commerce administrator to check the signing connection before retrying.",
+  },
+  "operations.contracts.error.providerRateLimit": {
+    en: "SignWell is limiting requests. Wait a minute, then check status before retrying.",
+  },
+  "operations.contracts.error.providerRejected": {
+    en: "SignWell rejected this request. Ask a Commerce administrator to check the signing connection and document details before retrying.",
+  },
   "operations.contracts.error.provider": {
-    en: "SignWell did not respond as expected. Nothing was sent twice. Try again in a few minutes.",
+    en: "Commerce could not confirm the result with SignWell. Check status before retrying. If this continues, contact a Commerce administrator.",
   },
   "operations.contracts.error.generic": {
     en: "Something went wrong. Try again, and if it keeps happening, tell a Commerce administrator.",
