@@ -396,7 +396,9 @@ the affected partner-detail modes; delete disposable test drafts afterward.
 Repeat the complete two-signer flow when signing order, recipient routing,
 send/retry, callbacks or completed-document retrieval changes, or when a
 concrete provider failure remains unresolved. Use the corresponding workflow,
-adapter, access or database tests for those changes:
+adapter, access or database tests for those changes. Shared signing-engine
+changes must include the scenario matrix for MNDAs, template contracts and
+uploaded PDFs:
 
 ```sh
 pnpm --filter @clockwork/workflows exec vitest run src/mnda.test.ts src/contracts.test.ts src/signing/scenarios.test.ts
