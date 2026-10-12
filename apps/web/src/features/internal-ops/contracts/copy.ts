@@ -220,6 +220,18 @@ const errorMessages: Readonly<Record<string, MessageId>> = {
 };
 
 export function errorMessage(code: string | null | undefined): MessageId {
+  if (code === "SIGNWELL_TIMEOUT")
+    return "operations.contracts.error.providerTimeout";
+  if (code === "SIGNWELL_HTTP_401" || code === "SIGNWELL_HTTP_403")
+    return "operations.contracts.error.providerAccess";
+  if (code === "SIGNWELL_HTTP_429")
+    return "operations.contracts.error.providerRateLimit";
+  if (
+    code &&
+    /^SIGNWELL_HTTP_4\d{2}$/.test(code) &&
+    code !== "SIGNWELL_HTTP_408"
+  )
+    return "operations.contracts.error.providerRejected";
   if (code?.startsWith("SIGNWELL_"))
     return "operations.contracts.error.provider";
   return (code && errorMessages[code]) || "operations.contracts.error.generic";

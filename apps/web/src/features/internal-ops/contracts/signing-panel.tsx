@@ -19,11 +19,9 @@ import {
   Dialog,
   InlineNotice,
   Input,
-  ProgressSteps,
   StatusBadge,
   Textarea,
   buttonClassName,
-  type ProgressStep,
 } from "@clockwork/ui";
 import type { MessageId } from "@/src/i18n";
 import { useFormattingLocale, useTranslations } from "@/src/i18n/client";
@@ -45,6 +43,7 @@ import {
 import { SessionExpiredReload } from "../session-expiry";
 import { SelfApprovalDialog } from "../self-approval/self-approval-dialog";
 import styles from "./contracts.module.css";
+import { SigningProgress } from "../signing-progress";
 
 type Operation = "send" | "sync" | "remind" | "cancel";
 
@@ -76,71 +75,6 @@ const sentStates = ["sent", "viewed", "awaiting_countersignature"];
  * counterparty signer left blank. */
 export const prepareAgainHref = (signing: ContractSigningRecord) =>
   `/internal/contracts/templates/${signing.templateId}?from=${signing.contractId}` as Route;
-
-function steps(
-  signing: ContractSigningRecord,
-  label: (id: Parameters<ReturnType<typeof useTranslations>>[0]) => string,
-): ProgressStep[] {
-  const order = [
-    "draft",
-    "preparing",
-    "ready",
-    "sending",
-    "sent",
-    "viewed",
-    "awaiting_countersignature",
-    "completed",
-  ];
-  const reached = order.indexOf(signing.state);
-  const failed = ["declined", "expired", "canceled", "attention"].includes(
-    signing.state,
-  );
-  const state = (done: boolean, current: boolean): ProgressStep["state"] =>
-    done ? "complete" : current ? (failed ? "error" : "current") : "upcoming";
-  const approved =
-    signing.approvalState !== "pending" && signing.approvalState !== "rejected";
-  const list: ProgressStep[] = [
-    {
-      id: "prepared",
-      label: label("operations.contracts.signing.step.prepared"),
-      state: "complete",
-    },
-  ];
-  if (signing.approvalRequired)
-    list.push({
-      id: "approved",
-      label: label("operations.contracts.signing.step.approved"),
-      state:
-        signing.approvalState === "rejected"
-          ? "error"
-          : state(approved, !approved),
-    });
-  list.push(
-    {
-      id: "sent",
-      label: label("operations.contracts.signing.step.sent"),
-      state: state(reached >= 4, approved && reached < 4),
-    },
-    ...(signing.counterpartySigns
-      ? [
-          {
-            id: "counterparty",
-            label: label("operations.contracts.signing.step.counterparty"),
-            state: state(reached >= 6, reached >= 4 && reached < 6),
-          },
-        ]
-      : []),
-    {
-      id: "countersigned",
-      label: label("operations.contracts.signing.step.countersigned"),
-      // Fil One alone signs counterparty paper signed already.
-      state: signing.counterpartySigns
-        ? state(reached === 7, reached === 6)
-        : state(reached === 7, reached >= 4 && reached < 7),
-    },
-  );
-  return list;
-}
 
 export function SigningPanel({
   signing,
@@ -279,10 +213,14 @@ export function SigningPanel({
           {t(signingStateLabel(signing.state, signing.cancelCode))}
         </StatusBadge>
       </div>
-      <ProgressSteps
-        className={styles.signingSteps ?? ""}
-        label={t("operations.contracts.signing.progress")}
-        steps={steps(signing, t)}
+      <SigningProgress
+        subject={signing.documentName}
+        state={signing.state}
+        prepared={Boolean(generatedFileId)}
+        counterpartySigns={signing.counterpartySigns}
+        {...(signing.approvalRequired
+          ? { approval: signing.approvalState }
+          : {})}
       />
       {signing.testMode ? (
         <InlineNotice
@@ -705,9 +643,7 @@ export function SigningPanel({
         open={voiding}
         onOpenChange={setVoiding}
         title={t("operations.contracts.signing.void.title")}
-        description={t("operations.contracts.signing.void.description", {
-          signer: signing.counterpartySigner.name,
-        })}
+        description={t("operations.contracts.signing.void.description")}
         closeLabel={t("operations.contracts.signing.void.keep")}
         trigger={<span hidden />}
         footer={
@@ -752,6 +688,9 @@ export function SigningPanel({
         <p className={styles.muted}>
           {t("operations.contracts.signing.void.evidence")}
         </p>
+        {signing.state === "awaiting_countersignature" ? (
+          <p>{t("operations.contracts.signing.void.partialWarning")}</p>
+        ) : null}
         {signerChange ? (
           <p className={styles.muted}>
             {t(

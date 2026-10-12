@@ -18,6 +18,8 @@ export function failure(error: unknown): {
   code: string;
   fields?: Record<string, string>;
 } {
+  if (error instanceof Error && error.name === "AbortError")
+    return { ok: false, code: "SIGNWELL_TIMEOUT" };
   if (error instanceof ZodError) {
     const fields: Record<string, string> = {};
     for (const issue of error.issues) {

@@ -29,8 +29,12 @@ store or SignWell client cannot correct.
 A declared signer can sit out a given request: the store's view lists only those
 who sign it. Counterparty paper the counterparty already signed lists Fil One
 alone: the engine then expects SignWell's copy to name that one recipient, with
-its fields, and reminds them. Voiding does not depend on the list; it reads
-SignWell's document and refuses once anyone has signed it.
+its fields, and reminds them. Voiding reads and validates the current SignWell
+copy. It refuses completed copies or those where every required recipient has
+signed, including the one-recipient case. A bound, incomplete copy with a
+partial signature can be voided only with a typed reason; signed mismatches are
+always refused. The provider read and delete are not atomic; see the
+[void limitation](commerce-mnda.md).
 
 ## 2. Store
 

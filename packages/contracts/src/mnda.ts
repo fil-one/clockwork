@@ -358,13 +358,14 @@ export const MndaVoidSchema = z.union([
     .strict(),
   z.object({ id: z.uuid(), code: z.literal("signer_change") }).strict(),
 ]);
-/** A sent request can be voided until the partner has signed. */
+/** An incomplete request can be voided, including after the partner signs. */
 export const mndaVoidableStates: readonly MndaState[] = [
   "draft",
   "preparing",
   "ready",
   "sent",
   "viewed",
+  "awaiting_countersignature",
   "attention",
 ];
 export const MndaCorrectSignerSchema = z
@@ -390,6 +391,10 @@ export const mndaErrorCodes = [
   "reminder_cooldown",
   "busy",
   "provider_failed",
+  "provider_timeout",
+  "provider_access",
+  "provider_rate_limit",
+  "provider_rejected",
   "forbidden",
   "mfa_required",
   "not_configured",

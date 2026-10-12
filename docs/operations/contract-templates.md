@@ -313,10 +313,20 @@ one of the demo's sample templates.
    prepared the request.
 
 A request that never reached SignWell can be discarded. Once it has, it is
-voided in Commerce, with a reason, until the counterparty signs: Commerce reads
-SignWell first, deletes the SignWell copy, and marks the request canceled. The
+voided in Commerce, with a reason, while the request is incomplete, including
+while awaiting the Fil One countersignature. The confirmation warns that any
+partial signatures on SignWell's copy will be deleted. Commerce reads and
+validates SignWell first, deletes that copy, and marks the request canceled. The
 register row returns to draft and keeps the prepared PDF and the history. The
 preparer can void their own request; anyone else needs contract approval rights.
+Completed copies and requests with every required signature already present are
+refused, including requests where only Fil One signs. SignWell's read and delete
+are not atomic; a remote signature can arrive between them.
+
+**View progress** expands the last confirmed preparation, approval (when
+required), send, signature and final-PDF steps. Requests where only Fil One
+signs omit the counterparty signature step. Missing historical evidence on held
+or closed requests is shown as **Not confirmed**.
 
 If someone deletes the document in SignWell directly, the next refresh or
 callback marks the request **SignWell no longer has this document** instead of
@@ -324,8 +334,10 @@ failing, and callbacks keep succeeding. Void it in Commerce to close it. The
 same holds when SignWell's copy names other signers or does not belong to the
 contract: nothing from that copy is applied, the request waits in attention
 (`signwell_signers_mismatch` or `signwell_binding_mismatch`), and it can be
-voided. A request is never voided once SignWell shows the counterparty's
-signature, even when a bounced countersigner email has put it in attention.
+voided while unsigned. Any signed copy whose binding or signers differ is
+refused. A correctly bound partial signature can be voided with a typed reason
+even when a bounced countersigner email has put the request in attention; the
+signer-change shortcut is unavailable after a signature.
 
 When the counterparty's email bounced or was mistyped, **Fix email** on the
 signing panel sends the request to the corrected address, until the counterparty

@@ -178,14 +178,25 @@ email**). Manual reminders are a minute apart.
 - **Someone else will sign** voids the MNDA (recorded as a signer change, shown
   in each reader's language) and opens a new draft with the same company details
   and a blank signer.
-- **Void** is available for drafts, sent and opened MNDAs and those needing
-  attention, never once the partner has signed. It asks for a reason, re-reads
-  the request in SignWell, and deletes it there (`DELETE /documents/{id}`),
-  which stops signing. If the partner signed in the meantime the void is
-  refused; if both sides signed, the signed copy is kept. When the delete's
-  answer is lost, Commerce reads the document back: gone means the void is
-  recorded with its reason. Commerce keeps the original PDF, the record and the
-  reason, audited as `mnda.voided`.
+- **Void** is available for drafts, sent and opened MNDAs, those awaiting the
+  Fil One countersignature, and those needing attention. It requires a reason
+  and confirmation; a partially signed request warns that SignWell's copy,
+  including the existing signature, will be deleted. Commerce re-reads and
+  checks the document binding before deleting it (`DELETE /documents/{id}`).
+  Completed requests, requests with every required signature already present,
+  and signed copies that do not match the request are refused. A partially
+  signed request requires a typed reason, not the signer-change shortcut.
+  Commerce keeps the original PDF, the record and reason, audited as
+  `mnda.voided`. When the delete's answer is lost, Commerce reads back: gone
+  means the void is recorded; a remaining document is reconciled. SignWell does
+  not expose a conditional delete, so the fresh read and delete are not atomic:
+  a signature could arrive between them. This pre-existing provider limitation
+  also applies to contract signing requests; no claim of atomic completion
+  protection is made.
+- **View progress** expands the status cell into the last confirmed steps:
+  prepared, sent, counterparty signed, Fil One signed, and final PDF saved. Held
+  or closed requests show missing evidence as **Not confirmed**, without
+  inventing signature timestamps or implying that signing can continue.
 - **New MNDA from this one** starts a new draft prefilled from the row, dated
   today.
 - A document deleted directly in SignWell (404 on two reads) moves to **Needs
@@ -281,6 +292,13 @@ established. The [revenue team guide](revenue-team-guide.md) walks a new seller
 through it.
 
 ## Recovery and verification
+
+- Send failures record a bounded diagnostic category, HTTP status when present,
+  and phase (`prepare_pdf`, `create_draft`, `read_draft`, `send`, or
+  `read_after_send`) in operator logs. Provider response bodies, recipient data
+  and credentials are excluded. Older `provider_unavailable` records do not
+  retain the original HTTP cause; do not infer a timeout or duplicate-contact
+  refusal from that generic error.
 
 - Retry a pending/error request from its preview (**Continue**). It keeps the
   same provider binding. Never recreate a live request merely because its first
@@ -378,10 +396,12 @@ the affected partner-detail modes; delete disposable test drafts afterward.
 Repeat the complete two-signer flow when signing order, recipient routing,
 send/retry, callbacks or completed-document retrieval changes, or when a
 concrete provider failure remains unresolved. Use the corresponding workflow,
-adapter, access or database tests for those changes:
+adapter, access or database tests for those changes. Shared signing-engine
+changes must include the scenario matrix for MNDAs, template contracts and
+uploaded PDFs:
 
 ```sh
-pnpm --filter @clockwork/workflows exec vitest run src/mnda.test.ts
+pnpm --filter @clockwork/workflows exec vitest run src/mnda.test.ts src/contracts.test.ts src/signing/scenarios.test.ts
 pnpm --filter @clockwork/integrations exec vitest run src/esign/signwell.test.ts
 pnpm --filter @clockwork/web exec vitest run src/features/internal-ops/mnda
 DIRECT_DATABASE_URL=... pnpm --filter @clockwork/db exec vitest run --config vitest.integration.config.ts src/repositories/mnda.integration.test.ts

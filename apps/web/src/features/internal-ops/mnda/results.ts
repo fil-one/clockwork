@@ -93,6 +93,17 @@ export function mndaFailure(error: unknown): MndaResult<never> {
         : {}),
     };
   if (
+    message === "SIGNWELL_TIMEOUT" ||
+    (error instanceof Error && error.name === "AbortError")
+  )
+    return { ok: false, code: "provider_timeout" };
+  if (["SIGNWELL_HTTP_401", "SIGNWELL_HTTP_403"].includes(message))
+    return { ok: false, code: "provider_access" };
+  if (message === "SIGNWELL_HTTP_429")
+    return { ok: false, code: "provider_rate_limit" };
+  if (/^SIGNWELL_HTTP_4\d{2}$/.test(message) && message !== "SIGNWELL_HTTP_408")
+    return { ok: false, code: "provider_rejected" };
+  if (
     message.startsWith("SIGNWELL_") ||
     (error instanceof Error && error.name === "AbortError")
   )

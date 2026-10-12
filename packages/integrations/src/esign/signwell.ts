@@ -136,6 +136,10 @@ export abstract class SignWellSigningClient<K extends string> {
         chunks.push(value);
       }
       return Buffer.concat(chunks);
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error("SIGNWELL_TIMEOUT");
+      if (classifySignWellFailure(error)) throw error;
+      throw new Error("SIGNWELL_NETWORK_ERROR");
     } finally {
       clearTimeout(timer);
     }
@@ -145,11 +149,15 @@ export abstract class SignWellSigningClient<K extends string> {
     method = "GET",
     body?: unknown,
   ): Promise<SignWellSigningDocument<K>> {
-    return signWellDocumentSchema(this.bindingKey).parse(
-      JSON.parse(
-        Buffer.from(await this.request(path, method, body)).toString("utf8"),
-      ),
-    );
+    const bytes = await this.request(path, method, body);
+    try {
+      return signWellDocumentSchema(this.bindingKey).parse(
+        JSON.parse(Buffer.from(bytes).toString("utf8")),
+      );
+    } catch {
+      // Validation errors can contain provider data. Keep them out of logs/UI.
+      throw new Error("SIGNWELL_INVALID_RESPONSE");
+    }
   }
   /** An unsent draft. Text tags place the fields; sending is a separate call. */
   protected createSigningDraft<R>(
@@ -300,6 +308,27 @@ export function assertSignWellCopiedContacts(
     doc,
     signWellCopiedContacts(record).map((c) => c.email),
   );
+}
+/** Only bounded diagnostics; never provider bodies, URLs, or recipient data. */
+export function classifySignWellFailure(error: unknown): {
+  code: "timeout" | "network" | "http" | "invalid_response" | "other";
+  status?: number;
+} | null {
+  if (!(error instanceof Error)) return null;
+  const status = /^SIGNWELL_HTTP_([1-5]\d{2})$/.exec(error.message)?.[1];
+  if (status) return { code: "http", status: Number(status) };
+  if (error.message === "SIGNWELL_TIMEOUT" || error.name === "AbortError")
+    return { code: "timeout" };
+  if (error.message === "SIGNWELL_NETWORK_ERROR") return { code: "network" };
+  if (
+    [
+      "SIGNWELL_INVALID_RESPONSE",
+      "SIGNWELL_INVALID_PDF",
+      "SIGNWELL_RESPONSE_TOO_LARGE",
+    ].includes(error.message)
+  )
+    return { code: "invalid_response" };
+  return error.message.startsWith("SIGNWELL_") ? { code: "other" } : null;
 }
 /** Whether a failed call certainly changed nothing at SignWell: a 4xx refusal.
  * Timeouts, 5xx and unreadable responses may have been applied. */
