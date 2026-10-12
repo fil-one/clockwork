@@ -421,6 +421,14 @@ it.each(Object.entries(variants))(
     );
     expect(tags).toHaveLength(definitions.size);
     const placed = new Set<string>();
+    const fieldBoxes: Array<{
+      id: string;
+      page: number;
+      xMin: number;
+      yMin: number;
+      xMax: number;
+      yMax: number;
+    }> = [];
     for (const tag of tags) {
       const alias = /^\{\{(f\d+)\}\}$/.exec(tag.text)?.[1] ?? "";
       const field = definitions.get(alias);
@@ -433,6 +441,15 @@ it.each(Object.entries(variants))(
         xMax: tag.xMin + field.width,
         yMax: tag.yMin + field.height,
       };
+      for (const other of fieldBoxes.filter((b) => b.page === tag.page)) {
+        const overlaps =
+          other.xMin < box.xMax - 0.5 &&
+          other.xMax > box.xMin + 0.5 &&
+          other.yMin < box.yMax - 0.5 &&
+          other.yMax > box.yMin + 0.5;
+        expect(overlaps, `${field.id} overlaps ${other.id}`).toBe(false);
+      }
+      fieldBoxes.push({ ...box, id: field.id, page: tag.page });
       expect(box.xMin, field.id).toBeGreaterThanOrEqual(48 - 0.5);
       expect(box.xMax, field.id).toBeLessThanOrEqual(612 - 48 + 0.5);
       expect(box.yMin, field.id).toBeGreaterThanOrEqual(48 - 0.5);
