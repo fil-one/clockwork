@@ -773,7 +773,9 @@ describe("signing panel", () => {
     panel({ state: "sent", providerId: "x" });
     fireEvent.click(screen.getByRole("button", { name: "Check status" }));
     expect(
-      await screen.findByText(/SignWell did not respond as expected/),
+      await screen.findByText(
+        /Commerce could not confirm the result with SignWell/,
+      ),
     ).toBeInTheDocument();
     expect(mocks.refresh).not.toHaveBeenCalled();
   });

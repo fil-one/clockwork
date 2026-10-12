@@ -153,12 +153,15 @@ export const signingScenarios: readonly SigningScenario[] = [
       h.doc.status = "Created";
       h.wait.mockImplementationOnce(async () => h.loseLease());
       const warn = quietly();
-      await expect(h.send()).rejects.toThrow(h.code("LEASE_LOST"));
-      expect(warn).toHaveBeenCalledExactlyOnceWith(
-        `${h.log.label} send failure not recorded`,
-        { [h.log.idKey]: h.record().id, error: h.code("LEASE_LOST") },
-      );
-      warn.mockRestore();
+      try {
+        await expect(h.send()).rejects.toThrow(h.code("LEASE_LOST"));
+        expect(warn).toHaveBeenCalledExactlyOnceWith(
+          `${h.log.label} send failure not recorded`,
+          { [h.log.idKey]: h.record().id, phase: "read_draft", code: "other" },
+        );
+      } finally {
+        warn.mockRestore();
+      }
       expect(h.wait).toHaveBeenCalledOnce();
       expect(h.provider.send).not.toHaveBeenCalled();
       expect(h.record()).toMatchObject({ state: "ready", error: null });
@@ -173,12 +176,19 @@ export const signingScenarios: readonly SigningScenario[] = [
         h.provider.get.mockRejectedValueOnce(abort());
       });
       const warn = quietly();
-      expect(await h.send()).toMatchObject({ state: "sending", error: null });
-      expect(warn).toHaveBeenCalledExactlyOnceWith(
-        `${h.log.label} state not read after send`,
-        { [h.log.idKey]: h.record().id, error: "This operation was aborted" },
-      );
-      warn.mockRestore();
+      try {
+        expect(await h.send()).toMatchObject({ state: "sending", error: null });
+        expect(warn).toHaveBeenCalledExactlyOnceWith(
+          `${h.log.label} state not read after send`,
+          {
+            [h.log.idKey]: h.record().id,
+            phase: "read_after_send",
+            code: "timeout",
+          },
+        );
+      } finally {
+        warn.mockRestore();
+      }
       expect(h.record()).toMatchObject({ state: "sending", error: null });
       expect((await h.sync()).state).toBe("sent");
       expect(h.provider.send).toHaveBeenCalledOnce();
@@ -460,14 +470,17 @@ export const signingScenarios: readonly SigningScenario[] = [
       const version = h.record().version;
       h.doc.status = "Completed";
       const warn = quietly();
-      expect((await h.sync()).state).toBe("completed");
-      // Completion and the follow-up event each take a version.
-      expect(h.record().version).toBe(version + 2);
-      expect(warn).toHaveBeenCalledExactlyOnceWith(
-        `${h.log.label} signer fields not reported by SignWell`,
-        { [h.log.idKey]: h.record().id, providerId: h.doc.id, fields: asked },
-      );
-      warn.mockRestore();
+      try {
+        expect((await h.sync()).state).toBe("completed");
+        // Completion and the follow-up event each take a version.
+        expect(h.record().version).toBe(version + 2);
+        expect(warn).toHaveBeenCalledExactlyOnceWith(
+          `${h.log.label} signer fields not reported by SignWell`,
+          { [h.log.idKey]: h.record().id, providerId: h.doc.id, fields: asked },
+        );
+      } finally {
+        warn.mockRestore();
+      }
       expect(h.record().partnerDetails).toEqual({});
       expect(h.archived()).toBeDefined();
       expect(h.events.slice(-2)).toEqual([
@@ -487,17 +500,37 @@ export const signingScenarios: readonly SigningScenario[] = [
     },
   },
   {
-    name: "reads SignWell before a void and never deletes what anyone signed",
+    name: "reads SignWell before voiding partial signatures and preserves completed or finalizing requests",
     async run(make) {
       const signed = await sent(make);
       signed.partner().status = "signed";
-      await expect(signed.void({ reason: "Too late" })).rejects.toThrow(
+      await expect(signed.void({ code: "signer_change" })).rejects.toThrow(
         signed.code("NOT_VOIDABLE"),
       );
       expect(signed.record().state).toBe("awaiting_countersignature");
-      await expect(signed.void({ reason: "Too late" })).rejects.toThrow(
-        signed.code("NOT_VOIDABLE"),
+      expect(signed.provider.cancel).not.toHaveBeenCalled();
+      expect(await signed.void({ reason: "Wrong entity" })).toMatchObject({
+        state: "canceled",
+        cancelReason: "Wrong entity",
+      });
+      expect(await signed.void({ reason: "Repeat" })).toMatchObject({
+        state: "canceled",
+        cancelReason: "Wrong entity",
+      });
+      expect(signed.provider.cancel).toHaveBeenCalledExactlyOnceWith(
+        signed.doc.id,
       );
+      expect(
+        signed.events.filter(
+          (event) => event.eventType === `${signed.kind}.voided`,
+        ),
+      ).toEqual([
+        {
+          aggregateId: signed.record().id,
+          eventType: `${signed.kind}.voided`,
+          detail: { reason: "Wrong entity" },
+        },
+      ]);
 
       const completed = await sent(make);
       completed.doc.status = "Completed";
@@ -506,17 +539,29 @@ export const signingScenarios: readonly SigningScenario[] = [
       );
       expect(completed.record().state).toBe("completed");
       expect(completed.archived()).toBeDefined();
+      expect(completed.provider.cancel).not.toHaveBeenCalled();
 
-      // A bounce outranks the signature in the applied state.
+      const finalizing = await sent(make);
+      for (const recipient of finalizing.doc.recipients)
+        recipient.status = "signed";
+      await expect(finalizing.void({ reason: "Changed" })).rejects.toThrow(
+        finalizing.code("ALREADY_COMPLETED"),
+      );
+      expect(finalizing.provider.cancel).not.toHaveBeenCalled();
+      expect(finalizing.record().state).not.toBe("canceled");
+
+      // A bounce outranks the partial signature in the applied state, but
+      // the fresh provider copy still proves the request remains incomplete.
       const bounced = await sent(make);
       bounced.partner().status = "signed";
       bounced.filOne().bounced = true;
-      await expect(bounced.void({ reason: "Bounced" })).rejects.toThrow(
-        bounced.code("NOT_VOIDABLE"),
+      expect(await bounced.void({ reason: "Bounced" })).toMatchObject({
+        state: "canceled",
+        cancelReason: "Bounced",
+      });
+      expect(bounced.provider.cancel).toHaveBeenCalledExactlyOnceWith(
+        bounced.doc.id,
       );
-      expect(bounced.record().state).toBe("attention");
-      for (const h of [signed, completed, bounced])
-        expect(h.provider.cancel).not.toHaveBeenCalled();
     },
   },
   {
@@ -809,12 +854,15 @@ export const signingScenarios: readonly SigningScenario[] = [
       if (!h.declares.copySender) return;
       delete h.doc.copied_contacts;
       const warn = quietly();
-      expect((await h.send()).state).toBe("sent");
-      expect(warn).toHaveBeenCalledWith(
-        `${h.log.label} copied contacts not reported by SignWell`,
-        { [h.log.idKey]: h.record().id, providerId: h.doc.id },
-      );
-      warn.mockRestore();
+      try {
+        expect((await h.send()).state).toBe("sent");
+        expect(warn).toHaveBeenCalledWith(
+          `${h.log.label} copied contacts not reported by SignWell`,
+          { [h.log.idKey]: h.record().id, providerId: h.doc.id },
+        );
+      } finally {
+        warn.mockRestore();
+      }
       // SignWell's draft leaves the sender out: the request is held for a
       // void instead of failing every retry, and nothing is sent.
       const refused = make();

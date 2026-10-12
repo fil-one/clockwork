@@ -399,7 +399,7 @@ concrete provider failure remains unresolved. Use the corresponding workflow,
 adapter, access or database tests for those changes:
 
 ```sh
-pnpm --filter @clockwork/workflows exec vitest run src/mnda.test.ts
+pnpm --filter @clockwork/workflows exec vitest run src/mnda.test.ts src/contracts.test.ts src/signing/scenarios.test.ts
 pnpm --filter @clockwork/integrations exec vitest run src/esign/signwell.test.ts
 pnpm --filter @clockwork/web exec vitest run src/features/internal-ops/mnda
 DIRECT_DATABASE_URL=... pnpm --filter @clockwork/db exec vitest run --config vitest.integration.config.ts src/repositories/mnda.integration.test.ts
