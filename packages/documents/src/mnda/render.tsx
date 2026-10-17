@@ -290,8 +290,8 @@ function isMissing(input: MndaInput, id: MndaDetailFieldId) {
 /**
  * A partner detail: the supplied value, or, when missing, a white SignWell tag
  * padded with non-breaking spaces to the field's width over a grey rule. The
- * padding keeps following text clear of the field; a tall line inline leaves
- * room for the field's height above and below.
+ * padding keeps following text clear of the field. An 18-point inline line
+ * leaves room for the 13.5-point signing field without oversized blank rows.
  */
 function Slot({
   input,
@@ -318,7 +318,7 @@ function Slot({
       style={{
         fontFamily: mono,
         fontSize: tagFontSize,
-        ...(inline ? { lineHeight: 4 } : {}),
+        ...(inline ? { lineHeight: 2 } : {}),
         color: "#ffffff",
         textDecoration: "underline",
         textDecorationColor: "#a0a0a0",
