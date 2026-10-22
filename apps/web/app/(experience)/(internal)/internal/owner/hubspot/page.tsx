@@ -6,6 +6,10 @@ import { Breadcrumbs, PageHeader } from "@clockwork/ui";
 import { loadSettings } from "@/src/features/internal-ops/hubspot/page-data";
 import { HubSpotPageState } from "@/src/features/internal-ops/hubspot/page-state";
 import { HubSpotSettings } from "@/src/features/internal-ops/hubspot/settings";
+import {
+  HubSpotSetupGuide,
+  hubspotSetupStage,
+} from "@/src/features/internal-ops/hubspot/setup-guide";
 import styles from "@/src/features/internal-ops/hubspot/hubspot.module.css";
 import { breadcrumbsLabel } from "@/src/features/shared/ui-kit-labels";
 import { withStaffPermission } from "@/src/features/shell/staff-access";
@@ -45,6 +49,20 @@ async function Page() {
         title={t("operations.hubspot.settings.title")}
         description={t("operations.hubspot.settings.description")}
       />
+      {loaded.demo ? null : (
+        <HubSpotSetupGuide
+          t={t}
+          stage={hubspotSetupStage({
+            tokenConfigured: Boolean(loaded.portal ?? loaded.portalError),
+            portalReachable: Boolean(loaded.portal),
+            active: Boolean(
+              loaded.active &&
+              loaded.portal &&
+              loaded.active.portalId === loaded.portal.portalId,
+            ),
+          })}
+        />
+      )}
       <HubSpotSettings
         portal={loaded.portal}
         portalError={loaded.portalError}

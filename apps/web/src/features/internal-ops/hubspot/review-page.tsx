@@ -200,6 +200,7 @@ export function ReviewPage({ t, loaded }: { t: Translator; loaded: Ready }) {
         owners={loaded.owners}
         ownerProposal={loaded.ownerProposal}
         linkedElsewhere={loaded.linkedElsewhere}
+        alreadyLinked={loaded.alreadyLinked}
         canImport={loaded.canImport}
         demo={loaded.demo}
       />

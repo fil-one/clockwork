@@ -88,8 +88,20 @@ function configuredReader(): HubSpotReader | null {
   return token ? new HttpHubSpotReader({ accessToken: token }) : null;
 }
 
-export const hubspotConfigured = () =>
-  explicitDemoIdentityEnabled() || Boolean(configuredReader());
+/**
+ * Whether sellers can bring HubSpot records in here: the demo always can; a
+ * deployment needs a token and an approved connection. Never throws, so a
+ * page that only offers the entry point is not taken down by it.
+ */
+export async function hubspotReady(): Promise<boolean> {
+  if (explicitDemoIdentityEnabled()) return true;
+  if (!process.env.HUBSPOT_ACCESS_TOKEN?.trim()) return false;
+  try {
+    return (await hubspotRepository().connection()).active !== null;
+  } catch {
+    return false;
+  }
+}
 
 export function hubspotRepository(): HubSpotRepository {
   const database = getOptionalServiceDatabase();

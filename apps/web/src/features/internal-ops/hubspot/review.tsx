@@ -111,7 +111,7 @@ function bytes(size: number | null, locale: string): string | null {
   return new Intl.NumberFormat(locale, {
     style: "unit",
     unit: units[unit],
-    unitDisplay: "short",
+    unitDisplay: "narrow",
     maximumFractionDigits: 1,
   }).format(value);
 }
@@ -224,6 +224,7 @@ export function HandoffReview({
   owners,
   ownerProposal,
   linkedElsewhere,
+  alreadyLinked = false,
   canImport,
   demo,
 }: {
@@ -235,6 +236,9 @@ export function HandoffReview({
   owners: readonly PartnerOwnerOption[];
   ownerProposal: OwnerProposal;
   linkedElsewhere: string | null;
+  /** The company is already this partner's: a review with nothing chosen
+   * has nothing to commit. */
+  alreadyLinked?: boolean;
   canImport: boolean;
   demo: boolean;
 }) {
@@ -249,7 +253,7 @@ export function HandoffReview({
   const [submitted, setSubmitted] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [changedItems, setChangedItems] = useState<string[] | null>(null);
-  const [alreadyLinked, setAlreadyLinked] = useState<{
+  const [linkedFirst, setLinkedFirst] = useState<{
     partnerId: string;
     partnerName: string;
   } | null>(null);
@@ -470,12 +474,13 @@ export function HandoffReview({
       });
 
   const linkOnly = preview ? hubspotPlanIsLinkOnly(preview) : false;
+  const nothingToDo = alreadyLinked && linkOnly;
   const primaryLabel = !destination
     ? t("operations.hubspot.action.create")
-    : linkOnly
+    : linkOnly && !alreadyLinked
       ? t("operations.hubspot.action.link")
       : t("operations.hubspot.action.import");
-  const blocked = Boolean(linkedElsewhere) || !canImport;
+  const blocked = Boolean(linkedElsewhere) || !canImport || nothingToDo;
   const advancedInEffect = [
     references.length
       ? t("operations.hubspot.more.references", { count: references.length })
@@ -488,7 +493,7 @@ export function HandoffReview({
   function submit() {
     setShowErrors(true);
     setFailure(null);
-    setAlreadyLinked(null);
+    setLinkedFirst(null);
     if (issues.length) {
       requestAnimationFrame(() => summaryRef.current?.focus());
       return;
@@ -512,7 +517,7 @@ export function HandoffReview({
         return;
       }
       if (value.kind === "already_linked") {
-        setAlreadyLinked(value);
+        setLinkedFirst(value);
         requestAnimationFrame(() => summaryRef.current?.focus());
         return;
       }
@@ -643,19 +648,19 @@ export function HandoffReview({
             })}
           />
         ) : null}
-        {alreadyLinked ? (
+        {linkedFirst ? (
           <InlineNotice
             tone="info"
             live="polite"
             title={t("operations.hubspot.review.alreadyLinkedTitle", {
-              name: alreadyLinked.partnerName,
+              name: linkedFirst.partnerName,
             })}
             description={t("operations.hubspot.review.alreadyLinkedBody")}
             action={
               <span className={styles.actions}>
                 <Link
                   className={buttonClassName({ variant: "secondary" })}
-                  href={partnerHref(alreadyLinked.partnerId)}
+                  href={partnerHref(linkedFirst.partnerId)}
                 >
                   {t("operations.hubspot.openPartner")}
                 </Link>
@@ -1538,13 +1543,18 @@ export function HandoffReview({
         </div>
       </details>
 
+      <p className={styles.secondary}>
+        {t("operations.hubspot.audience")}{" "}
+        {t("operations.hubspot.noSecondConfirmation")}
+      </p>
       <footer className={styles.footer} aria-labelledby="handoff-summary">
         <p className={styles.summary} id="handoff-summary" aria-live="polite">
-          {preview
-            ? planSummary(preview, t, locale, source.company.name)
-            : t("operations.hubspot.summary.incomplete")}
+          {nothingToDo
+            ? t("operations.hubspot.summary.nothingSelected")
+            : preview
+              ? planSummary(preview, t, locale, source.company.name)
+              : t("operations.hubspot.summary.incomplete")}
         </p>
-        <p className={styles.secondary}>{t("operations.hubspot.audience")}</p>
         <div className={styles.footerRow}>
           <div className={styles.actions}>
             <Button
@@ -1593,9 +1603,6 @@ export function HandoffReview({
               </Button>
             )}
           </div>
-          <span className={styles.secondary}>
-            {t("operations.hubspot.noSecondConfirmation")}
-          </span>
         </div>
       </footer>
     </div>

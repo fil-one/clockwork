@@ -103,7 +103,7 @@ export function PartnerList({
   today,
   canEdit,
   demo,
-  hubspot = false,
+  hubspot = "hidden",
 }: {
   t: Translator;
   locale: string;
@@ -113,8 +113,9 @@ export function PartnerList({
   today: string;
   canEdit: boolean;
   demo: boolean;
-  /** HubSpot is set up for this deployment, so a handoff can start here. */
-  hubspot?: boolean;
+  /** Whether a HubSpot handoff can start here, or an administrator should
+   * be shown how to connect HubSpot. */
+  hubspot?: "ready" | "setup" | "hidden";
 }) {
   const filtered = Boolean(
     query.q ||
@@ -146,7 +147,7 @@ export function PartnerList({
                 {t("operations.partners.new")}
               </Link>
             ) : null}
-            {hubspot && (canEdit || demo) ? (
+            {hubspot === "ready" && (canEdit || demo) ? (
               <Link
                 className={buttonClassName({ variant: "secondary" })}
                 href="/internal/hubspot"
@@ -167,6 +168,21 @@ export function PartnerList({
       />
       {demo ? (
         <InlineNotice tone="info" title={t("operations.partners.demo")} />
+      ) : null}
+      {hubspot === "setup" ? (
+        <InlineNotice
+          tone="info"
+          title={t("operations.hubspot.setup.notice")}
+          description={t("operations.hubspot.setup.noticeBody")}
+          action={
+            <Link
+              className={buttonClassName({ variant: "secondary" })}
+              href="/internal/owner/hubspot"
+            >
+              {t("operations.hubspot.setup.noticeAction")}
+            </Link>
+          }
+        />
       ) : null}
       <PartnerFilters query={query} owners={owners} />
       {result.truncated ? (

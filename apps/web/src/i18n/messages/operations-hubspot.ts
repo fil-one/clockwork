@@ -371,6 +371,9 @@ export const hubspotMessages = defineStaffMessages({
     en: "Link {company} to {partner}. Nothing is copied.",
   },
   "operations.hubspot.summary.noChanges": { en: "Change no values" },
+  "operations.hubspot.summary.nothingSelected": {
+    en: "Already linked. Choose a change, a person, context or a document to import.",
+  },
   "operations.hubspot.summary.incomplete": {
     en: "Make the choices above to see what this handoff will do.",
   },
@@ -715,8 +718,55 @@ export const hubspotMessages = defineStaffMessages({
   },
   "operations.hubspot.ownerPanel.open": { en: "HubSpot connection" },
   "operations.hubspot.ownerPanel.body": {
-    en: "Approve one HubSpot portal, the staff who may read it, the data they may read and how owners map.",
+    en: "Connect HubSpot so sellers can bring companies and deals in as partners and see the pipeline. The connection page walks through the token, the deploy and your approval.",
   },
+
+  "operations.hubspot.setup.title": { en: "Connect HubSpot in four steps" },
+  "operations.hubspot.setup.body": {
+    en: "Two of these happen outside Commerce, in HubSpot and in GitHub. The token is never typed into Commerce or shown here.",
+  },
+  "operations.hubspot.setup.done": { en: "Done" },
+  "operations.hubspot.setup.current": { en: "Next" },
+  "operations.hubspot.setup.upcoming": { en: "Later" },
+  "operations.hubspot.setup.tokenTitle": {
+    en: "Create a read-only HubSpot private app",
+  },
+  "operations.hubspot.setup.tokenBody": {
+    en: "A HubSpot super admin opens Settings → Integrations → Private apps → Create a private app, names it Fil One Commerce, grants only the read scopes below, creates it and copies its access token.",
+  },
+  "operations.hubspot.setup.scopes": { en: "Read scopes to grant:" },
+  "operations.hubspot.setup.filesScope": {
+    en: "To bring PDFs across from HubSpot notes, also grant files. Without it, documents show as unavailable and everything else works. Grant no write scopes.",
+  },
+  "operations.hubspot.setup.deployTitle": {
+    en: "Add the token to the deployment",
+  },
+  "operations.hubspot.setup.deployBody": {
+    en: "In GitHub, fil-one/clockwork → Settings → Environments, add a secret named HUBSPOT_ACCESS_TOKEN to production (and staging, to try it there first). Then open Actions → Deploy → Run workflow on main. The next deploy gives the app the token.",
+  },
+  "operations.hubspot.setup.deployCheck": {
+    en: "This deployment has a token, but HubSpot did not accept it. Check that the token was copied whole and the app was not deleted, then deploy again.",
+  },
+  "operations.hubspot.setup.approveTitle": {
+    en: "Approve the connection here",
+  },
+  "operations.hubspot.setup.approveBody": {
+    en: "Below, confirm the portal the token reaches, choose the extra properties staff may read, decide on notes and files, pick the pipeline shown first, map HubSpot owners to Commerce staff, accept the audience and choose Activate connection.",
+  },
+  "operations.hubspot.setup.useTitle": { en: "Start using it" },
+  "operations.hubspot.setup.useBody": {
+    en: "Sellers choose Partners → From HubSpot, or Bring into Commerce on a deal in Sales → Pipeline. An existing partner links to its company from Link HubSpot record on the partner page.",
+  },
+  "operations.hubspot.setup.openPicker": { en: "Bring in from HubSpot" },
+  "operations.hubspot.setup.openPipeline": { en: "Open the pipeline" },
+  "operations.hubspot.setup.openPartners": { en: "Open partners" },
+  "operations.hubspot.setup.notice": {
+    en: "HubSpot is not connected yet",
+  },
+  "operations.hubspot.setup.noticeBody": {
+    en: "Connect it to bring HubSpot companies and deals in as partners and to see the pipeline here. It takes a HubSpot token, one deploy and an approval.",
+  },
+  "operations.hubspot.setup.noticeAction": { en: "Set up HubSpot" },
 
   "operations.hubspot.settings.title": { en: "HubSpot connection" },
   "operations.hubspot.settings.owner": { en: "Owner console" },

@@ -46,7 +46,10 @@ vi.mock("@/src/db/service", () => ({
   getOptionalServiceDatabase: () => undefined,
 }));
 
+import { translatorFor } from "@/src/i18n/catalogs";
+
 import { buildHubSpotPlan, changedReviewItems } from "./plan";
+import { HubSpotSetupGuide, hubspotSetupStage } from "./setup-guide";
 import { HubSpotReceipt } from "./receipt";
 import { HandoffReview } from "./review";
 import {
@@ -697,5 +700,48 @@ describe("HubSpotReceipt", () => {
     expect(
       within(section).getByText("Continue in Commerce"),
     ).toBeInTheDocument();
+  });
+});
+
+describe("HubSpotSetupGuide", () => {
+  it("names the next step from where this environment stands", () => {
+    expect(
+      hubspotSetupStage({
+        tokenConfigured: false,
+        portalReachable: false,
+        active: false,
+      }),
+    ).toBe("token");
+    expect(
+      hubspotSetupStage({
+        tokenConfigured: true,
+        portalReachable: false,
+        active: false,
+      }),
+    ).toBe("deploy");
+    expect(
+      hubspotSetupStage({
+        tokenConfigured: true,
+        portalReachable: true,
+        active: false,
+      }),
+    ).toBe("approve");
+    expect(
+      hubspotSetupStage({
+        tokenConfigured: true,
+        portalReachable: true,
+        active: true,
+      }),
+    ).toBe("use");
+  });
+
+  it("shows the read-only scopes and where the token goes, never a token", () => {
+    render(<HubSpotSetupGuide t={translatorFor("en")} stage="token" />);
+    expect(screen.getByText("crm.objects.deals.read")).toBeInTheDocument();
+    expect(
+      screen.getByText(/HUBSPOT_ACCESS_TOKEN to production/u),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Next")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 });
