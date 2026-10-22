@@ -805,9 +805,11 @@ describe("review findings stay fixed", () => {
       id: typed[0]?.id,
       matchedExisting: true,
     });
+    const [first] = typed;
+    if (!first) throw new Error("fixture contact missing");
     const linked = [
       {
-        ...(typed[0] ?? { name: "" }),
+        ...first,
         source: {
           provider: "hubspot" as const,
           portalId: "4410",
