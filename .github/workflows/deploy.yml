@@ -29,6 +29,10 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository)
+    # workflow_run defaults to a read-only cache token. This job accepts only
+    # successful main pushes from this repository (or a main-only dispatch),
+    # so its reusable deployment may publish trusted image layers.
+    cache-mode: write
     uses: ./.github/workflows/terraform.yml
     permissions:
       id-token: write
@@ -42,6 +46,7 @@ jobs:
 
   production:
     needs: staging
+    cache-mode: write
     uses: ./.github/workflows/terraform.yml
     permissions:
       id-token: write

@@ -95,6 +95,10 @@ docker-build: .env.production.local
 docker-push: docker-login .env.production.local
 	cd .. && docker buildx build --platform $(PLATFORM) $(IMAGE_BUILD_ARGS) -t $(IMAGE_REF) --push .
 
+.PHONY: image-ref
+image-ref:
+	@printf '%s\n' '$(IMAGE_REF)'
+
 # Every target that registers a task definition checks the tag first. ECS
 # retries a missing image for the whole CodeDeploy window (an hour) and only
 # then rolls back, so an `apply-app` without a `docker-push` for the same

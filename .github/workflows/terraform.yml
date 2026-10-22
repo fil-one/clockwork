@@ -143,12 +143,31 @@ jobs:
         run: make init
         working-directory: deploy
 
-      - name: Build and push the image
-        run: make docker-push
+      - name: Prepare the image build
         working-directory: deploy
-        env:
-          CLOCKWORK_TYPECHECKED_IN_CI:
-            ${{ inputs.typechecked_in_ci && '1' || '0' }}
+        run: |
+          make docker-login .env.production.local
+          echo "IMAGE_REF=$(make --no-print-directory -s image-ref)" >> "$GITHUB_ENV"
+
+      # The Docker context excludes secrets; the rendered environment contains
+      # public configuration only. Each environment's COPY still participates
+      # in the cache key, while dependency and OS layers can be reused across
+      # environments. Cache export failure must not fail a valid deployment.
+      - name: Build and push the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.IMAGE_REF }}
+          build-args: |
+            CLOCKWORK_TYPECHECKED_IN_CI=${{ inputs.typechecked_in_ci && '1' || '0' }}
+          cache-from: |
+            type=gha,scope=clockwork-image-staging-arm64-v1
+            type=gha,scope=clockwork-image-production-arm64-v1
+          cache-to:
+            type=gha,scope=clockwork-image-${{ inputs.environment
+            }}-arm64-v1,mode=max,ignore-error=true,timeout=2m
 
       - name: Migrate the database
         run: make migrate
