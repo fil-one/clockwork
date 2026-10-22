@@ -1213,12 +1213,12 @@ test("raises the CI heap ceiling above the measured type-aware lint peak", () =>
   );
 });
 
-test("authenticates database image pulls to avoid shared anonymous throttling", () => {
-  // Both ECR and anonymous GHCR pulls hit shared runner-IP rate limits.
-  // The pinned CLI invokes docker pull, so it uses the job-scoped login.
-  assert.match(
+test("preserves registry fallback and authenticates database image pulls", () => {
+  // Both ECR and GHCR can hit shared rate limits. The pinned CLI falls back
+  // between mirrors only without an override; docker pull uses this login.
+  assert.doesNotMatch(
     checkedInWorkflow,
-    /SUPABASE_INTERNAL_IMAGE_REGISTRY:\s*ghcr\.io/,
+    /^\s+SUPABASE_INTERNAL_IMAGE_REGISTRY:/m,
   );
   assert.match(checkedInWorkflow, /packages: read/);
   const login = checkedInWorkflow.indexOf("uses: docker/login-action@v3");
