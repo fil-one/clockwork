@@ -24,7 +24,8 @@ vi.mock("../contracts/http", async (original) => ({
     bytes: new Uint8Array([37, 80, 68, 70, 45]),
   }),
 }));
-import { uploadAccountDocument, downloadAccountDocument } from "./http";
+import { POST as uploadAccountDocument } from "@/app/(experience)/(internal)/internal/record-documents/[type]/[id]/route";
+import { GET as downloadAccountDocument } from "@/app/(experience)/(internal)/internal/record-documents/[type]/[id]/[fileId]/route";
 const origin = "https://commerce.fil.one";
 const id = "10000000-0000-4000-8000-000000000001";
 const fileId = "90000000-0000-4000-8000-000000000001";

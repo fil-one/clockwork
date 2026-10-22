@@ -27,6 +27,9 @@ const guardCalls = [
   "requireAudience(",
   "mndaStaff(",
   "contractStaff(",
+  // account-documents/server.ts checks staff/MFA, target read permission and
+  // contract:write for uploads; its route tests exercise each refusal.
+  "accountDocumentStaff(",
   "notificationStaff(",
   "contractReader(",
   // contract-templates/server.ts: contractStaff("contract_template:manage"),

@@ -200,6 +200,39 @@ describe("MCP transport origin validation", () => {
 });
 
 describe("MCP HTTP protocol exchange", () => {
+  it("refuses excessive argument elements before validation or tool execution", async () => {
+    const response = await handleMcpRequest(
+      new Request(request(), {
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 10,
+          method: "tools/call",
+          params: {
+            name: "whoami",
+            arguments: { nested: { values: Array(10_001).fill(null) } },
+          },
+        }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      result: { content: { text: string }[] };
+    };
+    expect(body).toMatchObject({
+      id: 10,
+      result: { isError: true },
+    });
+    expect(body.result.content[0]?.text).toContain("maximum of 10000 elements");
+    expect(mocks.recordToolCall).toHaveBeenCalledOnce();
+    expect(mocks.recordToolCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool: "whoami",
+        outcome: "refused",
+        code: "INVALID_ARGUMENTS",
+      }),
+    );
+  });
+
   it("initializes, lists allowed tools, calls whoami and audits the call", async () => {
     const protocolVersion = "2025-11-25";
     const exchange = (message: Record<string, unknown>, initialized = true) =>

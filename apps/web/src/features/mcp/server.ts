@@ -101,6 +101,9 @@ export function createCommerceMcpServer(
 ): McpServer {
   const scope = context.session.accessToken.scope;
   const server = new McpServer(mcpServerInfo, {
+    // Bound validation work independently of the HTTP byte limit: a compact
+    // array of invalid values can otherwise produce an enormous error tree.
+    maxToolInputElements: 10_000,
     instructions:
       scope === "read"
         ? `${instructions} This token is read-only: tools that change something are disabled and not listed.`
