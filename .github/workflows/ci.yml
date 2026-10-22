@@ -60,6 +60,12 @@ jobs:
   release-shards:
     name: Release / ${{ matrix.shard }}
     runs-on: ${{ matrix.runner }}
+    container:
+      image: ${{ matrix.browser_image }}
+      options: --ipc=host --init
+    defaults:
+      run:
+        shell: bash
     permissions:
       contents: read
       packages: read
@@ -89,14 +95,17 @@ jobs:
           - shard: ui-1
             port: 32004
             runner: ubuntu-24.04
+            browser_image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
           - shard: ui-2
             port: 32008
             runner: ubuntu-24.04
+            browser_image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
           # `release-suites.mjs` mints the demo access password per run, so
           # nothing here needs a secret.
           - shard: demo
             port: 32006
             runner: ubuntu-24.04
+            browser_image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
           - shard: proof
             port: 32005
             runner: ubuntu-24.04
@@ -142,15 +151,38 @@ jobs:
             echo "GIT_CONFIG_GLOBAL=/dev/null"
             echo "GIT_CONFIG_NOSYSTEM=1"
           } >> "$GITHUB_ENV"
-      - name: Frozen install in a fresh isolated store
+      # Reuse only downloaded package content. Installation, tests and builds
+      # still run; each shard owns and removes its restored store. Only main's
+      # static shard writes this cache, before the release runner cleans it up.
+      - name: Restore package downloads
+        id: package-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CLOCKWORK_RELEASE_CACHE_ROOT }}/pnpm-store
+          key:
+            packages-v1-${{ runner.os }}-${{ runner.arch
+            }}-node24.18.1-pnpm10.34.5-${{ hashFiles('pnpm-lock.yaml',
+            'pnpm-workspace.yaml', '.npmrc', 'patches/**') }}
+      - name: Frozen install with package integrity verification
         run: |
-          pnpm install --frozen-lockfile --store-dir "$CLOCKWORK_RELEASE_CACHE_ROOT/pnpm-store"
+          pnpm install --frozen-lockfile --prefer-offline --verify-store-integrity --store-dir "$CLOCKWORK_RELEASE_CACHE_ROOT/pnpm-store"
           echo "CLOCKWORK_RELEASE_FROZEN_INSTALL_VERIFIED=1" >> "$GITHUB_ENV"
-      - name: Install Chromium and Linux dependencies
+      - name: Save verified package downloads
+        if:
+          github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+          matrix.shard == 'static' && steps.package-cache.outputs.cache-hit !=
+          'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CLOCKWORK_RELEASE_CACHE_ROOT }}/pnpm-store
+          key: ${{ steps.package-cache.outputs.cache-primary-key }}
+      - name: Prepare and verify Chromium
         if:
           startsWith(matrix.shard, 'ui-') || matrix.shard == 'demo' ||
           matrix.shard == 'proof'
-        run: pnpm playwright:install:ci
+        env:
+          CLOCKWORK_PLAYWRIGHT_IMAGE: ${{ matrix.browser_image }}
+        run: node scripts/prepare-ci-browser.mjs
       # `semantic-pdf.integration.test.ts` spawns `pdftotext` directly to read
       # back all 15 rendered document kinds, so Poppler is a hard dependency of
       # this shard rather than a convenience. The runner image does not carry

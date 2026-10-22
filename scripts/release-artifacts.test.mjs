@@ -3,6 +3,10 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { test } from "node:test";
+import {
+  missingBrowserLibraries,
+  verifyBrowserImage,
+} from "./prepare-ci-browser.mjs";
 
 import {
   expectedReleaseCommands,
@@ -1147,6 +1151,68 @@ test("runs every CI shard on the Linux runner", () => {
   // No shard compares screenshots, so none needs a macOS runner.
   for (const { shard, runner } of workflowShards)
     assert.equal(runner, "ubuntu-24.04", shard);
+});
+
+test("pins all UI container images to the installed Playwright version and a digest", async () => {
+  const webPackage = JSON.parse(
+    await readFile(
+      new URL("../apps/web/package.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const images = [...checkedInWorkflow.matchAll(/browser_image:\s*(\S+)/g)];
+  assert.equal(images.length, 3);
+  for (const [, image] of images)
+    verifyBrowserImage(image, webPackage.devDependencies["@playwright/test"]);
+  assert.throws(() => verifyBrowserImage(images[0][1], "0.0.0"));
+  assert.throws(() =>
+    verifyBrowserImage("mcr.microsoft.com/playwright:latest", "1.62.1"),
+  );
+});
+
+test("only missing system libraries permit a browser setup fallback", () => {
+  assert.equal(
+    missingBrowserLibraries(
+      new Error("Host system is missing dependencies to run browsers."),
+    ),
+    true,
+  );
+  assert.equal(
+    missingBrowserLibraries(
+      new Error("error while loading shared libraries: libnss3.so"),
+    ),
+    true,
+  );
+  for (const message of [
+    "page assertion failed",
+    "browser launch timed out",
+    "Executable doesn't exist",
+    "Target page has been closed",
+  ])
+    assert.equal(missingBrowserLibraries(new Error(message)), false);
+});
+
+test("reused package downloads still require a frozen verified installation", () => {
+  assert.match(
+    checkedInWorkflow,
+    /pnpm install --frozen-lockfile --prefer-offline --verify-store-integrity --store-dir/,
+  );
+  const save = checkedInWorkflow.match(
+    /- name: Save verified package downloads\n([\s\S]*?)\n {6}- name:/,
+  )?.[1];
+  assert.ok(save);
+  assert.match(save, /github\.event_name == 'push'/);
+  assert.match(save, /github\.ref == 'refs\/heads\/main'/);
+  assert.match(save, /matrix\.shard == 'static'/);
+  assert.ok(
+    checkedInWorkflow.indexOf(
+      "Frozen install with package integrity verification",
+    ) < checkedInWorkflow.indexOf("Save verified package downloads"),
+  );
+  assert.ok(
+    checkedInWorkflow.indexOf("Save verified package downloads") <
+      checkedInWorkflow.indexOf("Run isolated release shard"),
+  );
 });
 
 test("runs every browser test in exactly one ui shard", async () => {

@@ -770,6 +770,11 @@ async function runSuite(name, index, context) {
     context.workspaces.get(name),
     context.gitEnvironment,
   );
+  const workspaceStatus = execFileSync("git", ["status", "--porcelain"], {
+    cwd: context.workspaces.get(name),
+    encoding: "utf8",
+    env: context.gitEnvironment,
+  }).trim();
   const result = {
     ...contract,
     status,
@@ -781,15 +786,16 @@ async function runSuite(name, index, context) {
     candidateIdentityPreserved:
       JSON.stringify(finalWorkspaceIdentity) ===
       JSON.stringify(workspaceIdentity),
-    trackedWorkspaceClean:
-      execFileSync("git", ["status", "--porcelain"], {
-        cwd: context.workspaces.get(name),
-        encoding: "utf8",
-        env: context.gitEnvironment,
-      }).trim() === "",
+    trackedWorkspaceClean: workspaceStatus === "",
+    workspaceChanges: workspaceStatus ? workspaceStatus.split("\n") : [],
   };
-  if (!result.trackedWorkspaceClean || !result.candidateIdentityPreserved)
+  if (!result.trackedWorkspaceClean || !result.candidateIdentityPreserved) {
     result.status = "failed";
+    console.error(
+      `[${name}] Release source changed during verification.`,
+      workspaceStatus || "The source identity no longer matches the candidate.",
+    );
+  }
   await writeFile(
     path.join(suiteDirectory, "result.json"),
     `${JSON.stringify(result, null, 2)}\n`,

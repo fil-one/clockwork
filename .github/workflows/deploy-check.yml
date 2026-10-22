@@ -67,9 +67,18 @@ jobs:
       # pull request and type-checks every package there, so this job checks
       # that the image builds rather than repeating that work.
       - name: Build the image
-        run:
-          docker buildx build --platform linux/arm64 --build-arg
-          CLOCKWORK_TYPECHECKED_IN_CI=1 -t clockwork:check --load .
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/arm64
+          load: true
+          tags: clockwork:check
+          build-args: CLOCKWORK_TYPECHECKED_IN_CI=1
+          # PRs may read main's dependency layers; only deployments write the
+          # reusable image cache. Placeholder configuration is still rebuilt.
+          cache-from: |
+            type=gha,scope=clockwork-image-staging-arm64-v1
+            type=gha,scope=clockwork-image-production-arm64-v1
       - name: Check the migration tooling is in the image
         run:
           docker run --rm --entrypoint sh clockwork:check -c 'psql --version &&

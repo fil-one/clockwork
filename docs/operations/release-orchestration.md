@@ -24,6 +24,37 @@ contract for the join validator.
 `lint` is the type-aware ESLint pass, split from `static` because it was the
 longest static step (178 of 449 seconds on main, 2026-10-05).
 
+## Reusable setup, fresh assertions
+
+CI restores package downloads into each shard's disposable store using an exact
+OS, architecture, Node, pnpm, lockfile, workspace configuration and patch key.
+Every shard still performs a frozen install with store-integrity verification.
+Only the static shard on a push to main saves the package cache, before cleanup.
+Installed dependencies, test results, application builds and authentication
+state are not restored from that cache. Turbo result caching remains disabled.
+
+The two UI shards and the demo shard run inside an official Playwright Ubuntu
+image pinned by version and digest. Its version must match the application's
+Playwright package. Chromium is copied into the shard's disposable browser store
+and launched before testing. This removes repeated OS/font downloads, which took
+539 seconds in the 2026-10-22 release. The database proof stays on the host for
+Docker access; it downloads the pinned browser and checks it launches. It
+installs OS packages only if launch reports missing system libraries. Other
+setup failures fail immediately, and no product assertions are retried.
+
+Deployment builds use environment-scoped BuildKit layer caches. Both
+environments can reuse dependency and runtime layers; the rendered public
+environment remains a hashed build input, so staging configuration cannot
+satisfy a production build. Secrets remain outside the Docker context and arrive
+at runtime from Secrets Manager. PR image checks read these caches; deployments
+write them. Export errors do not block a valid deployment. Migrations, staged
+rollout and smoke checks still run for each environment.
+
+Compare complete workflow elapsed time and setup-step durations with recent
+clean runs. The first run populates caches and is not a warm-cache measurement.
+A clean baseline on 2026-10-12 took 7m41s for main CI and 14m25s for both
+deployments.
+
 The UI shards explicitly select the non-production `demo` adapter and drive a
 development server, because their journeys authenticate by persona header. The
 demo shard builds the application into its own output directory and serves that
