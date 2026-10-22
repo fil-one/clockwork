@@ -150,12 +150,17 @@ test("the unpatched braces package stays outside production dependencies", async
   );
 });
 
-test("the MCP SDK resolves above the patched server-security floor", async () => {
-  const versions = await resolvedVersions("@modelcontextprotocol/sdk");
-  assert.ok(versions.length > 0, "@modelcontextprotocol/sdk is missing");
-  for (const version of versions)
-    assert.ok(
-      compareSemver(version, "1.32.0") >= 0,
-      `@modelcontextprotocol/sdk@${version} is below the patched floor 1.32.0`,
-    );
+test("application dependencies resolve above their security floors", async () => {
+  for (const [name, minimum] of [
+    ["@modelcontextprotocol/sdk", "1.32.0"],
+    ["next", "16.4.1"],
+  ]) {
+    const versions = await resolvedVersions(name);
+    assert.ok(versions.length > 0, `${name} is missing`);
+    for (const version of versions)
+      assert.ok(
+        compareSemver(version, minimum) >= 0,
+        `${name}@${version} is below the patched floor ${minimum}`,
+      );
+  }
 });
