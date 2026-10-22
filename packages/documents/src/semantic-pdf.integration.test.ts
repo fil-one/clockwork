@@ -92,6 +92,9 @@ function kindAnchors(input: CommerceDocumentInput): readonly string[] {
 }
 
 describe("semantic PDF verification with Poppler", () => {
+  // Cold React PDF/font setup plus Poppler exceeded Vitest's default 5s on
+  // the shared CI runner. Match the other single-document PDF tests' 30s
+  // budget; this checks geometry, not rendering latency.
   it("keeps wrapped quote details above the fixed footer on every page", async () => {
     const input = demoDocuments.find(
       (document) => document.kind === "direct_quote",
@@ -119,7 +122,7 @@ describe("semantic PDF verification with Poppler", () => {
       }
     }
     expect(detailCount).toBeGreaterThan(30);
-  });
+  }, 30_000);
 
   it("extracts immutable identity, parties, version, source hash, and kind-specific truth for all 15 kinds", async () => {
     for (const input of demoDocuments) {
