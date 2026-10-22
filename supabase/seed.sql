@@ -407,14 +407,14 @@ insert into deletion_certificates (id, termination_id, document_id, scope, metho
 insert into novations (id, account_id, former_partner_account_id, source_order_id, new_agreement_id, new_order_id, reason, continuity_confirmed_at) values
 ('93800000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000003','80000000-0000-4000-8000-000000000003','51000000-0000-4000-8000-000000000007','80000000-0000-4000-8000-000000000007','agreed_handoff','2026-07-31T16:00:00Z');
 
--- Referral and distributor quote fixtures must remain protected at database
--- now(), which the row policies use even when a command has a fixed test date.
+-- Approved registration fixtures must remain protected at database now(),
+-- so quote and extension scenarios do not expire with the calendar.
 insert into deal_registrations (id, partner_account_id, end_client_account_id, workload, expected_volume, status, protection_starts_at, protection_ends_at) values
 ('94000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000004','Referral archive modernization',40,'registered','2026-07-01T16:00:00Z',(date_trunc('day', now() at time zone 'UTC') at time zone 'UTC') + interval '90 days 16 hours'),
 ('94000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000004','Resale managed archive',20,'registered','2026-07-15T16:00:00Z','2026-10-15T16:00:00Z'),
 ('94000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000005','10000000-0000-4000-8000-000000000004','Two-tier distributor archive',30,'registered','2026-07-16T16:00:00Z',(date_trunc('day', now() at time zone 'UTC') at time zone 'UTC') + interval '90 days 16 hours'),
-('94000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000004','White-label embedded archive',25,'registered','2026-07-17T16:00:00Z','2026-10-17T16:00:00Z'),
-('94000000-0000-4000-8000-000000000005','10000000-0000-4000-8000-000000000008','10000000-0000-4000-8000-000000000004','Marketplace archive listing',35,'registered','2026-07-18T16:00:00Z','2026-10-18T16:00:00Z');
+('94000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000004','White-label embedded archive',25,'registered','2026-07-17T16:00:00Z',(date_trunc('day', now() at time zone 'UTC') at time zone 'UTC') + interval '90 days 16 hours'),
+('94000000-0000-4000-8000-000000000005','10000000-0000-4000-8000-000000000008','10000000-0000-4000-8000-000000000004','Marketplace archive listing',35,'registered','2026-07-18T16:00:00Z',(date_trunc('day', now() at time zone 'UTC') at time zone 'UTC') + interval '90 days 16 hours');
 -- Registrations start registered (or rejected); decisions are transitions, so
 -- the ownership guard sees each one.
 update deal_registrations set status = 'approved' where id in (
