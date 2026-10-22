@@ -2,6 +2,9 @@ import { AccountDocumentsSection } from "@/src/features/internal-ops/account-doc
 import type { Metadata } from "next";
 import { cache } from "react";
 
+import { loadPartnerHubSpotParts } from "@/src/features/internal-ops/hubspot/page-data";
+import { PartnerHubSpotSection } from "@/src/features/internal-ops/hubspot/partner-section";
+import { HubSpotReceipt } from "@/src/features/internal-ops/hubspot/receipt";
 import { PartnerDetail } from "@/src/features/internal-ops/partners/partner-detail";
 import { PartnerPageState } from "@/src/features/internal-ops/partners/page-state";
 import { loadPartner } from "@/src/features/internal-ops/partners/server";
@@ -28,8 +31,14 @@ export async function generateMetadata({
   };
 }
 
-async function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const [t, locale, loaded] = await Promise.all([
     getTranslations(),
     getFormattingLocale(),
@@ -42,6 +51,7 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
         title={t("operations.partners.detail.title")}
       />
     );
+  const hubspot = await loadPartnerHubSpotParts(loaded.partner, query);
   return (
     <PartnerDetail
       t={t}
@@ -51,6 +61,26 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
           target={{ type: "partner", id: loaded.partner.id }}
         />
       }
+      hubspot={
+        <PartnerHubSpotSection
+          t={t}
+          locale={locale}
+          partnerId={loaded.partner.id}
+          view={hubspot.view}
+          canEdit={loaded.canEdit}
+        />
+      }
+      receipt={
+        hubspot.receipt ? (
+          <HubSpotReceipt
+            record={hubspot.receipt}
+            canEdit={loaded.canEdit}
+            autoStart={hubspot.autoStart}
+            focus
+          />
+        ) : null
+      }
+      dealSuggestion={loaded.canEdit ? hubspot.dealSuggestion : null}
       partner={loaded.partner}
       deals={loaded.deals}
       activity={loaded.activity}

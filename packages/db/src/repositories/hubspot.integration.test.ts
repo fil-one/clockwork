@@ -153,6 +153,7 @@ const newPlan = (
     references: [],
     documents: [],
     dismissedSuggestions: [],
+    omitted: { contacts: 0, notes: 0, documents: 0, properties: 0 },
     ...overrides,
   };
 };

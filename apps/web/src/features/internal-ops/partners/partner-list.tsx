@@ -103,6 +103,7 @@ export function PartnerList({
   today,
   canEdit,
   demo,
+  hubspot = false,
 }: {
   t: Translator;
   locale: string;
@@ -112,6 +113,8 @@ export function PartnerList({
   today: string;
   canEdit: boolean;
   demo: boolean;
+  /** HubSpot is set up for this deployment, so a handoff can start here. */
+  hubspot?: boolean;
 }) {
   const filtered = Boolean(
     query.q ||
@@ -141,6 +144,14 @@ export function PartnerList({
                 href="/internal/partners/new"
               >
                 {t("operations.partners.new")}
+              </Link>
+            ) : null}
+            {hubspot && (canEdit || demo) ? (
+              <Link
+                className={buttonClassName({ variant: "secondary" })}
+                href="/internal/hubspot"
+              >
+                {t("operations.partners.fromHubSpot")}
               </Link>
             ) : null}
             {/* A route handler, not a page: a plain link downloads the file. */}

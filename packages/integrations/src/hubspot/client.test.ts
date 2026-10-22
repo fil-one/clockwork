@@ -208,7 +208,7 @@ describe("HttpHubSpotReader", () => {
       stub((call) =>
         call.url.includes("/signed-url")
           ? json({ url })
-          : new Response(pdf, { status: 200 }),
+          : new Response(new Uint8Array(pdf), { status: 200 }),
       ).fetch;
     await expect(
       reader(
@@ -240,7 +240,7 @@ describe("HttpHubSpotReader", () => {
     const { fetch, calls } = stub((call) =>
       call.url.includes("/signed-url")
         ? json({ url: "https://f.hubspotusercontent-na1.net/a.pdf" })
-        : new Response(fakeHubSpotPdf("x"), { status: 200 }),
+        : new Response(new Uint8Array(fakeHubSpotPdf("x")), { status: 200 }),
     );
     await reader(fetch).download("8001", 1_000_000);
     expect(calls[1]?.headers.authorization).toBeUndefined();

@@ -9,6 +9,7 @@ import {
   partnerContactLimit,
   type Actor,
   type HubSpotConnectionRecord,
+  type HubSpotFieldHistory,
   type HubSpotHandoffPlan,
   type HubSpotImportItem,
   type HubSpotImportRecord,
@@ -149,11 +150,6 @@ export type HubSpotItemOutcome =
   | { status: "attached"; attachmentId: string }
   | { status: "failed"; errorCode: string }
   | { status: "duplicate"; existingAttachmentId: string };
-
-/** What each partner field was at the last import that included it. */
-export type HubSpotFieldHistory = Partial<
-  Record<HubSpotPartnerField, { lastSource: string; lastResult: string }>
->;
 
 /**
  * The HubSpot connection, company links and reviewed imports (001483). The
@@ -717,6 +713,25 @@ export class HubSpotRepository {
         partnerId: partner.id,
         createdPartner: destination.kind === "new_partner",
       };
+    });
+  }
+
+  /**
+   * A committed operation, so a handoff whose answer was lost resolves to
+   * its import without reading HubSpot again.
+   */
+  operation(importId: string) {
+    return this.tx(async (tx) => {
+      const [row] = await tx
+        .select({
+          partnerId: commerceHubSpotImports.partnerId,
+          createdPartner: commerceHubSpotImports.createdPartner,
+          requestDigest: commerceHubSpotImports.requestDigest,
+          createdById: commerceHubSpotImports.createdById,
+        })
+        .from(commerceHubSpotImports)
+        .where(eq(commerceHubSpotImports.id, importId));
+      return row ?? null;
     });
   }
 

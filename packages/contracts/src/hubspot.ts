@@ -744,6 +744,11 @@ export function defaultHubSpotDecision(input: {
 
 export type HubSpotFieldAction = "add" | "replace" | "clear" | "keep";
 
+/** What each partner field was at the last import that included it. */
+export type HubSpotFieldHistory = Partial<
+  Record<HubSpotPartnerField, { lastSource: string; lastResult: string }>
+>;
+
 export interface HubSpotFieldChange {
   field: HubSpotPartnerField;
   action: HubSpotFieldAction;
@@ -807,6 +812,13 @@ export interface HubSpotHandoffPlan {
   references: readonly HubSpotSourceValue[];
   documents: readonly HubSpotPlannedDocument[];
   dismissedSuggestions: readonly { partnerId: string; reason: string }[];
+  /** What the source offered that the person left out, by kind. */
+  omitted: {
+    contacts: number;
+    notes: number;
+    documents: number;
+    properties: number;
+  };
 }
 
 export interface HubSpotPlanCounts {

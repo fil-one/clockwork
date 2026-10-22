@@ -21,6 +21,7 @@ export {
   FlaskConical,
   Handshake,
   Inbox,
+  Kanban,
   Layers,
   LayoutDashboard,
   Link2,

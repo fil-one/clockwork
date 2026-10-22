@@ -27,6 +27,7 @@ export type NavigationIconName =
   | "document"
   | "contract"
   | "partner"
+  | "pipeline"
   | "library"
   | "pricing"
   | "team";
@@ -105,6 +106,23 @@ export const salesNavigation: readonly NavigationItem[] = [
     requiredPermission: "sales:read",
     workspace: "sales",
     icon: "partner",
+  },
+  {
+    href: "/internal/pipeline",
+    label: "platform.nav.sales.pipeline",
+    description: "platform.nav.sales.pipeline.description",
+    // i18n-exempt: search aliases matched in addition to the translated label; never displayed
+    keywords: [
+      "pipeline",
+      "hubspot",
+      "crm",
+      "deals",
+      "opportunities",
+      "forecast",
+    ],
+    requiredPermission: "sales:read",
+    workspace: "sales",
+    icon: "pipeline",
   },
   {
     href: "/internal/sales-library",

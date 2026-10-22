@@ -376,6 +376,7 @@ describe("plans and imports", () => {
     references: [],
     documents: [],
     dismissedSuggestions: [],
+    omitted: { contacts: 0, notes: 0, documents: 0, properties: 0 },
   };
 
   it("knows when a handoff only records the link", () => {

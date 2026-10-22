@@ -34,6 +34,7 @@ describe("staff navigation by role", () => {
       "/internal/mndas",
       "/internal/contracts",
       "/internal/partners",
+      "/internal/pipeline",
       "/internal/sales-library",
       "/internal/pricing",
     ]);
@@ -80,6 +81,7 @@ describe("staff navigation by role", () => {
       "/internal/mndas",
       "/internal/contracts",
       "/internal/partners",
+      "/internal/pipeline",
       "/internal/sales-library",
       "/internal/pricing",
       "/internal/team",

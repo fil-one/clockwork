@@ -38,7 +38,11 @@ import {
 import { MndaComposer, type ComposerStart } from "./composer";
 import { CorrectSignerDialog, DiscardDialog, VoidDialog } from "./dialogs";
 import { SigningProgress } from "../signing-progress";
-import { emptyValues, valuesFromRecord } from "./form-model";
+import {
+  emptyValues,
+  valuesFromRecord,
+  type MndaFormValues,
+} from "./form-model";
 import { formatMndaDate } from "./format";
 import {
   mndaErrorLabels,
@@ -173,11 +177,23 @@ export function MndaWorkspace({
   initial,
   initialQuery,
   compose = false,
+  prefill = null,
 }: {
   initial: MndaWorkspaceData;
   initialQuery: MndaRegisterQuery;
   /** Open a new MNDA on arrival. */
   compose?: boolean;
+  /**
+   * Suggestions carried from a HubSpot handoff for the new MNDA. They are
+   * editable; the legal entity, signer and dates stay the seller's to
+   * confirm, and nothing is saved or sent until they do.
+   */
+  prefill?: Partial<
+    Pick<
+      MndaFormValues,
+      "company" | "signerName" | "signerEmail" | "signerTitle"
+    >
+  > | null;
 }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
@@ -274,7 +290,10 @@ export function MndaWorkspace({
     url.searchParams.delete("compose");
     window.history.replaceState(null, "", `${url.pathname}${url.search}`);
     if (!initial.demo)
-      open({ kind: "form", values: emptyValues(initial.signers) });
+      open({
+        kind: "form",
+        values: { ...emptyValues(initial.signers), ...prefill },
+      });
     // Once, on arrival.
   }, []);
   const refresh = () => void reload(queryRef.current, true);
@@ -391,6 +410,13 @@ export function MndaWorkspace({
         />
       ) : null}
       <div ref={composerRef}>
+        {composer && prefill ? (
+          <StateBanner
+            tone="info"
+            title={t("operations.hubspot.mnda.title")}
+            description={t("operations.hubspot.mnda.body")}
+          />
+        ) : null}
         {composer ? (
           <MndaComposer
             key={composer.key}

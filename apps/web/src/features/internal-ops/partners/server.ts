@@ -28,6 +28,7 @@ import {
   type ContractAccessFailure,
   type ContractStaffSession,
 } from "../contracts/server";
+import { hubspotConfigured } from "../hubspot/server";
 import { mndaRepository } from "../mnda/server";
 import { demoPartnerRegister } from "./demo-register";
 
@@ -176,6 +177,7 @@ export function loadPartnerList(
       owners,
       canEdit: mayEditPartners(session),
       demo: explicitDemoIdentityEnabled(),
+      hubspot: hubspotConfigured(),
     };
   });
 }
