@@ -50,8 +50,11 @@ environments can reuse dependency and runtime layers; the rendered public
 environment remains a hashed build input, so staging configuration cannot
 satisfy a production build. Secrets remain outside the Docker context and arrive
 at runtime from Secrets Manager. PR image checks read these caches; deployments
-write them. Export errors do not block a valid deployment. Migrations, staged
-rollout and smoke checks still run for each environment.
+write them. The two deployment jobs explicitly grant cache writes only behind
+the existing successful same-repository main-push or main-only manual-dispatch
+gate: GitHub otherwise gives `workflow_run` read-only cache access. Export
+errors do not block a valid deployment. Migrations, staged rollout and smoke
+checks still run for each environment.
 
 Compare complete workflow elapsed time and setup-step durations with recent
 clean runs. The first run populates caches and is not a warm-cache measurement.

@@ -1220,6 +1220,29 @@ test("reused package downloads still require a frozen verified installation", ()
   );
 });
 
+test("deployment cache writes retain the trusted main-run gate and PRs only restore", async () => {
+  const deploy = await readFile(
+    new URL("../.github/workflows/deploy.yml", import.meta.url),
+    "utf8",
+  );
+  const pullRequest = await readFile(
+    new URL("../.github/workflows/deploy-check.yml", import.meta.url),
+    "utf8",
+  );
+  assert.equal([...deploy.matchAll(/cache-mode: write/g)].length, 2);
+  assert.match(deploy, /branches: \[main\]/);
+  assert.match(deploy, /github\.ref ==\s*'refs\/heads\/main'/);
+  assert.match(deploy, /github\.event\.workflow_run\.conclusion == 'success'/);
+  assert.match(deploy, /github\.event\.workflow_run\.event == 'push'/);
+  assert.match(
+    deploy,
+    /github\.event\.workflow_run\.head_repository\.full_name == github\.repository/,
+  );
+  assert.match(deploy, /production:\s*needs: staging\s*cache-mode: write/);
+  assert.match(pullRequest, /cache-from:/);
+  assert.doesNotMatch(pullRequest, /cache-to:/);
+});
+
 test("runs every browser test in exactly one ui shard", async () => {
   // The `ui-*` shards name their spec files, so a spec added to
   // `apps/web/e2e` and to neither list would never run. Discover the specs on
