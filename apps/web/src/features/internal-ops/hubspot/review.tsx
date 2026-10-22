@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -164,27 +165,33 @@ function planSummary(
       company: companyName,
       partner: plan.destination.name,
     });
+  const verb = (id: MessageId, count: number) =>
+    count ? t(id, { count }) : "";
   const changes = [
-    counts.added
-      ? t("operations.hubspot.summary.added", { count: counts.added })
-      : "",
-    counts.replaced
-      ? t("operations.hubspot.summary.replaced", { count: counts.replaced })
-      : "",
-    counts.cleared
-      ? t("operations.hubspot.summary.cleared", { count: counts.cleared })
-      : "",
-    ...context,
+    verb("operations.hubspot.summary.added", counts.added),
+    verb("operations.hubspot.summary.replaced", counts.replaced),
+    verb("operations.hubspot.summary.cleared", counts.cleared),
+    verb("operations.hubspot.summary.addContacts", counts.contactsAdded),
+    verb("operations.hubspot.summary.linkContacts", counts.contactsLinked),
+    verb("operations.hubspot.summary.keepDeals", counts.deals),
+    verb("operations.hubspot.summary.keepNotes", counts.notes),
+    verb("operations.hubspot.summary.keepReferences", counts.references),
+    verb("operations.hubspot.summary.attachDocuments", counts.documents),
   ].filter(Boolean);
   const kept = plan.fields.filter(
     (field) => field.action === "keep" && field.current !== "",
   ).length;
-  return t("operations.hubspot.summary.update", {
-    changes: changes.length
-      ? list(changes)
-      : t("operations.hubspot.summary.noChanges"),
-    kept,
-  });
+  const text = changes.length
+    ? list(changes)
+    : t("operations.hubspot.summary.noChanges");
+  const sentence = kept
+    ? t("operations.hubspot.summary.update", {
+        changes: text,
+        kept: t("operations.hubspot.summary.kept", { count: kept }),
+      })
+    : t("operations.hubspot.summary.updateOnly", { changes: text });
+  // Staff copy is English: the sentence starts with a capital.
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
 function Endpoint({
@@ -279,23 +286,80 @@ export function HandoffReview({
       commerce: destination?.[field] ?? "",
       hubspot: source.proposed[field],
     });
+  // What each field starts as. Region is never filled by default for a new
+  // link: only name and website are default mappings.
+  const startingDecision = (
+    field: HubSpotPartnerField,
+  ): HubSpotFieldDecision | null => {
+    if (!destination) return "keep";
+    const fieldDrift = drift(field);
+    if (field === "region" && fieldDrift === "never_imported") return "keep";
+    return defaultHubSpotDecision({
+      drift: fieldDrift,
+      commerce: destination[field],
+      hubspot: source.proposed[field],
+    });
+  };
+  const comparison = hubspotPartnerFields
+    .map((field) =>
+      [
+        field,
+        drift(field),
+        destination?.[field] ?? "",
+        source.proposed[field],
+      ].join("\u0000"),
+    )
+    .join("\u0001");
   const [decisions, setDecisions] = useState<
     Record<HubSpotPartnerField, HubSpotFieldDecision | null>
   >(
     () =>
       Object.fromEntries(
-        hubspotPartnerFields.map((field) => [
-          field,
-          destination
-            ? defaultHubSpotDecision({
-                drift: drift(field),
-                commerce: destination[field],
-                hubspot: source.proposed[field],
-              })
-            : "keep",
-        ]),
+        hubspotPartnerFields.map((field) => [field, startingDecision(field)]),
       ) as Record<HubSpotPartnerField, HubSpotFieldDecision | null>,
   );
+  // After a refresh (HubSpot or the partner changed underneath the review),
+  // a field whose comparison moved starts over: one that is now changed on
+  // both sides needs a fresh choice, so a colleague's edit is never
+  // overwritten by a choice made against the earlier values.
+  const seenComparison = useRef(comparison);
+  const seenFields = useRef(
+    Object.fromEntries(
+      hubspotPartnerFields.map((field) => [
+        field,
+        [drift(field), destination?.[field] ?? "", source.proposed[field]].join(
+          "\u0000",
+        ),
+      ]),
+    ) as Record<HubSpotPartnerField, string>,
+  );
+  const seenDestination = useRef(destination?.id ?? null);
+  useEffect(() => {
+    if (seenComparison.current === comparison) return;
+    seenComparison.current = comparison;
+    const destinationChanged =
+      seenDestination.current !== (destination?.id ?? null);
+    seenDestination.current = destination?.id ?? null;
+    setDecisions((current) => {
+      const next = { ...current };
+      for (const field of hubspotPartnerFields) {
+        const key = [
+          drift(field),
+          destination?.[field] ?? "",
+          source.proposed[field],
+        ].join("\u0000");
+        if (destinationChanged || seenFields.current[field] !== key)
+          next[field] = startingDecision(field);
+        seenFields.current[field] = key;
+      }
+      return next;
+    });
+    if (destinationChanged) {
+      setSubmitted(false);
+      setLinkedFirst(null);
+    }
+    // `comparison` captures everything the decisions depend on.
+  }, [comparison]);
 
   // Groups: nothing optional starts selected; the deal is kept as context.
   const [contacts, setContacts] = useState<Record<string, ContactChoice>>({});
@@ -344,11 +408,13 @@ export function HandoffReview({
             kind: "existing_partner",
             partnerId: destination.id,
             expectedVersion: destination.version,
+            // Every decided field, explicitly; an undecided one is left
+            // out so the server refuses it instead of reading it as "keep".
             fields: Object.fromEntries(
-              hubspotPartnerFields.map((field) => [
-                field,
-                decisions[field] ?? "keep",
-              ]),
+              hubspotPartnerFields.flatMap((field) => {
+                const decision = decisions[field];
+                return decision ? [[field, decision]] : [];
+              }),
             ),
           }
         : {
@@ -458,9 +524,15 @@ export function HandoffReview({
         });
   for (const [hubspotId, choice] of Object.entries(contacts)) {
     const person = source.contacts.find((c) => c.id === hubspotId);
-    if (choice.selected && person && emailMatch(person.email) && !choice.match)
+    if (
+      choice.selected &&
+      person &&
+      !linkedContact(person.id) &&
+      emailMatch(person.email) &&
+      !choice.match
+    )
       issues.push({
-        id: `contact-${hubspotId}`,
+        id: `contact-match-${hubspotId}`,
         label: t("operations.hubspot.issue.contactMatch", {
           name: person.name,
         }),
@@ -469,7 +541,7 @@ export function HandoffReview({
   for (const [fileId, choice] of Object.entries(documents))
     if (choice.selected && !choice.title.trim())
       issues.push({
-        id: `document-${fileId}`,
+        id: `document-title-${fileId}`,
         label: t("operations.hubspot.issue.documentTitle"),
       });
 
@@ -505,6 +577,9 @@ export function HandoffReview({
       }));
       if (!result.ok) {
         setFailure(result.code);
+        // Someone changed the partner: load their change and keep every
+        // choice, so the comparison shows it and asks again where needed.
+        if (result.code === "PARTNER_VERSION_CONFLICT") router.refresh();
         requestAnimationFrame(() => summaryRef.current?.focus());
         return;
       }
@@ -607,7 +682,11 @@ export function HandoffReview({
           }
           link={
             destination ? (
-              <Link href={partnerHref(destination.id)}>
+              <Link
+                href={partnerHref(destination.id)}
+                target="_blank"
+                rel="noopener"
+              >
                 {t("operations.hubspot.openPartner")}
               </Link>
             ) : undefined
@@ -1124,9 +1203,16 @@ export function HandoffReview({
                           name: match.name,
                         })}
                         value={choice.match}
-                        onChange={(event) =>
-                          set({ match: event.currentTarget.value })
-                        }
+                        id={`contact-match-${person.id}`}
+                        onChange={(event) => {
+                          const match = event.currentTarget.value;
+                          set({ match });
+                          if (
+                            match !== "new" &&
+                            primary === `hubspot:${person.id}`
+                          )
+                            setPrimary("");
+                        }}
                         error={
                           showErrors && !choice.match
                             ? t("operations.hubspot.issue.contactMatch", {
@@ -1174,22 +1260,25 @@ export function HandoffReview({
                 value: "",
                 label: t("operations.hubspot.people.primaryUnchanged"),
               },
+              // A person already on the partner, or confirmed as the same
+              // person as a Commerce contact, is offered once, as that
+              // Commerce contact; only people who will be added appear by
+              // their HubSpot entry.
               ...source.contacts
-                .filter((person) => contacts[person.id]?.selected)
+                .filter((person) => {
+                  const choice = contacts[person.id];
+                  return (
+                    choice?.selected &&
+                    !linkedContact(person.id) &&
+                    (!choice.match || choice.match === "new")
+                  );
+                })
                 .map((person) => ({
                   value: `hubspot:${person.id}`,
                   label: person.name,
                 })),
               ...existingContacts
-                .filter(
-                  (contact) =>
-                    contact.id &&
-                    !source.contacts.some(
-                      (person) =>
-                        contacts[person.id]?.selected &&
-                        linkedContact(person.id)?.id === contact.id,
-                    ),
-                )
+                .filter((contact) => contact.id)
                 .map((contact) => ({
                   value: `commerce:${contact.id ?? ""}`,
                   label: t("operations.hubspot.people.existing", {
@@ -1425,7 +1514,7 @@ export function HandoffReview({
                     }
                     description={detail || undefined}
                   />
-                  {/signed|executed|countersigned/i.test(file.name) ? (
+                  {/\b(signed|executed|countersigned)\b/i.test(file.name) ? (
                     <span
                       className={`${styles.secondary} ${styles.choiceDetail}`}
                     >
@@ -1435,6 +1524,7 @@ export function HandoffReview({
                   {choice.selected ? (
                     <div className={`${styles.fields} ${styles.choiceDetail}`}>
                       <Input
+                        id={`document-title-${file.id}`}
                         label={t("operations.hubspot.documents.title")}
                         value={choice.title}
                         maxLength={200}
@@ -1548,7 +1638,7 @@ export function HandoffReview({
         {t("operations.hubspot.noSecondConfirmation")}
       </p>
       <footer className={styles.footer} aria-labelledby="handoff-summary">
-        <p className={styles.summary} id="handoff-summary" aria-live="polite">
+        <p className={styles.summary} id="handoff-summary">
           {nothingToDo
             ? t("operations.hubspot.summary.nothingSelected")
             : preview

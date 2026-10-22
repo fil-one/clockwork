@@ -237,7 +237,11 @@ function Deals({
   canEdit: boolean;
   protectionDays: number;
   organizations: readonly PartnerOrganizationOption[];
-  dealSuggestion: { endClient: string; notes: string } | null;
+  dealSuggestion: {
+    endClient: string;
+    notes: string;
+    choices?: readonly string[];
+  } | null;
 }) {
   return (
     <section
@@ -473,7 +477,11 @@ export function PartnerDetail({
   hubspot?: ReactNode;
   receipt?: ReactNode;
   /** A registration prepared from a HubSpot handoff, still unsaved. */
-  dealSuggestion?: { endClient: string; notes: string } | null;
+  dealSuggestion?: {
+    endClient: string;
+    notes: string;
+    choices?: readonly string[];
+  } | null;
 }) {
   const overdue = partner.nextStepDue !== null && partner.nextStepDue < today;
   const overview: [string, ReactNode][] = [

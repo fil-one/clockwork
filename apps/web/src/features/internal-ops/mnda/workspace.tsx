@@ -273,7 +273,10 @@ export function MndaWorkspace({
     return () => clearInterval(timer);
   }, [reload]);
 
+  // Whether the open composer is the one a HubSpot handoff prepared.
+  const [fromHandoff, setFromHandoff] = useState(false);
   const open = (start: ComposerStart) => {
+    setFromHandoff(false);
     setMessage(null);
     setComposer((current) => ({ key: (current?.key ?? 0) + 1, start }));
     requestAnimationFrame(() =>
@@ -288,12 +291,16 @@ export function MndaWorkspace({
     if (!compose) return;
     const url = new URL(window.location.href);
     url.searchParams.delete("compose");
+    url.searchParams.delete("handoff");
+    url.searchParams.delete("partner");
     window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-    if (!initial.demo)
+    if (!initial.demo) {
       open({
         kind: "form",
         values: { ...emptyValues(initial.signers), ...prefill },
       });
+      setFromHandoff(Boolean(prefill));
+    }
     // Once, on arrival.
   }, []);
   const refresh = () => void reload(queryRef.current, true);
@@ -410,7 +417,7 @@ export function MndaWorkspace({
         />
       ) : null}
       <div ref={composerRef}>
-        {composer && prefill ? (
+        {composer && fromHandoff ? (
           <StateBanner
             tone="info"
             title={t("operations.hubspot.mnda.title")}
@@ -427,7 +434,10 @@ export function MndaWorkspace({
             canEdit={(record) =>
               data.canManage || record.ownerId === data.viewerId
             }
-            onClose={() => setComposer(null)}
+            onClose={() => {
+              setComposer(null);
+              setFromHandoff(false);
+            }}
             onChanged={refresh}
             onSent={(record) => {
               setComposer(null);

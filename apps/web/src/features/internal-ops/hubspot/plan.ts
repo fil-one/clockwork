@@ -1,5 +1,7 @@
 import {
   classifyHubSpotDrift,
+  contractPdfFileName,
+  defaultHubSpotDecision,
   hubspotFieldAction,
   hubspotPartnerFieldSources,
   hubspotPartnerFields,
@@ -121,7 +123,23 @@ export function buildHubSpotPlan(input: {
       };
     }
     const current = destination?.[field] ?? "";
-    const decision = target.fields[field];
+    const drift = classifyHubSpotDrift({
+      lastSource: history[field]?.lastSource,
+      lastResult: history[field]?.lastResult,
+      commerce: current,
+      hubspot,
+    });
+    const chosen = target.fields[field];
+    // Changed on both sides: no default, so a missing choice is refused
+    // rather than read as "keep".
+    if (chosen === undefined && drift === "both_changed")
+      refuse("HUBSPOT_DECISION_REQUIRED");
+    const decision =
+      chosen ??
+      (field === "region" && drift === "never_imported"
+        ? "keep"
+        : (defaultHubSpotDecision({ drift, commerce: current, hubspot }) ??
+          "keep"));
     if (decision === "clear" && field === "name")
       refuse("HUBSPOT_DECISION_REQUIRED");
     const { action, result } = hubspotFieldAction(decision, current, hubspot);
@@ -131,12 +149,7 @@ export function buildHubSpotPlan(input: {
       current,
       hubspot,
       result,
-      drift: classifyHubSpotDrift({
-        lastSource: history[field]?.lastSource,
-        lastResult: history[field]?.lastResult,
-        commerce: current,
-        hubspot,
-      }),
+      drift,
       source: sourceRef,
     };
   });
@@ -155,7 +168,17 @@ export function buildHubSpotPlan(input: {
       const match = existingContacts.find(
         (contact) => contact.id === choice.matchContactId,
       );
-      if (!match) refuse("HUBSPOT_CONTACT_NOT_FOUND");
+      // A match is to a contact with no HubSpot identity, or the same one;
+      // it never moves a contact from one HubSpot person to another.
+      if (
+        !match ||
+        (match.source &&
+          !(
+            match.source.portalId === source.portal.portalId &&
+            match.source.objectId === person.id
+          ))
+      )
+        refuse("HUBSPOT_CONTACT_NOT_FOUND");
     }
     const id = choice.matchContactId ?? linked?.id ?? input.newId();
     return {
@@ -168,6 +191,8 @@ export function buildHubSpotPlan(input: {
       matchedExisting: Boolean(choice.matchContactId ?? linked),
     };
   });
+  if (new Set(contacts.map((contact) => contact.id)).size !== contacts.length)
+    refuse("HUBSPOT_CONTACT_NOT_FOUND");
   const primary = handoff.primaryContact;
   const primaryContactId =
     primary === null
@@ -224,7 +249,8 @@ export function buildHubSpotPlan(input: {
     return {
       fileId: file.id,
       noteId: file.noteId,
-      fileName: file.name,
+      // The attachment store keeps names up to 200 characters.
+      fileName: contractPdfFileName(file.name.replace(/\.pdf$/i, "")),
       title: choice.title,
       kind: choice.kind,
       size: file.size,

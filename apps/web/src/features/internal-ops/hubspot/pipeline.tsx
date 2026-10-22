@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 
 import {
@@ -123,7 +124,10 @@ export function PipelinePage({
     1,
     ...view.summary.stages.map((stage) => stage.deals),
   );
-  const dealHref = (id: string) => pipelineHref({ ...query, deal: id });
+  // The panel's heading is the anchor, so opening a deal lower down the
+  // list brings its details into view, above the table on a phone.
+  const dealHref = (id: string) =>
+    `${pipelineHref({ ...query, deal: id })}#deal-panel` as Route;
   const close = pipelineHref({ ...query, deal: undefined });
   return (
     <main className={styles.main} id="main-content">
@@ -164,7 +168,7 @@ export function PipelinePage({
           tone="warning"
           title={t("operations.hubspot.pipeline.partialTitle")}
           description={t("operations.hubspot.pipeline.partialBody", {
-            read: view.deals.length,
+            read: view.read,
             total: view.total,
           })}
         />
@@ -437,7 +441,9 @@ export function PipelinePage({
             aria-labelledby="deal-panel"
           >
             <div className={styles.cardHeading}>
-              <h2 id="deal-panel">{selected.name}</h2>
+              <h2 id="deal-panel" tabIndex={-1}>
+                {selected.name}
+              </h2>
               <Link
                 className={buttonClassName({ variant: "quiet" })}
                 href={close}

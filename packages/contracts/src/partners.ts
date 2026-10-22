@@ -197,6 +197,25 @@ export const PartnerContactSchema = z
   );
 export type PartnerContact = z.infer<typeof PartnerContactSchema>;
 
+/**
+ * The contacts with an ID each. Contacts typed before contacts had IDs get
+ * one derived from the partner and their position, so a review and the
+ * commit that follows it name them the same way; the commit then stores it.
+ */
+export function withPartnerContactIds(
+  partnerId: string,
+  contacts: readonly PartnerContact[],
+): PartnerContact[] {
+  return contacts.map((contact, index) =>
+    contact.id
+      ? contact
+      : {
+          ...contact,
+          id: `${partnerId.slice(0, 24)}${index.toString(16).padStart(12, "0")}`,
+        },
+  );
+}
+
 /** One free-form term: what was agreed, in the words of the deal. */
 export const PartnerTermRowSchema = z
   .object({

@@ -31,7 +31,7 @@ insert into public.commerce_hubspot_connections
   (id, portal_id, ui_domain, status, audience, approved_by_id, approved_by_name, approved_at, scope)
 values ('00000000-0000-4000-8000-0000000014a1', '1483', 'app.hubspot.com', 'active', 'staff_sales_read',
   gen_random_uuid(), 'Admin', now(),
-  '{"company": [], "deal": [], "contact": [], "notes": false, "files": false}');
+  '{"company": [], "deal": [], "contact": [], "pipelines": [], "notes": false, "files": false}');
 insert into public.commerce_partners (id, name, created_by_id, created_by_name)
 values ('00000000-0000-4000-8000-0000000014b1', 'Pgtap Partner One', gen_random_uuid(), 'Seller'),
        ('00000000-0000-4000-8000-0000000014b2', 'Pgtap Partner Two', gen_random_uuid(), 'Seller');
@@ -43,7 +43,7 @@ values ('00000000-0000-4000-8000-0000000014c1', 'hubspot', '1483', 'company', '1
 select throws_ok($$insert into public.commerce_hubspot_connections
   (id, portal_id, ui_domain, status, audience, approved_by_id, approved_by_name, approved_at, scope)
   values (gen_random_uuid(), '1484', 'app.hubspot.com', 'active', 'staff_sales_read', gen_random_uuid(), 'Admin', now(),
-  '{"company": [], "deal": [], "contact": [], "notes": false, "files": false}')$$,
+  '{"company": [], "deal": [], "contact": [], "pipelines": [], "notes": false, "files": false}')$$,
   '23505', null, 'only one connection is active at a time');
 
 select throws_ok($$insert into public.commerce_external_links

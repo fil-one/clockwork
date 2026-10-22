@@ -243,6 +243,7 @@ describe("HubSpotConnectionInputSchema", () => {
       company: [],
       deal: [],
       contact: [],
+      pipelines: [],
       notes: false,
       files: false,
     });
@@ -253,6 +254,7 @@ describe("HubSpotConnectionInputSchema", () => {
       company: ["industry"],
       deal: [],
       contact: [],
+      pipelines: [],
       notes: false,
       files: false,
     };

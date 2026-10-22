@@ -331,6 +331,18 @@
   padding: var(--cw-space-4) var(--cw-space-5);
 }
 
+/* Focused fields scroll clear of the sticky footer, and a short or zoomed
+   window gets the footer back in the flow instead of covering the form. */
+:global(html):has(.footer) {
+  scroll-padding-bottom: 12rem;
+}
+
+@media (max-height: 34rem) {
+  .footer {
+    position: static;
+  }
+}
+
 .footerRow {
   display: flex;
   flex-wrap: wrap;

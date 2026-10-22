@@ -7,6 +7,7 @@ import {
   hubspotAudience,
   hubspotImportStatus,
   partnerContactLimit,
+  withPartnerContactIds,
   type Actor,
   type HubSpotConnectionRecord,
   type HubSpotFieldHistory,
@@ -114,13 +115,27 @@ const importView = (
 function refusal(error: unknown): string | undefined {
   for (
     let current: unknown = error, depth = 0;
-    current instanceof Error && depth < 4;
+    current instanceof Error && depth < 5;
     current = current.cause, depth += 1
   ) {
-    const match = /\b((?:HUBSPOT|PARTNER)_[A-Z_]+)\b/.exec(current.message);
-    if (match) return match[1];
-    // A unique violation on the link is a concurrent handoff that lost.
-    if (/commerce_external_links_(source|partner)/.test(current.message))
+    // Codes this module and the partner helpers throw are the whole message.
+    if (/^(?:HUBSPOT|PARTNER)_[A-Z_]+$/.test(current.message))
+      return current.message;
+    const driver = current as Error & {
+      code?: unknown;
+      constraint_name?: unknown;
+    };
+    // Trigger refusals (001466, 001483) raise P0001 with the code as message.
+    if (driver.code === "P0001") {
+      const match = /^((?:HUBSPOT|PARTNER)_[A-Z_]+)$/.exec(current.message);
+      if (match) return match[1];
+    }
+    // A unique violation on a link is a concurrent handoff that lost.
+    if (
+      driver.code === "23505" &&
+      typeof driver.constraint_name === "string" &&
+      driver.constraint_name.startsWith("commerce_external_links_")
+    )
       return "HUBSPOT_ALREADY_LINKED";
   }
   return undefined;
@@ -608,7 +623,11 @@ export class HubSpotRepository {
           name: result("name", before.name),
           website: result("website", before.website),
           region: result("region", before.region),
-          contacts: mergeContacts(before.contacts, plan, snapshot.portalId),
+          contacts: mergeContacts(
+            withPartnerContactIds(before.id, before.contacts),
+            plan,
+            snapshot.portalId,
+          ),
         });
         // Owner, status and models are never changed by an update import.
         partner = await updatePartnerRow(
@@ -810,39 +829,48 @@ export class HubSpotRepository {
     outcome: HubSpotItemOutcome,
     actor: UserActor,
   ): Promise<HubSpotImportRecord> {
-    return this.changeItem(partnerId, importId, itemId, actor, (item) => {
-      if (outcome.status === "attached")
+    return this.changeItem(
+      partnerId,
+      importId,
+      itemId,
+      actor,
+      (item) => {
+        if (outcome.status === "attached")
+          return {
+            values: {
+              status: "attached",
+              attachmentId: outcome.attachmentId,
+              errorCode: null,
+              attempts: item.attempts + 1,
+            },
+            event: "hubspot.document_attached",
+            detail: { attachmentId: outcome.attachmentId },
+          };
+        if (outcome.status === "duplicate")
+          return {
+            values: {
+              status: "duplicate",
+              existingAttachmentId: outcome.existingAttachmentId,
+              errorCode: null,
+              attempts: item.attempts + 1,
+            },
+            event: "hubspot.document_duplicate",
+            detail: { existingAttachmentId: outcome.existingAttachmentId },
+          };
         return {
           values: {
-            status: "attached",
-            attachmentId: outcome.attachmentId,
-            errorCode: null,
+            status: "failed",
+            errorCode: outcome.errorCode,
             attempts: item.attempts + 1,
           },
-          event: "hubspot.document_attached",
-          detail: { attachmentId: outcome.attachmentId },
+          event: "hubspot.document_failed",
+          detail: { errorCode: outcome.errorCode },
         };
-      if (outcome.status === "duplicate")
-        return {
-          values: {
-            status: "duplicate",
-            existingAttachmentId: outcome.existingAttachmentId,
-            errorCode: null,
-            attempts: item.attempts + 1,
-          },
-          event: "hubspot.document_duplicate",
-          detail: { existingAttachmentId: outcome.existingAttachmentId },
-        };
-      return {
-        values: {
-          status: "failed",
-          errorCode: outcome.errorCode,
-          attempts: item.attempts + 1,
-        },
-        event: "hubspot.document_failed",
-        detail: { errorCode: outcome.errorCode },
-      };
-    });
+      },
+      (item) =>
+        outcome.status === "attached" &&
+        item.attachmentId === outcome.attachmentId,
+    );
   }
 
   /**
@@ -904,6 +932,7 @@ export class HubSpotRepository {
       event: string;
       detail: Record<string, unknown>;
     },
+    attachedAgain?: (item: ItemRow) => boolean,
   ): Promise<HubSpotImportRecord> {
     return this.tx(async (tx) => {
       const [record] = await tx
@@ -928,8 +957,15 @@ export class HubSpotRepository {
         )
         .for("update");
       if (!item) throw new Error("HUBSPOT_ITEM_NOT_FOUND");
-      if (["attached", "reused", "excluded"].includes(item.status))
+      if (["attached", "reused", "excluded"].includes(item.status)) {
+        // A second attempt that attached the same file (two tabs, or the
+        // automatic start racing a click) is the same result, not an error.
+        if (item.status === "attached" && attachedAgain?.(item)) {
+          const [view] = await withItems(tx, [record]);
+          if (view) return view;
+        }
         throw new Error("HUBSPOT_ITEM_RESOLVED");
+      }
       const { values, event, detail } = change(item);
       await tx
         .update(commerceHubSpotImportItems)

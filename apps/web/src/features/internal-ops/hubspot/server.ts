@@ -134,6 +134,7 @@ function demoConnection(now: Date): HubSpotConnectionRecord {
       company: ["industry", "partner_tier"],
       deal: ["deal_source"],
       contact: [],
+      pipelines: ["default", "renewals"],
       notes: true,
       files: true,
     },
@@ -322,7 +323,12 @@ export async function cached<T>(
       error instanceof HubSpotError &&
       (error.code === "HUBSPOT_UNAVAILABLE" ||
         error.code === "HUBSPOT_RATE_LIMITED");
-    if (transient && previous && previous.at > 0)
+    if (
+      transient &&
+      previous &&
+      previous.at > 0 &&
+      Date.now() - previous.at < hubspotFreshness.staleMs * 4
+    )
       return {
         value: previous.value as T,
         checkedAt: new Date(previous.at).toISOString(),
@@ -354,9 +360,21 @@ export async function hubspotOwners(context: HubSpotContext) {
   return (await owners(context)).value;
 }
 
+/** The pipelines the administrator approved, in HubSpot's order. */
 export async function hubspotPipelines(context: HubSpotContext) {
-  return (await pipelines(context)).value;
+  const approved = context.connection.scope.pipelines;
+  return (await pipelines(context)).value.filter((pipeline) =>
+    approved.includes(pipeline.id),
+  );
 }
+
+/** A deal outside the approved pipelines is not readable here at all. */
+const dealApproved = (
+  context: Pick<HubSpotContext, "connection">,
+  deal: Pick<HubSpotDeal, "pipelineId">,
+) =>
+  deal.pipelineId !== null &&
+  context.connection.scope.pipelines.includes(deal.pipelineId);
 
 const ownerRef = (
   ownerId: string | null,
@@ -467,6 +485,7 @@ export async function loadHandoffSource(
     );
     if (!found || found.archived)
       throw new HubSpotError("HUBSPOT_RECORD_NOT_FOUND");
+    if (!dealApproved(context, found)) throw new Error("HUBSPOT_SCOPE_DENIED");
     const associated = await reader.associations("deal", found.id, "company");
     // A deal with no company keeps its context on the company chosen for
     // it; one with companies must be associated with the chosen one.
@@ -519,7 +538,7 @@ export async function loadHandoffSource(
   );
   const contactRows = await reader.contacts(
     people.map((person) => person.id),
-    [...hubspotBaseProperties.contact, ...scope.contact],
+    [...hubspotBaseProperties.contact],
   );
   const contacts = people.flatMap((person) => {
     const row = contactRows.find((contact) => contact.id === person.id);
@@ -634,6 +653,30 @@ export async function loadHandoffSource(
   };
 }
 
+/**
+ * Partners that look like this company (same normalized name or website
+ * host), except one already linked to it. The review shows them and the
+ * commit refuses a new partner until each was used or set aside.
+ */
+export async function similarPartnersFor(
+  store: Pick<HubSpotStore, "similarPartners">,
+  source: Pick<HandoffSource, "proposed" | "company">,
+) {
+  let host: string | null = source.company.domain || null;
+  try {
+    if (source.proposed.website)
+      host = new URL(source.proposed.website).hostname;
+  } catch {
+    // An unparseable website leaves the domain as the host.
+  }
+  return (
+    await store.similarPartners({
+      name: source.proposed.name || source.company.name,
+      host,
+    })
+  ).filter((partner) => partner.linkedCompanyId !== source.company.id);
+}
+
 /** A deal and its companies, none chosen, for picking the partner. */
 export async function loadDealChoice(
   context: HubSpotContext,
@@ -645,6 +688,7 @@ export async function loadDealChoice(
   ]);
   if (!deal || deal.archived)
     throw new HubSpotError("HUBSPOT_RECORD_NOT_FOUND");
+  if (!dealApproved(context, deal)) throw new Error("HUBSPOT_SCOPE_DENIED");
   const associated = await context.reader.associations(
     "deal",
     dealId,
@@ -746,7 +790,7 @@ export async function searchHubSpot(
         partner: links.get(company.id) ?? null,
       })),
     deals: deals
-      .filter((deal) => !deal.archived)
+      .filter((deal) => !deal.archived && dealApproved(context, deal))
       .map((deal) => ({
         objectType: "deal",
         id: deal.id,
@@ -772,6 +816,8 @@ export interface PipelineView {
   summary: ReturnType<typeof summarizeHubSpotPipeline>;
   /** False when the pipeline holds more deals than one read covers. */
   complete: boolean;
+  /** Deals read before any filter, against `total` in HubSpot. */
+  read: number;
   total: number;
   checkedAt: string;
   stale: boolean;
@@ -797,6 +843,11 @@ async function pipelineDeals(
     total = page.total;
     after = page.next;
   } while (after && deals.length < hubspotLimits.pipelineDeals);
+  // Paged search can repeat a deal across pages; each deal counts once in
+  // the rows, the board and the totals alike.
+  const unique = [...new Map(deals.map((deal) => [deal.id, deal])).values()];
+  deals.length = 0;
+  deals.push(...unique);
   const [associations, ownerList] = await Promise.all([
     context.reader.dealCompanies(deals.map((deal) => deal.id)),
     hubspotOwners(context),
@@ -848,7 +899,7 @@ export async function loadPipeline(
     pipelineList.find((p) => p.id === query.pipeline) ??
     pipelineList.find((p) => p.id === context.connection.defaultPipelineId) ??
     pipelineList[0];
-  if (!pipeline) throw new HubSpotError("HUBSPOT_RECORD_NOT_FOUND");
+  if (!pipeline) throw new Error("HUBSPOT_NO_PIPELINES");
   const stageIds = pipeline.stages
     .filter((stage) =>
       query.state === "all"
@@ -897,6 +948,7 @@ export async function loadPipeline(
     ].sort(),
     summary: summarizeHubSpotPipeline(visiblePipeline, deals),
     complete: loaded.value.complete,
+    read: loaded.value.deals.length,
     total: loaded.value.total,
     checkedAt: loaded.checkedAt,
     stale: loaded.stale,
@@ -1054,7 +1106,7 @@ export async function loadPartnerHubSpot(
           ),
         ],
         deals: deals
-          .filter((deal) => !deal.archived)
+          .filter((deal) => !deal.archived && dealApproved(context, deal))
           .map((deal) => ({
             id: deal.id,
             name: cleanHubSpotText(deal.name, 200) || deal.id,

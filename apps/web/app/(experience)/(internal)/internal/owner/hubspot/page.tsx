@@ -65,7 +65,7 @@ async function Page() {
       )}
       <HubSpotSettings
         portal={loaded.portal}
-        portalError={loaded.portalError}
+        portalError={loaded.portalError ?? loaded.catalogError}
         active={loaded.active}
         latest={loaded.latest}
         catalog={loaded.catalog}

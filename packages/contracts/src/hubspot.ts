@@ -321,6 +321,8 @@ export interface HubSpotScope {
   company: readonly string[];
   deal: readonly string[];
   contact: readonly string[];
+  /** Deal pipelines staff may see; deals in any other pipeline stay unread. */
+  pipelines: readonly string[];
   notes: boolean;
   files: boolean;
 }
@@ -373,6 +375,11 @@ export const HubSpotConnectionInputSchema = z
         company: propertyList,
         deal: propertyList,
         contact: propertyList,
+        pipelines: z
+          .array(z.string().regex(/^[A-Za-z0-9_-]{1,100}$/))
+          .max(50)
+          .default([])
+          .transform((ids) => [...new Set(ids)]),
         notes: z.boolean().default(false),
         files: z.boolean().default(false),
       })
@@ -520,14 +527,16 @@ export const HubSpotHandoffInputSchema = z
           kind: z.literal("existing_partner"),
           partnerId: z.guid(),
           expectedVersion: z.int().min(1),
+          /** A field left out takes its default; one changed on both sides
+           * since the last import has none and must be decided. */
           fields: z
             .object({
-              name: z.enum(hubspotFieldDecisions).default("keep"),
-              website: z.enum(hubspotFieldDecisions).default("keep"),
-              region: z.enum(hubspotFieldDecisions).default("keep"),
+              name: z.enum(hubspotFieldDecisions).optional(),
+              website: z.enum(hubspotFieldDecisions).optional(),
+              region: z.enum(hubspotFieldDecisions).optional(),
             })
             .strict()
-            .default({ name: "keep", website: "keep", region: "keep" }),
+            .default({}),
         })
         .strict(),
     ]),
@@ -999,6 +1008,7 @@ export const hubspotErrorCodes = [
   "HUBSPOT_IMPORT_NOT_FOUND",
   "HUBSPOT_DECISION_REQUIRED",
   "HUBSPOT_CONNECTION_VERSION_CONFLICT",
+  "HUBSPOT_NO_PIPELINES",
 ] as const;
 export type HubSpotErrorCode = (typeof hubspotErrorCodes)[number];
 

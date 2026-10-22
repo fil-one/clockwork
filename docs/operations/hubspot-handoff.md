@@ -92,7 +92,9 @@ Audit: `hubspot.connection_activated`, `hubspot.connection_updated`,
 `hubspot.document_attached`, `hubspot.document_failed`,
 `hubspot.document_duplicate`, `hubspot.document_reused` and
 `hubspot.document_excluded`, plus `partner.created` and `partner.updated`
-carrying the HubSpot source. Events carry IDs and counts, not contact details.
+carrying the HubSpot source. `hubspot.*` events carry IDs, counts and reasons,
+not contact details; `partner.*` events record changed fields, contacts
+included, exactly as any partner edit does.
 
 ## Documents
 
@@ -135,23 +137,42 @@ details, **HubSpot deals associated with this company** (with the note that
 association is not sourcing, ownership or revenue credit), and the import
 history. Contacts brought in show **From HubSpot** and their labels.
 
+## Connecting HubSpot
+
+The connection page (**Owner console → Integrations → HubSpot connection**,
+`/internal/owner/hubspot`) shows this checklist with where the environment
+stands, and administrators see **Set up HubSpot** on Partners until it is done.
+
+1. **Create a read-only private app in HubSpot.** A HubSpot super admin opens
+   Settings → Integrations → Private apps → Create a private app, names it Fil
+   One Commerce and grants only: `crm.objects.companies.read`,
+   `crm.objects.deals.read`, `crm.objects.contacts.read`,
+   `crm.objects.owners.read`, `crm.schemas.companies.read`,
+   `crm.schemas.deals.read`, `crm.schemas.contacts.read`, plus `files` to bring
+   PDFs across from notes. No write scopes. Copy the access token.
+2. **Add the token to the deployment.** In GitHub, fil-one/clockwork → Settings
+   → Environments, add the secret `HUBSPOT_ACCESS_TOKEN` to `production` (and
+   `staging` to try it there first). Then run **Actions → Deploy → Run
+   workflow** on `main`; the deploy passes it to the app as
+   `TF_VAR_hubspot_access_token`. It never reaches the database or a browser.
+3. **Approve the connection** on the connection page (below).
+4. **Use it:** Partners → From HubSpot, Sales → Pipeline, or **Link HubSpot
+   record** on a partner.
+
 ## Connection and access
 
-- **Token.** `HUBSPOT_ACCESS_TOKEN` is a HubSpot private-app token with
-  read-only scopes for companies, deals, contacts, owners, pipelines, schemas,
-  notes and files as needed. It is a deployment secret
-  (`TF_VAR_hubspot_access_token` from the `HUBSPOT_ACCESS_TOKEN` repository
-  secret) and never reaches the database or a browser. Without it, HubSpot pages
-  explain that HubSpot is not set up and offer manual partner creation.
+- **Token.** Without `HUBSPOT_ACCESS_TOKEN`, HubSpot pages explain that HubSpot
+  is not set up and offer manual partner creation.
 - **Activation.** **Owner console → Integrations → HubSpot connection**
   (`/internal/owner/hubspot`, `staff:manage`) shows the portal the token reaches
-  and runs a read-only check. The administrator chooses the additional
-  properties staff may read (properties HubSpot marks sensitive cannot be
-  chosen; unknown or new properties stay unreadable), whether notes and files
-  are readable, the default pipeline and owner mappings, and must accept the
-  audience: **staff with Sales access**, which can differ from each person's
-  HubSpot visibility. Acceptance is required each time the scope is saved and is
-  recorded with the administrator's name.
+  and runs a read-only check. The administrator chooses the deal pipelines staff
+  may see (deals in other pipelines are unreadable in the pipeline view, search
+  and handoffs alike), the additional properties staff may read (properties
+  HubSpot marks sensitive cannot be chosen; unknown or new properties stay
+  unreadable), whether notes and files are readable, the default pipeline and
+  owner mappings, and must accept the audience: **staff with Sales access**,
+  which can differ from each person's HubSpot visibility. Acceptance is required
+  each time the scope is saved and is recorded with the administrator's name.
 - **Permissions.** Viewing HubSpot data needs `sales:read`; importing needs
   `contract:write`, the existing partner write permission; the connection needs
   `staff:manage`. Every check also requires a real staff session with MFA,
@@ -173,6 +194,11 @@ and plan model leave room for them.
   reversal**.
 - **Saved and team pipeline views** (the URL is the shareable view today) and
   filters on custom properties.
+- **Identical PDFs in the review itself.** An identical attachment is found when
+  the document is brought across; the receipt then stops for **Use existing
+  attachment** or exclusion, so nothing is attached twice.
+- **Company-level scope.** Every company in the portal is readable by the
+  approved audience; scope is set by pipeline and property.
 - **A HubSpot-side record card.** Pasting a HubSpot record link into the picker
   gives the same workflow without the UI extension.
 

@@ -75,6 +75,7 @@ export function HubSpotSettings({
     company: [...(active?.scope.company ?? [])],
     deal: [...(active?.scope.deal ?? [])],
     contact: [...(active?.scope.contact ?? [])],
+    pipelines: [...(active?.scope.pipelines ?? [])],
     notes: active?.scope.notes ?? false,
     files: active?.scope.files ?? false,
   }));
@@ -281,6 +282,36 @@ export function HubSpotSettings({
                 </Fieldset>
               );
             })}
+            <Fieldset
+              legend={t("operations.hubspot.settings.pipelines")}
+              description={t("operations.hubspot.settings.pipelinesHelp")}
+            >
+              <div className={styles.scopeGroup}>
+                {catalog.pipelines.map((pipeline) => (
+                  <Checkbox
+                    key={pipeline.id}
+                    label={pipeline.label}
+                    description={t("operations.hubspot.settings.stages", {
+                      count: pipeline.stages.length,
+                    })}
+                    disabled={!editable}
+                    checked={scope.pipelines.includes(pipeline.id)}
+                    onChange={(event) => {
+                      const on = event.currentTarget.checked;
+                      setScope((current) => ({
+                        ...current,
+                        pipelines: on
+                          ? [...current.pipelines, pipeline.id]
+                          : current.pipelines.filter(
+                              (id) => id !== pipeline.id,
+                            ),
+                      }));
+                      if (!on && pipelineId === pipeline.id) setPipelineId("");
+                    }}
+                  />
+                ))}
+              </div>
+            </Fieldset>
             <Fieldset legend={t("operations.hubspot.settings.activity")}>
               <Checkbox
                 label={t("operations.hubspot.settings.notes")}
@@ -326,10 +357,12 @@ export function HubSpotSettings({
                   value: "",
                   label: t("operations.hubspot.settings.pipelineFirst"),
                 },
-                ...catalog.pipelines.map((pipeline) => ({
-                  value: pipeline.id,
-                  label: pipeline.label,
-                })),
+                ...catalog.pipelines
+                  .filter((pipeline) => scope.pipelines.includes(pipeline.id))
+                  .map((pipeline) => ({
+                    value: pipeline.id,
+                    label: pipeline.label,
+                  })),
               ]}
             />
             <Fieldset

@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   HubSpotIdSchema,
   HubSpotPipelineQuerySchema,
+  withPartnerContactIds,
   type HubSpotFieldHistory,
   type HubSpotImportRecord,
   type PartnerOwnerOption,
@@ -41,6 +42,7 @@ import {
   loadPipeline,
   searchHubSpot,
   settingsCatalog,
+  similarPartnersFor,
   type HubSpotContext,
 } from "./server";
 
@@ -203,7 +205,11 @@ export function loadReview(params: Params) {
     let history: HubSpotFieldHistory = {};
     let linkedElsewhere: string | null = null;
     if (partnerId) {
-      destination = (await reader.get(partnerId, partnerToday())).partner;
+      const found = (await reader.get(partnerId, partnerToday())).partner;
+      destination = {
+        ...found,
+        contacts: withPartnerContactIds(found.id, found.contacts),
+      };
       if (!linked) {
         const link = await context.store.linkForPartner(
           partnerId,
@@ -214,23 +220,9 @@ export function loadReview(params: Params) {
       history = await context.store.fieldHistory(partnerId);
     }
     const owners = await reader.owners();
-    const host = (() => {
-      try {
-        return source.proposed.website
-          ? new URL(source.proposed.website).hostname
-          : source.company.domain || null;
-      } catch {
-        return null;
-      }
-    })();
     const suggestions = destination
       ? []
-      : (
-          await context.store.similarPartners({
-            name: source.proposed.name || source.company.name,
-            host,
-          })
-        ).filter((partner) => partner.linkedCompanyId !== companyId);
+      : await similarPartnersFor(context.store, source);
     return {
       step: "review" as const,
       source,
@@ -301,11 +293,24 @@ export function loadSettings() {
       ),
     ]);
     const portal = portalResult.ok ? portalResult.portal : null;
-    const catalog = portal && !demo ? await settingsCatalog() : null;
+    // A failing catalog read leaves the page usable: the connection and its
+    // disconnect control still show, with the reason the catalog is missing.
+    let catalogError: string | null = null;
+    const catalog =
+      portal && !demo
+        ? await settingsCatalog().catch((error: unknown) => {
+            catalogError =
+              error instanceof HubSpotError
+                ? error.code
+                : "HUBSPOT_UNAVAILABLE";
+            return null;
+          })
+        : null;
     return {
       demo,
       portal,
       portalError: portalResult.ok ? null : portalResult.code,
+      catalogError,
       active: connection.active,
       latest: connection.latest,
       catalog,
@@ -357,6 +362,13 @@ export async function loadPartnerHubSpotParts(
     registerId && source
       ? {
           endClient: source.endCustomer?.name ?? "",
+          // The deal's other companies, none chosen, when the review left
+          // the end customer open.
+          choices: source.endCustomer
+            ? []
+            : source.associatedCompanies
+                .filter((company) => company.id !== source.chosenCompanyId)
+                .map((company) => company.name),
           // i18n-exempt: a stored note recording where a registration came from
           notes: `HubSpot deal: ${source.name} (${source.url})`,
         }

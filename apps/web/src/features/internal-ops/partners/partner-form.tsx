@@ -352,7 +352,11 @@ export function PartnerForm({
               onClick={() =>
                 setContacts((all) => [
                   ...all,
-                  ...rowsOf([{ name: "", email: "", role: "" }]),
+                  // A stable ID, so a later HubSpot import can match this
+                  // person rather than add them again.
+                  ...rowsOf([
+                    { id: crypto.randomUUID(), name: "", email: "", role: "" },
+                  ]),
                 ])
               }
             >

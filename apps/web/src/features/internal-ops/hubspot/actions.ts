@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   HubSpotHandoffInputSchema,
   hubspotLimits,
+  withPartnerContactIds,
   type HubSpotImportRecord,
 } from "@clockwork/contracts";
 import { HubSpotError } from "@clockwork/integrations/hubspot";
@@ -26,6 +27,7 @@ import {
   HubSpotUnavailableError,
   loadHandoffSource,
   requestDigest,
+  similarPartnersFor,
 } from "./server";
 
 async function run<T>(operation: () => Promise<T>): Promise<ActionResult<T>> {
@@ -97,12 +99,24 @@ export async function commitHubSpotHandoff(raw: unknown) {
       handoff,
     );
     if (changed.length) return { kind: "source_changed", items: changed };
+    if (handoff.destination.kind === "new_partner") {
+      const dismissed = new Set(
+        handoff.destination.dismissedSuggestions.map((item) => item.partnerId),
+      );
+      const similar = await similarPartnersFor(repository, source);
+      if (similar.some((partner) => !dismissed.has(partner.id)))
+        throw new Error("HUBSPOT_DECISION_REQUIRED");
+    }
     const partners = partnerRepository();
-    const destination =
+    const found =
       handoff.destination.kind === "existing_partner"
         ? (await partners.get(handoff.destination.partnerId, partnerToday()))
             .partner
         : null;
+    // The same contact IDs the review used, including derived ones.
+    const destination = found
+      ? { ...found, contacts: withPartnerContactIds(found.id, found.contacts) }
+      : null;
     const [history, owners] = await Promise.all([
       destination
         ? repository.fieldHistory(destination.id)
@@ -252,7 +266,12 @@ export async function processHubSpotDocument(raw: unknown) {
         actor,
       );
     } catch (error) {
-      const code = error instanceof Error ? error.message : "";
+      const code =
+        error instanceof z.ZodError
+          ? "DOCUMENT_INVALID"
+          : error instanceof Error
+            ? error.message
+            : "";
       if (code === "ATTACHMENT_ALREADY_EXISTS") {
         const existing = await repository.attachmentByHash(partnerId, hash);
         if (existing)

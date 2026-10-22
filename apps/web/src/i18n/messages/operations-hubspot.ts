@@ -128,7 +128,7 @@ export const hubspotMessages = defineStaffMessages({
     en: "This company was just linked to {name}",
   },
   "operations.hubspot.review.alreadyLinkedBody": {
-    en: "Someone else finished a handoff for it first, so no second partner was created. Open that partner, or review what differs.",
+    en: "Someone else finished a handoff for this company first, so this one was not applied. Open that partner, or review what differs.",
   },
   "operations.hubspot.review.exactLinkTitle": {
     en: "This company is already linked",
@@ -224,7 +224,7 @@ export const hubspotMessages = defineStaffMessages({
     en: "HubSpot has no contacts associated with this company or deal.",
   },
   "operations.hubspot.people.alreadyLinked": {
-    en: "Already on this partner as {name}. Selecting it again changes nothing.",
+    en: "Already on this partner as {name}. Selecting it refreshes its HubSpot labels; the Commerce values stay.",
   },
   "operations.hubspot.people.matchLabel": {
     en: "{name} in Commerce has the same email",
@@ -308,7 +308,7 @@ export const hubspotMessages = defineStaffMessages({
 
   "operations.hubspot.more.title": { en: "More control" },
   "operations.hubspot.more.hint": {
-    en: "Keep approved HubSpot properties for reference, or clear a value.",
+    en: "Keep approved HubSpot properties for reference.",
   },
   "operations.hubspot.more.inEffect": { en: "In effect: {items}" },
   "operations.hubspot.more.references": {
@@ -334,7 +334,7 @@ export const hubspotMessages = defineStaffMessages({
     en: "Commission, margin, exclusivity, contract and approval state are set in Commerce only and never come from HubSpot.",
   },
   "operations.hubspot.more.clearHelp": {
-    en: "Clear value removes the Commerce value for website or region. It is only offered where you choose it.",
+    en: "Clear value, in the comparison above, removes the Commerce website or region. Nothing is cleared unless you choose it.",
   },
 
   "operations.hubspot.issue.title": {
@@ -364,13 +364,52 @@ export const hubspotMessages = defineStaffMessages({
   "operations.hubspot.summary.createOnly": {
     en: "Create {name} as a partner.",
   },
-  "operations.hubspot.summary.update": {
-    en: "{changes}; keep {kept} existing values.",
+  "operations.hubspot.summary.update": { en: "{changes}; {kept}." },
+  "operations.hubspot.summary.updateOnly": { en: "{changes}." },
+  "operations.hubspot.summary.kept": {
+    count: "count",
+    en: {
+      one: "keep {count} existing value",
+      other: "keep {count} existing values",
+    },
+  },
+  "operations.hubspot.summary.addContacts": {
+    count: "count",
+    en: { one: "add {count} contact", other: "add {count} contacts" },
+  },
+  "operations.hubspot.summary.linkContacts": {
+    count: "count",
+    en: { one: "link {count} contact", other: "link {count} contacts" },
+  },
+  "operations.hubspot.summary.keepDeals": {
+    count: "count",
+    en: {
+      one: "keep {count} deal reference",
+      other: "keep {count} deal references",
+    },
+  },
+  "operations.hubspot.summary.keepNotes": {
+    count: "count",
+    en: { one: "keep {count} note", other: "keep {count} notes" },
+  },
+  "operations.hubspot.summary.keepReferences": {
+    count: "count",
+    en: {
+      one: "keep {count} reference value",
+      other: "keep {count} reference values",
+    },
+  },
+  "operations.hubspot.summary.attachDocuments": {
+    count: "count",
+    en: {
+      one: "attach {count} document",
+      other: "attach {count} documents",
+    },
   },
   "operations.hubspot.summary.linkOnly": {
     en: "Link {company} to {partner}. Nothing is copied.",
   },
-  "operations.hubspot.summary.noChanges": { en: "Change no values" },
+  "operations.hubspot.summary.noChanges": { en: "change no values" },
   "operations.hubspot.summary.nothingSelected": {
     en: "Already linked. Choose a change, a person, context or a document to import.",
   },
@@ -379,7 +418,7 @@ export const hubspotMessages = defineStaffMessages({
   },
   "operations.hubspot.summary.added": {
     count: "count",
-    en: { one: "Add {count} value", other: "Add {count} values" },
+    en: { one: "add {count} value", other: "add {count} values" },
   },
   "operations.hubspot.summary.replaced": {
     count: "count",
@@ -510,7 +549,7 @@ export const hubspotMessages = defineStaffMessages({
   "operations.hubspot.continue.documents": { en: "View documents" },
   "operations.hubspot.continue.source": { en: "Open source in HubSpot" },
   "operations.hubspot.continue.registrationNotCreated": {
-    en: "Commerce registration: Not created",
+    en: "Commerce registration: not created by this import. Registering is its own step.",
   },
 
   "operations.hubspot.register.title": {
@@ -519,6 +558,13 @@ export const hubspotMessages = defineStaffMessages({
   "operations.hubspot.register.body": {
     en: "The end client and source link are suggestions. The registration date, protection, size, model and status are yours to set; the deal’s amount and close date are not used.",
   },
+  "operations.hubspot.register.choose": {
+    en: "End client from the HubSpot deal",
+  },
+  "operations.hubspot.register.chooseHelp": {
+    en: "The deal’s other companies. Pick one, or type the end client below.",
+  },
+  "operations.hubspot.register.chooseNone": { en: "Choose…" },
   "operations.hubspot.mnda.title": {
     en: "Suggested from a HubSpot import",
   },
@@ -711,6 +757,15 @@ export const hubspotMessages = defineStaffMessages({
     en: "Commerce could not read HubSpot just now. Try again shortly; nothing was imported.",
   },
   "operations.hubspot.state.settings": { en: "HubSpot connection" },
+  "operations.hubspot.state.noPipelinesTitle": {
+    en: "No HubSpot pipelines are approved",
+  },
+  "operations.hubspot.state.noPipelinesBody": {
+    en: "An administrator chooses which deal pipelines staff may see on the HubSpot connection page.",
+  },
+  "operations.hubspot.error.HUBSPOT_NO_PIPELINES": {
+    en: "No HubSpot pipeline is approved for staff to see.",
+  },
 
   "operations.hubspot.ownerPanel.title": { en: "Integrations" },
   "operations.hubspot.ownerPanel.description": {
@@ -751,7 +806,7 @@ export const hubspotMessages = defineStaffMessages({
     en: "Approve the connection here",
   },
   "operations.hubspot.setup.approveBody": {
-    en: "Below, confirm the portal the token reaches, choose the extra properties staff may read, decide on notes and files, pick the pipeline shown first, map HubSpot owners to Commerce staff, accept the audience and choose Activate connection.",
+    en: "Below, confirm the portal the token reaches, choose the pipelines and extra properties staff may read, decide on notes and files, pick the pipeline shown first, map HubSpot owners to Commerce staff, accept the audience and choose Activate connection.",
   },
   "operations.hubspot.setup.useTitle": { en: "Start using it" },
   "operations.hubspot.setup.useBody": {
@@ -812,6 +867,14 @@ export const hubspotMessages = defineStaffMessages({
   },
   "operations.hubspot.settings.sensitive": {
     en: "Sensitive in HubSpot: excluded",
+  },
+  "operations.hubspot.settings.pipelines": { en: "Pipelines" },
+  "operations.hubspot.settings.pipelinesHelp": {
+    en: "Staff see deals only in the pipelines chosen here, in the pipeline view, search and handoffs alike.",
+  },
+  "operations.hubspot.settings.stages": {
+    count: "count",
+    en: { one: "{count} stage", other: "{count} stages" },
   },
   "operations.hubspot.settings.activity": { en: "Notes and files" },
   "operations.hubspot.settings.notes": { en: "Notes" },
@@ -965,7 +1028,7 @@ export const hubspotMessages = defineStaffMessages({
     en: "Your session expired. Sign in again; your choices stay on this page.",
   },
   "operations.hubspot.error.PARTNER_VERSION_CONFLICT": {
-    en: "Someone changed this partner while you were reviewing. Reload and review again.",
+    en: "Someone changed this partner while you were reviewing. The comparison now shows their change and your choices are kept; check it and submit again.",
   },
   "operations.hubspot.error.PARTNER_NOT_FOUND": {
     en: "That partner no longer exists.",

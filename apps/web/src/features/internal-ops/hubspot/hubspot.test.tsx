@@ -11,6 +11,7 @@ import {
   HubSpotHandoffInputSchema,
   HubSpotPipelineQuerySchema,
   PartnerTermsSchema,
+  withPartnerContactIds,
   type HubSpotConnectionRecord,
   type HubSpotImportRecord,
   type PartnerRecord,
@@ -79,6 +80,7 @@ const connection = (
     company: ["industry", "partner_tier", "tax_id"],
     deal: ["deal_source"],
     contact: [],
+    pipelines: ["default", "renewals"],
     notes: true,
     files: true,
     ...scope,
@@ -743,5 +745,105 @@ describe("HubSpotSetupGuide", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Next")).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+});
+
+describe("review findings stay fixed", () => {
+  const existing = (fields: Record<string, string>, extra = {}) =>
+    HubSpotHandoffInputSchema.parse({
+      operationId,
+      connection: { id: partnerId, version: 3 },
+      source: { companyId: "9001", dealId: null },
+      reviewed: {},
+      destination: {
+        kind: "existing_partner",
+        partnerId,
+        expectedVersion: 4,
+        fields,
+      },
+      ...extra,
+    });
+
+  it("refuses a field changed on both sides when no choice was sent", async () => {
+    const source = await loadHandoffSource(await context(), {
+      companyId: "9001",
+      dealId: null,
+    });
+    const build = (fields: Record<string, string>) =>
+      buildHubSpotPlan({
+        source,
+        handoff: existing(fields),
+        destination: partner({ region: "Canada" }),
+        history: { region: { lastSource: "Mexico", lastResult: "Mexico" } },
+        ownerName: null,
+        newId: () => operationId,
+      });
+    expect(() => build({})).toThrow("HUBSPOT_DECISION_REQUIRED");
+    expect(build({ region: "keep" }).plan.fields[2]?.result).toBe("Canada");
+  });
+
+  it("matches a hand-typed contact by its derived ID and never re-links another person", async () => {
+    const source = await loadHandoffSource(await context(), {
+      companyId: "9001",
+      dealId: null,
+    });
+    const typed = withPartnerContactIds(partnerId, [
+      { name: "Ada", email: "ada.okafor@northstar.example", role: "" },
+    ]);
+    const { plan } = buildHubSpotPlan({
+      source,
+      handoff: existing(
+        {},
+        { contacts: [{ hubspotId: "5001", matchContactId: typed[0]?.id }] },
+      ),
+      destination: partner({ contacts: typed }),
+      history: {},
+      ownerName: null,
+      newId: () => operationId,
+    });
+    expect(plan.contacts[0]).toMatchObject({
+      id: typed[0]?.id,
+      matchedExisting: true,
+    });
+    const linked = [
+      {
+        ...(typed[0] ?? { name: "" }),
+        source: {
+          provider: "hubspot" as const,
+          portalId: "4410",
+          objectId: "5002",
+          labels: [],
+        },
+      },
+    ];
+    expect(() =>
+      buildHubSpotPlan({
+        source,
+        handoff: existing(
+          {},
+          { contacts: [{ hubspotId: "5001", matchContactId: typed[0]?.id }] },
+        ),
+        destination: partner({ contacts: linked }),
+        history: {},
+        ownerName: null,
+        newId: () => operationId,
+      }),
+    ).toThrow("HUBSPOT_CONTACT_NOT_FOUND");
+  });
+
+  it("reads no deal outside the approved pipelines", async () => {
+    const ctx = await context({ scope: { pipelines: ["renewals"] } });
+    await expect(
+      loadHandoffSource(ctx, { companyId: "9001", dealId: "7001" }),
+    ).rejects.toThrow("HUBSPOT_SCOPE_DENIED");
+    const view = await loadPipeline(ctx, HubSpotPipelineQuerySchema.parse({}));
+    expect(view.pipelines.map((p) => p.id)).toEqual(["renewals"]);
+    expect(view.deals.map((d) => d.id)).toEqual(["7008"]);
+    await expect(
+      loadPipeline(
+        await context({ scope: { pipelines: [] } }),
+        HubSpotPipelineQuerySchema.parse({}),
+      ),
+    ).rejects.toThrow("HUBSPOT_NO_PIPELINES");
   });
 });

@@ -35,6 +35,10 @@ const unavailableCopy: Readonly<
     title: "operations.hubspot.state.scopeTitle",
     body: "operations.hubspot.state.scopeBody",
   },
+  HUBSPOT_NO_PIPELINES: {
+    title: "operations.hubspot.state.noPipelinesTitle",
+    body: "operations.hubspot.state.noPipelinesBody",
+  },
   HUBSPOT_RECORD_ARCHIVED: {
     title: "operations.hubspot.state.archivedTitle",
     body: "operations.hubspot.state.archivedBody",

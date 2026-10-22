@@ -53,7 +53,12 @@ beforeAll(async () => {
     {
       portalId,
       audienceAccepted: true,
-      scope: { company: ["industry"], notes: true, files: true },
+      scope: {
+        company: ["industry"],
+        pipelines: ["default"],
+        notes: true,
+        files: true,
+      },
       ownerMappings: [{ hubspotOwnerId: "101", staffId }],
     },
     { portalId, uiDomain: "app.hubspot.com" },

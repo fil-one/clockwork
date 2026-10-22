@@ -37,6 +37,7 @@ create table if not exists public.commerce_hubspot_connections (
       and jsonb_typeof(scope->'company') = 'array'
       and jsonb_typeof(scope->'deal') = 'array'
       and jsonb_typeof(scope->'contact') = 'array'
+      and jsonb_typeof(scope->'pipelines') = 'array'
       and jsonb_typeof(scope->'notes') = 'boolean'
       and jsonb_typeof(scope->'files') = 'boolean'),
   default_pipeline_id text check (default_pipeline_id ~ '^[A-Za-z0-9_-]{1,100}$'),

@@ -479,7 +479,8 @@ export function HubSpotReceipt({
                             title: item.existingAttachment?.title ?? "",
                           })}
                         </Button>
-                      ) : (
+                      ) : item.errorCode ===
+                        "HUBSPOT_DOCUMENT_CHANGED" ? null : (
                         <Button
                           type="button"
                           disabled={busy !== null}

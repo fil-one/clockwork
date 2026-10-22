@@ -106,7 +106,7 @@ const PDF = new TextEncoder().encode("%PDF-");
 
 /** Hosts HubSpot serves signed file downloads from. */
 const downloadHost =
-  /(?:^|\.)(?:hubspot\.com|hubspot\.net|hubapi\.com|hubspotusercontent(?:-[a-z0-9]+)?\.(?:com|net))$/;
+  /(?:^|\.)(?:hubspot\.com|hubspot\.net|hubapi\.com|hubspotusercontent(?:-[a-z0-9]+|\d+)?\.(?:com|net))$/;
 
 const nullableText = z
   .union([z.string(), z.number(), z.boolean(), z.null()])
@@ -333,8 +333,15 @@ export class HttpHubSpotReader implements HubSpotReader {
     body?: unknown,
   ): Promise<T> {
     for (let attempt = 0; ; attempt += 1) {
-      const response = await this.send(method, path, body);
-      if (response.ok) return schema.parse(await this.readJson(response));
+      const { response, release } = await this.send(method, path, body);
+      if (response.ok)
+        try {
+          // The timeout covers the body too, not only the headers.
+          return schema.parse(await this.readJson(response));
+        } finally {
+          release();
+        }
+      release();
       void response.body?.cancel().catch(() => {});
       const retryAfterMs = Math.min(
         Number(response.headers.get("retry-after") ?? "1") * 1000 || 1000,
@@ -359,13 +366,13 @@ export class HttpHubSpotReader implements HubSpotReader {
     method: "GET" | "POST",
     path: string,
     body: unknown,
-  ): Promise<Response> {
+  ): Promise<{ response: Response; release: () => void }> {
     if (!path.startsWith("/") || path.includes(".."))
       throw new HubSpotError("HUBSPOT_UNAVAILABLE");
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      return await this.fetcher(`${this.origin}${path}`, {
+      const response = await this.fetcher(`${this.origin}${path}`, {
         method,
         redirect: "error",
         signal: controller.signal,
@@ -376,17 +383,25 @@ export class HttpHubSpotReader implements HubSpotReader {
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
+      return { response, release: () => clearTimeout(timer) };
     } catch (error) {
+      clearTimeout(timer);
       throw new HubSpotError("HUBSPOT_UNAVAILABLE", undefined, {
         cause: error,
       });
-    } finally {
-      clearTimeout(timer);
     }
   }
 
   private async readJson(response: Response): Promise<unknown> {
-    const bytes = await readBounded(response, MAX_JSON_BYTES);
+    let bytes: Uint8Array;
+    try {
+      bytes = await readBounded(response, MAX_JSON_BYTES);
+    } catch (error) {
+      if (error instanceof HubSpotError) throw error;
+      throw new HubSpotError("HUBSPOT_UNAVAILABLE", undefined, {
+        cause: error,
+      });
+    }
     try {
       return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
     } catch (error) {
