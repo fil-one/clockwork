@@ -60,6 +60,9 @@ jobs:
   release-shards:
     name: Release / ${{ matrix.shard }}
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: read
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -112,8 +115,9 @@ jobs:
       # registry is public.ecr.aws, whose anonymous pull rate is shared by
       # every runner behind the same egress address — it answers
       # "toomanyrequests: Rate exceeded" and the database shards never start.
-      # The CLI mirrors the identical tags on ghcr.io, which needs no registry
-      # credential and so no repository secret.
+      # The CLI mirrors the identical tags on ghcr.io. Authenticate below with
+      # the job's read-only token: anonymous GHCR pulls now hit the same shared
+      # runner-IP limit. No long-lived repository credential is needed.
       SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
     steps:
       - name: Start release budget clock
@@ -191,6 +195,13 @@ jobs:
           fi
           echo "CLOCKWORK_UPGRADE_REPLAY=$replay" >> "$GITHUB_ENV"
           echo "Populated upgrade replay: $replay"
+      - name: Authenticate database image pulls
+        if: matrix.shard == 'integration' || matrix.shard == 'proof'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Start freshly migrated and seeded database
         if: matrix.shard == 'integration' || matrix.shard == 'proof'
         run: |
