@@ -555,7 +555,10 @@ export interface ContractDocumentStore {
   readonly backend: string;
   put(
     bytes: Uint8Array,
-    options: { purpose: "contract" | "collateral"; contentType: string },
+    options: {
+      purpose: "contract" | "collateral" | "account_attachment";
+      contentType: string;
+    },
   ): Promise<StoredDocument>;
   /** Throws `DOCUMENT_INTEGRITY` when the bytes no longer match their hash. */
   get(key: string): Promise<{ bytes: Uint8Array; document: StoredDocument }>;

@@ -1,3 +1,4 @@
+import { accountDocumentsSchema } from "./account-documents";
 import * as foundationSchema from "../schema";
 import { coreSchema } from "./core";
 import { lifecycleSchema } from "./lifecycle";
@@ -14,6 +15,7 @@ import { contractTemplatesSchema } from "./contract-templates";
 import { accessTokensSchema } from "./access-tokens";
 
 export * from "../schema";
+export * from "./account-documents";
 export * from "./core";
 export * from "./lifecycle";
 export * from "./system";
@@ -42,7 +44,9 @@ export const runtimeSchema: typeof foundationSchema &
   typeof partnersSchema &
   typeof staffNotificationsSchema &
   typeof contractTemplatesSchema &
-  typeof accessTokensSchema = {
+  typeof accessTokensSchema &
+  typeof accountDocumentsSchema = {
+  ...accountDocumentsSchema,
   ...foundationSchema,
   ...coreSchema,
   ...lifecycleSchema,

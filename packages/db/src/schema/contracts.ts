@@ -38,7 +38,9 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({
 
 export const storedDocuments = pgTable("commerce_stored_documents", {
   id: uuid("id").primaryKey(),
-  purpose: text("purpose").$type<"contract" | "collateral">().notNull(),
+  purpose: text("purpose")
+    .$type<"contract" | "collateral" | "account_attachment">()
+    .notNull(),
   contentType: text("content_type").notNull(),
   sizeBytes: integer("size_bytes").notNull(),
   sha256: text("sha256").notNull(),

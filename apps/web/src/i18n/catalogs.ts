@@ -1,3 +1,4 @@
+import { accountDocumentMessages } from "./messages/operations-account-documents";
 import {
   isPluralMessage,
   isSameInAllLanguages,
@@ -79,6 +80,7 @@ export const messageModules = {
   operations: {
     messages: {
       ...operationsMessages,
+      ...accountDocumentMessages,
       ...operationsFinanceMessages,
       ...mndaMessages,
       ...salesMessages,

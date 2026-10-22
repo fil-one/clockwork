@@ -423,6 +423,7 @@ export function PartnerDetail({
   organizations,
   canEdit,
   demo,
+  documents,
 }: {
   t: Translator;
   locale: string;
@@ -435,6 +436,7 @@ export function PartnerDetail({
   organizations: readonly PartnerOrganizationOption[];
   canEdit: boolean;
   demo: boolean;
+  documents?: ReactNode;
 }) {
   const overdue = partner.nextStepDue !== null && partner.nextStepDue < today;
   const overview: [string, ReactNode][] = [
@@ -538,6 +540,7 @@ export function PartnerDetail({
       {demo ? (
         <InlineNotice tone="info" title={t("operations.partners.demo")} />
       ) : null}
+      {documents}
       <div className={styles.columns}>
         <div className={styles.column}>
           <section className={styles.card} aria-labelledby="partner-overview">

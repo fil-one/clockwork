@@ -35,7 +35,10 @@ export class PostgresContractDocumentStore implements ContractDocumentStore {
 
   async put(
     bytes: Uint8Array,
-    options: { purpose: "contract" | "collateral"; contentType: string },
+    options: {
+      purpose: "contract" | "collateral" | "account_attachment";
+      contentType: string;
+    },
   ): Promise<StoredDocument> {
     if (options.contentType !== contractDocumentContentType)
       throw new Error("DOCUMENT_NOT_PDF");

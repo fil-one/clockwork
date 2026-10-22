@@ -1,3 +1,4 @@
+import { AccountDocumentsSection } from "@/src/features/internal-ops/account-documents/section";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -62,7 +63,16 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
           )}
         </SurfaceActionGate>
       }
-      supporting={<AccountDerivationSection recordKey={id} />}
+      supporting={
+        <>
+          {record?.aggregateId ? (
+            <AccountDocumentsSection
+              target={{ type: "account", id: record.aggregateId }}
+            />
+          ) : null}
+          <AccountDerivationSection recordKey={id} />
+        </>
+      }
     />
   );
 }
