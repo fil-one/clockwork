@@ -243,7 +243,8 @@ export function HubSpotSettings({
             description={t("operations.hubspot.settings.scopeBody")}
             className={styles.card}
           >
-            {(["company", "deal", "contact"] as const).map((objectType) => {
+            {/* People are read by name, email and job title only. */}
+            {(["company", "deal"] as const).map((objectType) => {
               const properties = catalog.properties.filter(
                 (property) => property.objectType === objectType,
               );

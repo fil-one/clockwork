@@ -1009,6 +1009,7 @@ export const hubspotErrorCodes = [
   "HUBSPOT_DECISION_REQUIRED",
   "HUBSPOT_CONNECTION_VERSION_CONFLICT",
   "HUBSPOT_NO_PIPELINES",
+  "HUBSPOT_SIMILAR_PARTNER",
 ] as const;
 export type HubSpotErrorCode = (typeof hubspotErrorCodes)[number];
 

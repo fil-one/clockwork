@@ -105,7 +105,7 @@ export async function commitHubSpotHandoff(raw: unknown) {
       );
       const similar = await similarPartnersFor(repository, source);
       if (similar.some((partner) => !dismissed.has(partner.id)))
-        throw new Error("HUBSPOT_DECISION_REQUIRED");
+        throw new Error("HUBSPOT_SIMILAR_PARTNER");
     }
     const partners = partnerRepository();
     const found =
@@ -113,6 +113,14 @@ export async function commitHubSpotHandoff(raw: unknown) {
         ? (await partners.get(handoff.destination.partnerId, partnerToday()))
             .partner
         : null;
+    // A partner edited since the review is a version conflict before
+    // anything else, so the page refreshes the comparison.
+    if (
+      found &&
+      handoff.destination.kind === "existing_partner" &&
+      found.version !== handoff.destination.expectedVersion
+    )
+      throw new Error("PARTNER_VERSION_CONFLICT");
     // The same contact IDs the review used, including derived ones.
     const destination = found
       ? { ...found, contacts: withPartnerContactIds(found.id, found.contacts) }
@@ -235,6 +243,15 @@ export async function processHubSpotDocument(raw: unknown) {
     }
     const hash = sha256(bytes);
     const duplicate = await repository.attachmentByHash(partnerId, hash);
+    // Another attempt (a second tab) attached this very item meanwhile.
+    if (duplicate?.id === item.id)
+      return repository.recordItem(
+        partnerId,
+        importId,
+        item.id,
+        { status: "attached", attachmentId: item.id },
+        actor,
+      );
     if (duplicate)
       return repository.recordItem(
         partnerId,

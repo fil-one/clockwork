@@ -172,6 +172,10 @@ export function buildHubSpotPlan(input: {
       // it never moves a contact from one HubSpot person to another.
       if (
         !match ||
+        // Matching is offered by email only; a list that shifted underneath
+        // the review can never pair a person with someone else.
+        !person.email ||
+        match.email !== person.email ||
         (match.source &&
           !(
             match.source.portalId === source.portal.portalId &&

@@ -1,6 +1,7 @@
 // i18n-exempt-file: MCP tool names, descriptions and results are read by MCP clients and the model, not rendered in the interface
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import {
@@ -14,6 +15,7 @@ import {
   partnerSizeUnits,
   partnerStatuses,
   PartnerListQuerySchema,
+  type PartnerContact,
   type PartnerDealWithConflicts,
   type PartnerRecord,
 } from "@clockwork/contracts";
@@ -162,6 +164,35 @@ export const getPartner = defineTool({
   },
 });
 
+/**
+ * A replaced contact list keeps each person's stable ID, HubSpot identity
+ * and primary flag, matched by email (or by name without one); a new person
+ * gets a new ID. Without this, an edit through MCP would sever HubSpot links.
+ */
+function keepContactIdentity(
+  next: readonly {
+    name: string;
+    email?: string | undefined;
+    role?: string | undefined;
+  }[],
+  current: readonly PartnerContact[],
+): PartnerContact[] {
+  return next.map((person) => {
+    const email = person.email?.trim().toLowerCase() ?? "";
+    const prior = current.find((existing) =>
+      email ? existing.email === email : existing.name === person.name,
+    );
+    return {
+      name: person.name,
+      email,
+      role: person.role ?? "",
+      id: prior?.id ?? randomUUID(),
+      ...(prior?.primary ? { primary: true } : {}),
+      ...(prior?.source ? { source: prior.source } : {}),
+    };
+  });
+}
+
 const contact = z
   .object({
     name: z.string().min(1).max(200),
@@ -280,7 +311,9 @@ export const updatePartner = defineTool({
           changes.organizationId !== undefined
             ? changes.organizationId
             : partner.organizationId,
-        contacts: changes.contacts ?? partner.contacts,
+        contacts: changes.contacts
+          ? keepContactIdentity(changes.contacts, partner.contacts)
+          : partner.contacts,
         nextStep: changes.nextStep ?? partner.nextStep,
         nextStepDue:
           changes.nextStepDue !== undefined

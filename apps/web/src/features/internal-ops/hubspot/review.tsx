@@ -340,20 +340,22 @@ export function HandoffReview({
     const destinationChanged =
       seenDestination.current !== (destination?.id ?? null);
     seenDestination.current = destination?.id ?? null;
-    setDecisions((current) => {
-      const next = { ...current };
-      for (const field of hubspotPartnerFields) {
-        const key = [
-          drift(field),
-          destination?.[field] ?? "",
-          source.proposed[field],
-        ].join("\u0000");
-        if (destinationChanged || seenFields.current[field] !== key)
-          next[field] = startingDecision(field);
-        seenFields.current[field] = key;
-      }
-      return next;
-    });
+    // Worked out here, outside the state update, so the update stays pure.
+    const resets: Partial<
+      Record<HubSpotPartnerField, HubSpotFieldDecision | null>
+    > = {};
+    for (const field of hubspotPartnerFields) {
+      const key = [
+        drift(field),
+        destination?.[field] ?? "",
+        source.proposed[field],
+      ].join("\u0000");
+      if (destinationChanged || seenFields.current[field] !== key)
+        resets[field] = startingDecision(field);
+      seenFields.current[field] = key;
+    }
+    if (Object.keys(resets).length)
+      setDecisions((current) => ({ ...current, ...resets }));
     if (destinationChanged) {
       setSubmitted(false);
       setLinkedFirst(null);
@@ -388,6 +390,45 @@ export function HandoffReview({
           (contact) => contact.id && !contact.source && contact.email === email,
         )
       : undefined;
+
+  // When the partner's contacts change under the review, a confirmed match
+  // or a primary that no longer points at the same person is cleared, so
+  // the person decides again instead of linking someone else.
+  const contactsKey = existingContacts
+    .map((contact) => `${contact.id ?? ""}:${contact.email}`)
+    .join("|");
+  const seenContacts = useRef(contactsKey);
+  useEffect(() => {
+    if (seenContacts.current === contactsKey) return;
+    seenContacts.current = contactsKey;
+    const stale: string[] = [];
+    for (const [hubspotId, choice] of Object.entries(contacts)) {
+      const person = source.contacts.find((c) => c.id === hubspotId);
+      if (
+        choice.match &&
+        choice.match !== "new" &&
+        choice.match !== (person ? emailMatch(person.email)?.id : undefined)
+      )
+        stale.push(hubspotId);
+    }
+    if (stale.length)
+      setContacts((current) => {
+        const next = { ...current };
+        for (const id of stale) {
+          const choice = next[id];
+          if (choice) next[id] = { ...choice, match: "" };
+        }
+        return next;
+      });
+    if (
+      primary.startsWith("commerce:") &&
+      !existingContacts.some(
+        (contact) => `commerce:${contact.id ?? ""}` === primary,
+      )
+    )
+      setPrimary("");
+    // `contactsKey` captures the contacts the choices refer to.
+  }, [contactsKey]);
 
   const rawInput = () => {
     operationId.current ??= crypto.randomUUID();
@@ -579,7 +620,11 @@ export function HandoffReview({
         setFailure(result.code);
         // Someone changed the partner: load their change and keep every
         // choice, so the comparison shows it and asks again where needed.
-        if (result.code === "PARTNER_VERSION_CONFLICT") router.refresh();
+        if (
+          result.code === "PARTNER_VERSION_CONFLICT" ||
+          result.code === "HUBSPOT_SIMILAR_PARTNER"
+        )
+          router.refresh();
         requestAnimationFrame(() => summaryRef.current?.focus());
         return;
       }

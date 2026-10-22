@@ -763,6 +763,9 @@ export const hubspotMessages = defineStaffMessages({
   "operations.hubspot.state.noPipelinesBody": {
     en: "An administrator chooses which deal pipelines staff may see on the HubSpot connection page.",
   },
+  "operations.hubspot.error.HUBSPOT_SIMILAR_PARTNER": {
+    en: "A partner that looks like this company was added meanwhile. It is now listed above; inspect it, then create the partner.",
+  },
   "operations.hubspot.error.HUBSPOT_NO_PIPELINES": {
     en: "No HubSpot pipeline is approved for staff to see.",
   },

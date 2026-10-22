@@ -805,6 +805,23 @@ describe("review findings stay fixed", () => {
       id: typed[0]?.id,
       matchedExisting: true,
     });
+    // A list that shifted under the review cannot pair Ada with someone else.
+    const shifted = withPartnerContactIds(partnerId, [
+      { name: "Bob", email: "bob@northstar.example", role: "" },
+    ]);
+    expect(() =>
+      buildHubSpotPlan({
+        source,
+        handoff: existing(
+          {},
+          { contacts: [{ hubspotId: "5001", matchContactId: shifted[0]?.id }] },
+        ),
+        destination: partner({ contacts: shifted }),
+        history: {},
+        ownerName: null,
+        newId: () => operationId,
+      }),
+    ).toThrow("HUBSPOT_CONTACT_NOT_FOUND");
     const [first] = typed;
     if (!first) throw new Error("fixture contact missing");
     const linked = [

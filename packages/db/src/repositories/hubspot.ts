@@ -56,7 +56,8 @@ const connectionView = (row: ConnectionRow): HubSpotConnectionRecord => ({
   approvedById: row.approvedById,
   approvedByName: row.approvedByName,
   approvedAt: row.approvedAt.toISOString(),
-  scope: row.scope,
+  // Rows written before pipelines were part of the scope read as none.
+  scope: { ...row.scope, pipelines: row.scope.pipelines ?? [] },
   defaultPipelineId: row.defaultPipelineId,
   ownerMappings: row.ownerMappings,
   updatedAt: row.updatedAt.toISOString(),
