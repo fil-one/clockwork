@@ -950,6 +950,11 @@ async function main() {
   );
   const allowedCacheRoots = [
     path.join(artifactRoot, ".isolated-cache"),
+    // Fresh CI machines may share a relative archive path without sharing a
+    // filesystem. Local parallel worktrees keep their unique namespaces.
+    ...(useSharedWorkspace
+      ? [path.resolve(".artifacts", "release-cache", "ci")]
+      : []),
     path.resolve(
       ".artifacts",
       "release-cache",

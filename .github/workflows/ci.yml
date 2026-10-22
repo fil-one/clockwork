@@ -114,10 +114,11 @@ jobs:
         ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
       CLOCKWORK_RELEASE_ARTIFACT_ROOT: .artifacts/release-ci
       CLOCKWORK_RELEASE_PORT_BASE: ${{ matrix.port }}
-      CLOCKWORK_RELEASE_CACHE_ROOT: .artifacts/release-cache/${{ matrix.shard }}
+      # Separate machines provide isolation. A stable relative path lets
+      # actions/cache restore the same archive into every machine of its kind.
+      CLOCKWORK_RELEASE_CACHE_ROOT: .artifacts/release-cache/ci
       CLOCKWORK_RELEASE_SHARD: ${{ matrix.shard }}
-      PLAYWRIGHT_BROWSERS_PATH:
-        .artifacts/release-cache/${{ matrix.shard }}/playwright-browsers
+      PLAYWRIGHT_BROWSERS_PATH: .artifacts/release-cache/ci/playwright-browsers
       LOCAL_DB_HOST: 127.0.0.1
       LOCAL_DB_PASSWORD: postgres
     steps:
@@ -159,17 +160,19 @@ jobs:
             echo "GIT_CONFIG_NOSYSTEM=1"
           } >> "$GITHUB_ENV"
       # Reuse only downloaded package content. Installation, tests and builds
-      # still run; each shard owns and removes its restored store. Only main's
-      # static shard writes this cache, before the release runner cleans it up.
+      # still run; each shard owns and removes its restored store. Main writes
+      # one host cache and one container cache (their compression tools differ)
+      # before the release runner cleans up the stores.
       - name: Restore package downloads
         id: package-cache
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.CLOCKWORK_RELEASE_CACHE_ROOT }}/pnpm-store
           key:
-            packages-v1-${{ runner.os }}-${{ runner.arch
-            }}-node24.18.1-pnpm10.34.5-${{ hashFiles('pnpm-lock.yaml',
-            'pnpm-workspace.yaml', '.npmrc', 'patches/**') }}
+            packages-v1-${{ matrix.browser_image && 'browser' || 'host' }}-${{
+            runner.os }}-${{ runner.arch }}-node24.18.1-pnpm10.34.5-${{
+            hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', '.npmrc',
+            'patches/**') }}
       - name: Frozen install with package integrity verification
         run: |
           pnpm install --frozen-lockfile --prefer-offline --verify-store-integrity --store-dir "$CLOCKWORK_RELEASE_CACHE_ROOT/pnpm-store"
@@ -177,8 +180,8 @@ jobs:
       - name: Save verified package downloads
         if:
           github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-          matrix.shard == 'static' && steps.package-cache.outputs.cache-hit !=
-          'true'
+          (matrix.shard == 'static' || matrix.shard == 'ui-1') &&
+          steps.package-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: ${{ env.CLOCKWORK_RELEASE_CACHE_ROOT }}/pnpm-store

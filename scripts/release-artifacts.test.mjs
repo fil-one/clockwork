@@ -1204,6 +1204,11 @@ test("reused package downloads still require a frozen verified installation", ()
   assert.match(save, /github\.event_name == 'push'/);
   assert.match(save, /github\.ref == 'refs\/heads\/main'/);
   assert.match(save, /matrix\.shard == 'static'/);
+  assert.match(save, /matrix\.shard == 'ui-1'/);
+  assert.match(
+    checkedInWorkflow,
+    /CLOCKWORK_RELEASE_CACHE_ROOT: \.artifacts\/release-cache\/ci/,
+  );
   assert.ok(
     checkedInWorkflow.indexOf(
       "Frozen install with package integrity verification",

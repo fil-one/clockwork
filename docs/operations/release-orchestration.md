@@ -29,7 +29,10 @@ longest static step (178 of 449 seconds on main, 2026-10-05).
 CI restores package downloads into each shard's disposable store using an exact
 OS, architecture, Node, pnpm, lockfile, workspace configuration and patch key.
 Every shard still performs a frozen install with store-integrity verification.
-Only the static shard on a push to main saves the package cache, before cleanup.
+Only the static and first UI shards on a push to main save package caches,
+before cleanup. Host and browser-container caches have separate keys because
+their archive compression tools differ. Every machine uses the same relative
+store path so the cache archive can actually be shared within its runner type.
 Installed dependencies, test results, application builds and authentication
 state are not restored from that cache. Turbo result caching remains disabled.
 
