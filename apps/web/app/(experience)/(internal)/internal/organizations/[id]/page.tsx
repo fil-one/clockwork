@@ -1,3 +1,4 @@
+import { AccountDocumentsSection } from "@/src/features/internal-ops/account-documents/section";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
@@ -60,6 +61,9 @@ async function Page({
       organization={organization}
       created={query.created === "1"}
     >
+      <AccountDocumentsSection
+        target={{ type: "account", id: organization.accountId }}
+      />
       <OrganizationInvites
         organizationId={organization.organizationId}
         side={organization.side}

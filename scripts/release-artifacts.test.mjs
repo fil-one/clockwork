@@ -1213,13 +1213,22 @@ test("raises the CI heap ceiling above the measured type-aware lint peak", () =>
   );
 });
 
-test("pulls the database shard images from the mirrored registry", () => {
-  // The Supabase CLI defaults to public.ecr.aws, whose anonymous pull rate is
-  // shared across runners and answers "toomanyrequests: Rate exceeded". The
-  // ghcr.io mirror serves byte-identical manifests without a credential, so no
-  // repository secret is involved.
-  assert.match(
+test("preserves registry fallback and authenticates database image pulls", () => {
+  // Both ECR and GHCR can hit shared rate limits. The pinned CLI falls back
+  // between mirrors only without an override; docker pull uses this login.
+  assert.doesNotMatch(
     checkedInWorkflow,
-    /SUPABASE_INTERNAL_IMAGE_REGISTRY:\s*ghcr\.io/,
+    /^\s+SUPABASE_INTERNAL_IMAGE_REGISTRY:/m,
+  );
+  assert.match(checkedInWorkflow, /packages: read/);
+  const login = checkedInWorkflow.indexOf("uses: docker/login-action@v3");
+  const database = checkedInWorkflow.indexOf("name: Start freshly migrated");
+  assert.ok(
+    login > 0 && login < database,
+    "login must precede database startup",
+  );
+  assert.match(
+    checkedInWorkflow.slice(login, database),
+    /registry: ghcr\.io[\s\S]*password: \$\{\{ secrets\.GITHUB_TOKEN \}\}/,
   );
 });

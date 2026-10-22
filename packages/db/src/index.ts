@@ -22,3 +22,5 @@ export * from "./repositories/pricing-scenarios";
 export * from "./repositories/partners";
 export * from "./repositories/staff-notifications";
 export * from "./repositories/access-tokens";
+
+export * from "./repositories/account-documents";

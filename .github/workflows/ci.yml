@@ -60,6 +60,9 @@ jobs:
   release-shards:
     name: Release / ${{ matrix.shard }}
     runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: read
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -108,13 +111,6 @@ jobs:
         .artifacts/release-cache/${{ matrix.shard }}/playwright-browsers
       LOCAL_DB_HOST: 127.0.0.1
       LOCAL_DB_PASSWORD: postgres
-      # `supabase start` pulls nine service images, and the CLI's default
-      # registry is public.ecr.aws, whose anonymous pull rate is shared by
-      # every runner behind the same egress address — it answers
-      # "toomanyrequests: Rate exceeded" and the database shards never start.
-      # The CLI mirrors the identical tags on ghcr.io, which needs no registry
-      # credential and so no repository secret.
-      SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
     steps:
       - name: Start release budget clock
         run: echo "CLOCKWORK_RELEASE_STARTED_AT=$(date +%s000)" >> "$GITHUB_ENV"
@@ -191,6 +187,18 @@ jobs:
           fi
           echo "CLOCKWORK_UPGRADE_REPLAY=$replay" >> "$GITHUB_ENV"
           echo "Populated upgrade replay: $replay"
+      # The pinned CLI falls back from ECR to GHCR to Docker Hub when an image
+      # pull fails. Do not force SUPABASE_INTERNAL_IMAGE_REGISTRY: doing so
+      # disables that fallback, and even authenticated GHCR can be throttled.
+      # Give its GHCR fallback the job's read-only token, without a long-lived
+      # repository credential.
+      - name: Authenticate database image pulls
+        if: matrix.shard == 'integration' || matrix.shard == 'proof'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Start freshly migrated and seeded database
         if: matrix.shard == 'integration' || matrix.shard == 'proof'
         run: |

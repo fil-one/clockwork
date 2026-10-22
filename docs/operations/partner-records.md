@@ -60,3 +60,30 @@ registration is created and no partner user is invited from a staff record. When
 a partner later gets a Commerce organization, link it on the record; the terms
 stay a staff record until someone decides how they map onto the engine's
 commission model.
+
+## Documents attached outside Commerce
+
+Open a saved partner and use **Documents → Choose PDF → Attach document**.
+Record a title, choose **MNDA / NDA**, **Agreement** or **Other document**, and
+optionally enter the signing date. PDFs may be up to 25 MB. Staff can view or
+download each file with its original filename, uploader and upload time.
+
+The same section appears on organization and account detail pages. Those two
+pages use the account's ID and show the same attachments. A standalone partner's
+files stay on that partner record; linking an organization does not move files
+or expand their audience. Attachments are staff-only and do not send signature
+requests, mark an agreement executed, or satisfy onboarding approval gates.
+
+Reads require the record's existing permission (`sales:read` for partners,
+`operations:read` for accounts); uploads also require `contract:write`. Every
+request checks an actual staff session, MFA, and absence of impersonation or an
+assisted session. Demo identities never read or write real attachments.
+
+Migration 001482 adds `commerce_account_documents`, with exactly one partner or
+account foreign key per row. The existing document-store interface retains the
+PDF using the `account_attachment` purpose. Rows and original details are
+append-only for the service role; attached bytes are protected from cleanup.
+Uploads and downloads append `account.document_attached` and
+`account.document_downloaded` audit/outbox events. Retry IDs reuse the original
+result only for identical content, metadata, target and uploader; an identical
+PDF already on the same record is reported as a duplicate.

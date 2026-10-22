@@ -50,3 +50,6 @@ export function uploadContractFile(
 export function postCollateral<T>(url: string, form: FormData) {
   return post<T>(url, form);
 }
+
+/** Shared multipart upload for staff document forms. */
+export { post as postDocumentForm };

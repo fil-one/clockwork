@@ -1330,3 +1330,83 @@ test("@internal creates an access token, calls MCP with it and revokes it", asyn
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations).toEqual([]);
 });
+
+test("@internal attaches external documents to partners and accounts", async ({
+  page,
+}) => {
+  const name = `Attachment proof ${Date.now()}`;
+  const pdf = Buffer.from(`%PDF-1.7\nExternal MNDA ${name}\n%%EOF`);
+  await page.goto("/internal/partners/new");
+  await page.getByLabel(/^Partner name/u).fill(name);
+  await page.getByRole("button", { name: "Save partner" }).click();
+  await expect(page).toHaveURL(/\/internal\/partners\/[0-9a-f-]{36}$/u, {
+    timeout: 15_000,
+  });
+  const partnerUrl = page.url();
+  async function attach(title: string) {
+    await expect(page.getByLabel("Choose PDF")).toBeEnabled();
+    await page.getByLabel("Choose PDF").setInputFiles({
+      name: "External MNDA.pdf",
+      mimeType: "application/pdf",
+      buffer: pdf,
+    });
+    await page.getByLabel("Document title", { exact: true }).fill(title);
+    await page.getByLabel("Signed on (optional)").fill("2026-10-10");
+    await page
+      .getByRole("button", { name: "Attach document", exact: true })
+      .click();
+    await expect(page.getByText(`“${title}” is attached.`)).toBeVisible();
+    await page.reload();
+    const link = page.getByRole("link", {
+      name: `Download ${title}`,
+      exact: true,
+    });
+    await expect(link).toBeVisible();
+    const href = await link.getAttribute("href");
+    if (!href) throw new Error("The saved attachment has no download link");
+    const response = await page.request.get(href);
+    expect(response.status()).toBe(200);
+    expect(await response.body()).toEqual(pdf);
+    return href;
+  }
+  const partnerFile = await attach("Signed external partner MNDA");
+  const documents = page.getByRole("region", {
+    name: "Documents",
+    exact: true,
+  });
+  await expect(documents.getByText("Uploaded externally")).toBeVisible();
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations).toEqual([]);
+  await documents.screenshot({
+    path: test.info().outputPath("partner-documents-desktop.png"),
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await documents.screenshot({
+    path: test.info().outputPath("partner-documents-mobile.png"),
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 720 });
+
+  // The organization and account views share the account, not the partner ID.
+  await page.goto(
+    "/internal/organizations/30000000-0000-4000-8000-000000000001",
+  );
+  const accountFile = await attach("Signed external customer MNDA");
+  expect(accountFile).toContain(`/account/${customerAccount}/`);
+  const mismatched = partnerFile.replace(
+    /\/partner\/[^/]+\//u,
+    `/account/${customerAccount}/`,
+  );
+  expect((await page.request.get(mismatched)).status()).toBe(404);
+  await page.goto(partnerUrl);
+  await expect(
+    page.getByRole("link", { name: "Download Signed external partner MNDA" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Download Signed external customer MNDA" }),
+  ).toHaveCount(0);
+});

@@ -1,3 +1,4 @@
+import { AccountDocumentsSection } from "@/src/features/internal-ops/account-documents/section";
 import type { Metadata } from "next";
 import { cache } from "react";
 
@@ -45,6 +46,11 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
     <PartnerDetail
       t={t}
       locale={locale}
+      documents={
+        <AccountDocumentsSection
+          target={{ type: "partner", id: loaded.partner.id }}
+        />
+      }
       partner={loaded.partner}
       deals={loaded.deals}
       activity={loaded.activity}

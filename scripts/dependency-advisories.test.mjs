@@ -14,10 +14,6 @@ const workspaceRoot = fileURLToPath(new URL("../", import.meta.url));
 // advisory in the manifest without recording why fails the suite.
 const acceptedAdvisories = new Map([
   [
-    "GHSA-6qxp-vccf-f47h",
-    "@modelcontextprotocol/sdk OAuth client could send stored credentials to an authorization server the MCP server names; fixed in 1.31.0, which is not yet two weeks old (released 2026-09-28). The advisory states MCP servers built with the SDK are not affected. Commerce uses only the SDK's server and web-standard transport for /api/mcp and never imports its client or OAuth code; a check below fails if any source file does. Upgrade to 1.31.0 or later and drop this entry once it is two weeks old.",
-  ],
-  [
     "GHSA-vfj7-8cjw-p6xm",
     "braces deeply nested glob stack exhaustion: no published fix through 3.0.3. Reached only through root development dependencies (Netlify CLI and Secretlint via micromatch/fast-glob). Commerce accepts no untrusted glob patterns through those tools, and the package is absent from the production dependency graph. A regression check below fails if it becomes a production dependency.",
   ],
@@ -61,8 +57,12 @@ const pinnedTransitives = [
   { name: "smol-toml", minimum: "1.9.0", override: "smol-toml@<1.9.0" },
 ];
 
-// Direct catalog dependency, upgraded rather than overridden.
-const catalogFloors = [{ name: "hono", minimum: "4.13.7" }];
+// Direct catalog dependencies. Vite also has an override so test tooling's
+// transitive copy cannot retain a vulnerable version.
+const catalogFloors = [
+  { name: "hono", minimum: "4.13.7" },
+  { name: "vite", minimum: "8.2.4" },
+];
 
 function compareSemver(left, right) {
   const parse = (value) => value.split(".").map((part) => Number(part));
@@ -150,40 +150,12 @@ test("the unpatched braces package stays outside production dependencies", async
   );
 });
 
-test("the MCP SDK's client and OAuth code stay unused while its advisory is accepted", async () => {
-  const { stdout } = await execFileAsync(
-    "git",
-    [
-      "grep",
-      "-l",
-      "-E",
-      "@modelcontextprotocol/sdk/(client|server/auth|shared/auth)",
-      "--",
-      "apps",
-      "packages",
-    ],
-    { cwd: workspaceRoot },
-  ).catch((error) => {
-    // git grep exits 1 when nothing matches.
-    if (error.code === 1) return { stdout: "" };
-    throw error;
-  });
-  assert.equal(
-    stdout.trim(),
-    "",
-    "Re-review GHSA-6qxp-vccf-f47h: Commerce must not use the MCP SDK client or OAuth code",
-  );
-});
-
-test("the MCP SDK advisory acceptance expires on 2026-10-26", async () => {
+test("the MCP SDK resolves above the patched server-security floor", async () => {
   const versions = await resolvedVersions("@modelcontextprotocol/sdk");
   assert.ok(versions.length > 0, "@modelcontextprotocol/sdk is missing");
-  const unpatched = versions.filter(
-    (version) => compareSemver(version, "1.31.0") < 0,
-  );
-  if (unpatched.length === 0) return;
-  assert.ok(
-    Date.now() < Date.parse("2026-10-27T00:00:00Z"),
-    `@modelcontextprotocol/sdk@${unpatched.join(", ")} is still below 1.31.0: upgrade it (1.31.0 is two weeks old from 2026-10-12) and drop GHSA-6qxp-vccf-f47h`,
-  );
+  for (const version of versions)
+    assert.ok(
+      compareSemver(version, "1.32.0") >= 0,
+      `@modelcontextprotocol/sdk@${version} is below the patched floor 1.32.0`,
+    );
 });

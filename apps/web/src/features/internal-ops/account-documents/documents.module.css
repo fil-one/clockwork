@@ -1,0 +1,41 @@
+.form {
+  display: grid;
+  gap: var(--cw-space-3);
+  margin-top: var(--cw-space-4);
+}
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--cw-space-3);
+}
+.fileRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--cw-space-3);
+}
+.fileRow > label {
+  flex: 1;
+  min-width: 0;
+}
+.filename {
+  overflow-wrap: anywhere;
+}
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cw-space-2);
+}
+@media (max-width: 48rem) {
+  .fileRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fileRow > button {
+    justify-self: start;
+  }
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
