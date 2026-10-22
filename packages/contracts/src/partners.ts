@@ -161,16 +161,40 @@ const optionalId = z
   .transform((value) => (value ? value : null))
   .default(null);
 
+/**
+ * Where a contact came from. A contact brought in from HubSpot keeps its
+ * portal and HubSpot ID and the association labels it had, so a later import
+ * matches it by identity rather than by name or email.
+ */
+export const PartnerContactSourceSchema = z
+  .object({
+    provider: z.literal("hubspot"),
+    portalId: z.string().regex(/^\d{1,20}$/),
+    objectId: z.string().regex(/^\d{1,20}$/),
+    labels: z.array(z.string().trim().max(120)).max(20).default([]),
+  })
+  .strict();
+export type PartnerContactSource = z.infer<typeof PartnerContactSourceSchema>;
+
 export const PartnerContactSchema = z
   .object({
+    /** Stable across edits; absent on contacts typed before it existed. */
+    id: z.guid().optional(),
     name: line(200),
     email: z
       .union([z.email().max(320), z.literal("")])
       .transform((value) => value.trim().toLowerCase())
       .default(""),
     role: optionalLine(200),
+    /** Chosen by a person, never inferred from order or a CRM label. */
+    primary: z.boolean().optional(),
+    source: PartnerContactSourceSchema.optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (contact) => !contact.source || contact.id !== undefined,
+    "source_without_id",
+  );
 export type PartnerContact = z.infer<typeof PartnerContactSchema>;
 
 /** One free-form term: what was agreed, in the words of the deal. */
@@ -255,7 +279,17 @@ export const PartnerInputSchema = z
     contacts: z
       .array(PartnerContactSchema)
       .max(partnerContactLimit)
-      .default([]),
+      .default([])
+      .refine(
+        (contacts) => contacts.filter((contact) => contact.primary).length <= 1,
+        "one_primary",
+      )
+      .refine((contacts) => {
+        const ids = contacts.flatMap((contact) =>
+          contact.id ? [contact.id] : [],
+        );
+        return new Set(ids).size === ids.length;
+      }, "duplicate_contact"),
     nextStep: optionalLine(500),
     nextStepDue: optionalDate,
     notes: text(8000),
@@ -442,6 +476,8 @@ export interface PartnerActivity {
   /** Field names changed, with the values before and after. */
   changes: Record<string, { from: unknown; to: unknown }>;
   occurredAt: string;
+  /** The change came from a reviewed HubSpot import. */
+  source?: "hubspot";
 }
 
 /** A partner whose next step is due on or before a day, for the home page

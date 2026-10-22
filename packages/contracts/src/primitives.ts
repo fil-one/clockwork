@@ -65,6 +65,8 @@ export const entityNames = [
   "partner_deal",
   "staff_notification_settings",
   "access_token",
+  "hubspot_connection",
+  "hubspot_import",
 ] as const;
 
 export type EntityName = (typeof entityNames)[number];
