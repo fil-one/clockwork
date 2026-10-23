@@ -170,4 +170,79 @@ describe("staff account attachments", () => {
     });
     expect((await repo.read(account, file.id, actor)).file.id).toBe(file.id);
   });
+
+  it("removes a mistaken attachment with its reason, keeps the evidence, and allows a corrected copy", async () => {
+    const pdf = upload();
+    const file = await repo.add(account, input(), pdf, actor);
+    await expect(
+      repo.remove(
+        account,
+        { id: file.id, expectedVersion: 2, reason: "Wrong record" },
+        actor,
+      ),
+    ).rejects.toThrow("ATTACHMENT_VERSION_CONFLICT");
+    const removal = {
+      id: file.id,
+      expectedVersion: file.version,
+      reason: "Attached to the wrong record",
+    };
+    const removed = await repo.remove(account, removal, actor);
+    expect(removed).toMatchObject({
+      id: file.id,
+      version: 2,
+      removedByName: actor.display,
+      removalReason: "Attached to the wrong record",
+    });
+    // A retry of the same removal returns it; it is not removed twice.
+    await expect(repo.remove(account, removal, actor)).resolves.toMatchObject({
+      version: 2,
+    });
+    expect((await repo.list(account)).map((row) => row.id)).not.toContain(
+      file.id,
+    );
+    expect((await repo.removed(account)).map((row) => row.id)).toContain(
+      file.id,
+    );
+    await expect(repo.read(account, file.id, actor)).rejects.toThrow(
+      "ATTACHMENT_NOT_FOUND",
+    );
+    await expect(
+      repo.remove(otherAccount, { ...removal, expectedVersion: 2 }, actor),
+    ).rejects.toThrow("ATTACHMENT_NOT_FOUND");
+    // The bytes and the original row stay for audit.
+    const [kept] = await client<{ count: number }[]>`
+      select count(*)::int as count from commerce_account_documents d
+      join commerce_stored_documents s on s.id::text = d.storage_key
+      where d.id = ${file.id}`;
+    expect(kept?.count).toBe(1);
+    // The same PDF can be attached again, and then the old copy cannot be
+    // restored over it.
+    const again = await repo.add(account, input(), pdf, actor);
+    await expect(
+      repo.restore(account, { id: file.id, expectedVersion: 2 }, actor),
+    ).rejects.toThrow("ATTACHMENT_ALREADY_EXISTS");
+    await repo.remove(
+      account,
+      { id: again.id, expectedVersion: again.version, reason: "Duplicate" },
+      actor,
+    );
+    const restored = await repo.restore(
+      account,
+      { id: file.id, expectedVersion: 2 },
+      actor,
+    );
+    expect(restored).toMatchObject({ id: file.id, version: 3 });
+    expect((await repo.read(account, file.id, actor)).bytes).toEqual(pdf.bytes);
+    const events = await client<
+      { event_type: string; after: { reason?: string } }[]
+    >`
+      select event_type, after from audit_events
+      where aggregate_id = ${file.id} order by aggregate_version`;
+    expect(events.map((event) => event.event_type)).toEqual([
+      "account.document_attached",
+      "account.document_removed",
+      "account.document_restored",
+    ]);
+    expect(events[1]?.after.reason).toBe("Attached to the wrong record");
+  });
 });

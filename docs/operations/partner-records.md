@@ -95,3 +95,23 @@ Uploads and downloads append `account.document_attached` and
 `account.document_downloaded` audit/outbox events. Retry IDs reuse the original
 result only for identical content, metadata, target and uploader; an identical
 PDF already on the same record is reported as a duplicate.
+
+### Removing a document
+
+A document attached by mistake, to the wrong record, or superseded by a
+corrected copy can be removed by anyone who may attach documents to that record:
+**Remove** on its row, give the reason, then **Remove document**. The notice
+offers **Undo**, and **Removed documents** at the foot of the section lists each
+removal with who made it and why, with **Restore**.
+
+Removal is an audited state, not an erasure (migration 001484). The row, its
+original details and the retained bytes stay; the service role may change only
+the removal columns, and a trigger refuses any other change. A removed document
+is no longer listed, viewed or downloaded from the record, and no longer counts
+as a duplicate, so the corrected or same PDF can be attached again. Restoring is
+refused while an identical PDF is on the record. Each change advances the
+document's version, so a stale removal or restore is refused with a reload
+message. Removals and restores append `account.document_removed` and
+`account.document_restored` events with the reason. Permanently purging a file's
+bytes is not offered here; it remains a support operation under the retention
+rules.

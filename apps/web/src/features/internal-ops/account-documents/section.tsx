@@ -19,11 +19,16 @@ export async function AccountDocumentsSection({
     );
   try {
     const session = await accountDocumentStaff(target);
-    const files = await accountDocumentRepository().list(target);
+    const repository = accountDocumentRepository();
+    const [files, removed] = await Promise.all([
+      repository.list(target),
+      repository.removed(target),
+    ]);
     return (
       <AccountDocuments
         target={target}
         files={files}
+        removed={removed}
         canWrite={sessionHas(session, "contract:write")}
       />
     );

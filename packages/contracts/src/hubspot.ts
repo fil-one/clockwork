@@ -932,6 +932,8 @@ export interface HubSpotImportItem {
   attachmentId: string | null;
   /** The identical PDF already on the record, for a duplicate. */
   existingAttachment: { id: string; title: string } | null;
+  /** The attached document was removed from the partner afterwards. */
+  attachmentRemoved: boolean;
   excludedReason: string | null;
   attempts: number;
   updatedAt: string;
@@ -1010,6 +1012,7 @@ export const hubspotErrorCodes = [
   "HUBSPOT_CONNECTION_VERSION_CONFLICT",
   "HUBSPOT_NO_PIPELINES",
   "HUBSPOT_SIMILAR_PARTNER",
+  "HUBSPOT_DOCUMENT_REMOVED",
 ] as const;
 export type HubSpotErrorCode = (typeof hubspotErrorCodes)[number];
 

@@ -431,6 +431,83 @@ describe("HubSpot handoff", () => {
     ).resolves.toBeNull();
   });
 
+  it("never reuses or counts a document that was removed from the partner", async () => {
+    const companyId = "910007";
+    const name = `Removed copy ${tag}`;
+    const plan = newPlan(name, {
+      documents: ["8201", "8202"].map((fileId) => ({
+        fileId,
+        noteId: "6001",
+        fileName: `${fileId}.pdf`,
+        title: `File ${fileId}`,
+        kind: "other" as const,
+        size: 100,
+        updatedAt: null,
+      })),
+    });
+    await repo.commit(
+      {
+        plan,
+        snapshot: snapshot(companyId, name),
+        requestDigest: digest(10),
+        connection,
+        companyId,
+        dealId: null,
+      },
+      seller,
+    );
+    const partnerId = plan.destination.partnerId;
+    const target = { type: "partner" as const, id: partnerId };
+    const [first, second] = (await repo.import(partnerId, plan.operationId))
+      .items;
+    if (!first || !second) throw new Error("items missing");
+    const bytes = Buffer.from(`%PDF-1.7\nremoved-${tag}\n%%EOF`);
+    const attachment = await documents.add(
+      target,
+      { id: first.id, title: first.title, kind: "other" },
+      { fileName: first.fileName, bytes },
+      seller,
+    );
+    await repo.recordItem(
+      partnerId,
+      plan.operationId,
+      first.id,
+      { status: "attached", attachmentId: attachment.id },
+      seller,
+    );
+    await repo.recordItem(
+      partnerId,
+      plan.operationId,
+      second.id,
+      { status: "duplicate", existingAttachmentId: attachment.id },
+      seller,
+    );
+    await documents.remove(
+      target,
+      { id: attachment.id, expectedVersion: 1, reason: "Wrong file" },
+      seller,
+    );
+    const record = await repo.import(partnerId, plan.operationId);
+    expect(record.items.find((i) => i.id === first.id)).toMatchObject({
+      status: "attached",
+      attachmentRemoved: true,
+    });
+    expect(record.items.find((i) => i.id === second.id)).toMatchObject({
+      status: "duplicate",
+      existingAttachment: null,
+    });
+    await expect(
+      repo.reuseExisting(partnerId, plan.operationId, second.id, seller),
+    ).rejects.toThrow("HUBSPOT_DOCUMENT_REMOVED");
+    const { createHash } = await import("node:crypto");
+    await expect(
+      repo.attachmentByHash(
+        partnerId,
+        createHash("sha256").update(bytes).digest("hex"),
+      ),
+    ).resolves.toBeNull();
+  });
+
   it("stops committing reviews read through a connection that changed", async () => {
     const companyId = "910006";
     const name = `Stale ${tag}`;

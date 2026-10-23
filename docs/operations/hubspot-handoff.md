@@ -111,7 +111,9 @@ A document that fails leaves the partner usable with the receipt saying
 retries only that item; a lost answer is recognised by the attachment ID and
 never attaches twice. **Exclude this item and finish** needs a reason and
 records an audited amendment; the receipt then says **Completed with 1 item
-excluded**. Attachments are append-only; an incorrect one goes to support.
+excluded**. An attachment brought in by mistake is removed under **Documents**
+(see [partner records](partner-records.md#removing-a-document)); the receipt
+then notes the removal.
 
 ## Pipeline
 
@@ -143,13 +145,18 @@ The connection page (**Owner console → Integrations → HubSpot connection**,
 `/internal/owner/hubspot`) shows this checklist with where the environment
 stands, and administrators see **Set up HubSpot** on Partners until it is done.
 
-1. **Create a read-only private app in HubSpot.** A HubSpot super admin opens
-   Settings → Integrations → Private apps → Create a private app, names it Fil
-   One Commerce and grants only: `crm.objects.companies.read`,
-   `crm.objects.deals.read`, `crm.objects.contacts.read`,
-   `crm.objects.owners.read`, `crm.schemas.companies.read`,
-   `crm.schemas.deals.read`, `crm.schemas.contacts.read`, plus `files` to bring
-   PDFs across from notes. No write scopes. Copy the access token.
+1. **Create a read-only service key in HubSpot.** A HubSpot super admin (or a
+   user with Developer tools access) opens Development → Keys → Service keys →
+   Create service key, names it Fil One Commerce and adds only:
+   `crm.objects.companies.read`, `crm.objects.deals.read`,
+   `crm.objects.contacts.read`, `crm.objects.owners.read`,
+   `crm.schemas.companies.read`, `crm.schemas.deals.read`,
+   `crm.schemas.contacts.read`, plus `files` and `files.ui_hidden.read` to bring
+   PDFs across from notes (note attachments live in HubSpot's hidden file
+   folder). No write scopes. Copy the key. A legacy private-app token with the
+   same scopes works identically: both are sent as a bearer token, and Commerce
+   identifies the portal from the key itself. Rotate the key in HubSpot about
+   every six months, then update the secret and redeploy.
 2. **Add the token to the deployment.** In GitHub, fil-one/clockwork → Settings
    → Environments, add the secret `HUBSPOT_ACCESS_TOKEN` to `production` (and
    `staging` to try it there first). Then run **Actions → Deploy → Run

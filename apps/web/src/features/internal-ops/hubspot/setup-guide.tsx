@@ -7,8 +7,11 @@ import type { MessageId, Translator } from "@/src/i18n";
 import { hubspotPickerPath, pipelinePath } from "./model";
 import styles from "./hubspot.module.css";
 
-/** The read-only scopes the HubSpot private app needs, as HubSpot names them. */
-export const hubspotPrivateAppScopes = [
+/**
+ * The read-only scopes the HubSpot service key (or a legacy private app)
+ * needs, as HubSpot names them.
+ */
+export const hubspotReadScopes = [
   "crm.objects.companies.read",
   "crm.objects.deals.read",
   "crm.objects.contacts.read",
@@ -111,7 +114,7 @@ export function HubSpotSetupGuide({
             {t("operations.hubspot.setup.scopes")}
           </p>
           <ul className={styles.tags}>
-            {hubspotPrivateAppScopes.map((scope) => (
+            {hubspotReadScopes.map((scope) => (
               <li key={scope}>
                 <code>{scope}</code>
               </li>

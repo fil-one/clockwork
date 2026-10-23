@@ -27,6 +27,56 @@
   align-items: center;
   gap: var(--cw-space-2);
 }
+.notice:focus {
+  outline: none;
+}
+.notice:empty {
+  display: none;
+}
+/* The confirmation sits under the row it removes, across its full width. */
+.removal {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--cw-space-3);
+  margin-top: var(--cw-space-2);
+  padding: var(--cw-space-3);
+  border: 1px solid var(--cw-danger-border, var(--cw-border));
+  border-radius: var(--cw-radius-sm);
+  background: var(--cw-danger-soft, var(--cw-surface));
+}
+.removalText {
+  margin: 0;
+  color: var(--cw-ink);
+}
+.removalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cw-space-2);
+}
+.history {
+  margin-top: var(--cw-space-4);
+  border-top: 1px solid var(--cw-border);
+  padding-top: var(--cw-space-3);
+}
+.history > summary {
+  cursor: pointer;
+  color: var(--cw-muted);
+  font-weight: 600;
+}
+.historyList {
+  display: grid;
+  gap: var(--cw-space-3);
+  margin: var(--cw-space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.historyList > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cw-space-3);
+}
 @media (max-width: 48rem) {
   .fileRow {
     display: grid;
