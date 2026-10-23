@@ -34,6 +34,10 @@ import { removeAccountDocument, restoreAccountDocument } from "./actions";
 import styles from "../contracts/contracts.module.css";
 import attachmentStyles from "./documents.module.css";
 
+type Entry =
+  | { removed: false; doc: AccountDocumentRecord }
+  | { removed: true; doc: RemovedAccountDocumentRecord };
+
 const noSubscription = () => () => {};
 const onClient = () => true;
 const onServer = () => false;
@@ -82,35 +86,37 @@ export function AccountDocuments({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  // Keep the new row visible immediately, even while the server refresh runs.
-  const [added, setAdded] = useState<AccountDocumentRecord[]>([]);
-  // Removals and restores show at once too, ahead of the refresh.
-  const [removedNow, setRemovedNow] = useState<RemovedAccountDocumentRecord[]>(
-    [],
-  );
-  const [restoredNow, setRestoredNow] = useState<string[]>([]);
+  // What this page just did, shown at once ahead of the server refresh. Each
+  // entry gives way as soon as the server's copy is at least as new, so a
+  // change made elsewhere is never hidden by an older local one.
+  const [local, setLocal] = useState<Entry[]>([]);
+  const remember = (entry: Entry) =>
+    setLocal((entries) => [
+      entry,
+      ...entries.filter((item) => item.doc.id !== entry.doc.id),
+    ]);
   const [removing, setRemoving] = useState<{
     id: string;
     reason: string;
   } | null>(null);
   const [undo, setUndo] = useState<RemovedAccountDocumentRecord | null>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
-  const gone = new Set(
-    removedNow.filter((row) => !restoredNow.includes(row.id)).map((r) => r.id),
-  );
-  const visible = [
-    ...added.filter((row) => !files.some((f) => f.id === row.id)),
-    ...files,
-  ].filter((row) => !gone.has(row.id));
-  const history = [
-    ...removedNow,
-    ...removed.filter((row) => !removedNow.some((r) => r.id === row.id)),
-  ].filter(
-    (row) =>
-      !restoredNow.includes(row.id) ||
-      // Removed again after a restore on this page.
-      gone.has(row.id),
-  );
+  const merged = new Map<string, Entry>();
+  const consider = (entry: Entry) => {
+    const current = merged.get(entry.doc.id);
+    if (!current || current.doc.version < entry.doc.version)
+      merged.set(entry.doc.id, entry);
+  };
+  for (const doc of files) consider({ removed: false, doc });
+  for (const doc of removed) consider({ removed: true, doc });
+  for (const entry of local) consider(entry);
+  const entries = [...merged.values()];
+  const visible = entries
+    .flatMap((entry) => (entry.removed ? [] : [entry.doc]))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const history = entries
+    .flatMap((entry) => (entry.removed ? [entry.doc] : []))
+    .sort((a, b) => b.removedAt.localeCompare(a.removedAt));
   const announce = () =>
     requestAnimationFrame(() => noticeRef.current?.focus());
   async function remove(document: AccountDocumentRecord, reason: string) {
@@ -129,11 +135,7 @@ export function AccountDocuments({
         return;
       }
       setRemoving(null);
-      setRestoredNow((ids) => ids.filter((id) => id !== document.id));
-      setRemovedNow((rows) => [
-        result.value,
-        ...rows.filter((row) => row.id !== document.id),
-      ]);
+      remember({ removed: true, doc: result.value });
       setUndo(result.value);
       setNotice(
         t("operations.accountDocuments.removed", { name: document.title }),
@@ -159,12 +161,7 @@ export function AccountDocuments({
         return;
       }
       setUndo(null);
-      setRestoredNow((ids) => [...ids, document.id]);
-      setRemovedNow((rows) => rows.filter((row) => row.id !== document.id));
-      setAdded((rows) => [
-        result.value,
-        ...rows.filter((row) => row.id !== document.id),
-      ]);
+      remember({ removed: false, doc: result.value });
       setNotice(
         t("operations.accountDocuments.restored", { name: document.title }),
       );
@@ -179,6 +176,7 @@ export function AccountDocuments({
     requestId.current = null;
     setError(null);
     setNotice(null);
+    setUndo(null);
   }
   async function upload() {
     if (!file || uploading.current) return;
@@ -211,10 +209,8 @@ export function AccountDocuments({
         setError(result.code);
         return;
       }
-      setAdded((rows) => [
-        result.value,
-        ...rows.filter((row) => row.id !== result.value.id),
-      ]);
+      remember({ removed: false, doc: result.value });
+      setUndo(null);
       setNotice(
         t("operations.accountDocuments.uploaded", { name: result.value.title }),
       );
@@ -355,7 +351,9 @@ export function AccountDocuments({
                     size="small"
                     disabled={busy}
                     aria-expanded={removing?.id === document.id}
-                    aria-controls={`${heading}-remove-${document.id}`}
+                    {...(removing?.id === document.id
+                      ? { "aria-controls": `${heading}-remove-${document.id}` }
+                      : {})}
                     aria-label={t("operations.accountDocuments.removeNamed", {
                       name: document.title,
                     })}

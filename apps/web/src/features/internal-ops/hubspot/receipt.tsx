@@ -499,7 +499,9 @@ export function HubSpotReceipt({
                         >
                           {busy === item.id
                             ? t("operations.hubspot.receipt.attaching")
-                            : item.status === "pending" && item.attempts === 0
+                            : (item.status === "pending" &&
+                                  item.attempts === 0) ||
+                                item.status === "duplicate"
                               ? t("operations.hubspot.receipt.attach")
                               : t("operations.hubspot.receipt.retry")}
                         </Button>

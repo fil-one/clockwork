@@ -49,7 +49,7 @@ export const accountDocumentMessages = defineStaffMessages({
   "operations.accountDocuments.remove": { en: "Remove" },
   "operations.accountDocuments.removeNamed": { en: "Remove {name}" },
   "operations.accountDocuments.removeConfirm": {
-    en: "Remove “{name}” from this record? It will no longer be listed or openable here. Commerce keeps the file and this change in the record’s history, and you can restore it.",
+    en: "Remove “{name}” from this record? It will no longer be listed or openable here. Commerce keeps the file and this change in the record’s history; you can restore it unless the same PDF has been attached again.",
   },
   "operations.accountDocuments.removeReason": { en: "Why remove it?" },
   "operations.accountDocuments.removeReasonHelp": {

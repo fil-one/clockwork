@@ -191,3 +191,48 @@ it("explains a removal someone else already changed", async () => {
     screen.getByRole("link", { name: "Download External MNDA" }),
   ).toBeInTheDocument();
 });
+
+it("keeps the newest version when the server refresh lags behind an undo", async () => {
+  mocks.remove.mockResolvedValueOnce({ ok: true, value: removedFile });
+  mocks.restore.mockResolvedValue({ ok: true, value: { ...file, version: 3 } });
+  const { rerender } = render(
+    <AccountDocuments target={target} files={[file]} canWrite />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Remove External MNDA" }));
+  fireEvent.change(screen.getByLabelText("Why remove it?"), {
+    target: { value: "Wrong record" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Remove document" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Undo" }));
+  await screen.findByText("“External MNDA” is back on this record.");
+  // A refresh that only saw the removal arrives after the undo.
+  rerender(
+    <AccountDocuments
+      target={target}
+      files={[]}
+      removed={[removedFile]}
+      canWrite
+    />,
+  );
+  expect(
+    screen.getByRole("link", { name: "Download External MNDA" }),
+  ).toBeInTheDocument();
+  mocks.remove.mockResolvedValueOnce({
+    ok: true,
+    value: { ...removedFile, version: 4 },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Remove External MNDA" }));
+  fireEvent.change(screen.getByLabelText("Why remove it?"), {
+    target: { value: "Wrong record again" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Remove document" }));
+  await waitFor(() =>
+    expect(mocks.remove).toHaveBeenLastCalledWith(
+      expect.objectContaining({ expectedVersion: 3 }),
+    ),
+  );
+  // The undo offered for one removal never outlives the next action.
+  expect(
+    screen.queryByText("“External MNDA” is back on this record."),
+  ).toBeNull();
+});

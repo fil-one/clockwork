@@ -916,7 +916,7 @@ export class HubSpotRepository {
               isNull(accountDocuments.removedAt),
             ),
           );
-        if (!existing) throw new Error("HUBSPOT_DOCUMENT_UNAVAILABLE");
+        if (!existing) throw new Error("HUBSPOT_DOCUMENT_REMOVED");
         return {
           values: {
             status: "reused",

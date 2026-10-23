@@ -112,7 +112,7 @@ export class AccountDocumentRepository {
           .from(accountDocuments)
           .where(and(scope(target), isNotNull(accountDocuments.removedAt)))
           .orderBy(desc(accountDocuments.removedAt), desc(accountDocuments.id))
-          .limit(100)
+          .limit(500)
       ).map(removedView);
     });
   }
@@ -154,7 +154,9 @@ export class AccountDocumentRepository {
         .set({
           removedAt: new Date(),
           removedById: actor.id,
-          removedByName: actor.display ?? actor.id,
+          // The database keeps a 1–200 character name; an empty or very
+          // long profile name never blocks a removal.
+          removedByName: (actor.display ?? "").trim().slice(0, 200) || actor.id,
           removalReason: input.reason,
           version: row.version + 1,
         })
