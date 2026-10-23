@@ -6,6 +6,7 @@ import {
   within,
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { StrictMode } from "react";
 
 import {
   HubSpotHandoffInputSchema,
@@ -26,12 +27,15 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
   back: vi.fn(),
+  saveConnection: vi.fn(),
 }));
 vi.mock("./actions", () => ({
   commitHubSpotHandoff: mocks.commit,
   processHubSpotDocument: mocks.process,
   excludeHubSpotDocument: mocks.exclude,
   reuseHubSpotDocument: mocks.reuse,
+  saveHubSpotConnection: mocks.saveConnection,
+  disconnectHubSpot: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -52,6 +56,7 @@ import { translatorFor } from "@/src/i18n/catalogs";
 import { buildHubSpotPlan, changedReviewItems } from "./plan";
 import { HubSpotSetupGuide, hubspotSetupStage } from "./setup-guide";
 import { HubSpotReceipt } from "./receipt";
+import { HubSpotSettings } from "./settings";
 import { HandoffReview } from "./review";
 import {
   loadHandoffSource,
@@ -409,6 +414,63 @@ describe("the pipeline read model", () => {
       HubSpotPipelineQuerySchema.parse({ state: "closed", linked: "partly" }),
     );
     expect(closed.deals.map((d) => d.id)).toEqual(["7001"]);
+  });
+});
+
+describe("HubSpotSettings", () => {
+  it("toggles notes and files repeatedly and saves the selected scope", async () => {
+    const reader = new FakeHubSpotReader(now);
+    const pipelines = await reader.pipelines();
+    const pipeline = pipelines[0];
+    if (!pipeline) throw new Error("Fixture must include a pipeline");
+    mocks.saveConnection.mockResolvedValue({ ok: true });
+    render(
+      <StrictMode>
+        <HubSpotSettings
+          portal={await reader.portal()}
+          portalError={null}
+          active={null}
+          latest={null}
+          catalog={{ properties: [], pipelines, owners: [] }}
+          staff={[]}
+          canManage
+        />
+      </StrictMode>,
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: pipeline.label }));
+    for (const name of ["Notes", "Files attached to notes"]) {
+      const checkbox = screen.getByRole("checkbox", { name });
+      fireEvent.click(checkbox);
+      expect(checkbox).toBeChecked();
+      fireEvent.click(checkbox);
+      expect(checkbox).not.toBeChecked();
+      fireEvent.click(checkbox);
+      expect(checkbox).toBeChecked();
+    }
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: "I approve this audience and data scope",
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Activate connection" }),
+    );
+    await waitFor(() =>
+      expect(mocks.saveConnection).toHaveBeenCalledWith({
+        portalId: "4410",
+        audienceAccepted: true,
+        defaultPipelineId: "",
+        ownerMappings: [],
+        scope: {
+          company: [],
+          deal: [],
+          contact: [],
+          pipelines: [pipeline.id],
+          notes: true,
+          files: true,
+        },
+      }),
+    );
   });
 });
 

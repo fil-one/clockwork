@@ -319,24 +319,26 @@ export function HubSpotSettings({
                 description={t("operations.hubspot.settings.notesHelp")}
                 checked={scope.notes}
                 disabled={!editable}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
                   setScope((current) => ({
                     ...current,
-                    notes: event.currentTarget.checked,
-                  }))
-                }
+                    notes: checked,
+                  }));
+                }}
               />
               <Checkbox
                 label={t("operations.hubspot.settings.files")}
                 description={t("operations.hubspot.settings.filesHelp")}
                 checked={scope.files}
                 disabled={!editable}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
                   setScope((current) => ({
                     ...current,
-                    files: event.currentTarget.checked,
-                  }))
-                }
+                    files: checked,
+                  }));
+                }}
               />
             </Fieldset>
             <p className={styles.secondary}>
