@@ -932,6 +932,8 @@ export interface HubSpotImportItem {
   attachmentId: string | null;
   /** The identical PDF already on the record, for a duplicate. */
   existingAttachment: { id: string; title: string } | null;
+  /** The attached document was removed from the partner afterwards. */
+  attachmentRemoved: boolean;
   excludedReason: string | null;
   attempts: number;
   updatedAt: string;

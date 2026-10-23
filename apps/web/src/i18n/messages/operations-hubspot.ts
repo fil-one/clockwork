@@ -531,8 +531,14 @@ export const hubspotMessages = defineStaffMessages({
   },
   "operations.hubspot.receipt.excludeConfirm": { en: "Exclude" },
   "operations.hubspot.receipt.itemAnnounce": { en: "{title}: {status}" },
+  "operations.hubspot.receipt.duplicateRemoved": {
+    en: "The identical copy was removed from the partner since. Attach this one, or exclude it.",
+  },
+  "operations.hubspot.receipt.attachmentRemoved": {
+    en: "Removed from the partner’s documents afterwards.",
+  },
   "operations.hubspot.receipt.appendOnly": {
-    en: "Attachments cannot be removed or moved here. If one is wrong, ask support to correct it.",
+    en: "To take an attached document off the partner, remove it under Documents; the receipt and the history keep the record of it.",
   },
 
   "operations.hubspot.continue.title": { en: "Continue in Commerce" },
@@ -787,14 +793,14 @@ export const hubspotMessages = defineStaffMessages({
   "operations.hubspot.setup.current": { en: "Next" },
   "operations.hubspot.setup.upcoming": { en: "Later" },
   "operations.hubspot.setup.tokenTitle": {
-    en: "Create a read-only HubSpot private app",
+    en: "Create a read-only HubSpot service key",
   },
   "operations.hubspot.setup.tokenBody": {
-    en: "A HubSpot super admin opens Settings → Integrations → Private apps → Create a private app, names it Fil One Commerce, grants only the read scopes below, creates it and copies its access token.",
+    en: "A HubSpot super admin, or a user with Developer tools access, opens Development → Keys → Service keys → Create service key, names it Fil One Commerce, adds only the read scopes below and copies the key. A legacy private app token with the same scopes works the same way.",
   },
   "operations.hubspot.setup.scopes": { en: "Read scopes to grant:" },
   "operations.hubspot.setup.filesScope": {
-    en: "To bring PDFs across from HubSpot notes, also grant files. Without it, documents show as unavailable and everything else works. Grant no write scopes.",
+    en: "To bring PDFs across from HubSpot notes, also grant files and files.ui_hidden.read: note attachments are kept in HubSpot’s hidden file folder. Without them, documents show as unavailable and everything else works. Grant no write scopes, and rotate the key in HubSpot about every six months.",
   },
   "operations.hubspot.setup.deployTitle": {
     en: "Add the token to the deployment",
@@ -803,7 +809,7 @@ export const hubspotMessages = defineStaffMessages({
     en: "In GitHub, fil-one/clockwork → Settings → Environments, add a secret named HUBSPOT_ACCESS_TOKEN to production (and staging, to try it there first). Then open Actions → Deploy → Run workflow on main. The next deploy gives the app the token.",
   },
   "operations.hubspot.setup.deployCheck": {
-    en: "This deployment has a token, but HubSpot did not accept it. Check that the token was copied whole and the app was not deleted, then deploy again.",
+    en: "This deployment has a key, but HubSpot did not accept it. Check that it was copied whole and has not been rotated or revoked, then deploy again.",
   },
   "operations.hubspot.setup.approveTitle": {
     en: "Approve the connection here",

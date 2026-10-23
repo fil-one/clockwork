@@ -1,9 +1,18 @@
 import { renderToString } from "react-dom/server";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ refresh: vi.fn(), fetch: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  refresh: vi.fn(),
+  fetch: vi.fn(),
+  remove: vi.fn(),
+  restore: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: mocks.refresh }),
+}));
+vi.mock("./actions", () => ({
+  removeAccountDocument: mocks.remove,
+  restoreAccountDocument: mocks.restore,
 }));
 import { AccountDocuments } from "./documents";
 const target = {
@@ -19,6 +28,14 @@ const file = {
   sizeBytes: 1024,
   uploadedByName: "Iris",
   createdAt: "2026-10-20T12:00:00Z",
+  version: 1,
+};
+const removedFile = {
+  ...file,
+  version: 2,
+  removedAt: "2026-10-21T12:00:00Z",
+  removedByName: "Iris",
+  removalReason: "Attached to the wrong record",
 };
 const choose = (name = "Signed MNDA.pdf", type = "application/pdf") =>
   fireEvent.change(screen.getByLabelText("Choose PDF"), {
@@ -99,4 +116,78 @@ it("keeps the file picker disabled until its client handler is ready", () => {
   const container = document.createElement("div");
   container.innerHTML = markup;
   expect(container.querySelector('input[type="file"]')).toBeDisabled();
+});
+
+it("removes a document only with a reason, then offers undo", async () => {
+  mocks.remove.mockResolvedValue({ ok: true, value: removedFile });
+  mocks.restore.mockResolvedValue({ ok: true, value: { ...file, version: 3 } });
+  render(<AccountDocuments target={target} files={[file]} canWrite />);
+  fireEvent.click(screen.getByRole("button", { name: "Remove External MNDA" }));
+  const confirm = screen.getByRole("button", { name: "Remove document" });
+  expect(confirm).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Why remove it?"), {
+    target: { value: "Attached to the wrong record" },
+  });
+  fireEvent.click(confirm);
+  await screen.findByText("“External MNDA” was removed from this record.");
+  expect(mocks.remove).toHaveBeenCalledWith({
+    target,
+    id: file.id,
+    expectedVersion: 1,
+    reason: "Attached to the wrong record",
+  });
+  expect(
+    screen.queryByRole("link", { name: "Download External MNDA" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText("1 removed document")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+  await screen.findByText("“External MNDA” is back on this record.");
+  expect(mocks.restore).toHaveBeenCalledWith({
+    target,
+    id: file.id,
+    expectedVersion: 2,
+  });
+  expect(
+    screen.getByRole("link", { name: "Download External MNDA" }),
+  ).toBeInTheDocument();
+});
+
+it("lists removed documents with who and why, and no way to open them", () => {
+  render(
+    <AccountDocuments
+      target={target}
+      files={[]}
+      removed={[removedFile]}
+      canWrite={false}
+    />,
+  );
+  expect(
+    screen.getByText(/Removed by Iris: Attached to the wrong record/),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Restore External MNDA" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: /Remove/ }),
+  ).not.toBeInTheDocument();
+});
+
+it("explains a removal someone else already changed", async () => {
+  mocks.remove.mockResolvedValue({
+    ok: false,
+    code: "ATTACHMENT_VERSION_CONFLICT",
+  });
+  render(<AccountDocuments target={target} files={[file]} canWrite />);
+  fireEvent.click(screen.getByRole("button", { name: "Remove External MNDA" }));
+  fireEvent.change(screen.getByLabelText("Why remove it?"), {
+    target: { value: "Replaced" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Remove document" }));
+  expect(
+    await screen.findByText(/Someone else changed this document/),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: "Download External MNDA" }),
+  ).toBeInTheDocument();
 });

@@ -406,6 +406,16 @@ export function HubSpotReceipt({
                     })}
                   </span>
                 ) : null}
+                {item.status === "duplicate" && !item.existingAttachment ? (
+                  <span className={styles.secondary}>
+                    {t("operations.hubspot.receipt.duplicateRemoved")}
+                  </span>
+                ) : null}
+                {item.attachmentRemoved ? (
+                  <span className={styles.secondary}>
+                    {t("operations.hubspot.receipt.attachmentRemoved")}
+                  </span>
+                ) : null}
                 {item.status === "excluded" && item.excludedReason ? (
                   <span className={styles.secondary}>
                     {t("operations.hubspot.receipt.excludedBecause", {
@@ -461,7 +471,8 @@ export function HubSpotReceipt({
                     </div>
                   ) : (
                     <div className={styles.actions}>
-                      {item.status === "duplicate" ? (
+                      {item.status === "duplicate" &&
+                      item.existingAttachment ? (
                         <Button
                           type="button"
                           disabled={busy !== null}

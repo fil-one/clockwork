@@ -33,15 +33,21 @@ export const accountDocuments = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    // 001484: an audited removal from the record; the row and bytes stay.
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    removedById: uuid("removed_by_id"),
+    removedByName: text("removed_by_name"),
+    removalReason: text("removal_reason"),
+    version: integer("version").notNull().default(1),
   },
   (t) => [
     uniqueIndex("account_documents_storage").on(t.storageBackend, t.storageKey),
     uniqueIndex("account_documents_partner_hash")
       .on(t.partnerId, t.sha256)
-      .where(sql`${t.partnerId} is not null`),
+      .where(sql`${t.partnerId} is not null and ${t.removedAt} is null`),
     uniqueIndex("account_documents_account_hash")
       .on(t.accountId, t.sha256)
-      .where(sql`${t.accountId} is not null`),
+      .where(sql`${t.accountId} is not null and ${t.removedAt} is null`),
     index("account_documents_partner").on(
       t.partnerId,
       t.createdAt.desc(),

@@ -192,7 +192,11 @@ export async function processHubSpotDocument(raw: unknown) {
     const record = await repository.import(partnerId, importId);
     const item = record.items.find((candidate) => candidate.id === itemId);
     if (!item) throw new Error("HUBSPOT_ITEM_NOT_FOUND");
-    if (!["pending", "failed"].includes(item.status))
+    // A duplicate whose identical copy was since removed can be attached.
+    if (
+      !["pending", "failed"].includes(item.status) &&
+      !(item.status === "duplicate" && item.existingAttachment === null)
+    )
       throw new Error("HUBSPOT_ITEM_RESOLVED");
     // A previous attempt attached it but its answer was lost.
     const already = await repository.attachmentOnPartner(partnerId, item.id);

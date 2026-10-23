@@ -608,6 +608,7 @@ describe("HubSpotReceipt", () => {
         errorCode: status === "failed" ? "HUBSPOT_DOCUMENT_UNAVAILABLE" : null,
         attachmentId: null,
         existingAttachment: null,
+        attachmentRemoved: false,
         excludedReason: null,
         attempts: status === "failed" ? 1 : 0,
         updatedAt: now.toISOString(),

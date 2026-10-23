@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import {
   HubSpotConnectionInputSchema,
@@ -46,6 +46,11 @@ type UserActor = Actor & { kind: "user" };
 type ConnectionRow = typeof commerceHubSpotConnections.$inferSelect;
 type ImportRow = typeof commerceHubSpotImports.$inferSelect;
 type ItemRow = typeof commerceHubSpotImportItems.$inferSelect;
+interface ItemChange {
+  values: Partial<typeof commerceHubSpotImportItems.$inferInsert>;
+  event: string;
+  detail: Record<string, unknown>;
+}
 
 const connectionView = (row: ConnectionRow): HubSpotConnectionRecord => ({
   id: row.id,
@@ -66,7 +71,7 @@ const connectionView = (row: ConnectionRow): HubSpotConnectionRecord => ({
 
 const itemView = (
   row: ItemRow,
-  existing: ReadonlyMap<string, string>,
+  documents: ReadonlyMap<string, { title: string; removed: boolean }>,
 ): HubSpotImportItem => ({
   id: row.id,
   importId: row.importId,
@@ -78,12 +83,18 @@ const itemView = (
   status: row.status,
   errorCode: row.errorCode,
   attachmentId: row.attachmentId,
-  existingAttachment: row.existingAttachmentId
-    ? {
-        id: row.existingAttachmentId,
-        title: existing.get(row.existingAttachmentId) ?? "",
-      }
-    : null,
+  // An identical PDF that was since removed is no longer there to reuse.
+  existingAttachment:
+    row.existingAttachmentId &&
+    !documents.get(row.existingAttachmentId)?.removed
+      ? {
+          id: row.existingAttachmentId,
+          title: documents.get(row.existingAttachmentId)?.title ?? "",
+        }
+      : null,
+  attachmentRemoved: row.attachmentId
+    ? (documents.get(row.attachmentId)?.removed ?? false)
+    : false,
   excludedReason: row.excludedReason,
   attempts: row.attempts,
   updatedAt: row.updatedAt.toISOString(),
@@ -816,6 +827,8 @@ export class HubSpotRepository {
           and(
             eq(accountDocuments.partnerId, partnerId),
             eq(accountDocuments.sha256, sha256),
+            // A removed copy never stands in for a new one.
+            isNull(accountDocuments.removedAt),
           ),
         );
       return row ?? null;
@@ -884,19 +897,37 @@ export class HubSpotRepository {
     itemId: string,
     actor: UserActor,
   ) {
-    return this.changeItem(partnerId, importId, itemId, actor, (item) => {
-      if (item.status !== "duplicate" || !item.existingAttachmentId)
-        throw new Error("HUBSPOT_ITEM_RESOLVED");
-      return {
-        values: {
-          status: "reused",
-          attachmentId: item.existingAttachmentId,
-          resolvedByName: actor.display ?? actor.id,
-        },
-        event: "hubspot.document_reused",
-        detail: { attachmentId: item.existingAttachmentId },
-      };
-    });
+    return this.changeItem(
+      partnerId,
+      importId,
+      itemId,
+      actor,
+      async (item, tx) => {
+        if (item.status !== "duplicate" || !item.existingAttachmentId)
+          throw new Error("HUBSPOT_ITEM_RESOLVED");
+        // The identical copy must still be on the partner to be reused.
+        const [existing] = await tx
+          .select({ id: accountDocuments.id })
+          .from(accountDocuments)
+          .where(
+            and(
+              eq(accountDocuments.id, item.existingAttachmentId),
+              eq(accountDocuments.partnerId, partnerId),
+              isNull(accountDocuments.removedAt),
+            ),
+          );
+        if (!existing) throw new Error("HUBSPOT_DOCUMENT_UNAVAILABLE");
+        return {
+          values: {
+            status: "reused",
+            attachmentId: item.existingAttachmentId,
+            resolvedByName: actor.display ?? actor.id,
+          },
+          event: "hubspot.document_reused",
+          detail: { attachmentId: item.existingAttachmentId },
+        };
+      },
+    );
   }
 
   /**
@@ -928,11 +959,10 @@ export class HubSpotRepository {
     importId: string,
     itemId: string,
     actor: UserActor,
-    change: (item: ItemRow) => {
-      values: Partial<typeof commerceHubSpotImportItems.$inferInsert>;
-      event: string;
-      detail: Record<string, unknown>;
-    },
+    change: (
+      item: ItemRow,
+      tx: RuntimeTransaction,
+    ) => Promise<ItemChange> | ItemChange,
     attachedAgain?: (item: ItemRow) => boolean,
   ): Promise<HubSpotImportRecord> {
     return this.tx(async (tx) => {
@@ -967,7 +997,7 @@ export class HubSpotRepository {
         }
         throw new Error("HUBSPOT_ITEM_RESOLVED");
       }
-      const { values, event, detail } = change(item);
+      const { values, event, detail } = await change(item, tx);
       await tx
         .update(commerceHubSpotImportItems)
         .set({ ...values, updatedAt: sql`now()`, version: item.version + 1 })
@@ -1031,16 +1061,26 @@ async function withItems(
       commerceHubSpotImportItems.fileName,
       commerceHubSpotImportItems.id,
     );
-  const existingIds = items.flatMap((item) =>
-    item.existingAttachmentId ? [item.existingAttachmentId] : [],
-  );
-  const titles = existingIds.length
+  const documentIds = items.flatMap((item) => [
+    ...(item.existingAttachmentId ? [item.existingAttachmentId] : []),
+    ...(item.attachmentId ? [item.attachmentId] : []),
+  ]);
+  const found = documentIds.length
     ? await tx
-        .select({ id: accountDocuments.id, title: accountDocuments.title })
+        .select({
+          id: accountDocuments.id,
+          title: accountDocuments.title,
+          removedAt: accountDocuments.removedAt,
+        })
         .from(accountDocuments)
-        .where(inArray(accountDocuments.id, existingIds))
+        .where(inArray(accountDocuments.id, documentIds))
     : [];
-  const existing = new Map(titles.map((row) => [row.id, row.title]));
+  const existing = new Map(
+    found.map((row) => [
+      row.id,
+      { title: row.title, removed: row.removedAt !== null },
+    ]),
+  );
   return rows.map((row) =>
     importView(
       row,
