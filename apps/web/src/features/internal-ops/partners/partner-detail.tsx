@@ -97,11 +97,33 @@ function historyLine(entry: PartnerActivity, t: Translator): string {
   const client = entry.dealEndClient ?? "";
   switch (entry.eventType) {
     case "partner.created":
-      return t("operations.partners.history.created", { actor });
+      return entry.source === "hubspot"
+        ? t("operations.partners.history.createdFromHubSpot", { actor })
+        : t("operations.partners.history.created", { actor });
     case "partner.updated":
-      return t("operations.partners.history.updated", {
+      return t(
+        entry.source === "hubspot"
+          ? "operations.partners.history.updatedFromHubSpot"
+          : "operations.partners.history.updated",
+        { actor, fields: changedFields(entry, t) },
+      );
+    case "hubspot.imported":
+      return t("operations.partners.history.hubspotImported", { actor });
+    case "hubspot.document_attached":
+      return t("operations.partners.history.hubspotDocumentAttached", {
         actor,
-        fields: changedFields(entry, t),
+      });
+    case "hubspot.document_failed":
+      return t("operations.partners.history.hubspotDocumentFailed", { actor });
+    case "hubspot.document_duplicate":
+      return t("operations.partners.history.hubspotDocumentDuplicate", {
+        actor,
+      });
+    case "hubspot.document_reused":
+      return t("operations.partners.history.hubspotDocumentReused", { actor });
+    case "hubspot.document_excluded":
+      return t("operations.partners.history.hubspotDocumentExcluded", {
+        actor,
       });
     case "partner.deal_registered":
       return t("operations.partners.history.dealRegistered", { actor, client });
@@ -205,6 +227,7 @@ function Deals({
   canEdit,
   protectionDays,
   organizations,
+  dealSuggestion,
 }: {
   partner: PartnerRecord;
   deals: readonly PartnerDealWithConflicts[];
@@ -214,9 +237,18 @@ function Deals({
   canEdit: boolean;
   protectionDays: number;
   organizations: readonly PartnerOrganizationOption[];
+  dealSuggestion: {
+    endClient: string;
+    notes: string;
+    choices?: readonly string[];
+  } | null;
 }) {
   return (
-    <section className={styles.card} aria-labelledby="partner-deals">
+    <section
+      className={styles.card}
+      aria-labelledby="partner-deals"
+      id="partner-deals-section"
+    >
       <h2 id="partner-deals">{t("operations.partners.deals.title")}</h2>
       <p className={styles.muted}>
         {t("operations.partners.deals.description")}
@@ -228,6 +260,7 @@ function Deals({
           today={today}
           protectionDays={protectionDays}
           organizations={organizations}
+          suggestion={dealSuggestion}
         />
       ) : null}
       {deals.length === 0 ? (
@@ -424,6 +457,9 @@ export function PartnerDetail({
   canEdit,
   demo,
   documents,
+  hubspot,
+  receipt,
+  dealSuggestion = null,
 }: {
   t: Translator;
   locale: string;
@@ -437,6 +473,15 @@ export function PartnerDetail({
   canEdit: boolean;
   demo: boolean;
   documents?: ReactNode;
+  /** The HubSpot section and a just-finished import's receipt. */
+  hubspot?: ReactNode;
+  receipt?: ReactNode;
+  /** A registration prepared from a HubSpot handoff, still unsaved. */
+  dealSuggestion?: {
+    endClient: string;
+    notes: string;
+    choices?: readonly string[];
+  } | null;
 }) {
   const overdue = partner.nextStepDue !== null && partner.nextStepDue < today;
   const overview: [string, ReactNode][] = [
@@ -540,7 +585,9 @@ export function PartnerDetail({
       {demo ? (
         <InlineNotice tone="info" title={t("operations.partners.demo")} />
       ) : null}
-      {documents}
+      {receipt}
+      {documents ? <div id="documents">{documents}</div> : null}
+      {hubspot}
       <div className={styles.columns}>
         <div className={styles.column}>
           <section className={styles.card} aria-labelledby="partner-overview">
@@ -559,6 +606,7 @@ export function PartnerDetail({
             canEdit={canEdit}
             protectionDays={protectionDays}
             organizations={organizations}
+            dealSuggestion={dealSuggestion}
           />
         </div>
         <div className={styles.column}>
@@ -569,8 +617,23 @@ export function PartnerDetail({
             {partner.contacts.length ? (
               <ul className={styles.list}>
                 {partner.contacts.map((contact, index) => (
-                  <li key={`${contact.name}-${index}`}>
-                    <strong>{contact.name}</strong>
+                  <li key={contact.id ?? `${contact.name}-${index}`}>
+                    <span className={styles.rowHeading}>
+                      <strong>{contact.name}</strong>
+                      {contact.primary ? (
+                        <Tag>{t("operations.partners.contacts.primary")}</Tag>
+                      ) : null}
+                      {contact.source ? (
+                        <Tag>
+                          {t("operations.partners.contacts.fromHubSpot")}
+                        </Tag>
+                      ) : null}
+                    </span>
+                    {contact.source?.labels.length ? (
+                      <span className={styles.secondary}>
+                        {contact.source.labels.join(", ")}
+                      </span>
+                    ) : null}
                     {contact.role ? (
                       <span className={styles.secondary}>{contact.role}</span>
                     ) : null}

@@ -77,6 +77,7 @@ jobs:
       TF_VAR_staff_provisioning: ${{ secrets.CLOCKWORK_STAFF_PROVISIONING }}
       TF_VAR_signwell_api_key: ${{ secrets.SIGNWELL_API_KEY }}
       TF_VAR_signwell_webhook_id: ${{ secrets.SIGNWELL_WEBHOOK_ID }}
+      TF_VAR_hubspot_access_token: ${{ secrets.HUBSPOT_ACCESS_TOKEN }}
       TF_VAR_commerce_mnda_enabled: ${{ vars.COMMERCE_MNDA_ENABLED || 'false' }}
       TF_VAR_commerce_contracts_signing_enabled:
         ${{ vars.COMMERCE_CONTRACTS_SIGNING_ENABLED || 'true' }}

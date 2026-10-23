@@ -45,6 +45,14 @@ everything; the partner never sees it.
   `overdue` set, excluding ended partners. A reminder or notification reads
   this; the home page counts the same rows with `countPartnerNextSteps`.
 
+## Bringing a partner in from HubSpot
+
+**Partners → From HubSpot** creates or updates a staff partner record from a
+HubSpot company or deal through a reviewed handoff: selected contacts keep their
+HubSpot identity, the originating deal is kept as reference, and selected PDFs
+become partner attachments. It writes the same `partner.*` events, with the
+HubSpot source. See [the HubSpot handoff](hubspot-handoff.md).
+
 ## Partner-portal engine (switched off)
 
 The partner portal (`/partner/*`), its deal-registration engine

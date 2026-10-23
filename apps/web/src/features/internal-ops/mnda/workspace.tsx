@@ -38,7 +38,11 @@ import {
 import { MndaComposer, type ComposerStart } from "./composer";
 import { CorrectSignerDialog, DiscardDialog, VoidDialog } from "./dialogs";
 import { SigningProgress } from "../signing-progress";
-import { emptyValues, valuesFromRecord } from "./form-model";
+import {
+  emptyValues,
+  valuesFromRecord,
+  type MndaFormValues,
+} from "./form-model";
 import { formatMndaDate } from "./format";
 import {
   mndaErrorLabels,
@@ -173,11 +177,23 @@ export function MndaWorkspace({
   initial,
   initialQuery,
   compose = false,
+  prefill = null,
 }: {
   initial: MndaWorkspaceData;
   initialQuery: MndaRegisterQuery;
   /** Open a new MNDA on arrival. */
   compose?: boolean;
+  /**
+   * Suggestions carried from a HubSpot handoff for the new MNDA. They are
+   * editable; the legal entity, signer and dates stay the seller's to
+   * confirm, and nothing is saved or sent until they do.
+   */
+  prefill?: Partial<
+    Pick<
+      MndaFormValues,
+      "company" | "signerName" | "signerEmail" | "signerTitle"
+    >
+  > | null;
 }) {
   const t = useTranslations();
   const locale = useFormattingLocale();
@@ -257,7 +273,10 @@ export function MndaWorkspace({
     return () => clearInterval(timer);
   }, [reload]);
 
+  // Whether the open composer is the one a HubSpot handoff prepared.
+  const [fromHandoff, setFromHandoff] = useState(false);
   const open = (start: ComposerStart) => {
+    setFromHandoff(false);
     setMessage(null);
     setComposer((current) => ({ key: (current?.key ?? 0) + 1, start }));
     requestAnimationFrame(() =>
@@ -272,9 +291,16 @@ export function MndaWorkspace({
     if (!compose) return;
     const url = new URL(window.location.href);
     url.searchParams.delete("compose");
+    url.searchParams.delete("handoff");
+    url.searchParams.delete("partner");
     window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-    if (!initial.demo)
-      open({ kind: "form", values: emptyValues(initial.signers) });
+    if (!initial.demo) {
+      open({
+        kind: "form",
+        values: { ...emptyValues(initial.signers), ...prefill },
+      });
+      setFromHandoff(Boolean(prefill));
+    }
     // Once, on arrival.
   }, []);
   const refresh = () => void reload(queryRef.current, true);
@@ -391,6 +417,13 @@ export function MndaWorkspace({
         />
       ) : null}
       <div ref={composerRef}>
+        {composer && fromHandoff ? (
+          <StateBanner
+            tone="info"
+            title={t("operations.hubspot.mnda.title")}
+            description={t("operations.hubspot.mnda.body")}
+          />
+        ) : null}
         {composer ? (
           <MndaComposer
             key={composer.key}
@@ -401,7 +434,10 @@ export function MndaWorkspace({
             canEdit={(record) =>
               data.canManage || record.ownerId === data.viewerId
             }
-            onClose={() => setComposer(null)}
+            onClose={() => {
+              setComposer(null);
+              setFromHandoff(false);
+            }}
             onChanged={refresh}
             onSent={(record) => {
               setComposer(null);

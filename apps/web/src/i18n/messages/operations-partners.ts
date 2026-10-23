@@ -11,6 +11,7 @@ export const staffPartnerMessages = defineStaffMessages({
     en: "What we agreed, or are negotiating, with each channel, referral and technology partner, and the deals they registered.",
   },
   "operations.partners.new": { en: "New partner" },
+  "operations.partners.fromHubSpot": { en: "From HubSpot" },
   "operations.partners.export": { en: "Export CSV" },
   "operations.partners.backToList": { en: "All partners" },
   "operations.partners.truncated": {
@@ -121,6 +122,8 @@ export const staffPartnerMessages = defineStaffMessages({
   "operations.partners.contacts.add": { en: "Add a contact" },
   "operations.partners.contacts.remove": { en: "Remove contact {number}" },
   "operations.partners.contacts.empty": { en: "No contacts recorded." },
+  "operations.partners.contacts.primary": { en: "Primary contact" },
+  "operations.partners.contacts.fromHubSpot": { en: "From HubSpot" },
 
   "operations.partners.terms.title": { en: "Terms" },
   "operations.partners.terms.description": {
@@ -263,6 +266,30 @@ export const staffPartnerMessages = defineStaffMessages({
     en: "Protection ended for {client}; the registration expired",
   },
   "operations.partners.history.other": { en: "{actor}: {event}" },
+  "operations.partners.history.createdFromHubSpot": {
+    en: "{actor} created the partner from HubSpot",
+  },
+  "operations.partners.history.updatedFromHubSpot": {
+    en: "{actor} imported from HubSpot: {fields}",
+  },
+  "operations.partners.history.hubspotImported": {
+    en: "{actor} completed a HubSpot handoff review",
+  },
+  "operations.partners.history.hubspotDocumentAttached": {
+    en: "{actor} attached a document from HubSpot",
+  },
+  "operations.partners.history.hubspotDocumentFailed": {
+    en: "{actor} tried to attach a document from HubSpot; it needs attention",
+  },
+  "operations.partners.history.hubspotDocumentDuplicate": {
+    en: "{actor} found a HubSpot document already attached; it needs a choice",
+  },
+  "operations.partners.history.hubspotDocumentReused": {
+    en: "{actor} used an existing attachment for a HubSpot document",
+  },
+  "operations.partners.history.hubspotDocumentExcluded": {
+    en: "{actor} excluded a HubSpot document from the handoff",
+  },
   "operations.partners.history.nothing": { en: "nothing" },
 
   "operations.partners.error.PARTNER_NOT_FOUND": {

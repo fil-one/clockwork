@@ -10,7 +10,8 @@
     "./provider-transport": "./src/provider-transport.ts",
     "./telemetry": "./src/telemetry/index.ts",
     "./system": "./src/system/index.ts",
-    "./fakes": "./src/fakes/index.ts"
+    "./fakes": "./src/fakes/index.ts",
+    "./hubspot": "./src/hubspot/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",

@@ -497,6 +497,20 @@ export function OwnerConsole({ view }: { view: OwnerConsoleView }) {
         <CapabilitiesPanel capabilities={view.capabilities} />
         <AssistedPanel sessions={view.assistedSessions} />
         <StaffPanel staff={view.staff} />
+        <Panel
+          id="owner-integrations"
+          title={t("operations.hubspot.ownerPanel.title")}
+          description={t("operations.hubspot.ownerPanel.description")}
+          action={
+            <PanelLink href="/internal/owner/hubspot">
+              {t("operations.hubspot.ownerPanel.open")}
+            </PanelLink>
+          }
+        >
+          <p className={styles.empty}>
+            {t("operations.hubspot.ownerPanel.body")}
+          </p>
+        </Panel>
         <SelfApprovalsPanel selfApprovals={view.selfApprovals} />
         <EventsPanel
           id="owner-security"

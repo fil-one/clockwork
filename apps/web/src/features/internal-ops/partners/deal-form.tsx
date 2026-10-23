@@ -83,21 +83,35 @@ export function DealForm({
   today,
   protectionDays,
   organizations,
+  suggestion = null,
 }: {
   partnerId: string;
   deal: PartnerDealRecord | null;
   today: string;
   protectionDays: number;
   organizations: readonly PartnerOrganizationOption[];
+  /**
+   * An end client and note carried from a HubSpot handoff. They open a new
+   * registration as editable suggestions; the dates, protection, size and
+   * status stay the seller's own decisions, and nothing saves until they do.
+   */
+  suggestion?: {
+    endClient: string;
+    notes: string;
+    /** Companies on the HubSpot deal to choose the end client from. */
+    choices?: readonly string[];
+  } | null;
 }) {
   const t = useTranslations();
   const router = useRouter();
   const id = useRef(deal?.id ?? null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(suggestion && !deal));
   const [pending, startTransition] = useTransition();
   const [failure, setFailure] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
-  const [endClient, setEndClient] = useState(deal?.endClient ?? "");
+  const [endClient, setEndClient] = useState(
+    deal?.endClient ?? suggestion?.endClient ?? "",
+  );
   const [conflicts, setConflicts] = useState<PartnerDealConflict[]>([]);
   const [saved, setSaved] = useState<{
     conflicts: PartnerDealConflict[];
@@ -171,6 +185,13 @@ export function DealForm({
         code: "UNEXPECTED",
       }));
       if (result.ok) {
+        // A registration prepared from HubSpot is used once: reloading the
+        // page must not offer to register the same opportunity again.
+        if (suggestion && !deal) {
+          const url = new URL(window.location.href);
+          url.searchParams.delete("register");
+          window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+        }
         if (!deal) {
           id.current = null;
           setEndClient("");
@@ -247,7 +268,30 @@ export function DealForm({
   return (
     <form className={styles.form} onSubmit={submit} noValidate>
       {outcome}
+      {suggestion && !deal ? (
+        <StateBanner
+          tone="info"
+          title={t("operations.hubspot.register.title")}
+          description={t("operations.hubspot.register.body")}
+        />
+      ) : null}
       <div className={styles.fields}>
+        {suggestion?.choices?.length && !deal ? (
+          <Select
+            fieldClassName={wide}
+            label={t("operations.hubspot.register.choose")}
+            help={t("operations.hubspot.register.chooseHelp")}
+            value={suggestion.choices.includes(endClient) ? endClient : ""}
+            onChange={(event) => check(event.currentTarget.value)}
+            options={[
+              { value: "", label: t("operations.hubspot.register.chooseNone") },
+              ...suggestion.choices.map((name) => ({
+                value: name,
+                label: name,
+              })),
+            ]}
+          />
+        ) : null}
         <Input
           fieldClassName={wide}
           label={t("operations.partners.deals.endClient")}
@@ -342,7 +386,7 @@ export function DealForm({
           optionalLabel={optional}
           name="notes"
           rows={3}
-          defaultValue={deal?.notes ?? ""}
+          defaultValue={deal?.notes ?? suggestion?.notes ?? ""}
           maxLength={4000}
           error={error("notes")}
         />

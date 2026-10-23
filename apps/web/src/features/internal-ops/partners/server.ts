@@ -28,6 +28,7 @@ import {
   type ContractAccessFailure,
   type ContractStaffSession,
 } from "../contracts/server";
+import { hubspotReady } from "../hubspot/server";
 import { mndaRepository } from "../mnda/server";
 import { demoPartnerRegister } from "./demo-register";
 
@@ -165,9 +166,10 @@ export function loadPartnerList(
     const query = PartnerListQuerySchema.parse(searchParams);
     const today = partnerToday();
     const reader = partnerReader(session);
-    const [result, owners] = await Promise.all([
+    const [result, owners, ready] = await Promise.all([
       reader.list(query, { viewerId: session.userId, today }),
       reader.owners(),
+      hubspotReady(),
     ]);
     return {
       query,
@@ -176,6 +178,13 @@ export function loadPartnerList(
       owners,
       canEdit: mayEditPartners(session),
       demo: explicitDemoIdentityEnabled(),
+      // Editors start a handoff once HubSpot is connected; until then an
+      // administrator is shown how to connect it.
+      hubspot: ready
+        ? ("ready" as const)
+        : sessionHas(session, "staff:manage")
+          ? ("setup" as const)
+          : ("hidden" as const),
     };
   });
 }

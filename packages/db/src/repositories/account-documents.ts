@@ -79,6 +79,10 @@ export class AccountDocumentRepository {
     rawInput: unknown,
     upload: { fileName: string; bytes: Uint8Array },
     actor: Actor & { kind: "user" },
+    /** Where the PDF came from when not uploaded by hand, such as a HubSpot
+     * file brought in by a reviewed import. */
+    provenance:
+      Record<string, string | null> | "external_upload" = "external_upload",
   ) {
     const target = AccountDocumentTargetSchema.parse(rawTarget);
     const input = AccountDocumentInputSchema.parse(rawInput);
@@ -154,7 +158,7 @@ export class AccountDocumentRepository {
             signedOn: row.signedOn,
             fileName,
             sha256: row.sha256,
-            provenance: "external_upload",
+            provenance,
           },
         });
         return { row, reused: false };

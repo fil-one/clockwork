@@ -103,6 +103,7 @@ export function PartnerList({
   today,
   canEdit,
   demo,
+  hubspot = "hidden",
 }: {
   t: Translator;
   locale: string;
@@ -112,6 +113,9 @@ export function PartnerList({
   today: string;
   canEdit: boolean;
   demo: boolean;
+  /** Whether a HubSpot handoff can start here, or an administrator should
+   * be shown how to connect HubSpot. */
+  hubspot?: "ready" | "setup" | "hidden";
 }) {
   const filtered = Boolean(
     query.q ||
@@ -143,6 +147,14 @@ export function PartnerList({
                 {t("operations.partners.new")}
               </Link>
             ) : null}
+            {hubspot === "ready" && (canEdit || demo) ? (
+              <Link
+                className={buttonClassName({ variant: "secondary" })}
+                href="/internal/hubspot"
+              >
+                {t("operations.partners.fromHubSpot")}
+              </Link>
+            ) : null}
             {/* A route handler, not a page: a plain link downloads the file. */}
             <a
               className={buttonClassName({ variant: "secondary" })}
@@ -156,6 +168,21 @@ export function PartnerList({
       />
       {demo ? (
         <InlineNotice tone="info" title={t("operations.partners.demo")} />
+      ) : null}
+      {hubspot === "setup" ? (
+        <InlineNotice
+          tone="info"
+          title={t("operations.hubspot.setup.notice")}
+          description={t("operations.hubspot.setup.noticeBody")}
+          action={
+            <Link
+              className={buttonClassName({ variant: "secondary" })}
+              href="/internal/owner/hubspot"
+            >
+              {t("operations.hubspot.setup.noticeAction")}
+            </Link>
+          }
+        />
       ) : null}
       <PartnerFilters query={query} owners={owners} />
       {result.truncated ? (

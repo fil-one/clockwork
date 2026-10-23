@@ -306,6 +306,10 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/gates",
       // Sales-to-operations handoffs read their own register.
       "/internal/handoffs",
+      // HubSpot picker and handoff review read HubSpot through the approved
+      // connection, never a projection channel.
+      "/internal/hubspot",
+      "/internal/hubspot/review",
       "/internal/migrations",
       // Standalone pre-sales MNDA repository, not an account projection channel.
       "/internal/mndas",
@@ -321,12 +325,16 @@ const expected: Readonly<Record<ExperienceAudience, Classification>> = {
       "/internal/organizations/new",
       // The owner console reads notices, controls and audit events directly.
       "/internal/owner",
+      // The HubSpot connection, read from its own table.
+      "/internal/owner/hubspot",
       // Staff partner records and registered deals, read from their own tables.
       "/internal/partners",
       "/internal/partners/new",
       "/internal/payg-offers",
       // Finance reads verified customer handoff requests directly.
       "/internal/payg-requests",
+      // HubSpot's pipeline, read live through the approved connection.
+      "/internal/pipeline",
       "/internal/price-books",
       // Indicative pricing reads the price book registry, as price-books does.
       "/internal/pricing",

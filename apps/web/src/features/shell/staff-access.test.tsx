@@ -154,6 +154,10 @@ describe("every staff route is guarded", () => {
     "partners/[id]/page.tsx": "sales:read",
     "partners/new/page.tsx": "contract:write",
     "partners/[id]/edit/page.tsx": "contract:write",
+    "hubspot/page.tsx": "sales:read",
+    "hubspot/review/page.tsx": "sales:read",
+    "pipeline/page.tsx": "sales:read",
+    "owner/hubspot/page.tsx": "staff:manage",
     "team/page.tsx": "staff:manage",
     "owner/page.tsx": "staff:manage",
     // Creating an organization is operations work, not only reading.

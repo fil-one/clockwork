@@ -23,6 +23,7 @@ import { mndaMessages } from "./messages/operations-mnda";
 import { contractMessages } from "./messages/operations-contracts";
 import { contractTemplateMessages } from "./messages/operations-contract-templates";
 import { handoffMessages } from "./messages/operations-handoff";
+import { hubspotMessages } from "./messages/operations-hubspot";
 import { staffPartnerMessages } from "./messages/operations-partners";
 import { notificationMessages } from "./messages/operations-notifications";
 import { organizationMessages } from "./messages/operations-organizations";
@@ -89,6 +90,7 @@ export const messageModules = {
       ...contractTemplateMessages,
       ...handoffMessages,
       ...staffPartnerMessages,
+      ...hubspotMessages,
       ...organizationMessages,
       ...notificationMessages,
     },

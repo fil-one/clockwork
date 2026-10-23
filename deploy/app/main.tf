@@ -78,6 +78,8 @@ locals {
     TRIGGER_SECRET_KEY     = var.trigger_secret_key
     SIGNWELL_API_KEY       = var.signwell_api_key
     SIGNWELL_WEBHOOK_ID    = var.signwell_webhook_id
+    # Read-only HubSpot private-app token; unset leaves HubSpot unavailable.
+    HUBSPOT_ACCESS_TOKEN = var.hubspot_access_token
     # Slack for staff notifications; unset leaves Slack unconfigured.
     COMMERCE_NOTIFICATIONS_SLACK_WEBHOOK_URL = var.notifications_slack_webhook_url
   }

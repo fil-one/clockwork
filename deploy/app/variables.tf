@@ -146,6 +146,12 @@ variable "signwell_api_key" {
   default   = ""
 }
 
+variable "hubspot_access_token" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
 variable "signwell_webhook_id" {
   type      = string
   sensitive = true

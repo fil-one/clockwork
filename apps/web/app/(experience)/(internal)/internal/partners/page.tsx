@@ -38,6 +38,7 @@ async function Page({
       today={loaded.today}
       canEdit={loaded.canEdit}
       demo={loaded.demo}
+      hubspot={loaded.hubspot}
     />
   );
 }

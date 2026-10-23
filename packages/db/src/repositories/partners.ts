@@ -488,27 +488,7 @@ export class PartnerRepository {
       if (!current) {
         if (input.expectedVersion !== undefined)
           throw new Error("PARTNER_NOT_FOUND");
-        const [inserted] = await tx
-          .insert(commercePartners)
-          .values({
-            id: input.id,
-            ...partnerColumns(input, ownerName),
-            createdById: actor.id,
-            createdByName: actor.display ?? actor.id,
-          })
-          .returning();
-        if (!inserted) throw new Error("PARTNER_INSERT_FAILED");
-        const record = partnerView(inserted, null);
-        await appendAuditAndOutbox(tx, {
-          aggregateType: "partner",
-          aggregateId: record.id,
-          aggregateVersion: record.version,
-          eventType: "partner.created",
-          actor,
-          requestId: randomUUID(),
-          after: { changes: partnerChanges({}, comparable(record)) },
-        });
-        return record;
+        return insertPartnerRow(tx, input, ownerName, actor);
       }
       if (input.expectedVersion === undefined) {
         // A retried first save returns the stored record only when it is the
@@ -533,34 +513,7 @@ export class PartnerRepository {
       }
       if (current.version !== input.expectedVersion)
         throw new Error("PARTNER_VERSION_CONFLICT");
-      const before = partnerView(current, null);
-      const changes = partnerChanges(
-        comparable(before),
-        inputComparable(input, ownerName),
-      );
-      // Saving an unchanged form changes nothing and records nothing.
-      if (Object.keys(changes).length === 0) return before;
-      const [updated] = await tx
-        .update(commercePartners)
-        .set({
-          ...partnerColumns(input, ownerName),
-          updatedAt: sql`now()`,
-          version: current.version + 1,
-        })
-        .where(eq(commercePartners.id, input.id))
-        .returning();
-      if (!updated) throw new Error("PARTNER_UPDATE_FAILED");
-      const record = partnerView(updated, null);
-      await appendAuditAndOutbox(tx, {
-        aggregateType: "partner",
-        aggregateId: record.id,
-        aggregateVersion: record.version,
-        eventType: "partner.updated",
-        actor,
-        requestId: randomUUID(),
-        after: { changes },
-      });
-      return record;
+      return updatePartnerRow(tx, current, input, ownerName, actor);
     });
   }
 
@@ -1076,6 +1029,11 @@ async function activity(
               inArray(auditEvents.aggregateId, dealIds),
             )
           : undefined,
+        // HubSpot imports into this partner and what became of their files.
+        and(
+          eq(auditEvents.aggregateType, "hubspot_import"),
+          sql`${auditEvents.after}->>'partnerId' = ${partnerId}`,
+        ),
       ),
     )
     .orderBy(desc(auditEvents.occurredAt), desc(auditEvents.id))
@@ -1084,6 +1042,7 @@ async function activity(
     const actor = row.actor as Partial<Actor>;
     const after = (row.after ?? {}) as {
       changes?: Record<string, { from: unknown; to: unknown }>;
+      source?: { provider?: unknown };
     };
     return {
       id: row.id,
@@ -1092,6 +1051,9 @@ async function activity(
       dealEndClient: dealClients.get(row.aggregateId) ?? null,
       changes: after.changes ?? {},
       occurredAt: row.occurredAt.toISOString(),
+      ...(after.source?.provider === "hubspot"
+        ? { source: "hubspot" as const }
+        : {}),
     };
   });
 }
@@ -1114,7 +1076,111 @@ function auditDeal(
   });
 }
 
-async function staffOwners(
+/**
+ * Inserts a partner and its `partner.created` event inside the caller's
+ * transaction. `source` records where the values came from, such as a
+ * HubSpot import, beside the fields written.
+ */
+export async function insertPartnerRow(
+  tx: RuntimeTransaction,
+  input: PartnerInput,
+  ownerName: string | null,
+  actor: UserActor,
+  source?: Record<string, unknown>,
+): Promise<PartnerRecord> {
+  const [inserted] = await tx
+    .insert(commercePartners)
+    .values({
+      id: input.id,
+      ...partnerColumns(input, ownerName),
+      createdById: actor.id,
+      createdByName: actor.display ?? actor.id,
+    })
+    .returning();
+  if (!inserted) throw new Error("PARTNER_INSERT_FAILED");
+  const record = partnerView(inserted, null);
+  await appendAuditAndOutbox(tx, {
+    aggregateType: "partner",
+    aggregateId: record.id,
+    aggregateVersion: record.version,
+    eventType: "partner.created",
+    actor,
+    requestId: randomUUID(),
+    after: {
+      changes: partnerChanges({}, comparable(record)),
+      ...(source ? { source } : {}),
+    },
+  });
+  return record;
+}
+
+/**
+ * Overwrites a locked partner row with `input` and records the fields that
+ * changed. An unchanged input writes and records nothing.
+ */
+export async function updatePartnerRow(
+  tx: RuntimeTransaction,
+  current: typeof commercePartners.$inferSelect,
+  input: PartnerInput,
+  ownerName: string | null,
+  actor: UserActor,
+  source?: Record<string, unknown>,
+): Promise<PartnerRecord> {
+  const before = partnerView(current, null);
+  const changes = partnerChanges(
+    comparable(before),
+    inputComparable(input, ownerName),
+  );
+  // Saving an unchanged form changes nothing and records nothing.
+  if (Object.keys(changes).length === 0) return before;
+  const [updated] = await tx
+    .update(commercePartners)
+    .set({
+      ...partnerColumns(input, ownerName),
+      updatedAt: sql`now()`,
+      version: current.version + 1,
+    })
+    .where(eq(commercePartners.id, input.id))
+    .returning();
+  if (!updated) throw new Error("PARTNER_UPDATE_FAILED");
+  const record = partnerView(updated, null);
+  await appendAuditAndOutbox(tx, {
+    aggregateType: "partner",
+    aggregateId: record.id,
+    aggregateVersion: record.version,
+    eventType: "partner.updated",
+    actor,
+    requestId: randomUUID(),
+    after: { changes, ...(source ? { source } : {}) },
+  });
+  return record;
+}
+
+/** A stored partner in the shape a save takes, so a caller can change part
+ * of it and write the rest back unchanged. */
+export function partnerInputOf(
+  record: PartnerRecord,
+): Omit<PartnerInput, "expectedVersion"> {
+  return {
+    id: record.id,
+    name: record.name,
+    website: record.website,
+    region: record.region,
+    models: record.models,
+    status: record.status,
+    ownerId: record.ownerId,
+    organizationId: record.organizationId,
+    contacts: record.contacts,
+    nextStep: record.nextStep,
+    nextStepDue: record.nextStepDue,
+    notes: record.notes,
+    terms: record.terms,
+  };
+}
+
+export { partnerView as partnerRecordOf };
+
+export async function staffOwners(
   tx: RuntimeTransaction,
   ids?: readonly string[],
 ): Promise<PartnerOwnerOption[]> {
@@ -1141,7 +1207,7 @@ async function staffOwners(
 }
 
 /** The owner's name, checked to be staff with the sales workspace. */
-async function resolveOwner(
+export async function resolveOwner(
   tx: RuntimeTransaction,
   ownerId: string | null,
 ): Promise<string | null> {
