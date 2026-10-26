@@ -8,7 +8,7 @@ catalog:
   "@aws-sdk/client-sqs": 3.1100.0
   "@hono/zod-openapi": 1.5.1
   "@react-pdf/renderer": 4.5.1
-  "@trigger.dev/sdk": 4.5.9
+  "@trigger.dev/sdk": 4.6.4
   "@types/node": 24.13.3
   "@types/react": 19.2.18
   "@types/react-dom": 19.2.4
@@ -25,7 +25,7 @@ catalog:
   typescript: 5.9.3
   vite: 8.2.4
   vitest: 4.1.11
-  zod: 4.4.3
+  zod: 4.6.6
 
 onlyBuiltDependencies:
   - esbuild

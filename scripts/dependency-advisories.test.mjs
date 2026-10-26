@@ -35,6 +35,8 @@ const acceptedAdvisories = new Map([
 // `pnpm.overrides` block. If an override is dropped the resolved version slides
 // back under the advisory's vulnerable range and this catches it.
 const pinnedTransitives = [
+  { name: "body-parser", minimum: "2.4.0", override: "body-parser@>=2 <2.4.0" },
+  { name: "undici", minimum: "8.12.2", override: "undici@>=8 <8.12.2" },
   {
     name: "@fastify/busboy",
     minimum: "3.2.2",
@@ -60,6 +62,7 @@ const pinnedTransitives = [
 // Direct catalog dependencies. Vite also has an override so test tooling's
 // transitive copy cannot retain a vulnerable version.
 const catalogFloors = [
+  { name: "zod", minimum: "4.6.6" },
   { name: "hono", minimum: "4.13.7" },
   { name: "vite", minimum: "8.2.4" },
 ];
