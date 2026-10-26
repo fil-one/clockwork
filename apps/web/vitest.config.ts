@@ -13,6 +13,8 @@ export default defineConfig({
     },
   },
   test: {
+    // AuthKit's extensionless Next imports need the same bundling as the app.
+    server: { deps: { inline: ["@workos-inc/authkit-nextjs"] } },
     environment: "jsdom",
     include: ["{src,app}/**/*.test.{ts,tsx}"],
     exclude: [
