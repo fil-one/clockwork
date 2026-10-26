@@ -231,6 +231,26 @@ describe("WorkOS commerce session mapping", () => {
     vi.unstubAllEnvs();
   });
 
+  it.each([
+    "WorkOS identity is not linked to exactly one commerce membership",
+    "Commerce database unavailable",
+  ])(
+    "denies commerce access after a verified login when %s",
+    async (message) => {
+      const failure = new Error(message);
+      authMocks.resolveWorkosIdentity.mockRejectedValue(failure);
+
+      await expect(getCommerceSession()).rejects.toBe(failure);
+      expect(authMocks.resolveWorkosIdentity).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          workosUserId: fixture.workosUserId,
+          workosOrganizationId: fixture.workosOrganizationId,
+        }),
+      );
+    },
+  );
+
   it("accepts an actual session-bound MFA receipt when WorkOS omits assurance claims", async () => {
     authMocks.getTokenClaims.mockResolvedValue({});
     authMocks.findMfaReceipt.mockResolvedValue(Date.now());

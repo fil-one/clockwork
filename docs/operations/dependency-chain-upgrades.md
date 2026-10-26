@@ -17,11 +17,13 @@ the disposable OpenAPI dry-run are release assertions.
 
 ## Trigger/OpenTelemetry chain
 
-The repository’s Trigger SDK/core remains 4.5.9. Only dependencies below
-`@trigger.dev/core@4.5.9` are aligned: stable OpenTelemetry packages use 2.10.0
-and the matching experimental log/exporter/instrumentation packages use 0.221.0.
-The lockfile contains neither `@opentelemetry/core@2.7.1` nor the prior
-experimental 0.218.0 family.
+Trigger SDK/core is 4.6.4, which supports Zod 4 and includes the 4.6.x Zod
+import fix. Its Zod dependency is pinned to 4.6.6 to remove the vulnerable Zod 3
+dependency without forcing Zod 4 into an incompatible consumer. The application
+catalog also uses Zod 4.6.6. Dependencies below `@trigger.dev/core@4.6.4` remain
+aligned: stable OpenTelemetry packages use 2.10.0 and the matching experimental
+log/exporter/instrumentation packages use 0.221.0. The lockfile contains neither
+`@opentelemetry/core@2.7.1` nor the prior experimental 0.218.0 family.
 
 Each override names both the Trigger parent and the individual OpenTelemetry
 package. There is no blanket `@opentelemetry/*` override, so an incompatible
