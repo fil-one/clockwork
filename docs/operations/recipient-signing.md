@@ -12,6 +12,16 @@ page and final-copy download. Existing hosted SignWell requests keep working.
   embedded signing and custom branding are available on the account. Set
   `SIGNWELL_API_APPLICATION_ID`; retain the existing API key and verified
   webhook subscription (`SIGNWELL_WEBHOOK_ID`).
+- In the sending account's SignWell **Profile**, set **When Ordered Signing Has
+  Started** to **No**. Real-provider testing found this waiting email is sent
+  even with embedded signing enabled, embedded notifications disabled, and every
+  recipient's `send_email` set to `false`. SignWell requires Light or Business
+  to change notification preferences; Light is sufficient for this setting. Keep
+  **On Embedded Documents When Completed** at **No**. These are account
+  preferences: changing the ordered-signing notice also affects hosted requests
+  from that account. Regular signing invitations and completion mail for
+  existing hosted requests remain enabled. See
+  [SignWell's email-notification documentation](https://help.signwell.com/article/123-email-notifications).
 - Set `COMMERCE_SIGNING_ORIGIN` to the canonical Commerce HTTPS origin, without
   a path (the final address after any hostname redirect), and
   `COMMERCE_SIGNING_LINK_SECRET` to a cryptographically random secret of at
@@ -44,7 +54,10 @@ addresses already approved in `COMMERCE_SIGNING_TEST_RECIPIENTS`; recipients
 must follow those verification links. `request-production-access` submits the
 transactional-mail request to AWS. A submitted request is not approval: inspect
 again and require `ProductionAccessEnabled: true` before enabling production
-agreement mail. These actions neither send agreements nor change staff access.
+agreement mail. If the domain identity does not yet exist, inspection reports
+that it must be deployed; a successful workflow run alone is not readiness. The
+script verifies the AWS account before every action. These actions neither send
+agreements nor change staff access.
 
 ## Pilot before activation
 
@@ -64,9 +77,12 @@ external recipient is implied by development of this feature.
    branding replaces its logo. Loading readiness accepts `iframeLoaded` as well
    as `documentLoaded`; neither event grants access or confirms a signature. The
    2026-11-10 real-provider check found the final disclosure instruction clipped
-   inside SignWell's iframe at a 390px viewport. Resolve or qualify an
-   accessible mobile path before production activation; the illustrative preview
-   and stubbed browser tests cannot establish provider mobile readiness.
+   inside SignWell's iframe at a 390px viewport, though its disclosure modal and
+   finish control remain available. Commerce also provides a wrapping disclosure
+   link immediately above the iframe; it opens the full provider disclosure in a
+   separate tab without discarding the signature in progress. Verify both paths
+   on mobile; the illustrative preview and stubbed browser tests cannot
+   establish provider mobile readiness.
 3. Complete the first signature. Verify “your signature is complete,” a Fil One
    countersigner invitation, and no final-copy download until both parties have
    signed and Commerce has archived the executed PDF. Complete the second signer

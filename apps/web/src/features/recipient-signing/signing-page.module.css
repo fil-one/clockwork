@@ -213,6 +213,19 @@
   padding: 16px 30px;
   color: #62788b;
 }
+.disclosure {
+  margin: 0;
+  padding: 14px 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  border-bottom: 1px solid #edf1f5;
+}
+.disclosure a {
+  color: #0066bb;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
 .error {
   padding: 18px 22px;
   margin-top: 20px;

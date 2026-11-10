@@ -296,6 +296,15 @@ export function RecipientSigningPage({
               </div>
               {url ? (
                 <>
+                  <p className={styles.disclosure}>
+                    <a
+                      href="https://www.signwell.com/electronic-signature-disclosure/?signwell_embedded_iframe=1"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("platform.recipient.disclosure")}
+                    </a>
+                  </p>
                   {frameLoading ? (
                     <p className={styles.loading} role="status">
                       {t("signing.loading")}

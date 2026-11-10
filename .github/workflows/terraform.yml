@@ -126,12 +126,12 @@ jobs:
           CLOCKWORK_MFA_POLICY_ORGANIZATION_IDS:
             ${{ vars.CLOCKWORK_MFA_POLICY_ORGANIZATION_IDS }}
 
-      # The repository refuses a second push of an existing tag, so a re-run
-      # of a failed attempt gets its own.
+      # ECR tags are immutable. Include the run as well as its attempt so a
+      # configuration-only manual deploy of an unchanged commit is also unique.
       - name: Name the image
         run:
           echo "IMAGE_TAG=${TF_WORKSPACE}-$(git rev-parse --short HEAD)-${{
-          github.run_attempt }}" >> "$GITHUB_ENV"
+          github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
