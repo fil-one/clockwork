@@ -6,6 +6,11 @@ details you know. Choose **Prepare preview**, open the PDF, and choose **Confirm
 and send**. The partner signs first; the selected Fil One countersigner signs
 second. Nothing reaches the partner until you confirm.
 
+For the Fil One-branded recipient journey, see
+[recipient signing](recipient-signing.md), including why Commerce sends its own
+email and the
+[AWS production-approval handoff](recipient-signing.md#engineering-handoff-production-email-approval).
+
 ## Who can do what
 
 | Action                                                      | Permission         | Roles                                                                         |
@@ -203,6 +208,10 @@ email**). Manual reminders are a minute apart.
   attention**; a person voids it. It is never closed automatically.
 
 ## Completion notices
+
+This section describes hosted SignWell requests. Requests created with the
+[Fil One recipient experience](recipient-signing.md) use Commerce's email
+channel and archived-document links instead.
 
 The sender is a SignWell copied contact (`copied_contacts`) on every new
 request, so SignWell emails the sender the completed agreement when both sides

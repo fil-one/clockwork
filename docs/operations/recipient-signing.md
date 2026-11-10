@@ -5,6 +5,141 @@ uploaded PDFs. SignWell still captures the signatures and supplies the executed
 PDF with audit page. Commerce owns recipient emails, private links, the signing
 page and final-copy download. Existing hosted SignWell requests keep working.
 
+## Why this uses AWS
+
+The product goal is a consistent Fil One experience from the first email through
+the completed agreement. Keeping SignWell behind the signing page improves the
+ceremony, but provider-branded invitations and completion emails would still
+send recipients back into the SignWell experience. Commerce therefore composes
+those transactional emails and links them to its own recipient page.
+
+SignWell continues to capture signatures and provide the executed document.
+Amazon SES delivers Commerce's invitations, requested reminders and final-copy
+links. SES was chosen because Clockwork already runs on AWS: the existing task
+role, Terraform deployment and email adapter can provide delivery without
+introducing another service account or a long-lived email API key. Another mail
+provider could serve this role, but is not configured for this rollout.
+
+SES sender verification and permission to email customers are separate. Domain
+verification and DKIM establish the sending identity. An account in the SES
+sandbox can still send only to verified recipients; production access removes
+that recipient restriction in the approved AWS Region. Verifying the two pilot
+addresses enables staging tests, not customer delivery. See
+[AWS's production-access documentation](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html).
+
+## Engineering handoff: production email approval
+
+**Observed 2026-11-10 at 19:28 UTC:** the sender identity and DKIM are verified,
+but AWS denied the production-access request. The API exposes the review status
+and case ID, not the reason. Engineering must read the case correspondence; do
+not infer why AWS declined it.
+
+| Item                        | Production value                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| AWS account                 | `811430801166`                                                                                                      |
+| SES Region                  | `us-east-2` (Ohio)                                                                                                  |
+| Support case                | [179433700900557](https://support.console.aws.amazon.com/support/home#/case/?displayId=179433700900557&language=en) |
+| Website and recipient links | `https://commerce.fil.one`                                                                                          |
+| SES sending identity        | `clockwork.fil.one`                                                                                                 |
+| From address                | `Fil One Agreements <notifications@clockwork.fil.one>`                                                              |
+| Identity / DKIM status      | `SUCCESS` / `SUCCESS`                                                                                               |
+| Production access / review  | `false` / `DENIED`                                                                                                  |
+| Evidence                    | [Signing email readiness run 42885499851](https://github.com/fil-one/clockwork/actions/runs/42885499851)            |
+| New-creation flag           | `COMMERCE_SIGNING_EXPERIENCE=signwell` (Fil One journey not activated)                                              |
+
+The sending domain and the website hostname intentionally differ. The sender is
+the existing production deployment domain; recipient links use the canonical
+Commerce hostname. The identity, DNS records and sending permission are already
+provisioned. No new AWS account, credential sharing or SignWell purchase is
+needed for the AWS approval step.
+
+### 1. Engineering resolves the AWS case
+
+Use your existing engineering AWS access to account `811430801166`, open the
+linked support case, and read the denial and any requested information. Reply in
+that case to request reconsideration for SES in **us-east-2**. Answer AWS's
+specific questions and supply the actual expected volume and operational
+processes if requested; do not invent forecasts or claim controls that are not
+in place. AWS may require the case to be reopened.
+
+The following implementation facts can support that reply:
+
+> Fil One Commerce sends transactional business-agreement emails from
+> https://commerce.fil.one. Authenticated staff select the recipients of each
+> agreement. Email consists of signing invitations, staff-requested reminders,
+> and completed-document links for signers and designated copy recipients. This
+> channel sends no marketing campaigns or purchased-list mail. SignWell handles
+> the signature ceremony; Commerce owns the branded recipient journey. The SES
+> identity clockwork.fil.one and its DKIM are now verified in us-east-2. The
+> account has BOUNCE and COMPLAINT suppression enabled. The new production
+> signing journey remains disabled while approval and staging qualification are
+> outstanding. Please review production access for this transactional use case.
+
+Account suppression is not evidence of a complete bounce/complaint monitoring
+process. Engineering should describe its actual handling to AWS and resolve any
+additional requirement in the case. Repeatedly running
+`request-production-access` is not a substitute for responding to the denial.
+
+### 2. Verify approval through the existing workflow
+
+Open
+[Actions → Signing email readiness](https://github.com/fil-one/clockwork/actions/workflows/signing-email.yml),
+choose **Run workflow**, branch **main**, environment **production**, action
+**inspect**. This is read-only and uses the existing deployment role; nobody
+needs to paste AWS credentials into chat or create a new access key. The CLI
+equivalent is:
+
+```sh
+gh workflow run signing-email.yml --repo fil-one/clockwork --ref main \
+  -f environment=production -f action=inspect
+```
+
+Require all of these in the resulting run: `ProductionAccessEnabled: true`,
+`SendingEnabled: true`, sender `Verified: true`, `Verification: SUCCESS` and
+`DkimStatus: SUCCESS`. A green workflow, submitted request or verified domain
+alone is insufficient. If approval is still denied or pending, leave the
+creation flag at `signwell`; enabling it would create journeys whose recipients
+cannot receive their invitation.
+
+### 3. Finish the staging pilot, then activate
+
+Staging is [clockwork-staging.fil.one](https://clockwork-staging.fil.one/), AWS
+account `654654381893`, also in `us-east-2`. It uses non-binding SignWell test
+mode. The approved pilot recipients are `james.kurz@gmail.com` and
+`james@fil.org`; both SES identities are verified. Keep its recipient allowlist
+restricted to these addresses. James has staging commerce-administrator access
+and must use his own MFA.
+
+Complete and record the [pilot below](#pilot-before-activation), including
+actual email delivery/suppression, the embedded mobile view, countersigning,
+archived PDF and final-copy delivery. Automated tests and direct provider tests
+do not establish that the deployed Commerce journey works. The provider test
+PDFs observed on 2026-11-10 omitted the audit page despite requesting it; the
+same export adapter did retrieve an audit page from an existing completed live
+agreement. Record that distinction rather than claiming test-mode audit proof.
+
+After **both** AWS readiness and staging qualification pass, set the production
+GitHub environment variable and deploy the current green `main`:
+
+```sh
+gh variable set COMMERCE_SIGNING_EXPERIENCE --repo fil-one/clockwork \
+  --env production --body fil_one
+gh workflow run deploy.yml --repo fil-one/clockwork --ref main
+```
+
+Wait for staging and production deployment/smoke checks to succeed. A GitHub
+variable change does not alter a running task until deployment. For the first
+intended, authorized production agreement, confirm the Fil One invitation,
+recipient page, archived executed PDF with audit page, and final-copy delivery.
+Do not create or sign a live legal agreement just to test deployment.
+
+`COMMERCE_SIGNING_MAIL_ENABLED=true` provisions the mail channel; it does not
+activate the new journey. Keep that setting, the API application and the link
+secret available for in-flight requests. To stop **new** Fil One requests, set
+`COMMERCE_SIGNING_EXPERIENCE` back to `signwell` and deploy; see
+[rollback and recovery](#delivery-and-recovery). Rotating the link secret would
+revoke outstanding recipient links and sessions, so it is not a rollout step.
+
 ## Configure before enabling
 
 - Apply migration `001485_signing_journey.sql` and deploy the app and workers.
