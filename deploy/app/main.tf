@@ -158,7 +158,7 @@ module "app" {
     { name = "CLOCKWORK_TASK_RUNTIME", value = var.task_runtime },
     { name = "COMMERCE_SIGNING_EXPERIENCE", value = var.commerce_signing_experience },
     { name = "SIGNWELL_API_APPLICATION_ID", value = var.signwell_api_application_id },
-    { name = "COMMERCE_SIGNING_ORIGIN", value = "https://${var.hostname}" },
+    { name = "COMMERCE_SIGNING_ORIGIN", value = "https://${var.canonical_hostname != "" ? var.canonical_hostname : var.hostname}" },
     { name = "COMMERCE_SIGNING_TEST_RECIPIENTS", value = var.commerce_signing_test_recipients },
     { name = "COMMERCE_MNDA_ENABLED", value = tostring(var.commerce_mnda_enabled) },
     { name = "COMMERCE_MNDA_TEST_MODE", value = tostring(!local.is_production) },

@@ -228,17 +228,13 @@ variable "commerce_signing_experience" {
 }
 
 variable "commerce_signing_mail_enabled" {
-  description = "Enable recipient agreement mail using the provisioned SES sender. Keep enabled while any Fil One links remain active."
+  description = "Enable recipient agreement mail and provision its SES sender independently of staff notifications. Keep enabled while any Fil One links remain active."
   type        = bool
   default     = false
-  validation {
-    condition     = !var.commerce_signing_mail_enabled || var.notifications_email_enabled
-    error_message = "Recipient signing mail requires the verified notification SES identity."
-  }
 }
 
 variable "signwell_api_application_id" {
-  description = "SignWell API application configured for the Commerce signing origin."
+  description = "SignWell API application with the Fil One embedded signing branding."
   type        = string
   default     = ""
 }

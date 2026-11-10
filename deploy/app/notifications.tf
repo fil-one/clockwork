@@ -1,8 +1,8 @@
 # storoku:ignore
 #
-# Staff notification email through Amazon SES (docs/operations/notifications.md).
-# Everything here is off until `notifications_email_enabled` is true, so an
-# apply of this file with the defaults creates nothing.
+# Staff notifications and recipient agreement email share an SES sender.
+# Each channel is independently enabled; with both defaults off this creates
+# nothing. See docs/operations/notifications.md and recipient-signing.md.
 #
 # When it is on:
 #
@@ -24,6 +24,8 @@
 # access, which is requested by hand.
 
 locals {
+  ses_email_enabled = var.notifications_email_enabled || var.commerce_signing_mail_enabled
+
   notifications_email_domain = var.notifications_email_domain != "" ? var.notifications_email_domain : var.hostname
 
   notifications_email_address = "notifications@${local.notifications_email_domain}"
@@ -38,7 +40,7 @@ locals {
 
   # Recipient correspondence uses the same verified address and IAM scope;
   # it has its own display name and explicit opt-in, independent of staff prefs.
-  signing_env_vars = var.commerce_signing_mail_enabled && var.notifications_email_enabled ? [
+  signing_env_vars = var.commerce_signing_mail_enabled ? [
     { name = "COMMERCE_SIGNING_EMAIL_PROVIDER", value = "ses" },
     { name = "COMMERCE_SIGNING_EMAIL_FROM", value = "Fil One Agreements <${local.notifications_email_address}>" },
   ] : []
@@ -46,14 +48,14 @@ locals {
   # The shared root's zone is named for the hostname on the default "hot"
   # network, which both stages use (terraform.yml sets no network). On any
   # other network the records are added by hand from the output below.
-  notifications_dkim_in_route53 = var.notifications_email_enabled && var.network == "hot" && (
+  notifications_dkim_in_route53 = local.ses_email_enabled && var.network == "hot" && (
     local.notifications_email_domain == var.domain_base ||
     endswith(local.notifications_email_domain, ".${var.domain_base}")
   )
 }
 
 resource "aws_sesv2_email_identity" "notifications" {
-  count          = var.notifications_email_enabled ? 1 : 0
+  count          = local.ses_email_enabled ? 1 : 0
   email_identity = local.notifications_email_domain
 }
 
@@ -77,7 +79,7 @@ resource "aws_route53_record" "notifications_dkim" {
 # verified identity, so the grant covers every identity in the account and the
 # condition keeps the sender to the one address.
 resource "aws_iam_role_policy" "notifications_ses" {
-  count = var.notifications_email_enabled ? 1 : 0
+  count = local.ses_email_enabled ? 1 : 0
 
   name = "${terraform.workspace}-${var.app}-notifications-ses"
   role = module.app.task_role_name
@@ -97,7 +99,7 @@ resource "aws_iam_role_policy" "notifications_ses" {
 output "notifications_email_dkim_records" {
   description = "The DKIM CNAMEs that verify the sending domain. Created in Route53 when the domain is in this account's zone; otherwise add them by hand."
 
-  value = var.notifications_email_enabled ? [
+  value = local.ses_email_enabled ? [
     for token in aws_sesv2_email_identity.notifications[0].dkim_signing_attributes[0].tokens : {
       name  = "${token}._domainkey.${local.notifications_email_domain}"
       type  = "CNAME"

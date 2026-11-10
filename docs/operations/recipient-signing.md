@@ -8,11 +8,12 @@ page and final-copy download. Existing hosted SignWell requests keep working.
 ## Configure before enabling
 
 - Apply migration `001485_signing_journey.sql` and deploy the app and workers.
-- Create/configure the SignWell API application for the exact Commerce HTTPS
-  origin. Confirm embedded signing and custom branding are available on the
-  account. Set `SIGNWELL_API_APPLICATION_ID`; retain the existing API key and
-  verified webhook subscription (`SIGNWELL_WEBHOOK_ID`).
-- Set `COMMERCE_SIGNING_ORIGIN` to that origin, without a path, and
+- Create/configure the SignWell API application with Fil One branding. Confirm
+  embedded signing and custom branding are available on the account. Set
+  `SIGNWELL_API_APPLICATION_ID`; retain the existing API key and verified
+  webhook subscription (`SIGNWELL_WEBHOOK_ID`).
+- Set `COMMERCE_SIGNING_ORIGIN` to the canonical Commerce HTTPS origin, without
+  a path (the final address after any hostname redirect), and
   `COMMERCE_SIGNING_LINK_SECRET` to a cryptographically random secret of at
   least 32 characters. Treat rotation as revocation of every outstanding
   link/session.
@@ -21,16 +22,19 @@ page and final-copy download. Existing hosted SignWell requests keep working.
   `AWS_REGION`). Verify the sending identity, DKIM, sandbox/production status
   and task-role permission. Staff notification preferences do not control
   agreement mail.
-- In the Terraform deployment, enable `COMMERCE_SIGNING_MAIL_ENABLED` and the
-  existing notification SES identity. Agreement mail uses the same authorized
-  address with the display name **Fil One Agreements**; no broader SES grant is
-  needed. The API application ID, creation flag and test allowlist are GitHub
-  environment variables; the link secret is an environment secret.
+- In the Terraform deployment, enable `COMMERCE_SIGNING_MAIL_ENABLED`. This
+  provisions the SES identity, DKIM and sender permission independently of staff
+  notifications; `COMMERCE_NOTIFICATIONS_EMAIL_ENABLED` may remain off. Both
+  channels share the same authorized address, with **Fil One Agreements** as the
+  agreement-mail display name. The API application ID, creation flag and test
+  allowlist are GitHub environment variables; the link secret is an environment
+  secret.
 - List explicitly approved test recipients in `COMMERCE_SIGNING_TEST_RECIPIENTS`
   (comma-separated, including countersigners and copy recipients). Test-mode
   mail to any other address fails closed.
-- After the pilot below, set `COMMERCE_SIGNING_EXPERIENCE=fil_one`. Incomplete
-  configuration blocks new sends. Leave it as `signwell` until qualification.
+- In staging, set `COMMERCE_SIGNING_EXPERIENCE=fil_one` for the test-mode pilot
+  below. In production, leave it as `signwell` until qualification is complete.
+  Incomplete configuration blocks new sends.
 
 ## Pilot before activation
 
