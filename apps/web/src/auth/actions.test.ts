@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   requireRecentAuthentication: vi.fn(),
   signOut: vi.fn(),
   switchToOrganization: vi.fn(),
+  withAuth: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
@@ -29,6 +30,7 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@workos-inc/authkit-nextjs", () => ({
   signOut: mocks.signOut,
   switchToOrganization: mocks.switchToOrganization,
+  withAuth: mocks.withAuth,
 }));
 
 vi.mock("@/src/auth/session", () => ({
@@ -52,12 +54,92 @@ vi.mock("@/src/features/internal-ops/assisted-session/repository", () => ({
 }));
 
 import {
+  chooseCommerceAccount,
   exitProviderAssistedSession,
   startAssistedSession,
   switchCommerceAccount,
 } from "./actions";
 
 const accountId = "10000000-0000-4000-8000-000000000004";
+
+describe("initial organization selection", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.assistedCookie = undefined;
+    mocks.withAuth.mockResolvedValue({
+      user: { id: "user_workos_unscoped" },
+      organizationId: undefined,
+      impersonator: undefined,
+    });
+    mocks.getCommerceSession.mockRejectedValue(
+      new Error("Organization selection is required"),
+    );
+    mocks.resolveAuthorizedAccountSwitch.mockResolvedValue({
+      workosOrganizationId: "org_authorized",
+      home: "/internal",
+    });
+  });
+
+  const form = (value = accountId) => {
+    const data = new FormData();
+    data.set("accountId", value);
+    return data;
+  };
+
+  it("selects an authorized organization before an organization-scoped session exists", async () => {
+    await chooseCommerceAccount(form());
+    expect(mocks.withAuth).toHaveBeenCalledWith({ ensureSignedIn: true });
+    expect(mocks.getCommerceSession).not.toHaveBeenCalled();
+    expect(mocks.resolveAuthorizedAccountSwitch).toHaveBeenCalledWith(
+      { kind: "deterministic-test-database" },
+      expect.objectContaining({
+        workosUserId: "user_workos_unscoped",
+        requestedAccountId: accountId,
+      }),
+    );
+    expect(mocks.switchToOrganization).toHaveBeenCalledWith("org_authorized", {
+      returnTo: "/internal",
+    });
+  });
+
+  it("rejects a forged account before changing the provider session", async () => {
+    mocks.resolveAuthorizedAccountSwitch.mockRejectedValue(
+      new Error("Requested account is not an authorized membership"),
+    );
+    await expect(chooseCommerceAccount(form())).rejects.toThrow(
+      "Requested account is not an authorized membership",
+    );
+    expect(mocks.switchToOrganization).not.toHaveBeenCalled();
+  });
+
+  it.each(["malformed", "assisted", "impersonated"])(
+    "rejects %s selection without resolving or switching membership",
+    async (kind) => {
+      if (kind === "assisted") mocks.assistedCookie = "assisted-session";
+      if (kind === "impersonated")
+        mocks.withAuth.mockResolvedValue({
+          user: { id: "target_user" },
+          impersonator: { email: "operator@example.test" },
+        });
+      await expect(
+        chooseCommerceAccount(
+          form(kind === "malformed" ? "not-a-uuid" : accountId),
+        ),
+      ).rejects.toThrow("Organization selection was denied");
+      expect(mocks.resolveAuthorizedAccountSwitch).not.toHaveBeenCalled();
+      expect(mocks.switchToOrganization).not.toHaveBeenCalled();
+    },
+  );
+
+  it("preserves AuthKit failures and MFA requirements", async () => {
+    mocks.switchToOrganization.mockRejectedValueOnce(
+      new Error("MFA enrollment required"),
+    );
+    await expect(chooseCommerceAccount(form())).rejects.toThrow(
+      "MFA enrollment required",
+    );
+  });
+});
 
 describe("organization-switch authorization", () => {
   beforeEach(() => {

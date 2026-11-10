@@ -1,7 +1,11 @@
 "use server";
 
 import { contextHasPermission, ids } from "@clockwork/contracts";
-import { signOut, switchToOrganization } from "@workos-inc/authkit-nextjs";
+import {
+  signOut,
+  switchToOrganization,
+  withAuth,
+} from "@workos-inc/authkit-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -62,9 +66,29 @@ export async function switchCommerceAccount(requestedAccountId: string) {
 }
 
 export async function chooseCommerceAccount(formData: FormData) {
-  const result = await switchCommerceAccount(formText(formData, "accountId"));
+  // Initial sign-in can have a verified WorkOS user but no selected org.
+  // getCommerceSession requires that selection, so it cannot authorize the
+  // chooser itself. Resolve the target from this user's active memberships;
+  // AuthKit then applies the target organization's sign-in/MFA requirements.
+  const auth = await withAuth({ ensureSignedIn: true });
+  const accountId = ids.account.safeParse(formText(formData, "accountId"));
+  const assistedCredential = (await cookies()).get(
+    assistedSessionCookieName,
+  )?.value;
   // i18n-exempt: server action refusal; Next redacts it to a digest before the browser, and no caller renders it
-  if (!result.ok) throw new Error("Organization selection was denied");
+  if (!accountId.success || auth.impersonator || assistedCredential)
+    throw new Error("Organization selection was denied");
+  const membership = await resolveAuthorizedAccountSwitch(
+    getServiceDatabase(),
+    {
+      workosUserId: auth.user.id,
+      requestedAccountId: accountId.data,
+      requestId: requestId("initial-organization-selection"),
+    },
+  );
+  await switchToOrganization(membership.workosOrganizationId, {
+    returnTo: membership.home,
+  });
 }
 
 export async function startAssistedSession(formData: FormData) {
