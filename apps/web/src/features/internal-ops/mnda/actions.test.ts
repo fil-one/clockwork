@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type * as Integrations from "@clockwork/integrations";
 import {
   fixtureInput,
   fixtureRecord,
@@ -50,7 +51,8 @@ vi.mock("@clockwork/workflows/mnda", () => ({
     return mocks.workflow;
   }),
 }));
-vi.mock("@clockwork/integrations", () => ({
+vi.mock("@clockwork/integrations", async (importOriginal) => ({
+  ...(await importOriginal<typeof Integrations>()),
   SignWellClient: vi.fn(),
 }));
 vi.mock("@clockwork/documents", () => ({

@@ -45,6 +45,11 @@ const guardCalls = [
 const routeExemptions: Readonly<
   Record<string, { reason: string; mustContain: string }>
 > = {
+  "app/sign/[id]/[action]/route.ts": {
+    reason:
+      "Recipient capabilities replace staff roles: handleRecipientRequest verifies the signed invitation or path-scoped session, expiry, nonce, current document binding, and request origin. Its HTTP and journey tests exercise those refusals.",
+    mustContain: "handleRecipientRequest",
+  },
   "app/api/[[...route]]/route.ts": {
     reason:
       "The Hono API: every route authorizes in packages/api through requirePermission and the domain authorize().",
