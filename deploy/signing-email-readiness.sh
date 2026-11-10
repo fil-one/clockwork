@@ -2,6 +2,19 @@
 # Operate through the existing environment deployment role; never export keys.
 set -euo pipefail
 
+# The repository's Actions logs are public. The full allowlist is an environment
+# secret; also mask each address in case an AWS error mentions just one entry.
+if [[ "${GITHUB_ACTIONS:-}" == true && -n "${SIGNING_TEST_RECIPIENTS:-}" ]]; then
+  IFS=',' read -r -a private_recipients <<< "${SIGNING_TEST_RECIPIENTS:-}"
+  for recipient in "${private_recipients[@]}"; do
+    [[ -n "$recipient" ]] || continue
+    recipient=${recipient//'%'/'%25'}
+    recipient=${recipient//$'\r'/'%0D'}
+    recipient=${recipient//$'\n'/'%0A'}
+    printf '::add-mask::%s\n' "$recipient"
+  done
+fi
+
 : "${EXPECTED_AWS_ACCOUNT:?Missing expected account}"
 : "${SIGNING_EMAIL_DOMAIN:?Missing sender domain}"
 account=$(aws sts get-caller-identity --query Account --output text)
@@ -36,7 +49,7 @@ esac
 
 aws sesv2 get-account --query '{SendingEnabled:SendingEnabled,ProductionAccessEnabled:ProductionAccessEnabled,SendQuota:SendQuota,SuppressionAttributes:SuppressionAttributes,Review:Details.ReviewDetails}'
 identities=$(aws sesv2 list-email-identities --output json)
-jq '[.EmailIdentities[] | {Identity:.IdentityName,Verified:.SendingEnabled,Status:.VerificationStatus}]' <<< "$identities"
+jq '[.EmailIdentities[] | {Identity:(if (.IdentityName | contains("@")) then "email identity (redacted)" else .IdentityName end),Verified:.SendingEnabled,Status:.VerificationStatus}]' <<< "$identities"
 if jq -e --arg domain "$SIGNING_EMAIL_DOMAIN" '.EmailIdentities[] | select(.IdentityName == $domain)' <<< "$identities" >/dev/null; then
   aws sesv2 get-email-identity --email-identity "$SIGNING_EMAIL_DOMAIN" --query '{Identity:IdentityType,Verified:VerifiedForSendingStatus,Verification:VerificationStatus,DkimStatus:DkimAttributes.Status}'
 else

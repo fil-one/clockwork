@@ -86,7 +86,7 @@ jobs:
       TF_VAR_commerce_signing_mail_enabled:
         ${{ vars.COMMERCE_SIGNING_MAIL_ENABLED || 'false' }}
       TF_VAR_commerce_signing_test_recipients:
-        ${{ vars.COMMERCE_SIGNING_TEST_RECIPIENTS }}
+        ${{ secrets.COMMERCE_SIGNING_TEST_RECIPIENTS }}
       TF_VAR_hubspot_access_token: ${{ secrets.HUBSPOT_ACCESS_TOKEN }}
       TF_VAR_commerce_mnda_enabled: ${{ vars.COMMERCE_MNDA_ENABLED || 'false' }}
       TF_VAR_commerce_contracts_signing_enabled:

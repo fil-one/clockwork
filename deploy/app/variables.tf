@@ -247,6 +247,7 @@ variable "commerce_signing_link_secret" {
 }
 
 variable "commerce_signing_test_recipients" {
+  sensitive   = true
   description = "Comma-separated addresses explicitly authorized to receive test-mode signing mail."
   type        = string
   default     = ""

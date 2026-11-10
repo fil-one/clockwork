@@ -106,7 +106,7 @@ cannot receive their invitation.
 Staging is [clockwork-staging.fil.one](https://clockwork-staging.fil.one/), AWS
 account `654654381893`, also in `us-east-2`. It uses non-binding SignWell test
 mode. The two approved pilot recipients are configured in the staging GitHub
-environment's `COMMERCE_SIGNING_TEST_RECIPIENTS`; both SES identities are
+environment secret `COMMERCE_SIGNING_TEST_RECIPIENTS`; both SES identities are
 verified. Keep this allowlist restricted to the approved addresses. The pilot
 operator has staging commerce-administrator access and must use their own MFA.
 Keep personal test addresses, credentials and private links out of this public
@@ -207,9 +207,10 @@ revoke outstanding recipient links and sessions, so it is not a rollout step.
   provisions the SES identity, DKIM and sender permission independently of staff
   notifications; `COMMERCE_NOTIFICATIONS_EMAIL_ENABLED` may remain off. Both
   channels share the same authorized address, with **Fil One Agreements** as the
-  agreement-mail display name. The API application ID, creation flag and test
-  allowlist are GitHub environment variables; the link secret is an environment
-  secret.
+  agreement-mail display name. The API application ID and creation flag are
+  GitHub environment variables. The link secret and test-recipient allowlist are
+  environment secrets, so personal addresses do not appear in public deployment
+  logs.
 - List explicitly approved test recipients in `COMMERCE_SIGNING_TEST_RECIPIENTS`
   (comma-separated, including countersigners and copy recipients). Test-mode
   mail to any other address fails closed.
