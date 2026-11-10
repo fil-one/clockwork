@@ -298,7 +298,7 @@ export function RecipientSigningPage({
                 <>
                   <p className={styles.disclosure}>
                     <a
-                      href="https://www.signwell.com/electronic-signature-disclosure/"
+                      href="https://www.signwell.com/electronic-signature-disclosure/?signwell_embedded_iframe=1"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
