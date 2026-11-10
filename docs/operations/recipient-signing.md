@@ -105,10 +105,46 @@ cannot receive their invitation.
 
 Staging is [clockwork-staging.fil.one](https://clockwork-staging.fil.one/), AWS
 account `654654381893`, also in `us-east-2`. It uses non-binding SignWell test
-mode. The approved pilot recipients are `james.kurz@gmail.com` and
-`james@fil.org`; both SES identities are verified. Keep its recipient allowlist
-restricted to these addresses. James has staging commerce-administrator access
-and must use his own MFA.
+mode. The two approved pilot recipients are configured in the staging GitHub
+environment's `COMMERCE_SIGNING_TEST_RECIPIENTS`; both SES identities are
+verified. Keep this allowlist restricted to the approved addresses. The pilot
+operator has staging commerce-administrator access and must use their own MFA.
+Keep personal test addresses, credentials and private links out of this public
+repository and its Actions logs.
+
+**Pilot status, 2026-11-10 at 19:46 UTC:** the staging deployment and smoke
+checks passed. After refreshing sign-in, the authorized staff account reaches
+`/access/mfa`, but `POST /access/mfa/prepare` returns **409** and the page says
+"Verification is unavailable." In
+[`prepare/route.ts`](../../apps/web/app/access/mfa/prepare/route.ts), 409 means
+WorkOS did not return exactly one TOTP factor owned by that user. The response
+does not distinguish missing enrollment from multiple matching factors.
+Consequently the full Commerce signing pilot is still blocked; do not treat the
+deployment or the direct provider tests as a completed pilot.
+
+Engineering's WorkOS administrator should:
+
+1. Select the WorkOS environment used by **staging's** `WORKOS_CLIENT_ID` and
+   identify the bound staff organization and the pilot user's existing identity.
+   Inspect that user's authenticator factors without copying credentials or
+   enrollment secrets into the repository.
+2. If no factor exists, verify that the staff organization's authentication
+   policy requires hosted MFA for non-SSO members. WorkOS can enforce this on
+   the organization; an environment-wide requirement has a wider scope. See
+   [organization authentication policies](https://workos.com/docs/authkit/organization-policies)
+   and [hosted MFA enrollment](https://workos.com/docs/authkit/mfa). These are
+   the application's AuthKit settings, not WorkOS Dashboard team authentication.
+   If multiple matching factors exist, resolve the enrollment ambiguity through
+   the normal identity-recovery process with the user.
+3. Have the user open
+   [a fresh staging sign-in](https://clockwork-staging.fil.one/sign-in?returnTo=%2Finternal)
+   and complete hosted enrollment/verification with their own authenticator.
+   After a valid hosted MFA session, staff access should succeed; if Commerce
+   asks for its additional challenge, preparation must return 200 and the user
+   must verify the current code. Check the private provider/server diagnostics
+   if the refusal persists. Do not bypass the guard or manually mark MFA as
+   satisfied in the database.
+4. Resume the approved test-mode pilot below. No new staff grant is needed.
 
 Complete and record the [pilot below](#pilot-before-activation), including
 actual email delivery/suppression, the embedded mobile view, countersigning,
