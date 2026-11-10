@@ -69,15 +69,16 @@ locals {
     CLOCKWORK_TELEMETRY_INGEST_SECRET   = random_password.telemetry_ingest.result
   }
   supplied_secrets = {
-    WORKOS_API_KEY         = var.workos_api_key
-    WORKOS_CLIENT_ID       = var.workos_client_id
-    WORKOS_COOKIE_PASSWORD = var.workos_cookie_password
-    WORKOS_WEBHOOK_SECRET  = var.workos_webhook_secret
-    STRIPE_SECRET_KEY      = var.stripe_secret_key
-    STRIPE_WEBHOOK_SECRET  = var.stripe_webhook_secret
-    TRIGGER_SECRET_KEY     = var.trigger_secret_key
-    SIGNWELL_API_KEY       = var.signwell_api_key
-    SIGNWELL_WEBHOOK_ID    = var.signwell_webhook_id
+    WORKOS_API_KEY               = var.workos_api_key
+    WORKOS_CLIENT_ID             = var.workos_client_id
+    WORKOS_COOKIE_PASSWORD       = var.workos_cookie_password
+    WORKOS_WEBHOOK_SECRET        = var.workos_webhook_secret
+    STRIPE_SECRET_KEY            = var.stripe_secret_key
+    STRIPE_WEBHOOK_SECRET        = var.stripe_webhook_secret
+    TRIGGER_SECRET_KEY           = var.trigger_secret_key
+    SIGNWELL_API_KEY             = var.signwell_api_key
+    SIGNWELL_WEBHOOK_ID          = var.signwell_webhook_id
+    COMMERCE_SIGNING_LINK_SECRET = var.commerce_signing_link_secret
     # Read-only HubSpot private-app token; unset leaves HubSpot unavailable.
     HUBSPOT_ACCESS_TOKEN = var.hubspot_access_token
     # Slack for staff notifications; unset leaves Slack unconfigured.
@@ -155,6 +156,10 @@ module "app" {
     { name = "AWS_REGION", value = var.region },
     { name = "AUTHORIZATION_CONTEXT_SECRET_ID", value = local.authorization_context_secret_id },
     { name = "CLOCKWORK_TASK_RUNTIME", value = var.task_runtime },
+    { name = "COMMERCE_SIGNING_EXPERIENCE", value = var.commerce_signing_experience },
+    { name = "SIGNWELL_API_APPLICATION_ID", value = var.signwell_api_application_id },
+    { name = "COMMERCE_SIGNING_ORIGIN", value = "https://${var.hostname}" },
+    { name = "COMMERCE_SIGNING_TEST_RECIPIENTS", value = var.commerce_signing_test_recipients },
     { name = "COMMERCE_MNDA_ENABLED", value = tostring(var.commerce_mnda_enabled) },
     { name = "COMMERCE_MNDA_TEST_MODE", value = tostring(!local.is_production) },
     { name = "COMMERCE_CONTRACTS_SIGNING_ENABLED", value = tostring(var.commerce_contracts_signing_enabled) },
@@ -163,7 +168,7 @@ module "app" {
     # value wins over the queue's own. Both come from here so the lease the
     # queue is built with is the lease a message actually gets.
     { name = "CLOCKWORK_TASK_VISIBILITY_SECONDS", value = tostring(local.workflows_visibility_seconds) },
-  ], local.notifications_env_vars)
+  ], local.notifications_env_vars, local.signing_env_vars)
   image_tag = var.image_tag
 
   create_db = true

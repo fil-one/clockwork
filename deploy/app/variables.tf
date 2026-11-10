@@ -215,3 +215,43 @@ variable "production_db_allocated_storage" {
   type        = number
   default     = 50
 }
+
+# Recipient signing stays opt-in; existing links need mail/config after rollback.
+variable "commerce_signing_experience" {
+  description = "Experience for new signing requests: signwell or fil_one. Existing requests keep their original experience."
+  type        = string
+  default     = "signwell"
+  validation {
+    condition     = contains(["signwell", "fil_one"], var.commerce_signing_experience)
+    error_message = "Choose signwell or fil_one."
+  }
+}
+
+variable "commerce_signing_mail_enabled" {
+  description = "Enable recipient agreement mail using the provisioned SES sender. Keep enabled while any Fil One links remain active."
+  type        = bool
+  default     = false
+  validation {
+    condition     = !var.commerce_signing_mail_enabled || var.notifications_email_enabled
+    error_message = "Recipient signing mail requires the verified notification SES identity."
+  }
+}
+
+variable "signwell_api_application_id" {
+  description = "SignWell API application configured for the Commerce signing origin."
+  type        = string
+  default     = ""
+}
+
+variable "commerce_signing_link_secret" {
+  description = "Random secret of at least 32 characters for recipient capabilities. Rotation revokes existing links."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "commerce_signing_test_recipients" {
+  description = "Comma-separated addresses explicitly authorized to receive test-mode signing mail."
+  type        = string
+  default     = ""
+}

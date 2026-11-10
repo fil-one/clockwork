@@ -124,7 +124,7 @@ export interface SignWellCalls<R> {
   /** Needed only where a slot is correctable. */
   updateRecipient?(
     id: string,
-    recipient: { id: string; name: string; email: string },
+    recipient: { id: string; name: string; email: string; send_email?: false },
   ): Promise<SignWellSigningDocument>;
   completedPdf(id: string): Promise<Uint8Array>;
 }
@@ -691,7 +691,9 @@ export class SigningEngine<R> {
         Date.now() - Date.parse(view.remindedAt) < signingReminderCooldownMs
       )
         throw failure("REMINDER_TOO_SOON");
-      await this.signWell.remind(view.providerId);
+      // First-party reminders are delivered from the audited event below.
+      if (doc.metadata.commerce_signing_experience !== "fil_one")
+        await this.signWell.remind(view.providerId);
       // Once the first signer has signed, the next one is reminded.
       const next =
         this.signing(settled)[
@@ -933,6 +935,9 @@ export class SigningEngine<R> {
           id: slot.id,
           name: view.signers[slot.id]?.name ?? "",
           email: signerEmail,
+          ...(doc.metadata.commerce_signing_experience === "fil_one"
+            ? { send_email: false as const }
+            : {}),
         });
       } catch (error) {
         if (signWellRefused(error)) {

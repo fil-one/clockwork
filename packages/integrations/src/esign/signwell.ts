@@ -23,8 +23,12 @@ export function signWellDocumentSchema<K extends string>(bindingKey: K) {
     status: z.string(),
     test_mode: z.boolean(),
     metadata: z
-      .object({ template_sha256: z.string() })
-      .extend({ [bindingKey]: z.uuid() } as Record<K, z.ZodUUID>),
+      .object({
+        template_sha256: z.string(),
+        commerce_signing_experience: z.literal("fil_one").optional(),
+      })
+      .extend({ [bindingKey]: z.uuid() } as Record<K, z.ZodUUID>)
+      .passthrough(),
     recipients: z.array(
       z.object({
         id: z.string(),
@@ -33,6 +37,8 @@ export function signWellDocumentSchema<K extends string>(bindingKey: K) {
         status: z.string().nullable().optional(),
         bounced: z.boolean().nullable().optional(),
         signing_order: z.number().int().nullable().optional(),
+        embedded_signing_url: z.string().nullable().optional(),
+        send_email: z.boolean().optional(),
       }),
     ),
     fields: z.array(
@@ -59,7 +65,7 @@ export function signWellDocumentSchema<K extends string>(bindingKey: K) {
       .optional(),
   });
 }
-export type SignWellSigningDocument<K extends string = string> = z.infer<
+export type SignWellSigningDocument<K extends string = never> = z.infer<
   ReturnType<typeof signWellDocumentSchema<K>>
 >;
 export type SignWellDocument = SignWellSigningDocument<"commerce_mnda_id">;
@@ -73,7 +79,7 @@ export interface MndaSigningProvider {
   /** Replaces a recipient who has not started signing; SignWell re-sends. */
   updateRecipient(
     id: string,
-    recipient: { id: string; name: string; email: string },
+    recipient: { id: string; name: string; email: string; send_email?: false },
   ): Promise<SignWellDocument>;
   completedPdf(id: string): Promise<Uint8Array>;
 }
@@ -95,6 +101,7 @@ export abstract class SignWellSigningClient<K extends string> {
   constructor(
     private readonly apiKey: string,
     private readonly transport: typeof fetch = fetch,
+    private readonly embedded?: { applicationId: string; logoUrl: string },
   ) {
     if (!apiKey.trim()) throw new Error("SIGNWELL_NOT_CONFIGURED");
   }
@@ -176,7 +183,9 @@ export abstract class SignWellSigningClient<K extends string> {
           file_base64: Buffer.from(pdf).toString("base64"),
         },
       ],
-      recipients: draft.recipients,
+      recipients: draft.recipients.map((recipient) =>
+        this.embedded ? { ...recipient, send_email: false } : recipient,
+      ),
       ...(type.copySender ? { copied_contacts: draft.copiedContacts } : {}),
       apply_signing_order: true,
       text_tags: true,
@@ -184,13 +193,29 @@ export abstract class SignWellSigningClient<K extends string> {
       // SignWell's automatic reminders stay off, and Remind is a click.
       reminders: false,
       expires_in: 30,
-      embedded_signing: false,
+      embedded_signing: Boolean(this.embedded),
+      ...(this.embedded
+        ? {
+            api_application_id: this.embedded.applicationId,
+            embedded_signing_notifications: false,
+            embedded: {
+              branding: {
+                company_logo: { file_url: this.embedded.logoUrl },
+                accent_color: "#006BC7",
+                button_label_color: "#FFFFFF",
+                link_color: "#006BC7",
+                button_border_radius: 8,
+              },
+            },
+          }
+        : {}),
       allow_reassign: false,
       subject: type.subject(record),
       message: type.message(record),
       metadata: {
         [type.bindingKey]: draft.id,
         template_sha256: draft.templateHash,
+        ...(this.embedded ? { commerce_signing_experience: "fil_one" } : {}),
       },
     });
   }
@@ -215,7 +240,7 @@ export abstract class SignWellSigningClient<K extends string> {
   }
   updateRecipient(
     id: string,
-    recipient: { id: string; name: string; email: string },
+    recipient: { id: string; name: string; email: string; send_email?: false },
   ) {
     return this.document(
       `documents/${z.uuid().parse(id)}/recipients`,

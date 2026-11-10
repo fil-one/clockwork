@@ -558,3 +558,33 @@ describe("safe signing diagnostics", () => {
     }
   });
 });
+
+it("creates an explicitly embedded draft with provider mail suppressed", async () => {
+  const transport = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(new Response(JSON.stringify(doc())));
+  const applicationId = "019a44ac-0000-7000-8000-000000000010";
+  await new SignWellClient("private-key", transport, {
+    applicationId,
+    logoUrl: "https://commerce.example.test/brand/fo-wordmark-dark.png",
+  }).createDraft(fixtureRecord, Buffer.from("%PDF-test"));
+  const raw = transport.mock.calls[0]?.[1]?.body;
+  if (typeof raw !== "string") throw new Error("Expected JSON payload");
+  const body = JSON.parse(raw) as Record<string, unknown>;
+  expect(body).toMatchObject({
+    embedded_signing: true,
+    embedded_signing_notifications: false,
+    api_application_id: applicationId,
+    reminders: false,
+    apply_signing_order: true,
+    metadata: { commerce_signing_experience: "fil_one" },
+    recipients: [{ send_email: false }, { send_email: false }],
+    embedded: {
+      branding: {
+        company_logo: {
+          file_url: "https://commerce.example.test/brand/fo-wordmark-dark.png",
+        },
+      },
+    },
+  });
+});

@@ -1,4 +1,8 @@
 import "server-only";
+import {
+  signingCreationOptions,
+  signingJourneyConfiguration,
+} from "@clockwork/workflows/signing-journey";
 import { MndaRepository } from "@clockwork/db";
 import {
   contextHasPermission,
@@ -55,7 +59,11 @@ export function mndaConfiguration() {
   return {
     ready:
       process.env.COMMERCE_MNDA_ENABLED === "true" &&
-      Boolean(process.env.SIGNWELL_API_KEY && process.env.SIGNWELL_WEBHOOK_ID),
+      Boolean(
+        process.env.SIGNWELL_API_KEY && process.env.SIGNWELL_WEBHOOK_ID,
+      ) &&
+      (!signingJourneyConfiguration(process.env).enabled ||
+        signingJourneyConfiguration(process.env).ready),
     testMode: process.env.COMMERCE_MNDA_TEST_MODE !== "false",
   };
 }
@@ -63,7 +71,10 @@ export function mndaWorkflow() {
   const apiKey = process.env.SIGNWELL_API_KEY;
   if (!mndaConfiguration().ready || !apiKey)
     throw new Error("MNDA_NOT_CONFIGURED");
-  return new MndaWorkflow(mndaRepository(), new SignWellClient(apiKey));
+  return new MndaWorkflow(
+    mndaRepository(),
+    new SignWellClient(apiKey, fetch, signingCreationOptions(process.env)),
+  );
 }
 export function mndaActor(session: MndaSession): Actor {
   return { kind: "user", id: session.userId, display: session.profile.name };

@@ -1,5 +1,9 @@
 import "server-only";
 import {
+  signingCreationOptions,
+  signingJourneyConfiguration,
+} from "@clockwork/workflows/signing-journey";
+import {
   contextHasPermission,
   type Actor,
   type Permission,
@@ -118,7 +122,11 @@ export function contractSigningConfiguration() {
   return {
     ready:
       process.env.COMMERCE_CONTRACTS_SIGNING_ENABLED === "true" &&
-      Boolean(process.env.SIGNWELL_API_KEY && process.env.SIGNWELL_WEBHOOK_ID),
+      Boolean(
+        process.env.SIGNWELL_API_KEY && process.env.SIGNWELL_WEBHOOK_ID,
+      ) &&
+      (!signingJourneyConfiguration(process.env).enabled ||
+        signingJourneyConfiguration(process.env).ready),
     testMode: process.env.COMMERCE_CONTRACTS_TEST_MODE !== "false",
   };
 }
@@ -136,7 +144,11 @@ export function contractSigningWorkflow(
   if (contractSigningConfiguration().ready && apiKey)
     return new ContractSigningWorkflow(
       contractSigningRepository(),
-      new SignWellContractClient(apiKey),
+      new SignWellContractClient(
+        apiKey,
+        fetch,
+        signingCreationOptions(process.env),
+      ),
     );
   if (operation !== "cancel")
     throw new Error("CONTRACT_SIGNING_NOT_CONFIGURED");

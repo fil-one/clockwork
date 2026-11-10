@@ -36,6 +36,13 @@ locals {
     { name = "COMMERCE_NOTIFICATIONS_EMAIL_FROM", value = local.notifications_email_from },
   ] : []
 
+  # Recipient correspondence uses the same verified address and IAM scope;
+  # it has its own display name and explicit opt-in, independent of staff prefs.
+  signing_env_vars = var.commerce_signing_mail_enabled && var.notifications_email_enabled ? [
+    { name = "COMMERCE_SIGNING_EMAIL_PROVIDER", value = "ses" },
+    { name = "COMMERCE_SIGNING_EMAIL_FROM", value = "Fil One Agreements <${local.notifications_email_address}>" },
+  ] : []
+
   # The shared root's zone is named for the hostname on the default "hot"
   # network, which both stages use (terraform.yml sets no network). On any
   # other network the records are added by hand from the output below.

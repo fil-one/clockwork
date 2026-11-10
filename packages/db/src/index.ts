@@ -25,3 +25,4 @@ export * from "./repositories/access-tokens";
 
 export * from "./repositories/account-documents";
 export * from "./repositories/hubspot";
+export * from "./repositories/signing-journey";
