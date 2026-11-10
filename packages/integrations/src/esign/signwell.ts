@@ -186,7 +186,11 @@ export abstract class SignWellSigningClient<K extends string> {
       recipients: draft.recipients.map((recipient) =>
         this.embedded ? { ...recipient, send_email: false } : recipient,
       ),
-      ...(type.copySender ? { copied_contacts: draft.copiedContacts } : {}),
+      // SignWell rejects an empty copied_contacts array. A sender who already
+      // signs receives the final copy as a recipient, so omit the field.
+      ...(type.copySender && draft.copiedContacts.length
+        ? { copied_contacts: draft.copiedContacts }
+        : {}),
       apply_signing_order: true,
       text_tags: true,
       // No message reaches a signer without a person choosing to send it:

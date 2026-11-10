@@ -104,7 +104,7 @@ describe("SignWell template contracts", () => {
         preparerEmail: record.countersigner.email,
       }),
     ).toEqual([]);
-    expect(await created(record, "createContractDraft")).toEqual([]);
+    expect(await created(record, "createContractDraft")).toBeUndefined();
   });
 
   it("never asks SignWell for automatic reminders on a contract", async () => {

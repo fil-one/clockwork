@@ -237,7 +237,7 @@ describe("partner-facing details and after-send corrections", () => {
     return JSON.parse(raw) as {
       name: string;
       subject: string;
-      copied_contacts: { name: string; email: string }[];
+      copied_contacts?: { name: string; email: string }[];
     };
   };
   it("names the document for the partner and never shows an internal reference", async () => {
@@ -268,10 +268,10 @@ describe("partner-facing details and after-send corrections", () => {
           ownerEmail: fixtureRecord.countersigner.email,
         })
       ).copied_contacts,
-    ).toEqual([]);
+    ).toBeUndefined();
     expect(
       (await created({ ...fixtureRecord, ownerEmail: null })).copied_contacts,
-    ).toEqual([]);
+    ).toBeUndefined();
   });
   it("replaces only the partner recipient through SignWell's update endpoint", async () => {
     const transport = vi
@@ -567,10 +567,14 @@ it("creates an explicitly embedded draft with provider mail suppressed", async (
   await new SignWellClient("private-key", transport, {
     applicationId,
     logoUrl: "https://commerce.example.test/brand/fo-wordmark-dark.png",
-  }).createDraft(fixtureRecord, Buffer.from("%PDF-test"));
+  }).createDraft(
+    { ...fixtureRecord, ownerEmail: fixtureRecord.input.signerEmail },
+    Buffer.from("%PDF-test"),
+  );
   const raw = transport.mock.calls[0]?.[1]?.body;
   if (typeof raw !== "string") throw new Error("Expected JSON payload");
   const body = JSON.parse(raw) as Record<string, unknown>;
+  expect(body).not.toHaveProperty("copied_contacts");
   expect(body).toMatchObject({
     embedded_signing: true,
     embedded_signing_notifications: false,
