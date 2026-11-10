@@ -36,6 +36,16 @@ page and final-copy download. Existing hosted SignWell requests keep working.
   below. In production, leave it as `signwell` until qualification is complete.
   Incomplete configuration blocks new sends.
 
+The **Signing email readiness** workflow runs from `main` through the existing
+GitHub environment deployment role. Its default `inspect` action reports the SES
+account, sender verification and DKIM state without changing them. If SES is in
+the sandbox, `verify-test-recipients` sends verification messages only to the
+addresses already approved in `COMMERCE_SIGNING_TEST_RECIPIENTS`; recipients
+must follow those verification links. `request-production-access` submits the
+transactional-mail request to AWS. A submitted request is not approval: inspect
+again and require `ProductionAccessEnabled: true` before enabling production
+agreement mail. These actions neither send agreements nor change staff access.
+
 ## Pilot before activation
 
 Use approved test addresses only. No account purchase, live agreement, or

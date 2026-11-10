@@ -1,0 +1,44 @@
+name: Signing email readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [staging, production]
+        default: staging
+        required: true
+      action:
+        type: choice
+        options: [inspect, verify-test-recipients, request-production-access]
+        default: inspect
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
+      - name: Inspect or prepare transactional signing email
+        env:
+          SIGNING_EMAIL_ACTION: ${{ inputs.action }}
+          SIGNING_EMAIL_DOMAIN:
+            ${{ vars.COMMERCE_NOTIFICATIONS_EMAIL_DOMAIN ||
+            vars.CLOCKWORK_HOSTNAME }}
+          SIGNING_TEST_RECIPIENTS: ${{ vars.COMMERCE_SIGNING_TEST_RECIPIENTS }}
+          EXPECTED_AWS_ACCOUNT: ${{ vars.AWS_ACCOUNT_ID }}
+        run: bash deploy/signing-email-readiness.sh
