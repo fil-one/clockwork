@@ -42,6 +42,7 @@ export const RELEASE_UI_SPEC_FILES = Object.freeze({
     "e2e/language-settings.spec.ts",
     "e2e/a11y-keyboard.spec.ts",
     "e2e/smoke.spec.ts",
+    "e2e/recipient-signing.spec.ts",
   ]),
   "ui-2": Object.freeze([
     "e2e/ux-shell.spec.ts",

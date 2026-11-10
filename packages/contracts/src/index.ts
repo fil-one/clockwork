@@ -19,3 +19,4 @@ export * from "./access-tokens";
 
 export * from "./account-documents";
 export * from "./hubspot";
+export * from "./signing-journey";

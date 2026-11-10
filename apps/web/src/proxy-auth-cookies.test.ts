@@ -68,3 +68,28 @@ it.each(["pkce", "refresh"])(
       ).toBe("sealed-session-header");
   },
 );
+
+it("lets recipient capabilities reach their boundary without a WorkOS account, while staff and lookalike routes stay protected", async () => {
+  const id = "019a44ac-0000-7000-8000-000000000004";
+  for (const path of [
+    `/sign/${id}`,
+    `/sign/${id}/access`,
+    `/sign/${id}/file`,
+    "/internal/mnda",
+    `/sign/${id}/admin`,
+    "/signing/embedded",
+  ]) {
+    authenticate.mockClear();
+    authenticate.mockResolvedValue(NextResponse.next());
+    const pending: Promise<unknown>[] = [];
+    await proxy(new NextRequest(`https://example.com${path}`), {
+      waitUntil: (p: Promise<unknown>) => pending.push(p),
+    } as never);
+    await Promise.all(pending);
+    expect(authenticate).toHaveBeenCalledTimes(
+      [`/sign/${id}`, `/sign/${id}/access`, `/sign/${id}/file`].includes(path)
+        ? 0
+        : 1,
+    );
+  }
+});

@@ -644,6 +644,8 @@ it("fixes a bounced counterparty email, then voids for a different signer", asyn
         eventType: "contract.signer_corrected",
         fields: ["signerEmail"],
         signerEmail: "right@example.com",
+        providerId: document.id,
+        requestNumber: 1,
       },
     },
   ]);

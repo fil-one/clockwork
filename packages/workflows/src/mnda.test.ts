@@ -879,3 +879,13 @@ it("distinguishes original-PDF failure before any provider creation call", async
     log.mockRestore();
   }
 });
+
+it("records first-party reminders without sending a SignWell reminder", async () => {
+  const s = setup();
+  s.setRecord({ state: "sent", providerId: s.doc.id });
+  s.doc.status = "Sent";
+  s.doc.metadata.commerce_signing_experience = "fil_one";
+  await s.workflow.remind(fixtureRecord.id, actor);
+  expect(s.provider.remind).not.toHaveBeenCalled();
+  expect(s.events.at(-1)).toBe("mnda.reminded");
+});

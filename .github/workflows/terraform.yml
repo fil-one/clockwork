@@ -77,6 +77,16 @@ jobs:
       TF_VAR_staff_provisioning: ${{ secrets.CLOCKWORK_STAFF_PROVISIONING }}
       TF_VAR_signwell_api_key: ${{ secrets.SIGNWELL_API_KEY }}
       TF_VAR_signwell_webhook_id: ${{ secrets.SIGNWELL_WEBHOOK_ID }}
+      TF_VAR_signwell_api_application_id:
+        ${{ vars.SIGNWELL_API_APPLICATION_ID }}
+      TF_VAR_commerce_signing_link_secret:
+        ${{ secrets.COMMERCE_SIGNING_LINK_SECRET }}
+      TF_VAR_commerce_signing_experience:
+        ${{ vars.COMMERCE_SIGNING_EXPERIENCE || 'signwell' }}
+      TF_VAR_commerce_signing_mail_enabled:
+        ${{ vars.COMMERCE_SIGNING_MAIL_ENABLED || 'false' }}
+      TF_VAR_commerce_signing_test_recipients:
+        ${{ vars.COMMERCE_SIGNING_TEST_RECIPIENTS }}
       TF_VAR_hubspot_access_token: ${{ secrets.HUBSPOT_ACCESS_TOKEN }}
       TF_VAR_commerce_mnda_enabled: ${{ vars.COMMERCE_MNDA_ENABLED || 'false' }}
       TF_VAR_commerce_contracts_signing_enabled:

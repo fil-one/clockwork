@@ -12,3 +12,4 @@ export * from "./esign/signwell";
 export * from "./esign/signwell-contracts";
 export * from "./workos/provision-staff";
 export * from "./staff-notifications";
+export * from "./esign/recipient-access";

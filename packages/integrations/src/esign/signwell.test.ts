@@ -237,7 +237,7 @@ describe("partner-facing details and after-send corrections", () => {
     return JSON.parse(raw) as {
       name: string;
       subject: string;
-      copied_contacts: { name: string; email: string }[];
+      copied_contacts?: { name: string; email: string }[];
     };
   };
   it("names the document for the partner and never shows an internal reference", async () => {
@@ -268,10 +268,10 @@ describe("partner-facing details and after-send corrections", () => {
           ownerEmail: fixtureRecord.countersigner.email,
         })
       ).copied_contacts,
-    ).toEqual([]);
+    ).toBeUndefined();
     expect(
       (await created({ ...fixtureRecord, ownerEmail: null })).copied_contacts,
-    ).toEqual([]);
+    ).toBeUndefined();
   });
   it("replaces only the partner recipient through SignWell's update endpoint", async () => {
     const transport = vi
@@ -556,5 +556,39 @@ describe("safe signing diagnostics", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+it("creates an explicitly embedded draft with provider mail suppressed", async () => {
+  const transport = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(new Response(JSON.stringify(doc())));
+  const applicationId = "019a44ac-0000-7000-8000-000000000010";
+  await new SignWellClient("private-key", transport, {
+    applicationId,
+    logoUrl: "https://commerce.example.test/brand/fo-wordmark-dark.png",
+  }).createDraft(
+    { ...fixtureRecord, ownerEmail: fixtureRecord.input.signerEmail },
+    Buffer.from("%PDF-test"),
+  );
+  const raw = transport.mock.calls[0]?.[1]?.body;
+  if (typeof raw !== "string") throw new Error("Expected JSON payload");
+  const body = JSON.parse(raw) as Record<string, unknown>;
+  expect(body).not.toHaveProperty("copied_contacts");
+  expect(body).toMatchObject({
+    embedded_signing: true,
+    embedded_signing_notifications: false,
+    api_application_id: applicationId,
+    reminders: false,
+    apply_signing_order: true,
+    metadata: { commerce_signing_experience: "fil_one" },
+    recipients: [{ send_email: false }, { send_email: false }],
+    embedded: {
+      branding: {
+        company_logo: {
+          file_url: "https://commerce.example.test/brand/fo-wordmark-dark.png",
+        },
+      },
+    },
   });
 });

@@ -137,6 +137,7 @@ function contentSecurityNonce(): string | undefined {
 function contentSecurityPolicy(
   nonce: string | undefined,
   environment: Readonly<Record<string, string | undefined>> = process.env,
+  recipientSigning = false,
 ): string {
   const production = environment.NODE_ENV === "production";
   return [
@@ -165,6 +166,7 @@ function contentSecurityPolicy(
     `script-src ${[
       "'self'",
       ...(nonce ? [`'nonce-${nonce}'`] : []),
+      ...(recipientSigning ? ["https://static.signwell.com"] : []),
       ...(production ? ["'strict-dynamic'"] : ["'unsafe-eval'"]),
     ].join(" ")}`,
     // Production nonces its stylesheets. The dev overlay injects unnonced
@@ -172,7 +174,11 @@ function contentSecurityPolicy(
     // 'unsafe-inline' outright, so the two cannot be combined: development
     // drops the nonce instead of pretending the relaxation is narrower.
     `style-src ${
-      production && nonce ? `'self' 'nonce-${nonce}'` : "'self' 'unsafe-inline'"
+      // The provider SDK injects its own unnonced style element. This
+      // exception is limited to the recipient ceremony; scripts stay nonced.
+      production && nonce && !recipientSigning
+        ? `'self' 'nonce-${nonce}'`
+        : "'self' 'unsafe-inline'"
     }`,
     // A nonce cannot cover a style ATTRIBUTE, and the design system renders
     // computed `style={{...}}` on charts, meters, and term bars. This is the
@@ -187,7 +193,7 @@ function contentSecurityPolicy(
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "media-src 'self'",
-    `frame-src ${signingFrameSources(environment).join(" ")}`,
+    `frame-src ${recipientSigning ? "'self' https://www.signwell.com" : signingFrameSources(environment).join(" ")}`,
     // Paired with the X-Frame-Options: DENY next.config.ts already sets, for
     // browsers that honour only one of the two.
     "frame-ancestors 'none'",
@@ -270,7 +276,13 @@ export default async function proxy(
   });
   const traceparent = formatTraceparent(span.context());
   const nonce = contentSecurityNonce();
-  const policy = contentSecurityPolicy(nonce);
+  // These pages contain no agreement data until their own recipient
+  // capability has been verified. Never exempt the staff signing routes.
+  const isRecipientSigning =
+    /^\/sign\/(?:[0-9a-f-]{36}|preview)(?:\/(?:access|status|launch|refresh|file))?\/?$/i.test(
+      request.nextUrl.pathname,
+    );
+  const policy = contentSecurityPolicy(nonce, process.env, isRecipientSigning);
   const forwardedHeaders = new Headers(request.headers);
   forwardedHeaders.set("traceparent", traceparent);
   forwardedHeaders.set("x-request-id", requestId);
@@ -384,7 +396,7 @@ export default async function proxy(
       });
     } else {
       const authResponse =
-        workosProxy && !isWebhook
+        workosProxy && !isWebhook && !isRecipientSigning
           ? await workosProxy(tracedRequest, event)
           : undefined;
       // AuthKit appends PKCE and refreshed session cookies directly to headers.
@@ -439,6 +451,10 @@ export default async function proxy(
     }
     response.headers.set("cache-control", "private, no-store");
     response.headers.set("content-security-policy", policy);
+    if (isRecipientSigning) {
+      response.headers.set("referrer-policy", "no-referrer");
+      response.headers.set("x-robots-tag", "noindex, nofollow, noarchive");
+    }
     response.headers.set("traceparent", traceparent);
     response.headers.set("x-request-id", requestId);
     finish(response.status, response.status >= 500 ? "error" : "ok");

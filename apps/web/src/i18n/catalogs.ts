@@ -100,6 +100,7 @@ export const messageModules = {
   platform: {
     messages: {
       ...platformMessages,
+      ...recipientSigningMessages,
       ...platformAccessMessages,
       ...platformOnboardingMessages,
     },
@@ -241,3 +242,4 @@ export function translatorFor(locale: string): Translator {
   const resolved = resolveLocale(locale);
   return createTranslator(catalogs[resolved], resolved);
 }
+import { recipientSigningMessages } from "./messages/recipient-signing";

@@ -11,7 +11,8 @@
     "./lifecycle": "./src/lifecycle/index.ts",
     "./system": "./src/system/index.ts",
     "./tasks": "./src/tasks/index.ts",
-    "./staff-notifications": "./src/staff-notifications/index.ts"
+    "./staff-notifications": "./src/staff-notifications/index.ts",
+    "./signing-journey": "./src/signing-journey/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",

@@ -341,3 +341,29 @@ describe("middleware refusals", () => {
     vi.resetModules();
   });
 });
+
+describe("recipient signing isolation", () => {
+  it("allows the embedded SDK only on recipient pages and keeps inline scripts blocked", async () => {
+    const built = await productionProxy();
+    const response = await documentResponse(
+      "/sign/019a44ac-0000-7000-8000-000000000004",
+      undefined,
+      built,
+    );
+    const policy = directives(
+      response.headers.get("content-security-policy") ?? "",
+    );
+    expect(policy.get("frame-src")).toBe("'self' https://www.signwell.com");
+    expect(policy.get("script-src")).toContain("https://static.signwell.com");
+    expect(policy.get("script-src")).not.toContain("'unsafe-inline'");
+    expect(policy.get("script-src")).toContain("'strict-dynamic'");
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+    const staff = directives(
+      (await documentResponse("/internal/mnda", undefined, built)).headers.get(
+        "content-security-policy",
+      ) ?? "",
+    );
+    expect(staff.get("script-src")).not.toContain("signwell");
+    expect(staff.get("style-src")).not.toContain("'unsafe-inline'");
+  });
+});

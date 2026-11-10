@@ -1,3 +1,4 @@
+import { signingJourneySchema } from "./signing-journey";
 import { accountDocumentsSchema } from "./account-documents";
 import * as foundationSchema from "../schema";
 import { coreSchema } from "./core";
@@ -16,6 +17,7 @@ import { accessTokensSchema } from "./access-tokens";
 import { hubspotSchema } from "./hubspot";
 
 export * from "../schema";
+export * from "./signing-journey";
 export * from "./account-documents";
 export * from "./core";
 export * from "./lifecycle";
@@ -33,7 +35,8 @@ export * from "./access-tokens";
 export * from "./hubspot";
 
 /** Drizzle consumes this stable composition; lanes only edit their own object. */
-export const runtimeSchema: typeof foundationSchema &
+export const runtimeSchema: typeof signingJourneySchema &
+  typeof foundationSchema &
   typeof coreSchema &
   typeof lifecycleSchema &
   typeof systemSchema &
@@ -49,6 +52,7 @@ export const runtimeSchema: typeof foundationSchema &
   typeof accessTokensSchema &
   typeof accountDocumentsSchema &
   typeof hubspotSchema = {
+  ...signingJourneySchema,
   ...accountDocumentsSchema,
   ...foundationSchema,
   ...coreSchema,

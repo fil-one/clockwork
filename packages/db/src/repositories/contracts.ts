@@ -1776,7 +1776,11 @@ export class ContractSigningRepository {
                 : {}),
               ...historyChanges(note),
             },
-            note?.detail,
+            {
+              ...note?.detail,
+              providerId: next.providerId,
+              requestNumber: next.requestNumber,
+            },
             note?.before,
           );
         }

@@ -1,3 +1,4 @@
+import { withSigningJourneyHandlers } from "../signing-journey/runtime";
 import { DatabasePaygBillingRepository } from "../core/database-payg";
 import { configurePaygScheduleRepository } from "../core/payg-scheduled-runtime";
 import { configurePriceBookScheduleRepository } from "../core/price-book-scheduled-runtime";
@@ -192,8 +193,8 @@ export async function createWorkflowRuntime(
   return createProductionWorkflowRuntime({
     db,
     ...adapters,
-    outboxHandlers: withStaffNotificationHandlers(
-      adapters.outboxHandlers,
+    outboxHandlers: withSigningJourneyHandlers(
+      withStaffNotificationHandlers(adapters.outboxHandlers, db, source),
       db,
       source,
     ),

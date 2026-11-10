@@ -45,6 +45,11 @@ const pinnedTransitives = [
   { name: "fastify", minimum: "5.12.5", override: "fastify@<5.12.5" },
   { name: "js-yaml", minimum: "4.3.2", override: "js-yaml@<4.3.2" },
   { name: "nanoid", minimum: "3.3.18", override: "nanoid@<3.3.18" },
+  {
+    name: "systeminformation",
+    minimum: "5.33.16",
+    override: "systeminformation@<5.33.16",
+  },
   // image-size fixed its ICNS and JXL/HEIF infinite loops in 2.0.3 (Codeberg,
   // where the project moved); GitHub's advisory data still reports no patched
   // range, so pnpm audit needs the override to see the fix.
