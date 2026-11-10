@@ -46,11 +46,12 @@ test("private-link exchange recovers, hides the token, and waits for server-conf
     window.SignWellEmbed = class {
       constructor(options) { this.options = options; }
       open() {
-        if (location.hash || this.options.showHeader || this.options.allowRedirect) throw new Error('Unsafe embed configuration');
+        if (location.hash || !this.options.showHeader || this.options.allowRedirect) throw new Error('Unsafe embed configuration');
         const button = document.createElement('button'); button.textContent = 'Provider completion event';
         button.onclick = () => this.options.events.completed();
         document.getElementById(this.options.containerId).append(button);
-        this.options.events.documentLoaded();
+        // The real recipient view can emit iframeLoaded without documentLoaded.
+        this.options.events.iframeLoaded();
       }
       close() { document.getElementById(this.options.containerId)?.replaceChildren(); }
     };`,
@@ -70,6 +71,9 @@ test("private-link exchange recovers, hides the token, and waits for server-conf
     "private-test-capability",
   ]);
   await page.getByRole("button", { name: "Review and sign" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Loading" }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Provider completion event" }).click();
   await expect(
     page.getByRole("heading", { name: "Your signature is complete" }),

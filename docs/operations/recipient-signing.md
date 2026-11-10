@@ -43,13 +43,20 @@ external recipient is implied by development of this feature.
 
 1. Send a test MNDA through the normal approval/send flow. Confirm there is one
    Fil One invitation, no provider invitation, and no unexpected provider mail.
-2. Check the actual SignWell iframe on desktop and a narrow mobile screen:
-   header hidden, correct logo and colors, complete legal disclosure, readable
-   document, editable counterparty details and signatures/date in the right
-   positions. The local `/sign/preview` is an illustrative screen, not provider
-   qualification. API application settings may still expose provider
+2. Check the actual SignWell iframe on desktop and a narrow mobile screen: Fil
+   One logo and colors, visible signing controls, complete legal disclosure,
+   readable document, editable counterparty details and signatures/date in the
+   right positions. The local `/sign/preview` is an illustrative screen, not
+   provider qualification. API application settings may still expose provider
    attribution; verify the real account before promising complete white
-   labeling.
+   labeling. Keep `showHeader: true`: the live recipient view puts **Agree &
+   Finish** in that header, so hiding it prevents signing. Document-level
+   branding replaces its logo. Loading readiness accepts `iframeLoaded` as well
+   as `documentLoaded`; neither event grants access or confirms a signature. The
+   2026-11-10 real-provider check found the final disclosure instruction clipped
+   inside SignWell's iframe at a 390px viewport. Resolve or qualify an
+   accessible mobile path before production activation; the illustrative preview
+   and stubbed browser tests cannot establish provider mobile readiness.
 3. Complete the first signature. Verify “your signature is complete,” a Fil One
    countersigner invitation, and no final-copy download until both parties have
    signed and Commerce has archived the executed PDF. Complete the second signer

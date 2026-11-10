@@ -29,6 +29,7 @@ interface EmbedOptions {
     declined(): void;
     closed(): void;
     error(): void;
+    iframeLoaded(): void;
     documentLoaded(): void;
   };
 }
@@ -144,7 +145,9 @@ export function RecipientSigningPage({
       instance = new window.SignWellEmbed({
         url,
         containerId: "recipient-document",
-        showHeader: false,
+        // SignWell puts Agree & Finish in this header. Document branding
+        // supplies the Fil One logo; hiding it would prevent completion.
+        showHeader: true,
         allowRedirect: false,
         allowDownload: true,
         allowDecline: true,
@@ -160,6 +163,11 @@ export function RecipientSigningPage({
               setError(true);
               setFrameLoading(false);
             }
+          },
+          // Recipient signing can become usable without documentLoaded. The
+          // SDK owns its inner loader; stop our outer timeout when it loads.
+          iframeLoaded: () => {
+            if (active) setFrameLoading(false);
           },
           documentLoaded: () => {
             if (active) setFrameLoading(false);
