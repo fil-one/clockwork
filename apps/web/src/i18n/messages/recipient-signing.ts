@@ -10,6 +10,16 @@ const m = (
   ar: string,
 ): TextMessage => ({ en, es, fr, de, ja, pt, zh, ar });
 export const recipientSigningMessages = defineMessages({
+  "platform.recipient.disclosure": m(
+    "Electronic signature disclosure (opens in a new tab)",
+    "Información sobre la firma electrónica (se abre en una pestaña nueva)",
+    "Informations sur la signature électronique (s’ouvre dans un nouvel onglet)",
+    "Informationen zur elektronischen Signatur (öffnet einen neuen Tab)",
+    "電子署名に関する説明（新しいタブで開きます）",
+    "Informações sobre assinatura eletrônica (abre em uma nova aba)",
+    "电子签名披露说明（在新标签页中打开）",
+    "إفصاح التوقيع الإلكتروني (يفتح في علامة تبويب جديدة)",
+  ),
   "platform.recipient.ready": m(
     "Review your agreement",
     "Revisa tu acuerdo",

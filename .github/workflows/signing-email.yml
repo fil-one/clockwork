@@ -32,7 +32,6 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
-          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
       - name: Inspect or prepare transactional signing email
         env:
           SIGNING_EMAIL_ACTION: ${{ inputs.action }}

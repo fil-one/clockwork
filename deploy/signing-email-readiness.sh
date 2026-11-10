@@ -35,5 +35,10 @@ case "${SIGNING_EMAIL_ACTION:-inspect}" in
 esac
 
 aws sesv2 get-account --query '{SendingEnabled:SendingEnabled,ProductionAccessEnabled:ProductionAccessEnabled,SendQuota:SendQuota,SuppressionAttributes:SuppressionAttributes,Review:Details.ReviewDetails}'
-aws sesv2 list-email-identities --query 'EmailIdentities[].{Identity:IdentityName,Verified:SendingEnabled,Status:VerificationStatus}'
-aws sesv2 get-email-identity --email-identity "$SIGNING_EMAIL_DOMAIN" --query '{Identity:IdentityType,Verified:VerifiedForSendingStatus,Verification:VerificationStatus,DkimStatus:DkimAttributes.Status}'
+identities=$(aws sesv2 list-email-identities --output json)
+jq '[.EmailIdentities[] | {Identity:.IdentityName,Verified:.SendingEnabled,Status:.VerificationStatus}]' <<< "$identities"
+if jq -e --arg domain "$SIGNING_EMAIL_DOMAIN" '.EmailIdentities[] | select(.IdentityName == $domain)' <<< "$identities" >/dev/null; then
+  aws sesv2 get-email-identity --email-identity "$SIGNING_EMAIL_DOMAIN" --query '{Identity:IdentityType,Verified:VerifiedForSendingStatus,Verification:VerificationStatus,DkimStatus:DkimAttributes.Status}'
+else
+  echo 'Sender identity is not provisioned. Deploy the signing mail configuration before sending.'
+fi
