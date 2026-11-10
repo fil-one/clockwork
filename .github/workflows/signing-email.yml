@@ -38,6 +38,7 @@ jobs:
           SIGNING_EMAIL_DOMAIN:
             ${{ vars.COMMERCE_NOTIFICATIONS_EMAIL_DOMAIN ||
             vars.CLOCKWORK_HOSTNAME }}
-          SIGNING_TEST_RECIPIENTS: ${{ vars.COMMERCE_SIGNING_TEST_RECIPIENTS }}
+          SIGNING_TEST_RECIPIENTS:
+            ${{ secrets.COMMERCE_SIGNING_TEST_RECIPIENTS }}
           EXPECTED_AWS_ACCOUNT: ${{ vars.AWS_ACCOUNT_ID }}
         run: bash deploy/signing-email-readiness.sh
